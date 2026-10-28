@@ -31,218 +31,230 @@ end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.concurrency
 
-noncomputable def Election.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Election.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.Election" [])
 
 attribute [irreducible] Election.ty
 
-noncomputable def Mutex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Mutex.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.Mutex" [])
 
 attribute [irreducible] Mutex.ty
 
-noncomputable def lockerMutex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lockerMutex.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.lockerMutex" [])
 
 attribute [irreducible] lockerMutex.ty
 
-noncomputable def Session.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Session.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.Session" [])
 
 attribute [irreducible] Session.ty
 
-noncomputable def sessionOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sessionOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.sessionOptions" [])
 
 attribute [irreducible] sessionOptions.ty
 
-noncomputable def SessionOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SessionOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.SessionOption" [])
 
 attribute [irreducible] SessionOption.ty
 
-noncomputable def STM.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def STM.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.STM" [])
 
 attribute [irreducible] STM.ty
 
-noncomputable def Isolation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Isolation.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.Isolation" [])
 
 attribute [irreducible] Isolation.ty
 
-noncomputable def stmError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stmError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.stmError" [])
 
 attribute [irreducible] stmError.ty
 
-noncomputable def stmOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stmOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.stmOptions" [])
 
 attribute [irreducible] stmOptions.ty
 
-noncomputable def STMOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def STMOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.STMOption" [])
 
 attribute [irreducible] STMOption.ty
 
-noncomputable def stmResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stmResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.stmResponse" [])
 
 attribute [irreducible] stmResponse.ty
 
-noncomputable def stm.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stm.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.stm" [])
 
 attribute [irreducible] stm.ty
 
-noncomputable def stmPut.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stmPut.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.stmPut" [])
 
 attribute [irreducible] stmPut.ty
 
-noncomputable def readSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def readSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.readSet" [])
 
 attribute [irreducible] readSet.ty
 
-noncomputable def writeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def writeSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.writeSet" [])
 
 attribute [irreducible] writeSet.ty
 
-noncomputable def stmSerializable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stmSerializable.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.stmSerializable" [])
 
 attribute [irreducible] stmSerializable.ty
 
-@[reducible] noncomputable def defaultSessionTTL [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def defaultSessionTTL [GooseExts] [GoGlobalContext] : val :=
   #(60 : Int)
 
-@[reducible] noncomputable def SerializableSnapshot [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SerializableSnapshot [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
-@[reducible] noncomputable def Serializable [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Serializable [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
-@[reducible] noncomputable def RepeatableReads [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RepeatableReads [GooseExts] [GoGlobalContext] : val :=
   #(W64 2)
 
-@[reducible] noncomputable def ReadCommitted [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ReadCommitted [GooseExts] [GoGlobalContext] : val :=
   #(W64 3)
 
-noncomputable def ErrElectionNotLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrElectionNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.ErrElectionNotLeader"
 
-noncomputable def ErrElectionNoLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrElectionNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.ErrElectionNoLeader"
 
-noncomputable def ErrLocked [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLocked [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.ErrLocked"
 
-noncomputable def ErrSessionExpired [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrSessionExpired [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.ErrSessionExpired"
 
-noncomputable def ErrLockReleased [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLockReleased [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.ErrLockReleased"
 
-noncomputable def NewElection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewElection [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewElection"
 
-noncomputable def ResumeElection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ResumeElection [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.ResumeElection"
 
-noncomputable def waitDelete [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def waitDelete [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.waitDelete"
 
-noncomputable def waitDeletes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def waitDeletes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.waitDeletes"
 
-noncomputable def NewMutex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMutex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewMutex"
 
-noncomputable def NewLocker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLocker [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewLocker"
 
-noncomputable def NewSession [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSession [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewSession"
 
-noncomputable def WithTTL [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithTTL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.WithTTL"
 
-noncomputable def WithLease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithLease [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.WithLease"
 
-noncomputable def WithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.WithContext"
 
-noncomputable def WithIsolation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithIsolation [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.WithIsolation"
 
-noncomputable def WithAbortContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithAbortContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.WithAbortContext"
 
-noncomputable def WithPrefetch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithPrefetch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.WithPrefetch"
 
-noncomputable def NewSTM [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSTM [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewSTM"
 
-noncomputable def mkSTM [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mkSTM [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.mkSTM"
 
-noncomputable def runSTM [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def runSTM [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.runSTM"
 
-noncomputable def isKeyCurrent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isKeyCurrent [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.isKeyCurrent"
 
-noncomputable def respToValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def respToValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.respToValue"
 
-noncomputable def NewSTMRepeatable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSTMRepeatable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewSTMRepeatable"
 
-noncomputable def NewSTMSerializable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSTMSerializable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewSTMSerializable"
 
-noncomputable def NewSTMReadCommitted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSTMReadCommitted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewSTMReadCommitted"
 
 /-- NewElection returns a new election on a given key prefix.
 
     go: election.go:44:6 -/
-noncomputable def NewElection.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewElection.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "pfx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Election.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pfx" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pfx"))
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc Election.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Election.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx")) (Val #(go!"/"))))
-  (App (Val (GoInstruction (CompositeLiteral Election.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"session")) (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"keyPrefix")) (ElementExpression go.string (Var "$v1")))])))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Election.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"session")) (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"keyPrefix")) (ElementExpression go.string (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Election.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "$res0"))))))
 
 /-- ResumeElection initializes an election with a known leader.
 
     go: election.go:49:6 -/
-noncomputable def ResumeElection.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ResumeElection.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "pfx"
   (Lam "leaderKey"
   (Lam "leaderRev"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Election.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "leaderRev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "leaderRev"))
   (Let "leaderKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "leaderKey"))
   (Let "pfx" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pfx"))
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc Election.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Election.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "leaderKey"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.int64))) (Var "leaderRev"))
   (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
-  (App (Val (GoInstruction (CompositeLiteral Election.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"keyPrefix")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"session")) (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"leaderKey")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"leaderRev")) (ElementExpression go.int64 (Var "$v3"))), (KeyedElement (some (KeyField go!"leaderSession")) (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v4")))]))))))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Election.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"keyPrefix")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"session")) (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"leaderKey")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"leaderRev")) (ElementExpression go.int64 (Var "$v3"))), (KeyedElement (some (KeyField go!"leaderSession")) (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v4")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Election.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "$res0"))))))))
 
 /-- Campaign puts a value as eligible for the election on the prefix
     key.
@@ -256,11 +268,12 @@ noncomputable def ResumeElection.impl [FfiSyntax] [GoGlobalContext] : val :=
     continue to be blocked until it becomes the leader.
 
     go: election.go:69:20 -/
-noncomputable def Election.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.Campaign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
   (Lam "val"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
   (Let "val" (App (Val (GoInstruction (GoAlloc go.string))) (Var "val"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -331,14 +344,22 @@ noncomputable def Election.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil))
   (App (Val doExecute)
@@ -363,8 +384,12 @@ noncomputable def Election.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Election.ty) go!"Resign"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$a0")))))
@@ -387,8 +412,12 @@ noncomputable def Election.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$l0") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -406,16 +435,18 @@ noncomputable def Election.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (Var "s") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- Proclaim lets the leader announce a new value without another election.
 
     go: election.go:110:20 -/
-noncomputable def Election.Proclaim.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.Proclaim.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
   (Lam "val"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
   (Let "val" (App (Val (GoInstruction (GoAlloc go.string))) (Var "val"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -458,22 +489,34 @@ noncomputable def Election.Proclaim.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "tresp"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Succeeded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "tresp")))))
   (Let "$r0" (Val #(go!""))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrElectionNotLeader))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrElectionNotLeader))) (Val #()))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "terr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "terr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "terr")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -489,19 +532,25 @@ noncomputable def Election.Proclaim.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Session.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderSession"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrElectionNotLeader))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrElectionNotLeader))) (Val #()))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- Resign lets a leader start a new election.
 
     go: election.go:132:20 -/
-noncomputable def Election.Resign.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.Resign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
-  (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res0" (Var "err")
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -535,8 +584,12 @@ noncomputable def Election.Resign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderSession"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -556,18 +609,25 @@ noncomputable def Election.Resign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Session.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderSession"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- Leader returns the leader value for the current election.
 
     go: election.go:148:20 -/
-noncomputable def Election.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.Leader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"session"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))))) (Val #()))
@@ -586,15 +646,39 @@ noncomputable def Election.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrElectionNoLeader))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrElectionNoLeader))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))))
   (App (Val doExecute)
@@ -602,7 +686,8 @@ noncomputable def Election.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- Observe returns a channel that reliably observes ordered leader proposals
     as GetResponse pointers on every current elected leader key. It will not
@@ -613,10 +698,11 @@ noncomputable def Election.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
     is otherwise disrupted.
 
     go: election.go:167:20 -/
-noncomputable def Election.Observe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.Observe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))]))) (Val #())) (Val #()))
@@ -626,27 +712,29 @@ noncomputable def Election.Observe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)) (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Var "retc")))
   (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Election.ty) go!"observe"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Var "retc")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Var "retc"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Fork
   (App (App (Var "$go") (Var "$a0")) (Var "$a1"))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Pair (Var "retc") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Pair (Var "retc") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Var "$res0"))))))
 
 /-- go: election.go:173:20 -/
-noncomputable def Election.observe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.observe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
   (Lam "ch"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
   (Let "ch" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Var "ch"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"session"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))))) (Val #()))
   (Let "client" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -897,48 +985,68 @@ noncomputable def Election.observe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Var "$a0"))
   (App (Var "$oldf") (Val #())))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0"))))))))))))
+  (Val #())))))
 
 /-- Key returns the leader key if elected, empty string otherwise.
 
     go: election.go:254:20 -/
-noncomputable def Election.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.Key.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- Rev returns the leader key's creation revision, if elected.
 
     go: election.go:257:20 -/
-noncomputable def Election.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.Rev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- Header is the response header from the last successful election proposal.
 
     go: election.go:260:20 -/
-noncomputable def Election.Header.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Election.Header.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Election.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "$res0"))))))
 
 /-- go: key.go:25:6 -/
-noncomputable def waitDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def waitDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "client"
   (Lam "key"
   (Lam "rev"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "rev"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
@@ -967,15 +1075,23 @@ noncomputable def waitDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"lost watcher waiting for delete"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (Val #(go!"lost watcher waiting for delete"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -984,8 +1100,12 @@ noncomputable def waitDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1005,8 +1125,12 @@ noncomputable def waitDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_DELETE))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1028,18 +1152,20 @@ noncomputable def waitDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "cctx") (Var "$r0"))))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "cctx") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
 /-- waitDeletes efficiently waits until all keys matching the prefix and no greater
     than the create revision are deleted.
 
     go: key.go:52:6 -/
-noncomputable def waitDeletes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def waitDeletes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "client"
   (Lam "pfx"
   (Lam "maxCreateRev"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "maxCreateRev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "maxCreateRev"))
   (Let "pfx" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pfx"))
   (Let "client" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))
@@ -1077,8 +1203,12 @@ noncomputable def waitDeletes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (App (App (Val (GoInstruction (FuncResolve waitDelete []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1087,13 +1217,21 @@ noncomputable def waitDeletes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "lastKey") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1103,32 +1241,40 @@ noncomputable def waitDeletes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam BAnon
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (Pair (Var "getOpts") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (Pair (Var "getOpts") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
 /-- go: mutex.go:45:6 -/
-noncomputable def NewMutex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewMutex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "pfx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Mutex.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pfx" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pfx"))
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc Mutex.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Mutex.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx")) (Val #(go!"/"))))
   (Let "$v2" (Val #(go!""))
   (Let "$v3" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
   (Let "$v4" (Val UntypedNil)
-  (App (Val (GoInstruction (CompositeLiteral Mutex.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.int64 (Var "$v3"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v4")))]))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Mutex.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.int64 (Var "$v3"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v4")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Mutex.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "$res0"))))))
 
 /-- TryLock locks the mutex if not already locked by another session.
     If lock is held by another session, return immediately after attempting necessary cleanup
     The ctx argument is used for the sending/receiving Txn RPC.
 
     go: mutex.go:52:17 -/
-noncomputable def Mutex.TryLock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Mutex.TryLock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "ctx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (Var "m"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -1154,8 +1300,12 @@ noncomputable def Mutex.TryLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLocked))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLocked))) (Val #()))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1172,8 +1322,12 @@ noncomputable def Mutex.TryLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1186,8 +1340,12 @@ noncomputable def Mutex.TryLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Var "ownerKey")) (Val #(W64 0))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))) (Var "$r0"))))))
   (App (Val doExecute)
@@ -1195,23 +1353,29 @@ noncomputable def Mutex.TryLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (Var "ownerKey") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- Lock locks the mutex with a cancelable context. If the context is canceled
     while trying to acquire the lock, the mutex tries to clean its stale lock entry.
 
     go: mutex.go:75:17 -/
-noncomputable def Mutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Mutex.Lock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "ctx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (Var "m"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -1255,20 +1419,32 @@ noncomputable def Mutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "gresp"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "gresp"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrSessionExpired))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrSessionExpired))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "werr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "werr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "werr")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))) (Var "$a0")))))
@@ -1280,8 +1456,12 @@ noncomputable def Mutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "gresp") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "werr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "werr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "werr")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))) (Var "$a0")))))
@@ -1295,8 +1475,12 @@ noncomputable def Mutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Var "ownerKey")) (Val #(W64 0))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))) (Var "$r0"))))))
   (App (Val doExecute)
@@ -1304,20 +1488,27 @@ noncomputable def Mutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (Var "ownerKey") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: mutex.go:111:17 -/
-noncomputable def Mutex.tryAcquire.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Mutex.tryAcquire.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "ctx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (Var "m"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))
@@ -1379,8 +1570,16 @@ noncomputable def Mutex.tryAcquire.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Succeeded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp")))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty go!"Kvs"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty) go!"GetResponseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Responses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp")))) (Val #(W64 0)))))) (Val #())))) (Val #(W64 0)))))))
   (App (Val doExecute)
@@ -1390,8 +1589,16 @@ noncomputable def Mutex.tryAcquire.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1411,13 +1618,15 @@ noncomputable def Mutex.tryAcquire.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (Var "s") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: mutex.go:134:17 -/
-noncomputable def Mutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Mutex.Unlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "ctx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (Var "m"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1430,8 +1639,12 @@ noncomputable def Mutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1448,8 +1661,12 @@ noncomputable def Mutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1461,62 +1678,86 @@ noncomputable def Mutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"pfx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.HasPrefix []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (Val doReturn)
-  (Let "$a0" (Val #(go!"invalid key %q, it should have prefix %q"))
+  (Let "$r0" (Let "$a0" (Val #(go!"invalid key %q, it should have prefix %q"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"pfx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))) (Val #(go!"")))) (Val #true) (App (Val (GoInstruction (GoOp GoLe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))) (Val #(go!"\x00"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLockReleased))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLockReleased))) (Val #()))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: mutex.go:152:17 -/
-noncomputable def Mutex.IsOwner.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Mutex.IsOwner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (Var "m"))
-  (App (Val doReturn)
-  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.CreateRevision []))) (Val #())) (Var "$a0")))
   (Let "$a1" (Val #(go!"="))
   (Let "$a2" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (Var "$res0"))))))
 
 /-- go: mutex.go:156:17 -/
-noncomputable def Mutex.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Mutex.Key.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (Var "m"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- Header is the response header received from etcd on acquiring the lock.
 
     go: mutex.go:159:17 -/
-noncomputable def Mutex.Header.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Mutex.Header.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (Var "m"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))))))
-
-/-- go: mutex.go:163:24 -/
-noncomputable def lockerMutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "lm"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "lm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lockerMutex.ty)))) (Var "lm"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "$res0"))))))
+
+/-- go: mutex.go:163:24 -/
+noncomputable def lockerMutex.Lock.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lm"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "lm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lockerMutex.ty)))) (Var "lm"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (App (Val (GoInstruction (StructFieldRef lockerMutex.ty go!"Mutex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lockerMutex.ty)))) (Var "lm"))))))) (Val #()))
   (Let "client" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1533,17 +1774,15 @@ noncomputable def lockerMutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0")))))))))
+  (Val #()))))
 
 /-- go: mutex.go:170:24 -/
-noncomputable def lockerMutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lockerMutex.Unlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lm"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "lm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lockerMutex.ty)))) (Var "lm"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (App (Val (GoInstruction (StructFieldRef lockerMutex.ty go!"Mutex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lockerMutex.ty)))) (Var "lm"))))))) (Val #()))
   (Let "client" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1560,30 +1799,39 @@ noncomputable def lockerMutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0")))))))))
+  (Val #()))))
 
 /-- NewLocker creates a sync.Locker backed by an etcd mutex.
 
     go: mutex.go:178:6 -/
-noncomputable def NewLocker.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewLocker.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "pfx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.Locker.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pfx" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pfx"))
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType lockerMutex.ty) _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (GoAlloc lockerMutex.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType lockerMutex.ty) _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (GoAlloc lockerMutex.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx"))
   (App (App (App (Val (GoInstruction (FuncResolve NewMutex []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral lockerMutex.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Mutex.ty) (Var "$v0")))])))))))))))
+  (App (Val (GoInstruction (CompositeLiteral lockerMutex.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Mutex.ty) (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.sync.Locker.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (Var "$res0"))))))
 
 /-- NewSession gets the leased session for a client.
 
     go: session.go:41:6 -/
-noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewSession.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "client"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Session.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType SessionOption.ty)))) (Var "opts"))
   (Let "client" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))) (Val #()))
@@ -1634,11 +1882,8 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Session.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty))))) (Var "keepAlive"))
   (App (App (Val (chan.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty))) (Var "$range"))
@@ -1647,23 +1892,30 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #())))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "donec"))
-  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))
+  (Val #())))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #()))))))))))))))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #()))))))))
@@ -1673,8 +1925,16 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "donec") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty))))) (Var "keepAlive")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty))))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))
   (App (Val doExecute)
@@ -1704,8 +1964,16 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Pair (Var "id") (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1734,80 +2002,104 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType sessionOptions.ty)))) (Pair (Var "ops") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- Client is the etcd client that is attached to the session.
 
     go: session.go:82:19 -/
-noncomputable def Session.Client.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Session.Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "$res0"))))))
 
 /-- Lease is the lease ID for keys bound to the session.
 
     go: session.go:87:19 -/
-noncomputable def Session.Lease.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Session.Lease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "$res0"))))))
 
 /-- Ctx is the context attached to the session, it is canceled when the lease is orphaned, expires, or
     is otherwise no longer being refreshed.
 
     go: session.go:91:19 -/
-noncomputable def Session.Ctx.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Session.Ctx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "$res0"))))))
 
 /-- Done returns a channel that closes when the lease is orphaned, expires, or
     is otherwise no longer being refreshed.
 
     go: session.go:97:19 -/
-noncomputable def Session.Done.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Session.Done.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
 
 /-- Orphan ends the refresh for the session lease. This is useful
     in case the state of the client connection is indeterminate (revoke
     would fail) or when transferring lease ownership.
 
     go: session.go:102:19 -/
-noncomputable def Session.Orphan.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Session.Orphan.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s")))) (Val #()))))))
+  (Val #()))))
 
 /-- Close orphans the session and revokes the session lease.
 
     go: session.go:108:19 -/
-noncomputable def Session.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Session.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (App (Val (GoInstruction (StructFieldRef Session.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))))))
@@ -1832,8 +2124,12 @@ noncomputable def Session.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
   (App (Val doExecute)
@@ -1845,25 +2141,23 @@ noncomputable def Session.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Orphan"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))) (Val #()))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Orphan"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))) (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- WithTTL configures the session's TTL in seconds.
     If TTL is <= 0, the default 60 seconds TTL will be used.
 
     go: session.go:128:6 -/
-noncomputable def WithTTL.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithTTL.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ttl"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc SessionOption.ty))) (App (Val (GoInstruction (GoZeroVal SessionOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ttl" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ttl"))
-  (App (Val doReturn)
-  (Lam "so"
+  (Let "$r0" (Lam "so"
   (Lam "lg"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "so" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "ttl")) (Val #(W64 0)))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "ttl"))
   (App (Val doExecute)
@@ -1874,28 +2168,39 @@ noncomputable def WithTTL.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"ttl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "so")))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))))))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))))))
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore SessionOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad SessionOption.ty))) (Var "$res0")))))
 
 /-- WithLease specifies the existing leaseID to be used for the session.
     This is useful in process restart scenario, for example, to reclaim
     leadership from an election prior to restart.
 
     go: session.go:141:6 -/
-noncomputable def WithLease.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "leaseID"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc SessionOption.ty))) (App (Val (GoInstruction (GoZeroVal SessionOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "leaseID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "leaseID"))
-  (App (Val doReturn)
-  (Lam "so"
+  (Let "$r0" (Lam "so"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "so" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "leaseID"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"leaseID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))) (Var "$r0")))))))
+  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "leaseID"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"leaseID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))) (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore SessionOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad SessionOption.ty))) (Var "$res0")))))
 
 /-- WithContext assigns a context to the session instead of defaulting to
     using the client context. This is useful for canceling NewSession and
@@ -1904,57 +2209,69 @@ noncomputable def WithLease.impl [FfiSyntax] [GoGlobalContext] : val :=
     abandoned and left to expire instead of being revoked.
 
     go: session.go:152:6 -/
-noncomputable def WithContext.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithContext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc SessionOption.ty))) (App (Val (GoInstruction (GoZeroVal SessionOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (Val doReturn)
-  (Lam "so"
+  (Let "$r0" (Lam "so"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "so" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))) (Var "$r0")))))))
+  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))) (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore SessionOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad SessionOption.ty))) (Var "$res0")))))
 
 /-- WithIsolation specifies the transaction isolation level.
 
     go: stm.go:72:6 -/
-noncomputable def WithIsolation.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithIsolation.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lvl"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc STMOption.ty))) (App (Val (GoInstruction (GoZeroVal STMOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "lvl" (App (Val (GoInstruction (GoAlloc Isolation.ty))) (Var "lvl"))
-  (App (Val doReturn)
-  (Lam "so"
-  (App (Val exceptionDo)
+  (Let "$r0" (Lam "so"
+  (Seq (App (Val exceptionDo)
   (Let "so" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmOptions.ty)))) (Var "so"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Isolation.ty))) (Var "lvl"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Isolation.ty))) (Pair (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"iso"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "so"))) (Var "$r0")))))))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Isolation.ty))) (Var "lvl"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Isolation.ty))) (Pair (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"iso"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "so"))) (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore STMOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad STMOption.ty))) (Var "$res0")))))
 
 /-- WithAbortContext specifies the context for permanently aborting the transaction.
 
     go: stm.go:77:6 -/
-noncomputable def WithAbortContext.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithAbortContext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc STMOption.ty))) (App (Val (GoInstruction (GoZeroVal STMOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (Val doReturn)
-  (Lam "so"
-  (App (Val exceptionDo)
+  (Let "$r0" (Lam "so"
+  (Seq (App (Val exceptionDo)
   (Let "so" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmOptions.ty)))) (Var "so"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "so"))) (Var "$r0")))))))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "so"))) (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore STMOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad STMOption.ty))) (Var "$res0")))))
 
 /-- WithPrefetch is a hint to prefetch a list of keys before trying to apply.
     If an STM transaction will unconditionally fetch a set of keys, prefetching
@@ -1962,31 +2279,37 @@ noncomputable def WithAbortContext.impl [FfiSyntax] [GoGlobalContext] : val :=
     with Get().
 
     go: stm.go:85:6 -/
-noncomputable def WithPrefetch.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithPrefetch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "keys"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc STMOption.ty))) (App (Val (GoInstruction (GoZeroVal STMOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
-  (App (Val doReturn)
-  (Lam "so"
-  (App (Val exceptionDo)
+  (Let "$r0" (Lam "so"
+  (Seq (App (Val exceptionDo)
   (Let "so" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmOptions.ty)))) (Var "so"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"prefetch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "so"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"prefetch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "so"))) (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"prefetch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "so"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore STMOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad STMOption.ty))) (Var "$res0")))))
 
 /-- NewSTM initiates a new STM instance, using serializable snapshot isolation by default.
 
     go: stm.go:90:6 -/
-noncomputable def NewSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewSTM.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "apply"
   (Lam "so"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "so" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType STMOption.ty)))) (Var "so"))
   (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Var "apply"))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "c"))
@@ -2003,23 +2326,37 @@ noncomputable def NewSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve runSTM []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"prefetch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "opts"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Var "apply"))
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "s"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc STM.ty))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad STM.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Var "f")) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad STM.ty))) (Var "s"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Var "f")) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"prefetch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "opts"))))
-  (App (App (Val (GoInstruction (MethodResolve STM.ty go!"Get"))) (App (Val (GoInstruction (GoLoad STM.ty))) (Var "s"))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve STM.ty go!"Get"))) (App (Val (GoInstruction (GoLoad STM.ty))) (Var "s"))) (Var "$a0")))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Pair (Var "apply") (Var "$r0")))))))
   (App (Val doExecute)
@@ -2041,13 +2378,15 @@ noncomputable def NewSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore STMOption.ty))) (Pair (Var "f") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType stmOptions.ty)))) (Pair (Var "opts") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType stmOptions.ty)))) (Pair (Var "opts") (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: stm.go:105:6 -/
-noncomputable def mkSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def mkSTM.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc STM.ty))) (App (Val (GoInstruction (GoZeroVal STM.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmOptions.ty)))) (Var "opts"))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "c"))
   (Let "$sw" (App (Val (GoInstruction (GoLoad Isolation.ty))) (App (Val (GoInstruction (StructFieldRef stmOptions.ty go!"iso"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmOptions.ty)))) (Var "opts"))))
@@ -2060,15 +2399,25 @@ noncomputable def mkSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmSerializable.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType stmSerializable.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readSet.ty) go!"cmps"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))) (Val #()))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readSet.ty) go!"cmps"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))) (Val #()))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readSet.ty) go!"first"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))) (Val #())) (Val #(W64 1))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType writeSet.ty) go!"cmps"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"wset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))) (Var "$a0")))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType stmSerializable.ty) STM.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "$res0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType stmSerializable.ty) STM.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore STM.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))))) (Pair (App (Val (GoInstruction (StructFieldRef stm.ty go!"conflicts"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2082,12 +2431,22 @@ noncomputable def mkSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmSerializable.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType stmSerializable.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readSet.ty) go!"cmps"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))) (Val #())))))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readSet.ty) go!"cmps"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType stmSerializable.ty) STM.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "$res0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType stmSerializable.ty) STM.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore STM.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))))) (Pair (App (Val (GoInstruction (StructFieldRef stm.ty go!"conflicts"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2101,12 +2460,22 @@ noncomputable def mkSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType stm.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readSet.ty) go!"cmps"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s")))) (Val #())))))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readSet.ty) go!"cmps"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType stm.ty) STM.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "$res0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType stm.ty) STM.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore STM.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))))) (Pair (App (Val (GoInstruction (StructFieldRef stm.ty go!"conflicts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2120,38 +2489,47 @@ noncomputable def mkSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType stm.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val UntypedNil)))))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType stm.ty) STM.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "$res0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType stm.ty) STM.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore STM.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))))) (Pair (App (Val (GoInstruction (StructFieldRef stm.ty go!"conflicts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType stm.ty)))) (Pair (Var "s") (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unsupported stm")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))
+  (App (Val (GoInstruction (GoLoad STM.ty))) (Var "$res0"))))))
 
 /-- go: stm.go:141:6 -/
-noncomputable def runSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def runSTM.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "apply"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Var "apply"))
   (Let "s" (App (Val (GoInstruction (GoAlloc STM.ty))) (Var "s"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)]))) (Val #())) (Val #(W64 1)))
   (Let "outc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (App (Val wrapDeferRecover) (Lam BAnon
-  (Val #())))
+  (Seq (App (Val wrapDeferRecover)
   (Lam "$defer"
   (Lam "$panic"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "out" (App (Val (GoInstruction (GoAlloc stmResponse.ty))) (App (Val (GoInstruction (GoZeroVal stmResponse.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2186,10 +2564,7 @@ noncomputable def runSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (Let "$r0" (App (Val recoverPanic)
   (Var "$panic"))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
@@ -2224,37 +2599,45 @@ noncomputable def runSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "r") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "r") (Var "$r0"))))))))
+  (Val #())))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #())))))))))))))))
+  (App (Var "$oldf") (Val #())))))))))))))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Fst (App (Val (chan.receive stmResponse.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)))) (Var "outc"))))
   (Let "r" (App (Val (GoInstruction (GoAlloc stmResponse.ty))) (App (Val (GoInstruction (GoZeroVal stmResponse.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (StructFieldRef stmResponse.ty go!"resp"))) (Var "r")))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef stmResponse.ty go!"err"))) (Var "r")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (StructFieldRef stmResponse.ty go!"resp"))) (Var "r"))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef stmResponse.ty go!"err"))) (Var "r")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore stmResponse.ty))) (Pair (Var "r") (Var "$r0")))))))))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #()))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)))) (Pair (Var "outc") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)))) (Pair (Var "outc") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: stm.go:191:19 -/
-noncomputable def readSet.add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readSet.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rs"
   (Lam "keys"
   (Lam "txnresp"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "rs" (App (Val (GoInstruction (GoAlloc readSet.ty))) (Var "rs"))
   (Let "txnresp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp"))
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Responses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp"))))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (Val #())))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -2269,22 +2652,28 @@ noncomputable def readSet.add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (Pair (Var "resp") (Var "$value")))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (Pair (Var "resp") (Var "$value")))))))))))))))
+  (Val #())))))
 
 /-- first returns the store revision from the first fetch
 
     go: stm.go:198:19 -/
-noncomputable def readSet.first.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readSet.first.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rs"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "rs" (App (Val (GoInstruction (GoAlloc readSet.ty))) (Var "rs"))
   (Let "$r0" (Val #(W64 9223372036854775806))
   (Let "ret" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "ret"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int64))) (Var "ret")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad readSet.ty))) (Var "rs"))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
   (App (App (Val (map.forRange go.string (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))) (Var "$range"))
@@ -2308,23 +2697,29 @@ noncomputable def readSet.first.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "ret") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "ret") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- cmps guards the txn from updates to read set
 
     go: stm.go:209:19 -/
-noncomputable def readSet.cmps.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readSet.cmps.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rs"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "rs" (App (Val (GoInstruction (GoAlloc readSet.ty))) (Var "rs"))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad readSet.ty))) (Var "rs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [readSet.ty]))) (Val #())) (Var "$a0"))))
   (Let "cmps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "cmps"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "cmps")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad readSet.ty))) (Var "rs"))
   (Let "rk" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -2346,18 +2741,24 @@ noncomputable def readSet.cmps.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "rk") (Var "$value"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "cmps") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "cmps") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "$res0"))))))
 
 /-- go: stm.go:219:20 -/
-noncomputable def writeSet.get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def writeSet.get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam "keys"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmPut.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType stmPut.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ws" (App (Val (GoInstruction (GoAlloc writeSet.ty))) (Var "ws"))
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType stmPut.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType stmPut.ty)))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType stmPut.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (slice.forRange go.string)) (Var "$range"))
@@ -2375,8 +2776,12 @@ noncomputable def writeSet.get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Var "wv")
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Var "wv"))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType stmPut.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -2386,15 +2791,17 @@ noncomputable def writeSet.get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "key") (Var "$value"))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "key") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmPut.ty)))) (Var "$res0"))))))
 
 /-- cmps returns a cmp list testing no writes have happened past rev
 
     go: stm.go:229:20 -/
-noncomputable def writeSet.cmps.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def writeSet.cmps.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam "rev"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ws" (App (Val (GoInstruction (GoAlloc writeSet.ty))) (Var "ws"))
   (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "rev"))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad writeSet.ty))) (Var "ws"))
@@ -2402,8 +2809,12 @@ noncomputable def writeSet.cmps.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "cmps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "cmps"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "cmps")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad writeSet.ty))) (Var "ws"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (map.forRange go.string stmPut.ty)) (Var "$range"))
@@ -2423,23 +2834,29 @@ noncomputable def writeSet.cmps.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "key") (Var "$key")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "cmps") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Pair (Var "cmps") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Var "$res0"))))))
 
 /-- puts is the list of ops for all pending writes
 
     go: stm.go:238:20 -/
-noncomputable def writeSet.puts.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def writeSet.puts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ws" (App (Val (GoInstruction (GoAlloc writeSet.ty))) (Var "ws"))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad writeSet.ty))) (Var "ws"))
   (App (App (Val (GoInstruction (FuncResolve go.len [writeSet.ty]))) (Val #())) (Var "$a0"))))
   (Let "puts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Var "puts"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Var "puts")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad writeSet.ty))) (Var "ws"))
   (Let "v" (App (Val (GoInstruction (GoAlloc stmPut.ty))) (App (Val (GoInstruction (GoZeroVal stmPut.ty))) (Val #())))
   (App (App (Val (map.forRange go.string stmPut.ty)) (Var "$range"))
@@ -2458,46 +2875,54 @@ noncomputable def writeSet.puts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore stmPut.ty))) (Pair (Var "v") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Pair (Var "puts") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Pair (Var "puts") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Var "$res0"))))))
 
 /-- go: stm.go:246:15 -/
-noncomputable def stm.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stm.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "keys"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (Var "s"))
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stm.ty) go!"fetch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve respToValue []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve respToValue []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType writeSet.ty) go!"get"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"wset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s")))) (Var "$a0")))
   (Let "wv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmPut.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType stmPut.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType stmPut.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmPut.ty)))) (Var "wv")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType stmPut.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef stmPut.ty go!"val"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmPut.ty)))) (Var "wv"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef stmPut.ty go!"val"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmPut.ty)))) (Var "wv")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType stmPut.ty)))) (Pair (Var "wv") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType stmPut.ty)))) (Pair (Var "wv") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- go: stm.go:253:15 -/
-noncomputable def stm.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stm.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "key"
   (Lam "val"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (Var "s"))
   (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (Var "opts"))
   (Let "val" (App (Val (GoInstruction (GoAlloc go.string))) (Var "val"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "val"))
   (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "val"))
@@ -2505,36 +2930,40 @@ noncomputable def stm.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpPut []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (Val (GoInstruction (CompositeLiteral stmPut.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$v1")))]))))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad writeSet.ty))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"wset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))) (Var "$r0"))))))))))))))
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad writeSet.ty))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"wset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))) (Var "$r0")))))))))
+  (Val #()))))))
 
 /-- go: stm.go:257:15 -/
-noncomputable def stm.Del.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stm.Del.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "key"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (Var "s"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$v0" (Val #(go!""))
   (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (Let "$a1" (Val #slice.nil)
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpDelete []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral stmPut.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$v1")))]))))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad writeSet.ty))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"wset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))) (Var "$r0"))))))))))
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad writeSet.ty))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"wset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))) (Var "$r0")))))))
+  (Val #()))))
 
 /-- go: stm.go:259:15 -/
-noncomputable def stm.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stm.Rev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "key"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (Var "s"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stm.ty) go!"fetch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))) (Var "$a0")))
@@ -2542,18 +2971,24 @@ noncomputable def stm.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")))) (Val #(W64 0)))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")))) (Val #(W64 0))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- go: stm.go:266:15 -/
-noncomputable def stm.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stm.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (Var "s"))
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Commit"))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType writeSet.ty) go!"puts"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"wset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s")))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Then"))) (Let "$a0" (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"conflicts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s")))) (Val #()))
@@ -2569,11 +3004,19 @@ noncomputable def stm.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Succeeded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -2586,13 +3029,15 @@ noncomputable def stm.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "txnresp") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "txnresp") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "$res0"))))))
 
 /-- go: stm.go:277:15 -/
-noncomputable def stm.fetch.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stm.fetch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "keys"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (Var "s"))
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2614,8 +3059,12 @@ noncomputable def stm.fetch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty) (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty) go!"GetResponseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Responses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp")))) (Val #(W64 0)))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty) (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty) go!"GetResponseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Responses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp")))) (Val #(W64 0)))))) (Val #()))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp"))
@@ -2655,8 +3104,12 @@ noncomputable def stm.fetch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -2671,33 +3124,37 @@ noncomputable def stm.fetch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Pair (Var "ops") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil)))
-  (App (Val doExecute)
-  (Val #())))))))))
-
-/-- go: stm.go:296:15 -/
-noncomputable def stm.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "s"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "$res0"))))))
+
+/-- go: stm.go:296:15 -/
+noncomputable def stm.reset.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stm.ty)))) (Var "s"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))]))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string stmPut.ty)]))) (Val #())) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore writeSet.ty))) (Pair (App (Val (GoInstruction (StructFieldRef stm.ty go!"wset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore readSet.ty))) (Pair (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))) (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore readSet.ty))) (Pair (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stm.ty)))) (Var "s"))) (Var "$r0"))))))))
+  (Val #()))))
 
 /-- go: stm.go:306:27 -/
-noncomputable def stmSerializable.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stmSerializable.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "keys"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2712,9 +3169,13 @@ noncomputable def stmSerializable.Get.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))
+  (App (App (Val (GoInstruction (FuncResolve respToValue []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))
-  (App (App (Val (GoInstruction (FuncResolve respToValue []))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "firstRead"))
   (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRev []))) (Val #())) (Var "$a0")))
@@ -2768,40 +3229,57 @@ noncomputable def stmSerializable.Get.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "wv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmPut.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType stmPut.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType stmPut.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmPut.ty)))) (Var "wv")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType stmPut.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef stmPut.ty go!"val"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmPut.ty)))) (Var "wv"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef stmPut.ty go!"val"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmPut.ty)))) (Var "wv")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType stmPut.ty)))) (Pair (Var "wv") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(go!"")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- go: stm.go:332:27 -/
-noncomputable def stmSerializable.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stmSerializable.Rev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "key"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stm.ty) go!"Rev"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stm.ty) go!"Rev"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stmSerializable.ty) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))) (Var "$a0"))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stmSerializable.ty) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))) (Var "$a0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- go: stm.go:337:27 -/
-noncomputable def stmSerializable.gets.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stmSerializable.gets.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.string)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad readSet.ty))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))))
   (App (App (Val (GoInstruction (FuncResolve go.len [readSet.ty]))) (Val #())) (Var "$a0"))))
@@ -2812,8 +3290,16 @@ noncomputable def stmSerializable.gets.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "ops" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Var "ops"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Var "ops"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad readSet.ty))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (map.forRange go.string (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))) (Var "$range"))
@@ -2840,13 +3326,15 @@ noncomputable def stmSerializable.gets.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Pair (Var "ops") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "keys") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "keys") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Var "$res1"))))))))
 
 /-- go: stm.go:347:27 -/
-noncomputable def stmSerializable.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def stmSerializable.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stmSerializable.ty) go!"gets"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
@@ -2880,8 +3368,12 @@ noncomputable def stmSerializable.commit.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef stm.ty go!"getOpts"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s")))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2891,8 +3383,12 @@ noncomputable def stmSerializable.commit.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readSet.ty) go!"add"))) (App (Val (GoInstruction (StructFieldRef stm.ty go!"rset"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType stmSerializable.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1"))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Succeeded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "txnresp")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -2911,56 +3407,79 @@ noncomputable def stmSerializable.commit.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Pair (Var "getops") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "keys") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "keys") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "$res0"))))))
 
 /-- go: stm.go:365:6 -/
-noncomputable def isKeyCurrent.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isKeyCurrent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "r"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "r"))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.ModRevision []))) (Val #())) (Var "$a0")))
   (Let "$a1" (Val #(go!"="))
   (Let "$a2" (App (Val (GoInstruction (Convert go.int go.any))) (Val #(W64 0)))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "r"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
-  (App (Val doReturn)
-  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.ModRevision []))) (Val #())) (Var "$a0")))
   (Let "$a1" (Val #(go!"="))
   (Let "$a2" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "r")))) (Val #(W64 0))))))))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
-  (App (Val doExecute)
-  (Val #())))))))))
-
-/-- go: stm.go:372:6 -/
-noncomputable def respToValue.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "resp"
-  (App (Val exceptionDo)
-  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")))) (Val #(W64 0)))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
-  (App (Val doReturn)
-  (Val #(go!"")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (Var "$res0"))))))
+
+/-- go: stm.go:372:6 -/
+noncomputable def respToValue.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "resp"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")))) (Val #(W64 0))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "resp"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (Let "$r0" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 /-- NewSTMRepeatable is deprecated.
 
     go: stm.go:380:6 -/
-noncomputable def NewSTMRepeatable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewSTMRepeatable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "c"
   (Lam "apply"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Var "apply"))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "c"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -2974,17 +3493,28 @@ noncomputable def NewSTMRepeatable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (App (Val (GoInstruction (FuncResolve NewSTM []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1")))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- NewSTMSerializable is deprecated.
 
     go: stm.go:385:6 -/
-noncomputable def NewSTMSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewSTMSerializable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "c"
   (Lam "apply"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Var "apply"))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "c"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -2998,17 +3528,28 @@ noncomputable def NewSTMSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (App (Val (GoInstruction (FuncResolve NewSTM []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1")))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- NewSTMReadCommitted is deprecated.
 
     go: stm.go:390:6 -/
-noncomputable def NewSTMReadCommitted.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewSTMReadCommitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "c"
   (Lam "apply"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [STM.ty] false [go.error]))))) (Var "apply"))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "c"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -3022,13 +3563,22 @@ noncomputable def NewSTMReadCommitted.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (App (App (Val (GoInstruction (FuncResolve NewSTM []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1")))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.concurrency where
   pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.strings, pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.math]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3.concurrency)) (Lam BAnon
   (App (Val exceptionDo)
@@ -3105,7 +3655,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrLockReleased go.error)) (Val #()))))))))
 
-structure Election [FfiSyntax] where
+structure Election [GooseExts] where
   mk ::
   session' : Loc
   keyPrefix' : GoString
@@ -3114,10 +3664,10 @@ structure Election [FfiSyntax] where
   leaderSession' : Loc
   hdr' : Loc
 
-noncomputable instance Election.zero_val [FfiSyntax] : ZeroVal Election :=
+noncomputable instance Election.zero_val [GooseExts] : ZeroVal Election :=
   ⟨Election.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Election.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Election.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"session" (go.GoType.PointerType Session.ty)),
 (go.field_decl.FieldDecl go!"keyPrefix" go.string),
 (go.field_decl.FieldDecl go!"leaderKey" go.string),
@@ -3125,17 +3675,17 @@ noncomputable instance Election.zero_val [FfiSyntax] : ZeroVal Election :=
 (go.field_decl.FieldDecl go!"leaderSession" (go.GoType.PointerType Session.ty)),
 (go.field_decl.FieldDecl go!"hdr" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))]
 
-@[irreducible] noncomputable def Election.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Election.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Election.fieldsUnsealed
 
-noncomputable instance equals_unfold_Election [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Election [GooseExts] [GoGlobalContext] :
     EqualsUnfold Election.fields Election.fieldsUnsealed :=
   ⟨by unfold Election.fields; rfl⟩
 
-@[reducible] noncomputable def Election.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Election.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Election.fields)
 
-class Election.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Election.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Election.underlying Election
   underlying : go.UnderlyingDirectedEq Election.ty Election.underlying
   get_session : ∀ (x : Election), go.IsGoStepPureDetTagged under (StructFieldGet Election.underlying go!"session") #x (Val #(x.session'))
@@ -3150,6 +3700,8 @@ class Election.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_leaderSession : ∀ (x : Election) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Election.underlying go!"leaderSession") (PairV #x #y) (Val #(({ x with leaderSession' := y } : Election)))
   get_hdr : ∀ (x : Election), go.IsGoStepPureDetTagged under (StructFieldGet Election.underlying go!"hdr") #x (Val #(x.hdr'))
   set_hdr : ∀ (x : Election) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Election.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : Election)))
+  method_set : go.MethodSetIs Election.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Election.ty) [(go!"Campaign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [go.error]))), (go!"Header", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Leader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error]))), (go!"Observe", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))]))), (go!"Proclaim", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [go.error]))), (go!"Resign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Rev", (some (go.signature.Signature [] false [go.int64]))), (go!"go.etcd.io/etcd/client/v3/concurrency.observe", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))] false [])))]
   ptr_Campaign_unfold : MethodUnfold (go.GoType.PointerType Election.ty) go!"Campaign" Election.Campaign.impl
   ptr_Header_unfold : MethodUnfold (go.GoType.PointerType Election.ty) go!"Header" Election.Header.impl
   ptr_Key_unfold : MethodUnfold (go.GoType.PointerType Election.ty) go!"Key" Election.Key.impl
@@ -3174,6 +3726,8 @@ attribute [instance] Election.TypeAssumptions.type_repr
   Election.TypeAssumptions.set_leaderSession
   Election.TypeAssumptions.get_hdr
   Election.TypeAssumptions.set_hdr
+  Election.TypeAssumptions.method_set
+  Election.TypeAssumptions.ptr_method_set
   Election.TypeAssumptions.ptr_Campaign_unfold
   Election.TypeAssumptions.ptr_Header_unfold
   Election.TypeAssumptions.ptr_Key_unfold
@@ -3184,7 +3738,7 @@ attribute [instance] Election.TypeAssumptions.type_repr
   Election.TypeAssumptions.ptr_Rev_unfold
   Election.TypeAssumptions.ptr_observe_unfold
 
-structure Mutex [FfiSyntax] where
+structure Mutex [GooseExts] where
   mk ::
   s' : Loc
   pfx' : GoString
@@ -3192,27 +3746,27 @@ structure Mutex [FfiSyntax] where
   myRev' : w64
   hdr' : Loc
 
-noncomputable instance Mutex.zero_val [FfiSyntax] : ZeroVal Mutex :=
+noncomputable instance Mutex.zero_val [GooseExts] : ZeroVal Mutex :=
   ⟨Mutex.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Mutex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Mutex.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" (go.GoType.PointerType Session.ty)),
 (go.field_decl.FieldDecl go!"pfx" go.string),
 (go.field_decl.FieldDecl go!"myKey" go.string),
 (go.field_decl.FieldDecl go!"myRev" go.int64),
 (go.field_decl.FieldDecl go!"hdr" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))]
 
-@[irreducible] noncomputable def Mutex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Mutex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Mutex.fieldsUnsealed
 
-noncomputable instance equals_unfold_Mutex [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Mutex [GooseExts] [GoGlobalContext] :
     EqualsUnfold Mutex.fields Mutex.fieldsUnsealed :=
   ⟨by unfold Mutex.fields; rfl⟩
 
-@[reducible] noncomputable def Mutex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Mutex.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Mutex.fields)
 
-class Mutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Mutex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Mutex.underlying Mutex
   underlying : go.UnderlyingDirectedEq Mutex.ty Mutex.underlying
   get_s : ∀ (x : Mutex), go.IsGoStepPureDetTagged under (StructFieldGet Mutex.underlying go!"s") #x (Val #(x.s'))
@@ -3225,6 +3779,8 @@ class Mutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_myRev : ∀ (x : Mutex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Mutex.underlying go!"myRev") (PairV #x #y) (Val #(({ x with myRev' := y } : Mutex)))
   get_hdr : ∀ (x : Mutex), go.IsGoStepPureDetTagged under (StructFieldGet Mutex.underlying go!"hdr") #x (Val #(x.hdr'))
   set_hdr : ∀ (x : Mutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Mutex.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : Mutex)))
+  method_set : go.MethodSetIs Mutex.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Mutex.ty) [(go!"Header", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"IsOwner", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Lock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"TryLock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Unlock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3/concurrency.tryAcquire", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), go.error])))]
   ptr_Header_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"Header" Mutex.Header.impl
   ptr_IsOwner_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"IsOwner" Mutex.IsOwner.impl
   ptr_Key_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"Key" Mutex.Key.impl
@@ -3245,6 +3801,8 @@ attribute [instance] Mutex.TypeAssumptions.type_repr
   Mutex.TypeAssumptions.set_myRev
   Mutex.TypeAssumptions.get_hdr
   Mutex.TypeAssumptions.set_hdr
+  Mutex.TypeAssumptions.method_set
+  Mutex.TypeAssumptions.ptr_method_set
   Mutex.TypeAssumptions.ptr_Header_unfold
   Mutex.TypeAssumptions.ptr_IsOwner_unfold
   Mutex.TypeAssumptions.ptr_Key_unfold
@@ -3253,31 +3811,33 @@ attribute [instance] Mutex.TypeAssumptions.type_repr
   Mutex.TypeAssumptions.ptr_Unlock_unfold
   Mutex.TypeAssumptions.ptr_tryAcquire_unfold
 
-structure lockerMutex [FfiSyntax] where
+structure lockerMutex [GooseExts] where
   mk ::
   Mutex' : Loc
 
-noncomputable instance lockerMutex.zero_val [FfiSyntax] : ZeroVal lockerMutex :=
+noncomputable instance lockerMutex.zero_val [GooseExts] : ZeroVal lockerMutex :=
   ⟨lockerMutex.mk zeroValDef⟩
 
-@[reducible] noncomputable def lockerMutex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def lockerMutex.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Mutex" (go.GoType.PointerType Mutex.ty))]
 
-@[irreducible] noncomputable def lockerMutex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def lockerMutex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lockerMutex.fieldsUnsealed
 
-noncomputable instance equals_unfold_lockerMutex [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_lockerMutex [GooseExts] [GoGlobalContext] :
     EqualsUnfold lockerMutex.fields lockerMutex.fieldsUnsealed :=
   ⟨by unfold lockerMutex.fields; rfl⟩
 
-@[reducible] noncomputable def lockerMutex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def lockerMutex.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType lockerMutex.fields)
 
-class lockerMutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lockerMutex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lockerMutex.underlying lockerMutex
   underlying : go.UnderlyingDirectedEq lockerMutex.ty lockerMutex.underlying
   get_Mutex : ∀ (x : lockerMutex), go.IsGoStepPureDetTagged under (StructFieldGet lockerMutex.underlying go!"Mutex") #x (Val #(x.Mutex'))
   set_Mutex : ∀ (x : lockerMutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lockerMutex.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : lockerMutex)))
+  method_set : go.MethodSetIs lockerMutex.ty [(go!"Header", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"IsOwner", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"TryLock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3/concurrency.tryAcquire", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lockerMutex.ty) [(go!"Header", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"IsOwner", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3/concurrency.tryAcquire", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), go.error])))]
   Header_unfold : MethodUnfold lockerMutex.ty go!"Header" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"Header"))) (App (Val (GoInstruction (StructFieldGet lockerMutex.ty go!"Mutex"))) (Var "$r"))))
   IsOwner_unfold : MethodUnfold lockerMutex.ty go!"IsOwner" (LamV "$r"
@@ -3305,6 +3865,8 @@ attribute [instance] lockerMutex.TypeAssumptions.type_repr
   lockerMutex.TypeAssumptions.underlying
   lockerMutex.TypeAssumptions.get_Mutex
   lockerMutex.TypeAssumptions.set_Mutex
+  lockerMutex.TypeAssumptions.method_set
+  lockerMutex.TypeAssumptions.ptr_method_set
   lockerMutex.TypeAssumptions.Header_unfold
   lockerMutex.TypeAssumptions.IsOwner_unfold
   lockerMutex.TypeAssumptions.Key_unfold
@@ -3318,7 +3880,7 @@ attribute [instance] lockerMutex.TypeAssumptions.type_repr
   lockerMutex.TypeAssumptions.ptr_Unlock_unfold
   lockerMutex.TypeAssumptions.ptr_tryAcquire_unfold
 
-structure Session [FfiSyntax] where
+structure Session [GooseExts] where
   mk ::
   client' : Loc
   opts' : Loc
@@ -3327,10 +3889,10 @@ structure Session [FfiSyntax] where
   cancel' : _root_.Perennial.context.CancelFunc
   donec' : GoChan
 
-noncomputable instance Session.zero_val [FfiSyntax] : ZeroVal Session :=
+noncomputable instance Session.zero_val [GooseExts] : ZeroVal Session :=
   ⟨Session.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Session.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Session.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"client" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)),
 (go.field_decl.FieldDecl go!"opts" (go.GoType.PointerType sessionOptions.ty)),
 (go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty),
@@ -3338,17 +3900,17 @@ noncomputable instance Session.zero_val [FfiSyntax] : ZeroVal Session :=
 (go.field_decl.FieldDecl go!"cancel" _root_.Perennial.context.CancelFunc.ty),
 (go.field_decl.FieldDecl go!"donec" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def Session.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Session.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Session.fieldsUnsealed
 
-noncomputable instance equals_unfold_Session [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Session [GooseExts] [GoGlobalContext] :
     EqualsUnfold Session.fields Session.fieldsUnsealed :=
   ⟨by unfold Session.fields; rfl⟩
 
-@[reducible] noncomputable def Session.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Session.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Session.fields)
 
-class Session.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Session.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Session.underlying Session
   underlying : go.UnderlyingDirectedEq Session.ty Session.underlying
   get_client : ∀ (x : Session), go.IsGoStepPureDetTagged under (StructFieldGet Session.underlying go!"client") #x (Val #(x.client'))
@@ -3363,6 +3925,8 @@ class Session.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_cancel : ∀ (x : Session) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet Session.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : Session)))
   get_donec : ∀ (x : Session), go.IsGoStepPureDetTagged under (StructFieldGet Session.underlying go!"donec") #x (Val #(x.donec'))
   set_donec : ∀ (x : Session) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Session.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : Session)))
+  method_set : go.MethodSetIs Session.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Session.ty) [(go!"Client", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Ctx", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Lease", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty]))), (go!"Orphan", (some (go.signature.Signature [] false [])))]
   ptr_Client_unfold : MethodUnfold (go.GoType.PointerType Session.ty) go!"Client" Session.Client.impl
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType Session.ty) go!"Close" Session.Close.impl
   ptr_Ctx_unfold : MethodUnfold (go.GoType.PointerType Session.ty) go!"Ctx" Session.Ctx.impl
@@ -3384,6 +3948,8 @@ attribute [instance] Session.TypeAssumptions.type_repr
   Session.TypeAssumptions.set_cancel
   Session.TypeAssumptions.get_donec
   Session.TypeAssumptions.set_donec
+  Session.TypeAssumptions.method_set
+  Session.TypeAssumptions.ptr_method_set
   Session.TypeAssumptions.ptr_Client_unfold
   Session.TypeAssumptions.ptr_Close_unfold
   Session.TypeAssumptions.ptr_Ctx_unfold
@@ -3391,31 +3957,31 @@ attribute [instance] Session.TypeAssumptions.type_repr
   Session.TypeAssumptions.ptr_Lease_unfold
   Session.TypeAssumptions.ptr_Orphan_unfold
 
-structure sessionOptions [FfiSyntax] where
+structure sessionOptions [GooseExts] where
   mk ::
   ttl' : w64
   leaseID' : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID
   ctx' : _root_.Perennial.context.Context
 
-noncomputable instance sessionOptions.zero_val [FfiSyntax] : ZeroVal sessionOptions :=
+noncomputable instance sessionOptions.zero_val [GooseExts] : ZeroVal sessionOptions :=
   ⟨sessionOptions.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def sessionOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def sessionOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ttl" go.int),
 (go.field_decl.FieldDecl go!"leaseID" _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty)]
 
-@[irreducible] noncomputable def sessionOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def sessionOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sessionOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_sessionOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_sessionOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold sessionOptions.fields sessionOptions.fieldsUnsealed :=
   ⟨by unfold sessionOptions.fields; rfl⟩
 
-@[reducible] noncomputable def sessionOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sessionOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType sessionOptions.fields)
 
-class sessionOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sessionOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sessionOptions.underlying sessionOptions
   underlying : go.UnderlyingDirectedEq sessionOptions.ty sessionOptions.underlying
   get_ttl : ∀ (x : sessionOptions), go.IsGoStepPureDetTagged under (StructFieldGet sessionOptions.underlying go!"ttl") #x (Val #(x.ttl'))
@@ -3424,6 +3990,8 @@ class sessionOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_leaseID : ∀ (x : sessionOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet sessionOptions.underlying go!"leaseID") (PairV #x #y) (Val #(({ x with leaseID' := y } : sessionOptions)))
   get_ctx : ∀ (x : sessionOptions), go.IsGoStepPureDetTagged under (StructFieldGet sessionOptions.underlying go!"ctx") #x (Val #(x.ctx'))
   set_ctx : ∀ (x : sessionOptions) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet sessionOptions.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : sessionOptions)))
+  method_set : go.MethodSetIs sessionOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sessionOptions.ty) []
 
 attribute [instance] sessionOptions.TypeAssumptions.type_repr
   sessionOptions.TypeAssumptions.underlying
@@ -3433,93 +4001,111 @@ attribute [instance] sessionOptions.TypeAssumptions.type_repr
   sessionOptions.TypeAssumptions.set_leaseID
   sessionOptions.TypeAssumptions.get_ctx
   sessionOptions.TypeAssumptions.set_ctx
+  sessionOptions.TypeAssumptions.method_set
+  sessionOptions.TypeAssumptions.ptr_method_set
 
-abbrev SessionOption [FfiSyntax] : Type := GoFunc
+abbrev SessionOption [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def SessionOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SessionOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType sessionOptions.ty), (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false []))
 
-class SessionOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SessionOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SessionOption.ty SessionOption.underlying
+  method_set : go.MethodSetIs SessionOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SessionOption.ty) []
 
 attribute [instance] SessionOption.TypeAssumptions.underlying
+  SessionOption.TypeAssumptions.method_set
+  SessionOption.TypeAssumptions.ptr_method_set
 
-abbrev STM [FfiSyntax] : Type := GoInterface
+abbrev STM [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def STM.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Del" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.string])), (go.InterfaceElem.MethodElem go!"Put" (go.signature.Signature [go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"Rev" (go.signature.Signature [go.string] false [go.int64])), (go.InterfaceElem.MethodElem go!"commit" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)])), (go.InterfaceElem.MethodElem go!"reset" (go.signature.Signature [] false []))])
+@[reducible] noncomputable def STM.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Del" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.string])), (go.InterfaceElem.MethodElem go!"Put" (go.signature.Signature [go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"Rev" (go.signature.Signature [go.string] false [go.int64])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/client/v3/concurrency.commit" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/client/v3/concurrency.reset" (go.signature.Signature [] false []))])
 
-class STM.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class STM.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq STM.ty STM.underlying
+  method_set : go.MethodSetIs STM.ty [(go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.string]))), (go!"Put", (some (go.signature.Signature [go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true []))), (go!"Rev", (some (go.signature.Signature [go.string] false [go.int64]))), (go!"go.etcd.io/etcd/client/v3/concurrency.commit", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.reset", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType STM.ty) []
 
 attribute [instance] STM.TypeAssumptions.underlying
+  STM.TypeAssumptions.method_set
+  STM.TypeAssumptions.ptr_method_set
 
-abbrev Isolation [FfiSyntax] : Type := w64
+abbrev Isolation [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Isolation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Isolation.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class Isolation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Isolation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Isolation.ty Isolation.underlying
+  method_set : go.MethodSetIs Isolation.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Isolation.ty) []
 
 attribute [instance] Isolation.TypeAssumptions.underlying
+  Isolation.TypeAssumptions.method_set
+  Isolation.TypeAssumptions.ptr_method_set
 
-structure stmError [FfiSyntax] where
+structure stmError [GooseExts] where
   mk ::
   err' : GoError
 
-noncomputable instance stmError.zero_val [FfiSyntax] : ZeroVal stmError :=
+noncomputable instance stmError.zero_val [GooseExts] : ZeroVal stmError :=
   ⟨stmError.mk zeroValDef⟩
 
-@[reducible] noncomputable def stmError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def stmError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def stmError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def stmError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   stmError.fieldsUnsealed
 
-noncomputable instance equals_unfold_stmError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_stmError [GooseExts] [GoGlobalContext] :
     EqualsUnfold stmError.fields stmError.fieldsUnsealed :=
   ⟨by unfold stmError.fields; rfl⟩
 
-@[reducible] noncomputable def stmError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def stmError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType stmError.fields)
 
-class stmError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class stmError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmError.underlying stmError
   underlying : go.UnderlyingDirectedEq stmError.ty stmError.underlying
   get_err : ∀ (x : stmError), go.IsGoStepPureDetTagged under (StructFieldGet stmError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : stmError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet stmError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : stmError)))
+  method_set : go.MethodSetIs stmError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stmError.ty) []
 
 attribute [instance] stmError.TypeAssumptions.type_repr
   stmError.TypeAssumptions.underlying
   stmError.TypeAssumptions.get_err
   stmError.TypeAssumptions.set_err
+  stmError.TypeAssumptions.method_set
+  stmError.TypeAssumptions.ptr_method_set
 
-structure stmOptions [FfiSyntax] where
+structure stmOptions [GooseExts] where
   mk ::
   iso' : Isolation
   ctx' : _root_.Perennial.context.Context
   prefetch' : GoSlice
 
-noncomputable instance stmOptions.zero_val [FfiSyntax] : ZeroVal stmOptions :=
+noncomputable instance stmOptions.zero_val [GooseExts] : ZeroVal stmOptions :=
   ⟨stmOptions.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def stmOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def stmOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"iso" Isolation.ty),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
 (go.field_decl.FieldDecl go!"prefetch" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def stmOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def stmOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   stmOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_stmOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_stmOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold stmOptions.fields stmOptions.fieldsUnsealed :=
   ⟨by unfold stmOptions.fields; rfl⟩
 
-@[reducible] noncomputable def stmOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def stmOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType stmOptions.fields)
 
-class stmOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class stmOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmOptions.underlying stmOptions
   underlying : go.UnderlyingDirectedEq stmOptions.ty stmOptions.underlying
   get_iso : ∀ (x : stmOptions), go.IsGoStepPureDetTagged under (StructFieldGet stmOptions.underlying go!"iso") #x (Val #(x.iso'))
@@ -3528,6 +4114,8 @@ class stmOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_ctx : ∀ (x : stmOptions) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet stmOptions.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : stmOptions)))
   get_prefetch : ∀ (x : stmOptions), go.IsGoStepPureDetTagged under (StructFieldGet stmOptions.underlying go!"prefetch") #x (Val #(x.prefetch'))
   set_prefetch : ∀ (x : stmOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet stmOptions.underlying go!"prefetch") (PairV #x #y) (Val #(({ x with prefetch' := y } : stmOptions)))
+  method_set : go.MethodSetIs stmOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stmOptions.ty) []
 
 attribute [instance] stmOptions.TypeAssumptions.type_repr
   stmOptions.TypeAssumptions.underlying
@@ -3537,46 +4125,54 @@ attribute [instance] stmOptions.TypeAssumptions.type_repr
   stmOptions.TypeAssumptions.set_ctx
   stmOptions.TypeAssumptions.get_prefetch
   stmOptions.TypeAssumptions.set_prefetch
+  stmOptions.TypeAssumptions.method_set
+  stmOptions.TypeAssumptions.ptr_method_set
 
-abbrev STMOption [FfiSyntax] : Type := GoFunc
+abbrev STMOption [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def STMOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def STMOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType stmOptions.ty)] false []))
 
-class STMOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class STMOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq STMOption.ty STMOption.underlying
+  method_set : go.MethodSetIs STMOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType STMOption.ty) []
 
 attribute [instance] STMOption.TypeAssumptions.underlying
+  STMOption.TypeAssumptions.method_set
+  STMOption.TypeAssumptions.ptr_method_set
 
-structure stmResponse [FfiSyntax] where
+structure stmResponse [GooseExts] where
   mk ::
   resp' : Loc
   err' : GoError
 
-noncomputable instance stmResponse.zero_val [FfiSyntax] : ZeroVal stmResponse :=
+noncomputable instance stmResponse.zero_val [GooseExts] : ZeroVal stmResponse :=
   ⟨stmResponse.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def stmResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def stmResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"resp" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def stmResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def stmResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   stmResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_stmResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_stmResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold stmResponse.fields stmResponse.fieldsUnsealed :=
   ⟨by unfold stmResponse.fields; rfl⟩
 
-@[reducible] noncomputable def stmResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def stmResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType stmResponse.fields)
 
-class stmResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class stmResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmResponse.underlying stmResponse
   underlying : go.UnderlyingDirectedEq stmResponse.ty stmResponse.underlying
   get_resp : ∀ (x : stmResponse), go.IsGoStepPureDetTagged under (StructFieldGet stmResponse.underlying go!"resp") #x (Val #(x.resp'))
   set_resp : ∀ (x : stmResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet stmResponse.underlying go!"resp") (PairV #x #y) (Val #(({ x with resp' := y } : stmResponse)))
   get_err : ∀ (x : stmResponse), go.IsGoStepPureDetTagged under (StructFieldGet stmResponse.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : stmResponse) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet stmResponse.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : stmResponse)))
+  method_set : go.MethodSetIs stmResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stmResponse.ty) []
 
 attribute [instance] stmResponse.TypeAssumptions.type_repr
   stmResponse.TypeAssumptions.underlying
@@ -3584,14 +4180,18 @@ attribute [instance] stmResponse.TypeAssumptions.type_repr
   stmResponse.TypeAssumptions.set_resp
   stmResponse.TypeAssumptions.get_err
   stmResponse.TypeAssumptions.set_err
+  stmResponse.TypeAssumptions.method_set
+  stmResponse.TypeAssumptions.ptr_method_set
 
-abbrev readSet [FfiSyntax] : Type := GoMap
+abbrev readSet [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def readSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def readSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))
 
-class readSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class readSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq readSet.ty readSet.underlying
+  method_set : go.MethodSetIs readSet.ty [(go!"go.etcd.io/etcd/client/v3/concurrency.add", (some (go.signature.Signature [(go.GoType.SliceType go.string), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)] false []))), (go!"go.etcd.io/etcd/client/v3/concurrency.cmps", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.first", (some (go.signature.Signature [] false [go.int64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType readSet.ty) [(go!"go.etcd.io/etcd/client/v3/concurrency.add", (some (go.signature.Signature [(go.GoType.SliceType go.string), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)] false []))), (go!"go.etcd.io/etcd/client/v3/concurrency.cmps", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.first", (some (go.signature.Signature [] false [go.int64])))]
   add_unfold : MethodUnfold readSet.ty go!"add" readSet.add.impl
   cmps_unfold : MethodUnfold readSet.ty go!"cmps" readSet.cmps.impl
   first_unfold : MethodUnfold readSet.ty go!"first" readSet.first.impl
@@ -3603,6 +4203,8 @@ class readSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 (App (Val (GoInstruction (MethodResolve readSet.ty go!"first"))) (App (Val (GoInstruction (GoLoad readSet.ty))) (Var "$r"))))
 
 attribute [instance] readSet.TypeAssumptions.underlying
+  readSet.TypeAssumptions.method_set
+  readSet.TypeAssumptions.ptr_method_set
   readSet.TypeAssumptions.add_unfold
   readSet.TypeAssumptions.cmps_unfold
   readSet.TypeAssumptions.first_unfold
@@ -3610,13 +4212,15 @@ attribute [instance] readSet.TypeAssumptions.underlying
   readSet.TypeAssumptions.ptr_cmps_unfold
   readSet.TypeAssumptions.ptr_first_unfold
 
-abbrev writeSet [FfiSyntax] : Type := GoMap
+abbrev writeSet [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def writeSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def writeSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string stmPut.ty)
 
-class writeSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class writeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq writeSet.ty writeSet.underlying
+  method_set : go.MethodSetIs writeSet.ty [(go!"go.etcd.io/etcd/client/v3/concurrency.cmps", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.get", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType stmPut.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.puts", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType writeSet.ty) [(go!"go.etcd.io/etcd/client/v3/concurrency.cmps", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.get", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType stmPut.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.puts", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)])))]
   cmps_unfold : MethodUnfold writeSet.ty go!"cmps" writeSet.cmps.impl
   get_unfold : MethodUnfold writeSet.ty go!"get" writeSet.get.impl
   puts_unfold : MethodUnfold writeSet.ty go!"puts" writeSet.puts.impl
@@ -3628,6 +4232,8 @@ class writeSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 (App (Val (GoInstruction (MethodResolve writeSet.ty go!"puts"))) (App (Val (GoInstruction (GoLoad writeSet.ty))) (Var "$r"))))
 
 attribute [instance] writeSet.TypeAssumptions.underlying
+  writeSet.TypeAssumptions.method_set
+  writeSet.TypeAssumptions.ptr_method_set
   writeSet.TypeAssumptions.cmps_unfold
   writeSet.TypeAssumptions.get_unfold
   writeSet.TypeAssumptions.puts_unfold
@@ -3635,7 +4241,7 @@ attribute [instance] writeSet.TypeAssumptions.underlying
   writeSet.TypeAssumptions.ptr_get_unfold
   writeSet.TypeAssumptions.ptr_puts_unfold
 
-structure stm [FfiSyntax] where
+structure stm [GooseExts] where
   mk ::
   client' : Loc
   ctx' : _root_.Perennial.context.Context
@@ -3644,10 +4250,10 @@ structure stm [FfiSyntax] where
   getOpts' : GoSlice
   conflicts' : GoFunc
 
-noncomputable instance stm.zero_val [FfiSyntax] : ZeroVal stm :=
+noncomputable instance stm.zero_val [GooseExts] : ZeroVal stm :=
   ⟨stm.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def stm.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def stm.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"client" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
 (go.field_decl.FieldDecl go!"rset" readSet.ty),
@@ -3655,17 +4261,17 @@ noncomputable instance stm.zero_val [FfiSyntax] : ZeroVal stm :=
 (go.field_decl.FieldDecl go!"getOpts" (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)),
 (go.field_decl.FieldDecl go!"conflicts" (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)])))]
 
-@[irreducible] noncomputable def stm.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def stm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   stm.fieldsUnsealed
 
-noncomputable instance equals_unfold_stm [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_stm [GooseExts] [GoGlobalContext] :
     EqualsUnfold stm.fields stm.fieldsUnsealed :=
   ⟨by unfold stm.fields; rfl⟩
 
-@[reducible] noncomputable def stm.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def stm.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType stm.fields)
 
-class stm.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class stm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stm.underlying stm
   underlying : go.UnderlyingDirectedEq stm.ty stm.underlying
   get_client : ∀ (x : stm), go.IsGoStepPureDetTagged under (StructFieldGet stm.underlying go!"client") #x (Val #(x.client'))
@@ -3680,6 +4286,8 @@ class stm.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
   set_getOpts : ∀ (x : stm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet stm.underlying go!"getOpts") (PairV #x #y) (Val #(({ x with getOpts' := y } : stm)))
   get_conflicts : ∀ (x : stm), go.IsGoStepPureDetTagged under (StructFieldGet stm.underlying go!"conflicts") #x (Val #(x.conflicts'))
   set_conflicts : ∀ (x : stm) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet stm.underlying go!"conflicts") (PairV #x #y) (Val #(({ x with conflicts' := y } : stm)))
+  method_set : go.MethodSetIs stm.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stm.ty) [(go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.string]))), (go!"Put", (some (go.signature.Signature [go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true []))), (go!"Rev", (some (go.signature.Signature [go.string] false [go.int64]))), (go!"go.etcd.io/etcd/client/v3/concurrency.commit", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.fetch", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.reset", (some (go.signature.Signature [] false [])))]
   ptr_Del_unfold : MethodUnfold (go.GoType.PointerType stm.ty) go!"Del" stm.Del.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType stm.ty) go!"Get" stm.Get.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType stm.ty) go!"Put" stm.Put.impl
@@ -3702,6 +4310,8 @@ attribute [instance] stm.TypeAssumptions.type_repr
   stm.TypeAssumptions.set_getOpts
   stm.TypeAssumptions.get_conflicts
   stm.TypeAssumptions.set_conflicts
+  stm.TypeAssumptions.method_set
+  stm.TypeAssumptions.ptr_method_set
   stm.TypeAssumptions.ptr_Del_unfold
   stm.TypeAssumptions.ptr_Get_unfold
   stm.TypeAssumptions.ptr_Put_unfold
@@ -3710,35 +4320,37 @@ attribute [instance] stm.TypeAssumptions.type_repr
   stm.TypeAssumptions.ptr_fetch_unfold
   stm.TypeAssumptions.ptr_reset_unfold
 
-structure stmPut [FfiSyntax] where
+structure stmPut [GooseExts] where
   mk ::
   val' : GoString
   op' : _root_.Perennial.go_etcd_io.etcd.client.v3.Op
 
-noncomputable instance stmPut.zero_val [FfiSyntax] : ZeroVal stmPut :=
+noncomputable instance stmPut.zero_val [GooseExts] : ZeroVal stmPut :=
   ⟨stmPut.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def stmPut.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def stmPut.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"val" go.string),
 (go.field_decl.FieldDecl go!"op" _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)]
 
-@[irreducible] noncomputable def stmPut.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def stmPut.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   stmPut.fieldsUnsealed
 
-noncomputable instance equals_unfold_stmPut [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_stmPut [GooseExts] [GoGlobalContext] :
     EqualsUnfold stmPut.fields stmPut.fieldsUnsealed :=
   ⟨by unfold stmPut.fields; rfl⟩
 
-@[reducible] noncomputable def stmPut.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def stmPut.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType stmPut.fields)
 
-class stmPut.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class stmPut.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmPut.underlying stmPut
   underlying : go.UnderlyingDirectedEq stmPut.ty stmPut.underlying
   get_val : ∀ (x : stmPut), go.IsGoStepPureDetTagged under (StructFieldGet stmPut.underlying go!"val") #x (Val #(x.val'))
   set_val : ∀ (x : stmPut) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet stmPut.underlying go!"val") (PairV #x #y) (Val #(({ x with val' := y } : stmPut)))
   get_op : ∀ (x : stmPut), go.IsGoStepPureDetTagged under (StructFieldGet stmPut.underlying go!"op") #x (Val #(x.op'))
   set_op : ∀ (x : stmPut) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.Op), go.IsGoStepPureDetTagged under (StructFieldSet stmPut.underlying go!"op") (PairV #x #y) (Val #(({ x with op' := y } : stmPut)))
+  method_set : go.MethodSetIs stmPut.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stmPut.ty) []
 
 attribute [instance] stmPut.TypeAssumptions.type_repr
   stmPut.TypeAssumptions.underlying
@@ -3746,36 +4358,40 @@ attribute [instance] stmPut.TypeAssumptions.type_repr
   stmPut.TypeAssumptions.set_val
   stmPut.TypeAssumptions.get_op
   stmPut.TypeAssumptions.set_op
+  stmPut.TypeAssumptions.method_set
+  stmPut.TypeAssumptions.ptr_method_set
 
-structure stmSerializable [FfiSyntax] where
+structure stmSerializable [GooseExts] where
   mk ::
   stm' : stm
   prefetch' : GoMap
 
-noncomputable instance stmSerializable.zero_val [FfiSyntax] : ZeroVal stmSerializable :=
+noncomputable instance stmSerializable.zero_val [GooseExts] : ZeroVal stmSerializable :=
   ⟨stmSerializable.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def stmSerializable.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def stmSerializable.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"stm" stm.ty),
 (go.field_decl.FieldDecl go!"prefetch" (go.GoType.MapType go.string (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))]
 
-@[irreducible] noncomputable def stmSerializable.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def stmSerializable.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   stmSerializable.fieldsUnsealed
 
-noncomputable instance equals_unfold_stmSerializable [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_stmSerializable [GooseExts] [GoGlobalContext] :
     EqualsUnfold stmSerializable.fields stmSerializable.fieldsUnsealed :=
   ⟨by unfold stmSerializable.fields; rfl⟩
 
-@[reducible] noncomputable def stmSerializable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def stmSerializable.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType stmSerializable.fields)
 
-class stmSerializable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class stmSerializable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stmSerializable.underlying stmSerializable
   underlying : go.UnderlyingDirectedEq stmSerializable.ty stmSerializable.underlying
   get_stm : ∀ (x : stmSerializable), go.IsGoStepPureDetTagged under (StructFieldGet stmSerializable.underlying go!"stm") #x (Val #(x.stm'))
   set_stm : ∀ (x : stmSerializable) (y : stm), go.IsGoStepPureDetTagged under (StructFieldSet stmSerializable.underlying go!"stm") (PairV #x #y) (Val #(({ x with stm' := y } : stmSerializable)))
   get_prefetch : ∀ (x : stmSerializable), go.IsGoStepPureDetTagged under (StructFieldGet stmSerializable.underlying go!"prefetch") #x (Val #(x.prefetch'))
   set_prefetch : ∀ (x : stmSerializable) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet stmSerializable.underlying go!"prefetch") (PairV #x #y) (Val #(({ x with prefetch' := y } : stmSerializable)))
+  method_set : go.MethodSetIs stmSerializable.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stmSerializable.ty) [(go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.string]))), (go!"Put", (some (go.signature.Signature [go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true []))), (go!"Rev", (some (go.signature.Signature [go.string] false [go.int64]))), (go!"go.etcd.io/etcd/client/v3/concurrency.commit", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.fetch", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.gets", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string), (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)]))), (go!"go.etcd.io/etcd/client/v3/concurrency.reset", (some (go.signature.Signature [] false [])))]
   ptr_Del_unfold : MethodUnfold (go.GoType.PointerType stmSerializable.ty) go!"Del" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stm.ty) go!"Del"))) (App (Val (GoInstruction (StructFieldRef stmSerializable.ty go!"stm"))) (Var "$r"))))
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType stmSerializable.ty) go!"Get" stmSerializable.Get.impl
@@ -3795,6 +4411,8 @@ attribute [instance] stmSerializable.TypeAssumptions.type_repr
   stmSerializable.TypeAssumptions.set_stm
   stmSerializable.TypeAssumptions.get_prefetch
   stmSerializable.TypeAssumptions.set_prefetch
+  stmSerializable.TypeAssumptions.method_set
+  stmSerializable.TypeAssumptions.ptr_method_set
   stmSerializable.TypeAssumptions.ptr_Del_unfold
   stmSerializable.TypeAssumptions.ptr_Get_unfold
   stmSerializable.TypeAssumptions.ptr_Put_unfold
@@ -3804,7 +4422,7 @@ attribute [instance] stmSerializable.TypeAssumptions.type_repr
   stmSerializable.TypeAssumptions.ptr_gets_unfold
   stmSerializable.TypeAssumptions.ptr_reset_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Election_instance : Election.TypeAssumptions
   Mutex_instance : Mutex.TypeAssumptions
   lockerMutex_instance : lockerMutex.TypeAssumptions

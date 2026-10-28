@@ -21,7 +21,7 @@ namespace dsctl
 open Iris Iris.BI Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -41,7 +41,7 @@ theorem FindMatchingUntoleratedTaint.wp_proof
       "Hfs" ∷ fs ↦* nvs.filter P ∗ "Hts" ∷ ts ↦*{dq'} tols ∗ "Hns" ∷ ns ↦*{dq} nvs ∗
       "enableComparisonOperators" ∷ enableComparisonOperators_ptr ↦ en ∗
       "tolerations" ∷ tolerations_ptr ↦ ts ∗ "logger" ∷ logger_ptr ↦ logger : IProp GF)
-    $$ [-HΦ]
+    $$ [-HΦ «$res0» «$res1»]
   · iexists W64 0
     iframe
     ipureintro; exact ⟨by word, by word, fun _ => rfl⟩

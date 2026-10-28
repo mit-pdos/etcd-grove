@@ -20,91 +20,91 @@ end pkg_id
 
 namespace k8s_io.client_go.applyconfigurations.autoscaling.v1
 
-noncomputable def CrossVersionObjectReferenceApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CrossVersionObjectReferenceApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.CrossVersionObjectReferenceApplyConfiguration" [])
 
 attribute [irreducible] CrossVersionObjectReferenceApplyConfiguration.ty
 
-noncomputable def HorizontalPodAutoscalerApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.HorizontalPodAutoscalerApplyConfiguration" [])
 
 attribute [irreducible] HorizontalPodAutoscalerApplyConfiguration.ty
 
-noncomputable def HorizontalPodAutoscalerSpecApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerSpecApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.HorizontalPodAutoscalerSpecApplyConfiguration" [])
 
 attribute [irreducible] HorizontalPodAutoscalerSpecApplyConfiguration.ty
 
-noncomputable def HorizontalPodAutoscalerStatusApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerStatusApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.HorizontalPodAutoscalerStatusApplyConfiguration" [])
 
 attribute [irreducible] HorizontalPodAutoscalerStatusApplyConfiguration.ty
 
-noncomputable def ScaleApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScaleApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ScaleApplyConfiguration" [])
 
 attribute [irreducible] ScaleApplyConfiguration.ty
 
-noncomputable def ScaleSpecApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScaleSpecApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ScaleSpecApplyConfiguration" [])
 
 attribute [irreducible] ScaleSpecApplyConfiguration.ty
 
-noncomputable def ScaleStatusApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScaleStatusApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ScaleStatusApplyConfiguration" [])
 
 attribute [irreducible] ScaleStatusApplyConfiguration.ty
 
-axiom CrossVersionObjectReferenceApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CrossVersionObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerSpecApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerStatusApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ScaleApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleSpecApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ScaleSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleStatusApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ScaleStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def CrossVersionObjectReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CrossVersionObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.CrossVersionObjectReference"
 
-noncomputable def HorizontalPodAutoscaler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HorizontalPodAutoscaler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.HorizontalPodAutoscaler"
 
-noncomputable def ExtractHorizontalPodAutoscalerFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractHorizontalPodAutoscalerFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ExtractHorizontalPodAutoscalerFrom"
 
-noncomputable def ExtractHorizontalPodAutoscaler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractHorizontalPodAutoscaler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ExtractHorizontalPodAutoscaler"
 
-noncomputable def ExtractHorizontalPodAutoscalerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractHorizontalPodAutoscalerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ExtractHorizontalPodAutoscalerStatus"
 
-noncomputable def HorizontalPodAutoscalerSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HorizontalPodAutoscalerSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.HorizontalPodAutoscalerSpec"
 
-noncomputable def HorizontalPodAutoscalerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HorizontalPodAutoscalerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.HorizontalPodAutoscalerStatus"
 
-noncomputable def Scale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Scale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.Scale"
 
-noncomputable def ScaleSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ScaleSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ScaleSpec"
 
-noncomputable def ScaleStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ScaleStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ScaleStatus"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.applyconfigurations.autoscaling.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.applyconfigurations.autoscaling.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -115,94 +115,122 @@ axiom CrossVersionObjectReferenceApplyConfiguration : Type
 axiom CrossVersionObjectReferenceApplyConfiguration.zero_val : ZeroVal CrossVersionObjectReferenceApplyConfiguration
 attribute [instance] CrossVersionObjectReferenceApplyConfiguration.zero_val
 
-class CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CrossVersionObjectReferenceApplyConfiguration.underlying CrossVersionObjectReferenceApplyConfiguration
   underlying : go.UnderlyingDirectedEq CrossVersionObjectReferenceApplyConfiguration.ty CrossVersionObjectReferenceApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying CrossVersionObjectReferenceApplyConfiguration.underlying CrossVersionObjectReferenceApplyConfiguration.underlying
+  method_set : go.MethodSetIs CrossVersionObjectReferenceApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CrossVersionObjectReferenceApplyConfiguration.ty) [(go!"WithAPIVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType CrossVersionObjectReferenceApplyConfiguration.ty)]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType CrossVersionObjectReferenceApplyConfiguration.ty)]))), (go!"WithName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType CrossVersionObjectReferenceApplyConfiguration.ty)])))]
 
 attribute [instance] CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions.type_repr
   CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions.underlying
   CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions.isUnderlying
+  CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions.method_set
+  CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerApplyConfiguration : Type
 axiom HorizontalPodAutoscalerApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerApplyConfiguration
 attribute [instance] HorizontalPodAutoscalerApplyConfiguration.zero_val
 
-class HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerApplyConfiguration.underlying HorizontalPodAutoscalerApplyConfiguration
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerApplyConfiguration.ty HorizontalPodAutoscalerApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerApplyConfiguration.underlying HorizontalPodAutoscalerApplyConfiguration.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerApplyConfiguration.ty [(go!"IsApplyConfiguration", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty) [(go!"GetAPIVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetKind", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetNamespace", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"IsApplyConfiguration", (some (go.signature.Signature [] false []))), (go!"WithAPIVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithDeletionGracePeriodSeconds", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithDeletionTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithGenerateName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithNamespace", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.OwnerReferenceApplyConfiguration" [])))] true [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithResourceVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithSpec", (some (go.signature.Signature [(go.GoType.PointerType HorizontalPodAutoscalerSpecApplyConfiguration.ty)] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.PointerType HorizontalPodAutoscalerStatusApplyConfiguration.ty)] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"WithUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false [(go.GoType.PointerType HorizontalPodAutoscalerApplyConfiguration.ty)]))), (go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ensureObjectMetaApplyConfigurationExists", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions.type_repr
   HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions.underlying
   HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions.method_set
+  HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerSpecApplyConfiguration : Type
 axiom HorizontalPodAutoscalerSpecApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerSpecApplyConfiguration
 attribute [instance] HorizontalPodAutoscalerSpecApplyConfiguration.zero_val
 
-class HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerSpecApplyConfiguration.underlying HorizontalPodAutoscalerSpecApplyConfiguration
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerSpecApplyConfiguration.ty HorizontalPodAutoscalerSpecApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerSpecApplyConfiguration.underlying HorizontalPodAutoscalerSpecApplyConfiguration.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerSpecApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerSpecApplyConfiguration.ty) [(go!"WithMaxReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType HorizontalPodAutoscalerSpecApplyConfiguration.ty)]))), (go!"WithMinReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType HorizontalPodAutoscalerSpecApplyConfiguration.ty)]))), (go!"WithScaleTargetRef", (some (go.signature.Signature [(go.GoType.PointerType CrossVersionObjectReferenceApplyConfiguration.ty)] false [(go.GoType.PointerType HorizontalPodAutoscalerSpecApplyConfiguration.ty)]))), (go!"WithTargetCPUUtilizationPercentage", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType HorizontalPodAutoscalerSpecApplyConfiguration.ty)])))]
 
 attribute [instance] HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions.type_repr
   HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions.underlying
   HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions.method_set
+  HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerStatusApplyConfiguration : Type
 axiom HorizontalPodAutoscalerStatusApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerStatusApplyConfiguration
 attribute [instance] HorizontalPodAutoscalerStatusApplyConfiguration.zero_val
 
-class HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerStatusApplyConfiguration.underlying HorizontalPodAutoscalerStatusApplyConfiguration
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerStatusApplyConfiguration.ty HorizontalPodAutoscalerStatusApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerStatusApplyConfiguration.underlying HorizontalPodAutoscalerStatusApplyConfiguration.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerStatusApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerStatusApplyConfiguration.ty) [(go!"WithCurrentCPUUtilizationPercentage", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType HorizontalPodAutoscalerStatusApplyConfiguration.ty)]))), (go!"WithCurrentReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType HorizontalPodAutoscalerStatusApplyConfiguration.ty)]))), (go!"WithDesiredReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType HorizontalPodAutoscalerStatusApplyConfiguration.ty)]))), (go!"WithLastScaleTime", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType HorizontalPodAutoscalerStatusApplyConfiguration.ty)]))), (go!"WithObservedGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType HorizontalPodAutoscalerStatusApplyConfiguration.ty)])))]
 
 attribute [instance] HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions.type_repr
   HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions.underlying
   HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions.method_set
+  HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom ScaleApplyConfiguration : Type
 axiom ScaleApplyConfiguration.zero_val : ZeroVal ScaleApplyConfiguration
 attribute [instance] ScaleApplyConfiguration.zero_val
 
-class ScaleApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ScaleApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ScaleApplyConfiguration.underlying ScaleApplyConfiguration
   underlying : go.UnderlyingDirectedEq ScaleApplyConfiguration.ty ScaleApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying ScaleApplyConfiguration.underlying ScaleApplyConfiguration.underlying
+  method_set : go.MethodSetIs ScaleApplyConfiguration.ty [(go!"IsApplyConfiguration", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScaleApplyConfiguration.ty) [(go!"GetAPIVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetKind", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetNamespace", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"IsApplyConfiguration", (some (go.signature.Signature [] false []))), (go!"WithAPIVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithDeletionGracePeriodSeconds", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithDeletionTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithGenerateName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithNamespace", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.OwnerReferenceApplyConfiguration" [])))] true [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithResourceVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithSpec", (some (go.signature.Signature [(go.GoType.PointerType ScaleSpecApplyConfiguration.ty)] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.PointerType ScaleStatusApplyConfiguration.ty)] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"WithUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false [(go.GoType.PointerType ScaleApplyConfiguration.ty)]))), (go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.ensureObjectMetaApplyConfigurationExists", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ScaleApplyConfiguration.TypeAssumptions.type_repr
   ScaleApplyConfiguration.TypeAssumptions.underlying
   ScaleApplyConfiguration.TypeAssumptions.isUnderlying
+  ScaleApplyConfiguration.TypeAssumptions.method_set
+  ScaleApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom ScaleSpecApplyConfiguration : Type
 axiom ScaleSpecApplyConfiguration.zero_val : ZeroVal ScaleSpecApplyConfiguration
 attribute [instance] ScaleSpecApplyConfiguration.zero_val
 
-class ScaleSpecApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ScaleSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ScaleSpecApplyConfiguration.underlying ScaleSpecApplyConfiguration
   underlying : go.UnderlyingDirectedEq ScaleSpecApplyConfiguration.ty ScaleSpecApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying ScaleSpecApplyConfiguration.underlying ScaleSpecApplyConfiguration.underlying
+  method_set : go.MethodSetIs ScaleSpecApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScaleSpecApplyConfiguration.ty) [(go!"WithReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ScaleSpecApplyConfiguration.ty)])))]
 
 attribute [instance] ScaleSpecApplyConfiguration.TypeAssumptions.type_repr
   ScaleSpecApplyConfiguration.TypeAssumptions.underlying
   ScaleSpecApplyConfiguration.TypeAssumptions.isUnderlying
+  ScaleSpecApplyConfiguration.TypeAssumptions.method_set
+  ScaleSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom ScaleStatusApplyConfiguration : Type
 axiom ScaleStatusApplyConfiguration.zero_val : ZeroVal ScaleStatusApplyConfiguration
 attribute [instance] ScaleStatusApplyConfiguration.zero_val
 
-class ScaleStatusApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ScaleStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ScaleStatusApplyConfiguration.underlying ScaleStatusApplyConfiguration
   underlying : go.UnderlyingDirectedEq ScaleStatusApplyConfiguration.ty ScaleStatusApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying ScaleStatusApplyConfiguration.underlying ScaleStatusApplyConfiguration.underlying
+  method_set : go.MethodSetIs ScaleStatusApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScaleStatusApplyConfiguration.ty) [(go!"WithReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ScaleStatusApplyConfiguration.ty)]))), (go!"WithSelector", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ScaleStatusApplyConfiguration.ty)])))]
 
 attribute [instance] ScaleStatusApplyConfiguration.TypeAssumptions.type_repr
   ScaleStatusApplyConfiguration.TypeAssumptions.underlying
   ScaleStatusApplyConfiguration.TypeAssumptions.isUnderlying
+  ScaleStatusApplyConfiguration.TypeAssumptions.method_set
+  ScaleStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CrossVersionObjectReferenceApplyConfiguration_instance : CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions
   HorizontalPodAutoscalerApplyConfiguration_instance : HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions
   HorizontalPodAutoscalerSpecApplyConfiguration_instance : HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions

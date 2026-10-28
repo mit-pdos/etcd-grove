@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -42,7 +42,8 @@ theorem apierrors.NewTimeoutError.wp_proof :
     exact _root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))
     $$ [$Hasl] as %s -
   (try wp_auto)
-  wp_apply wp_alloc as %p Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
   (try wp_auto)
   iapply HΦ
   iexists _, _

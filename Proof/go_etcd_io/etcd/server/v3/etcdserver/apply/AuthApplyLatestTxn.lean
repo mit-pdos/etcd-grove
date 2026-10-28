@@ -4,11 +4,12 @@
 `AuthLemmas.lean`) with their checks' verdicts at the latest state, and `Txn`'s outcome decided
 there.
 
-The permissions a transaction's checks see (`txnChecked`): its comparisons' reads, then each
-operation's (`opChecked`): a get's read, a put's write and, with its request's `PrevKv`, read (not
-in `TxnOp`: either), a delete's `PrevKv` read then write, a nested transaction's recursively; each
-range end as the check saw it (`authEndOf`). A pass is every checked permission granted at the
-latest state; a refusal one that may be checked (`txnMay`) refused there.
+The permissions a transaction's checks see (`txnChecked`), of its wire transaction (`TxnModelW`,
+E3e: until then of its `TxnModel`, where a put's `PrevKv` read could only be "either"): its
+comparisons' reads, then each operation's (`opChecked`): a get's read, a put's write and, with its
+`PrevKv`, read (`putPerms`), a delete's `PrevKv` read then write, a nested transaction's
+recursively; each range end as the check saw it (`authEndOf`). A pass is every checked permission
+granted at the latest state; a refusal one that may be checked (`txnMay`) refused there.
 -/
 module
 
@@ -32,37 +33,32 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_e
 namespace apply
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The comparisons' reads as the check saw them. -/
 def cmpsChecked : List CmpModel → List Perm3 → Prop
   | [], L => L = []
   | cm :: cs, L => ∃ e L', authEndOf cm.rangeEnd e ∧ cmpsChecked cs L' ∧ L = (cm.key, e, .read) :: L'
 
-/-- A put-like operation's checks: its write, and with its request's `PrevKv` its read. -/
-def putChecked (k : GoString) (L : List Perm3) : Prop :=
-  L = [(k, [], .write)] ∨ L = [(k, [], .write), (k, [], .read)]
-
 mutual
-/-- **The permissions an operation's checks see**, in order (see the file header). -/
-def opChecked : TxnOp → List Perm3 → Prop
+/-- **The permissions a wire operation's checks see**, in order (see the file header). -/
+def opChecked : txn.TxnOpW → List Perm3 → Prop
   | .get o, L => ∃ e, authEndOf o.base.rangeEnd e ∧ L = [(o.key, e, .read)]
-  | .put k _ _, L => putChecked k L
-  | .putKeep k _, L => putChecked k L
-  | .putIgnVal k _, L => putChecked k L
+  | .put o, L => L = putPerms o
   | .delete o, L => ∃ e, authEndOf o.base.rangeEnd e ∧
       L = (if o.base.prevKV then [(o.key, e, .read)] else []) ++ [(o.key, e, .write)]
   | .txn cs ts es, L => ∃ L1 L2 L3, cmpsChecked cs L1 ∧ opsChecked ts L2 ∧ opsChecked es L3 ∧
       L = L1 ++ (L2 ++ L3)
 
-/-- The permissions a list of operations' checks see, in order. -/
-def opsChecked : List TxnOp → List Perm3 → Prop
+/-- The permissions a list of wire operations' checks see, in order. -/
+def opsChecked : List txn.TxnOpW → List Perm3 → Prop
   | [], L => L = []
   | op :: ops, L => ∃ L1 L2, opChecked op L1 ∧ opsChecked ops L2 ∧ L = L1 ++ L2
 end
 
-/-- **The permissions a transaction's checks see** (`checkTxnPermission`). -/
-def txnChecked (t : TxnModel) (L : List Perm3) : Prop :=
+/-- **The permissions a transaction's checks see** (`checkTxnPermission`), of its wire
+transaction. -/
+def txnChecked (t : txn.TxnModelW) (L : List Perm3) : Prop :=
   ∃ L1 L2 L3, cmpsChecked t.cmps L1 ∧ opsChecked t.thenOps L2 ∧ opsChecked t.elseOps L3 ∧
     L = L1 ++ (L2 ++ L3)
 
@@ -70,27 +66,23 @@ def txnChecked (t : TxnModel) (L : List Perm3) : Prop :=
 def cmpsMay (cs : List CmpModel) (x : Perm3) : Prop :=
   ∃ cm ∈ cs, ∃ e, authEndOf cm.rangeEnd e ∧ x = (cm.key, e, .read)
 
-/-- A put-like operation's permission its checks may see. -/
-def putMay (k : GoString) (x : Perm3) : Prop := x = (k, [], .write) ∨ x = (k, [], .read)
-
 mutual
-/-- **A permission an operation's checks may see.** -/
-def opMay : TxnOp → Perm3 → Prop
+/-- **A permission a wire operation's checks may see** (a delete's read only with its `PrevKv`). -/
+def opMay : txn.TxnOpW → Perm3 → Prop
   | .get o, x => ∃ e, authEndOf o.base.rangeEnd e ∧ x = (o.key, e, .read)
-  | .put k _ _, x => putMay k x
-  | .putKeep k _, x => putMay k x
-  | .putIgnVal k _, x => putMay k x
-  | .delete o, x => ∃ e, authEndOf o.base.rangeEnd e ∧ (x = (o.key, e, .write) ∨ x = (o.key, e, .read))
+  | .put o, x => x ∈ putPerms o
+  | .delete o, x => ∃ e, authEndOf o.base.rangeEnd e ∧
+      (x = (o.key, e, .write) ∨ (o.base.prevKV = true ∧ x = (o.key, e, .read)))
   | .txn cs ts es, x => cmpsMay cs x ∨ opsMay ts x ∨ opsMay es x
 
-/-- A permission a list of operations' checks may see. -/
-def opsMay : List TxnOp → Perm3 → Prop
+/-- A permission a list of wire operations' checks may see. -/
+def opsMay : List txn.TxnOpW → Perm3 → Prop
   | [], _ => False
   | op :: ops, x => opMay op x ∨ opsMay ops x
 end
 
-/-- **A permission a transaction's checks may see.** -/
-def txnMay (t : TxnModel) (x : Perm3) : Prop :=
+/-- **A permission a transaction's checks may see**, of its wire transaction. -/
+def txnMay (t : txn.TxnModelW) (x : Perm3) : Prop :=
   cmpsMay t.cmps x ∨ opsMay t.thenOps x ∨ opsMay t.elseOps x
 
 /-- **The checkable permissions are of the cache's shape whenever auth is enabled** at the latest
@@ -169,7 +161,7 @@ theorem cmpsChecked_snoc (l : List CmpModel) (cm : CmpModel) (L : List Perm3) (e
     obtain ⟨e', L', he', hL', rfl⟩ := hl
     exact ⟨e', L' ++ [(cm.key, e, .read)], he', ih L' hL', rfl⟩
 
-theorem opsChecked_snoc (l : List TxnOp) (op : TxnOp) (L L' : List Perm3)
+theorem opsChecked_snoc (l : List txn.TxnOpW) (op : txn.TxnOpW) (L L' : List Perm3)
     (hl : opsChecked l L) (hop : opChecked op L') : opsChecked (l ++ [op]) (L ++ L') := by
   induction l generalizing L with
   | nil =>
@@ -182,7 +174,7 @@ theorem opsChecked_snoc (l : List TxnOp) (op : TxnOp) (L L' : List Perm3)
     refine ⟨L1, L2 ++ L', h1, ih L2 h2, ?_⟩
     simp
 
-theorem opsMay_of_getElem (ops : List TxnOp) (i : Nat) (op : TxnOp) (x : Perm3)
+theorem opsMay_of_getElem (ops : List txn.TxnOpW) (i : Nat) (op : txn.TxnOpW) (x : Perm3)
     (hi : ops[i]? = some op) (hx : opMay op x) : opsMay ops x := by
   induction ops generalizing i with
   | nil => simp at hi
@@ -200,42 +192,12 @@ theorem cmpsMay_of_getElem (cs : List CmpModel) (i : Nat) (cm : CmpModel) (e : G
     (hi : cs[i]? = some cm) (he : authEndOf cm.rangeEnd e) : cmpsMay cs (cm.key, e, .read) :=
   ⟨cm, List.mem_of_getElem? hi, e, he, rfl⟩
 
-/-- The server's put: its checks are `putPerms`, its permissions may be checked. -/
-theorem putTxnOp_checked (o : OpFull) : opChecked (txn.putTxnOp o) (putPerms o) := by
-  have h : putChecked o.key (putPerms o) := by
-    unfold putChecked putPerms
-    cases o.base.prevKV
-    · left; rfl
-    · right; rfl
-  unfold txn.putTxnOp
-  split
-  · exact h
-  · split
-    · exact h
-    · exact h
-
-theorem putTxnOp_may (o : OpFull) (x : Perm3) (hx : x ∈ putPerms o) : opMay (txn.putTxnOp o) x := by
-  have h : putMay o.key x := by
-    unfold putMay
-    unfold putPerms at hx
-    cases hp : o.base.prevKV
-    · simp only [hp, Bool.false_eq_true, ↓reduceIte, List.mem_singleton] at hx
-      exact Or.inl hx
-    · simp only [hp, ↓reduceIte, List.mem_cons, List.not_mem_nil, _root_.or_false] at hx
-      exact hx
-  unfold txn.putTxnOp
-  split
-  · exact h
-  · split
-    · exact h
-    · exact h
-
 end pure
 
 end apply
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -247,15 +209,15 @@ a refusal a checkable one refused. -/
 abbrev apply.checkTxnPermission.specL : Prop :=
   ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : TxnModel),
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : txn.TxnModelW),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ apply.lookupNil le ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
-      txn.txnRequestIs rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ }}
+      txn.txnRequestIsW rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-      (∀ _ : err = GoInterface.nil, apply.txnClass on info t) ∗
+      (∀ _ : err = GoInterface.nil, apply.txnClass on info t.toModel) ∗
       ⌜(err = GoInterface.nil → ∃ L, apply.txnChecked t L ∧
           apply.passedL on hs (auth.authInfoM info) L) ∧
         (err ≠ GoInterface.nil → apply.refusedMay on hs (auth.authInfoM info) (apply.txnMay t))⌝ }}
@@ -264,45 +226,50 @@ abbrev apply.checkTxnPermission.specL : Prop :=
 abbrev apply.CheckTxnAuth.specL : Prop :=
   ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : TxnModel),
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : txn.TxnModelW),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ apply.lookupNil le ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
-      txn.txnRequestIs rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ }}
+      txn.txnRequestIsW rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-      (∀ _ : err = GoInterface.nil, apply.txnClass on info t) ∗
+      (∀ _ : err = GoInterface.nil, apply.txnClass on info t.toModel) ∗
       ⌜(err = GoInterface.nil → ∃ L, apply.txnChecked t L ∧
           apply.passedL on hs (auth.authInfoM info) L) ∧
         (err ≠ GoInterface.nil → apply.refusedMay on hs (auth.authInfoM info) (apply.txnMay t))⌝ }}
 
-/-- **`Txn` on the apply thread**: `Txn.spec`'s, the lessor finding no lease, the outcome decided at
-the latest state: the auth layer's rejection with a checkable permission refused, or the inner
+/-- **`Txn` on the apply thread**: `Txn.spec`'s, the lessor finding no lease, the request's wire
+transaction `tw` (its `PrevKv`s, E3e), the outcome decided at the latest state: the auth layer's rejection with a checkable permission refused, or the inner
 chain's outcome with the transaction's checked permissions granted. -/
 abbrev apply.authApplierV3.Txn.specL : Prop :=
   ∀ (E : apply.AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (skip : Bool)
-    (rq : IRRModel) (t : TxnModel) (log F : mvcc.Log) (Pre Q Post : IProp GF)
+    (rq : IRRModel) (t : TxnModel) (tw : txn.TxnModelW) (log F : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.authIs E p inner ∗ apply.authIsL E p Lr ∗ apply.lessorNil p ∗ apply.applierSpec E c inner ∗
-      apply.txnPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq t log Pre Q Post ∗
-      mvcc.idxCert E.γ.idx F ∗ Lr hs ∗ ⌜apply.shapedMay E.authMode hs (apply.txnMay t)⌝ }}
+      apply.txnPreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq t log Pre Q Post
+        (fun oc => (oc = .rejected .auth ∧
+            apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay tw)) ∨
+          (apply.chainStep apply.backendStep c rq log oc ∧
+            ∃ L, apply.txnChecked tw L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L)) ∗
+      txn.txnRequestIsW r tw ∗ ⌜rq.txnW = some tw⌝ ∗
+      mvcc.idxCert E.γ.idx F ∗ Lr hs ∗ ⌜apply.shapedMay E.authMode hs (apply.txnMay tw)⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
         (apply.txnAnswerIs log t skip resp err) Pre Post
         (fun oc => (oc = .rejected .auth ∧
-            apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay t)) ∨
+            apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay tw)) ∨
           (apply.chainStep apply.backendStep c rq log oc ∧
-            ∃ L, apply.txnChecked t L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L)) ∗
+            ∃ L, apply.txnChecked tw L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L)) ∗
       Lr hs ∗ apply.traceRes trace }}
 
 end spec
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -312,13 +279,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 def apply.txnPermTL (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) : IProp GF :=
-  iprop(□ ∀ (rt : Loc) (t : TxnModel) (Φ : val → IProp GF),
+  iprop(□ ∀ (rt : Loc) (t : txn.TxnModelW) (Φ : val → IProp GF),
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ apply.lookupNil le ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
-      txn.txnRequestIs rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ -∗
-    (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ Lr hs ∗ applyErrIs err ∗
+      txn.txnRequestIsW rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ -∗
+    (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ Lr hs ∗ authApplyErrIs err ∗
         ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-        (∀ _ : err = GoInterface.nil, apply.txnClass on info t) ∗
+        (∀ _ : err = GoInterface.nil, apply.txnClass on info t.toModel) ∗
         ⌜(err = GoInterface.nil → ∃ L, apply.txnChecked t L ∧
             apply.passedL on hs (auth.authInfoM info) L) ∧
           (err ≠ GoInterface.nil → apply.refusedMay on hs (auth.authInfoM info) (apply.txnMay t))⌝ -∗
@@ -338,16 +305,16 @@ theorem apply.checkTxnReqs_latest
   ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice)
-    (ps : List Loc) (ops : List TxnOp),
+    (ps : List Loc) (ops : List txn.TxnOpW),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ apply.lookupNil le ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
-      reqs ↦*□ ps ∗ txn.requestOpsIs ps ops ∗ apply.txnPermTL st le RD on Lr hs ai info dq ∗
+      reqs ↦*□ ps ∗ txn.requestOpsIsW ps ops ∗ apply.txnPermTL st le RD on Lr hs ai info dq ∗
       ⌜apply.shapedMay on hs (apply.opsMay ops)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-      (∀ _ : err = GoInterface.nil, apply.opsClass on info ops) ∗
+      (∀ _ : err = GoInterface.nil, apply.opsClass on info (txn.TxnOpW.toOps ops)) ∗
       ⌜(err = GoInterface.nil → ∃ L, apply.opsChecked ops L ∧
           apply.passedL on hs (auth.authInfoM info) L) ∧
         (err ≠ GoInterface.nil → apply.refusedMay on hs (auth.authInfoM info) (apply.opsMay ops))⌝ }} := by
@@ -365,7 +332,7 @@ theorem apply.checkTxnReqs_latest
   ihave HI : iprop(∃ (n : w64) (q : Loc),
       "i" ∷ i_ptr ↦ n ∗ "requ" ∷ requ_ptr ↦ q ∗ "Hai" ∷ ai ↦{dq} info ∗ "Hrd" ∷ RD ∗ "HL" ∷ Lr hs ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z reqs.len⌝ ∗
-      "#Hcls" ∷ apply.opsClass on info (ops.take (sint.nat n)) ∗
+      "#Hcls" ∷ apply.opsClass on info (txn.TxnOpW.toOps (ops.take (sint.nat n))) ∗
       "%Hpass" ∷ ⌜∃ L, apply.opsChecked (ops.take (sint.nat n)) L ∧
         apply.passedL on hs (auth.authInfoM info) L⌝) $$ [i requ Hai Hrd HL]
   · iexists W64 0, _
@@ -376,6 +343,7 @@ theorem apply.checkTxnReqs_latest
       · decide
       · have := Hsll.2; word
     rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]
+    simp only [txn.TxnOpW.toOps]
     isplitl []
     · iapply apply.opsClass_nil
     · ipureintro; exact ⟨[], rfl, apply.passedL_nil _ _ _⟩
@@ -387,13 +355,14 @@ theorem apply.checkTxnReqs_latest
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index reqs (sint.Z n) ps DFrac.discard p Hn.1 $$ [] as -
     · iframe Hreqs; ipureintro; exact hp
-    ihave ⟨%op, %hop, #Hop⟩ := txn.requestOpsIs_elem ps ops _ p hp $$ Hops
+    ihave ⟨%op, %hop, #Hop⟩ := txn.requestOpsIsW_elem ps ops _ p hp $$ Hops
     have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by unfold sint.nat at *; word
     have hop' : ops[sint.nat n]? = some op := hop
     obtain ⟨Lp, hLp, hLpass⟩ := Hpass
-    icases txn.requestOpIs_cases p op $$ Hop with ⟨%Hpn, (⟨%w, %r, %o, %Hpo, #HR, #Hw, #Hr⟩ |
-      ⟨%w, %r, %o, %Hpo, #HR, #Hw, #Hr⟩ | ⟨%w, %r, %o, %Hpo, #HR, #Hw, #Hr⟩ | ⟨%w, %r, %cs, %ts, %es, %Hpo, #HR, #Hw, #Hr⟩)⟩
+    rcases op with o | o | o | ⟨cs, ts, es⟩
     · -- a range
+      iunfold txn.requestOpIsW at Hop
+      icases Hop with ⟨%Hpn, %w, %r, #HR, #Hw, #Hr⟩
       iunfold txn.rangeRequestIs at Hr
       icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %x1, %x2, %x3, %x4, %x5, %x6, %x7, %x8, %x9, %x10,
         %x11, #HK, #Hk, #HE, #He, -, -, -, -, -, -, -, -, -, -, -, %Ho, %Hkb⟩
@@ -402,7 +371,7 @@ theorem apply.checkTxnReqs_latest
         rw [Ho]; simp only [txn.rangeOpOf.proj_base]; exact apply.authEndOf_rangeEndOf esl e Hel.1
       have hko : o.key = k := by rw [Ho]; simp only [txn.rangeOpOf.proj_key]
       have hmay : apply.opsMay ops (k, e, .read) :=
-        apply.opsMay_of_getElem ops _ op _ hop' (by rw [Hpo, ← hko]; exact ⟨e, hend, rfl⟩)
+        apply.opsMay_of_getElem ops _ _ _ hop' (by rw [← hko]; exact ⟨e, hend, rfl⟩)
       have hsh1 := apply.shapedMay_one _ _ _ _ Hsh hmay
       wp_auto
       simp only [Hrn, decide_false]
@@ -421,11 +390,12 @@ theorem apply.checkTxnReqs_latest
         iframe
         isplitl []
         · ipureintro; constructor <;> word
-        rw [hsn, List.take_add_one, hop', Option.toList_some]
+        rw [hsn, List.take_add_one, hop', Option.toList_some, txn.TxnOpW.toOps_append]
+        simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
         isplitl []
         · iapply apply.opsClass_snoc
           iframe Hcls
-          rw [Hpo]
+          try simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
           iapply apply.opClass_get
           unfold apply.rangeClass
           iexists e
@@ -436,7 +406,7 @@ theorem apply.checkTxnReqs_latest
         · ipureintro
           refine ⟨Lp ++ [(k, e, .read)], apply.opsChecked_snoc _ _ _ _ hLp ?_,
             apply.passedL_append _ _ _ _ _ hLpass (Hone.1 rfl)⟩
-          rw [Hpo, ← hko]; exact ⟨e, hend, rfl⟩
+          rw [← hko]; exact ⟨e, hend, rfl⟩
       | ok e' =>
         wp_auto
         wp_for_post
@@ -449,11 +419,13 @@ theorem apply.checkTxnReqs_latest
         exact ⟨(fun h => by cases h), fun _ =>
           apply.refusedMay_of_one _ _ _ _ _ hmay (Hone.2 (fun h => by cases h))⟩
     · -- a put
+      iunfold txn.requestOpIsW at Hop
+      icases Hop with ⟨%Hpn, %w, %r, #HR, #Hw, #Hr⟩
       ihave #Hr' := Hr
       iunfold txn.putRequestIs at Hr'
       icases Hr' with ⟨%Hrn, -⟩
       have hmays : ∀ x ∈ apply.putPerms o, apply.opsMay ops x := fun x hx =>
-        apply.opsMay_of_getElem ops _ op _ hop' (by rw [Hpo]; exact apply.putTxnOp_may o x hx)
+        apply.opsMay_of_getElem ops _ _ _ hop' hx
       have hshp : apply.shapedL on hs (apply.putPerms o) := by
         cases on with
         | on γa =>
@@ -476,18 +448,19 @@ theorem apply.checkTxnReqs_latest
         iframe
         isplitl []
         · ipureintro; constructor <;> word
-        rw [hsn, List.take_add_one, hop', Option.toList_some]
+        rw [hsn, List.take_add_one, hop', Option.toList_some, txn.TxnOpW.toOps_append]
+        simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
         isplitl []
         · iapply apply.opsClass_snoc
           iframe Hcls
-          rw [Hpo]
+          try simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
           iapply apply.opClass_put_of_putClass
           ihave #Hpc := Hcls2 $$ %rfl
           iexact Hpc
         · ipureintro
           refine ⟨Lp ++ apply.putPerms o, apply.opsChecked_snoc _ _ _ _ hLp ?_,
             apply.passedL_append _ _ _ _ _ hLpass (Hvd.1 rfl)⟩
-          rw [Hpo]; exact apply.putTxnOp_checked o
+          rfl
       | ok e' =>
         wp_auto
         wp_for_post
@@ -500,6 +473,8 @@ theorem apply.checkTxnReqs_latest
         exact ⟨(fun h => by cases h), fun _ =>
           apply.refusedMay_of_list _ _ _ _ _ hmays (Hvd.2 (fun h => by cases h))⟩
     · -- a delete
+      iunfold txn.requestOpIsW at Hop
+      icases Hop with ⟨%Hpn, %w, %r, #HR, #Hw, #Hr⟩
       iunfold txn.deleteRangeRequestIs at Hr
       icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, %Ho, %Hkb⟩
       ihave %Hel := ownSlice_len _ _ _ $$ He
@@ -508,11 +483,11 @@ theorem apply.checkTxnReqs_latest
       have hko : o.key = k := by rw [Ho]; simp only [txn.deleteOpOf.proj_key]
       have hpk : o.base.prevKV = pk := by rw [Ho]; simp only [txn.deleteOpOf.proj_base]
       have hmayw : apply.opsMay ops (k, e, .write) :=
-        apply.opsMay_of_getElem ops _ op _ hop' (by rw [Hpo, ← hko]; exact ⟨e, hend, Or.inl rfl⟩)
-      have hmayr : apply.opsMay ops (k, e, .read) :=
-        apply.opsMay_of_getElem ops _ op _ hop' (by rw [Hpo, ← hko]; exact ⟨e, hend, Or.inr rfl⟩)
+        apply.opsMay_of_getElem ops _ _ _ hop' (by rw [← hko]; exact ⟨e, hend, Or.inl rfl⟩)
+      have hmayr : pk = true → apply.opsMay ops (k, e, .read) := fun hp =>
+        apply.opsMay_of_getElem ops _ _ _ hop' (by rw [← hko]; exact ⟨e, hend, Or.inr ⟨hpk.trans hp, rfl⟩⟩)
       have hshw := apply.shapedMay_one _ _ _ _ Hsh hmayw
-      have hshr := apply.shapedMay_one _ _ _ _ Hsh hmayr
+      have hshr := fun hp => apply.shapedMay_one _ _ _ _ Hsh (hmayr hp)
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
@@ -532,11 +507,12 @@ theorem apply.checkTxnReqs_latest
           iframe
           isplitl []
           · ipureintro; constructor <;> word
-          rw [hsn, List.take_add_one, hop', Option.toList_some]
+          rw [hsn, List.take_add_one, hop', Option.toList_some, txn.TxnOpW.toOps_append]
+          simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
           isplitl []
           · iapply apply.opsClass_snoc
             iframe Hcls
-            rw [Hpo]
+            try simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
             iapply apply.opClass_delete
             unfold apply.deleteClass
             iexists e
@@ -547,7 +523,7 @@ theorem apply.checkTxnReqs_latest
           · ipureintro
             refine ⟨Lp ++ [(k, e, .write)], apply.opsChecked_snoc _ _ _ _ hLp ?_,
               apply.passedL_append _ _ _ _ _ hLpass (Hone.1 rfl)⟩
-            rw [Hpo, ← hko]
+            rw [← hko]
             refine ⟨e, hend, ?_⟩
             rw [hpk]; simp
         | ok e' =>
@@ -565,7 +541,7 @@ theorem apply.checkTxnReqs_latest
       wp_apply HRange $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard %hs [Hai Hrd HL]
         as %err ⟨Hai, -, -, Hrd, HL, #HeI4, %Hv4, #Hpv4⟩
       · iframe; iframe #; try (ipureintro; exact Hkb)
-      have Honer := apply.verdictL_one _ _ _ _ _ _ _ Hv4 hshr
+      have Honer := apply.verdictL_one _ _ _ _ _ _ _ Hv4 (hshr rfl)
       have Hoffr := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hv4
       cases err with
       | ok e' =>
@@ -578,7 +554,7 @@ theorem apply.checkTxnReqs_latest
         · iintro %h; cases h
         ipureintro
         exact ⟨(fun h => by cases h), fun _ =>
-          apply.refusedMay_of_one _ _ _ _ _ hmayr (Honer.2 (fun h => by cases h))⟩
+          apply.refusedMay_of_one _ _ _ _ _ (hmayr rfl) (Honer.2 (fun h => by cases h))⟩
       | nil =>
       wp_auto
       wp_apply HDel $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard %hs [Hai Hrd HL]
@@ -595,11 +571,12 @@ theorem apply.checkTxnReqs_latest
         iframe
         isplitl []
         · ipureintro; constructor <;> word
-        rw [hsn, List.take_add_one, hop', Option.toList_some]
+        rw [hsn, List.take_add_one, hop', Option.toList_some, txn.TxnOpW.toOps_append]
+        simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
         isplitl []
         · iapply apply.opsClass_snoc
           iframe Hcls
-          rw [Hpo]
+          try simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
           iapply apply.opClass_delete
           unfold apply.deleteClass
           iexists e
@@ -614,7 +591,7 @@ theorem apply.checkTxnReqs_latest
           refine ⟨Lp ++ ([(k, e, .read)] ++ [(k, e, .write)]), apply.opsChecked_snoc _ _ _ _ hLp ?_,
             apply.passedL_append _ _ _ _ _ hLpass
               (apply.passedL_append _ _ _ _ _ (Honer.1 rfl) (Honew.1 rfl))⟩
-          rw [Hpo, ← hko]
+          rw [← hko]
           refine ⟨e, hend, ?_⟩
           rw [hpk]; simp
       | ok e' =>
@@ -629,20 +606,21 @@ theorem apply.checkTxnReqs_latest
         exact ⟨(fun h => by cases h), fun _ =>
           apply.refusedMay_of_one _ _ _ _ _ hmayw (Honew.2 (fun h => by cases h))⟩
     · -- a nested transaction
+      icases txn.requestOpIsW_txn p cs ts es $$ Hop with ⟨%Hpn, %w, %r, #HR, #Hw, #Hr⟩
       ihave #Hr' := Hr
-      iunfold txn.txnRequestIs at Hr'
+      iunfold txn.txnRequestIsW at Hr'
       icases Hr' with ⟨%Hrn, -⟩
-      have hmays : ∀ x, apply.txnMay ({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel) x →
+      have hmays : ∀ x, apply.txnMay ({ cmps := cs, thenOps := ts, elseOps := es } : txn.TxnModelW) x →
           apply.opsMay ops x := fun x hx =>
-        apply.opsMay_of_getElem ops _ op _ hop' (by rw [Hpo]; exact hx)
+        apply.opsMay_of_getElem ops _ _ _ hop' hx
       have hshn : apply.shapedMay on hs
-          (apply.txnMay ({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel)) :=
+          (apply.txnMay ({ cmps := cs, thenOps := ts, elseOps := es } : txn.TxnModelW)) :=
         apply.shapedMay_mono _ _ _ _ hmays Hsh
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
       iunfold apply.txnPermTL at IH
-      wp_apply IH $$ %r %({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel) [Hai Hrd HL]
+      wp_apply IH $$ %r %({ cmps := cs, thenOps := ts, elseOps := es } : txn.TxnModelW) [Hai Hrd HL]
         as %err ⟨Hai, Hrd, HL, #HeI6, %Hof6, #Hcls6, %Hvd6⟩
       · iframe; iframe #; ipureintro; exact hshn
       cases err with
@@ -654,19 +632,21 @@ theorem apply.checkTxnReqs_latest
         iframe
         isplitl []
         · ipureintro; constructor <;> word
-        rw [hsn, List.take_add_one, hop', Option.toList_some]
+        rw [hsn, List.take_add_one, hop', Option.toList_some, txn.TxnOpW.toOps_append]
+        simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
         isplitl []
         · iapply apply.opsClass_snoc
           iframe Hcls
-          rw [Hpo]
+          try simp only [txn.TxnOpW.toOps, txn.TxnOpW.toOp]
           iapply apply.opClass_txn
           ihave #Ht := Hcls6 $$ %rfl
-          iexact Ht
+          iExactEq Ht
+          rfl
         · ipureintro
           obtain ⟨Lt, hLt, hLtp⟩ := Hvd6.1 rfl
           refine ⟨Lp ++ Lt, apply.opsChecked_snoc _ _ _ _ hLp ?_,
             apply.passedL_append _ _ _ _ _ hLpass hLtp⟩
-          rw [Hpo]; exact hLt
+          exact hLt
       | ok e' =>
         wp_auto
         wp_for_post
@@ -679,11 +659,11 @@ theorem apply.checkTxnReqs_latest
         exact ⟨(fun h => by cases h), fun _ =>
           apply.refusedMay_mono _ _ _ _ _ hmays (Hvd6.2 (fun h => by cases h))⟩
   iapply HΦ; iframe Hai Hrd HL
-  ihave %Hpl := txn.requestOpsIs_length ps ops $$ Hops
+  ihave %Hpl := txn.requestOpsIsW_length ps ops $$ Hops
   have hle : ops.length ≤ sint.nat n := by unfold sint.nat at *; word
   rw [List.take_of_length_le hle] at Hpass
   isplitl []
-  · iapply applyErrIs_nil
+  · iapply authApplyErrIs_nil
   isplitl []
   · ipureintro; intro _; rfl
   isplitl []
@@ -702,11 +682,9 @@ theorem apply.checkTxnPermission.wp_latest
   ihave #IHT : apply.txnPermTL st le RD on Lr hs ai info dq $$ []
   · iunfold apply.txnPermTL; iexact IH
   iclear IH
-  iunfold txn.txnRequestIs at Hrt
-  icases Hrt with ⟨%Hrtn, Hrt⟩
-  iunfold txn.txnFieldsIs at Hrt
-  icases Hrt with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcsl, #Hcs, #Hs, #Hssl, #Hss, #Hf,
-    #Hfsl, #Hfs⟩
+  iunfold txn.txnRequestIsW at Hrt
+  icases Hrt with ⟨%Hrtn, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcsl, #Hcs, #Hs, #Hssl, #Hss,
+    #Hf, #Hfsl, #Hfs⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hcsl
   iunfold txn.comparesIs at Hcs
   icases Hcs with ⟨%Hcl, #Hcs⟩
@@ -823,6 +801,7 @@ theorem apply.checkTxnPermission.wp_latest
   · iintro %Herr
     try subst Herr
     unfold apply.txnClass
+    simp only [txn.TxnModelW.toModel]
     ihave #H8 := Hcls8 $$ %rfl
     ihave #H9 := Hcls9 $$ %rfl
     iframe H8 H9
@@ -852,17 +831,16 @@ theorem apply.CheckTxnAuth.wp_latest
 theorem apply.authApplierV3.Txn.wp_latest
     (hTxn : apply.CheckTxnAuth.specL (GF := GF) (hG := hG)) :
     apply.authApplierV3.Txn.specL (GF := GF) (hG := hG) := by
-  intro E c inner p r skip rq t log F Pre Q Post info Lr hs
-  wp_start as ⟨#Hauth, #HauthL, #Hlnil, #Hinner, Hpre, #HF, HL, %Hsh⟩
+  intro E c inner p r skip rq t tw log F Pre Q Post info Lr hs
+  wp_start as ⟨#Hauth, #HauthL, #Hlnil, #Hinner, Hpre, #Hrw, %Htw, #HF, HL, %Hsh⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, -, -⟩
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.lessorNil at Hlnil
   icases Hlnil with ⟨%le, #Hlef, #Hnil⟩
-  iunfold apply.txnPre at Hpre
+  iunfold apply.txnPreW at Hpre
   icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-  ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
@@ -875,8 +853,11 @@ theorem apply.authApplierV3.Txn.wp_latest
   icases Ht with ⟨-, -, -, #HI, -⟩
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
-  wp_apply (hTxn st le E.RD E.authMode Lr hs _ info (DFrac.own 1) r t)
-    $$ [$Hst $Hnil $Hinfo $Hard $HL $Hr] as %err ⟨Hinfo, Hard, HL, #HeI, %Hoff, #Hcls, %Hvd⟩
+  have htt : t = tw.toModel := by
+    have h1 : rq.txn = some tw.toModel := by rw [← apply.IRRModel.txnW_map, Htw]; rfl
+    rw [Hk.1] at h1; exact Option.some.inj h1
+  wp_apply (hTxn st le E.RD E.authMode Lr hs _ info (DFrac.own 1) r tw)
+    $$ [$Hst $Hnil $Hinfo $Hard $HL $Hrw] as %err ⟨Hinfo, Hard, HL, #HeI, %Hoff, #Hcls, %Hvd⟩
   · ipureintro; exact Hsh
   ihave Hkv := Hkv $$ Hard
   cases err with
@@ -897,7 +878,15 @@ theorem apply.authApplierV3.Txn.wp_latest
   | nil =>
   wp_auto
   ihave #Hcls := Hcls $$ %rfl
-  ihave #Hrc := apply.reqClass_txn E.authMode info rq t Hk.1 Hk.2.1 $$ Hcls
+  ihave #Hcls' : apply.txnClass E.authMode info t $$ []
+  · rw [htt]; iexact Hcls
+  ihave #Hrc := apply.reqClass_txn E.authMode info rq t Hk.1 Hk.2.1 $$ Hcls'
+  ihave #Hcp := apply.certPreW_inner E E.authOn c rq log
+    (fun oc => (oc = .rejected .auth ∧
+        apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay tw)) ∨
+      (apply.chainStep apply.backendStep c rq log oc ∧
+        ∃ L, apply.txnChecked tw L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L))
+    (fun oc hoc => Or.inr ⟨hoc, Hvd.1 rfl⟩) $$ Hcp
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
   wp_apply HI $$ %r %skip %rq %t %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
@@ -913,9 +902,9 @@ theorem apply.authApplierV3.Txn.wp_latest
   · iexact Htrc
   iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post
     (fun oc => (oc = .rejected .auth ∧
-        apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay t)) ∨
+        apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay tw)) ∨
       (apply.chainStep apply.backendStep c rq log oc ∧
-        ∃ L, apply.txnChecked t L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L))
+        ∃ L, apply.txnChecked tw L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L))
     (fun oc hoc => Or.inr ⟨hoc, Hvd.1 rfl⟩) $$ Happ Hpost Hinfo Hrc
 
 end proof

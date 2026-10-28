@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.read
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -37,7 +37,7 @@ theorem read.Read.sendReadIndex.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     read.Read.sendReadIndex.spec (GF := GF) (hG := hG) := by
-  intro r γr RQ LR NR id n Qr
+  intro r γr RQ LR NR id n Qr F
   wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr, Hcr⟩
   iunfold isReadLoopPre at Hpre
   icases Hpre with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, #Hcci, -, -⟩

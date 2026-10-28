@@ -19,7 +19,7 @@ namespace consistency
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.util.consistency
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -32,6 +32,7 @@ theorem consistencyStore.getWrittenRecord.wp_proof :
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iNamed Hc
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   iunfold consReader at Hrd
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩

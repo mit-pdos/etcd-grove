@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -30,12 +30,13 @@ caller (the apply thread, or `NewAuthStore`) gives the admin side's half of the 
 (`cacheHalf`) and gets it back at `sta` (`cacheAt`; the auth plan's E2r). -/
 abbrev auth.authStore.refreshRangePermCache.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ti : GoInterfaceOk)
-    (Hs : auth.AuthState → IProp GF) (sta : auth.AuthState),
+    (Hs : auth.AuthState → IProp GF) (sta : auth.AuthState) (hs : List auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      cacheHalf st M ∗ authReaderOk ti Hs ∗ Hs sta ∗ authSnap M sta ∗ ⌜permsFit sta⌝ }}
+      cacheHalf st M ∗ authReaderOk ti Hs ∗ Hs sta ∗ authSnap M sta ∗ ⌜permsFit sta⌝ ∗
+      authOwnF M hs ∗ ⌜∀ γa, M = .on γa → hs.getLast? = some sta⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
-  {{ RET #(); Hs sta ∗ cacheAt st sta }}
+  {{ RET #(); Hs sta ∗ cacheAt st M sta ∗ authOwnF M hs }}
 
 end spec
 

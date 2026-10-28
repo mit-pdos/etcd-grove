@@ -63,7 +63,7 @@ inductive AuthErr where
   deriving DecidableEq, Inhabited
 
 /-- The Go variable's name. -/
-def AuthErr.var [FfiSyntax] [GoGlobalContext] : AuthErr → GoString
+def AuthErr.var [GooseExts] [GoGlobalContext] : AuthErr → GoString
   | .rootUserNotExist => go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist
   | .rootRoleNotExist => go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist
   | .userAlreadyExist => go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist
@@ -214,17 +214,21 @@ def roleRevokePermissionR (role key rangeEnd : GoString) : StepRel := fun st o =
     (o = .err .permissionNotGranted ∧ ∀ p ∈ ps, ¬ permAt key rangeEnd p) ∨
     o = .next (bump (putRole st role (ps.filter fun p => ¬ permAt key rangeEnd p)))
 
+/-- **The role's permissions after granting `w`**: those not on `w`'s range, and `w`'s if of a known
+type (a permission of an unknown type, `permOfWire w = none`, is not the model's). -/
+def grantPerms (ps : Role) (w : PermW) : Role :=
+  ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ (permOfWire w).toList
+
 open Classical in
 /-- `RoleGrantPermission(role, w)` for the wire permission `w` (`Buckets.lean`): no permission
 given (`ErrPermissionNotGiven`, `w = none`); an invalid range (`ErrInvalidAuthMgmt`,
-`isValidPermissionRange`); no such role (`ErrRoleNotFound`); else the role's permissions with
-`w`'s: the record's entry of the same key and range end, if the first of a key at or above `w`'s
-is one, gets `w`'s type, else `w` is appended and the record sorted by key (`sort.Sort`,
-unstable): in the model, some permutation of the permissions with the new one, or one entry on
-`w`'s range replaced; a permission of an unknown type (`permOfWire w = none`) is dropped by the
-model (`RoleRec.toRole`), so the model's list loses at most the entry it replaced, and is
-reordered when the record is sorted (unstable: entries of one key may change places; S4d,
-2026-10-24: a sublist up to a permutation). -/
+`isValidPermissionRange`); no such role (`ErrRoleNotFound`); else the role's permissions on `w`'s
+range replaced by `w` (`grantPerms`). The fork's code (`acafa0317`, the auth plan's E3z,
+2026-10-27; `issues/etcd-auth-grant-permission-same-key.md`) drops every permission on the range,
+appends `w` and sorts the record by key (`sort.Sort`, unstable): the record's order is not the
+model's, which a role's record matches up to order (`roleOut`). A function of the state: until
+E3z the code updated the first permission of `w`'s key in place, appending beside it otherwise,
+and the step was a relation (any permutation, or the entry replaced), not determinate. -/
 def roleGrantPermissionR (role : GoString) (w : Option PermW) : StepRel := fun st o =>
   match w with
   | none => o = .err .permissionNotGiven
@@ -232,15 +236,7 @@ def roleGrantPermissionR (role : GoString) (w : Option PermW) : StepRel := fun s
     if ¬ rangeValid w.key w.rangeEnd then o = .err .invalidAuthMgmt
     else match st.roles !! role with
       | none => o = .err .roleNotFound
-      | some ps =>
-        match permOfWire w with
-        | some perm => ∃ ps' : Role,
-            (ps'.Perm (ps ++ [perm]) ∨
-              ∃ (i : Nat) (p : Perm), ps[i]? = some p ∧ permAt w.key w.rangeEnd p ∧
-                ps' = ps.set i perm) ∧
-            o = .next (bump (putRole st role ps'))
-        | none => ∃ ps' ps'' : Role, ps''.Sublist ps ∧ ps'.Perm ps'' ∧
-            o = .next (bump (putRole st role ps'))
+      | some ps => o = .next (bump (putRole st role (grantPerms ps w)))
 
 /-! ## The steps keep the history's invariants -/
 
@@ -283,7 +279,7 @@ theorem permKeysOk_of_perm {ps ps' : Role} (hp : ps'.Perm ps) (h : ∀ p ∈ ps,
 /-! ## The authority, and an operation's outcome in the mode -/
 
 section ghost
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- **The admin side's authority** in the mode `M`, the history `hs` (see the file header):
 `on γa`, the admin side's half of the history and half the latest state's ghost variable (the
@@ -427,7 +423,7 @@ theorem authOwnF_last (γa : AuthNames) (hs : List AuthState) :
 end ghost
 
 section res
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

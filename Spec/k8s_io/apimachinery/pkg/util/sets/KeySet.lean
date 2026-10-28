@@ -17,11 +17,11 @@ namespace sets
 open Iris Iris.BI k8s_io.apimachinery.pkg.util.sets
 
 /-- The set of a map's keys. -/
-def keysOf {K V : Type} [FfiSyntax] [DecidableEq K] (m : GMap K V) : GMap K Elem :=
+def keysOf {K V : Type} [GooseExts] [DecidableEq K] (m : GMap K V) : GMap K Elem :=
   GMap.fmap (fun _ => present) m
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

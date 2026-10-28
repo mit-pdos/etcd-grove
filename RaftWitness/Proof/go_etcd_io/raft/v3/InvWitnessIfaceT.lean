@@ -24,7 +24,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section model
 open GMap
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- `t` is the state's term, or the request's when it is no pre-vote. -/
 def TermOfP (σ : WHS) (μ : WMsg) (t : w64) : Prop :=
@@ -209,7 +209,7 @@ theorem wStep_addr (id : w64) (cq pv : Bool) (σ : WHS) (μ : WMsg) :
 end model
 
 section ifaceT
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

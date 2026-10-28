@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
   intro E γ r
-  wp_start as ⟨#Hr, Hdone⟩
+  wp_start as ⟨#Hr, Hdone, HST⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI⟩
+  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI, -⟩
   subst Hnieq
   iunfold isRNTicker at Htki
   icases Htki with ⟨%c, #Hc, #Hcc, #HtkStop⟩
@@ -38,7 +38,7 @@ theorem raftNode.onStop.wp_proof :
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
   subst Htieq
   iunfold isRNWal at Hsti
-  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose⟩
+  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, -, -⟩
   subst Hsieq
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', #Hdnc', Hbc⟩
@@ -53,7 +53,7 @@ theorem raftNode.onStop.wp_proof :
   wp_auto
   wp_apply HStop
   wp_apply HtkStop
-  wp_apply HTrStop
+  wp_apply HTrStop $$ [$HST]
   wp_apply HClose
   wp_apply wp_broadcast_chan_close dnc γ.done iprop(True) $$ [$Hbc]
   · imodintro; itrivial

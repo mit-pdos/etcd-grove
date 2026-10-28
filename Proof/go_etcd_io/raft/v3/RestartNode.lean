@@ -6,18 +6,136 @@ public import Spec.go_etcd_io.raft.v3.newNode
 public import Spec.go_etcd_io.raft.v3.node__run
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
 public import Proof.go_etcd_io.raft.v3.InvAdvance
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.InvBoot
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import Spec.go_etcd_io.raft.v3.NewRawNode
+public import Proof.go_etcd_io.raft.v3.ApiVocab
+import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.InvApiDyn
 
 @[expose] public section
 
 noncomputable section
+
 
 namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+/-! ## The raw triple (internal: private to this file)
+
+What the proof over raft's internals shows, from which the wrapper (below) derives the spec. Its documentation, as when it was the spec (until 2026-10-28):
+-/
+
+/-! Lean-first (no Rocq counterpart).
+
+## `RestartNode(c)` (node.go:281)
+
+`NewRawNode(c)` (its premises: a node of a new cluster, `Spec/NewRawNode.lean`) in a
+`node` whose goroutine `run` it starts, for the cluster's term budget `bud`
+(`budget_alloc`, `InvNode.lean`). It returns the node (`isNodeChan`, persistent: what
+`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriverChan`, at
+the empty committed log: what `node_ready_receive` and `Advance` take). Since 2026-10-10
+also the cluster's proposed slices (`propDataInv`, allocated once with the raft ghost
+state), which `isNodeChan` keeps with the commit invariant. Since 2026-10-15 (stage N) in either
+mode (`md`, `NewRawNode`'s `rnInit`: statically `ownRaftGhost` at the initial state, dynamically
+B5's `ownRaftGhostR` at `rinit c0`), and with the driver's view of the configuration
+(`nodeCfg`, at index `0` and the initial configuration) for `ApplyConfChange` and `Advance`.
+
+raft v3.7 (2026-10-16, stage R5): `NewRawNode`'s premises as they are now (the storage's
+`InitialState` in `newRaft`'s D7 shape, the conf state's record `csm`; 2026-10-16, stage R6b: the
+conf state's `AutoLeave` cell set or not, `csPts cs □ csm al`); **no proposed slices'
+invariant** (D6: an entry's data is its bytes; until then `inv propDataN (propDataInv γ)`, which
+`isNodeChan` kept).
+-/
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- See the file header. -/
+private abbrev RestartNode.specRaw : Prop :=
+  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
+    (lok si : GoInterfaceOk)
+    (σ : StorState)
+    (hs : HardStateM) (csm : ConfStateM) (sn : Bool),
+  -- `NewRawNode`'s premises
+  ConfigValid cv →
+  cv.Logger' = interface.ok lok →
+  cv.Storage' = interface.ok si →
+  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+  cv.DisableProposalForwarding' = false →
+  -- `ReadOnlySafe` (2026-10-12)
+  cv.ReadOnlyOption' = W64 0 →
+  -- conf-change validation on (2026-10-13; `newRaft`'s premise)
+  cv.DisableConfChangeValidation' = false →
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  cv.AsyncStorageWrites' = false →
+  -- (2026-10-25, T-M M2b: pre-vote either way; 2026-10-17 to 2026-10-25 off in the dynamic mode,
+  -- which did not model pre-candidates; until then off in either mode)
+  cv.Applied' = W64 0 →
+  σ.prev = entryID.mk (W64 0) (W64 0) →
+  σ.ents = [] →
+  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] →
+  HsEmpty hs →
+  -- (2026-10-16, stage R5) the conf state's record `csm`, as `NewRawNode`'s
+  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
+  (csm.Voters'.length : Int) ≤ 2 ^ 62 →
+  csm.VotersOutgoing' = [] →
+  csm.Learners' = [] →
+  csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  γ.reCfg = GMap.listToSet csm.Voters' →
+  cv.ID' ∈ csm.Voters' →
+  -- (2026-10-25, T-M M2c: `StepDownOnRemoval` either way; 2026-10-15 to 2026-10-25 on in the dynamic
+  -- mode)
+  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
+  σ.fl = W64 0 →
+  -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
+  -- outside the no-snapshot mode and in the static mode
+  (sn = true → γ.reNoSnap = false ∧ md = .static) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)
+      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
+           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
+      -- (2026-10-15, stage N) the ghost state in the mode `md` (`NewRawNode`'s `rnInit`; until
+      -- then `ownRaftGhost γ cv.ID' initPState`, the static mode's)
+      rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
+      -- the cluster's term budget
+      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) ∗
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
+      -- no-snapshot mode)
+      certLink γ (interface.ok si) }}
+    (App (Val #(functions RestartNode [])) (Val #c))
+  {{ (nd : GoInterface), RET #nd;
+      ∃ (γn : NodeNames) (n : Loc),
+        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
+         γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNodeChan γn cv.ID' n ∗ nodeDriverChan γn cv.ID' n [] hsZero ∗
+        -- (2026-10-15, stage N) the driver's view of the configuration: the initial one
+        nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
+
+end spec
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -29,11 +147,11 @@ node's ghost state: the channels' hand-shakes (with `P := False` on those nobody
 tick channel's invariant (no credit yet), `dlv` and `rof`; `run` takes its halves. (Raft v3.7,
 stage R5: `NewRawNode`'s premises over the conf state's record `csm` and D7's `InitialState`; no
 proposed slices' invariant (D6).) -/
-theorem RestartNode.wp_proof
+private theorem RestartNode.wp_raw
     (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
-    RestartNode.spec (GF := GF) (hG := hG) := by
+    RestartNode.specRaw (GF := GF) (hG := hG) := by
   intro γ md bud c cv lok si σ hs csm sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11 P12 P13 P14
     P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P28 HsnIn
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0, #Hcl⟩
@@ -245,8 +363,8 @@ theorem RestartNode.wp_proof
     iexists []
     iframe
   icases ownRawNode_shared γ rn cv.ID' _ $$ Hrn with ⟨%r, %lok', #Hrr, #Hrid, #Hrlg, #Hlg', Hrn⟩
-  ihave #Hnode : isNode γn cv.ID' n_ptr $$ []
-  · unfold isNode
+  ihave #Hnode : isNodeChan γn cv.ID' n_ptr $$ []
+  · unfold isNodeChan
     iexists nv, r, lok'
     simp only [named]
     rw [Hnvrn]
@@ -280,7 +398,7 @@ theorem RestartNode.wp_proof
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
   iframe Hnode
   isplitl [Hdlv2 Hreq1 Hreq2]
-  · unfold nodeDriver dlvLb
+  · unfold nodeDriverChan dlvLb
     iframe Hnode Hdlv2 Hdlb
     iexists _
     iframe Hreq1 Hreq2
@@ -288,6 +406,87 @@ theorem RestartNode.wp_proof
   iframe Hcap2 Hcamlb
   iexists _
   iframe Hccq1 Hccq2
+
+end proof
+
+/-! ## The spec, from the raw triple -/
+
+namespace ApiImpl
+
+section wrap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `RestartNode.spec` from the raw triple (`node`'s names hidden behind the API's). -/
+private theorem wp_RestartNode_impl
+    (hS : EtcdGrove.RestartNode.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.RestartNode.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver EtcdGrove.nodeRestartBoot EtcdGrove.storageCertLink
+  intro γ N vs c cv lok si σ hs csm H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln
+    Hal Hid Hfl
+  iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, #Hinst, Hboot, #Hlink⟩ HΦ
+  iunfold nodeRestartBoot at Hboot
+  icases Hboot with ⟨⟨%so, #Hst⟩, Hg, #Hc0, #Hbinv, #Htlb⟩
+  iunfold isStaticCluster at Hst
+  icases Hst with ⟨%Hsn, #Hci⟩
+  obtain ⟨Hcfg, Hdyn, Hns, -, Hγm, Hsl, Hcert, -, Hne, Hnd, Hnz, Hlen⟩ := Hsn
+  subst Hv
+  ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
+  iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm true
+    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz Hlen Hvo Hl Hln Hal Hcfg Hid
+    Hfl (fun _ => ⟨Hns, rfl⟩)) $$ [Hc Hown Hg]
+  · iframe Hinit Hc Hlog Hstor Hown Hinst Hc0 Hbinv Htlb
+    isplitl [Hg]
+    · unfold rnInit; iexact Hg
+    · unfold certLink; iright; iexact Hok'
+  iintro !> %nd ⟨%γn, %n, %Hf, #Hnode, Hdrv, Hcfg⟩
+  obtain ⟨Hγr, Hγb, Hγs, Hmd, Hsn, Hnd'⟩ := Hf
+  have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, by rw [Hmd, Hγm, RNMode.all_self], .inl Hsn⟩
+  iapply HΦ
+  iexists n
+  isplitr
+  · ipureintro; exact Hnd'
+  isplitr
+  · unfold isNode
+    iexists γn
+    iframe Hnode Hci
+    ipureintro; exact Hnok
+  unfold nodeDriver NodeDriverState.init
+  iexists γn, cv.ID', []
+  isplitr
+  · ipureintro; exact ⟨Hnok, Hγs, rfl⟩
+  iframe Hci
+  isplitr
+  · iapply isCommittedLogLb_nil_impl
+  isplitl [Hcfg]
+  · iright; iframe Hlink; iexists 0, cfgState (GMap.listToSet csm.Voters') ∅; iexact Hcfg
+  isplitr
+  · ileft; ipureintro; rw [Hmd]; rfl
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iexact Hdrv
+
+end wrap
+
+end ApiImpl
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem RestartNode.wp_proof
+    (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
+    (wp_newNode : newNode.spec (GF := GF) (hG := hG))
+    (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
+    RestartNode.spec (GF := GF) (hG := hG) :=
+  ApiImpl.wp_RestartNode_impl (RestartNode.wp_raw wp_NewRawNode wp_newNode wp_node_run)
 
 end proof
 

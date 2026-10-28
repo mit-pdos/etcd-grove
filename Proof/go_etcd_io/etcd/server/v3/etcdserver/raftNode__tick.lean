@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,7 +31,7 @@ theorem raftNode.tick.wp_proof : raftNode.tick.spec (GF := GF) (hG := hG) := by
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI⟩
+  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI, -⟩
   subst Hnieq
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

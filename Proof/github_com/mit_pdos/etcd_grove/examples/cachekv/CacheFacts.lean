@@ -43,7 +43,7 @@ namespace cachekv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- Revisions `0` and `1` of a watchkv log have no event. -/
 theorem revEvs_low {P : List (GoString × GoString)} {L : mvcc.Log} (h : watchkv.WkLog P L)
@@ -114,7 +114,7 @@ theorem step_ck {P : List (GoString × GoString)} {L : mvcc.Log} (h : watchkv.Wk
 end pure
 
 section facts
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

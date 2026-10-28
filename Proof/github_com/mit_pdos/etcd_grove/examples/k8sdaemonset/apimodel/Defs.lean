@@ -54,7 +54,7 @@ structure WatchNames where
   cur : GName
 
 /-- A resource's `schema.GroupResource` (`NewServer`'s tables). -/
-def grOf [FfiSyntax] : Res → k8s_io.apimachinery.pkg.runtime.schema.GroupResource
+def grOf [GooseExts] : Res → k8s_io.apimachinery.pkg.runtime.schema.GroupResource
   | .pods => ⟨go!"", go!"pods"⟩
   | .nodes => ⟨go!"", go!"nodes"⟩
   | .daemonSets => ⟨go!"apps", go!"daemonsets"⟩
@@ -77,7 +77,7 @@ theorem spscCode_inj {g g' : SpscNames} (h : spscCode g = spscCode g') : g = g' 
   subst this
   rfl
 
-instance watchEvent_countable [FfiSyntax] :
+instance watchEvent_countable [GooseExts] :
     Pos.Countable k8s_io.apimachinery.pkg.watch.Event :=
   .ofInjective (fun e => Pos.Countable.encode (e.Type', e.Object'))
     (by rintro ⟨a, b⟩ ⟨c, d⟩ h; simp only [Pos.encode_eq_iff, Prod.mk.injEq] at h
@@ -85,7 +85,7 @@ instance watchEvent_countable [FfiSyntax] :
 
 /-- **The semantics of the packages the model's code calls into** (their `Assumptions`): every
 spec of the model quantifies over it, as the examples' specs over the packages they call. -/
-class ApiDeps [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ApiDeps [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   sync_sem : sync.Assumptions
   time_sem : time.Assumptions
   core_sem : k8s_io.api.core.v1.Assumptions
@@ -99,7 +99,7 @@ attribute [instance] ApiDeps.sync_sem ApiDeps.time_sem ApiDeps.core_sem ApiDeps.
   ApiDeps.meta_sem ApiDeps.errors_sem ApiDeps.schema_sem ApiDeps.types_sem
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -34,7 +34,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section opaqueInits
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -64,13 +64,11 @@ end go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
 end opaqueInits
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
-variable [_root_.Perennial.context.ErrorStringIsError]
-  [_root_.Perennial.context.DeadlineExceededIsError]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
 

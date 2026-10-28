@@ -23,7 +23,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -42,7 +42,7 @@ theorem rafthttp.pipeline.start.wp_proof
   iunfold pipeFixed at Hf
   icases Hf with ⟨%tr, %pk, %ec, %lg, %urls, %uvs, %lid, %cid, %rt, %ps, %fs, %r, %id, %γd,
     #Htr, #Hpk, #Hec, #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hps,
-    #Hpsok, #Hfs, #Hr, #Hraft, #Hreg⟩
+    #Hpsok, #Hfs, #Hr, #Hraft, #Hreg, %Hmemt, %Hturls⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)
@@ -70,7 +70,11 @@ theorem rafthttp.pipeline.start.wp_proof
     · iunfold pipeSenderOk
       iexists tr, pk, sc, ec, γs, lg, urls, uvs, lid, cid, rt
       iframe #
-      ipureintro; exact Hlgnn
+      isplitr
+      · ipureintro; exact Hlgnn
+      isplitr
+      · ipureintro; exact Hmemt
+      ipureintro; exact Hturls
     · iexists ps, fs, r, id, γd, mc, γm
       iframe #
   wp_apply (wgJoin_wp_Add4_of wp_Add R _ _ _) $$ [$Had] as ⟨Had, Hd1, Hd2, Hd3, Hd4⟩

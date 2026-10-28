@@ -50,6 +50,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LeaseItems
 
 @[expose] public section
 
@@ -350,18 +351,18 @@ def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
 points-to are shared by the locks that guard their readers (`storeFields`, `fieldShare`), not
 persistent; which objects they are is the store's ghost variable `cur`'s (`curAt`; S3 to S5b, a
 discarded pin, `objsPin`). -/
-structure StoreObjs [FfiSyntax] where
+structure StoreObjs [GooseExts] where
   b : GoInterface
   ti : Loc
   ssched : GoInterface
   sstop : Loc
 
-instance storeObjs_countable [FfiSyntax] : Pos.Countable StoreObjs :=
+instance storeObjs_countable [GooseExts] : Pos.Countable StoreObjs :=
   countableOfLeftInverse (fun x : StoreObjs => (x.b, x.ti, x.ssched, x.sstop))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of the store's `mu`. -/
 abbrev muAddr (s : Loc) : Loc := structFieldRef store go!"mu" s
@@ -376,7 +377,7 @@ end addrs
 
 /-- Two interface values of the same pointer type are the same pointer (with its own binders:
 nothing in its statement determines a section's `GF`). -/
-theorem mkOk_loc_inj [FfiSyntax] [GoLocalContext] [GoGlobalContext] [go.Semantics] (T : go.GoType)
+theorem mkOk_loc_inj [GooseExts] [GoLocalContext] [GoGlobalContext] [go.Semantics] (T : go.GoType)
     {a b : Loc}
     (h : interface.mkOk T #a = interface.mkOk T #b) : a = b := by
   unfold interface.mkOk at h
@@ -385,7 +386,7 @@ theorem mkOk_loc_inj [FfiSyntax] [GoLocalContext] [GoGlobalContext] [go.Semantic
 
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -960,6 +961,40 @@ def csContract (P : IProp GF) (f : val) (Pre Q Post : IProp GF) : IProp GF :=
 order (`UnsafeSeqPut`). -/
 abbrev Puts := List (GoString × GoString)
 
+/-- The lessor's `Lease` bucket's name (`schema.leaseBucketName`). -/
+abbrev leaseName : GoString := go_etcd_io.etcd.server.v3.storage.schema.leaseName
+
+/-- schema's `Lease` bucket, as the backend names it (`bucket{id: 3, name: "lease",
+safeRangeBucket: false}`). -/
+def leaseBI : backend.BucketInfo := ⟨W64 3, leaseName, false⟩
+
+/-- **The backend's parameters let the lessor delete from `Lease`**: the bucket in the table, a
+tracked one (`RB`, D22), none of its keys a hook's own (leases T3, 2026-10-25). -/
+def leaseParams (P : backend.BParams) : Prop :=
+  P.has leaseBI ∧ P.RB leaseName = true ∧ ∀ k, P.hk leaseName k = false
+
+/-- The tracked buckets `r` (`backend.rbData`) after the key `k` of bucket `n` is deleted (the
+bucket created empty if absent, as the backend's `UnsafeDelete` leaves it). -/
+def rbDel (r : GMap GoString backend.BktData) (n k : GoString) : GMap GoString backend.BktData :=
+  r.insert n (((r.lookup n).getD ∅).delete k)
+
+/-- **What the batch transaction's lock token `U` allows, the session's puts being `l`**: only
+`Unlock()`, as `batchTxSpecG`'s two (with no puts, the lock's resource `W` and the invariant `P`
+back; else the bucket's whole view, written back). The token a `Lease` delete leaves
+(`batchTxSpecG`'s last clause: leases T3, 2026-10-25). -/
+def unlockAt (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W P : IProp GF) (U : IProp GF)
+    (l : Puts) : IProp GF :=
+  iprop(□ ({{ U ∗ ⌜l = []⌝ ∗ W ∗ P }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
+      {{ RET #(); True }}) ∗
+    □ (∀ (m : Bucket) (Q : IProp GF),
+      {{ U ∗ View 1 m ∗ (View 1 (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) -∗ W ∗ Q) ∗ P }}
+        (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
+      {{ RET #(); Q }}))
+
+instance unlockAt_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
+    (W P U : IProp GF) (l : Puts) : Persistent (unlockAt bt View W P U l) := by
+  unfold unlockAt; infer_instance
+
 /-- The batch transaction `bt` (`backend.BatchTx`, names-only: the trust boundary of the
 backend's write path), as the write transaction uses it, with `Locked l` its lock's token
 holding the puts `l` since the lock was taken, `RT` a client's token it is lent (the reader's
@@ -993,13 +1028,22 @@ missing (read-only slices); `UnsafePut(schema.Meta, k, v)` at a compaction key
 (`metaCompactKey`) of a value the store writes there (`metaRevVal`) leaves the token as it is
 (the store's record of the meta keys is its own, `metaCompact`).
 
+**The lessor's delete** (leases T3, 2026-10-25; `notes/leases-plan.md`): `lessor.Revoke` deletes
+the lease's record from the `Lease` bucket under the lock of the KV write transaction its range
+deleter opened (`UnsafeDelete(schema.Lease, k)`, the store's batch transaction's), with the right
+`Rb r` to write the tracked buckets `r` (the real backend's client half of them, `rbOwn`; the
+bucket is tracked, D22), given back as `Rb (rbDel r leaseName k)`. The lock's token becomes one
+that only `Unlock` takes (`unlockAt`, at the same puts): the backend counts its pending
+operations, and the store makes no other call after it (`Revoke` ends the transaction).
+
 The store's instance over mvcc's assumed backend (`batchTxSpec`) has no tokens (`RT = WT =
 True`), no condition and `Cmp`: the backend's bridge (`BackendBridge.lean`) proves the general
 one with the backend's, `Cmp` false (2026-10-13, unit 4; the merge with the compaction). -/
 def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF) (P : IProp GF)
-    (HF : val → IProp GF) : IProp GF :=
+    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) :
+    IProp GF :=
   iprop(□ (∀ (Pre Q : IProp GF) (f : val),
       {{ Pre ∗ RT ∗ WT ∗ HF f ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
         (App (Val #(methods bt.ty go!"LockInsideApply" bt.v)) (Val #()))
@@ -1053,13 +1097,20 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
           key ↦*{dq} k ∗ val ↦*{dq'} v }}
         (App (App (App (Val #(methods bt.ty go!"UnsafePut" bt.v)) (Val #b)) (Val #key))
           (Val #val))
-      {{ RET #(); Locked l ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }}))
+      {{ RET #(); Locked l ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }}) ∗
+    □ (∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+        (r : GMap GoString backend.BktData),
+      {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b ∗ Locked l ∗
+          key ↦*{dq} k ∗ Rb r }}
+        (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key))
+      {{ RET #(); (∃ U : IProp GF, U ∗ unlockAt bt View W P U l) ∗ key ↦*{dq} k ∗
+          Rb (rbDel r leaseName k) }}))
 
 instance batchTxSpecG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF)
-    (P : IProp GF) (HF : val → IProp GF) :
-    Persistent (batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF) := by
+    (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
+    Persistent (batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb) := by
   unfold batchTxSpecG; infer_instance
 
 /-- `NewStore`'s calls on a fresh backend's batch transaction `bt`, with `LockedO n` the lock's
@@ -1095,15 +1146,18 @@ instance batchTxInitSpec_persistent (bt : GoInterfaceOk) (RT WT : IProp GF) (W W
 /-- `bt` is a batch transaction (its lock tokens' predicates are its own). -/
 def isBatchTxG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
-    (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) : IProp GF :=
+    (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
+    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ (Locked : Puts → IProp GF) (LockedO : Nat → IProp GF),
-    batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF ∗
-      batchTxInitSpec bt RT WT W Wi Dep LockedO P)
+    batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb ∗
+      batchTxInitSpec bt RT WT W Wi Dep LockedO P ∗ □ Bt bt)
 
 instance isBatchTxG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
-    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) :
-    Persistent (isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF) := by
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) :
+    Persistent (isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt) := by
   unfold isBatchTxG; infer_instance
 
 /-- No condition on the puts (mvcc's assumed backend). -/
@@ -1136,8 +1190,8 @@ deletable" premise). -/
 theorem batchTx_readerD (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF)
-    (l : Puts) (q : Qp) (m : Bucket) :
-    batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF ⊢
+    (Rb : GMap GoString backend.BktData → IProp GF) (l : Puts) (q : Qp) (m : Bucket) :
+    batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb ⊢
       keyReaderD bt (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) iprop(Locked l ∗ View q m) Del := by
   iintro #H
   iunfold batchTxSpecG at H
@@ -1186,7 +1240,9 @@ merge with the compaction, unit 5a). -/
 def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
-    (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y))) : IProp GF :=
+    (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y)))
+    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
+    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
       {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
@@ -1198,7 +1254,7 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
           ∃ L : IProp GF, L ∗ keyReadSnap View RT Del true rt m L }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt);
-          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF }}) ∗
+          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt }}) ∗
     □ (∀ (X Y : IProp GF),
       {{ RT ∗ WT ∗ X ∗ Req X Y }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
       {{ RET #(); RT ∗ Y }}) ∗
@@ -1217,8 +1273,9 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
 instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
-    (Req : IProp GF → IProp GF → IProp GF) :
-    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF Req) := by
+    (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
+    (Bt : GoInterfaceOk → IProp GF) :
+    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF Req Rb Bt) := by
   unfold isKeyBackendG; infer_instance
 
 /-! ## The lessor
@@ -1229,40 +1286,45 @@ instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IP
 lessor's live set (`lease.leaseOwn γl L`: `L`), not for good: `Revoke` shrinks `L`, after which
 `Attach` returns `ErrLeaseNotFound` (on which mvcc's `put` panics). So `Attach` takes the
 owner's half and the lease's membership, and `GetLease` a reader slot of the lessor's lock
-(`lease.lessorRd`; the store keeps one, `lessorRdOf` in its writer's resource). -/
+(`lease.lessorRd`; the store keeps one, `lessorRdOf` in its writer's resource). (Unit T3, L2b,
+2026-10-25) The owner's resource also holds the item map `I` (`lease.leaseOwn γl L I`), which
+the three calls read and change: so the store's caller, holding it, knows each key's lease. -/
 
 /-- The lessor `le` (the real `*lessor` at `lp`, ghost map `γl`), as the KV core uses it:
-`GetLease(item)` returns some lease id (`NoLease` if none), with a reader slot; `Attach(id,
-items)` of a live lease (`id ∈ L`, the owner's half held) returns `nil`; `Detach(id, items)`
-returns `nil` or an error (which the code logs). The items are read. `SetRangeDeleter(f)`
-returns: `NewStore` passes the closure `func() lease.TxnDelete { return s.Write(traceutil.TODO())
-}` (the store's own verified `store.Write`), which the contract takes as an opaque value; the
-lessor's later calls of it (`Revoke`) are outside the model. The lessor's ghost name `γl` is its
+`GetLease(item)` returns the owner's item map's lease of `item` (`NoLease` if none), with a
+reader slot; `Attach(id, items)` of a live lease (`id ∈ L`) of items on no other lease adds them
+to the item map and returns `nil`; `Detach(id, items)` of items the item map puts on `id` removes
+them and returns `nil`. The items are read. `SetRangeDeleter(f)`
+sets the deleter, by its owner (`lease.rdOwn γl`, unit T3): `NewStore` passes the closure
+`func() lease.TxnDelete { return s.Write(traceutil.TODO()) }` (the store's own verified
+`store.Write`), `newWatchableStore` the watchable store's. The lessor's ghost name `γl` is its
 own (it exists before the store). -/
 def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
   iprop(∃ lp : Loc, ⌜le = lease.lessorIface lp⌝ ∗ lease.lessorPin γl lp ∗
-    □ (∀ (item : go_etcd_io.etcd.server.v3.lease.LeaseItem),
-      {{ lease.lessorRd lp γl }}
+    □ (∀ (item : go_etcd_io.etcd.server.v3.lease.LeaseItem) (L : List w64)
+        (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+      {{ lease.lessorRd lp γl ∗ lease.leaseOwn γl L I }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"GetLease" #lp)) (Val #item))
-      {{ (id : w64), RET #id; lease.lessorRd lp γl }}) ∗
+      {{ RET #((I.lookup item).getD (W64 0)); lease.lessorRd lp γl ∗ lease.leaseOwn γl L I }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
-        (dq : DFrac) (L : List w64),
-      {{ lease.leaseOwn γl L ∗ ⌜id ∈ L⌝ ∗ items ↦*{dq} l }}
+        (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+      {{ lease.leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
+          ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Attach" #lp)) (Val #id)) (Val #items))
-      {{ RET #(GoInterface.nil); lease.leaseOwn γl L ∗ items ↦*{dq} l }}) ∗
+      {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.insertAll I l id) ∗ items ↦*{dq} l }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
-        (dq : DFrac),
-      {{ items ↦*{dq} l }}
+        (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+      {{ lease.leaseOwn γl L I ∗ ⌜l ≠ []⌝ ∗ ⌜∀ it ∈ l, I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Detach" #lp)) (Val #id)) (Val #items))
-      {{ (err : GoInterface), RET #err; items ↦*{dq} l }}) ∗
-    □ (∀ f : GoFunc,
-      {{ True }}
+      {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.deleteAll I l) ∗ items ↦*{dq} l }}) ∗
+    □ (∀ (f0 f : GoFunc),
+      {{ lease.rdOwn γl f0 }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"SetRangeDeleter" #lp)) (Val #f))
-      {{ RET #(); True }}))
+      {{ RET #(); lease.rdOwn γl f }}))
 
 instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor (GF := GF) le γl) := by
   unfold isLessor; infer_instance
@@ -1405,9 +1467,10 @@ default `Req`; D22 the stored-index window, 2026-10-23): what the callers that a
 commit take. -/
 theorem isKeyBackendG_wand {b : GoInterface} {View : Qp → Bucket → IProp GF} {RT WT : IProp GF}
     {PutOk : Bucket → Puts → GoString → GoString → Prop} {Del : GoString → IProp GF}
-    {W Wi Dep : IProp GF} {Cmp : Prop} {P : IProp GF} {HF : val → IProp GF} {γ : StoreNames} :
-    isKeyBackendG (GF := GF) b View RT WT PutOk Del W Wi Dep Cmp P HF (storeReq γ) ⊢
-      isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF := by
+    {W Wi Dep : IProp GF} {Cmp : Prop} {P : IProp GF} {HF : val → IProp GF} {γ : StoreNames}
+    {Rb : GMap GoString backend.BktData → IProp GF} {Bt : GoInterfaceOk → IProp GF} :
+    isKeyBackendG (GF := GF) b View RT WT PutOk Del W Wi Dep Cmp P HF (storeReq γ) Rb Bt ⊢
+      isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF (Rb := Rb) (Bt := Bt) := by
   iintro #H
   unfold isKeyBackendG
   icases H with ⟨%bi, %Hbi, #H1, #H2, #H3, #HFc, #H5, #H6, #H7⟩
@@ -1440,6 +1503,50 @@ def kbCmp (kb : Option KBReal) : Prop := kb = none
 
 /-- The store's backend supports compaction (`kbCmp`). -/
 abbrev storeCmp (γ : StoreNames) : Prop := kbCmp γ.kb
+
+/-- **The right to write the tracked buckets** (`batchTxSpecG`'s `Rb`, at the buckets `r`) of the
+instance `kb`: the real backend's client half of them (`backend.rbOwn`, D22), with its parameters
+letting the lessor delete from `Lease` (`leaseParams`: the holder knows the table); nothing for
+mvcc's assumed backend (leases T3, 2026-10-25: what the lessor's delete in `Revoke` takes). -/
+def kbRb : Option KBReal → GMap GoString backend.BktData → IProp GF
+  | none => fun _ => iprop(True)
+  | some d => fun r => iprop(backend.rbOwn d.γB r ∗ ⌜leaseParams d.P⌝)
+
+/-- The store's right to write the tracked buckets (`kbRb`). -/
+abbrev storeRb (γ : StoreNames) : GMap GoString backend.BktData → IProp GF := kbRb γ.kb
+
+/-- **The real backend at `be` has the batch transaction `bt`** (persistent): its `batchTx`
+field, read-only, holds `bt`'s pointer, and `BatchTx()` returns the field's value (so a call
+returns `bt`: the field's points-to agree). -/
+def bkBt (be : Loc) (bt : GoInterfaceOk) : IProp GF :=
+  iprop(∃ t : Loc, ⌜bt = ⟨go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩⌝ ∗
+    backend.bF go!"batchTx" be ↦□ t ∗
+    □ ({{ True }}
+      (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+        go!"BatchTx" #be)) (Val #()))
+      {{ (t' : Loc), RET #(interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t');
+        backend.bF go!"batchTx" be ↦□ t' }}))
+
+instance bkBt_persistent (be : Loc) (bt : GoInterfaceOk) : Persistent (bkBt (GF := GF) be bt) := by
+  unfold bkBt; infer_instance
+
+/-- **The batch transaction `bt` is the backend's** (`isKeyBackendG`'s `Bt`; leases T3, L2d (iv),
+2026-10-25) for the instance `kb`: over the real backend at `d.be`, its `BatchTx()` returns `bt`
+(the backend's `batchTx` field, read-only), so that the lessor's `le.b.BatchTx()` in `Revoke` is
+the batch transaction the KV write transaction holds the lock of; nothing over mvcc's assumed
+backend. -/
+def kbBt : Option KBReal → GoInterfaceOk → IProp GF
+  | none => fun _ => iprop(True)
+  | some d => bkBt d.be
+
+instance kbBt_persistent (kb : Option KBReal) (bt : GoInterfaceOk) :
+    Persistent (kbBt (GF := GF) kb bt) := by
+  cases kb <;> unfold kbBt <;> infer_instance
+
+/-- The store's batch transaction is its backend's (`kbBt`). -/
+abbrev storeBt (γ : StoreNames) : GoInterfaceOk → IProp GF := kbBt γ.kb
 
 /-- The pending puts are at most the pending changes. -/
 theorem pendPuts_length_le (ilog : Log) (pend : List Change) :
@@ -2053,11 +2160,12 @@ theorem storeW_pending (s : Loc) (γ : StoreNames) :
 theorem isKeyBackendG_cmp (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF) (HF : val → IProp GF)
     (h : storeCmp γ) :
     isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) ⊢
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) (storeBt γ) ⊢
     isKeyBackendG b (bucketView γ) iprop(True) iprop(True) noPutCond (delKey γ) (writerRes s γ)
       iprop(True) Dep True P HF := by
   unfold storeCmp kbCmp at h
   unfold storeW kbWi storeRT storeWT storePutOk storeCmp kbCmp kbRT kbWT kbPutOk storeReq kbReq
+    storeRb kbRb storeBt kbBt
   simp only [h]
   exact .rfl
 
@@ -2537,7 +2645,7 @@ def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
   iprop(∃ (Ph Dep : IProp GF),
     "#Hhook" ∷ hookP γ Ph ∗
     "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) ∗
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ) ∗
     "#Hdep" ∷ □ Dep ∗
     "#Hti" ∷ isTreeIndex o.ti γ.idx ∗
     "#HisSched" ∷ schedule.isFifo o.ssched γ.sch)
@@ -3138,7 +3246,7 @@ store's contract no longer fixes the hook, which the etcd server installs after 
 with some deposit witness. -/
 def storeBackend (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
   iprop(∃ Dep : IProp GF, isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ)
-    (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ) (storeReq γ))
+    (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ))
 
 instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackend (GF := GF) b s γ P) := by
@@ -3151,7 +3259,7 @@ first `Unlock` deposits it). What `store.Restore` takes of its new backend: it n
 backend's batch transaction, so it has no witness of its own. -/
 def storeBackendT (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
   isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ) (storeW s γ)
-    (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ) (storeReq γ)
+    (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
 
 instance storeBackendT_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackendT (GF := GF) b s γ P) := by
@@ -3553,6 +3661,39 @@ theorem rangeOutcomeC_neg (r : Loc) (err : GoInterface) (log : Log) (rev : w64) 
 
 /-! ## The write transaction -/
 
+/-- **The write transaction's lock token** at the puts `l`: the batch transaction's (`Locked l`),
+or, after the lessor's delete from the `Lease` bucket (`ld`: `batchTxSpecG`'s last clause;
+leases T3, 2026-10-25), a token only `Unlock` takes (`unlockAt`). -/
+abbrev lockedIs (ld : Bool) (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W P : IProp GF)
+    (Locked : Puts → IProp GF) (l : Puts) : IProp GF :=
+  match ld with
+  | false => Locked l
+  | true => iprop(∃ U : IProp GF, U ∗ unlockAt bt View W P U l)
+
+/-- Either token can be unlocked (`unlockAt`). -/
+theorem lockedIs_unlock (ld : Bool) (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
+    (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF)
+    (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
+    (l : Puts) :
+    batchTxSpecG (GF := GF) bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb ∗
+      lockedIs ld bt View W P Locked l ⊢ ∃ U : IProp GF, U ∗ unlockAt bt View W P U l := by
+  iintro ⟨#Hbt, Hl⟩
+  cases ld with
+  | true => iexact Hl
+  | false =>
+    iexists (Locked l)
+    iframe Hl
+    iunfold batchTxSpecG at Hbt
+    icases Hbt with ⟨-, -, #HU0, #HU, -⟩
+    iunfold unlockAt
+    isplitr
+    · iintro !> %Φ !> ⟨Hl, %Hn, HW, HP⟩ HΦ
+      subst Hn
+      iapply HU0 $$ [$Hl $HW $HP] HΦ
+    · iintro !> %m %Q %Φ !> ⟨Hl, Hv, Hw, HP⟩ HΦ
+      iapply HU $$ %l %m %Q [$Hl $Hv $Hw $HP] HΦ
+
 /-- The `*mvccpb.KeyValue`s of a write transaction's `changes`: the `i`-th holds what the
 `i`-th pending change wrote (`changeKv`: the new key-value of a put, the key alone of a
 delete). -/
@@ -3590,7 +3731,7 @@ transaction observed (one of `ilog`'s revisions, or `-1`), and the reader's tag 
 given back at `End`). By default the frozen transaction (`crev = -1`, `Z = crevFrozen γ`: a store
 never compacted, as the packages above mvcc state it; 2026-10-13, unit 6a). -/
 def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
-    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) : IProp GF :=
+    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) (ld : Bool := false) : IProp GF :=
   iprop(∃ (ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (chs : GoSlice)
     (ps : List Loc) (ntok : Nat) (Pw : IProp GF) (fw : val) (Dep : IProp GF),
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
@@ -3608,10 +3749,11 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "#Hs" ∷ isStore s γ ∗
     "#Hhook" ∷ hookOk γ Pw fw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) ∗
+      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) ∗
+    "#HbtB" ∷ storeBt γ bt ∗
     "#Hreg" ∷ storeRegd s γ ∗
     "Hrt" ∷ storeRT γ ∗
-    "Hlocked" ∷ Locked (pendPuts ilog pend) ∗
+    "Hlocked" ∷ lockedIs ld bt (bucketView γ) (storeW s γ) Pw Locked (pendPuts ilog pend) ∗
     "Hw" ∷ idxWriter γ.idx ilog pend ∗
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
@@ -3637,7 +3779,7 @@ the slice is `chs`, of `ps.length = pend.length` pointers, and the index writer 
 `storeTxnWrite.End` needs (it reads the slice's length only). -/
 def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (crev : Int := -1)
-    (Z : IProp GF := crevFrozen γ) : IProp GF :=
+    (Z : IProp GF := crevFrozen γ) (ld : Bool := false) : IProp GF :=
   iprop(∃ (ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (ntok : Nat)
     (Pw : IProp GF) (fw : val) (Dep : IProp GF),
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
@@ -3653,10 +3795,11 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "#Hs" ∷ isStore s γ ∗
     "#Hhook" ∷ hookOk γ Pw fw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) ∗
+      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) ∗
+    "#HbtB" ∷ storeBt γ bt ∗
     "#Hreg" ∷ storeRegd s γ ∗
     "Hrt" ∷ storeRT γ ∗
-    "Hlocked" ∷ Locked (pendPuts ilog pend) ∗
+    "Hlocked" ∷ lockedIs ld bt (bucketView γ) (storeW s γ) Pw Locked (pendPuts ilog pend) ∗
     "Hw" ∷ idxWriterB γ.idx ilog pend sealed ∗
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
@@ -3677,8 +3820,8 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
 
 /-- A write transaction's revision (`writeRev`) is not negative (kept). -/
 theorem storeTxnWriteIs_writeRev (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
-    (crev : Int) (Z : IProp GF) :
-    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
+    (crev : Int) (Z : IProp GF) (ld : Bool) :
+    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ld ⊢
       ⌜0 ≤ sint.Z (W64 ((writeRev ilog pend : Nat) : Int) : w64)⌝ := by
   iintro H
   iunfold storeTxnWriteIs at H
@@ -3697,8 +3840,8 @@ theorem storeTxnWriteIs_writeRev (tw s : Loc) (γ : StoreNames) (ilog : Log) (pe
 its index writer holds a receipt per change (`idxWriter_lt`), and the store's bound is
 `2 ^ 48` (`isStore`). -/
 theorem storeTxnWriteIs_small' (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
-    (crev : Int) (Z : IProp GF) :
-    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
+    (crev : Int) (Z : IProp GF) (ld : Bool) :
+    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ld ⊢
       ⌜logCh ilog + pend.length < receiptBound GF ∧ receiptBound GF ≤ 2 ^ 48⌝ := by
   iintro H
   iunfold storeTxnWriteIs at H
@@ -3710,9 +3853,9 @@ theorem storeTxnWriteIs_small' (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
 
 /-- The write transaction as its core, its `changes` and their key-values. -/
 theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
-    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
-      ∃ (chs : GoSlice) (ps : List Loc), storeTxnWriteCore tw s γ trace ilog pend chs ps false crev Z ∗
+    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) (ld : Bool := false) :
+    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ld ⊢
+      ∃ (chs : GoSlice) (ps : List Loc), storeTxnWriteCore tw s γ trace ilog pend chs ps false crev Z ld ∗
         chs ↦* ps ∗ changesAre ps ilog pend := by
   iintro Htw
   iunfold storeTxnWriteIs at Htw
@@ -3728,9 +3871,10 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn, Hcrev⟩
 
 theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
-    (chs : GoSlice) (ps : List Loc) (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps false crev Z ∗ chs ↦* ps ∗
-      changesAre ps ilog pend ⊢ storeTxnWriteIs tw s γ trace ilog pend crev Z := by
+    (chs : GoSlice) (ps : List Loc) (crev : Int := -1) (Z : IProp GF := crevFrozen γ)
+    (ld : Bool := false) :
+    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps false crev Z ld ∗ chs ↦* ps ∗
+      changesAre ps ilog pend ⊢ storeTxnWriteIs tw s γ trace ilog pend crev Z ld := by
   iintro ⟨Hc, Hchs, Hkvs⟩
   iunfold storeTxnWriteCore at Hc
   iNamed Hc
@@ -3742,14 +3886,52 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   iframe #
   ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn, Hcrev⟩
 
+/-- **The lessor's delete under the write transaction's lock** (leases T3, 2026-10-25): the
+transaction's batch transaction `bt` deletes a key of the `Lease` bucket (`batchTxSpecG`'s last
+clause, with the right to write the tracked buckets, `storeRb`), leaving the transaction with a
+lock token only `Unlock` takes (`ld`: what `storeTxnWrite.End` takes; `lessor.Revoke` makes no
+other call before it). -/
+theorem storeTxnWriteIs_leaseDel (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (crev : Int) (Z : IProp GF) :
+    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
+      ∃ bt : GoInterfaceOk, storeBt γ bt ∗ ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+          (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
+        globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b -∗ key ↦*{dq} k -∗
+        storeRb γ r -∗
+        ▷ (storeTxnWriteIs tw s γ trace ilog pend crev Z true -∗ key ↦*{dq} k -∗
+          storeRb γ (rbDel r leaseName k) -∗ Φ #()) -∗
+        WP (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key)) {{ Φ }} := by
+  iintro Htw
+  iunfold storeTxnWriteIs at Htw
+  iNamed Htw
+  iexists bt
+  isplitr
+  · iexact HbtB
+  iintro %b %key %k %dq %r %Φ #HL Hkey Hrb HΦ
+  ihave #Hbt0 : batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
+      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) $$ []
+  · iexact Hbt
+  iunfold batchTxSpecG at Hbt0
+  icases Hbt0 with ⟨-, -, -, -, -, -, -, -, -, #HDel⟩
+  iapply HDel $$ %(pendPuts ilog pend) %b %key %k %dq %r [$HL $Hlocked $Hkey $Hrb]
+  inext
+  iintro ⟨Hlk, Hkey, Hrb⟩
+  iapply HΦ $$ [-Hkey Hrb] Hkey Hrb
+  iunfold storeTxnWriteIs
+  iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+  simp only [named]
+  iframe
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+
 /-- **Seal** the write transaction's pending revision (not empty): the log with the revision
 committed is sealed (`idxSealed`: its history's lower bound and its well-formedness),
 persistent. -/
 theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (chs : GoSlice) (ps : List Loc) (hne : pend ≠ []) (crev : Int := -1)
-    (Z : IProp GF := crevFrozen γ) :
-    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps false crev Z ==∗
-      storeTxnWriteCore tw s γ trace ilog pend chs ps true crev Z ∗
+    (Z : IProp GF := crevFrozen γ) (ld : Bool := false) :
+    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps false crev Z ld ==∗
+      storeTxnWriteCore tw s γ trace ilog pend chs ps true crev Z ld ∗
         idxSealed γ.idx (ilog ++ [pend]) := by
   iintro Hc
   iunfold storeTxnWriteCore at Hc
@@ -3768,9 +3950,10 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
 /-- The write transaction's facts: the writer's log is well formed, and its committed log is
 the store's view of `currentRev` (kept). -/
 theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
-    (chs : GoSlice) (ps : List Loc) (b : Bool) (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps b crev Z ⊢
-      storeTxnWriteCore tw s γ trace ilog pend chs ps b crev Z ∗
+    (chs : GoSlice) (ps : List Loc) (b : Bool) (crev : Int := -1) (Z : IProp GF := crevFrozen γ)
+    (ld : Bool := false) :
+    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps b crev Z ld ⊢
+      storeTxnWriteCore tw s γ trace ilog pend chs ps b crev Z ld ∗
         ⌜IdxWf ilog pend ∧ ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧
           0 ≤ sint.Z chs.len ∧ ilog ≠ []⌝ := by
   iintro Hc
@@ -3789,21 +3972,22 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
 /-- The write transaction `store.Write` returns, as the caller sees it: the `metricsTxnWrite`
 wrapper at `mw` (its counters `puts`, `deletes`, `putSize`) around the `storeTxnWrite`. -/
 def isTxnWrite (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
-    (puts deletes putSize : w64) (crev : Int := -1) (Z : IProp GF := crevFrozen γ) : IProp GF :=
+    (puts deletes putSize : w64) (crev : Int := -1) (Z : IProp GF := crevFrozen γ)
+    (ld : Bool := false) : IProp GF :=
   iprop(∃ (tw : Loc) (ranges : w64),
     "Hmw" ∷ mw ↦ ({
         TxnWrite' := interface.mkOk (go.GoType.PointerType storeTxnWrite.ty) #tw,
         ranges' := ranges, puts' := puts, deletes' := deletes, putSize' := putSize } : metricsTxnWrite) ∗
-    "Htw" ∷ storeTxnWriteIs tw s γ trace ilog pend crev Z ∗
+    "Htw" ∷ storeTxnWriteIs tw s γ trace ilog pend crev Z ld ∗
     "Htrc" ∷ (∃ te : Bool, traceutil.ownTrace trace te))
 
 open Iris.ProofMode in
 /-- **A write transaction's changes are fewer than the receipts' bound** (D19c), keeping it. -/
 theorem isTxnWrite_small (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
-    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) :
-    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ⊢
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ld ⊢
       ⌜logCh ilog + pend.length < receiptBound GF ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
-        isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z := by
+        isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld := by
   refine (persistent_entails_left ?_).trans sep_comm.1
   iintro Ht
   iunfold isTxnWrite at Ht
@@ -3814,24 +3998,25 @@ theorem isTxnWrite_small (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Lo
 /-- The write transaction at `mw` without its key-values (`storeTxnWriteCore`). -/
 def isTxnWriteCore (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (sealed : Bool)
-    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) : IProp GF :=
+    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) (ld : Bool := false) : IProp GF :=
   iprop(∃ (tw : Loc) (ranges : w64),
     "Hmw" ∷ mw ↦ ({
         TxnWrite' := interface.mkOk (go.GoType.PointerType storeTxnWrite.ty) #tw,
         ranges' := ranges, puts' := puts, deletes' := deletes, putSize' := putSize } : metricsTxnWrite) ∗
-    "Htw" ∷ storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ∗
+    "Htw" ∷ storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ld ∗
     "Htrc" ∷ (∃ te : Bool, traceutil.ownTrace trace te))
 
 theorem isTxnWrite_split (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
-    (puts deletes putSize : w64) (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ⊢
+    (puts deletes putSize : w64) (crev : Int := -1) (Z : IProp GF := crevFrozen γ)
+    (ld : Bool := false) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ld ⊢
       ∃ (chs : GoSlice) (ps : List Loc),
-        isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ∗
+        isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld ∗
         chs ↦* ps ∗ changesAre ps ilog pend := by
   iintro H
   iunfold isTxnWrite at H
   iNamed H
-  icases storeTxnWriteIs_split tw s γ ilog pend crev Z $$ Htw with ⟨%chs, %ps, Hc, Hchs, Hkvs⟩
+  icases storeTxnWriteIs_split tw s γ ilog pend crev Z ld $$ Htw with ⟨%chs, %ps, Hc, Hchs, Hkvs⟩
   iexists chs, ps
   iframe Hchs Hkvs
   iunfold isTxnWriteCore
@@ -3840,28 +4025,78 @@ theorem isTxnWrite_split (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : Lis
 
 theorem isTxnWrite_join (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (crev : Int := -1)
-    (Z : IProp GF := crevFrozen γ) :
-    isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ∗
+    (Z : IProp GF := crevFrozen γ) (ld : Bool := false) :
+    isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld ∗
       chs ↦* ps ∗ changesAre ps ilog pend ⊢
-        isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z := by
+        isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld := by
   iintro ⟨H, Hchs, Hkvs⟩
   iunfold isTxnWriteCore at H
   iNamed H
   iunfold isTxnWrite
   iexists tw, ranges
   iframe Hmw Htrc
-  iapply storeTxnWriteIs_join tw s γ ilog pend chs ps crev Z $$ [$Htw $Hchs $Hkvs]
+  iapply storeTxnWriteIs_join tw s γ ilog pend chs ps crev Z ld $$ [$Htw $Hchs $Hkvs]
+
+/-- **The lessor's delete under the write transaction's lock**, through the `metricsTxnWrite`
+wrapper (`storeTxnWriteIs_leaseDel`). -/
+theorem isTxnWrite_leaseDel (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ⊢
+      ∃ bt : GoInterfaceOk, storeBt γ bt ∗ ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+          (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
+        globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b -∗ key ↦*{dq} k -∗
+        storeRb γ r -∗
+        ▷ (isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z true -∗ key ↦*{dq} k -∗
+          storeRb γ (rbDel r leaseName k) -∗ Φ #()) -∗
+        WP (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key)) {{ Φ }} := by
+  iintro H
+  iunfold isTxnWrite at H
+  iNamed H
+  icases storeTxnWriteIs_leaseDel tw s γ ilog pend crev Z $$ Htw with ⟨%bt, #HbtB, Hd⟩
+  iexists bt
+  isplitr
+  · iexact HbtB
+  iintro %b %key %k %dq %r %Φ #HL Hkey Hrb HΦ
+  iapply Hd $$ %b %key %k %dq %r %Φ HL Hkey Hrb
+  inext
+  iintro Htw Hkey Hrb
+  iapply HΦ $$ [Hmw Htw Htrc] Hkey Hrb
+  iunfold isTxnWrite
+  iexists tw, ranges
+  iframe
+
+/-- **A write transaction's committed log is certified** (leases T3, L2b, 2026-10-25), keeping
+it. -/
+theorem isTxnWrite_cert (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ld ⊢
+      isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld ∗ idxCert γ.idx ilog := by
+  iintro H
+  iunfold isTxnWrite at H
+  iNamed H
+  iunfold storeTxnWriteIs at Htw
+  iNamed Htw
+  iframe Hcert
+  iunfold isTxnWrite
+  iexists tw, ranges
+  iframe Hmw Htrc
+  iunfold storeTxnWriteIs
+  iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+  simp only [named]
+  iframe
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
 theorem isTxnWriteCore_seal (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (hne : pend ≠ [])
-    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ==∗
-      isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps true crev Z ∗
+    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) (ld : Bool := false) :
+    isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld ==∗
+      isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps true crev Z ld ∗
         idxSealed γ.idx (ilog ++ [pend]) := by
   iintro H
   iunfold isTxnWriteCore at H
   iNamed H
-  imod storeTxnWriteCore_seal tw s γ ilog pend chs ps hne crev Z $$ Htw with ⟨Htw, #Hlb⟩
+  imod storeTxnWriteCore_seal tw s γ ilog pend chs ps hne crev Z ld $$ Htw with ⟨Htw, #Hlb⟩
   imodintro
   iframe Hlb
   iunfold isTxnWriteCore
@@ -3947,14 +4182,15 @@ def isTxn (mw s : Loc) (γ : StoreNames) (trace : Loc) (kind : TxnKind) (crev : 
     isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z
 
 /-- What `End` needs of a transaction (`metricsTxnWrite.End`): a read transaction; a write
-transaction's core (its key-values released: `isTxnWrite_split`), sealed or not. -/
+transaction's core (its key-values released: `isTxnWrite_split`), sealed or not, its lock token
+the batch transaction's or the one the lessor's delete left (`ld`, leases T3, 2026-10-25). -/
 def isTxnEnd (mw s : Loc) (γ : StoreNames) (trace : Loc) (kind : TxnKind) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) : IProp GF :=
   match kind with
   | .read log rev => isTxnRead mw s γ trace log rev crev Z
   | .write ilog pend puts deletes putSize =>
-    iprop(∃ (chs : GoSlice) (ps : List Loc) (sealed : Bool),
-      isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps sealed crev Z)
+    iprop(∃ (chs : GoSlice) (ps : List Loc) (sealed ld : Bool),
+      isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps sealed crev Z ld)
 
 /-- A transaction is ready to end (its key-values, if any, dropped). -/
 theorem isTxn_toEnd (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : Int := -1)
@@ -3966,7 +4202,7 @@ theorem isTxn_toEnd (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : Int 
     simp only [isTxn, isTxnEnd]
     iintro H
     icases isTxnWrite_split mw s γ ilog pend puts deletes putSize crev Z $$ H with ⟨%chs, %ps, Hc, -, -⟩
-    iexists chs, ps, false
+    iexists chs, ps, false, false
     iexact Hc
 
 /-- A read transaction's trace, borrowed (its owner steps it while the transaction is live). -/
@@ -4156,7 +4392,7 @@ theorem restoreLogOk_len {R : Log} (h : restoreLogOk R) :
 end reprs
 
 section hookLc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -4691,7 +4927,7 @@ theorem compactRight_of_closer (s : Loc) (γ : StoreNames) :
 end hookLc
 
 section halves
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -4708,7 +4944,7 @@ macro "withPhys_simp" : tactic => `(tactic| simp only [Perennial.EtcdGrove.mvcc.
     Perennial.EtcdGrove.mvcc.readerPool_withPhys, Perennial.EtcdGrove.mvcc.wDep_withPhys, Perennial.EtcdGrove.mvcc.wsDep_withPhys, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_clog, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_leases, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_revs, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cok, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_watchQ, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cur, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_rst, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tk, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tko, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wsd, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkw, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_hist, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_log, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_crev])
 
 section physShare
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

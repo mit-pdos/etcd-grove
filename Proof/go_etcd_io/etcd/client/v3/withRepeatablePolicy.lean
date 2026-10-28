@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -24,6 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem withRepeatablePolicy.wp_proof : withRepeatablePolicy.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_func_lits
   wp_auto
   iapply HΦ

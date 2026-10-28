@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -52,8 +52,8 @@ theorem apply.applierV3backend.AuthDisable.wp_proof
   · ipureintro; exact Hadm
   ihave Hwo := Hrdb $$ Hrt
   wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
-  wp_alloc l as Hl
-  wp_auto
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iapply HΦ
   isplitl; rotate_left
   · first | iexact HeI | iapply applyErrIs_nil

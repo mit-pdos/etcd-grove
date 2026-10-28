@@ -6,6 +6,7 @@ and wait for the apply thread's result. Lean-first (no Rocq counterpart); see `I
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 
@@ -17,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -61,6 +62,34 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
           ∃ lb : mvcc.Log, resultIsW E ρ.rd rq' F res lb ∗
             ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜kvModel ρ.kv L = lb⌝ ∗ □ Qr L) ∨
+       (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
+
+/-- **The handoff in either auth mode** (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): `spec`'s,
+with the proposer's view of the server, the wait's results and the KV model of the mode
+(`isServerReqM`; the applied result `resPostM`: in the mode `on` with the auth state the entry met
+and the auth layer's verdict the model's grant there, `authTie`), and the proposal's permission at the header the server stamps
+(`reqPropOkM`: in the mode `on` the check reads the request's principal, which the server fills in
+from the context before it proposes; the result `Qh hm` is at that header `hm`, the one the post
+names); (E3t, 2026-10-27) with auth on, the auth state after the entry published (`pubAfterM`). At
+`on = false` it is `spec` (`EtcdServer.processInternalRaftRequestOnce.wp_proof` is
+derived from it, a constant `Qh`). -/
+abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
+    (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
+  rq.id = W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
+      context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM on ρ.kv rq Qh ∗
+      (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
+      mvcc.idxCert E.γ.idx F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
+      (Val #(GoInterface.ok ctx))) (Val #p))
+  {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
+          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
+          ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗
+            pubAfterM on E ρ rq' L ∗ □ Qh hm L) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 end spec

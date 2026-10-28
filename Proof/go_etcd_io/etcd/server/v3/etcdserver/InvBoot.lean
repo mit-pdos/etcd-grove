@@ -68,7 +68,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -82,6 +82,15 @@ gives an unknown host the owner `0`, `netOwner`), each host of one member's URLs
 transport's `AddPeer` parses). -/
 def netDirOk (dir : w64 → List GoString) : Prop :=
   dir 0 = [] ∧ dirHostsDistinct dir ∧ ∀ (id : w64) (s : GoString), s ∈ dir id → types.plainPeerURL s
+
+/-- **The member's configured peer URLs are its directory URLs** (2026-10-27, D22 J-T, W8; a
+premise of `NewServer.spec`, of the caller's configuration): non-empty, each of only the scheme
+`http` and a plain host (`http.urlRootPlain`), `http://` and the host one of the member's peer
+URLs in the directory. The transport sends them in `X-PeerURLs` (`setPeerURLsHeader`), which a
+peer's handler may add a remote for. -/
+def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Perennial.net.url.URL) :
+    Prop :=
+  uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
 
 /-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
 peer URL `url`, no other member. -/
@@ -122,6 +131,35 @@ theorem addPeer_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn
     (netRh_member γn pid).2 ((hps pid).2 hp)⟩
   rw [netRh_owner]
   exact netOwner_of_mem γn.dir hd.2.1 pid h hm
+
+omit [MemStorReg GF] in
+/-- Four of `n` copies of `P` for each id of `l` (D22 J-T: the transport's pool). -/
+theorem replicate_list4 (P : IProp GF) : ∀ (l : List w64) (n : Nat), 4 * l.length ≤ n →
+    ([∗list] _x ∈ List.replicate n (), P) ⊢ [∗list] _x ∈ l, P ∗ P ∗ P ∗ P
+  | [], _, _ => by
+    iintro -
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  | x :: l, n, h => by
+    obtain ⟨m, rfl⟩ : ∃ m, n = m + 4 := ⟨n - 4, by simp only [List.length_cons] at h; omega⟩
+    rw [show List.replicate (m + 4) () = () :: () :: () :: () :: List.replicate m () by
+      simp [List.replicate_succ]]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H2, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H3, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H4, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe H1 H2 H3 H4
+    iapply replicate_list4 P l m (by simp only [List.length_cons] at h; omega) $$ H
+
+omit [MemStorReg GF] in
+/-- **The transport's configured peer URLs are its member's** (D22 J-T, W8): from the directory. -/
+theorem trURLsOk_of_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
+    (hd : netDirOk dir) (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (id : w64)
+    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs) :
+    trURLsOk (netRh γn) id uvs := by
+  obtain ⟨-, hpl, hown, -⟩ := addPeer_dir γn dir hγ hd ps hps id hid (dir id) rfl
+  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2⟩⟩
 
 omit [MemStorReg GF] in
 /-- The members' loop's coverage, a step further: the ids added so far (`L`, within `L'`), and
@@ -173,14 +211,7 @@ instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
     Persistent (memberRO (GF := GF) dir m) := by
   unfold memberRO; infer_instance
 
-/-- **A member returned by `Members()`, its URLs the directory's** (D21 M2, 2026-10-19): owned
-(`membership.memberIs`'s fields), with id `id`, its peer URLs `dir id`. -/
-def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
-  iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice) (il : Bool) (nm : GoString) (pus cus : List GoString),
-    membership.mIDAddr m ↦ id ∗ membership.mPeerURLsAddr m ↦ pu ∗
-    membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
-    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗
-    ⌜membership.peerURLsOk pus ∧ pus = dir id⌝)
+-- (D22 J1a, 2026-10-26) `memberDirIs` moved to `SnapRO.lean`.
 
 /-- **A fresh alarm store** `a` (opaque, exclusive; D14i, 2026-10-17): made by
 `v3alarm.NewAlarmStore` over a fresh alarm bucket and not yet handed to an applier, it has no
@@ -188,87 +219,8 @@ alarm (`Activate`, the only writer of its map, is in its apply contract, which t
 gives: the axiom's postcondition). -/
 opaque alarmFresh (a : Loc) : IProp GF
 
-/-- **The alarm store `a`'s apply contract on whichever backend it is on** (persistent; D22 receiver
-epochs, S7c, 2026-10-23; `v3alarm.NewAlarmStore.spec`'s, the trust boundary): for a real backend
-`d` (its contract at some `W`, `Pk`, its frozen post-lock hook `f`) and a write right `RW` lending
-the tracked buckets' half of `d` and the store's user's half of `a.be` at an alarm backend over
-`d` (`alarmBeOn`), the apply package's contract at `d`'s batch lock `Pk` and hook `f`. The user's
-half, with the lock's (`alarmLockInv`), is what pins the store's writes to `d`, so the contract
-stays true when `Recover` moves the store to another backend (the old user's half is gone, the new
-one names the new backend; until S7c the contract was for `NewAlarmStore`'s backend only, false
-once `Recover` runs). -/
-def alarmApplyOk (a : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ alarmBeOn a d.be) -∗
-    apply.isAlarmStore a γ Pk #f RW)
-
-instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF) a) := by
-  unfold alarmApplyOk; infer_instance
-
-/-- **The auth store `stl`'s apply contract on whichever backend it is on, in the auth mode
-`M`** (the auth plan's E2i, 2026-10-26; until then in the mode `off` only, `authApplyOk`): with
-the store's verdicts in the mode `M`; the real store in the mode `on γa` meets it (`authApplyOkM_on`,
-`AuthApplyOn.lean`; its admin clauses vacuous there, `apply.adminAdmitted`). -/
-def authApplyOkM (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
-    apply.isAuthStore (auth.authIface stl) γ Pk #f RD M RW)
-
-/-- **The auth store `stl`'s apply contract on whichever backend it is on** (persistent; S7c;
-`auth.NewAuthStore.spec`'s, the trust boundary), with the reader resource `RD`: as
-`alarmApplyOk`, its writes pinned to the backend by the user's half of `st.be` (`authBeOn`). -/
-def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
-    apply.isAuthStore (auth.authIface stl) γ Pk #f RD .off RW)
-
-theorem authApplyOk_eq (stl : Loc) (RD : IProp GF) :
-    authApplyOk (GF := GF) stl RD = authApplyOkM .off stl RD := rfl
-
-instance authApplyOkM_persistent (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) :
-    Persistent (authApplyOkM (GF := GF) M stl RD) := by
-  unfold authApplyOkM; infer_instance
-
-/-- **The lessor `lp`'s backend contract on whichever backend it is on** (persistent; D22
-receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes
-pinned to the backend by the user's half of `le.b` (`lease.lessorBeOn`), which the write right
-lends; one write-back token per write, the reader's open share lent. -/
-def lessorApplyOk (lp : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
-    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-    rwLens RW iprop(srvRestRW d.γB ∗ lease.lessorBeOn lp d.be) -∗
-    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be))
-
-instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
-  unfold lessorApplyOk; infer_instance
-
-/-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
-epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
-contract at some `W`, `Pk`, its frozen post-lock hook `f`), the apply package's `isCluster` at `d`'s
-batch lock `Pk` and hook `f`, given a rest resource `RO` lending the backend's tracked buckets'
-half and the cluster's in-memory members with its `be` field at a membership backend over `d`
-(`clusterBeOn`, `roLens`), and a write right `RW` lending the half and the field (`rwLens`). The
-field (`c.be`: no lock guards it, the apply thread is its only reader and writer) pins the
-cluster's writes to `d`; `SetBackend` replaces it. Until S7e the contract was for the boot
-backend's batch lock only, false once `applySnapshot` calls `SetBackend`. -/
-def clusterApplyOk (c : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
-      (RO : apply.RestM → IProp GF) (RW : IProp GF),
-    ⌜γ'.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
-    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.be)) -∗
-    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
-    apply.isCluster c γ' Pk #f RO RW)
-
-instance clusterApplyOk_persistent (c : Loc) : Persistent (clusterApplyOk (GF := GF) c) := by
-  unfold clusterApplyOk; infer_instance
-
-instance authApplyOk_persistent (stl : Loc) (RD : IProp GF) :
-    Persistent (authApplyOk (GF := GF) stl RD) := by
-  unfold authApplyOk; infer_instance
+-- (D22 J1a) the stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
+-- `lessorApplyOk`, `clusterApplyOk`) moved to `SnapRO.lean`.
 
 /-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
 lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure
@@ -292,12 +244,12 @@ raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budg
 entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
 `NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
 until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/
-def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames) (id : w64)
-    (bootLog : List EntryM) (N : Nat) (dir : w64 → List GoString) (b : Loc) : IProp GF :=
+def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) (id : w64)
+    (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) (b : Loc) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
-      (ctxs : List (List w8)) (rms : List Loc) (cid : w64) (cil : Loc) (γA : ApplyNames)
+      (rms : List Loc) (cid : w64) (cil : Loc) (γA : ApplyNames)
       (d : mvcc.KBReal) (D : backend.Data),
     -- the records
     "Hb" ∷ b ↦ bs ∗ "Hsto" ∷ bs.storage' ↦ sto ∗ "Hbk" ∷ sto.backend' ↦ bk ∗
@@ -315,18 +267,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
       cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
       cv.ID' = id ∧
-      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) ≤ 2 ^ 62 ∧
-      cv.ID' ∈ ps ∧ γ.reCfg = GMap.listToSet ps ∧ γ.reBoot = bootLog ∧
-      BootLogOk γ.reCCOk ps bootLog⌝ ∗
-    -- (D21 M3, 2026-10-19) raft's no-snapshot mode (`RaftNames.reNoSnap`, what
-    -- `ownRaftGhost_alloc_boot` gives the servers), so raft sends no snapshot, and the fresh
-    -- `MemoryStorage` at the cap `1` (`MemStorNames.cap`, `NewMemoryStorage`'s choice): never
-    -- compacted past index `1`, which the mode needs (`StartNode`'s `NsCap`). (D19p to D21 M3: a
-    -- one-member cluster, `"%Hone"`, raft's tracked bound this node alone.)
-    "%Hnosnap" ∷ ⌜γ.reNoSnap = true ∧ γs.cap = 1⌝ ∗
-    -- (2026-10-19, D22 S-a) and raft's no-transfer mode (`RaftNames.reNoXfer`, until then the
-    -- no-snapshot mode's), which with it gives the receiver's `NetMsgOk` (`SentMsgOk`)
-    "%Hnoxfer" ∷ ⌜γ.reNoXfer = true⌝ ∗
+      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧
+      cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
+    -- (D21 M3, 2026-10-19) the fresh `MemoryStorage` at the cap `1` (`MemStorNames.cap`,
+    -- `NewMemoryStorage`'s choice): never compacted past index `1`, what `StartNode` takes of a
+    -- dynamic cluster's storage (`storCap`). (2026-10-27: until then with raft's no-snapshot and
+    -- no-transfer modes, now the cluster's kind, `srvClusterOk`.)
+    "%Hcap" ∷ ⌜γs.cap = 1⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage
@@ -347,11 +294,17 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- (D17d, 2026-10-18) the application's snapshot token of the fresh storage (`NewMemoryStorage`
     -- gives it), which `InitialState` borrows and `run`'s `Snapshot()` reads
     "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
+    -- (2026-10-27) the storage's certificate registry's authority, empty (`NewMemoryStorage`'s):
+    -- a static cluster's storage's certificates are the cluster's (`storageCertInv_alloc`)
+    "Hcauth" ∷ memCertAuth γs ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
-    "#Hmarshal" ∷ bootMarshal ps ctxs bootLog ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
+    -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, not nil
+    -- (`NewClusterFromURLsMap` sets `lg` from the configuration's logger): what `AddMember` and
+    -- `RemoveMember` log through, `applyConfChange`'s
+    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ ⌜lgc ≠ null⌝) ∗
     -- (audit B4a, 2026-10-18) its `versionChanged` field, owned (the cluster not yet shared):
     -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
@@ -398,13 +351,25 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- (D22, 2026-10-23; option (i) of "D22c decided") the cluster's in-memory members, as
     -- `bootstrap` made them: the boot log's (`memBoot`, the members whose JSON the bootstrap
     -- entries' contexts are)
-    "Hmem" ∷ membership.clusterMem bc.cl' (memBoot bootLog) ∗
+    "Hmem" ∷ membership.clusterMem bc.cl' (memBoot γ.boot) ∗
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0)⌝ ∗
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
+    -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
+    -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
+    -- `SetConfState` `applyConfChange` calls
+    "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
+      lgh) ∗
     "Hthr" ∷ applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
     "#Hmeta" ∷ isMetaBackend bk.be' (⊤ \ ↑applyN) (readView γA) ∗
+    -- (D22 J1a, 2026-10-26) the backend's hooks over the consistent index (`bootstrapBackend`'s
+    -- `serverstorage.NewBackendHooks(cfg.Logger, ci)`), which the snapshot path's
+    -- `OpenSnapshotBackend` installs on each new backend
+    "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
+      lgh) ∗
     -- the backend of the real instance, with the server's hooks
     "%Hbe" ∷ ⌜bk.be' = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be ∧
@@ -420,7 +385,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
     "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
-    "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
+    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
+    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
+    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
+    "Hlate" ∷ mvcc.lateReg d.gx ∗
     -- (D22, 2026-10-23: the backend over every bucket; a widening of the fresh data directory's
     -- facts, until then the opaque tokens `bkFresh d.γB "lease"`, `"auth"`, `"alarm"`) every rest
     -- bucket of the fresh file empty (absent or empty), the membership's three present
@@ -444,7 +412,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
 /-- **The configuration's URLs, as `bootstrap` reads them** (D19r (F), 2026-10-18): the peer and
 client URL slices and the initial cluster's map (member name to its peer URLs' slice), with their
 contents. -/
-structure BootURLs [FfiSyntax] where
+structure BootURLs [GooseExts] where
   peer : List _root_.Perennial.net.url.URL
   client : List _root_.Perennial.net.url.URL
   initMap : GMap GoString GoSlice
@@ -468,23 +436,23 @@ new `MemoryStorage` joins it; until then the contract gave its registration with
 which no update can), an error, or the record with `bootOk` (at the write-back budget
 `N + 7`). -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-    (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (dir : w64 → List GoString) :
+    (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
   iprop(□ ({{ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id bootLog N dir b }}))
+        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))
 
 instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (U : BootURLs) (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat)
+    (U : BootURLs) (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat)
     (dir : w64 → List GoString) :
-    Persistent (bootstrapContract (GF := GF) cfg U γ id bootLog N dir) := by
+    Persistent (bootstrapContract (GF := GF) cfg U γ id ctxs N dir) := by
   unfold bootstrapContract; infer_instance
 
 end defs
 
 section snap
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -530,7 +498,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
 end snap
 
 section transport
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -546,7 +514,8 @@ member, snapshot directory and lock's records. -/
 abbrev SrvKey := Loc × Loc × w64 × GName × GName × GName
 
 /-- The transport's names of a key. -/
-abbrev SrvKey.trN (x : SrvKey) : TrN GF := ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2⟩
+abbrev SrvKey.trN (x : SrvKey) : TrN GF :=
+  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, [], x.2.2.2.2.1, x.2.2.2.2.1⟩
 
 /-- **The raft loop's key to the transport's `Send`** (rafthttp stage 6d, 2026-10-24, the user's
 choice: the raft loop holds one of the transport's lock's reader tokens): the server's transport's
@@ -583,17 +552,19 @@ theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN
   iunfold srvTrKey
   iexists (s, t, c.lid, c.γd, c.γs, c.γr)
   iframe Hk
-  obtain ⟨lid, γd, R, γs, γr⟩ := c
+  obtain ⟨lid, γd, R, γs, γr, L, γk', γo⟩ := c
   simp only at hR
   subst hR
+  iunfold trTok at Htok
+  iunfold trTok
   iexact Htok
 
 /-- **The network's transport, with the key** (stage 6d): a transport whose `Send` borrows a
 reader's token of the transport fixed under `γk` borrows the key. -/
 theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (γk : GName)
-    (s t : Loc) (c : TrN GF) (hR : c.R = srvLgReader s) :
+    (s t : Loc) (c : TrN GF) (hR : c.R = srvLgReader s) (TS : IProp GF) :
     ⊢ ghostMapElem γk () DFrac.discard (s, t, c.lid, c.γd, c.γs, c.γr) -∗
-      netTransport γn lid tr (trTok γn t c) -∗ netTransport γn lid tr (srvTrKey γn γk) := by
+      netTransport γn lid tr (trTok γn t c) TS -∗ netTransport γn lid tr (srvTrKey γn γk) TS := by
   iintro #Hk #Htr
   iunfold netTransport at Htr
   icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, #Hsnap⟩
@@ -609,9 +580,11 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
     ihave %Heq := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hk Hx
     subst Heq
     ihave Htok' : trTok γn t c $$ [Htok]
-    · obtain ⟨lid', γd, R, γs, γr⟩ := c
+    · obtain ⟨lid', γd, R, γs, γr, L, γk', γo⟩ := c
       simp only at hR
       subst hR
+      iunfold trTok at Htok
+      iunfold trTok
       iexact Htok
     wp_apply Hsend $$ [Hsl Hms Htok'] as Htok
     · iframe
@@ -623,10 +596,26 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
   · iexact Hstop
   · iexact Hsnap
 
+/-- **No one may stop it** (D43 M5e, 2026-10-26): a network transport whose `Stop` asks nothing
+it is given (`False`), the static server's raft wrapper's (its transport frozen, the stop token
+the apply thread's, `srvApRes`; M6 hands it to the wrapper). -/
+theorem netTransport_noStop (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T TS : IProp GF) :
+    netTransport (GF := GF) γn lid tr T TS ⊢ netTransport γn lid tr T iprop(False) := by
+  iintro #Htr
+  iunfold netTransport at Htr
+  icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, #Hsnap⟩
+  iunfold netTransport
+  iexists ti
+  isplitr
+  · ipureintro; exact Hti
+  iframe Hsend Hsnap
+  iintro !> %Φ !> Hf -
+  iexfalso; iexact Hf
+
 /-- **The raft wrapper's transport from the network's** (D21 M2): an environment whose messages
 carry their bundle from the member `lid` (`E.M m` gives `netBundle`) can send them through it. -/
 theorem isRNTransport_of_net (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr : GoInterface) :
-    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N lid m) -∗ netTransport γn lid tr E.S -∗
+    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N lid m) -∗ netTransport γn lid tr E.S E.ST -∗
       isRNTransport E tr := by
   iintro #HM #Htr
   iunfold netTransport at Htr
@@ -650,6 +639,19 @@ theorem isRNTransport_of_net (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr 
     iexact HS
   · iexact Hstop
 
+
+/-- **The dynamic mode's hand-off** (D43 M5c, the user's (A)): with the transport's live right as
+the raft wrapper's stop right (`E.ST`, carried by `stopped`), a started transport's network view
+(`trState_net`: `Stop` takes the live right, `Stop_live`) is the raft wrapper's transport; the live
+right itself goes to the apply thread, which hands it to `raftNode.stop` when `run` returns (M6).
+The static server freezes instead (`E.ST = True`, `trFrozen_net`). -/
+theorem isRNTransport_of_live (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr : GoInterface)
+    (t : Loc) (c : TrN GF) (hST : E.ST = iprop(∃ rs : trIds, trLive γn t c rs)) :
+    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N lid m) -∗
+      netTransport γn lid tr E.S iprop(∃ rs : trIds, trLive γn t c rs) -∗ isRNTransport E tr := by
+  iintro #HM #Htr
+  rw [← hST] at *
+  iapply isRNTransport_of_net γn lid E tr $$ HM Htr
 /-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
 checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s
 closure over `raftRequest`). -/

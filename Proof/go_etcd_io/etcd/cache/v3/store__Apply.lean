@@ -64,7 +64,7 @@ theorem Apply_empty {cap : Nat} {st : StoreState} {r : RespModel}
   simp [applyResp, hc, hv, hpn, he]
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -78,6 +78,7 @@ theorem store.Apply.wp_proof
     store.Apply.spec (GF := GF) (hG := hG) := by
   intro s γ cap E R lo resp r
   wp_start as ⟨#Hs, #Hguard, #Hresp, %Hsorted, #Hlo, %Hlo0, #Hcert⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

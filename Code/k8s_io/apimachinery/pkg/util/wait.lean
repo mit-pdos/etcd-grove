@@ -24,241 +24,241 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.wait
 
-noncomputable def Backoff.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Backoff.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.Backoff" [])
 
 attribute [irreducible] Backoff.ty
 
-noncomputable def backoffManager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def backoffManager.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.backoffManager" [])
 
 attribute [irreducible] backoffManager.ty
 
-noncomputable def BackoffManager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackoffManager.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.BackoffManager" [])
 
 attribute [irreducible] BackoffManager.ty
 
-noncomputable def exponentialBackoffManagerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def exponentialBackoffManagerImpl.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.exponentialBackoffManagerImpl" [])
 
 attribute [irreducible] exponentialBackoffManagerImpl.ty
 
-noncomputable def jitteredBackoffManagerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jitteredBackoffManagerImpl.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.jitteredBackoffManagerImpl" [])
 
 attribute [irreducible] jitteredBackoffManagerImpl.ty
 
-noncomputable def DelayFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DelayFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.DelayFunc" [])
 
 attribute [irreducible] DelayFunc.ty
 
-noncomputable def errInterrupted.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errInterrupted.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.errInterrupted" [])
 
 attribute [irreducible] errInterrupted.ty
 
-noncomputable def Timer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Timer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.Timer" [])
 
 attribute [irreducible] Timer.ty
 
-noncomputable def noopTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopTimer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.noopTimer" [])
 
 attribute [irreducible] noopTimer.ty
 
-noncomputable def variableTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def variableTimer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.variableTimer" [])
 
 attribute [irreducible] variableTimer.ty
 
-noncomputable def fixedTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fixedTimer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.fixedTimer" [])
 
 attribute [irreducible] fixedTimer.ty
 
-noncomputable def Group.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Group.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.Group" [])
 
 attribute [irreducible] Group.ty
 
-noncomputable def ConditionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConditionFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.ConditionFunc" [])
 
 attribute [irreducible] ConditionFunc.ty
 
-noncomputable def ConditionWithContextFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConditionWithContextFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.ConditionWithContextFunc" [])
 
 attribute [irreducible] ConditionWithContextFunc.ty
 
-noncomputable def channelContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def channelContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.channelContext" [])
 
 attribute [irreducible] channelContext.ty
 
-noncomputable def waitFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def waitFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.waitFunc" [])
 
 attribute [irreducible] waitFunc.ty
 
-noncomputable def waitWithContextFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def waitWithContextFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.waitWithContextFunc" [])
 
 attribute [irreducible] waitWithContextFunc.ty
 
-noncomputable def ErrWaitTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrWaitTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ErrWaitTimeout"
 
-axiom ErrWaitTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrWaitTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errWaitTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errWaitTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.errWaitTimeout"
 
-axiom errWaitTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom errWaitTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def RealTimer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RealTimer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.RealTimer"
 
-axiom RealTimer.init [FfiSyntax] [GoGlobalContext] : val
+axiom RealTimer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def internalClock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def internalClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.internalClock"
 
-axiom internalClock.init [FfiSyntax] [GoGlobalContext] : val
+axiom internalClock.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ForeverTestTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ForeverTestTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ForeverTestTimeout"
 
-axiom ForeverTestTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom ForeverTestTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NeverStop [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NeverStop [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.NeverStop"
 
-axiom NeverStop.init [FfiSyntax] [GoGlobalContext] : val
+axiom NeverStop.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def jitterRand [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def jitterRand [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.jitterRand"
 
-axiom jitterRand.init [FfiSyntax] [GoGlobalContext] : val
+axiom jitterRand.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def delay [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def delay [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.delay"
 
-noncomputable def Until [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Until [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.Until"
 
-noncomputable def UntilWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UntilWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.UntilWithContext"
 
-noncomputable def NonSlidingUntil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NonSlidingUntil [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.NonSlidingUntil"
 
-noncomputable def NonSlidingUntilWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NonSlidingUntilWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.NonSlidingUntilWithContext"
 
-noncomputable def JitterUntil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def JitterUntil [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.JitterUntil"
 
-noncomputable def JitterUntilWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def JitterUntilWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.JitterUntilWithContext"
 
-noncomputable def BackoffUntil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BackoffUntil [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.BackoffUntil"
 
-noncomputable def BackoffUntilWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BackoffUntilWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.BackoffUntilWithContext"
 
-noncomputable def NewExponentialBackoffManager [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewExponentialBackoffManager [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.NewExponentialBackoffManager"
 
-noncomputable def NewJitteredBackoffManager [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewJitteredBackoffManager [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.NewJitteredBackoffManager"
 
-noncomputable def ExponentialBackoff [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExponentialBackoff [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ExponentialBackoff"
 
-noncomputable def ExponentialBackoffWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExponentialBackoffWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ExponentialBackoffWithContext"
 
-noncomputable def Interrupted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Interrupted [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.Interrupted"
 
-noncomputable def ErrorInterrupted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrorInterrupted [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ErrorInterrupted"
 
-noncomputable def loopConditionUntilContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def loopConditionUntilContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.loopConditionUntilContext"
 
-noncomputable def PollUntilContextCancel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollUntilContextCancel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollUntilContextCancel"
 
-noncomputable def PollUntilContextTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollUntilContextTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollUntilContextTimeout"
 
-noncomputable def Poll [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Poll [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.Poll"
 
-noncomputable def PollWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollWithContext"
 
-noncomputable def PollUntil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollUntil [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollUntil"
 
-noncomputable def PollUntilWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollUntilWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollUntilWithContext"
 
-noncomputable def PollInfinite [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollInfinite [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollInfinite"
 
-noncomputable def PollInfiniteWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollInfiniteWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollInfiniteWithContext"
 
-noncomputable def PollImmediate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollImmediate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollImmediate"
 
-noncomputable def PollImmediateWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollImmediateWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollImmediateWithContext"
 
-noncomputable def PollImmediateUntil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollImmediateUntil [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollImmediateUntil"
 
-noncomputable def PollImmediateUntilWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollImmediateUntilWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollImmediateUntilWithContext"
 
-noncomputable def PollImmediateInfinite [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollImmediateInfinite [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollImmediateInfinite"
 
-noncomputable def PollImmediateInfiniteWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PollImmediateInfiniteWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.PollImmediateInfiniteWithContext"
 
-noncomputable def poll [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def poll [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.poll"
 
-noncomputable def poller [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def poller [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.poller"
 
-noncomputable def newNoopTimer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newNoopTimer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.newNoopTimer"
 
-noncomputable def Forever [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Forever [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.Forever"
 
-noncomputable def Jitter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Jitter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.Jitter"
 
-noncomputable def ContextForChannel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ContextForChannel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ContextForChannel"
 
-noncomputable def runConditionWithCrashProtection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def runConditionWithCrashProtection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.runConditionWithCrashProtection"
 
-noncomputable def runConditionWithCrashProtectionWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def runConditionWithCrashProtectionWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.runConditionWithCrashProtectionWithContext"
 
-noncomputable def waitForWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def waitForWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.waitForWithContext"
 
 /-- ExponentialBackoff repeats a condition check with exponential backoff.
@@ -276,15 +276,20 @@ noncomputable def waitForWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
     ExponentialBackoffWithContext and passing a context to the method.
 
     go: backoff.go:475:6 -/
-noncomputable def ExponentialBackoff.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ExponentialBackoff.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "backoff"
   (Lam "condition"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "condition" (App (Val (GoInstruction (GoAlloc ConditionFunc.ty))) (Var "condition"))
   (Let "backoff" (App (Val (GoInstruction (GoAlloc Backoff.ty))) (Var "backoff"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrWaitTimeout))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrWaitTimeout))) (Val #()))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"Steps"))) (Var "backoff"))) (Val #(W64 0)))))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -307,8 +312,12 @@ noncomputable def ExponentialBackoff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -316,14 +325,15 @@ noncomputable def ExponentialBackoff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0")))))))))))))))
   (Lam BAnon
-  (Val #())))))))))
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.wait where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.wait)) (Lam BAnon
   (App (Val exceptionDo)
@@ -363,7 +373,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.utils.clock.initialize') (Val #()))))))))
 
-structure Backoff [FfiSyntax] where
+structure Backoff [GooseExts] where
   mk ::
   Duration' : _root_.Perennial.time.Duration
   Factor' : w64
@@ -371,27 +381,27 @@ structure Backoff [FfiSyntax] where
   Steps' : w64
   Cap' : _root_.Perennial.time.Duration
 
-noncomputable instance Backoff.zero_val [FfiSyntax] : ZeroVal Backoff :=
+noncomputable instance Backoff.zero_val [GooseExts] : ZeroVal Backoff :=
   ⟨Backoff.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Backoff.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Backoff.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Duration" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Factor" go.float64),
 (go.field_decl.FieldDecl go!"Jitter" go.float64),
 (go.field_decl.FieldDecl go!"Steps" go.int),
 (go.field_decl.FieldDecl go!"Cap" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def Backoff.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Backoff.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Backoff.fieldsUnsealed
 
-noncomputable instance equals_unfold_Backoff [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Backoff [GooseExts] [GoGlobalContext] :
     EqualsUnfold Backoff.fields Backoff.fieldsUnsealed :=
   ⟨by unfold Backoff.fields; rfl⟩
 
-@[reducible] noncomputable def Backoff.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Backoff.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Backoff.fields)
 
-class Backoff.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Backoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Backoff.underlying Backoff
   underlying : go.UnderlyingDirectedEq Backoff.ty Backoff.underlying
   get_Duration : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Duration") #x (Val #(x.Duration'))
@@ -404,6 +414,8 @@ class Backoff.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_Steps : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Steps") (PairV #x #y) (Val #(({ x with Steps' := y } : Backoff)))
   get_Cap : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Cap") #x (Val #(x.Cap'))
   set_Cap : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Cap") (PairV #x #y) (Val #(({ x with Cap' := y } : Backoff)))
+  method_set : go.MethodSetIs Backoff.ty [(go!"DelayFunc", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"DelayWithReset", (some (go.signature.Signature [_root_.Perennial.k8s_io.utils.clock.Clock.ty, _root_.Perennial.time.Duration.ty] false [DelayFunc.ty]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Backoff.ty) [(go!"DelayFunc", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"DelayWithReset", (some (go.signature.Signature [_root_.Perennial.k8s_io.utils.clock.Clock.ty, _root_.Perennial.time.Duration.ty] false [DelayFunc.ty]))), (go!"Step", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
 
 attribute [instance] Backoff.TypeAssumptions.type_repr
   Backoff.TypeAssumptions.underlying
@@ -417,8 +429,10 @@ attribute [instance] Backoff.TypeAssumptions.type_repr
   Backoff.TypeAssumptions.set_Steps
   Backoff.TypeAssumptions.get_Cap
   Backoff.TypeAssumptions.set_Cap
+  Backoff.TypeAssumptions.method_set
+  Backoff.TypeAssumptions.ptr_method_set
 
-structure backoffManager [FfiSyntax] where
+structure backoffManager [GooseExts] where
   mk ::
   backoff' : Backoff
   initialBackoff' : Backoff
@@ -428,10 +442,10 @@ structure backoffManager [FfiSyntax] where
   lastStart' : _root_.Perennial.time.Time
   timer' : _root_.Perennial.k8s_io.utils.clock.Timer
 
-noncomputable instance backoffManager.zero_val [FfiSyntax] : ZeroVal backoffManager :=
+noncomputable instance backoffManager.zero_val [GooseExts] : ZeroVal backoffManager :=
   ⟨backoffManager.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def backoffManager.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def backoffManager.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"backoff" Backoff.ty),
 (go.field_decl.FieldDecl go!"initialBackoff" Backoff.ty),
 (go.field_decl.FieldDecl go!"resetInterval" _root_.Perennial.time.Duration.ty),
@@ -440,17 +454,17 @@ noncomputable instance backoffManager.zero_val [FfiSyntax] : ZeroVal backoffMana
 (go.field_decl.FieldDecl go!"lastStart" _root_.Perennial.time.Time.ty),
 (go.field_decl.FieldDecl go!"timer" _root_.Perennial.k8s_io.utils.clock.Timer.ty)]
 
-@[irreducible] noncomputable def backoffManager.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def backoffManager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   backoffManager.fieldsUnsealed
 
-noncomputable instance equals_unfold_backoffManager [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_backoffManager [GooseExts] [GoGlobalContext] :
     EqualsUnfold backoffManager.fields backoffManager.fieldsUnsealed :=
   ⟨by unfold backoffManager.fields; rfl⟩
 
-@[reducible] noncomputable def backoffManager.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def backoffManager.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType backoffManager.fields)
 
-class backoffManager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class backoffManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying backoffManager.underlying backoffManager
   underlying : go.UnderlyingDirectedEq backoffManager.ty backoffManager.underlying
   get_backoff : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"backoff") #x (Val #(x.backoff'))
@@ -467,6 +481,8 @@ class backoffManager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_lastStart : ∀ (x : backoffManager) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"lastStart") (PairV #x #y) (Val #(({ x with lastStart' := y } : backoffManager)))
   get_timer : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"timer") #x (Val #(x.timer'))
   set_timer : ∀ (x : backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : backoffManager)))
+  method_set : go.MethodSetIs backoffManager.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType backoffManager.ty) [(go!"Backoff", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))), (go!"Step", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
 
 attribute [instance] backoffManager.TypeAssumptions.type_repr
   backoffManager.TypeAssumptions.underlying
@@ -484,18 +500,24 @@ attribute [instance] backoffManager.TypeAssumptions.type_repr
   backoffManager.TypeAssumptions.set_lastStart
   backoffManager.TypeAssumptions.get_timer
   backoffManager.TypeAssumptions.set_timer
+  backoffManager.TypeAssumptions.method_set
+  backoffManager.TypeAssumptions.ptr_method_set
 
-abbrev BackoffManager [FfiSyntax] : Type := GoInterface
+abbrev BackoffManager [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def BackoffManager.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BackoffManager.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Backoff" (go.signature.Signature [] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))])
 
-class BackoffManager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BackoffManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq BackoffManager.ty BackoffManager.underlying
+  method_set : go.MethodSetIs BackoffManager.ty [(go!"Backoff", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackoffManager.ty) []
 
 attribute [instance] BackoffManager.TypeAssumptions.underlying
+  BackoffManager.TypeAssumptions.method_set
+  BackoffManager.TypeAssumptions.ptr_method_set
 
-structure exponentialBackoffManagerImpl [FfiSyntax] where
+structure exponentialBackoffManagerImpl [GooseExts] where
   mk ::
   backoff' : Loc
   backoffTimer' : _root_.Perennial.k8s_io.utils.clock.Timer
@@ -504,10 +526,10 @@ structure exponentialBackoffManagerImpl [FfiSyntax] where
   backoffResetDuration' : _root_.Perennial.time.Duration
   clock' : _root_.Perennial.k8s_io.utils.clock.Clock
 
-noncomputable instance exponentialBackoffManagerImpl.zero_val [FfiSyntax] : ZeroVal exponentialBackoffManagerImpl :=
+noncomputable instance exponentialBackoffManagerImpl.zero_val [GooseExts] : ZeroVal exponentialBackoffManagerImpl :=
   ⟨exponentialBackoffManagerImpl.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def exponentialBackoffManagerImpl.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def exponentialBackoffManagerImpl.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"backoff" (go.GoType.PointerType Backoff.ty)),
 (go.field_decl.FieldDecl go!"backoffTimer" _root_.Perennial.k8s_io.utils.clock.Timer.ty),
 (go.field_decl.FieldDecl go!"lastBackoffStart" _root_.Perennial.time.Time.ty),
@@ -515,17 +537,17 @@ noncomputable instance exponentialBackoffManagerImpl.zero_val [FfiSyntax] : Zero
 (go.field_decl.FieldDecl go!"backoffResetDuration" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty)]
 
-@[irreducible] noncomputable def exponentialBackoffManagerImpl.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def exponentialBackoffManagerImpl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   exponentialBackoffManagerImpl.fieldsUnsealed
 
-noncomputable instance equals_unfold_exponentialBackoffManagerImpl [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_exponentialBackoffManagerImpl [GooseExts] [GoGlobalContext] :
     EqualsUnfold exponentialBackoffManagerImpl.fields exponentialBackoffManagerImpl.fieldsUnsealed :=
   ⟨by unfold exponentialBackoffManagerImpl.fields; rfl⟩
 
-@[reducible] noncomputable def exponentialBackoffManagerImpl.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def exponentialBackoffManagerImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType exponentialBackoffManagerImpl.fields)
 
-class exponentialBackoffManagerImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class exponentialBackoffManagerImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying exponentialBackoffManagerImpl.underlying exponentialBackoffManagerImpl
   underlying : go.UnderlyingDirectedEq exponentialBackoffManagerImpl.ty exponentialBackoffManagerImpl.underlying
   get_backoff : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"backoff") #x (Val #(x.backoff'))
@@ -540,6 +562,8 @@ class exponentialBackoffManagerImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext
   set_backoffResetDuration : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"backoffResetDuration") (PairV #x #y) (Val #(({ x with backoffResetDuration' := y } : exponentialBackoffManagerImpl)))
   get_clock : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"clock") #x (Val #(x.clock'))
   set_clock : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : exponentialBackoffManagerImpl)))
+  method_set : go.MethodSetIs exponentialBackoffManagerImpl.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType exponentialBackoffManagerImpl.ty) [(go!"Backoff", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))), (go!"k8s.io/apimachinery/pkg/util/wait.getNextBackoff", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
 
 attribute [instance] exponentialBackoffManagerImpl.TypeAssumptions.type_repr
   exponentialBackoffManagerImpl.TypeAssumptions.underlying
@@ -555,34 +579,36 @@ attribute [instance] exponentialBackoffManagerImpl.TypeAssumptions.type_repr
   exponentialBackoffManagerImpl.TypeAssumptions.set_backoffResetDuration
   exponentialBackoffManagerImpl.TypeAssumptions.get_clock
   exponentialBackoffManagerImpl.TypeAssumptions.set_clock
+  exponentialBackoffManagerImpl.TypeAssumptions.method_set
+  exponentialBackoffManagerImpl.TypeAssumptions.ptr_method_set
 
-structure jitteredBackoffManagerImpl [FfiSyntax] where
+structure jitteredBackoffManagerImpl [GooseExts] where
   mk ::
   clock' : _root_.Perennial.k8s_io.utils.clock.Clock
   duration' : _root_.Perennial.time.Duration
   jitter' : w64
   backoffTimer' : _root_.Perennial.k8s_io.utils.clock.Timer
 
-noncomputable instance jitteredBackoffManagerImpl.zero_val [FfiSyntax] : ZeroVal jitteredBackoffManagerImpl :=
+noncomputable instance jitteredBackoffManagerImpl.zero_val [GooseExts] : ZeroVal jitteredBackoffManagerImpl :=
   ⟨jitteredBackoffManagerImpl.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def jitteredBackoffManagerImpl.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def jitteredBackoffManagerImpl.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty),
 (go.field_decl.FieldDecl go!"duration" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"jitter" go.float64),
 (go.field_decl.FieldDecl go!"backoffTimer" _root_.Perennial.k8s_io.utils.clock.Timer.ty)]
 
-@[irreducible] noncomputable def jitteredBackoffManagerImpl.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def jitteredBackoffManagerImpl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   jitteredBackoffManagerImpl.fieldsUnsealed
 
-noncomputable instance equals_unfold_jitteredBackoffManagerImpl [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_jitteredBackoffManagerImpl [GooseExts] [GoGlobalContext] :
     EqualsUnfold jitteredBackoffManagerImpl.fields jitteredBackoffManagerImpl.fieldsUnsealed :=
   ⟨by unfold jitteredBackoffManagerImpl.fields; rfl⟩
 
-@[reducible] noncomputable def jitteredBackoffManagerImpl.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def jitteredBackoffManagerImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType jitteredBackoffManagerImpl.fields)
 
-class jitteredBackoffManagerImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class jitteredBackoffManagerImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jitteredBackoffManagerImpl.underlying jitteredBackoffManagerImpl
   underlying : go.UnderlyingDirectedEq jitteredBackoffManagerImpl.ty jitteredBackoffManagerImpl.underlying
   get_clock : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"clock") #x (Val #(x.clock'))
@@ -593,6 +619,8 @@ class jitteredBackoffManagerImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [
   set_jitter : ∀ (x : jitteredBackoffManagerImpl) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"jitter") (PairV #x #y) (Val #(({ x with jitter' := y } : jitteredBackoffManagerImpl)))
   get_backoffTimer : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"backoffTimer") #x (Val #(x.backoffTimer'))
   set_backoffTimer : ∀ (x : jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"backoffTimer") (PairV #x #y) (Val #(({ x with backoffTimer' := y } : jitteredBackoffManagerImpl)))
+  method_set : go.MethodSetIs jitteredBackoffManagerImpl.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jitteredBackoffManagerImpl.ty) [(go!"Backoff", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))), (go!"k8s.io/apimachinery/pkg/util/wait.getNextBackoff", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
 
 attribute [instance] jitteredBackoffManagerImpl.TypeAssumptions.type_repr
   jitteredBackoffManagerImpl.TypeAssumptions.underlying
@@ -604,114 +632,132 @@ attribute [instance] jitteredBackoffManagerImpl.TypeAssumptions.type_repr
   jitteredBackoffManagerImpl.TypeAssumptions.set_jitter
   jitteredBackoffManagerImpl.TypeAssumptions.get_backoffTimer
   jitteredBackoffManagerImpl.TypeAssumptions.set_backoffTimer
+  jitteredBackoffManagerImpl.TypeAssumptions.method_set
+  jitteredBackoffManagerImpl.TypeAssumptions.ptr_method_set
 
-abbrev DelayFunc [FfiSyntax] : Type := GoFunc
+abbrev DelayFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def DelayFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DelayFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))
 
-class DelayFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DelayFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DelayFunc.ty DelayFunc.underlying
+  method_set : go.MethodSetIs DelayFunc.ty [(go!"Concurrent", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"Timer", (some (go.signature.Signature [_root_.Perennial.k8s_io.utils.clock.Clock.ty] false [Timer.ty]))), (go!"Until", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, go.bool, ConditionWithContextFunc.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DelayFunc.ty) [(go!"Concurrent", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"Timer", (some (go.signature.Signature [_root_.Perennial.k8s_io.utils.clock.Clock.ty] false [Timer.ty]))), (go!"Until", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, go.bool, ConditionWithContextFunc.ty] false [go.error])))]
 
 attribute [instance] DelayFunc.TypeAssumptions.underlying
+  DelayFunc.TypeAssumptions.method_set
+  DelayFunc.TypeAssumptions.ptr_method_set
 
-structure errInterrupted [FfiSyntax] where
+structure errInterrupted [GooseExts] where
   mk ::
   cause' : GoError
 
-noncomputable instance errInterrupted.zero_val [FfiSyntax] : ZeroVal errInterrupted :=
+noncomputable instance errInterrupted.zero_val [GooseExts] : ZeroVal errInterrupted :=
   ⟨errInterrupted.mk zeroValDef⟩
 
-@[reducible] noncomputable def errInterrupted.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def errInterrupted.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"cause" go.error)]
 
-@[irreducible] noncomputable def errInterrupted.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def errInterrupted.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   errInterrupted.fieldsUnsealed
 
-noncomputable instance equals_unfold_errInterrupted [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_errInterrupted [GooseExts] [GoGlobalContext] :
     EqualsUnfold errInterrupted.fields errInterrupted.fieldsUnsealed :=
   ⟨by unfold errInterrupted.fields; rfl⟩
 
-@[reducible] noncomputable def errInterrupted.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def errInterrupted.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType errInterrupted.fields)
 
-class errInterrupted.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class errInterrupted.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errInterrupted.underlying errInterrupted
   underlying : go.UnderlyingDirectedEq errInterrupted.ty errInterrupted.underlying
   get_cause : ∀ (x : errInterrupted), go.IsGoStepPureDetTagged under (StructFieldGet errInterrupted.underlying go!"cause") #x (Val #(x.cause'))
   set_cause : ∀ (x : errInterrupted) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errInterrupted.underlying go!"cause") (PairV #x #y) (Val #(({ x with cause' := y } : errInterrupted)))
+  method_set : go.MethodSetIs errInterrupted.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errInterrupted.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] errInterrupted.TypeAssumptions.type_repr
   errInterrupted.TypeAssumptions.underlying
   errInterrupted.TypeAssumptions.get_cause
   errInterrupted.TypeAssumptions.set_cause
+  errInterrupted.TypeAssumptions.method_set
+  errInterrupted.TypeAssumptions.ptr_method_set
 
-abbrev Timer [FfiSyntax] : Type := GoInterface
+abbrev Timer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Timer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Timer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"C" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])), (go.InterfaceElem.MethodElem go!"Next" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false []))])
 
-class Timer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Timer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Timer.ty Timer.underlying
+  method_set : go.MethodSetIs Timer.ty [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Timer.ty) []
 
 attribute [instance] Timer.TypeAssumptions.underlying
+  Timer.TypeAssumptions.method_set
+  Timer.TypeAssumptions.ptr_method_set
 
-structure noopTimer [FfiSyntax] where
+structure noopTimer [GooseExts] where
   mk ::
   closedCh' : GoChan
 
-noncomputable instance noopTimer.zero_val [FfiSyntax] : ZeroVal noopTimer :=
+noncomputable instance noopTimer.zero_val [GooseExts] : ZeroVal noopTimer :=
   ⟨noopTimer.mk zeroValDef⟩
 
-@[reducible] noncomputable def noopTimer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noopTimer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"closedCh" (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty))]
 
-@[irreducible] noncomputable def noopTimer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noopTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopTimer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noopTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopTimer.fields noopTimer.fieldsUnsealed :=
   ⟨by unfold noopTimer.fields; rfl⟩
 
-@[reducible] noncomputable def noopTimer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noopTimer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noopTimer.fields)
 
-class noopTimer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopTimer.underlying noopTimer
   underlying : go.UnderlyingDirectedEq noopTimer.ty noopTimer.underlying
   get_closedCh : ∀ (x : noopTimer), go.IsGoStepPureDetTagged under (StructFieldGet noopTimer.underlying go!"closedCh") #x (Val #(x.closedCh'))
   set_closedCh : ∀ (x : noopTimer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet noopTimer.underlying go!"closedCh") (PairV #x #y) (Val #(({ x with closedCh' := y } : noopTimer)))
+  method_set : go.MethodSetIs noopTimer.ty [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTimer.TypeAssumptions.type_repr
   noopTimer.TypeAssumptions.underlying
   noopTimer.TypeAssumptions.get_closedCh
   noopTimer.TypeAssumptions.set_closedCh
+  noopTimer.TypeAssumptions.method_set
+  noopTimer.TypeAssumptions.ptr_method_set
 
-structure variableTimer [FfiSyntax] where
+structure variableTimer [GooseExts] where
   mk ::
   fn' : DelayFunc
   t' : _root_.Perennial.k8s_io.utils.clock.Timer
   new' : GoFunc
 
-noncomputable instance variableTimer.zero_val [FfiSyntax] : ZeroVal variableTimer :=
+noncomputable instance variableTimer.zero_val [GooseExts] : ZeroVal variableTimer :=
   ⟨variableTimer.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def variableTimer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def variableTimer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"fn" DelayFunc.ty),
 (go.field_decl.FieldDecl go!"t" _root_.Perennial.k8s_io.utils.clock.Timer.ty),
 (go.field_decl.FieldDecl go!"new" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty])))]
 
-@[irreducible] noncomputable def variableTimer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def variableTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   variableTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_variableTimer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_variableTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold variableTimer.fields variableTimer.fieldsUnsealed :=
   ⟨by unfold variableTimer.fields; rfl⟩
 
-@[reducible] noncomputable def variableTimer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def variableTimer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType variableTimer.fields)
 
-class variableTimer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class variableTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying variableTimer.underlying variableTimer
   underlying : go.UnderlyingDirectedEq variableTimer.ty variableTimer.underlying
   get_fn : ∀ (x : variableTimer), go.IsGoStepPureDetTagged under (StructFieldGet variableTimer.underlying go!"fn") #x (Val #(x.fn'))
@@ -720,6 +766,8 @@ class variableTimer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_t : ∀ (x : variableTimer) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet variableTimer.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : variableTimer)))
   get_new : ∀ (x : variableTimer), go.IsGoStepPureDetTagged under (StructFieldGet variableTimer.underlying go!"new") #x (Val #(x.new'))
   set_new : ∀ (x : variableTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet variableTimer.underlying go!"new") (PairV #x #y) (Val #(({ x with new' := y } : variableTimer)))
+  method_set : go.MethodSetIs variableTimer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType variableTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] variableTimer.TypeAssumptions.type_repr
   variableTimer.TypeAssumptions.underlying
@@ -729,32 +777,34 @@ attribute [instance] variableTimer.TypeAssumptions.type_repr
   variableTimer.TypeAssumptions.set_t
   variableTimer.TypeAssumptions.get_new
   variableTimer.TypeAssumptions.set_new
+  variableTimer.TypeAssumptions.method_set
+  variableTimer.TypeAssumptions.ptr_method_set
 
-structure fixedTimer [FfiSyntax] where
+structure fixedTimer [GooseExts] where
   mk ::
   interval' : _root_.Perennial.time.Duration
   t' : _root_.Perennial.k8s_io.utils.clock.Ticker
   new' : GoFunc
 
-noncomputable instance fixedTimer.zero_val [FfiSyntax] : ZeroVal fixedTimer :=
+noncomputable instance fixedTimer.zero_val [GooseExts] : ZeroVal fixedTimer :=
   ⟨fixedTimer.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def fixedTimer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def fixedTimer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"interval" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"t" _root_.Perennial.k8s_io.utils.clock.Ticker.ty),
 (go.field_decl.FieldDecl go!"new" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.utils.clock.Ticker.ty])))]
 
-@[irreducible] noncomputable def fixedTimer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def fixedTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fixedTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_fixedTimer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_fixedTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold fixedTimer.fields fixedTimer.fieldsUnsealed :=
   ⟨by unfold fixedTimer.fields; rfl⟩
 
-@[reducible] noncomputable def fixedTimer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def fixedTimer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType fixedTimer.fields)
 
-class fixedTimer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class fixedTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fixedTimer.underlying fixedTimer
   underlying : go.UnderlyingDirectedEq fixedTimer.ty fixedTimer.underlying
   get_interval : ∀ (x : fixedTimer), go.IsGoStepPureDetTagged under (StructFieldGet fixedTimer.underlying go!"interval") #x (Val #(x.interval'))
@@ -763,6 +813,8 @@ class fixedTimer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_t : ∀ (x : fixedTimer) (y : _root_.Perennial.k8s_io.utils.clock.Ticker), go.IsGoStepPureDetTagged under (StructFieldSet fixedTimer.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : fixedTimer)))
   get_new : ∀ (x : fixedTimer), go.IsGoStepPureDetTagged under (StructFieldGet fixedTimer.underlying go!"new") #x (Val #(x.new'))
   set_new : ∀ (x : fixedTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fixedTimer.underlying go!"new") (PairV #x #y) (Val #(({ x with new' := y } : fixedTimer)))
+  method_set : go.MethodSetIs fixedTimer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fixedTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] fixedTimer.TypeAssumptions.type_repr
   fixedTimer.TypeAssumptions.underlying
@@ -772,110 +824,136 @@ attribute [instance] fixedTimer.TypeAssumptions.type_repr
   fixedTimer.TypeAssumptions.set_t
   fixedTimer.TypeAssumptions.get_new
   fixedTimer.TypeAssumptions.set_new
+  fixedTimer.TypeAssumptions.method_set
+  fixedTimer.TypeAssumptions.ptr_method_set
 
-structure Group [FfiSyntax] where
+structure Group [GooseExts] where
   mk ::
   wg' : _root_.Perennial.sync.WaitGroup
 
-noncomputable instance Group.zero_val [FfiSyntax] : ZeroVal Group :=
+noncomputable instance Group.zero_val [GooseExts] : ZeroVal Group :=
   ⟨Group.mk zeroValDef⟩
 
-@[reducible] noncomputable def Group.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Group.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"wg" _root_.Perennial.sync.WaitGroup.ty)]
 
-@[irreducible] noncomputable def Group.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Group.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Group.fieldsUnsealed
 
-noncomputable instance equals_unfold_Group [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Group [GooseExts] [GoGlobalContext] :
     EqualsUnfold Group.fields Group.fieldsUnsealed :=
   ⟨by unfold Group.fields; rfl⟩
 
-@[reducible] noncomputable def Group.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Group.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Group.fields)
 
-class Group.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Group.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Group.underlying Group
   underlying : go.UnderlyingDirectedEq Group.ty Group.underlying
   get_wg : ∀ (x : Group), go.IsGoStepPureDetTagged under (StructFieldGet Group.underlying go!"wg") #x (Val #(x.wg'))
   set_wg : ∀ (x : Group) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Group.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : Group)))
+  method_set : go.MethodSetIs Group.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Group.ty) [(go!"Start", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"StartWithChannel", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))] false []))), (go!"StartWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))] false []))), (go!"Wait", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Group.TypeAssumptions.type_repr
   Group.TypeAssumptions.underlying
   Group.TypeAssumptions.get_wg
   Group.TypeAssumptions.set_wg
+  Group.TypeAssumptions.method_set
+  Group.TypeAssumptions.ptr_method_set
 
-abbrev ConditionFunc [FfiSyntax] : Type := GoFunc
+abbrev ConditionFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def ConditionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConditionFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false [go.bool, go.error]))
 
-class ConditionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConditionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConditionFunc.ty ConditionFunc.underlying
+  method_set : go.MethodSetIs ConditionFunc.ty [(go!"WithContext", (some (go.signature.Signature [] false [ConditionWithContextFunc.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionFunc.ty) [(go!"WithContext", (some (go.signature.Signature [] false [ConditionWithContextFunc.ty])))]
 
 attribute [instance] ConditionFunc.TypeAssumptions.underlying
+  ConditionFunc.TypeAssumptions.method_set
+  ConditionFunc.TypeAssumptions.ptr_method_set
 
-abbrev ConditionWithContextFunc [FfiSyntax] : Type := GoFunc
+abbrev ConditionWithContextFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def ConditionWithContextFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConditionWithContextFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.bool, go.error]))
 
-class ConditionWithContextFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConditionWithContextFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConditionWithContextFunc.ty ConditionWithContextFunc.underlying
+  method_set : go.MethodSetIs ConditionWithContextFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionWithContextFunc.ty) []
 
 attribute [instance] ConditionWithContextFunc.TypeAssumptions.underlying
+  ConditionWithContextFunc.TypeAssumptions.method_set
+  ConditionWithContextFunc.TypeAssumptions.ptr_method_set
 
-structure channelContext [FfiSyntax] where
+structure channelContext [GooseExts] where
   mk ::
   stopCh' : GoChan
 
-noncomputable instance channelContext.zero_val [FfiSyntax] : ZeroVal channelContext :=
+noncomputable instance channelContext.zero_val [GooseExts] : ZeroVal channelContext :=
   ⟨channelContext.mk zeroValDef⟩
 
-@[reducible] noncomputable def channelContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def channelContext.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"stopCh" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def channelContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def channelContext.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   channelContext.fieldsUnsealed
 
-noncomputable instance equals_unfold_channelContext [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_channelContext [GooseExts] [GoGlobalContext] :
     EqualsUnfold channelContext.fields channelContext.fieldsUnsealed :=
   ⟨by unfold channelContext.fields; rfl⟩
 
-@[reducible] noncomputable def channelContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def channelContext.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType channelContext.fields)
 
-class channelContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class channelContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying channelContext.underlying channelContext
   underlying : go.UnderlyingDirectedEq channelContext.ty channelContext.underlying
   get_stopCh : ∀ (x : channelContext), go.IsGoStepPureDetTagged under (StructFieldGet channelContext.underlying go!"stopCh") #x (Val #(x.stopCh'))
   set_stopCh : ∀ (x : channelContext) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet channelContext.underlying go!"stopCh") (PairV #x #y) (Val #(({ x with stopCh' := y } : channelContext)))
+  method_set : go.MethodSetIs channelContext.ty [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType channelContext.ty) [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
 
 attribute [instance] channelContext.TypeAssumptions.type_repr
   channelContext.TypeAssumptions.underlying
   channelContext.TypeAssumptions.get_stopCh
   channelContext.TypeAssumptions.set_stopCh
+  channelContext.TypeAssumptions.method_set
+  channelContext.TypeAssumptions.ptr_method_set
 
-abbrev waitFunc [FfiSyntax] : Type := GoFunc
+abbrev waitFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def waitFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def waitFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))
 
-class waitFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class waitFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq waitFunc.ty waitFunc.underlying
+  method_set : go.MethodSetIs waitFunc.ty [(go!"WithContext", (some (go.signature.Signature [] false [waitWithContextFunc.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType waitFunc.ty) [(go!"WithContext", (some (go.signature.Signature [] false [waitWithContextFunc.ty])))]
 
 attribute [instance] waitFunc.TypeAssumptions.underlying
+  waitFunc.TypeAssumptions.method_set
+  waitFunc.TypeAssumptions.ptr_method_set
 
-abbrev waitWithContextFunc [FfiSyntax] : Type := GoFunc
+abbrev waitWithContextFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def waitWithContextFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def waitWithContextFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))
 
-class waitWithContextFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class waitWithContextFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq waitWithContextFunc.ty waitWithContextFunc.underlying
+  method_set : go.MethodSetIs waitWithContextFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType waitWithContextFunc.ty) []
 
 attribute [instance] waitWithContextFunc.TypeAssumptions.underlying
+  waitWithContextFunc.TypeAssumptions.method_set
+  waitWithContextFunc.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Backoff_instance : Backoff.TypeAssumptions
   backoffManager_instance : backoffManager.TypeAssumptions
   BackoffManager_instance : BackoffManager.TypeAssumptions

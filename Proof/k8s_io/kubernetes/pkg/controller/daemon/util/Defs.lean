@@ -28,7 +28,7 @@ open Iris Iris.BI Iris.ProofMode
 /-! ## The pure functions -/
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- `(*Toleration).MatchToleration` (`k8s.io/api/core/v1/toleration.go:32`) on deep values: the
 same key, effect, operator and value. -/
@@ -176,7 +176,7 @@ def unavailReq (d : kd.apps.DaemonSet) : Prop :=
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

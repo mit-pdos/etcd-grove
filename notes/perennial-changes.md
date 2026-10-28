@@ -17,6 +17,55 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Tactics: `wp_if_destruct` on a loop condition left as `#(decide P) = #true` (2026-10-27)
+
+- **Limitation.** After a `wp_for`, `wp_if_destruct` sometimes splits on `#(decide P) = #true`
+  without peeling it to `P`, and `cleanup_bool_decide` (and `simp only [decide_eq_true_iff]`)
+  makes no progress on it; unconfirmed guess: `P`'s `Decidable` instance is the one of a Lean
+  `if` inside it. Elsewhere `cleanup_bool_decide` between `wp_for` and `wp_if_destruct` suffices.
+- **Needed by.** `v3rpc/checkIntervals.lean`'s third loop (found in the pin bump to `edcadb1e5`).
+- **Workaround here.** Convert the hypothesis by hand in each branch (`Decidable.byContradiction
+  fun h => by simp [h] at Hif`).
+- **Proposed.** Make `wp_if_destruct` (or `cleanup_bool_decide`) normalize `#(decide P) = #true`
+  whatever `P`'s instance; first a minimal reproduction.
+- **Status.** Open.
+
+### Lemmas: `strings.split` of `strings.Join` (2026-10-27, D22 J-T)
+
+Perennial's `Proof/strings/Base.lean` has `intercalate_split` (joining the fields of a split gives
+the string back) but not the converse. J-T proves it locally for a one-byte separator no field
+contains (`split_intercalate1`, with `splitAux_field`, in
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Pipe.lean`: the `X-PeerURLs` header,
+`setPeerURLsHeader`'s `Join` read back by the handlers' `Split`). Proposed: the general lemma (any
+non-empty separator that is no infix of a field and does not overlap them) in Perennial's
+`strings` proofs, and this repository's local copy removed.
+
+### Channels: `recvAu_wand` with a fancy update in the wand (2026-10-27, branch `raft-api`)
+
+- **Missing.** `recvAu_wand` (`Chan/AuSpec/ChanAuBase.lean`) turns a receive's update for `Φ1`
+  into one for `Φ2` with a plain wand `Φ1 -∗ Φ2`; every commit of a receive ends at `⊤`
+  (`={∅,⊤}=∗ Φ`), so a wand `Φ1 ={⊤}=∗ Φ2` is as sound, and is what a client needs that opens an
+  invariant after the receive (raft's `isReadyChan_recvAu`: the `Ready`'s facts become the node
+  API's under the cluster's invariants).
+- **Workaround here.** `recvNestedAu_wand_fupd`/`recvAu_wand_fupd` in
+  `Proof/go_etcd_io/raft/v3/NodeApiImpl.lean` (the same proofs, `iapply Hw` after the commit
+  instead of `imodintro`).
+- **Proposed change.** The two lemmas in Perennial beside `recvAu_wand` (and the same for the
+  send and close updates), then the local copies go.
+- **Status.** Open.
+
+### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
+
+- **Missing.** Perennial's `sort` declares the type `sort.StringSlice` but none of its methods
+  (`Len`, `Less`, `Swap`, `Sort`, `Search`), so `sort.StringSlice(keys).Sort()` does not resolve.
+- **Needed by.** `lessor.Revoke` (`server/lease/lessor.go`): it sorts the lease's keys before
+  deleting them (`notes/leases-plan.md`, L2d).
+- **Workaround here.** A trust-boundary spec, `Spec/sort/StringSlice__Sort.lean` (the statement
+  of Perennial's `sort.Strings.spec`), an axiom.
+- **Proposed change.** Translate the methods in Perennial's `sort` and prove `Sort` as
+  `sort.Strings` is proved; then the axiom here goes.
+- **Status.** Open.
+
 ### Tooling: incremental proof checks, and long `·` blocks as auxiliary theorems
 
 - **Missing.** A way to check a proof after an edit without elaborating the whole file
@@ -32,6 +81,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `PerennialMeta` library), document the loop in `docs/PERENNIAL_PROOF_TUTORIAL.md` beside
   `lake build`; `lean-check.py` here then imports nothing of its own (`SPLIT_MODULE`).
 - **Status.** Open (2026-10-26, `notes/STATUS.md`, "Checking proofs while editing them").
+- **Concurrent clients (2026-10-27).** With eight agents checking files through one server (the
+  pin bump to `edcadb1e5`), the server stopped answering twice (its log silent, `Watchdog error:
+  Cannot read LSP message: Stream was closed`), kept 33 files open past `--max-open 12`, and once
+  reported a file as passing that `lake env lean` showed broken (`checkParallel`). The fallback was
+  `lake env lean FILE`. To fix before it moves: eviction under load, and a client timeout.
 
 ### Specs: `(*Time).After`
 
@@ -56,7 +110,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   a proof of that weaker fact over Perennial's translation of `sort.Search`.
 - **Proposed change.** `sort.wp_Search_any` (or a spec whose monotonicity premise is optional)
   in Perennial's `Proof/sort`, general; then the local copy goes.
-- **Status.** Open.
+- **Status.** No longer needed here (2026-10-27): the auth plan's E3z fork fix
+  (`issues/etcd-auth-grant-permission-same-key.md`) replaced the search by a filter, and
+  `SearchAny.lean` is gone (in git history). The general spec is still a reasonable Perennial
+  change, with no client here.
 
 ### Goose: a parenthesized untyped constant expression in a bitwise operation
 
@@ -87,7 +144,44 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** The caches keyed per declaration, or held in the tactic's own state
   (`MetaM`/`TacticM` state, or an environment extension reset per declaration), so that a
   declaration's elaboration does not depend on its siblings'.
+- **Seen again, within one declaration** (2026-10-27, the compactor pilot): in
+  `v3compactor.Periodic.getCompactInterval`/`getRetryInterval`'s proofs, `word` in the two sibling
+  branches of one `if` (hypotheses `h < pd` and `¬ h < pd`) gave a proof the kernel rejected
+  ("application type mismatch": the second branch's goal closed by the first branch's cached term,
+  built over the other hypothesis). So a cached proof does leak between contexts, as the paragraph
+  above feared, and fails at the kernel rather than silently. Workaround there: no `word` in sibling
+  branches (`rfl`/`omega` and `BitVec.toInt_sdiv_of_ne_or_ne` instead), with a comment.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
+
+### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
+
+- **Missing.** `isContext` (an `abbrev` of `isContextDef`) has no law for calling `Done()`: clients
+  `iunfold context.isContextDef` and take its `#HDone` field (the compactor's `Run` proofs, the
+  client's `lessor`/`watchGRPCStream` proofs, leasing's).
+- **Needed by.** The spec-first recipe's rule that a client does not unfold another package's
+  definitions (`notes/spec-first-plan.md`, phase 3); the freeze of the compactor's specs.
+- **Workaround here.** The unfold, kept until the law lands.
+- **Proposed change.** `context.isContext_Done : isContext c s ⊢ {{ True }} c.Done() {{ ch γch,
+  RET #ch; isContextDone s ch γch }}`, next to `isContext_pers`: branch `context-done-law` of
+  Perennial (`3c384b081`, off `lean` at `edcadb1e5`; worktree `/shared/perennial-ctxdone`), checked
+  against the pinned `6b58510f9` (the same `isContextDef`), not yet built or landed there.
+- **Status.** Landed on Perennial's `lean` (`3c384b081`, 2026-10-27), just past the pin `edcadb1e5`
+  (2026-10-27), which did the uniform-function-results migration: the next pin bump brings it, and
+  the compactor's `Run` proofs switch to the law then.
+
+### Specs: a law for calling a `cancelSpec` cancel function (2026-10-27, the compactor pilot's phase 4)
+
+- **Missing.** `context.cancelSpec cancel γ P` (a `def`: `□ ∀ Φ, □ P -∗ ▷ (ContextClosed γ -∗ Φ #()) -∗
+  WP cancel #() {{ Φ }}`) has no law for the call: clients `iunfold context.cancelSpec` and apply it
+  (the compactor's `Periodic.Stop`/`Revision.Stop`, the client's `newClient`, `lessor.resetRecv`).
+- **Needed by.** The spec-first recipe's rule against cross-package unfolds (`notes/spec-first-plan.md`,
+  phase 3).
+- **Workaround here.** The unfold, justified at the compactor's freeze with `isContextDef`'s
+  (`notes/decisions.md`, "The compactor pilot's freeze").
+- **Proposed change.** `context.cancelSpec_call : cancelSpec cancel γ P ⊢ {{ □ P }} cancel #() {{ RET #();
+  ContextClosed γ }}`, next to `cancelSpec_weaken`.
+- **Status.** Not started; to land with the next Perennial change (the compactor's proofs switch at the
+  pin bump that brings `isContext_Done`).
 
 ### Specs: `context.WithCancel`'s cancel function not `nil`
 
@@ -123,22 +217,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** `init_adequate`, `adequate_of_unrecovered` and `ownInitializing_of_empty`
   in `Perennial/GooseLang/Adequacy.lean` (or beside `IsInit` in `Perennial/Golang/Theory/Pkg.lean`).
 - **Status.** Not started (2026-10-22).
-
-### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
-
-- **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
-  over func(...) (only integers, maps, slices, channels and arrays are supported)`). The iterator
-  functions themselves, closures calling `yield`, already translate.
-- **Needed by.** The k8s etcd3 store's `GetList` (`store.go:825`, over `pagedChunks` or
-  `streamChunks`): every list. Blocks `notes/k8s-etcd3-plan.md`'s phase 5. The standard library
-  increasingly returns iterators (`maps.Keys`, `slices.All`, ...).
-- **Workaround here.** `store.GetList` names-only (survey branch's `etcd3.toml`); alternatives: a
-  Goose fork of k8s.io/apiserver rewriting the loop, or a trusted model.
-- **Proposed.** Desugar the loop as Go's compiler does: call the iterator with a closure for the
-  body that returns `false` on `break`, and records a `return` (with its values) or a labelled
-  `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
-  called after it returned `false` (Go panics).
-- **Status.** Not started. The largest item here.
 
 ### Goose: field selection through a type alias of a struct
 
@@ -401,8 +479,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ### Standard library: packages not translated, and functions without specs
 
-- **Missing translations.** `encoding/json`, `encoding/base64`, `iter`, `path` (Perennial
-  translates none of them).
+- **Missing translations.** `encoding/json`, `encoding/base64`, `path` (Perennial translates
+  none of them; `iter` is Perennial's since the pin `edcadb1e5`, 2026-10-27).
 - **Missing specs.** (2026-10-26) client-go's leaf libraries add `sync.WaitGroup.Go`,
   `container/heap.Init`/`Pop`, `math.Pow`, `os.LookupEnv`, `time.Time.Add/Before/Sub`,
   `math/rand.New`/`Rand.Float64` (the full list per package: `notes/k8s-clientgo-goose.md`).
@@ -417,10 +495,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (`time` is translated without `Duration.String`, so its pointer wrapper is missing too).
 - **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
   base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
-- **Workaround here.** The four packages names-only in this repository's configuration (survey
-  branch: `Code/encoding/{json,base64}.toml`, `Code/iter.toml`, `Code/path.toml`); specs as
+- **Workaround here.** The three packages names-only in this repository's configuration (survey
+  branch: `Code/encoding/{json,base64}.toml`, `Code/path.toml`); specs as
   needed, local until proposed.
-- **Proposed.** Translations (or trusted models) of the four in Perennial's standard library, and
+- **Proposed.** Translations (or trusted models) of the three in Perennial's standard library, and
   the specs above, each with the subset proofs use.
 - **Status.** Not started. (2026-10-22) Local trust-boundary specs here for `strings.HasSuffix`,
   `strings.Contains` (`Spec/strings/`). (2026-10-23) Also `strings.TrimSuffix` (`Spec/strings/TrimSuffix.lean`: Perennial's
@@ -521,6 +599,47 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed fix.** An instance `[t <u t'] [t' ≤u t''] : t ≤u t''` (in place of
   `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
 - **Status.** Not started.
+
+### Goose rejects a store of `*new(T)` (2026-10-28, merge of `lean` into `k8s-daemonset-proof`)
+
+- **Limitation.** Goose at `edcadb1e5` refuses `(*q)[0] = *new(T)` (client-go's
+  `util/workqueue/queue.go`, `queue[T].Pop`): its check R4 (`docs/design/unsafe-memory.md`,
+  `modelcheck.Assign`) flags a copy of a `T` between two memory places, which gc does not copy by
+  value when they partially overlap. `*new(T)` is a fresh allocation: it overlaps nothing, so the
+  statement is safe and the semantics' by-value copy is exact.
+- **Needed by.** The work queue's `Typed.Get` (every worker's `processNextWorkItem`); `queue.Pop`
+  was translated and proved before the bump (`queue__Pop.lean`).
+- **Workaround here.** `queue[T].Pop` translated names only (`!queue[T].Pop` in
+  `Code/k8s_io/client_go/util/workqueue.toml`); its spec a named hypothesis in the work queue's
+  `Link.lean`; no axiom. (Goose's `trusted` applies to functions and variables, not methods.)
+- **Proposed change.** In `modelcheck.Assign`, treat a dereference of a fresh allocation
+  (`*new(T)`, and a composite literal's address) as a value, not a memory place.
+- **Status.** Not started.
+
+### Goose: an excluded method keeps its unfold; a method set in the receiver's type-parameter names (2026-10-28)
+
+Two bugs of the method sets Goose emits since Perennial `8ef540a62` (pin `6b58510f9`), found
+translating client-go's `util/workqueue` (nothing on `lean` translates it, so `lean`'s build does
+not see them). Each makes the generated `Code/k8s_io/client_go/util/workqueue.lean` fail to
+elaborate:
+
+- **An excluded declared method.** With `!queue[T].Pop` in the package's `translate` list (the
+  workaround above), Goose emits no `queue.Pop.impl` but still lists `Pop` in the pointer type's
+  method set with `ptr_Pop_unfold : MethodUnfold ... (queue.Pop.impl T)`: an unknown constant. A
+  names-only function gets no `impl` and no unfold; an excluded method should get the same (or an
+  `axiom` impl, as an axiomatized declaration does).
+- **The type parameter's name.** `type Typed[t comparable] struct {...}` with methods on
+  `*Typed[T]` (`queue.go`): `ptr_method_set : ∀ (t : go.GoType), go.MethodSetIs (go.GoType.PointerType
+  (Typed.ty t)) [(go!"Add", some (Signature [T] ...)), ...]` binds `t` but writes the signatures
+  with the methods' receiver parameter `T`: unknown identifier. The signatures must be substituted
+  into the type declaration's parameter names (Go lets each method rename them).
+- **Workaround here.** None that keeps the pinned translation (`etc/goose.py --check`): the
+  committed `workqueue.lean` is patched by hand (an `axiom queue.Pop.impl`, `T` renamed `t` in
+  `Typed`'s method set) until a Goose fix lands and the pin moves. **Blocks the merge into
+  `lean`**: CI's `goose.py --check` rejects the patched file.
+- **Proposed change.** Both in Goose's method-set emission (`goose/`): skip a method the filter
+  does not translate (or emit its axiom), and rename the receiver's type parameters to the type's.
+- **Status.** Not started; needs the user's sign-off (Perennial's `fix-semantics` workflow).
 
 ### `time.Time.IsZero` has no model
 
@@ -675,20 +794,32 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** `"#HCanceled"` with the cell (`x.[errorString, "s"] ↦□ "context
   canceled"`, as this repository's `errStrCell`), and `"#HDeadlineExceeded"` with its dynamic type
   (`deadlineExceededError`); then `ErrAny` drops the two facts.
+- **Also needed by** (2026-10-27). Now that method sets are known (pin `6b58510f9`), this is all the
+  premises `EtcdGrove.ContextReadErrs` and `ContextErrsClient` of the server examples' closed
+  theorems still need: the dynamic types of the two values (then their method-set parts follow by
+  `go_type_set`).
 - **Status.** Not started (found 2026-10-23).
 
-### `encoding/base64` (the auth plan's E2u, 2026-10-26)
+### `encoding/base64` (the auth plan's E2u, 2026-10-26; E2x)
 
-- **Missing.** Perennial has no `encoding/base64`, not even names-only, so etcd's
-  `EtcdServer.UserAdd` and `UserChangePassword` (they hash the password with bcrypt and put the
-  hash in the request base64-encoded, `v3_server.go`) cannot be translated here.
-- **Workaround here.** The apply side names the encoding as an opaque function
-  (`auth.stdB64Enc`, `auth/Requests.lean`) and `selectPassword`'s boundary spec says its decoding
-  of an encoding has no error; that the handler's request is of that form (`UserAddModel.pwSure`)
-  is a proposer's obligation (`commitOkOn`, E2t) until the handler is proved.
-- **Proposed change.** `encoding/base64` in Perennial: `StdEncoding` (a package variable with its
-  fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at least
-  `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models.
+- **Missing.** Perennial has no `encoding/base64`, not even names-only. etcd's
+  `EtcdServer.UserAdd` and `UserChangePassword` hash the password with bcrypt and put the hash in
+  the request base64-encoded (`v3_server.go`); the k8s etcd3 store's continue tokens are JSON in
+  base64.
+- **Workaround here** (E2x, 2026-10-26; the user chose this over a Perennial model). The package is
+  names-only in this repository's configuration (`Code/encoding/base64.toml`, the k8s-apiserver
+  project's translation; the etcd project maps `encoding/base64=` to it, `etc/goose.py`). Its
+  package fact (`Proof/encoding/base64/Base.lean`, `base64Init`) says `StdEncoding` holds a fixed
+  `*Encoding` whose `EncodeToString` returns the opaque `encoding.base64.stdEnc` of its argument's
+  bytes; the trust-boundary axiom `StdEncoding_init` (`Proof/encoding/base64/Init.lean`,
+  `etc/gen-init.py`) establishes it. `auth.stdB64Enc` is that `stdEnc`, and `selectPassword`'s
+  boundary spec says its decoding of such an encoding has no error, so `EtcdServer.UserAdd` is
+  proved to propose a `pwSure` request (`server_user_add_sure`).
+- **Proposed change (later).** `encoding/base64` in Perennial: `StdEncoding` (a package variable
+  with its fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at
+  least `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models. It would
+  turn `StdEncoding_init`'s method clause and `selectPassword`'s decode clause into theorems, and
+  serve the k8s etcd3 store's continue tokens.
 
 ### An interface embedding interfaces is an exact type set (2026-10-27, DaemonSet plan phase 3, gap C8)
 
@@ -712,6 +843,42 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
 
 ## Landed
+
+### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
+
+- **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
+  over func(...) (only integers, maps, slices, channels and arrays are supported)`). The iterator
+  functions themselves, closures calling `yield`, already translate.
+- **Needed by.** The k8s etcd3 store's `GetList` (`store.go:825`, over `pagedChunks` or
+  `streamChunks`): every list. Blocks `notes/k8s-etcd3-plan.md`'s phase 5. The standard library
+  increasingly returns iterators (`maps.Keys`, `slices.All`, ...).
+- **Workaround here.** `store.GetList` names-only (survey branch's `etcd3.toml`); alternatives: a
+  Goose fork of k8s.io/apiserver rewriting the loop, or a trusted model.
+- **Proposed.** Desugar the loop as Go's compiler does: call the iterator with a closure for the
+  body that returns `false` on `break`, and records a `return` (with its values) or a labelled
+  `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
+  called after it returned `false` (Go panics).
+- **Landed.** Perennial `caa9d07ee` (2026-10-26), after uniform function results (`2b17d5f09`);
+  reached by the pin `edcadb1e5` (2026-10-27). Nothing here uses it yet: `store.GetList` is still
+  names-only.
+
+### The type set of an interface with an embedded interface
+
+- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
+  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
+  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
+  that is an interface is that interface's type set, so in the model no concrete type is in
+  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
+  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
+  verified).
+- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
+  `runtime.Codec`; conversions and method calls do not consult type sets).
+- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
+  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
+  Perennial's `fix-semantics` workflow.
+- **Landed.** Perennial `8ef540a62` (pin `6b58510f9`, 2026-10-27): goose writes an interface type as all
+  its methods, embedded interfaces included, and emits every named type's method sets, so
+  `go_type_set` decides such memberships (k8setcd3's `objTyOk` with `runtime.Unstructured`).
 
 ### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`
 
@@ -884,6 +1051,11 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   Held D` elaborates, and `wp_apply` of the same shape worked for `hRL` two calls earlier (before
   `D` existed). Workaround: `wp_bind` the call, then `iapply (hRU ...) $$ [Hpkg Htxf Hrtx HD]`,
   prove the precondition goal by `iframe`, `inext`, `iintro HR`.
+- **A third instance** (2026-10-26, `heap.up.wp_proof`/`heap.down.wp_proof`): `wp_apply HSwap $$
+  %ys %p %jv [HR] as HR`, `HSwap` an Iris hypothesis (the `heap.Interface`'s `Swap` triple), after a
+  `cases b` on a Boolean an earlier `wp_apply HLess ... as %b HR` introduced: no error, the
+  following tactics "never executed", and only "declaration uses `sorry`"; `wp_apply_core` of the
+  same reports "unknown free variable". The same `wp_apply` of `HLess` before the `cases` worked.
 - **Workaround here.** Prepare the hypothesis with `ihave` and frame it with `$`; check every new
   proof for the "declaration uses `sorry`" warning; at a deferred call, `wp_bind` and `iapply`.
 - **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
@@ -986,3 +1158,14 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
   with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
   says `false` for a leaf error not in the target's type set; then the four are proved here.
+
+### `go.NotInterface go.uint64`
+
+- **Missing.** Perennial's `PostLifting.lean` has `go.NotInterface` instances for composite types
+  (arrays, pointers, slices, maps, untyped) but none for the basic integer types, so
+  `MethodResolve` on a named type over `uint64` (`types.ID`'s `String`) does not step.
+- **Workaround here.** Local instances (`InvStart.lean`, `apply/BackendLemmas2.lean`,
+  `EtcdServer__sendMergedSnap.lean`, `SnapTakeProof.lean` (D22 J4b)), each `⟨by unfold go.uint64;
+  trivial⟩`.
+- **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
+  `PostLifting.lean`, beside the composite ones.

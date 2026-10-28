@@ -37,7 +37,7 @@ namespace linkv3p
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -45,15 +45,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
-    [PeerPausable]
-    (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
+    (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),
-  BootFacts id₁ id₂ id₃ bootLog →
+  BootFacts id₁ id₂ id₃ ctxs boot →
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   storage.dbOpensOk → v3rpc.ServerMethodSets →
@@ -67,7 +66,7 @@ abbrev Main.spec : Prop :=
       netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
       netAddrFree (GF := GF) bridgeAddr₃ ∗
       httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ bootLog }}
+      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.Main)) (Val #clients))
       (Val #ops)) (Val #sched))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

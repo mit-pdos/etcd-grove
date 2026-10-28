@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,11 +31,11 @@ and (`PrevKv`) the deleted key-values, read-only; or, with `PrevKv`, the range r
 abbrev txn.deleteRange.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (dr : Loc) (o : OpFull) (tyX : go.GoType) (vX : val),
+    (dr : Loc) (o : OpFull) (L : List w64) (tyX : go.GoType) (vX : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗
       mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ mvcc.twWrap tyX vX mw ∗
-      txn.deleteRangeRequestIs dr o }}
+      txn.deleteRangeRequestIs dr o ∗ lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
     (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #dr))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗
@@ -46,9 +46,12 @@ abbrev txn.deleteRange.spec : Prop :=
             Int))
           (rangeIn (txn.pendState ilog pend) o).length
           (if o.base.prevKV then rangeIn (txn.pendState ilog pend) o else []) ∗
-        txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp)) ∨
+        txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
+        lease.leaseOwn γ.leases L
+          (mvcc.pendItems ilog (pend ++ txn.delChanges (txn.pendState ilog pend) o))) ∨
       (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
-        mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize) }}
+        mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗
+        lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend)) }}
 
 end spec
 

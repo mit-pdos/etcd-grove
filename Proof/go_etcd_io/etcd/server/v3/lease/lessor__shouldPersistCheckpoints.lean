@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.lease lease
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -64,7 +64,7 @@ theorem lease.lessor.shouldPersistCheckpoints.wp_proof
         github_com.Masterminds.semver.v3.Version.ty) _ _ _) $$ cv as cv
       wp_apply hGE as %r -
       iapply HΦ; itrivial
-  · wp_pures; iapply HΦ; itrivial
+  · wp_auto; iapply HΦ; itrivial
 
 end proof
 

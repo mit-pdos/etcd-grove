@@ -20,62 +20,62 @@ end pkg_id
 
 namespace k8s_io.component_base.tracing
 
-noncomputable def Span.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Span.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/tracing.Span" [])
 
 attribute [irreducible] Span.ty
 
-noncomputable def TracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TracerProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/tracing.TracerProvider" [])
 
 attribute [irreducible] TracerProvider.ty
 
-noncomputable def noopTracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopTracerProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/tracing.noopTracerProvider" [])
 
 attribute [irreducible] noopTracerProvider.ty
 
-axiom Span.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Span.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TracerProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopTracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom noopTracerProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom instrumentationScope [FfiSyntax] [GoGlobalContext] : val
+axiom instrumentationScope [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Start [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Start [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.Start"
 
-noncomputable def attributesToFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def attributesToFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.attributesToFields"
 
-noncomputable def SpanFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SpanFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.SpanFromContext"
 
-noncomputable def ContextWithSpan [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ContextWithSpan [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.ContextWithSpan"
 
-noncomputable def NewNoopTracerProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNoopTracerProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.NewNoopTracerProvider"
 
-noncomputable def NewProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.NewProvider"
 
-noncomputable def WithTracing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithTracing [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.WithTracing"
 
-noncomputable def WrapperFor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WrapperFor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.WrapperFor"
 
-noncomputable def Propagators [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Propagators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.Propagators"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.tracing where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.component_base.tracing)) (Lam BAnon
   (App (Val exceptionDo)
@@ -86,42 +86,54 @@ axiom Span : Type
 axiom Span.zero_val : ZeroVal Span
 attribute [instance] Span.zero_val
 
-class Span.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Span.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Span.underlying Span
   underlying : go.UnderlyingDirectedEq Span.ty Span.underlying
   isUnderlying : go.IsUnderlying Span.underlying Span.underlying
+  method_set : go.MethodSetIs Span.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Span.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/attribute.KeyValue" []))] true []))), (go!"End", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false []))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/attribute.KeyValue" []))] true [])))]
 
 attribute [instance] Span.TypeAssumptions.type_repr
   Span.TypeAssumptions.underlying
   Span.TypeAssumptions.isUnderlying
+  Span.TypeAssumptions.method_set
+  Span.TypeAssumptions.ptr_method_set
 
 axiom TracerProvider : Type
 axiom TracerProvider.zero_val : ZeroVal TracerProvider
 attribute [instance] TracerProvider.zero_val
 
-class TracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TracerProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TracerProvider.underlying TracerProvider
   underlying : go.UnderlyingDirectedEq TracerProvider.ty TracerProvider.underlying
   isUnderlying : go.IsUnderlying TracerProvider.underlying TracerProvider.underlying
+  method_set : go.MethodSetIs TracerProvider.ty [(go!"Shutdown", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerOption" []))] true [(go.GoType.Named go!"go.opentelemetry.io/otel/trace.Tracer" [])]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerProvider.ty) []
 
 attribute [instance] TracerProvider.TypeAssumptions.type_repr
   TracerProvider.TypeAssumptions.underlying
   TracerProvider.TypeAssumptions.isUnderlying
+  TracerProvider.TypeAssumptions.method_set
+  TracerProvider.TypeAssumptions.ptr_method_set
 
 axiom noopTracerProvider : Type
 axiom noopTracerProvider.zero_val : ZeroVal noopTracerProvider
 attribute [instance] noopTracerProvider.zero_val
 
-class noopTracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopTracerProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopTracerProvider.underlying noopTracerProvider
   underlying : go.UnderlyingDirectedEq noopTracerProvider.ty noopTracerProvider.underlying
   isUnderlying : go.IsUnderlying noopTracerProvider.underlying noopTracerProvider.underlying
+  method_set : go.MethodSetIs noopTracerProvider.ty [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerOption" []))] true [(go.GoType.Named go!"go.opentelemetry.io/otel/trace.Tracer" [])]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTracerProvider.ty) [(go!"Shutdown", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerOption" []))] true [(go.GoType.Named go!"go.opentelemetry.io/otel/trace.Tracer" [])]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTracerProvider.TypeAssumptions.type_repr
   noopTracerProvider.TypeAssumptions.underlying
   noopTracerProvider.TypeAssumptions.isUnderlying
+  noopTracerProvider.TypeAssumptions.method_set
+  noopTracerProvider.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Span_instance : Span.TypeAssumptions
   TracerProvider_instance : TracerProvider.TypeAssumptions
   noopTracerProvider_instance : noopTracerProvider.TypeAssumptions

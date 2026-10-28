@@ -1,6 +1,7 @@
 /- Port of election_proof/spec_Config__validate.v (857d09190). -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
@@ -13,22 +14,9 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section defs
-variable [FfiSyntax]
+variable [GooseExts]
 
-/-- What `Config.validate` checks, as a proposition over the `Config`. Each conjunct is
-exactly the condition Go tests before one of its `return errors.New(...)`s, except
-`Logger ≠ nil`: Go substitutes the package default logger (`getLogger`) for a nil one,
-and taking the logger as given keeps the default logger out of the trust base. -/
-def ConfigValid (cv : Config) : Prop :=
-  cv.ID' ≠ W64 0 ∧
-  cv.ID' ≠ W64 18446744073709551615 ∧
-  cv.ID' ≠ W64 18446744073709551614 ∧
-  (0 < sint.Z cv.HeartbeatTick' ∧ sint.Z cv.HeartbeatTick' < sint.Z cv.ElectionTick') ∧
-  cv.Storage' ≠ interface.nil ∧
-  0 < sint.Z cv.MaxInflightMsgs' ∧
-  (cv.MaxInflightBytes' = W64 0 ∨ uint.Z cv.MaxSizePerMsg' ≤ uint.Z cv.MaxInflightBytes') ∧
-  cv.Logger' ≠ interface.nil ∧
-  (cv.ReadOnlyOption' = W64 0 ∨ cv.CheckQuorum' = true)
+-- (2026-10-26, raft's signature, stage 1) `ConfigValid` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- `validate` writes defaults into up to four fields (`MaxUncommittedEntriesSize`,
 `MaxCommittedSizePerReady`, `MaxInflightBytes`, and `Logger` when nil). The
@@ -63,7 +51,7 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
 end defs
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

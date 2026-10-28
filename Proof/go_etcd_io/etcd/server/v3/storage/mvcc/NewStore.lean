@@ -23,7 +23,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -90,8 +90,8 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f wq γi γok Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok⟩
+  intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -105,6 +105,7 @@ theorem mvcc.NewStore.wp_proof
   · iPkgInit
   ihave #Hsched : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
@@ -153,7 +154,7 @@ theorem mvcc.NewStore.wp_proof
   icases Hlessor with ⟨%lp, %Hli, -, -, -, -, #HSetRD⟩
   subst Hli
   (try wp_auto)
-  wp_apply HSetRD
+  wp_apply HSetRD $$ [$Hro] as Hro
   (try wp_auto)
   -- the ghost state: the index at the initial log `[[], []]` (revision 0 and `currentRev = 1`),
   -- the committed log, the revision budget
@@ -290,7 +291,7 @@ theorem mvcc.NewStore.wp_proof
   wp_apply HB as %bt #Hbt
   (try wp_auto)
   iunfold mvcc.isBatchTxG at Hbt
-  icases Hbt with ⟨%Locked, %LockedO, -, #Hinit⟩
+  icases Hbt with ⟨%Locked, %LockedO, -, #Hinit, -⟩
   iunfold mvcc.batchTxInitSpec at Hinit
   icases Hinit with ⟨#HLockOut, #HCreate, #HUnlock0⟩
   -- `tx.LockOutsideApply()`, the buckets created
@@ -374,7 +375,7 @@ theorem mvcc.NewStore.wp_proof
   · unfold mvcc.restoreView mvcc.restoreViewOut; simp only [↓reduceIte]; iframe
   have hR := hRestore «$r0_ptr» γ (GoInterface.ok bi) (lease.lessorIface lp) ti lg'
       (1 : Qp).half P (mvcc.hookFn γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storeW «$r0_ptr» γ)
-      (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) (mvcc.storePutOk γ)
+      (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) (mvcc.storePutOk γ) (mvcc.storeRb γ) (mvcc.storeBt γ)
       (DFrac.own 1) (DFrac.own 1) []
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))
@@ -551,11 +552,13 @@ theorem mvcc.NewStore.wp_proof
     ipureintro; exact ⟨Hlgnn, Hcfg2, Hrb0⟩
   ihave Hok' : (ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) : IProp GF) $$ [Hok]
   · rw [hγok]; iexact Hok
+  ihave Hro : (∃ rd : GoFunc, lease.rdOwn γl rd) $$ [Hro]
+  · iexists _; iexact Hro
   iapply HΦ
   iexists γ
   isplitr
   · ipureintro; refine ⟨hγb, hγl, rfl, hγw, ?_, ?_⟩ <;> first | rfl | assumption
-  iframe Hs Hok' Hhook Htoks Hcert HlogQ
+  iframe Hs Hro Hok' Hhook Htoks Hcert HlogQ
   isplitl [ReadView WriteView]
   · iexists rv, wv
     iunfold mvcc.isReadView

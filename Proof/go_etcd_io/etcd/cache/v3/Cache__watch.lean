@@ -32,7 +32,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -187,7 +187,7 @@ theorem Cache.watch.wp_proof
     -- `nil`: the next iteration, from `rev` again
     wp_auto
     wp_for_post
-    iframe HΦ
+    iframe HΦ «$res0»
     iexists c1
     simp only [named]
     iframe Hcore Hh Hbd Hrun

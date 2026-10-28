@@ -18,12 +18,12 @@ open Iris Iris.BI go_etcd_io.raft.v3
 `votes`: from `id` to `wid`, of type `vt` (`MsgVote`, `MsgPreVote`) and term `term`, with the log's
 last entry and the reported subterm `ls`, the tally (its keys are the responders), no context and
 no replication set. -/
-def wVoteM [FfiSyntax] (id wid : w64) (vt : raftpb.MessageType) (term : w64) (b : entryID)
+def wVoteM [GooseExts] (id wid : w64) (vt : raftpb.MessageType) (term : w64) (b : entryID)
     (es : List EntryM) (ls : w64) (votes : GMap w64 Bool) : WMsg :=
   ⟨vt, id, wid, term, (plogLast b es).term', ls, (plogLast b es).index', [], [], votes, []⟩
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

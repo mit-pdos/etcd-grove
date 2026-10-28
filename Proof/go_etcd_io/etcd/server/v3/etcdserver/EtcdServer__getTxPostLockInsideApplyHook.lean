@@ -21,7 +21,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex go_
   go_etcd_io.etcd.server.v3.storage
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -34,10 +34,11 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
     EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM
   wp_start as #Hsrv
+  wp_alloc_auto
+  wp_pures
   wp_alloc sp as Hsp
   ipersist Hsp
   wp_auto
-  rw [recv_eq_func_mk]
   iapply HΦ
   isplitr
   · ipureintro; simp [func.nil]

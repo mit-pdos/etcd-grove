@@ -17,7 +17,7 @@ namespace kvwitness
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -27,6 +27,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assump
 theorem NewWitnessStore.wp_proof : NewWitnessStore.spec (GF := GF) (hG := hG) := by
   intro P
   wp_start as ⟨#Herr, HP⟩
+  iapply wp_fupd
+  wp_pures
+  wp_alloc res as Hres
   wp_pures
   wp_alloc hs as Hhs
   wp_auto
@@ -39,7 +42,8 @@ theorem NewWitnessStore.wp_proof : NewWitnessStore.spec (GF := GF) (hG := hG) :=
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     isplitr <;> iapply ownSlice_nil
   imod whsOwn_freeze $$ Hown with #Hro
-  wp_alloc st as Hst
+  irename «$r0» => Hst
+  generalize «$r0_ptr» = st at *
   iStructNamed Hst
   imod sync.init_Mutex (wStoreLock st P) ⊤ (st.[RWStore, go!"mu"]) $$ mu [state HP] with #Hmu
   · inext
@@ -47,7 +51,7 @@ theorem NewWitnessStore.wp_proof : NewWitnessStore.spec (GF := GF) (hG := hG) :=
     iexists «$v0_ptr», WHS.zero
     iframe
     iframe #
-  wp_auto
+  imodintro
   iapply HΦ
   unfold isWStore
   iframe #

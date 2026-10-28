@@ -18,7 +18,7 @@ namespace recipes
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -33,9 +33,9 @@ theorem NewRWMutex.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG 
   wp_auto
   wp_apply hTODO
   (try wp_auto)
-  wp_alloc m as Hm
+  irename «$r0» => Hm
+  generalize «$r0_ptr» = m at *
   iStructNamed Hm
-  wp_auto
   ipersist s
   ipersist ctx
   ipersist pfx

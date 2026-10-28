@@ -29,7 +29,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -62,7 +62,7 @@ theorem srvSnapApplied_of_walk
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hcfgl : cfg.Logger' ≠ null)
-    (hmeta : metaIs D (sv.Metadata'.Index', sv.Metadata'.Term'))
+    (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
@@ -90,9 +90,9 @@ theorem srvSnapApplied_of_walk
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
     (Tal : IProp GF) (zal : Bool) (hbuq : apply.backendUnderQuota)
     (A' : List EntryModel)
-    (hA' : (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).bk =
+    (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
         <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
-      (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI)
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
     (hoff : E.authMode = auth.AuthMode.off) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗
@@ -111,7 +111,7 @@ theorem srvSnapApplied_of_walk
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
     %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
     #Hws, -, -, #HhP, -, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Halb, Haub, Hclb,
-    Hleb, Hlo, Hlrd, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
+    Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
     Hcsa, Hcso, Hpath, HTal, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
@@ -130,8 +130,8 @@ theorem srvSnapApplied_of_walk
   -- step 4: the applier state
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
       zal rfl hkb' hγw hwq hpre hRok hrbw $$
-      [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd HRD2 Hbea Hgv Hra Hauar Hwok HRD0]
-  · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd HRD2 Hbea Hgv Hra Hauar Hwok HRD0
+      [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0]
+  · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp

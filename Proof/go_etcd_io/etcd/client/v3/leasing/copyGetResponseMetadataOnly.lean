@@ -19,7 +19,7 @@ namespace leasing
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -42,10 +42,10 @@ theorem copyGetResponseMetadataOnly.wp_proof (hcopy : copyHeader.spec (GF := GF)
   icases Hh' with (⟨%Hbad, -⟩ | ⟨-, #Hh'⟩)
   · exact absurd Hbad Hhnn
   wp_auto
-  wp_alloc r as Hr
+  irename «$r0» => Hr
+  generalize «$r0_ptr» = r at *
   ihave %Hrnn := typedPointsto_not_null $$ Hr
   iStructNamed Hr
-  wp_auto
   iapply HΦ
   isplitl [HH HK HKs Hcap Hkvs HM HC]
   · iframe; iframe #; ipureintro; exact hnn

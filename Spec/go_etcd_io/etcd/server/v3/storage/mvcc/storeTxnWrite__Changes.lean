@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -26,12 +26,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 back). -/
 abbrev mvcc.storeTxnWrite.Changes.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (crev : Int) (Z : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z }}
+    (crev : Int) (Z : IProp GF) (ld : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ld }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Changes")) (Val #()))
   {{ (chs : GoSlice) (ps : List Loc), RET #chs;
       chs ↦* ps ∗ mvcc.changesAre ps ilog pend ∗ ⌜ps.length = pend.length⌝ ∗
-      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps false crev Z }}
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps false crev Z ld }}
 
 end spec
 

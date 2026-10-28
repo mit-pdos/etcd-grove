@@ -14,7 +14,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3.adt
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -25,10 +25,10 @@ theorem adt.intervalTree.createIntervalNode.wp_proof :
   intro K hK t s dq vb ve b e v
   wp_start as ⟨Hs, #Hb, #He⟩
   wp_auto
-  wp_alloc z as Hz
+  irename «$r0» => Hz
+  generalize «$r0_ptr» = z at *
   ihave %Hzn := typedPointsto_not_null _ _ _ $$ Hz
   iStructNamed Hz
-  wp_auto
   iapply HΦ
   simp only [adt.colorW]
   iframe Hs left right parent c

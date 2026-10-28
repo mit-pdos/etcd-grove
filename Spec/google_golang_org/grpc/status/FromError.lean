@@ -18,7 +18,7 @@ open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 grpc's `FromError` reads the status embedded in the error value (`GRPCStatus()`, or `Unknown` for
 an error that has none, `OK` for `nil`), so the code is a function of the error; nothing more is
 said of it. (The watch slice's unit W-C: `isHaltErr` compares it.) -/
-opaque statusCode [FfiSyntax] : GoInterface → w32
+opaque statusCode [GooseExts] : GoInterface → w32
 
 /-- `status.FromError(err)` of an error grpc's `status` accepts (`statusErrOk`: `nil`, or a leaf
 error whose `Error()` and `GRPCStatus()` (if it has one) return; it calls both, and `errors.As`)

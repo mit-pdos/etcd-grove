@@ -6,7 +6,8 @@ links: []
 
 # server/etcdserver: the auto-compactor runs before `Start` and is leaked on `NewServer`'s error paths
 
-- **Status**: a bug (a possible panic and a goroutine leak), not reproduced.
+- **Status**: a bug (a panic and a goroutine leak); the panic reproduced (2026-10-27, below), fixed in
+  the fork.
 - **Where**: the fork `upamanyus/etcd` at `107edf7e4` (`etc/goose.py`'s etcd pin).
   `NewServer` starts the compactor (`server/etcdserver/server.go:383-388`: `v3compactor.New`,
   `srv.compactor.Run()`) before `restoreAlarms` (line 391) and the transport's `Start` (line
@@ -23,14 +24,21 @@ links: []
   the period elapses before `Start` (a short periodic retention such as `1s` and a slow
   `embed.StartEtcd` between the two, e.g. the initial corruption check contacting peers), the same
   call races with `start()`'s write of `s.w` or panics on its nil value.
+- **Reproduction** (2026-10-27): `etcd-compactor-started-before-start/repro_test.go`, a test of etcd's
+  `tests/integration` package (copy it there): `NewServer` with a 1s periodic retention, then 2s
+  without `Start`. At the fork's `c00a2dc06` (the compactor run by `NewServer`) it panics after about
+  a second (`runtime error: invalid memory address or nil pointer dereference`: `Compact` on the nil
+  `s.w`); with the fix (`964dccdb4`) it passes. It is also the fix's regression test.
 - **Expected**: `NewServer` either starts the compactor in `start()` (with the server's other
   goroutines), or stops it on its error paths.
-- **How the proof handles it**: not yet: `v3compactor.New` and `Run` are names-only and their
-  contracts are pending (`?` in `etc/link-lean-first-server.txt`); N0's `compactorRunOk` (`{True}
-  Run() {True}`) hides the goroutine's proposals and is not a true contract
-  (`notes/status-history.md`, "Server construction, unit N1"). A true one makes `Run` require
-  `Compact`'s contract, which the server only meets after `start()`; `NewServer`'s spec would
-  take `cfg.AutoCompactionRetention = 0` meanwhile.
-- **Possible fixes**: move `srv.compactor.Run()` to `start()` (or `Start`), or add
+- **How the proof handles it**: fixed in the fork (2026-10-27, branch `goose-lean-compactorstart`,
+  `964dccdb4`: `NewServer` only creates the compactor, `start()` runs it after `s.w` and the request
+  path's fields are set), the spec-first pilot's choice (`notes/compactor-pilot-plan.md`): with the
+  compactor running from `NewServer`, no contract for its `Compact` calls can be sound (the third
+  review of the pilot's specs: `Compact` needs `isServerReq`, which only `start()` makes true). The
+  compactor's `Run` takes the environment's contracts (`v3compactor.runPre`), which `start()` can
+  give. Until the pilot's glue, `NewServer`'s spec keeps `cfg.AutoCompactionRetention = 0`.
+- **Possible fixes**: move `srv.compactor.Run()` to `start()` (or `Start`; the fork's fix, which passes
+  `tests/integration/embed`'s `TestEmbedEtcdAutoCompactionRetentionRetained`), or add
   `if err != nil && srv.compactor != nil { srv.compactor.Stop() }` to the deferred closure.
 - **Found**: 2026-10-17, auditing the contract of `v3compactor.New` for `NewServer`'s proof.

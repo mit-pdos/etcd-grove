@@ -12,7 +12,6 @@ roots ^Spec/k8s_io/client_go/tools/cache/(cache__|RealFIFO__|Reflector__|sharedI
 roots ^Spec/k8s_io/client_go/(listers|informers)/
 axiom appsv1.Resource.wp_proof
 axiom corev1.Resource.wp_proof
-axiom errors.Join.wp_proof
 axiom labels.Everything.wp_proof
 axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid

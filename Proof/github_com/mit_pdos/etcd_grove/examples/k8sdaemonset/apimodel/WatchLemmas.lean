@@ -20,7 +20,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **The log index a watch from `n` starts at**, as the Go loop finds it: every change before
 `k` is at most `n`, and the one at `k` (if any) after it. -/
@@ -83,7 +83,7 @@ theorem w64_of_sint_nat (n : w64) (h : 0 ≤ sint.Z n) : W64 (sint.nat n) = n :=
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

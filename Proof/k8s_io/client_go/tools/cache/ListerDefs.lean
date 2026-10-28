@@ -27,14 +27,14 @@ namespace cache
 open Iris Iris.BI k8s_io.client_go.tools.cache
 
 /-- No item is `nil`. -/
-def noNil [FfiSyntax] (it : Items) : Prop := ∀ k o, it !! k = some o → o ≠ interface.nil
+def noNil [GooseExts] (it : Items) : Prop := ∀ k o, it !! k = some o → o ≠ interface.nil
 
 /-- The namespace index's query object's contents: an `ObjectMeta` with only its namespace. -/
-def qMeta [FfiSyntax] (ns : GoString) : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta :=
+def qMeta [GooseExts] (ns : GoString) : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta :=
   { (zero_val k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) with Namespace' := ns }
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

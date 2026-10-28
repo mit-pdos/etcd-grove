@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -35,7 +35,7 @@ What the application gets with `rd` (all of `RawNode.Ready.spec`'s postcondition
 node and the right to append): the committed entries `ce` extending `rs.delivered`, the
 entries `es` to append, the messages to send, each `isRaftMsg`, no snapshot, and (since
 2026-10-13) the read states `sts`: `rd.ReadStates` read-only, each `ReadState`
-`readStateOk` -- its context a proposed slice whose read was created knowing a committed
+`readStateRaw` -- its context a proposed slice whose read was created knowing a committed
 log of length at most its index (`readOk`). The slice is read-only because the node
 keeps it until `acceptReady` (which sets `r.readStates` to `nil`). The node is `ownRawNodeReady` (`InvRawnodeReady.lean`): the outbox's slice is now
 `rd.Messages`, and `acceptReady rd` takes it to `ownRawNode` at the post-`Ready` state.
@@ -102,7 +102,7 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
       -- the read states (2026-10-13)
       "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
-      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
+      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateRaw γ st) ∗
       -- (2026-10-16, stage R5) the hard state: `nil` when unchanged, else `hardState()`'s fresh
       -- read-only one
       "#Hhard" ∷ hsOpt rd.HardState' h ∗

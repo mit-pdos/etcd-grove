@@ -20,72 +20,72 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.node.v1
 
-noncomputable def RuntimeClassExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RuntimeClassExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1.RuntimeClassExpansion" [])
 
 attribute [irreducible] RuntimeClassExpansion.ty
 
-noncomputable def NodeV1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeV1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1.NodeV1Interface" [])
 
 attribute [irreducible] NodeV1Interface.ty
 
-noncomputable def NodeV1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeV1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1.NodeV1Client" [])
 
 attribute [irreducible] NodeV1Client.ty
 
-noncomputable def RuntimeClassesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RuntimeClassesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1.RuntimeClassesGetter" [])
 
 attribute [irreducible] RuntimeClassesGetter.ty
 
-noncomputable def RuntimeClassInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RuntimeClassInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1.RuntimeClassInterface" [])
 
 attribute [irreducible] RuntimeClassInterface.ty
 
-noncomputable def runtimeClasses.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def runtimeClasses.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1.runtimeClasses" [])
 
 attribute [irreducible] runtimeClasses.ty
 
-axiom RuntimeClassExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RuntimeClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeV1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom NodeV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeV1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom NodeV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RuntimeClassesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RuntimeClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RuntimeClassInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RuntimeClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom runtimeClasses.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom runtimeClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/node/v1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/node/v1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/node/v1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/node/v1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/node/v1.setConfigDefaults"
 
-noncomputable def newRuntimeClasses [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newRuntimeClasses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/node/v1.newRuntimeClasses"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.node.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.node.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -96,81 +96,105 @@ axiom RuntimeClassExpansion : Type
 axiom RuntimeClassExpansion.zero_val : ZeroVal RuntimeClassExpansion
 attribute [instance] RuntimeClassExpansion.zero_val
 
-class RuntimeClassExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RuntimeClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RuntimeClassExpansion.underlying RuntimeClassExpansion
   underlying : go.UnderlyingDirectedEq RuntimeClassExpansion.ty RuntimeClassExpansion.underlying
   isUnderlying : go.IsUnderlying RuntimeClassExpansion.underlying RuntimeClassExpansion.underlying
+  method_set : go.MethodSetIs RuntimeClassExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RuntimeClassExpansion.ty) []
 
 attribute [instance] RuntimeClassExpansion.TypeAssumptions.type_repr
   RuntimeClassExpansion.TypeAssumptions.underlying
   RuntimeClassExpansion.TypeAssumptions.isUnderlying
+  RuntimeClassExpansion.TypeAssumptions.method_set
+  RuntimeClassExpansion.TypeAssumptions.ptr_method_set
 
 axiom NodeV1Interface : Type
 axiom NodeV1Interface.zero_val : ZeroVal NodeV1Interface
 attribute [instance] NodeV1Interface.zero_val
 
-class NodeV1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NodeV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NodeV1Interface.underlying NodeV1Interface
   underlying : go.UnderlyingDirectedEq NodeV1Interface.ty NodeV1Interface.underlying
   isUnderlying : go.IsUnderlying NodeV1Interface.underlying NodeV1Interface.underlying
+  method_set : go.MethodSetIs NodeV1Interface.ty [(go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"RuntimeClasses", (some (go.signature.Signature [] false [RuntimeClassInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeV1Interface.ty) []
 
 attribute [instance] NodeV1Interface.TypeAssumptions.type_repr
   NodeV1Interface.TypeAssumptions.underlying
   NodeV1Interface.TypeAssumptions.isUnderlying
+  NodeV1Interface.TypeAssumptions.method_set
+  NodeV1Interface.TypeAssumptions.ptr_method_set
 
 axiom NodeV1Client : Type
 axiom NodeV1Client.zero_val : ZeroVal NodeV1Client
 attribute [instance] NodeV1Client.zero_val
 
-class NodeV1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NodeV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NodeV1Client.underlying NodeV1Client
   underlying : go.UnderlyingDirectedEq NodeV1Client.ty NodeV1Client.underlying
   isUnderlying : go.IsUnderlying NodeV1Client.underlying NodeV1Client.underlying
+  method_set : go.MethodSetIs NodeV1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeV1Client.ty) [(go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"RuntimeClasses", (some (go.signature.Signature [] false [RuntimeClassInterface.ty])))]
 
 attribute [instance] NodeV1Client.TypeAssumptions.type_repr
   NodeV1Client.TypeAssumptions.underlying
   NodeV1Client.TypeAssumptions.isUnderlying
+  NodeV1Client.TypeAssumptions.method_set
+  NodeV1Client.TypeAssumptions.ptr_method_set
 
 axiom RuntimeClassesGetter : Type
 axiom RuntimeClassesGetter.zero_val : ZeroVal RuntimeClassesGetter
 attribute [instance] RuntimeClassesGetter.zero_val
 
-class RuntimeClassesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RuntimeClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RuntimeClassesGetter.underlying RuntimeClassesGetter
   underlying : go.UnderlyingDirectedEq RuntimeClassesGetter.ty RuntimeClassesGetter.underlying
   isUnderlying : go.IsUnderlying RuntimeClassesGetter.underlying RuntimeClassesGetter.underlying
+  method_set : go.MethodSetIs RuntimeClassesGetter.ty [(go!"RuntimeClasses", (some (go.signature.Signature [] false [RuntimeClassInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RuntimeClassesGetter.ty) []
 
 attribute [instance] RuntimeClassesGetter.TypeAssumptions.type_repr
   RuntimeClassesGetter.TypeAssumptions.underlying
   RuntimeClassesGetter.TypeAssumptions.isUnderlying
+  RuntimeClassesGetter.TypeAssumptions.method_set
+  RuntimeClassesGetter.TypeAssumptions.ptr_method_set
 
 axiom RuntimeClassInterface : Type
 axiom RuntimeClassInterface.zero_val : ZeroVal RuntimeClassInterface
 attribute [instance] RuntimeClassInterface.zero_val
 
-class RuntimeClassInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RuntimeClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RuntimeClassInterface.underlying RuntimeClassInterface
   underlying : go.UnderlyingDirectedEq RuntimeClassInterface.ty RuntimeClassInterface.underlying
   isUnderlying : go.IsUnderlying RuntimeClassInterface.underlying RuntimeClassInterface.underlying
+  method_set : go.MethodSetIs RuntimeClassInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/node/v1.RuntimeClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RuntimeClassInterface.ty) []
 
 attribute [instance] RuntimeClassInterface.TypeAssumptions.type_repr
   RuntimeClassInterface.TypeAssumptions.underlying
   RuntimeClassInterface.TypeAssumptions.isUnderlying
+  RuntimeClassInterface.TypeAssumptions.method_set
+  RuntimeClassInterface.TypeAssumptions.ptr_method_set
 
 axiom runtimeClasses : Type
 axiom runtimeClasses.zero_val : ZeroVal runtimeClasses
 attribute [instance] runtimeClasses.zero_val
 
-class runtimeClasses.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class runtimeClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying runtimeClasses.underlying runtimeClasses
   underlying : go.UnderlyingDirectedEq runtimeClasses.ty runtimeClasses.underlying
   isUnderlying : go.IsUnderlying runtimeClasses.underlying runtimeClasses.underlying
+  method_set : go.MethodSetIs runtimeClasses.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/node/v1.RuntimeClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/node/v1.RuntimeClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType runtimeClasses.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/node/v1.RuntimeClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/node/v1.RuntimeClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/node/v1.RuntimeClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] runtimeClasses.TypeAssumptions.type_repr
   runtimeClasses.TypeAssumptions.underlying
   runtimeClasses.TypeAssumptions.isUnderlying
+  runtimeClasses.TypeAssumptions.method_set
+  runtimeClasses.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RuntimeClassExpansion_instance : RuntimeClassExpansion.TypeAssumptions
   NodeV1Interface_instance : NodeV1Interface.TypeAssumptions
   NodeV1Client_instance : NodeV1Client.TypeAssumptions

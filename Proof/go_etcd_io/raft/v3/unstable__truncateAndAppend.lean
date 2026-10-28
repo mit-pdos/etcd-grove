@@ -26,7 +26,7 @@ private theorem ite_false_of {P : Prop} [Decidable P] {α : Sort _} (h : ¬P) (a
     (if P then a else b) = b := by simp [h]
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

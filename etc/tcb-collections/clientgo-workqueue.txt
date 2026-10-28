@@ -15,10 +15,8 @@ axiom clock.realTicker.C.wp_proof
 axiom clock.realTicker.Stop.wp_proof
 axiom clock.realTimer.C.wp_proof
 axiom clock.realTimer.Stop.wp_proof
-axiom heap.Fix.wp_proof
 axiom heap.Init_.wp_proof
 axiom heap.Pop.wp_proof
-axiom heap.Push.wp_proof
 axiom klog.Background.wp_proof
 axiom math.Pow.wp_proof
 axiom rate.Limiter.Reserve.wp_proof

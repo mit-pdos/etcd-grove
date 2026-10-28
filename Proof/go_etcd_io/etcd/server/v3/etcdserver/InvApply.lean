@@ -166,7 +166,7 @@ def stOk (γ : ApplyNames) (s : ApplyState) : Prop :=
   uint.Z s.eff ≤ uint.Z (ciEff γ s.k) ∧ uint.Z (ciEff γ s.k) ≤ uint.Z s.p
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

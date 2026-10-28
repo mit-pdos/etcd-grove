@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -37,15 +37,15 @@ concurrent mutation; `raft.proto` is proto2 with no `required` and no `string` f
 caller's fraction excludes a concurrent writer, so the error is `nil`. The output is the
 encoding of every populated field and the unknown fields, and `proto.Unmarshal` of it into a
 `ConfChange` yields the same populated fields (proto2 presence: an unset scalar decodes unset and
-reads as `0`, as `CCV1M` records it; `Context`'s bytes are the same, a `nil` and an empty one both
-`[]`). No pure encoder is claimed (the bytes depend on which fields are set, which `CCV1M`
+reads as `0`, as `ConfChangeM` records it; `Context`'s bytes are the same, a `nil` and an empty one both
+`[]`). No pure encoder is claimed (the bytes depend on which fields are set, which `ConfChangeM`
 forgets): the round trip is the postcondition. -/
 abbrev proto.MarshalConfChange.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (m : CCV1M),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownCCV1 p dq m }}
+  ∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownConfChange p dq m }}
     (App (Val (@! google_golang_org.protobuf.proto.Marshal)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p)))
   {{ (d : GoSlice) (bs : List w8), RET (PairV #d #interface.nil);
-      ownCCV1 p dq m ∗ d ↦* bs ∗ ⌜ccDecodeV1 bs = some m⌝ }}
+      ownConfChange p dq m ∗ d ↦* bs ∗ ⌜ccDecodeV1 bs = some m⌝ }}
 
 end spec
 

@@ -33,7 +33,7 @@ namespace cache
 open sets
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The items, by key. -/
 abbrev Items : Type := GMap GoString GoInterface

@@ -105,7 +105,7 @@ macro "rframe" : tactic =>
              Perennial.EtcdGrove.arriveState, Perennial.EtcdGrove.releasedState]; done)))
 
 section cfg_eq
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- Off a `MsgSnap`, `stepFollower` leaves the configuration. -/
 theorem FollowerStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
@@ -123,15 +123,15 @@ theorem CandidateStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NSt
 
 end cfg_eq
 
-example [FfiSyntax] (m : MessageM)
+example [GooseExts] (m : MessageM)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
     m.Type' = MsgCheckQuorum) :
     m.Type' ≠ MsgSnap := by nonsnap Hty
-example [FfiSyntax] (m : MessageM) (Hty : m.Type' = MsgHeartbeat) :
+example [GooseExts] (m : MessageM) (Hty : m.Type' = MsgHeartbeat) :
     m.Type' ≠ MsgSnap := by nonsnap Hty
 
 section base
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

@@ -21,59 +21,220 @@ end pkg_id
 
 namespace container.heap
 
-noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"container/heap.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-noncomputable def Init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Init [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Init"
 
-noncomputable def Push [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Push [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Push"
 
-noncomputable def Pop [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Pop [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Pop"
 
-noncomputable def Remove [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Remove [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Remove"
 
-noncomputable def Fix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Fix [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Fix"
 
-noncomputable def up [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def up [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.up"
 
-noncomputable def down [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def down [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.down"
+
+/-- Push pushes the element x onto the heap.
+    The complexity is O(log n) where n = h.Len().
+
+    go: heap.go:51:6 -/
+noncomputable def Push.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "x"
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc go.any))) (Var "x"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Val #())) (Val #(W64 1))))
+  (App (App (App (Val (GoInstruction (FuncResolve up []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "x"))
+  (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Push"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0"))))))))
+  (Val #()))))
+
+/-- Fix re-establishes the heap ordering after the element at index i has changed its value.
+    Changing the value of the element at index i and then calling Fix is equivalent to,
+    but less expensive than, calling [Remove](h, i) followed by a Push of the new value.
+    The complexity is O(log n) where n = h.Len().
+
+    go: heap.go:83:6 -/
+noncomputable def Fix.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "i"
+  (Seq (App (Val exceptionDo)
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (Let "$a2" (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Val #()))
+  (App (App (App (App (Val (GoInstruction (FuncResolve down []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (App (Val (GoInstruction (FuncResolve up []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #()))))
+
+/-- go: heap.go:89:6 -/
+noncomputable def up.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "j"
+  (Seq (App (Val exceptionDo)
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 1)))) (Val #(W64 2))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))
+  (App (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0")) (Var "$a1"))))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Less"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (Val #()))))
+
+/-- go: heap.go:100:6 -/
+noncomputable def down.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "i0"
+  (Lam "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "i0" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i0"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i0"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W64 1))))
+  (Let "j1" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "j1"))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))
+  (App (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Less"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j1")) (Val #(W64 1))))
+  (Let "j2" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j2")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "j2"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "j1"))
+  (App (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Less"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0")) (Var "$a1")))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "j2"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j2") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j1")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j1")) (Val #(W64 0))))))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j1") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.container.heap where
   pkgImportedPkgs := [pkg_id.sort]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.container.heap)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.sort.initialize') (Val #())))))))
 
-abbrev Interface [FfiSyntax] : Type := GoInterface
+abbrev Interface [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Pop" (go.signature.Signature [] false [go.any])), (go.InterfaceElem.MethodElem go!"Push" (go.signature.Signature [go.any] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.sort.Interface.ty)])])
+@[reducible] noncomputable def Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Less" (go.signature.Signature [go.int, go.int] false [go.bool])), (go.InterfaceElem.MethodElem go!"Pop" (go.signature.Signature [] false [go.any])), (go.InterfaceElem.MethodElem go!"Push" (go.signature.Signature [go.any] false [])), (go.InterfaceElem.MethodElem go!"Swap" (go.signature.Signature [go.int, go.int] false []))])
 
-class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
+  method_set : go.MethodSetIs Interface.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Pop", (some (go.signature.Signature [] false [go.any]))), (go!"Push", (some (go.signature.Signature [go.any] false []))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.underlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Interface_instance : Interface.TypeAssumptions
+  Push_unfold : FuncUnfold Push [] Push.impl
+  Fix_unfold : FuncUnfold Fix [] Fix.impl
+  up_unfold : FuncUnfold up [] up.impl
+  down_unfold : FuncUnfold down [] down.impl
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
 
 attribute [instance] Assumptions.Interface_instance
+  Assumptions.Push_unfold
+  Assumptions.Fix_unfold
+  Assumptions.up_unfold
+  Assumptions.down_unfold
   Assumptions.import_sort_Assumption
 
 end container.heap

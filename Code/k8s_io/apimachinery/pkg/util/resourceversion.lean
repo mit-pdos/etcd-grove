@@ -22,31 +22,37 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.resourceversion
 
-noncomputable def InvalidResourceVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidResourceVersion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/resourceversion.InvalidResourceVersion" [])
 
 attribute [irreducible] InvalidResourceVersion.ty
 
-noncomputable def CompareResourceVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CompareResourceVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/resourceversion.CompareResourceVersion"
 
-noncomputable def isWellFormed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isWellFormed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/resourceversion.isWellFormed"
 
-noncomputable def isDigit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isDigit [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/resourceversion.isDigit"
 
 /-- go: resourceversion.go:28:33 -/
-noncomputable def InvalidResourceVersion.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def InvalidResourceVersion.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc InvalidResourceVersion.ty))) (Var "i"))
-  (App (Val doReturn)
-  (Let "$a0" (Val #(go!"resource version is not well formed: %s"))
+  (Let "$r0" (Let "$a0" (Val #(go!"resource version is not well formed: %s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef InvalidResourceVersion.ty go!"rv"))) (Var "i"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- CompareResourceVersion runs a comparison between two ResourceVersions. This
     only has semantic meaning when the comparison is done on two objects of the
@@ -63,10 +69,12 @@ noncomputable def InvalidResourceVersion.Error.impl [FfiSyntax] [GoGlobalContext
     list/watch events and will never be a live resource version.
 
     go: resourceversion.go:45:6 -/
-noncomputable def CompareResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CompareResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.string))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc go.string))) (Var "a"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -81,46 +89,93 @@ noncomputable def CompareResourceVersion.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$sw" (Val #true)
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "aLen")) (App (Val (GoInstruction (GoLoad go.int))) (Var "bLen"))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "aLen")) (App (Val (GoInstruction (GoLoad go.int))) (Var "bLen"))))))
+  (Let "$r0" (Val #(W64 1))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
-  (App (Val doReturn)
-  (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "b"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Compare []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "bLen") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "aLen") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "b"))
   (App (App (Val (GoInstruction (FuncResolve isWellFormed []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert InvalidResourceVersion.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "b"))
+  (App (Val (GoInstruction (CompositeLiteral InvalidResourceVersion.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"rv")) (ElementExpression go.string (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #(W64 0)) (App (Val (GoInstruction (Convert InvalidResourceVersion.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "b"))
-  (App (Val (GoInstruction (CompositeLiteral InvalidResourceVersion.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"rv")) (ElementExpression go.string (Var "$v0")))]))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
   (App (App (Val (GoInstruction (FuncResolve isWellFormed []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert InvalidResourceVersion.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (App (Val (GoInstruction (CompositeLiteral InvalidResourceVersion.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"rv")) (ElementExpression go.string (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #(W64 0)) (App (Val (GoInstruction (Convert InvalidResourceVersion.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
-  (App (Val (GoInstruction (CompositeLiteral InvalidResourceVersion.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"rv")) (ElementExpression go.string (Var "$v0")))]))))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: resourceversion.go:83:6 -/
-noncomputable def isDigit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isDigit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "b"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoGe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 48)))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 57)))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (If (App (Val (GoInstruction (GoOp GoGe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 48)))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 57)))) (Val #false))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.resourceversion where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.strings]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.resourceversion)) (Lam BAnon
   (App (Val exceptionDo)
@@ -130,31 +185,33 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))))
 
-structure InvalidResourceVersion [FfiSyntax] where
+structure InvalidResourceVersion [GooseExts] where
   mk ::
   rv' : GoString
 
-noncomputable instance InvalidResourceVersion.zero_val [FfiSyntax] : ZeroVal InvalidResourceVersion :=
+noncomputable instance InvalidResourceVersion.zero_val [GooseExts] : ZeroVal InvalidResourceVersion :=
   ⟨InvalidResourceVersion.mk zeroValDef⟩
 
-@[reducible] noncomputable def InvalidResourceVersion.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InvalidResourceVersion.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"rv" go.string)]
 
-@[irreducible] noncomputable def InvalidResourceVersion.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InvalidResourceVersion.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InvalidResourceVersion.fieldsUnsealed
 
-noncomputable instance equals_unfold_InvalidResourceVersion [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InvalidResourceVersion [GooseExts] [GoGlobalContext] :
     EqualsUnfold InvalidResourceVersion.fields InvalidResourceVersion.fieldsUnsealed :=
   ⟨by unfold InvalidResourceVersion.fields; rfl⟩
 
-@[reducible] noncomputable def InvalidResourceVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidResourceVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InvalidResourceVersion.fields)
 
-class InvalidResourceVersion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InvalidResourceVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InvalidResourceVersion.underlying InvalidResourceVersion
   underlying : go.UnderlyingDirectedEq InvalidResourceVersion.ty InvalidResourceVersion.underlying
   get_rv : ∀ (x : InvalidResourceVersion), go.IsGoStepPureDetTagged under (StructFieldGet InvalidResourceVersion.underlying go!"rv") #x (Val #(x.rv'))
   set_rv : ∀ (x : InvalidResourceVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidResourceVersion.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : InvalidResourceVersion)))
+  method_set : go.MethodSetIs InvalidResourceVersion.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidResourceVersion.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   Error_unfold : MethodUnfold InvalidResourceVersion.ty go!"Error" InvalidResourceVersion.Error.impl
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType InvalidResourceVersion.ty) go!"Error" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve InvalidResourceVersion.ty go!"Error"))) (App (Val (GoInstruction (GoLoad InvalidResourceVersion.ty))) (Var "$r"))))
@@ -163,10 +220,12 @@ attribute [instance] InvalidResourceVersion.TypeAssumptions.type_repr
   InvalidResourceVersion.TypeAssumptions.underlying
   InvalidResourceVersion.TypeAssumptions.get_rv
   InvalidResourceVersion.TypeAssumptions.set_rv
+  InvalidResourceVersion.TypeAssumptions.method_set
+  InvalidResourceVersion.TypeAssumptions.ptr_method_set
   InvalidResourceVersion.TypeAssumptions.Error_unfold
   InvalidResourceVersion.TypeAssumptions.ptr_Error_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   InvalidResourceVersion_instance : InvalidResourceVersion.TypeAssumptions
   CompareResourceVersion_unfold : FuncUnfold CompareResourceVersion [] CompareResourceVersion.impl
   isDigit_unfold : FuncUnfold isDigit [] isDigit.impl

@@ -40,7 +40,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- A full log's last entry at `i ≥ 1`, from its term there. -/
@@ -90,7 +90,7 @@ fact's index `ai` of term at most `T`, agreeing there with the fact's log `F` (s
 header: the bootstrap log, the term-`T` leader's log, or Leader Completeness). -/
 private theorem snap_leadLog (γ : RaftNames) (E : CoPset) (src T ai : w64) (bL : entryID)
     (l fp F : List EntryM) :
-    ↑raftLogN ⊆ E → PlogWf base0 F →
+    ↑(raftLogN γ) ⊆ E → PlogWf base0 F →
     ⊢ raftCommitInv (GF := GF) γ -∗ leadPrefix γ src T bL l -∗ lpfull γ src T bL l fp -∗
       logRecs γ base0 F -∗ commitIn γ F ai T ={E}=∗
       ∃ l' fp', leadPrefix γ src T bL l' ∗ lpfull γ src T bL l' fp' ∗
@@ -183,7 +183,7 @@ private theorem snap_leadLog (γ : RaftNames) (E : CoPset) (src T ai : w64) (bL 
 length `ai` with last term `at_`, and `m.index ≤ ai`. -/
 theorem isMessage_snap_recontent (γ : RaftNames) (E : CoPset) (m : Msg) (c ai at_ : w64)
     (A : List EntryM) :
-    ↑raftLogN ⊆ E →
+    ↑(raftLogN γ) ⊆ E →
     m.ty = .snap →
     uint.Z m.index ≤ uint.Z ai → uint.Z ai ≤ uint.Z c →
     (A.length : Int) = uint.Z ai → A.getLast?.map EntryM.Term' = some at_ →

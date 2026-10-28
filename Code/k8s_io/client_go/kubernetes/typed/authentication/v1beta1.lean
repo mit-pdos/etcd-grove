@@ -20,103 +20,103 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.authentication.v1beta1
 
-noncomputable def AuthenticationV1beta1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AuthenticationV1beta1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.AuthenticationV1beta1Interface" [])
 
 attribute [irreducible] AuthenticationV1beta1Interface.ty
 
-noncomputable def AuthenticationV1beta1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AuthenticationV1beta1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.AuthenticationV1beta1Client" [])
 
 attribute [irreducible] AuthenticationV1beta1Client.ty
 
-noncomputable def SelfSubjectReviewExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SelfSubjectReviewExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.SelfSubjectReviewExpansion" [])
 
 attribute [irreducible] SelfSubjectReviewExpansion.ty
 
-noncomputable def TokenReviewExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TokenReviewExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.TokenReviewExpansion" [])
 
 attribute [irreducible] TokenReviewExpansion.ty
 
-noncomputable def SelfSubjectReviewsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SelfSubjectReviewsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.SelfSubjectReviewsGetter" [])
 
 attribute [irreducible] SelfSubjectReviewsGetter.ty
 
-noncomputable def SelfSubjectReviewInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SelfSubjectReviewInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.SelfSubjectReviewInterface" [])
 
 attribute [irreducible] SelfSubjectReviewInterface.ty
 
-noncomputable def selfSubjectReviews.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def selfSubjectReviews.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.selfSubjectReviews" [])
 
 attribute [irreducible] selfSubjectReviews.ty
 
-noncomputable def TokenReviewsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TokenReviewsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.TokenReviewsGetter" [])
 
 attribute [irreducible] TokenReviewsGetter.ty
 
-noncomputable def TokenReviewInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TokenReviewInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.TokenReviewInterface" [])
 
 attribute [irreducible] TokenReviewInterface.ty
 
-noncomputable def tokenReviews.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tokenReviews.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.tokenReviews" [])
 
 attribute [irreducible] tokenReviews.ty
 
-axiom AuthenticationV1beta1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom AuthenticationV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthenticationV1beta1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom AuthenticationV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SelfSubjectReviewExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SelfSubjectReviewExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TokenReviewExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TokenReviewExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SelfSubjectReviewsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SelfSubjectReviewsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SelfSubjectReviewInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SelfSubjectReviewInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom selfSubjectReviews.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom selfSubjectReviews.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TokenReviewsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TokenReviewsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TokenReviewInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TokenReviewInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tokenReviews.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom tokenReviews.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.setConfigDefaults"
 
-noncomputable def newSelfSubjectReviews [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newSelfSubjectReviews [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.newSelfSubjectReviews"
 
-noncomputable def newTokenReviews [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTokenReviews [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.newTokenReviews"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.authentication.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.authentication.v1beta1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -127,133 +127,173 @@ axiom AuthenticationV1beta1Interface : Type
 axiom AuthenticationV1beta1Interface.zero_val : ZeroVal AuthenticationV1beta1Interface
 attribute [instance] AuthenticationV1beta1Interface.zero_val
 
-class AuthenticationV1beta1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthenticationV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthenticationV1beta1Interface.underlying AuthenticationV1beta1Interface
   underlying : go.UnderlyingDirectedEq AuthenticationV1beta1Interface.ty AuthenticationV1beta1Interface.underlying
   isUnderlying : go.IsUnderlying AuthenticationV1beta1Interface.underlying AuthenticationV1beta1Interface.underlying
+  method_set : go.MethodSetIs AuthenticationV1beta1Interface.ty [(go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"SelfSubjectReviews", (some (go.signature.Signature [] false [SelfSubjectReviewInterface.ty]))), (go!"TokenReviews", (some (go.signature.Signature [] false [TokenReviewInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthenticationV1beta1Interface.ty) []
 
 attribute [instance] AuthenticationV1beta1Interface.TypeAssumptions.type_repr
   AuthenticationV1beta1Interface.TypeAssumptions.underlying
   AuthenticationV1beta1Interface.TypeAssumptions.isUnderlying
+  AuthenticationV1beta1Interface.TypeAssumptions.method_set
+  AuthenticationV1beta1Interface.TypeAssumptions.ptr_method_set
 
 axiom AuthenticationV1beta1Client : Type
 axiom AuthenticationV1beta1Client.zero_val : ZeroVal AuthenticationV1beta1Client
 attribute [instance] AuthenticationV1beta1Client.zero_val
 
-class AuthenticationV1beta1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthenticationV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthenticationV1beta1Client.underlying AuthenticationV1beta1Client
   underlying : go.UnderlyingDirectedEq AuthenticationV1beta1Client.ty AuthenticationV1beta1Client.underlying
   isUnderlying : go.IsUnderlying AuthenticationV1beta1Client.underlying AuthenticationV1beta1Client.underlying
+  method_set : go.MethodSetIs AuthenticationV1beta1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthenticationV1beta1Client.ty) [(go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"SelfSubjectReviews", (some (go.signature.Signature [] false [SelfSubjectReviewInterface.ty]))), (go!"TokenReviews", (some (go.signature.Signature [] false [TokenReviewInterface.ty])))]
 
 attribute [instance] AuthenticationV1beta1Client.TypeAssumptions.type_repr
   AuthenticationV1beta1Client.TypeAssumptions.underlying
   AuthenticationV1beta1Client.TypeAssumptions.isUnderlying
+  AuthenticationV1beta1Client.TypeAssumptions.method_set
+  AuthenticationV1beta1Client.TypeAssumptions.ptr_method_set
 
 axiom SelfSubjectReviewExpansion : Type
 axiom SelfSubjectReviewExpansion.zero_val : ZeroVal SelfSubjectReviewExpansion
 attribute [instance] SelfSubjectReviewExpansion.zero_val
 
-class SelfSubjectReviewExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SelfSubjectReviewExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SelfSubjectReviewExpansion.underlying SelfSubjectReviewExpansion
   underlying : go.UnderlyingDirectedEq SelfSubjectReviewExpansion.ty SelfSubjectReviewExpansion.underlying
   isUnderlying : go.IsUnderlying SelfSubjectReviewExpansion.underlying SelfSubjectReviewExpansion.underlying
+  method_set : go.MethodSetIs SelfSubjectReviewExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SelfSubjectReviewExpansion.ty) []
 
 attribute [instance] SelfSubjectReviewExpansion.TypeAssumptions.type_repr
   SelfSubjectReviewExpansion.TypeAssumptions.underlying
   SelfSubjectReviewExpansion.TypeAssumptions.isUnderlying
+  SelfSubjectReviewExpansion.TypeAssumptions.method_set
+  SelfSubjectReviewExpansion.TypeAssumptions.ptr_method_set
 
 axiom TokenReviewExpansion : Type
 axiom TokenReviewExpansion.zero_val : ZeroVal TokenReviewExpansion
 attribute [instance] TokenReviewExpansion.zero_val
 
-class TokenReviewExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TokenReviewExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TokenReviewExpansion.underlying TokenReviewExpansion
   underlying : go.UnderlyingDirectedEq TokenReviewExpansion.ty TokenReviewExpansion.underlying
   isUnderlying : go.IsUnderlying TokenReviewExpansion.underlying TokenReviewExpansion.underlying
+  method_set : go.MethodSetIs TokenReviewExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TokenReviewExpansion.ty) []
 
 attribute [instance] TokenReviewExpansion.TypeAssumptions.type_repr
   TokenReviewExpansion.TypeAssumptions.underlying
   TokenReviewExpansion.TypeAssumptions.isUnderlying
+  TokenReviewExpansion.TypeAssumptions.method_set
+  TokenReviewExpansion.TypeAssumptions.ptr_method_set
 
 axiom SelfSubjectReviewsGetter : Type
 axiom SelfSubjectReviewsGetter.zero_val : ZeroVal SelfSubjectReviewsGetter
 attribute [instance] SelfSubjectReviewsGetter.zero_val
 
-class SelfSubjectReviewsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SelfSubjectReviewsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SelfSubjectReviewsGetter.underlying SelfSubjectReviewsGetter
   underlying : go.UnderlyingDirectedEq SelfSubjectReviewsGetter.ty SelfSubjectReviewsGetter.underlying
   isUnderlying : go.IsUnderlying SelfSubjectReviewsGetter.underlying SelfSubjectReviewsGetter.underlying
+  method_set : go.MethodSetIs SelfSubjectReviewsGetter.ty [(go!"SelfSubjectReviews", (some (go.signature.Signature [] false [SelfSubjectReviewInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SelfSubjectReviewsGetter.ty) []
 
 attribute [instance] SelfSubjectReviewsGetter.TypeAssumptions.type_repr
   SelfSubjectReviewsGetter.TypeAssumptions.underlying
   SelfSubjectReviewsGetter.TypeAssumptions.isUnderlying
+  SelfSubjectReviewsGetter.TypeAssumptions.method_set
+  SelfSubjectReviewsGetter.TypeAssumptions.ptr_method_set
 
 axiom SelfSubjectReviewInterface : Type
 axiom SelfSubjectReviewInterface.zero_val : ZeroVal SelfSubjectReviewInterface
 attribute [instance] SelfSubjectReviewInterface.zero_val
 
-class SelfSubjectReviewInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SelfSubjectReviewInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SelfSubjectReviewInterface.underlying SelfSubjectReviewInterface
   underlying : go.UnderlyingDirectedEq SelfSubjectReviewInterface.ty SelfSubjectReviewInterface.underlying
   isUnderlying : go.IsUnderlying SelfSubjectReviewInterface.underlying SelfSubjectReviewInterface.underlying
+  method_set : go.MethodSetIs SelfSubjectReviewInterface.ty [(go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SelfSubjectReviewInterface.ty) []
 
 attribute [instance] SelfSubjectReviewInterface.TypeAssumptions.type_repr
   SelfSubjectReviewInterface.TypeAssumptions.underlying
   SelfSubjectReviewInterface.TypeAssumptions.isUnderlying
+  SelfSubjectReviewInterface.TypeAssumptions.method_set
+  SelfSubjectReviewInterface.TypeAssumptions.ptr_method_set
 
 axiom selfSubjectReviews : Type
 axiom selfSubjectReviews.zero_val : ZeroVal selfSubjectReviews
 attribute [instance] selfSubjectReviews.zero_val
 
-class selfSubjectReviews.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class selfSubjectReviews.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying selfSubjectReviews.underlying selfSubjectReviews
   underlying : go.UnderlyingDirectedEq selfSubjectReviews.ty selfSubjectReviews.underlying
   isUnderlying : go.IsUnderlying selfSubjectReviews.underlying selfSubjectReviews.underlying
+  method_set : go.MethodSetIs selfSubjectReviews.ty [(go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType selfSubjectReviews.ty) [(go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.SelfSubjectReview" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] selfSubjectReviews.TypeAssumptions.type_repr
   selfSubjectReviews.TypeAssumptions.underlying
   selfSubjectReviews.TypeAssumptions.isUnderlying
+  selfSubjectReviews.TypeAssumptions.method_set
+  selfSubjectReviews.TypeAssumptions.ptr_method_set
 
 axiom TokenReviewsGetter : Type
 axiom TokenReviewsGetter.zero_val : ZeroVal TokenReviewsGetter
 attribute [instance] TokenReviewsGetter.zero_val
 
-class TokenReviewsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TokenReviewsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TokenReviewsGetter.underlying TokenReviewsGetter
   underlying : go.UnderlyingDirectedEq TokenReviewsGetter.ty TokenReviewsGetter.underlying
   isUnderlying : go.IsUnderlying TokenReviewsGetter.underlying TokenReviewsGetter.underlying
+  method_set : go.MethodSetIs TokenReviewsGetter.ty [(go!"TokenReviews", (some (go.signature.Signature [] false [TokenReviewInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TokenReviewsGetter.ty) []
 
 attribute [instance] TokenReviewsGetter.TypeAssumptions.type_repr
   TokenReviewsGetter.TypeAssumptions.underlying
   TokenReviewsGetter.TypeAssumptions.isUnderlying
+  TokenReviewsGetter.TypeAssumptions.method_set
+  TokenReviewsGetter.TypeAssumptions.ptr_method_set
 
 axiom TokenReviewInterface : Type
 axiom TokenReviewInterface.zero_val : ZeroVal TokenReviewInterface
 attribute [instance] TokenReviewInterface.zero_val
 
-class TokenReviewInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TokenReviewInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TokenReviewInterface.underlying TokenReviewInterface
   underlying : go.UnderlyingDirectedEq TokenReviewInterface.ty TokenReviewInterface.underlying
   isUnderlying : go.IsUnderlying TokenReviewInterface.underlying TokenReviewInterface.underlying
+  method_set : go.MethodSetIs TokenReviewInterface.ty [(go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TokenReviewInterface.ty) []
 
 attribute [instance] TokenReviewInterface.TypeAssumptions.type_repr
   TokenReviewInterface.TypeAssumptions.underlying
   TokenReviewInterface.TypeAssumptions.isUnderlying
+  TokenReviewInterface.TypeAssumptions.method_set
+  TokenReviewInterface.TypeAssumptions.ptr_method_set
 
 axiom tokenReviews : Type
 axiom tokenReviews.zero_val : ZeroVal tokenReviews
 attribute [instance] tokenReviews.zero_val
 
-class tokenReviews.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class tokenReviews.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tokenReviews.underlying tokenReviews
   underlying : go.UnderlyingDirectedEq tokenReviews.ty tokenReviews.underlying
   isUnderlying : go.IsUnderlying tokenReviews.underlying tokenReviews.underlying
+  method_set : go.MethodSetIs tokenReviews.ty [(go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tokenReviews.ty) [(go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1beta1.TokenReview" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] tokenReviews.TypeAssumptions.type_repr
   tokenReviews.TypeAssumptions.underlying
   tokenReviews.TypeAssumptions.isUnderlying
+  tokenReviews.TypeAssumptions.method_set
+  tokenReviews.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   AuthenticationV1beta1Interface_instance : AuthenticationV1beta1Interface.TypeAssumptions
   AuthenticationV1beta1Client_instance : AuthenticationV1beta1Client.TypeAssumptions
   SelfSubjectReviewExpansion_instance : SelfSubjectReviewExpansion.TypeAssumptions

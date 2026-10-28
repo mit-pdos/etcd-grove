@@ -20,29 +20,29 @@ end pkg_id
 
 namespace k8s_io.component_base.zpages.features
 
-axiom ComponentFlagz [FfiSyntax] [GoGlobalContext] : val
+axiom ComponentFlagz [GooseExts] [GoGlobalContext] : val
 
-axiom ComponentStatusz [FfiSyntax] [GoGlobalContext] : val
+axiom ComponentStatusz [GooseExts] [GoGlobalContext] : val
 
-noncomputable def featureGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def featureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/zpages/features.featureGates"
 
-noncomputable def AddFeatureGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/zpages/features.AddFeatureGates"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.zpages.features where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.component_base.zpages.features)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.component_base.zpages.features
 

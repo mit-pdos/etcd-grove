@@ -18,6 +18,7 @@ public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.iter.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -33,7 +34,6 @@ public import Proof.go_opentelemetry_io.otel.attribute.Init
 public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.grpclog.Init
 public import Proof.google_golang_org.grpc.status.Init
-public import Proof.iter.Init
 public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
@@ -84,7 +84,7 @@ local macro "mem_tac" : tactic =>
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section toLoggerV2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -103,14 +103,11 @@ axiom k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2 (v : val) :
 end toLoggerV2
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
-variable [EtcdGrove.RpctypesEtcdErrorMethods]
-variable [_root_.Perennial.context.ErrorStringIsError]
-  [_root_.Perennial.context.DeadlineExceededIsError]
 
 namespace k8s_io.apiserver.pkg.storage.etcd3
 
@@ -147,7 +144,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd35⟩
   wp_apply (_root_.Perennial.reflect.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd34⟩
   wp_apply (_root_.Perennial.path.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd33⟩
-  wp_apply (_root_.Perennial.iter.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd32⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.iter _root_.Perennial.iter.initialize'
+      EtcdGrove.ExternalInit.iter _root_.Perennial.iter.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd32⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
       EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd31⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
@@ -228,7 +226,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · rw [_root_.Perennial.sync.atomic.ownBool_unseal]
     unfold _root_.Perennial.sync.atomic.ownBoolDef
     have e : (zero_val _root_.Perennial.sync.atomic.Bool') =
-        ({ _0' := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :
+        ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :
           _root_.Perennial.sync.atomic.Bool') := rfl
     rw [← e]; iexact HfatalOnDecodeError
   wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]

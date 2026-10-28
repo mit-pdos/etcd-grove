@@ -20,72 +20,72 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.events.v1beta1
 
-noncomputable def EventsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.EventsGetter" [])
 
 attribute [irreducible] EventsGetter.ty
 
-noncomputable def EventInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.EventInterface" [])
 
 attribute [irreducible] EventInterface.ty
 
-noncomputable def events.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def events.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.events" [])
 
 attribute [irreducible] events.ty
 
-noncomputable def EventExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.EventExpansion" [])
 
 attribute [irreducible] EventExpansion.ty
 
-noncomputable def EventsV1beta1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventsV1beta1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.EventsV1beta1Interface" [])
 
 attribute [irreducible] EventsV1beta1Interface.ty
 
-noncomputable def EventsV1beta1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventsV1beta1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.EventsV1beta1Client" [])
 
 attribute [irreducible] EventsV1beta1Client.ty
 
-axiom EventsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom events.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom events.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventsV1beta1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventsV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventsV1beta1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventsV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def newEvents [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newEvents [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.newEvents"
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.setConfigDefaults"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.events.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.events.v1beta1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -96,81 +96,105 @@ axiom EventsGetter : Type
 axiom EventsGetter.zero_val : ZeroVal EventsGetter
 attribute [instance] EventsGetter.zero_val
 
-class EventsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventsGetter.underlying EventsGetter
   underlying : go.UnderlyingDirectedEq EventsGetter.ty EventsGetter.underlying
   isUnderlying : go.IsUnderlying EventsGetter.underlying EventsGetter.underlying
+  method_set : go.MethodSetIs EventsGetter.ty [(go!"Events", (some (go.signature.Signature [go.string] false [EventInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventsGetter.ty) []
 
 attribute [instance] EventsGetter.TypeAssumptions.type_repr
   EventsGetter.TypeAssumptions.underlying
   EventsGetter.TypeAssumptions.isUnderlying
+  EventsGetter.TypeAssumptions.method_set
+  EventsGetter.TypeAssumptions.ptr_method_set
 
 axiom EventInterface : Type
 axiom EventInterface.zero_val : ZeroVal EventInterface
 attribute [instance] EventInterface.zero_val
 
-class EventInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventInterface.underlying EventInterface
   underlying : go.UnderlyingDirectedEq EventInterface.ty EventInterface.underlying
   isUnderlying : go.IsUnderlying EventInterface.underlying EventInterface.underlying
+  method_set : go.MethodSetIs EventInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/events/v1beta1.EventApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"CreateWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" []))] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.EventList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"PatchWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"UpdateWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" []))] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventInterface.ty) []
 
 attribute [instance] EventInterface.TypeAssumptions.type_repr
   EventInterface.TypeAssumptions.underlying
   EventInterface.TypeAssumptions.isUnderlying
+  EventInterface.TypeAssumptions.method_set
+  EventInterface.TypeAssumptions.ptr_method_set
 
 axiom events : Type
 axiom events.zero_val : ZeroVal events
 attribute [instance] events.zero_val
 
-class events.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class events.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying events.underlying events
   underlying : go.UnderlyingDirectedEq events.ty events.underlying
   isUnderlying : go.IsUnderlying events.underlying events.underlying
+  method_set : go.MethodSetIs events.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/events/v1beta1.EventApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/events/v1beta1.EventApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.EventList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType events.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/events/v1beta1.EventApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/events/v1beta1.EventApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"CreateWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" []))] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.EventList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"PatchWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"UpdateWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" []))] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] events.TypeAssumptions.type_repr
   events.TypeAssumptions.underlying
   events.TypeAssumptions.isUnderlying
+  events.TypeAssumptions.method_set
+  events.TypeAssumptions.ptr_method_set
 
 axiom EventExpansion : Type
 axiom EventExpansion.zero_val : ZeroVal EventExpansion
 attribute [instance] EventExpansion.zero_val
 
-class EventExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventExpansion.underlying EventExpansion
   underlying : go.UnderlyingDirectedEq EventExpansion.ty EventExpansion.underlying
   isUnderlying : go.IsUnderlying EventExpansion.underlying EventExpansion.underlying
+  method_set : go.MethodSetIs EventExpansion.ty [(go!"CreateWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" []))] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"PatchWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error]))), (go!"UpdateWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" []))] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/events/v1beta1.Event" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventExpansion.ty) []
 
 attribute [instance] EventExpansion.TypeAssumptions.type_repr
   EventExpansion.TypeAssumptions.underlying
   EventExpansion.TypeAssumptions.isUnderlying
+  EventExpansion.TypeAssumptions.method_set
+  EventExpansion.TypeAssumptions.ptr_method_set
 
 axiom EventsV1beta1Interface : Type
 axiom EventsV1beta1Interface.zero_val : ZeroVal EventsV1beta1Interface
 attribute [instance] EventsV1beta1Interface.zero_val
 
-class EventsV1beta1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventsV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventsV1beta1Interface.underlying EventsV1beta1Interface
   underlying : go.UnderlyingDirectedEq EventsV1beta1Interface.ty EventsV1beta1Interface.underlying
   isUnderlying : go.IsUnderlying EventsV1beta1Interface.underlying EventsV1beta1Interface.underlying
+  method_set : go.MethodSetIs EventsV1beta1Interface.ty [(go!"Events", (some (go.signature.Signature [go.string] false [EventInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventsV1beta1Interface.ty) []
 
 attribute [instance] EventsV1beta1Interface.TypeAssumptions.type_repr
   EventsV1beta1Interface.TypeAssumptions.underlying
   EventsV1beta1Interface.TypeAssumptions.isUnderlying
+  EventsV1beta1Interface.TypeAssumptions.method_set
+  EventsV1beta1Interface.TypeAssumptions.ptr_method_set
 
 axiom EventsV1beta1Client : Type
 axiom EventsV1beta1Client.zero_val : ZeroVal EventsV1beta1Client
 attribute [instance] EventsV1beta1Client.zero_val
 
-class EventsV1beta1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventsV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventsV1beta1Client.underlying EventsV1beta1Client
   underlying : go.UnderlyingDirectedEq EventsV1beta1Client.ty EventsV1beta1Client.underlying
   isUnderlying : go.IsUnderlying EventsV1beta1Client.underlying EventsV1beta1Client.underlying
+  method_set : go.MethodSetIs EventsV1beta1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventsV1beta1Client.ty) [(go!"Events", (some (go.signature.Signature [go.string] false [EventInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
 
 attribute [instance] EventsV1beta1Client.TypeAssumptions.type_repr
   EventsV1beta1Client.TypeAssumptions.underlying
   EventsV1beta1Client.TypeAssumptions.isUnderlying
+  EventsV1beta1Client.TypeAssumptions.method_set
+  EventsV1beta1Client.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EventsGetter_instance : EventsGetter.TypeAssumptions
   EventInterface_instance : EventInterface.TypeAssumptions
   events_instance : events.TypeAssumptions

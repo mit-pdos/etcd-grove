@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,7 +48,8 @@ def snapSenderOk (Rh : RaftHttp GF) (pid : w64) (s : Loc) : IProp GF :=
     tr.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     tr.[rafthttp.Transport, go!"pipelineRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
     pickerOk pk (peerURL Rh pid) ∗ peerStatusOk ps ∗ netRaftOk Rh.γn lid γd R r ∗
-    ownBroadcastChan sc γs iprop(True) .Unknown ∗ pipeReg Rh pid ∗ ⌜Rh.member lid ∧ lid ≠ pid⌝)
+    ownBroadcastChan sc γs iprop(True) .Unknown ∗ pipeReg Rh pid ∗ ⌜Rh.member lid ∧ lid ≠ pid⌝ ∗
+    ⌜trURLsOk Rh lid uvs⌝)
 
 set_option synthInstance.maxHeartbeats 8000000 in
 set_option synthInstance.maxSize 65536 in
@@ -124,12 +125,11 @@ def snapSenderStop (s : Loc) : IProp GF :=
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 /-- An `errors.New` error whose cell holds a message other than `errMemberRemoved`'s is a snapshot
 post's leaf error (`snapPostErr`; as `checkPostResponse`'s `postErr_errorString`). -/

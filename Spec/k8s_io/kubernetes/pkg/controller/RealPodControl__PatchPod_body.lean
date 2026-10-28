@@ -28,7 +28,7 @@ open Iris Iris.BI k8s_io.kubernetes.pkg.controller
 
 section body
 /-- go: controller_utils.go:558:25 -/
-noncomputable def RealPodControl.PatchPod.body [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def RealPodControl.PatchPod.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ctx"
   (Lam "namespace"
@@ -80,7 +80,7 @@ noncomputable def RealPodControl.PatchPod.body [FfiSyntax] [GoGlobalContext] : v
 end body
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

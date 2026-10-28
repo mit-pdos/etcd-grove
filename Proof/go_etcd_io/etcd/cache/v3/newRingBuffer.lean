@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -27,8 +27,8 @@ theorem newRingBuffer.wp_proof : newRingBuffer.spec (GF := GF) (hG := hG) := by
   wp_auto
   wp_apply (wp_slice_make2 (V := entry T') (t := entry.ty T)) as %sl ⟨Hbuf, -⟩
   · ipureintro; omega
-  wp_alloc r as Hr
-  wp_auto
+  irename «$r0» => Hr
+  generalize «$r0_ptr» = r at *
   ihave %Hlen := ownSlice_len _ _ _ $$ Hbuf
   simp only [List.length_replicate] at Hlen
   have Hok : RingOk (T' := T')

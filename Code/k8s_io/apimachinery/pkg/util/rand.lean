@@ -20,56 +20,56 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.rand
 
-axiom alphanums [FfiSyntax] [GoGlobalContext] : val
+axiom alphanums [GooseExts] [GoGlobalContext] : val
 
-axiom alphanumsIdxBits [FfiSyntax] [GoGlobalContext] : val
+axiom alphanumsIdxBits [GooseExts] [GoGlobalContext] : val
 
-axiom alphanumsIdxMask [FfiSyntax] [GoGlobalContext] : val
+axiom alphanumsIdxMask [GooseExts] [GoGlobalContext] : val
 
-axiom maxAlphanumsPerInt [FfiSyntax] [GoGlobalContext] : val
+axiom maxAlphanumsPerInt [GooseExts] [GoGlobalContext] : val
 
-noncomputable def rng [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rng [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.rng"
 
-axiom rng.init [FfiSyntax] [GoGlobalContext] : val
+axiom rng.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Int' [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.Int"
 
-noncomputable def Intn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Intn [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.Intn"
 
-noncomputable def IntnRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IntnRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.IntnRange"
 
-noncomputable def Int63nRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Int63nRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.Int63nRange"
 
-noncomputable def Seed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Seed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.Seed"
 
-noncomputable def Perm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Perm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.Perm"
 
-noncomputable def String [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def String [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.String"
 
-noncomputable def SafeEncodeString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SafeEncodeString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.SafeEncodeString"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.rand where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.rand)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val rng.init) (Val #())))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.apimachinery.pkg.util.rand
 

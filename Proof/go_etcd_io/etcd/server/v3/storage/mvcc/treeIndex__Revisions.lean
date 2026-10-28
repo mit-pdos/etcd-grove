@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -53,6 +53,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
   icases Hrd with ⟨%t', #Htree', Hrd⟩
   icombine Htree Htree' gives %Ht'
   subst Ht'
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

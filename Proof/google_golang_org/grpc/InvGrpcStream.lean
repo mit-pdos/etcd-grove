@@ -83,7 +83,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -921,23 +921,23 @@ options chain (`StreamInterceptor`'s, then `ChainStreamInterceptor`'s, in order:
 name, StreamDesc.Handler, service value)` of every stream of the `ServiceDesc`s registered with
 `RegisterService`. Established by the server's unverified construction: a premise of the
 server's results. -/
-axiom grpcStreamServerAt {GF : BundledGFunctors} [FfiSyntax] (addr : GoString) (ics : List GoFunc)
+axiom grpcStreamServerAt {GF : BundledGFunctors} [GooseExts] (addr : GoString) (ics : List GoFunc)
   (sregs : List (GoString × val × GoInterface)) : IProp GF
 
 /-- **The server at `addr` runs the stream handler `mh` with the service `srv` and the stream
 chain `ics` for the method `name`, with the per-run resource `S`** (persistent; an axiomatized
 predicate, introduced only by `grpc.serveStream`). -/
-axiom grpcServesStream {GF : BundledGFunctors} [FfiSyntax] (addr name : GoString) (mh : val)
+axiom grpcServesStream {GF : BundledGFunctors} [GooseExts] (addr name : GoString) (mh : val)
   (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) : IProp GF
 
-axiom grpcServesStream_persistent {GF : BundledGFunctors} [FfiSyntax] (addr name : GoString)
+axiom grpcServesStream_persistent {GF : BundledGFunctors} [GooseExts] (addr name : GoString)
   (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) :
   Persistent (grpcServesStream addr name mh srv ics S)
 
 attribute [instance] grpcServesStream_persistent
 
 section reg
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

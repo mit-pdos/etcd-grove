@@ -18,7 +18,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -59,7 +59,7 @@ abbrev txn.txn.spec : Prop :=
       txn.leasesOk L (txn.opsLeases (mvcc.stateAfter ilog)
         (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))) ∗
       (if ro then iprop(True) else txn.leasesKnown L (mvcc.stateAfter ilog)) ∗
-      (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
+      (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter ilog))) ∗
       ⌜txn.OpsOk false (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∧
         (ro = true → txn.LogSmall ilog) ∧
@@ -79,7 +79,9 @@ abbrev txn.txn.spec : Prop :=
         (if ro then iprop(True) else
           txn.leasesKnown L (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
             (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1)) ∗
-        (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L)) ∨
+        (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.applyChanges
+          (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
+          (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1)))) ∨
       (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
         (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend') ∗
         txn.txnRespShell resp ∗ txn.roTxnRespRd resp ∗

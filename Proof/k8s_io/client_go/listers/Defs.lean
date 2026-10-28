@@ -26,21 +26,21 @@ namespace listers
 open Iris Iris.BI cache
 
 /-- The object `*X` at `l`. -/
-def ptrObj [FfiSyntax] [GoGlobalContext] (X : go.GoType) (l : Loc) : GoInterface :=
+def ptrObj [GooseExts] [GoGlobalContext] (X : go.GoType) (l : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType X) #l
 
 /-- The lister value over the cache `ca`. -/
-def riVal [FfiSyntax] [GoGlobalContext] (ca : Loc)
+def riVal [GooseExts] [GoGlobalContext] (ca : Loc)
     (res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (ns : GoString) :
     k8s_io.client_go.listers.ResourceIndexer Loc :=
   ⟨interface.mkOk (go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty) #ca, res, ns⟩
 
 /-- The store key of `name` in namespace `ns` (`generic_helpers.go:59`). -/
-def nsKey [FfiSyntax] (ns name : GoString) : GoString :=
+def nsKey [GooseExts] (ns name : GoString) : GoString :=
   if ns = [] then name else ns ++ go!"/" ++ name
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 

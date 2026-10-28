@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -97,6 +97,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
     #Hcm, #Hci, -, -, -, %HPwf⟩
   icombine Hrt Hrt2 gives %Heq
   subst Heq
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   -- `b.readTx.RLock()`
   wp_method_call

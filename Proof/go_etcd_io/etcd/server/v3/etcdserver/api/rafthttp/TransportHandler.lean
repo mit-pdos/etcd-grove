@@ -100,7 +100,7 @@ theorem http.route_snap (pats : List GoString) (p : GoString)
   exact this.symm
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -120,11 +120,12 @@ instance trAddRemoteReq_persistent (Rh : RaftHttp GF) (t : Loc) (lid : w64) :
     Persistent (trAddRemoteReq Rh t lid) := by
   unfold trAddRemoteReq; infer_instance
 
-/-- **`AddRemote` of the transport `t` of member `lid` returns** for another member (persistent;
-the stream handler's premise, as `trAddRemoteReq`). -/
+/-- **`AddRemote` of the transport `t` of member `lid` returns** for another member and its peer
+URLs (persistent; the stream handler's premise, as `trAddRemoteReq`; D22 J-T, W8: the URLs the
+request's `X-PeerURLs` gives). -/
 def trAddRemote (Rh : RaftHttp GF) (t : Loc) (lid : w64) : IProp GF :=
   iprop(□ ∀ (pid : w64) (sl : GoSlice) (us : List GoString),
-    {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ lid⌝ }}
+    {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ lid ∧ peerURLsOk Rh pid us⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
       (Val #pid)) (Val #sl))
     {{ RET #(); True }})
@@ -139,7 +140,7 @@ peers before the transport is given up), so `AddRemote` of one does nothing
 (`AddRemote_frozen`). -/
 theorem trAddRemote_of_frozen (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName)
     (R : IProp GF) (γs γr : GName) (rs : trIds)
-    (Hcov : ∀ f, Rh.member f → f ≠ lid → f ∈ rs.2) :
+    (Hcov : ∀ f, Rh.member f → f ≠ lid → f ∈ rs) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
       sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) -∗
       trRemotesFrozen γr rs -∗ trAddRemote Rh t lid := by
@@ -147,7 +148,37 @@ theorem trAddRemote_of_frozen (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GN
   iunfold trAddRemote
   iintro !> %pid %sl %us %Φ !> ⟨Hsl, %Hp⟩ HΦ
   iapply (rafthttp.Transport.AddRemote_frozen Rh t lid γd R γs γr rs pid sl (DFrac.own 1) us
-    (Hcov pid Hp.1 Hp.2)) $$ [Hsl]
+    (Hcov pid Hp.1 Hp.2.1)) $$ [Hsl]
+  · iframe #; iframe Hsl
+  iintro !> -
+  iapply HΦ; itrivial
+
+/-- **On a live transport, the handlers' `AddRemote` returns** (D22 J-T, W8): every other member
+is one of the ids the pool budgets (`L`) and the transport is opened, so `AddRemote` of one with
+its peer URLs (the protocol's `X-PeerURLs`) does nothing, or starts its remote with the pool's
+four `R`s (`AddRemote_core`: a sender that is no peer, between the snapshot path's
+`RemoveAllPeers` and its `AddPeer`s). -/
+theorem trAddRemote_of_state
+    (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
+    (hStartRemote : rafthttp.startRemote.spec (GF := GF) (hG := hG))
+    (hIDStringPtr : types.ID.String_ptr.spec (GF := GF) (hG := hG))
+    (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
+    (hZString : zap.String.spec (GF := GF) (hG := hG))
+    (hZStrings : zap.Strings.spec (GF := GF) (hG := hG))
+    (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName)
+    (R : IProp GF) (γs γr : GName) (L : List w64) (γk γo : GName)
+    (Hcov : ∀ f, Rh.member f → f ≠ lid → f ∈ L) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
+      trFixed Rh t lid γd R -∗ trStopInv Rh R γs L γk γo -∗
+      sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) -∗
+      trOpenedAt γo -∗ trAddRemote Rh t lid := by
+  iintro #Hpkg #Hfix #Hst #Hgd #Hop
+  iunfold trAddRemote
+  iintro !> %pid %sl %us %Φ !> ⟨Hsl, %Hp⟩ HΦ
+  obtain ⟨Hm, Hne, Hne', Hpl, Hown⟩ := Hp
+  iapply (rafthttp.Transport.AddRemote_core hNewURLs hStartRemote hIDStringPtr hInfo hZString
+    hZStrings Rh t lid γd R γs γr L γk γo pid sl (DFrac.own 1) us Hne' Hpl Hown (Ne.symm Hne) Hm
+    (Hcov pid Hm Hne)) $$ [Hsl]
   · iframe #; iframe Hsl
   iintro !> -
   iapply HΦ; itrivial
@@ -281,7 +312,8 @@ theorem rafthttp.Transport.Handler_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %Hmem⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, #HRP, #HPP, -, #HSP, -⟩

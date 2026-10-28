@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -47,11 +47,11 @@ theorem membership.errVar_cell (X msg : GoString)
   iexact Hx
 
 /-- A conf change's `Context` field, borrowed (its slice read-only). -/
-theorem ownCCV1_context_acc (p : Loc) (dq : DFrac) (m : CCV1M) :
-    ownCCV1 (GF := GF) p dq m ⊢ ∃ cs : GoSlice,
+theorem ownConfChange_context_acc (p : Loc) (dq : DFrac) (m : ConfChangeM) :
+    ownConfChange (GF := GF) p dq m ⊢ ∃ cs : GoSlice,
       p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
-      (p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs -∗ ownCCV1 p dq m) := by
-  unfold ownCCV1
+      (p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs -∗ ownConfChange p dq m) := by
+  unfold ownConfChange
   iintro H
   iNamed H
   iexists cs
@@ -70,8 +70,8 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
     (wp_GetNodeId : raftpb.ConfChange.GetNodeId.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.ConfChange.GetType.spec (GF := GF) (hG := hG)) :
     membership.RaftCluster.ValidateConfigurationChange.spec (GF := GF) (hG := hG) := by
-  intro c cc dq m v3 bi Pr mems rmv Hty Hctx
-  wp_start as ⟨#Hbe, Hcc, Hrd⟩
+  intro c cc dq dqb m v3 bi Pr mems rmv Hty Hctx
+  wp_start as ⟨Hbe, Hcc, Hrd⟩
   ihave #Hraftpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   ihave #Hjson : isPkgInit (PROP := IProp GF) pkg_id.encoding.json $$ []
@@ -80,6 +80,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
   · -- without `shouldApplyV3`: `nil`
     (try wp_auto)
     iapply HΦ
+    iframe Hbe
     iframe Hcc
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro; trivial
@@ -106,6 +107,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
       with ⟨%x, #Hx⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hbe
     iframe Hcc HPr
     try simp only [↓reduceIte]
     ipureintro
@@ -120,14 +122,14 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
   · rw [h0]
     (try wp_auto)
     obtain ⟨i, Hci⟩ := Hctx h0
-    icases ownCCV1_context_acc cc dq m $$ Hcc with ⟨%cs, HC, #Hcs, Hcc⟩
+    icases ownConfChange_context_acc cc dq m $$ Hcc with ⟨%cs, HC, #Hcs, Hcc⟩
     (try wp_auto)
     -- `json.Unmarshal(cc.Context, confChangeContext)`: the context's member, not a promotion
     irename «$r0» => Hcv
     wp_apply wp_Unmarshal cs m.context DFrac.discard _ _ i false Hci $$ [$Hjson $Hcs $Hcv]
-      as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, %Hv'⟩
+      as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, -, %Hv'⟩
     subst Herr
-    obtain ⟨Hvid, Hvprom, Hpus, Hvlrn⟩ := Hv'
+    obtain ⟨Hvid, Hvprom, Hpus, Hvlrn, -⟩ := Hv'
     ihave Hcc := Hcc $$ HC
     (try wp_auto)
     rw [Hvprom]
@@ -151,6 +153,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
         with ⟨%x, #Hx⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       iframe Hcc HPr
       try simp only [↓reduceIte]
       ipureintro
@@ -355,6 +358,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
           (try wp_auto)
           wp_for_post
           iapply HΦ
+          iframe Hbe
           iframe Hcc HPr
           ipureintro
           constructor
@@ -377,6 +381,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
         cases hl : v'.Member'.RaftAttributes'.IsLearner'
         · (try wp_auto)
           iapply HΦ
+          iframe Hbe
           iframe Hcc HPr
           ipureintro
           refine ⟨fun _ => ⟨hr, ?_⟩, fun _ => rfl⟩
@@ -387,6 +392,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
           rw [h0]
           (try wp_auto)
           iapply HΦ
+          iframe Hbe
           iframe Hcc HPr
           ipureintro
           refine ⟨fun _ => ⟨hr, ?_⟩, fun _ => rfl⟩
@@ -408,6 +414,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
       simp only [Option.getD_some, decide_eq_false Hlnn]
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       iframe Hcc HPr
       ipureintro
       have hmems : (mems !! m.nodeId).isSome = true := by rw [← Hdom, hmn]; rfl
@@ -421,6 +428,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
         with ⟨%x, #Hx⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       iframe Hcc HPr
       ipureintro
       constructor

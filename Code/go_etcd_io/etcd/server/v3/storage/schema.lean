@@ -29,421 +29,426 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.storage.schema
 
-noncomputable def action.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def action.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.action" [])
 
 attribute [irreducible] action.ty
 
-noncomputable def setKeyAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def setKeyAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.setKeyAction" [])
 
 attribute [irreducible] setKeyAction.ty
 
-noncomputable def deleteKeyAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def deleteKeyAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.deleteKeyAction" [])
 
 attribute [irreducible] deleteKeyAction.ty
 
-noncomputable def ActionList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ActionList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.ActionList" [])
 
 attribute [irreducible] ActionList.ty
 
-noncomputable def AlarmBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AlarmBackend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.AlarmBackend" [])
 
 attribute [irreducible] AlarmBackend.ty
 
-noncomputable def alarmBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def alarmBackend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.alarmBackend" [])
 
 attribute [irreducible] alarmBackend.ty
 
-noncomputable def authBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def authBackend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.authBackend" [])
 
 attribute [irreducible] authBackend.ty
 
-noncomputable def authReadTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def authReadTx.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.authReadTx" [])
 
 attribute [irreducible] authReadTx.ty
 
-noncomputable def authBatchTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def authBatchTx.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.authBatchTx" [])
 
 attribute [irreducible] authBatchTx.ty
 
-noncomputable def bucket.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bucket.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.bucket" [])
 
 attribute [irreducible] bucket.ty
 
-noncomputable def schemaChange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def schemaChange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.schemaChange" [])
 
 attribute [irreducible] schemaChange.ty
 
-noncomputable def simpleSchemaChange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def simpleSchemaChange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.simpleSchemaChange" [])
 
 attribute [irreducible] simpleSchemaChange.ty
 
-noncomputable def membershipBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def membershipBackend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.membershipBackend" [])
 
 attribute [irreducible] membershipBackend.ty
 
-noncomputable def migrationPlan.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def migrationPlan.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.migrationPlan" [])
 
 attribute [irreducible] migrationPlan.ty
 
-noncomputable def migrationStep.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def migrationStep.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.migrationStep" [])
 
 attribute [irreducible] migrationStep.ty
 
-axiom migrationStep.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom migrationStep.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def revBytesLen [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def revBytesLen [GooseExts] [GoGlobalContext] : val :=
   #(8 : Int)
 
-axiom MemberAttributesSuffix [FfiSyntax] [GoGlobalContext] : val
+axiom MemberAttributesSuffix [GooseExts] [GoGlobalContext] : val
 
-axiom MemberRaftAttributesSuffix [FfiSyntax] [GoGlobalContext] : val
+axiom MemberRaftAttributesSuffix [GooseExts] [GoGlobalContext] : val
 
-noncomputable def authEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def authEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.authEnabled"
 
-noncomputable def authDisabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def authDisabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.authDisabled"
 
-noncomputable def keyBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def keyBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.keyBucketName"
 
-noncomputable def metaBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def metaBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.metaBucketName"
 
-noncomputable def leaseBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def leaseBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.leaseBucketName"
 
-axiom leaseBucketName.init [FfiSyntax] [GoGlobalContext] : val
-
-noncomputable def alarmBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def alarmBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.alarmBucketName"
 
-axiom alarmBucketName.init [FfiSyntax] [GoGlobalContext] : val
+axiom alarmBucketName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def clusterBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def clusterBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.clusterBucketName"
 
-axiom clusterBucketName.init [FfiSyntax] [GoGlobalContext] : val
+axiom clusterBucketName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def membersBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def membersBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.membersBucketName"
 
-axiom membersBucketName.init [FfiSyntax] [GoGlobalContext] : val
+axiom membersBucketName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def membersRemovedBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def membersRemovedBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.membersRemovedBucketName"
 
-axiom membersRemovedBucketName.init [FfiSyntax] [GoGlobalContext] : val
+axiom membersRemovedBucketName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def authBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def authBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.authBucketName"
 
-noncomputable def authUsersBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def authUsersBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.authUsersBucketName"
 
-noncomputable def authRolesBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def authRolesBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.authRolesBucketName"
 
-noncomputable def testBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def testBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.testBucketName"
 
-axiom testBucketName.init [FfiSyntax] [GoGlobalContext] : val
+axiom testBucketName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Key [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Key [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Key"
 
-noncomputable def Meta [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Meta [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Meta"
 
-noncomputable def Lease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Lease [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Lease"
 
-axiom Lease.init [FfiSyntax] [GoGlobalContext] : val
-
-noncomputable def Alarm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Alarm [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Alarm"
 
-axiom Alarm.init [FfiSyntax] [GoGlobalContext] : val
+axiom Alarm.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Cluster [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Cluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Cluster"
 
-axiom Cluster.init [FfiSyntax] [GoGlobalContext] : val
+axiom Cluster.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Members [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Members [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Members"
 
-axiom Members.init [FfiSyntax] [GoGlobalContext] : val
+axiom Members.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MembersRemoved [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MembersRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MembersRemoved"
 
-axiom MembersRemoved.init [FfiSyntax] [GoGlobalContext] : val
+axiom MembersRemoved.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Auth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Auth [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Auth"
 
-noncomputable def AuthUsers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AuthUsers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.AuthUsers"
 
-noncomputable def AuthRoles [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AuthRoles [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.AuthRoles"
 
-noncomputable def Test [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Test [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Test"
 
-axiom Test.init [FfiSyntax] [GoGlobalContext] : val
+axiom Test.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AllBuckets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AllBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.AllBuckets"
 
-axiom AllBuckets.init [FfiSyntax] [GoGlobalContext] : val
+axiom AllBuckets.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ScheduledCompactKeyName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ScheduledCompactKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ScheduledCompactKeyName"
 
-axiom ScheduledCompactKeyName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ScheduledCompactKeyName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def FinishedCompactKeyName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FinishedCompactKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.FinishedCompactKeyName"
 
-axiom FinishedCompactKeyName.init [FfiSyntax] [GoGlobalContext] : val
+axiom FinishedCompactKeyName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MetaConsistentIndexKeyName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetaConsistentIndexKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaConsistentIndexKeyName"
 
-noncomputable def AuthEnabledKeyName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AuthEnabledKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.AuthEnabledKeyName"
 
-noncomputable def AuthRevisionKeyName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AuthRevisionKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.AuthRevisionKeyName"
 
-noncomputable def MetaTermKeyName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetaTermKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaTermKeyName"
 
-noncomputable def MetaConfStateName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetaConfStateName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaConfStateName"
 
-axiom MetaConfStateName.init [FfiSyntax] [GoGlobalContext] : val
+axiom MetaConfStateName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ClusterClusterVersionKeyName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ClusterClusterVersionKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ClusterClusterVersionKeyName"
 
-axiom ClusterClusterVersionKeyName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ClusterClusterVersionKeyName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ClusterDowngradeKeyName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ClusterDowngradeKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ClusterDowngradeKeyName"
 
-axiom ClusterDowngradeKeyName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ClusterDowngradeKeyName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MetaStorageVersionName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetaStorageVersionName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaStorageVersionName"
 
-axiom MetaStorageVersionName.init [FfiSyntax] [GoGlobalContext] : val
+axiom MetaStorageVersionName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def schemaChanges [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def schemaChanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.schemaChanges"
 
-axiom schemaChanges.init [FfiSyntax] [GoGlobalContext] : val
+axiom schemaChanges.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def emptyStorageVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyStorageVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.emptyStorageVersion"
 
-axiom emptyStorageVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom emptyStorageVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def restoreFieldValueAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def restoreFieldValueAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.restoreFieldValueAction"
 
-noncomputable def NewAlarmBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewAlarmBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.NewAlarmBackend"
 
-noncomputable def NewAuthBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewAuthBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.NewAuthBackend"
 
-noncomputable def unsafeReadAuthEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeReadAuthEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeReadAuthEnabled"
 
-noncomputable def unsafeReadAuthRevision [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeReadAuthRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeReadAuthRevision"
 
-noncomputable def UnsafeCreateAuthRolesBucket [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeCreateAuthRolesBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeCreateAuthRolesBucket"
 
-noncomputable def unsafeGetRole [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeGetRole [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeGetRole"
 
-noncomputable def unsafeGetAllRoles [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeGetAllRoles [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeGetAllRoles"
 
-noncomputable def unsafeGetUser [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeGetUser [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeGetUser"
 
-noncomputable def unsafeGetAllUsers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeGetAllUsers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeGetAllUsers"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.init.0"
 
-noncomputable def DefaultIgnores [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultIgnores [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.DefaultIgnores"
 
-noncomputable def BackendMemberKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BackendMemberKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.BackendMemberKey"
 
-noncomputable def addNewField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addNewField [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.addNewField"
 
-noncomputable def UnsafeCreateMetaBucket [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeCreateMetaBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeCreateMetaBucket"
 
-noncomputable def CreateMetaBucket [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CreateMetaBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.CreateMetaBucket"
 
-noncomputable def UnsafeReadConsistentIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeReadConsistentIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeReadConsistentIndex"
 
-noncomputable def ReadConsistentIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReadConsistentIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ReadConsistentIndex"
 
-noncomputable def UnsafeUpdateConsistentIndexForce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeUpdateConsistentIndexForce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeUpdateConsistentIndexForce"
 
-noncomputable def UnsafeUpdateConsistentIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeUpdateConsistentIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeUpdateConsistentIndex"
 
-noncomputable def unsafeUpdateConsistentIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeUpdateConsistentIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeUpdateConsistentIndex"
 
-noncomputable def MustUnsafeSaveConfStateToBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustUnsafeSaveConfStateToBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MustUnsafeSaveConfStateToBackend"
 
-noncomputable def UnsafeConfStateFromBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeConfStateFromBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeConfStateFromBackend"
 
-noncomputable def UnsafeCreateLeaseBucket [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeCreateLeaseBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeCreateLeaseBucket"
 
-noncomputable def MustUnsafeGetAllLeases [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustUnsafeGetAllLeases [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MustUnsafeGetAllLeases"
 
-noncomputable def MustUnsafePutLease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustUnsafePutLease [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MustUnsafePutLease"
 
-noncomputable def UnsafeDeleteLease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeDeleteLease [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeDeleteLease"
 
-noncomputable def MustUnsafeGetLease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustUnsafeGetLease [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MustUnsafeGetLease"
 
-noncomputable def leaseIDToBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def leaseIDToBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.leaseIDToBytes"
 
-noncomputable def bytesToLeaseID [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bytesToLeaseID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.bytesToLeaseID"
 
-noncomputable def NewMembershipBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMembershipBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.NewMembershipBackend"
 
-noncomputable def mustParseMemberIDFromBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mustParseMemberIDFromBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.mustParseMemberIDFromBytes"
 
-noncomputable def newPlan [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newPlan [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.newPlan"
 
-noncomputable def newMigrationStep [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newMigrationStep [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.newMigrationStep"
 
-noncomputable def trimToMinor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def trimToMinor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.trimToMinor"
 
-noncomputable def Validate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Validate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Validate"
 
-noncomputable def unsafeValidate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeValidate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeValidate"
 
-noncomputable def localBinaryVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def localBinaryVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.localBinaryVersion"
 
-noncomputable def Migrate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Migrate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Migrate"
 
-noncomputable def UnsafeMigrate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeMigrate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeMigrate"
 
-noncomputable def DetectSchemaVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DetectSchemaVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.DetectSchemaVersion"
 
-noncomputable def UnsafeDetectSchemaVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeDetectSchemaVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeDetectSchemaVersion"
 
-noncomputable def schemaChangesForVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def schemaChangesForVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.schemaChangesForVersion"
 
-noncomputable def ReadStorageVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReadStorageVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ReadStorageVersion"
 
-noncomputable def UnsafeReadStorageVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeReadStorageVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeReadStorageVersion"
 
-noncomputable def ReadStorageVersionFromSnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReadStorageVersionFromSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ReadStorageVersionFromSnapshot"
 
-noncomputable def UnsafeSetStorageVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeSetStorageVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeSetStorageVersion"
 
-noncomputable def UnsafeClearStorageVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeClearStorageVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeClearStorageVersion"
 
 /-- go: alarm.go:38:6 -/
-noncomputable def NewAlarmBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewAlarmBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "be"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc AlarmBackend.ty))) (App (Val (GoInstruction (GoZeroVal AlarmBackend.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType alarmBackend.ty) AlarmBackend.ty))) (App (Val (GoInstruction (GoAlloc alarmBackend.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType alarmBackend.ty) AlarmBackend.ty))) (App (Val (GoInstruction (GoAlloc alarmBackend.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
-  (App (Val (GoInstruction (CompositeLiteral alarmBackend.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"be")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty (Var "$v1")))]))))))))))))
-
-/-- go: auth.go:43:6 -/
-noncomputable def NewAuthBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "lg"
-  (Lam "be"
-  (App (Val exceptionDo)
-  (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
-  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType authBackend.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBackend.ty))) (App (Val (GoInstruction (GoAlloc authBackend.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (Val (GoInstruction (CompositeLiteral authBackend.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"be")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))))))))
-
-/-- go: auth.go:50:25 -/
-noncomputable def authBackend.CreateAuthBuckets.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "abe"
-  (Lam BAnon
-  (App (Val wrapDefer)
-  (Lam "$defer"
-  (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
+  (App (Val (GoInstruction (CompositeLiteral alarmBackend.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"be")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty (Var "$v1")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore AlarmBackend.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad AlarmBackend.ty))) (Var "$res0"))))))
+
+/-- go: auth.go:43:6 -/
+noncomputable def NewAuthBackend.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "be"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBackend.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBackend.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType authBackend.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBackend.ty))) (App (Val (GoInstruction (GoAlloc authBackend.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (Val (GoInstruction (CompositeLiteral authBackend.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"be")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBackend.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBackend.ty))) (Var "$res0"))))))
+
+/-- go: auth.go:50:25 -/
+noncomputable def authBackend.CreateAuthBuckets.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "abe"
+  (Lam BAnon
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))) (Val #()))
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -469,52 +474,60 @@ noncomputable def authBackend.CreateAuthBuckets.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockOutsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))
+  (Val #()))))
 
 /-- go: auth.go:59:25 -/
-noncomputable def authBackend.ForceCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBackend.ForceCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "abe"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))) (Val #())))))
+  (Val #()))))
+
+/-- go: auth.go:63:25 -/
+noncomputable def authBackend.ReadTx.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "abe"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType authReadTx.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (App (Val (GoInstruction (GoAlloc authReadTx.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ReadTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))
+  (App (Val (GoInstruction (CompositeLiteral authReadTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"tx")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))) (Val #()))))))))
-
-/-- go: auth.go:63:25 -/
-noncomputable def authBackend.ReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "abe"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType authReadTx.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (App (Val (GoInstruction (GoAlloc authReadTx.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ReadTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))) (Val #()))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))
-  (App (Val (GoInstruction (CompositeLiteral authReadTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"tx")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))])))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "$res0"))))))
 
 /-- go: auth.go:67:25 -/
-noncomputable def authBackend.BatchTx.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBackend.BatchTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "abe"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType authBatchTx.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (App (Val (GoInstruction (GoAlloc authBatchTx.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))) (Val #()))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType authBatchTx.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (App (Val (GoInstruction (GoAlloc authBatchTx.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))) (Val #()))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBackend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))))
-  (App (Val (GoInstruction (CompositeLiteral authBatchTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"tx")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))])))))))))))
-
-/-- go: auth.go:86:25 -/
-noncomputable def authBatchTx.UnsafeSaveAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "atx"
-  (Lam "enabled"
-  (App (Val exceptionDo)
-  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
-  (Let "enabled" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "enabled"))
+  (App (Val (GoInstruction (CompositeLiteral authBatchTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"tx")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Var "$res0"))))))
+
+/-- go: auth.go:86:25 -/
+noncomputable def authBatchTx.UnsafeSaveAuthEnabled.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "atx"
+  (Lam "enabled"
+  (Seq (App (Val exceptionDo)
+  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
+  (Let "enabled" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "enabled"))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "enabled"))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Auth))) (Val #())))
@@ -525,18 +538,16 @@ noncomputable def authBatchTx.UnsafeSaveAuthEnabled.impl [FfiSyntax] [GoGlobalCo
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Auth))) (Val #())))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr AuthEnabledKeyName))) (Val #())))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr authDisabled))) (Val #())))
-  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafePut"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafePut"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
+  (Val #()))))
 
 /-- go: auth.go:94:25 -/
-noncomputable def authBatchTx.UnsafeSaveAuthRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBatchTx.UnsafeSaveAuthRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam "rev"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
   (Let "rev" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "rev"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val revBytesLen)))
   (Let "revBytes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -551,69 +562,85 @@ noncomputable def authBatchTx.UnsafeSaveAuthRevision.impl [FfiSyntax] [GoGlobalC
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rev"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"PutUint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "revBytes") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "revBytes") (Var "$r0"))))))))))
+  (Val #()))))
 
 /-- go: auth.go:100:25 -/
-noncomputable def authBatchTx.UnsafeReadAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBatchTx.UnsafeReadAuthEnabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
-  (App (App (Val (GoInstruction (FuncResolve unsafeReadAuthEnabled []))) (Val #())) (Var "$a0"))))))))
-
-/-- go: auth.go:104:25 -/
-noncomputable def authBatchTx.UnsafeReadAuthRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "atx"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
-  (App (App (Val (GoInstruction (FuncResolve unsafeReadAuthRevision []))) (Val #())) (Var "$a0"))))))))
-
-/-- go: auth.go:108:25 -/
-noncomputable def authBatchTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "atx"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
+  (App (App (Val (GoInstruction (FuncResolve unsafeReadAuthEnabled []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockInsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: auth.go:112:25 -/
-noncomputable def authBatchTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+/-- go: auth.go:104:25 -/
+noncomputable def authBatchTx.UnsafeReadAuthRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
+  (App (App (Val (GoInstruction (FuncResolve unsafeReadAuthRevision []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
+
+/-- go: auth.go:108:25 -/
+noncomputable def authBatchTx.Lock.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "atx"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockInsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Val #())))))
+  (Val #()))))
+
+/-- go: auth.go:112:25 -/
+noncomputable def authBatchTx.Unlock.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "atx"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"Commit"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Val #())))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Val #()))))))
+  (Val #()))))
 
 /-- go: auth.go:119:24 -/
-noncomputable def authReadTx.UnsafeReadAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authReadTx.UnsafeReadAuthEnabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
+  (App (App (Val (GoInstruction (FuncResolve unsafeReadAuthEnabled []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
-  (App (App (Val (GoInstruction (FuncResolve unsafeReadAuthEnabled []))) (Val #())) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: auth.go:123:6 -/
-noncomputable def unsafeReadAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeReadAuthEnabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Auth))) (Val #())))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr AuthEnabledKeyName))) (Val #())))
@@ -628,15 +655,23 @@ noncomputable def unsafeReadAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs")) (Val #(W64 0)))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr authEnabled))) (Val #())))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Equal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))
   (App (Val doExecute)
@@ -644,22 +679,30 @@ noncomputable def unsafeReadAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "vs") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))
+  (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- go: auth.go:133:24 -/
-noncomputable def authReadTx.UnsafeReadAuthRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authReadTx.UnsafeReadAuthRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
+  (App (App (Val (GoInstruction (FuncResolve unsafeReadAuthRevision []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
-  (App (App (Val (GoInstruction (FuncResolve unsafeReadAuthRevision []))) (Val #())) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
 /-- go: auth.go:137:6 -/
-noncomputable def unsafeReadAuthRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeReadAuthRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Auth))) (Val #())))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr AuthRevisionKeyName))) (Val #())))
@@ -674,61 +717,65 @@ noncomputable def unsafeReadAuthRevision.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs")) (Val #(W64 0)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs")) (Val #(W64 0)))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "vs") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))
+  (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
 
 /-- go: auth.go:146:24 -/
-noncomputable def authReadTx.RLock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authReadTx.RLock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))) (Val #()))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))) (Val #())))))
+  (Val #()))))
 
 /-- go: auth.go:150:24 -/
-noncomputable def authReadTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authReadTx.RUnlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RUnlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))) (Val #()))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RUnlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))) (Val #())))))
+  (Val #()))))
 
 /-- go: auth_roles.go:25:6 -/
-noncomputable def UnsafeCreateAuthRolesBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnsafeCreateAuthRolesBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthRoles))) (Val #())))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0"))))))
+  (Val #())))
 
 /-- go: auth_roles.go:29:25 -/
-noncomputable def authBackend.GetRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBackend.GetRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "abe"
   (Lam "roleName"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
   (Let "roleName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "roleName"))
@@ -737,9 +784,13 @@ noncomputable def authBackend.GetRole.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "roleName"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"UnsafeGetRole"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "roleName"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"UnsafeGetRole"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"RUnlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx")))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -749,26 +800,34 @@ noncomputable def authBackend.GetRole.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "$res0"))))))
 
 /-- go: auth_roles.go:36:25 -/
-noncomputable def authBatchTx.UnsafeGetRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBatchTx.UnsafeGetRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam "roleName"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
   (Let "roleName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "roleName"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "roleName"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeGetRole []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeGetRole []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "$res0"))))))
 
 /-- go: auth_roles.go:40:25 -/
-noncomputable def authBackend.GetAllRoles.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBackend.GetAllRoles.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "abe"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authBackend.ty) go!"BatchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))) (Val #()))
@@ -776,8 +835,12 @@ noncomputable def authBackend.GetAllRoles.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty go!"UnsafeGetAllRoles"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Var "tx"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty go!"UnsafeGetAllRoles"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Var "tx"))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Var "tx")))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -787,29 +850,33 @@ noncomputable def authBackend.GetAllRoles.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Var "tx"))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Var "$res0"))))))
 
 /-- go: auth_roles.go:47:25 -/
-noncomputable def authBatchTx.UnsafeGetAllRoles.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBatchTx.UnsafeGetAllRoles.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
-  (App (App (App (Val (GoInstruction (FuncResolve unsafeGetAllRoles []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
-
-/-- go: auth_roles.go:51:25 -/
-noncomputable def authBatchTx.UnsafePutRole.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "atx"
-  (Lam "role"
-  (App (Val exceptionDo)
-  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
-  (Let "role" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))
+  (App (App (App (Val (GoInstruction (FuncResolve unsafeGetAllRoles []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Var "$res0"))))))
+
+/-- go: auth_roles.go:51:25 -/
+noncomputable def authBatchTx.UnsafePutRole.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "atx"
+  (Lam "role"
+  (Seq (App (Val exceptionDo)
+  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
+  (Let "role" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Marshal []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -841,42 +908,48 @@ noncomputable def authBatchTx.UnsafePutRole.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))))))))
+  (Val #()))))
 
 /-- go: auth_roles.go:64:25 -/
-noncomputable def authBatchTx.UnsafeDeleteRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBatchTx.UnsafeDeleteRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam "rolename"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
   (Let "rolename" (App (Val (GoInstruction (GoAlloc go.string))) (Var "rolename"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthRoles))) (Val #())))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "rolename")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafeDelete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Var "$a0")) (Var "$a1"))))))))
+  (Val #()))))
+
+/-- go: auth_roles.go:68:24 -/
+noncomputable def authReadTx.UnsafeGetRole.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "atx"
+  (Lam "roleName"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
+  (Let "roleName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "roleName"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))
+  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "roleName"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeGetRole []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthRoles))) (Val #())))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "rolename")))
-  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafeDelete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Var "$a0")) (Var "$a1")))))))))))
-
-/-- go: auth_roles.go:68:24 -/
-noncomputable def authReadTx.UnsafeGetRole.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "atx"
-  (Lam "roleName"
-  (App (Val exceptionDo)
-  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
-  (Let "roleName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "roleName"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))
-  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "roleName"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeGetRole []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "$res0"))))))
 
 /-- go: auth_roles.go:72:6 -/
-noncomputable def unsafeGetRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeGetRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "tx"
   (Lam "roleName"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "roleName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "roleName"))
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
@@ -902,8 +975,12 @@ noncomputable def unsafeGetRole.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"failed to unmarshal 'authpb.Role'"))
@@ -919,31 +996,43 @@ noncomputable def unsafeGetRole.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Pair (Var "role") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "vs") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))))))
+  (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "$res0")))))))
 
 /-- go: auth_roles.go:86:24 -/
-noncomputable def authReadTx.UnsafeGetAllRoles.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authReadTx.UnsafeGetAllRoles.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
-  (App (App (App (Val (GoInstruction (FuncResolve unsafeGetAllRoles []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve unsafeGetAllRoles []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Var "$res0"))))))
 
 /-- go: auth_roles.go:90:6 -/
-noncomputable def unsafeGetAllRoles.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeGetAllRoles.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "tx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthRoles))) (Val #())))
@@ -966,8 +1055,12 @@ noncomputable def unsafeGetAllRoles.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "roles" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Var "roles"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Var "roles")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.SliceType go.byte))) (Var "$range"))
@@ -1005,20 +1098,26 @@ noncomputable def unsafeGetAllRoles.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Pair (Var "roles") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "vs") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))))
+  (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))))) (Var "$res0"))))))
 
 /-- go: auth_users.go:25:25 -/
-noncomputable def authBackend.GetUser.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBackend.GetUser.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "abe"
   (Lam "username"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
   (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
@@ -1027,9 +1126,13 @@ noncomputable def authBackend.GetUser.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"UnsafeGetUser"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"UnsafeGetUser"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"RUnlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx")))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -1039,42 +1142,52 @@ noncomputable def authBackend.GetUser.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "$res0"))))))
 
 /-- go: auth_users.go:32:25 -/
-noncomputable def authBatchTx.UnsafeGetUser.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBatchTx.UnsafeGetUser.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam "username"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
   (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeGetUser []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
-
-/-- go: auth_users.go:36:25 -/
-noncomputable def authBatchTx.UnsafeGetAllUsers.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "atx"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))
-  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
-  (App (App (App (Val (GoInstruction (FuncResolve unsafeGetAllUsers []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
-
-/-- go: auth_users.go:40:25 -/
-noncomputable def authBatchTx.UnsafePutUser.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "atx"
-  (Lam "user"
-  (App (Val exceptionDo)
-  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
-  (Let "user" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "user"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeGetUser []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "$res0"))))))
+
+/-- go: auth_users.go:36:25 -/
+noncomputable def authBatchTx.UnsafeGetAllUsers.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "atx"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))
+  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx")))))
+  (App (App (App (Val (GoInstruction (FuncResolve unsafeGetAllUsers []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Var "$res0"))))))
+
+/-- go: auth_users.go:40:25 -/
+noncomputable def authBatchTx.UnsafePutUser.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "atx"
+  (Lam "user"
+  (Seq (App (Val exceptionDo)
+  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
+  (Let "user" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "user"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "user")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Marshal []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -1103,42 +1216,48 @@ noncomputable def authBatchTx.UnsafePutUser.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))))))))
+  (Val #()))))
 
 /-- go: auth_users.go:48:25 -/
-noncomputable def authBatchTx.UnsafeDeleteUser.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBatchTx.UnsafeDeleteUser.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam "username"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))
   (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthUsers))) (Val #())))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "username")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafeDelete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Var "$a0")) (Var "$a1"))))))))
+  (Val #()))))
+
+/-- go: auth_users.go:52:24 -/
+noncomputable def authReadTx.UnsafeGetUser.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "atx"
+  (Lam "username"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
+  (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))
+  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeGetUser []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthUsers))) (Val #())))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "username")))
-  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafeDelete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (StructFieldRef authBatchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBatchTx.ty)))) (Var "atx"))))) (Var "$a0")) (Var "$a1")))))))))))
-
-/-- go: auth_users.go:52:24 -/
-noncomputable def authReadTx.UnsafeGetUser.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "atx"
-  (Lam "username"
-  (App (Val exceptionDo)
-  (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
-  (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))
-  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeGetUser []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "$res0"))))))
 
 /-- go: auth_users.go:56:6 -/
-noncomputable def unsafeGetUser.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeGetUser.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "tx"
   (Lam "username"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
@@ -1164,8 +1283,12 @@ noncomputable def unsafeGetUser.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "user"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "user")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"failed to unmarshal 'authpb.User'"))
@@ -1184,20 +1307,26 @@ noncomputable def unsafeGetUser.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Pair (Var "user") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "vs") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))))))
+  (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "$res0")))))))
 
 /-- go: auth_users.go:74:25 -/
-noncomputable def authBackend.GetAllUsers.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authBackend.GetAllUsers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "abe"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "abe" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authBackend.ty)))) (Var "abe"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authBackend.ty) go!"ReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authBackend.ty)))) (Var "abe"))) (Val #()))
@@ -1205,8 +1334,12 @@ noncomputable def authBackend.GetAllUsers.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"UnsafeGetAllUsers"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"UnsafeGetAllUsers"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"RUnlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx")))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -1216,31 +1349,40 @@ noncomputable def authBackend.GetAllUsers.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Var "tx"))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Var "$res0"))))))
 
 /-- go: auth_users.go:81:24 -/
-noncomputable def authReadTx.UnsafeGetAllUsers.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authReadTx.UnsafeGetAllUsers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "atx"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "atx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx"))))
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef authReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authReadTx.ty)))) (Var "atx")))))
-  (App (App (App (Val (GoInstruction (FuncResolve unsafeGetAllUsers []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve unsafeGetAllUsers []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Var "$res0"))))))
 
 /-- go: auth_users.go:85:6 -/
-noncomputable def unsafeGetAllUsers.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeGetAllUsers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "tx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "vs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Val #())))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthUsers))) (Val #())))
   (Let "$a1" (Lam "k"
   (Lam "v"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "v"))
   (Let "k" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "k"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
@@ -1248,10 +1390,15 @@ noncomputable def unsafeGetAllUsers.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.SliceType go.byte) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "vs") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "vs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty go!"UnsafeForEach"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1262,8 +1409,12 @@ noncomputable def unsafeGetAllUsers.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "users" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Var "users"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Var "users")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.SliceType go.byte))) (Var "$range"))
@@ -1301,8 +1452,12 @@ noncomputable def unsafeGetAllUsers.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Pair (Var "users") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -1315,66 +1470,91 @@ noncomputable def unsafeGetAllUsers.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))))) (Var "$res0"))))))
 
 /-- go: bucket.go:75:17 -/
-noncomputable def bucket.ID.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucket.ID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"id"))) (Var "b"))))))))
-
-/-- go: bucket.go:76:17 -/
-noncomputable def bucket.Name.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "b"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"name"))) (Var "b"))))))))
-
-/-- go: bucket.go:77:17 -/
-noncomputable def bucket.String.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "b"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bucket.ty) go!"Name"))) (Var "b")) (Val #()))))))))
-
-/-- go: bucket.go:78:17 -/
-noncomputable def bucket.IsSafeRangeBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "b"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"safeRangeBucket"))) (Var "b"))))))))
-
-/-- UnsafeCreateMetaBucket creates the `meta` bucket (if it does not exist yet).
-
-    go: cindex.go:25:6 -/
-noncomputable def UnsafeCreateMetaBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "tx"
-  (App (Val exceptionDo)
-  (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"id"))) (Var "b")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty))) (Var "$res0"))))))
+
+/-- go: bucket.go:76:17 -/
+noncomputable def bucket.Name.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"name"))) (Var "b")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
+
+/-- go: bucket.go:77:17 -/
+noncomputable def bucket.String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bucket.ty) go!"Name"))) (Var "b")) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: bucket.go:78:17 -/
+noncomputable def bucket.IsSafeRangeBucket.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"safeRangeBucket"))) (Var "b")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- UnsafeCreateMetaBucket creates the `meta` bucket (if it does not exist yet).
+
+    go: cindex.go:25:6 -/
+noncomputable def UnsafeCreateMetaBucket.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "tx"
+  (Seq (App (Val exceptionDo)
+  (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))
+  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0"))))))
+  (Val #())))
 
 /-- UnsafeReadConsistentIndex loads consistent index & term from given transaction.
     returns 0,0 if the data are not found.
     Term is persisted since v3.5.
 
     go: cindex.go:39:6 -/
-noncomputable def UnsafeReadConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnsafeReadConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr MetaConsistentIndexKeyName))) (Val #())))
@@ -1410,14 +1590,30 @@ noncomputable def UnsafeReadConsistentIndex.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")))
   (Let "t" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "t"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "ts"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v"))
+  (Let "$r1" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v")) (Val #(W64 0))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1428,22 +1624,33 @@ noncomputable def UnsafeReadConsistentIndex.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "v") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #(W64 0)) (Val #(W64 0))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "vs") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))
+  (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res1")))))))
 
 /-- ReadConsistentIndex loads consistent index and term from given transaction.
     returns 0 if the data are not found.
 
     go: cindex.go:55:6 -/
-noncomputable def ReadConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ReadConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Var "tx"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1452,8 +1659,16 @@ noncomputable def ReadConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (FuncResolve UnsafeReadConsistentIndex []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RUnlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Var "tx")))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -1461,60 +1676,54 @@ noncomputable def ReadConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Var "tx"))) (Val #()))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Var "tx"))) (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res1")))))))
 
 /-- go: cindex.go:61:6 -/
-noncomputable def UnsafeUpdateConsistentIndexForce.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnsafeUpdateConsistentIndexForce.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "index"
   (Lam "term"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "term"))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "index"))
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty))) (Var "tx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty))) (Var "tx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
   (Let "$a3" (Val #true)
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve unsafeUpdateConsistentIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))))))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve unsafeUpdateConsistentIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))
+  (Val #())))))
 
 /-- go: cindex.go:65:6 -/
-noncomputable def UnsafeUpdateConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnsafeUpdateConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "index"
   (Lam "term"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "term"))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "index"))
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty))) (Var "tx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty))) (Var "tx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
   (Let "$a3" (Val #false)
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve unsafeUpdateConsistentIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))))))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve unsafeUpdateConsistentIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))
+  (Val #())))))
 
 /-- go: cindex.go:69:6 -/
-noncomputable def unsafeUpdateConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeUpdateConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "index"
   (Lam "term"
   (Lam "allowDecreasing"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "allowDecreasing" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "allowDecreasing"))
   (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "term"))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "index"))
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty))) (Var "tx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 8)))
   (Let "bs1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -1549,7 +1758,9 @@ noncomputable def unsafeUpdateConsistentIndex.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"update of consistent index not advancing"))
   (Let "$a1" (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.any)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty))) (Var "tx")))
   (App (App (Val (GoInstruction (FuncResolve UnsafeReadConsistentIndex []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -1559,16 +1770,25 @@ noncomputable def unsafeUpdateConsistentIndex.impl [FfiSyntax] [GoGlobalContext]
   (Let "previousIndex" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "previousIndex")))) (Let "$k0" (Val #(go!"previousIndex"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "previousIndex"))))
+  (Let "$r1" (Let "$k0" (Val #(go!"previousIndex"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "previousIndex"))
   (Let "$k2" (Val #(go!"currentIndex"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.any)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.uint64 (Var "$v3")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.any)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.uint64 (Var "$v3")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (Var "$r1")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "previousIndex") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "previousIndex") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "$res1")))))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Verify []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
@@ -1582,33 +1802,42 @@ noncomputable def unsafeUpdateConsistentIndex.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))))
+  (Val #())))))))))
+  (Val #()))))))
 
 /-- NewMembershipBackend returns a new membership backend
     Refer to https://github.com/etcd-io/etcd/pull/19343#discussion_r1958056718
     revive:disable-next-line:unexported-return
 
     go: membership.go:43:6 -/
-noncomputable def NewMembershipBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewMembershipBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "be"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType membershipBackend.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType membershipBackend.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc membershipBackend.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc membershipBackend.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
-  (App (Val (GoInstruction (CompositeLiteral membershipBackend.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"be")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty (Var "$v1")))])))))))))))
+  (App (Val (GoInstruction (CompositeLiteral membershipBackend.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"be")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType membershipBackend.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType membershipBackend.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.schema where
   pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.bytes, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.schema)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1647,6 +1876,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"meta")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"lease")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1669,6 +1899,10 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (Val #false)
   (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 3))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr leaseBucketName))) (Val #())))
+  (Let "$v2" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1752,7 +1986,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val Alarm.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val Lease.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Lease))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1774,7 +2008,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val alarmBucketName.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val leaseBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr metaBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1816,6 +2050,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc metaBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc leaseBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc authBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc authUsersBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
@@ -1825,6 +2061,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc Key _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Meta _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Lease _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Auth _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -1840,41 +2078,45 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc MetaTermKeyName (go.GoType.SliceType go.byte))) (Val #()))))))))
 
-abbrev action [FfiSyntax] : Type := GoInterface
+abbrev action [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def action.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"unsafeDo" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error]))])
+@[reducible] noncomputable def action.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error]))])
 
-class action.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class action.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq action.ty action.underlying
+  method_set : go.MethodSetIs action.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType action.ty) []
 
 attribute [instance] action.TypeAssumptions.underlying
+  action.TypeAssumptions.method_set
+  action.TypeAssumptions.ptr_method_set
 
-structure setKeyAction [FfiSyntax] where
+structure setKeyAction [GooseExts] where
   mk ::
   Bucket' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket
   FieldName' : GoSlice
   FieldValue' : GoSlice
 
-noncomputable instance setKeyAction.zero_val [FfiSyntax] : ZeroVal setKeyAction :=
+noncomputable instance setKeyAction.zero_val [GooseExts] : ZeroVal setKeyAction :=
   ⟨setKeyAction.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def setKeyAction.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def setKeyAction.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Bucket" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty),
 (go.field_decl.FieldDecl go!"FieldName" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"FieldValue" (go.GoType.SliceType go.byte))]
 
-@[irreducible] noncomputable def setKeyAction.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def setKeyAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   setKeyAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_setKeyAction [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_setKeyAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold setKeyAction.fields setKeyAction.fieldsUnsealed :=
   ⟨by unfold setKeyAction.fields; rfl⟩
 
-@[reducible] noncomputable def setKeyAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def setKeyAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType setKeyAction.fields)
 
-class setKeyAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class setKeyAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying setKeyAction.underlying setKeyAction
   underlying : go.UnderlyingDirectedEq setKeyAction.ty setKeyAction.underlying
   get_Bucket : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"Bucket") #x (Val #(x.Bucket'))
@@ -1883,6 +2125,8 @@ class setKeyAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_FieldName : ∀ (x : setKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"FieldName") (PairV #x #y) (Val #(({ x with FieldName' := y } : setKeyAction)))
   get_FieldValue : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"FieldValue") #x (Val #(x.FieldValue'))
   set_FieldValue : ∀ (x : setKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"FieldValue") (PairV #x #y) (Val #(({ x with FieldValue' := y } : setKeyAction)))
+  method_set : go.MethodSetIs setKeyAction.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType setKeyAction.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
 
 attribute [instance] setKeyAction.TypeAssumptions.type_repr
   setKeyAction.TypeAssumptions.underlying
@@ -1892,36 +2136,40 @@ attribute [instance] setKeyAction.TypeAssumptions.type_repr
   setKeyAction.TypeAssumptions.set_FieldName
   setKeyAction.TypeAssumptions.get_FieldValue
   setKeyAction.TypeAssumptions.set_FieldValue
+  setKeyAction.TypeAssumptions.method_set
+  setKeyAction.TypeAssumptions.ptr_method_set
 
-structure deleteKeyAction [FfiSyntax] where
+structure deleteKeyAction [GooseExts] where
   mk ::
   Bucket' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket
   FieldName' : GoSlice
 
-noncomputable instance deleteKeyAction.zero_val [FfiSyntax] : ZeroVal deleteKeyAction :=
+noncomputable instance deleteKeyAction.zero_val [GooseExts] : ZeroVal deleteKeyAction :=
   ⟨deleteKeyAction.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def deleteKeyAction.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def deleteKeyAction.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Bucket" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty),
 (go.field_decl.FieldDecl go!"FieldName" (go.GoType.SliceType go.byte))]
 
-@[irreducible] noncomputable def deleteKeyAction.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def deleteKeyAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   deleteKeyAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_deleteKeyAction [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_deleteKeyAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold deleteKeyAction.fields deleteKeyAction.fieldsUnsealed :=
   ⟨by unfold deleteKeyAction.fields; rfl⟩
 
-@[reducible] noncomputable def deleteKeyAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def deleteKeyAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType deleteKeyAction.fields)
 
-class deleteKeyAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class deleteKeyAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deleteKeyAction.underlying deleteKeyAction
   underlying : go.UnderlyingDirectedEq deleteKeyAction.ty deleteKeyAction.underlying
   get_Bucket : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"Bucket") #x (Val #(x.Bucket'))
   set_Bucket : ∀ (x : deleteKeyAction) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"Bucket") (PairV #x #y) (Val #(({ x with Bucket' := y } : deleteKeyAction)))
   get_FieldName : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"FieldName") #x (Val #(x.FieldName'))
   set_FieldName : ∀ (x : deleteKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"FieldName") (PairV #x #y) (Val #(({ x with FieldName' := y } : deleteKeyAction)))
+  method_set : go.MethodSetIs deleteKeyAction.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType deleteKeyAction.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
 
 attribute [instance] deleteKeyAction.TypeAssumptions.type_repr
   deleteKeyAction.TypeAssumptions.underlying
@@ -1929,56 +2177,68 @@ attribute [instance] deleteKeyAction.TypeAssumptions.type_repr
   deleteKeyAction.TypeAssumptions.set_Bucket
   deleteKeyAction.TypeAssumptions.get_FieldName
   deleteKeyAction.TypeAssumptions.set_FieldName
+  deleteKeyAction.TypeAssumptions.method_set
+  deleteKeyAction.TypeAssumptions.ptr_method_set
 
-abbrev ActionList [FfiSyntax] : Type := GoSlice
+abbrev ActionList [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def ActionList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ActionList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType action.ty)
 
-class ActionList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ActionList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ActionList.ty ActionList.underlying
+  method_set : go.MethodSetIs ActionList.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecuteInReversedOrder", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ActionList.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecuteInReversedOrder", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
 
 attribute [instance] ActionList.TypeAssumptions.underlying
+  ActionList.TypeAssumptions.method_set
+  ActionList.TypeAssumptions.ptr_method_set
 
-abbrev AlarmBackend [FfiSyntax] : Type := GoInterface
+abbrev AlarmBackend [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def AlarmBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AlarmBackend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CreateAlarmBucket" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ForceCommit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"GetAllAlarms" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error])), (go.InterfaceElem.MethodElem go!"MustDeleteAlarm" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false [])), (go.InterfaceElem.MethodElem go!"MustPutAlarm" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))])
 
-class AlarmBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AlarmBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlarmBackend.ty AlarmBackend.underlying
+  method_set : go.MethodSetIs AlarmBackend.ty [(go!"CreateAlarmBucket", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllAlarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error]))), (go!"MustDeleteAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"MustPutAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmBackend.ty) []
 
 attribute [instance] AlarmBackend.TypeAssumptions.underlying
+  AlarmBackend.TypeAssumptions.method_set
+  AlarmBackend.TypeAssumptions.ptr_method_set
 
-structure alarmBackend [FfiSyntax] where
+structure alarmBackend [GooseExts] where
   mk ::
   lg' : Loc
   be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend
 
-noncomputable instance alarmBackend.zero_val [FfiSyntax] : ZeroVal alarmBackend :=
+noncomputable instance alarmBackend.zero_val [GooseExts] : ZeroVal alarmBackend :=
   ⟨alarmBackend.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def alarmBackend.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def alarmBackend.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"be" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty)]
 
-@[irreducible] noncomputable def alarmBackend.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def alarmBackend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   alarmBackend.fieldsUnsealed
 
-noncomputable instance equals_unfold_alarmBackend [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_alarmBackend [GooseExts] [GoGlobalContext] :
     EqualsUnfold alarmBackend.fields alarmBackend.fieldsUnsealed :=
   ⟨by unfold alarmBackend.fields; rfl⟩
 
-@[reducible] noncomputable def alarmBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def alarmBackend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType alarmBackend.fields)
 
-class alarmBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class alarmBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying alarmBackend.underlying alarmBackend
   underlying : go.UnderlyingDirectedEq alarmBackend.ty alarmBackend.underlying
   get_lg : ∀ (x : alarmBackend), go.IsGoStepPureDetTagged under (StructFieldGet alarmBackend.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : alarmBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet alarmBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : alarmBackend)))
   get_be : ∀ (x : alarmBackend), go.IsGoStepPureDetTagged under (StructFieldGet alarmBackend.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : alarmBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet alarmBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : alarmBackend)))
+  method_set : go.MethodSetIs alarmBackend.ty [(go!"ForceCommit", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType alarmBackend.ty) [(go!"CreateAlarmBucket", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllAlarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error]))), (go!"MustDeleteAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"MustPutAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.mustUnsafeDeleteAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.mustUnsafePutAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeGetAllAlarms", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error])))]
 
 attribute [instance] alarmBackend.TypeAssumptions.type_repr
   alarmBackend.TypeAssumptions.underlying
@@ -1986,36 +2246,40 @@ attribute [instance] alarmBackend.TypeAssumptions.type_repr
   alarmBackend.TypeAssumptions.set_lg
   alarmBackend.TypeAssumptions.get_be
   alarmBackend.TypeAssumptions.set_be
+  alarmBackend.TypeAssumptions.method_set
+  alarmBackend.TypeAssumptions.ptr_method_set
 
-structure authBackend [FfiSyntax] where
+structure authBackend [GooseExts] where
   mk ::
   be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend
   lg' : Loc
 
-noncomputable instance authBackend.zero_val [FfiSyntax] : ZeroVal authBackend :=
+noncomputable instance authBackend.zero_val [GooseExts] : ZeroVal authBackend :=
   ⟨authBackend.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def authBackend.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def authBackend.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"be" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
 
-@[irreducible] noncomputable def authBackend.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def authBackend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authBackend.fieldsUnsealed
 
-noncomputable instance equals_unfold_authBackend [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_authBackend [GooseExts] [GoGlobalContext] :
     EqualsUnfold authBackend.fields authBackend.fieldsUnsealed :=
   ⟨by unfold authBackend.fields; rfl⟩
 
-@[reducible] noncomputable def authBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def authBackend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType authBackend.fields)
 
-class authBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class authBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authBackend.underlying authBackend
   underlying : go.UnderlyingDirectedEq authBackend.ty authBackend.underlying
   get_be : ∀ (x : authBackend), go.IsGoStepPureDetTagged under (StructFieldGet authBackend.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : authBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet authBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : authBackend)))
   get_lg : ∀ (x : authBackend), go.IsGoStepPureDetTagged under (StructFieldGet authBackend.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : authBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authBackend)))
+  method_set : go.MethodSetIs authBackend.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authBackend.ty) [(go!"BatchTx", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty]))), (go!"CreateAuthBuckets", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"GetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"GetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"GetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"ReadTx", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty])))]
   ptr_BatchTx_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"BatchTx" authBackend.BatchTx.impl
   ptr_CreateAuthBuckets_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"CreateAuthBuckets" authBackend.CreateAuthBuckets.impl
   ptr_ForceCommit_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"ForceCommit" authBackend.ForceCommit.impl
@@ -2031,6 +2295,8 @@ attribute [instance] authBackend.TypeAssumptions.type_repr
   authBackend.TypeAssumptions.set_be
   authBackend.TypeAssumptions.get_lg
   authBackend.TypeAssumptions.set_lg
+  authBackend.TypeAssumptions.method_set
+  authBackend.TypeAssumptions.ptr_method_set
   authBackend.TypeAssumptions.ptr_BatchTx_unfold
   authBackend.TypeAssumptions.ptr_CreateAuthBuckets_unfold
   authBackend.TypeAssumptions.ptr_ForceCommit_unfold
@@ -2040,35 +2306,37 @@ attribute [instance] authBackend.TypeAssumptions.type_repr
   authBackend.TypeAssumptions.ptr_GetUser_unfold
   authBackend.TypeAssumptions.ptr_ReadTx_unfold
 
-structure authReadTx [FfiSyntax] where
+structure authReadTx [GooseExts] where
   mk ::
   tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx
   lg' : Loc
 
-noncomputable instance authReadTx.zero_val [FfiSyntax] : ZeroVal authReadTx :=
+noncomputable instance authReadTx.zero_val [GooseExts] : ZeroVal authReadTx :=
   ⟨authReadTx.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def authReadTx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def authReadTx.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"tx" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
 
-@[irreducible] noncomputable def authReadTx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def authReadTx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authReadTx.fieldsUnsealed
 
-noncomputable instance equals_unfold_authReadTx [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_authReadTx [GooseExts] [GoGlobalContext] :
     EqualsUnfold authReadTx.fields authReadTx.fieldsUnsealed :=
   ⟨by unfold authReadTx.fields; rfl⟩
 
-@[reducible] noncomputable def authReadTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def authReadTx.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType authReadTx.fields)
 
-class authReadTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class authReadTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authReadTx.underlying authReadTx
   underlying : go.UnderlyingDirectedEq authReadTx.ty authReadTx.underlying
   get_tx : ∀ (x : authReadTx), go.IsGoStepPureDetTagged under (StructFieldGet authReadTx.underlying go!"tx") #x (Val #(x.tx'))
   set_tx : ∀ (x : authReadTx) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx), go.IsGoStepPureDetTagged under (StructFieldSet authReadTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : authReadTx)))
   get_lg : ∀ (x : authReadTx), go.IsGoStepPureDetTagged under (StructFieldGet authReadTx.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : authReadTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authReadTx.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authReadTx)))
+  method_set : go.MethodSetIs authReadTx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authReadTx.ty) [(go!"RLock", (some (go.signature.Signature [] false []))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64])))]
   ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"RLock" authReadTx.RLock.impl
   ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"RUnlock" authReadTx.RUnlock.impl
   ptr_UnsafeGetAllRoles_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetAllRoles" authReadTx.UnsafeGetAllRoles.impl
@@ -2084,6 +2352,8 @@ attribute [instance] authReadTx.TypeAssumptions.type_repr
   authReadTx.TypeAssumptions.set_tx
   authReadTx.TypeAssumptions.get_lg
   authReadTx.TypeAssumptions.set_lg
+  authReadTx.TypeAssumptions.method_set
+  authReadTx.TypeAssumptions.ptr_method_set
   authReadTx.TypeAssumptions.ptr_RLock_unfold
   authReadTx.TypeAssumptions.ptr_RUnlock_unfold
   authReadTx.TypeAssumptions.ptr_UnsafeGetAllRoles_unfold
@@ -2093,35 +2363,37 @@ attribute [instance] authReadTx.TypeAssumptions.type_repr
   authReadTx.TypeAssumptions.ptr_UnsafeReadAuthEnabled_unfold
   authReadTx.TypeAssumptions.ptr_UnsafeReadAuthRevision_unfold
 
-structure authBatchTx [FfiSyntax] where
+structure authBatchTx [GooseExts] where
   mk ::
   tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx
   lg' : Loc
 
-noncomputable instance authBatchTx.zero_val [FfiSyntax] : ZeroVal authBatchTx :=
+noncomputable instance authBatchTx.zero_val [GooseExts] : ZeroVal authBatchTx :=
   ⟨authBatchTx.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def authBatchTx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def authBatchTx.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"tx" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
 
-@[irreducible] noncomputable def authBatchTx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def authBatchTx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authBatchTx.fieldsUnsealed
 
-noncomputable instance equals_unfold_authBatchTx [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_authBatchTx [GooseExts] [GoGlobalContext] :
     EqualsUnfold authBatchTx.fields authBatchTx.fieldsUnsealed :=
   ⟨by unfold authBatchTx.fields; rfl⟩
 
-@[reducible] noncomputable def authBatchTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def authBatchTx.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType authBatchTx.fields)
 
-class authBatchTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class authBatchTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authBatchTx.underlying authBatchTx
   underlying : go.UnderlyingDirectedEq authBatchTx.ty authBatchTx.underlying
   get_tx : ∀ (x : authBatchTx), go.IsGoStepPureDetTagged under (StructFieldGet authBatchTx.underlying go!"tx") #x (Val #(x.tx'))
   set_tx : ∀ (x : authBatchTx) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx), go.IsGoStepPureDetTagged under (StructFieldSet authBatchTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : authBatchTx)))
   get_lg : ∀ (x : authBatchTx), go.IsGoStepPureDetTagged under (StructFieldGet authBatchTx.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : authBatchTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authBatchTx.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authBatchTx)))
+  method_set : go.MethodSetIs authBatchTx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authBatchTx.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeDeleteRole", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeDeleteUser", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafePutRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)] false []))), (go!"UnsafePutUser", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)] false []))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSaveAuthEnabled", (some (go.signature.Signature [go.bool] false []))), (go!"UnsafeSaveAuthRevision", (some (go.signature.Signature [go.uint64] false [])))]
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"Lock" authBatchTx.Lock.impl
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"Unlock" authBatchTx.Unlock.impl
   ptr_UnsafeDeleteRole_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeDeleteRole" authBatchTx.UnsafeDeleteRole.impl
@@ -2143,6 +2415,8 @@ attribute [instance] authBatchTx.TypeAssumptions.type_repr
   authBatchTx.TypeAssumptions.set_tx
   authBatchTx.TypeAssumptions.get_lg
   authBatchTx.TypeAssumptions.set_lg
+  authBatchTx.TypeAssumptions.method_set
+  authBatchTx.TypeAssumptions.ptr_method_set
   authBatchTx.TypeAssumptions.ptr_Lock_unfold
   authBatchTx.TypeAssumptions.ptr_Unlock_unfold
   authBatchTx.TypeAssumptions.ptr_UnsafeDeleteRole_unfold
@@ -2158,31 +2432,31 @@ attribute [instance] authBatchTx.TypeAssumptions.type_repr
   authBatchTx.TypeAssumptions.ptr_UnsafeSaveAuthEnabled_unfold
   authBatchTx.TypeAssumptions.ptr_UnsafeSaveAuthRevision_unfold
 
-structure bucket [FfiSyntax] where
+structure bucket [GooseExts] where
   mk ::
   id' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID
   name' : GoSlice
   safeRangeBucket' : Bool
 
-noncomputable instance bucket.zero_val [FfiSyntax] : ZeroVal bucket :=
+noncomputable instance bucket.zero_val [GooseExts] : ZeroVal bucket :=
   ⟨bucket.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bucket.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bucket.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty),
 (go.field_decl.FieldDecl go!"name" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"safeRangeBucket" go.bool)]
 
-@[irreducible] noncomputable def bucket.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bucket.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bucket.fieldsUnsealed
 
-noncomputable instance equals_unfold_bucket [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bucket [GooseExts] [GoGlobalContext] :
     EqualsUnfold bucket.fields bucket.fieldsUnsealed :=
   ⟨by unfold bucket.fields; rfl⟩
 
-@[reducible] noncomputable def bucket.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bucket.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bucket.fields)
 
-class bucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bucket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bucket.underlying bucket
   underlying : go.UnderlyingDirectedEq bucket.ty bucket.underlying
   get_id : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"id") #x (Val #(x.id'))
@@ -2191,6 +2465,8 @@ class bucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_name : ∀ (x : bucket) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : bucket)))
   get_safeRangeBucket : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"safeRangeBucket") #x (Val #(x.safeRangeBucket'))
   set_safeRangeBucket : ∀ (x : bucket) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"safeRangeBucket") (PairV #x #y) (Val #(({ x with safeRangeBucket' := y } : bucket)))
+  method_set : go.MethodSetIs bucket.ty [(go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty]))), (go!"IsSafeRangeBucket", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bucket.ty) [(go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty]))), (go!"IsSafeRangeBucket", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ID_unfold : MethodUnfold bucket.ty go!"ID" bucket.ID.impl
   IsSafeRangeBucket_unfold : MethodUnfold bucket.ty go!"IsSafeRangeBucket" bucket.IsSafeRangeBucket.impl
   Name_unfold : MethodUnfold bucket.ty go!"Name" bucket.Name.impl
@@ -2212,6 +2488,8 @@ attribute [instance] bucket.TypeAssumptions.type_repr
   bucket.TypeAssumptions.set_name
   bucket.TypeAssumptions.get_safeRangeBucket
   bucket.TypeAssumptions.set_safeRangeBucket
+  bucket.TypeAssumptions.method_set
+  bucket.TypeAssumptions.ptr_method_set
   bucket.TypeAssumptions.ID_unfold
   bucket.TypeAssumptions.IsSafeRangeBucket_unfold
   bucket.TypeAssumptions.Name_unfold
@@ -2221,45 +2499,51 @@ attribute [instance] bucket.TypeAssumptions.type_repr
   bucket.TypeAssumptions.ptr_Name_unfold
   bucket.TypeAssumptions.ptr_String_unfold
 
-abbrev schemaChange [FfiSyntax] : Type := GoInterface
+abbrev schemaChange [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def schemaChange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"downgradeAction" (go.signature.Signature [] false [action.ty])), (go.InterfaceElem.MethodElem go!"upgradeAction" (go.signature.Signature [] false [action.ty]))])
+@[reducible] noncomputable def schemaChange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction" (go.signature.Signature [] false [action.ty])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction" (go.signature.Signature [] false [action.ty]))])
 
-class schemaChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class schemaChange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq schemaChange.ty schemaChange.underlying
+  method_set : go.MethodSetIs schemaChange.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction", (some (go.signature.Signature [] false [action.ty]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction", (some (go.signature.Signature [] false [action.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType schemaChange.ty) []
 
 attribute [instance] schemaChange.TypeAssumptions.underlying
+  schemaChange.TypeAssumptions.method_set
+  schemaChange.TypeAssumptions.ptr_method_set
 
-structure simpleSchemaChange [FfiSyntax] where
+structure simpleSchemaChange [GooseExts] where
   mk ::
   upgrade' : action
   downgrade' : action
 
-noncomputable instance simpleSchemaChange.zero_val [FfiSyntax] : ZeroVal simpleSchemaChange :=
+noncomputable instance simpleSchemaChange.zero_val [GooseExts] : ZeroVal simpleSchemaChange :=
   ⟨simpleSchemaChange.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def simpleSchemaChange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def simpleSchemaChange.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"upgrade" action.ty),
 (go.field_decl.FieldDecl go!"downgrade" action.ty)]
 
-@[irreducible] noncomputable def simpleSchemaChange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def simpleSchemaChange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   simpleSchemaChange.fieldsUnsealed
 
-noncomputable instance equals_unfold_simpleSchemaChange [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_simpleSchemaChange [GooseExts] [GoGlobalContext] :
     EqualsUnfold simpleSchemaChange.fields simpleSchemaChange.fieldsUnsealed :=
   ⟨by unfold simpleSchemaChange.fields; rfl⟩
 
-@[reducible] noncomputable def simpleSchemaChange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def simpleSchemaChange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType simpleSchemaChange.fields)
 
-class simpleSchemaChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class simpleSchemaChange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying simpleSchemaChange.underlying simpleSchemaChange
   underlying : go.UnderlyingDirectedEq simpleSchemaChange.ty simpleSchemaChange.underlying
   get_upgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"upgrade") #x (Val #(x.upgrade'))
   set_upgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"upgrade") (PairV #x #y) (Val #(({ x with upgrade' := y } : simpleSchemaChange)))
   get_downgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"downgrade") #x (Val #(x.downgrade'))
   set_downgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"downgrade") (PairV #x #y) (Val #(({ x with downgrade' := y } : simpleSchemaChange)))
+  method_set : go.MethodSetIs simpleSchemaChange.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction", (some (go.signature.Signature [] false [action.ty]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction", (some (go.signature.Signature [] false [action.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType simpleSchemaChange.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction", (some (go.signature.Signature [] false [action.ty]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction", (some (go.signature.Signature [] false [action.ty])))]
 
 attribute [instance] simpleSchemaChange.TypeAssumptions.type_repr
   simpleSchemaChange.TypeAssumptions.underlying
@@ -2267,36 +2551,40 @@ attribute [instance] simpleSchemaChange.TypeAssumptions.type_repr
   simpleSchemaChange.TypeAssumptions.set_upgrade
   simpleSchemaChange.TypeAssumptions.get_downgrade
   simpleSchemaChange.TypeAssumptions.set_downgrade
+  simpleSchemaChange.TypeAssumptions.method_set
+  simpleSchemaChange.TypeAssumptions.ptr_method_set
 
-structure membershipBackend [FfiSyntax] where
+structure membershipBackend [GooseExts] where
   mk ::
   lg' : Loc
   be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend
 
-noncomputable instance membershipBackend.zero_val [FfiSyntax] : ZeroVal membershipBackend :=
+noncomputable instance membershipBackend.zero_val [GooseExts] : ZeroVal membershipBackend :=
   ⟨membershipBackend.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def membershipBackend.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def membershipBackend.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"be" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty)]
 
-@[irreducible] noncomputable def membershipBackend.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def membershipBackend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   membershipBackend.fieldsUnsealed
 
-noncomputable instance equals_unfold_membershipBackend [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_membershipBackend [GooseExts] [GoGlobalContext] :
     EqualsUnfold membershipBackend.fields membershipBackend.fieldsUnsealed :=
   ⟨by unfold membershipBackend.fields; rfl⟩
 
-@[reducible] noncomputable def membershipBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def membershipBackend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType membershipBackend.fields)
 
-class membershipBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class membershipBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying membershipBackend.underlying membershipBackend
   underlying : go.UnderlyingDirectedEq membershipBackend.ty membershipBackend.underlying
   get_lg : ∀ (x : membershipBackend), go.IsGoStepPureDetTagged under (StructFieldGet membershipBackend.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : membershipBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : membershipBackend)))
   get_be : ∀ (x : membershipBackend), go.IsGoStepPureDetTagged under (StructFieldGet membershipBackend.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : membershipBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : membershipBackend)))
+  method_set : go.MethodSetIs membershipBackend.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType membershipBackend.ty) [(go!"ClusterVersionFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))]))), (go!"DowngradeInfoFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"MustCreateBackendBuckets", (some (go.signature.Signature [] false []))), (go!"MustDeleteMemberFromBackend", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" [])] false []))), (go!"MustReadMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) go.bool)]))), (go!"MustSaveClusterVersionToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))] false []))), (go!"MustSaveDowngradeToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))] false []))), (go!"MustSaveMemberToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))] false []))), (go!"TrimClusterFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"TrimMembershipFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.readMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) go.bool), go.error])))]
 
 attribute [instance] membershipBackend.TypeAssumptions.type_repr
   membershipBackend.TypeAssumptions.underlying
@@ -2304,31 +2592,41 @@ attribute [instance] membershipBackend.TypeAssumptions.type_repr
   membershipBackend.TypeAssumptions.set_lg
   membershipBackend.TypeAssumptions.get_be
   membershipBackend.TypeAssumptions.set_be
+  membershipBackend.TypeAssumptions.method_set
+  membershipBackend.TypeAssumptions.ptr_method_set
 
-abbrev migrationPlan [FfiSyntax] : Type := GoSlice
+abbrev migrationPlan [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def migrationPlan.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def migrationPlan.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType migrationStep.ty)
 
-class migrationPlan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class migrationPlan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq migrationPlan.ty migrationPlan.underlying
+  method_set : go.MethodSetIs migrationPlan.ty [(go!"Execute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType migrationPlan.ty) [(go!"Execute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
 
 attribute [instance] migrationPlan.TypeAssumptions.underlying
+  migrationPlan.TypeAssumptions.method_set
+  migrationPlan.TypeAssumptions.ptr_method_set
 
 axiom migrationStep : Type
 axiom migrationStep.zero_val : ZeroVal migrationStep
 attribute [instance] migrationStep.zero_val
 
-class migrationStep.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class migrationStep.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying migrationStep.underlying migrationStep
   underlying : go.UnderlyingDirectedEq migrationStep.ty migrationStep.underlying
   isUnderlying : go.IsUnderlying migrationStep.underlying migrationStep.underlying
+  method_set : go.MethodSetIs migrationStep.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType migrationStep.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
 
 attribute [instance] migrationStep.TypeAssumptions.type_repr
   migrationStep.TypeAssumptions.underlying
   migrationStep.TypeAssumptions.isUnderlying
+  migrationStep.TypeAssumptions.method_set
+  migrationStep.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   action_instance : action.TypeAssumptions
   setKeyAction_instance : setKeyAction.TypeAssumptions
   deleteKeyAction_instance : deleteKeyAction.TypeAssumptions

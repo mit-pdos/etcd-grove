@@ -23,43 +23,39 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.controller.daemon.metrics
 
-@[reducible] noncomputable def DaemonControllerSubsystem [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DaemonControllerSubsystem [GooseExts] [GoGlobalContext] : val :=
   #(go!"daemonset_controller")
 
-noncomputable def DaemonsetRequeueSkips [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DaemonsetRequeueSkips [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/controller/daemon/metrics.DaemonsetRequeueSkips"
 
-noncomputable def registerMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/controller/daemon/metrics.registerMetrics"
 
-noncomputable def Register [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/controller/daemon/metrics.Register"
 
 /-- Register registers DaemonSet Controller metrics.
 
     go: metrics.go:44:6 -/
-noncomputable def Register.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (Val doExecute)
   (Let "$a0" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.k8s_io.component_base.metrics.CounterVec.ty) _root_.Perennial.k8s_io.component_base.metrics.Registerable.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.component_base.metrics.CounterVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr DaemonsetRequeueSkips))) (Val #()))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.k8s_io.component_base.metrics.Registerable.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.component_base.metrics.Registerable.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.component_base.metrics.Registerable.ty)] true []))))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.component_base.metrics.legacyregistry.MustRegister))) (Val #()))) (Var "$a0")))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (GlobalVarAddr registerMetrics))) (Val #()))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.component_base.metrics.Registerable.ty)] true []))))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.component_base.metrics.legacyregistry.MustRegister))) (Val #()))) (Var "$a0")))))
+  (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (GlobalVarAddr registerMetrics))) (Val #()))) (Var "$a0")))))
+  (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.controller.daemon.metrics where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.k8s_io.component_base.metrics, pkg_id.k8s_io.component_base.metrics.legacyregistry]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.kubernetes.pkg.controller.daemon.metrics)) (Lam BAnon
   (App (Val exceptionDo)
@@ -90,7 +86,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc registerMetrics _root_.Perennial.sync.Once.ty)) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Register_unfold : FuncUnfold Register [] Register.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_metrics_Assumption : _root_.Perennial.k8s_io.component_base.metrics.Assumptions

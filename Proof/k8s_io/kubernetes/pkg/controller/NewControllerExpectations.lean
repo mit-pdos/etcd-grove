@@ -19,7 +19,7 @@ namespace dsctl
 open Iris Iris.BI Iris.ProofMode k8s_io.kubernetes.pkg.controller cache
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -34,15 +34,15 @@ theorem NewControllerExpectations.wp_proof
   ihave #Hcpkg : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache $$ []
   · iPkgInit
   wp_auto
+  iapply wp_fupd
   wp_apply (wp_NewStore ceOK fam0 kf slice.nil (DFrac.own 1)) $$ [] as %ca ⟨%ts, %γ, #Hca, Hst, Hrds⟩
   · iapply ownSlice_nil
-  wp_alloc r as Hr
-  iStructNamed Hr
+  iStructNamed «$r0»
   ipersist Store
   let γe : ExpNames := ⟨ca, ts, γ, kf⟩
   imod inv_alloc expN ⊤ (expInv γe) $$ [Hst] with #Hinv
   · inext; iexists _; iframe; ipureintro; exact expNN_empty
-  wp_auto
+  imodintro
   iapply HΦ
   iexists γe
   isplitr

@@ -20,165 +20,165 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.rbac.v1
 
-noncomputable def ClusterRolesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterRolesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.ClusterRolesGetter" [])
 
 attribute [irreducible] ClusterRolesGetter.ty
 
-noncomputable def ClusterRoleInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterRoleInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.ClusterRoleInterface" [])
 
 attribute [irreducible] ClusterRoleInterface.ty
 
-noncomputable def clusterRoles.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clusterRoles.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.clusterRoles" [])
 
 attribute [irreducible] clusterRoles.ty
 
-noncomputable def ClusterRoleBindingsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterRoleBindingsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.ClusterRoleBindingsGetter" [])
 
 attribute [irreducible] ClusterRoleBindingsGetter.ty
 
-noncomputable def ClusterRoleBindingInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterRoleBindingInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.ClusterRoleBindingInterface" [])
 
 attribute [irreducible] ClusterRoleBindingInterface.ty
 
-noncomputable def clusterRoleBindings.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clusterRoleBindings.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.clusterRoleBindings" [])
 
 attribute [irreducible] clusterRoleBindings.ty
 
-noncomputable def ClusterRoleExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterRoleExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.ClusterRoleExpansion" [])
 
 attribute [irreducible] ClusterRoleExpansion.ty
 
-noncomputable def ClusterRoleBindingExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterRoleBindingExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.ClusterRoleBindingExpansion" [])
 
 attribute [irreducible] ClusterRoleBindingExpansion.ty
 
-noncomputable def RoleExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RoleExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RoleExpansion" [])
 
 attribute [irreducible] RoleExpansion.ty
 
-noncomputable def RoleBindingExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RoleBindingExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RoleBindingExpansion" [])
 
 attribute [irreducible] RoleBindingExpansion.ty
 
-noncomputable def RbacV1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RbacV1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RbacV1Interface" [])
 
 attribute [irreducible] RbacV1Interface.ty
 
-noncomputable def RbacV1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RbacV1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RbacV1Client" [])
 
 attribute [irreducible] RbacV1Client.ty
 
-noncomputable def RolesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RolesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RolesGetter" [])
 
 attribute [irreducible] RolesGetter.ty
 
-noncomputable def RoleInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RoleInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RoleInterface" [])
 
 attribute [irreducible] RoleInterface.ty
 
-noncomputable def roles.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def roles.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.roles" [])
 
 attribute [irreducible] roles.ty
 
-noncomputable def RoleBindingsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RoleBindingsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RoleBindingsGetter" [])
 
 attribute [irreducible] RoleBindingsGetter.ty
 
-noncomputable def RoleBindingInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RoleBindingInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RoleBindingInterface" [])
 
 attribute [irreducible] RoleBindingInterface.ty
 
-noncomputable def roleBindings.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def roleBindings.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.roleBindings" [])
 
 attribute [irreducible] roleBindings.ty
 
-axiom ClusterRolesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ClusterRolesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ClusterRoleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clusterRoles.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom clusterRoles.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleBindingsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ClusterRoleBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleBindingInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ClusterRoleBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clusterRoleBindings.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom clusterRoleBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ClusterRoleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleBindingExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ClusterRoleBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RoleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleBindingExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RoleBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RbacV1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RbacV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RbacV1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RbacV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RolesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RolesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RoleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom roles.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom roles.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleBindingsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RoleBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleBindingInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RoleBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom roleBindings.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom roleBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def newClusterRoles [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newClusterRoles [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.newClusterRoles"
 
-noncomputable def newClusterRoleBindings [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newClusterRoleBindings [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.newClusterRoleBindings"
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.setConfigDefaults"
 
-noncomputable def newRoles [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newRoles [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.newRoles"
 
-noncomputable def newRoleBindings [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newRoleBindings [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1.newRoleBindings"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.rbac.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.rbac.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -189,237 +189,309 @@ axiom ClusterRolesGetter : Type
 axiom ClusterRolesGetter.zero_val : ZeroVal ClusterRolesGetter
 attribute [instance] ClusterRolesGetter.zero_val
 
-class ClusterRolesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterRolesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterRolesGetter.underlying ClusterRolesGetter
   underlying : go.UnderlyingDirectedEq ClusterRolesGetter.ty ClusterRolesGetter.underlying
   isUnderlying : go.IsUnderlying ClusterRolesGetter.underlying ClusterRolesGetter.underlying
+  method_set : go.MethodSetIs ClusterRolesGetter.ty [(go!"ClusterRoles", (some (go.signature.Signature [] false [ClusterRoleInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterRolesGetter.ty) []
 
 attribute [instance] ClusterRolesGetter.TypeAssumptions.type_repr
   ClusterRolesGetter.TypeAssumptions.underlying
   ClusterRolesGetter.TypeAssumptions.isUnderlying
+  ClusterRolesGetter.TypeAssumptions.method_set
+  ClusterRolesGetter.TypeAssumptions.ptr_method_set
 
 axiom ClusterRoleInterface : Type
 axiom ClusterRoleInterface.zero_val : ZeroVal ClusterRoleInterface
 attribute [instance] ClusterRoleInterface.zero_val
 
-class ClusterRoleInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterRoleInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterRoleInterface.underlying ClusterRoleInterface
   underlying : go.UnderlyingDirectedEq ClusterRoleInterface.ty ClusterRoleInterface.underlying
   isUnderlying : go.IsUnderlying ClusterRoleInterface.underlying ClusterRoleInterface.underlying
+  method_set : go.MethodSetIs ClusterRoleInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterRoleInterface.ty) []
 
 attribute [instance] ClusterRoleInterface.TypeAssumptions.type_repr
   ClusterRoleInterface.TypeAssumptions.underlying
   ClusterRoleInterface.TypeAssumptions.isUnderlying
+  ClusterRoleInterface.TypeAssumptions.method_set
+  ClusterRoleInterface.TypeAssumptions.ptr_method_set
 
 axiom clusterRoles : Type
 axiom clusterRoles.zero_val : ZeroVal clusterRoles
 attribute [instance] clusterRoles.zero_val
 
-class clusterRoles.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class clusterRoles.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clusterRoles.underlying clusterRoles
   underlying : go.UnderlyingDirectedEq clusterRoles.ty clusterRoles.underlying
   isUnderlying : go.IsUnderlying clusterRoles.underlying clusterRoles.underlying
+  method_set : go.MethodSetIs clusterRoles.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clusterRoles.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRole" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] clusterRoles.TypeAssumptions.type_repr
   clusterRoles.TypeAssumptions.underlying
   clusterRoles.TypeAssumptions.isUnderlying
+  clusterRoles.TypeAssumptions.method_set
+  clusterRoles.TypeAssumptions.ptr_method_set
 
 axiom ClusterRoleBindingsGetter : Type
 axiom ClusterRoleBindingsGetter.zero_val : ZeroVal ClusterRoleBindingsGetter
 attribute [instance] ClusterRoleBindingsGetter.zero_val
 
-class ClusterRoleBindingsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterRoleBindingsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterRoleBindingsGetter.underlying ClusterRoleBindingsGetter
   underlying : go.UnderlyingDirectedEq ClusterRoleBindingsGetter.ty ClusterRoleBindingsGetter.underlying
   isUnderlying : go.IsUnderlying ClusterRoleBindingsGetter.underlying ClusterRoleBindingsGetter.underlying
+  method_set : go.MethodSetIs ClusterRoleBindingsGetter.ty [(go!"ClusterRoleBindings", (some (go.signature.Signature [] false [ClusterRoleBindingInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterRoleBindingsGetter.ty) []
 
 attribute [instance] ClusterRoleBindingsGetter.TypeAssumptions.type_repr
   ClusterRoleBindingsGetter.TypeAssumptions.underlying
   ClusterRoleBindingsGetter.TypeAssumptions.isUnderlying
+  ClusterRoleBindingsGetter.TypeAssumptions.method_set
+  ClusterRoleBindingsGetter.TypeAssumptions.ptr_method_set
 
 axiom ClusterRoleBindingInterface : Type
 axiom ClusterRoleBindingInterface.zero_val : ZeroVal ClusterRoleBindingInterface
 attribute [instance] ClusterRoleBindingInterface.zero_val
 
-class ClusterRoleBindingInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterRoleBindingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterRoleBindingInterface.underlying ClusterRoleBindingInterface
   underlying : go.UnderlyingDirectedEq ClusterRoleBindingInterface.ty ClusterRoleBindingInterface.underlying
   isUnderlying : go.IsUnderlying ClusterRoleBindingInterface.underlying ClusterRoleBindingInterface.underlying
+  method_set : go.MethodSetIs ClusterRoleBindingInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBindingList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterRoleBindingInterface.ty) []
 
 attribute [instance] ClusterRoleBindingInterface.TypeAssumptions.type_repr
   ClusterRoleBindingInterface.TypeAssumptions.underlying
   ClusterRoleBindingInterface.TypeAssumptions.isUnderlying
+  ClusterRoleBindingInterface.TypeAssumptions.method_set
+  ClusterRoleBindingInterface.TypeAssumptions.ptr_method_set
 
 axiom clusterRoleBindings : Type
 axiom clusterRoleBindings.zero_val : ZeroVal clusterRoleBindings
 attribute [instance] clusterRoleBindings.zero_val
 
-class clusterRoleBindings.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class clusterRoleBindings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clusterRoleBindings.underlying clusterRoleBindings
   underlying : go.UnderlyingDirectedEq clusterRoleBindings.ty clusterRoleBindings.underlying
   isUnderlying : go.IsUnderlying clusterRoleBindings.underlying clusterRoleBindings.underlying
+  method_set : go.MethodSetIs clusterRoleBindings.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBindingList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clusterRoleBindings.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.ClusterRoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBindingList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.ClusterRoleBinding" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] clusterRoleBindings.TypeAssumptions.type_repr
   clusterRoleBindings.TypeAssumptions.underlying
   clusterRoleBindings.TypeAssumptions.isUnderlying
+  clusterRoleBindings.TypeAssumptions.method_set
+  clusterRoleBindings.TypeAssumptions.ptr_method_set
 
 axiom ClusterRoleExpansion : Type
 axiom ClusterRoleExpansion.zero_val : ZeroVal ClusterRoleExpansion
 attribute [instance] ClusterRoleExpansion.zero_val
 
-class ClusterRoleExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterRoleExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterRoleExpansion.underlying ClusterRoleExpansion
   underlying : go.UnderlyingDirectedEq ClusterRoleExpansion.ty ClusterRoleExpansion.underlying
   isUnderlying : go.IsUnderlying ClusterRoleExpansion.underlying ClusterRoleExpansion.underlying
+  method_set : go.MethodSetIs ClusterRoleExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterRoleExpansion.ty) []
 
 attribute [instance] ClusterRoleExpansion.TypeAssumptions.type_repr
   ClusterRoleExpansion.TypeAssumptions.underlying
   ClusterRoleExpansion.TypeAssumptions.isUnderlying
+  ClusterRoleExpansion.TypeAssumptions.method_set
+  ClusterRoleExpansion.TypeAssumptions.ptr_method_set
 
 axiom ClusterRoleBindingExpansion : Type
 axiom ClusterRoleBindingExpansion.zero_val : ZeroVal ClusterRoleBindingExpansion
 attribute [instance] ClusterRoleBindingExpansion.zero_val
 
-class ClusterRoleBindingExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterRoleBindingExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterRoleBindingExpansion.underlying ClusterRoleBindingExpansion
   underlying : go.UnderlyingDirectedEq ClusterRoleBindingExpansion.ty ClusterRoleBindingExpansion.underlying
   isUnderlying : go.IsUnderlying ClusterRoleBindingExpansion.underlying ClusterRoleBindingExpansion.underlying
+  method_set : go.MethodSetIs ClusterRoleBindingExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterRoleBindingExpansion.ty) []
 
 attribute [instance] ClusterRoleBindingExpansion.TypeAssumptions.type_repr
   ClusterRoleBindingExpansion.TypeAssumptions.underlying
   ClusterRoleBindingExpansion.TypeAssumptions.isUnderlying
+  ClusterRoleBindingExpansion.TypeAssumptions.method_set
+  ClusterRoleBindingExpansion.TypeAssumptions.ptr_method_set
 
 axiom RoleExpansion : Type
 axiom RoleExpansion.zero_val : ZeroVal RoleExpansion
 attribute [instance] RoleExpansion.zero_val
 
-class RoleExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RoleExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RoleExpansion.underlying RoleExpansion
   underlying : go.UnderlyingDirectedEq RoleExpansion.ty RoleExpansion.underlying
   isUnderlying : go.IsUnderlying RoleExpansion.underlying RoleExpansion.underlying
+  method_set : go.MethodSetIs RoleExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RoleExpansion.ty) []
 
 attribute [instance] RoleExpansion.TypeAssumptions.type_repr
   RoleExpansion.TypeAssumptions.underlying
   RoleExpansion.TypeAssumptions.isUnderlying
+  RoleExpansion.TypeAssumptions.method_set
+  RoleExpansion.TypeAssumptions.ptr_method_set
 
 axiom RoleBindingExpansion : Type
 axiom RoleBindingExpansion.zero_val : ZeroVal RoleBindingExpansion
 attribute [instance] RoleBindingExpansion.zero_val
 
-class RoleBindingExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RoleBindingExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RoleBindingExpansion.underlying RoleBindingExpansion
   underlying : go.UnderlyingDirectedEq RoleBindingExpansion.ty RoleBindingExpansion.underlying
   isUnderlying : go.IsUnderlying RoleBindingExpansion.underlying RoleBindingExpansion.underlying
+  method_set : go.MethodSetIs RoleBindingExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RoleBindingExpansion.ty) []
 
 attribute [instance] RoleBindingExpansion.TypeAssumptions.type_repr
   RoleBindingExpansion.TypeAssumptions.underlying
   RoleBindingExpansion.TypeAssumptions.isUnderlying
+  RoleBindingExpansion.TypeAssumptions.method_set
+  RoleBindingExpansion.TypeAssumptions.ptr_method_set
 
 axiom RbacV1Interface : Type
 axiom RbacV1Interface.zero_val : ZeroVal RbacV1Interface
 attribute [instance] RbacV1Interface.zero_val
 
-class RbacV1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RbacV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RbacV1Interface.underlying RbacV1Interface
   underlying : go.UnderlyingDirectedEq RbacV1Interface.ty RbacV1Interface.underlying
   isUnderlying : go.IsUnderlying RbacV1Interface.underlying RbacV1Interface.underlying
+  method_set : go.MethodSetIs RbacV1Interface.ty [(go!"ClusterRoleBindings", (some (go.signature.Signature [] false [ClusterRoleBindingInterface.ty]))), (go!"ClusterRoles", (some (go.signature.Signature [] false [ClusterRoleInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"RoleBindings", (some (go.signature.Signature [go.string] false [RoleBindingInterface.ty]))), (go!"Roles", (some (go.signature.Signature [go.string] false [RoleInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RbacV1Interface.ty) []
 
 attribute [instance] RbacV1Interface.TypeAssumptions.type_repr
   RbacV1Interface.TypeAssumptions.underlying
   RbacV1Interface.TypeAssumptions.isUnderlying
+  RbacV1Interface.TypeAssumptions.method_set
+  RbacV1Interface.TypeAssumptions.ptr_method_set
 
 axiom RbacV1Client : Type
 axiom RbacV1Client.zero_val : ZeroVal RbacV1Client
 attribute [instance] RbacV1Client.zero_val
 
-class RbacV1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RbacV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RbacV1Client.underlying RbacV1Client
   underlying : go.UnderlyingDirectedEq RbacV1Client.ty RbacV1Client.underlying
   isUnderlying : go.IsUnderlying RbacV1Client.underlying RbacV1Client.underlying
+  method_set : go.MethodSetIs RbacV1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RbacV1Client.ty) [(go!"ClusterRoleBindings", (some (go.signature.Signature [] false [ClusterRoleBindingInterface.ty]))), (go!"ClusterRoles", (some (go.signature.Signature [] false [ClusterRoleInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"RoleBindings", (some (go.signature.Signature [go.string] false [RoleBindingInterface.ty]))), (go!"Roles", (some (go.signature.Signature [go.string] false [RoleInterface.ty])))]
 
 attribute [instance] RbacV1Client.TypeAssumptions.type_repr
   RbacV1Client.TypeAssumptions.underlying
   RbacV1Client.TypeAssumptions.isUnderlying
+  RbacV1Client.TypeAssumptions.method_set
+  RbacV1Client.TypeAssumptions.ptr_method_set
 
 axiom RolesGetter : Type
 axiom RolesGetter.zero_val : ZeroVal RolesGetter
 attribute [instance] RolesGetter.zero_val
 
-class RolesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RolesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RolesGetter.underlying RolesGetter
   underlying : go.UnderlyingDirectedEq RolesGetter.ty RolesGetter.underlying
   isUnderlying : go.IsUnderlying RolesGetter.underlying RolesGetter.underlying
+  method_set : go.MethodSetIs RolesGetter.ty [(go!"Roles", (some (go.signature.Signature [go.string] false [RoleInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RolesGetter.ty) []
 
 attribute [instance] RolesGetter.TypeAssumptions.type_repr
   RolesGetter.TypeAssumptions.underlying
   RolesGetter.TypeAssumptions.isUnderlying
+  RolesGetter.TypeAssumptions.method_set
+  RolesGetter.TypeAssumptions.ptr_method_set
 
 axiom RoleInterface : Type
 axiom RoleInterface.zero_val : ZeroVal RoleInterface
 attribute [instance] RoleInterface.zero_val
 
-class RoleInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RoleInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RoleInterface.underlying RoleInterface
   underlying : go.UnderlyingDirectedEq RoleInterface.ty RoleInterface.underlying
   isUnderlying : go.IsUnderlying RoleInterface.underlying RoleInterface.underlying
+  method_set : go.MethodSetIs RoleInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RoleInterface.ty) []
 
 attribute [instance] RoleInterface.TypeAssumptions.type_repr
   RoleInterface.TypeAssumptions.underlying
   RoleInterface.TypeAssumptions.isUnderlying
+  RoleInterface.TypeAssumptions.method_set
+  RoleInterface.TypeAssumptions.ptr_method_set
 
 axiom roles : Type
 axiom roles.zero_val : ZeroVal roles
 attribute [instance] roles.zero_val
 
-class roles.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class roles.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying roles.underlying roles
   underlying : go.UnderlyingDirectedEq roles.ty roles.underlying
   isUnderlying : go.IsUnderlying roles.underlying roles.underlying
+  method_set : go.MethodSetIs roles.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType roles.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.Role" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] roles.TypeAssumptions.type_repr
   roles.TypeAssumptions.underlying
   roles.TypeAssumptions.isUnderlying
+  roles.TypeAssumptions.method_set
+  roles.TypeAssumptions.ptr_method_set
 
 axiom RoleBindingsGetter : Type
 axiom RoleBindingsGetter.zero_val : ZeroVal RoleBindingsGetter
 attribute [instance] RoleBindingsGetter.zero_val
 
-class RoleBindingsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RoleBindingsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RoleBindingsGetter.underlying RoleBindingsGetter
   underlying : go.UnderlyingDirectedEq RoleBindingsGetter.ty RoleBindingsGetter.underlying
   isUnderlying : go.IsUnderlying RoleBindingsGetter.underlying RoleBindingsGetter.underlying
+  method_set : go.MethodSetIs RoleBindingsGetter.ty [(go!"RoleBindings", (some (go.signature.Signature [go.string] false [RoleBindingInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RoleBindingsGetter.ty) []
 
 attribute [instance] RoleBindingsGetter.TypeAssumptions.type_repr
   RoleBindingsGetter.TypeAssumptions.underlying
   RoleBindingsGetter.TypeAssumptions.isUnderlying
+  RoleBindingsGetter.TypeAssumptions.method_set
+  RoleBindingsGetter.TypeAssumptions.ptr_method_set
 
 axiom RoleBindingInterface : Type
 axiom RoleBindingInterface.zero_val : ZeroVal RoleBindingInterface
 attribute [instance] RoleBindingInterface.zero_val
 
-class RoleBindingInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RoleBindingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RoleBindingInterface.underlying RoleBindingInterface
   underlying : go.UnderlyingDirectedEq RoleBindingInterface.ty RoleBindingInterface.underlying
   isUnderlying : go.IsUnderlying RoleBindingInterface.underlying RoleBindingInterface.underlying
+  method_set : go.MethodSetIs RoleBindingInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBindingList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RoleBindingInterface.ty) []
 
 attribute [instance] RoleBindingInterface.TypeAssumptions.type_repr
   RoleBindingInterface.TypeAssumptions.underlying
   RoleBindingInterface.TypeAssumptions.isUnderlying
+  RoleBindingInterface.TypeAssumptions.method_set
+  RoleBindingInterface.TypeAssumptions.ptr_method_set
 
 axiom roleBindings : Type
 axiom roleBindings.zero_val : ZeroVal roleBindings
 attribute [instance] roleBindings.zero_val
 
-class roleBindings.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class roleBindings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying roleBindings.underlying roleBindings
   underlying : go.UnderlyingDirectedEq roleBindings.ty roleBindings.underlying
   isUnderlying : go.IsUnderlying roleBindings.underlying roleBindings.underlying
+  method_set : go.MethodSetIs roleBindings.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBindingList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType roleBindings.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/rbac/v1.RoleBindingApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBindingList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/rbac/v1.RoleBinding" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] roleBindings.TypeAssumptions.type_repr
   roleBindings.TypeAssumptions.underlying
   roleBindings.TypeAssumptions.isUnderlying
+  roleBindings.TypeAssumptions.method_set
+  roleBindings.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ClusterRolesGetter_instance : ClusterRolesGetter.TypeAssumptions
   ClusterRoleInterface_instance : ClusterRoleInterface.TypeAssumptions
   clusterRoles_instance : clusterRoles.TypeAssumptions

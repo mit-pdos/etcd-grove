@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -67,7 +67,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     · simp only [↓reduceIte]; itrivial
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
       opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false F) $$ [$Hrd $Hsw $HF $Hwt $Hcs $Hu $Hcok]
-    as %resp %trace %err ⟨Hrd, Hu, Hout⟩
+    as %resp %trace %err ⟨Hrd, Hout⟩
   · iframe #
     isplitr
     · iapply mvcc.txnCtx_todo
@@ -79,7 +79,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     · iapply mvcc.neverDone_neverCd
     ipureintro; exact hpre
   iapply HΦ
-  icases Hout with (⟨%Herr, #He, Hsw, HPre, -⟩ | ⟨%Hok, Htrc, -, #Hresp, Hhdr, Hsw, #Hknown', HPP⟩)
+  icases Hout with (⟨%Herr, #He, Hsw, HPre, Hu, -⟩ | ⟨%Hok, Htrc, -, #Hresp, Hhdr, Hsw, #Hknown', Hu, HPP⟩)
   · -- checkTxn's error
     isplitl
     rotate_left
@@ -90,7 +90,8 @@ theorem apply.applierV3backend.Txn.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨t, ht, Or.inl ⟨rfl, Herr.2.2.2⟩⟩, fun _ _ h => by cases h⟩
+      exact ⟨⟨t, ht, Or.inl ⟨rfl, fun hp hig => Herr.2.2.2 (txn.txnLeased_of_plain t hp)
+        ⟨hig, txn.pathsLeaseOk_plain _ _ _ (txn.txnPlain_branch t _ hp)⟩⟩⟩, fun _ _ h => by cases h⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres He
     isplitl []
@@ -109,7 +110,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.2.1, Hok.2.2.2.2⟩⟩, fun _ _ _ => Hok.2.2.1⟩
+      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.2.1, Hok.2.2.2.2.1⟩⟩, fun _ _ _ => Hok.2.2.1⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
       Bool.false_eq_true, ↓reduceIte, txn.srvRunTxn, apply.appliedHdr]
     iframe Hres Hresp Hhdr

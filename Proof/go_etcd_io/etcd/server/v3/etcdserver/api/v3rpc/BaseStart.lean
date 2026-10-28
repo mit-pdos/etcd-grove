@@ -23,7 +23,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.serve
   go_etcd_io.etcd.api.v3
 
 section pure
-variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The handler type of a generated `ServiceDesc` for the service interface `T`
 (`(*T)(nil)`). -/
@@ -43,7 +43,7 @@ abbrev v3rpc.metricsMu : Loc := globalAddr go_etcd_io.etcd.server.v3.etcdserver.
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -100,7 +100,7 @@ instance v3rpc.svcDescsOk_persistent : Persistent (v3rpc.svcDescsOk (GF := GF)) 
 end defs
 
 section defsLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

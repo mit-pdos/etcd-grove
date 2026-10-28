@@ -12,7 +12,11 @@
 # translate.
 # (`!_`: the `var _ I = &T{}` interface assertions, compile-time only, names only: translated, each
 # would be an allocation for `etc/gen-init.py`'s `Init.lean` to step through)
-translate = ["*", "!_",
+# (`queue[T].Pop`, names only: Goose at Perennial edcadb1e5 rejects its `(*q)[0] = *new(T)` as a copy
+# between two memory places that may overlap, though `*new(T)` is a fresh allocation;
+# notes/perennial-changes.md, "Goose rejects a store of `*new(T)`". Its spec is a named
+# hypothesis of the work queue's `Link.lean`.)
+translate = ["*", "!_", "!queue[T].Pop",
   "!delayingType.Add", "!delayingType.Len", "!delayingType.Get", "!delayingType.Done",
   "!delayingType.ShutDownWithDrain", "!delayingType.ShuttingDown",
   "!rateLimitingType.Add", "!rateLimitingType.Len", "!rateLimitingType.Get",

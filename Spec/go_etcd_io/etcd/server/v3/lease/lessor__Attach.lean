@@ -16,22 +16,23 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- `le.Attach(id, items)` (locked): adds the items to the lease's item set and the item map;
-for a live `id` (in the caller's live set `L`) it returns `nil` (else `ErrLeaseNotFound`). -/
+/-- `le.Attach(id, items)` (locked), by the lease owner (`leaseOwn γl L I`) for a live `id`
+(`id ∈ L`) and items on no other lease: adds the items to the lease's item set and the item map
+(the owner's `I`, unit T3, L2b) and returns `nil`. -/
 abbrev lease.lessor.Attach.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id : w64) (items : GoSlice) (xs : List LeaseItem) (dq : DFrac)
-    (q : Qp) (L : List w64),
+    (L : List w64) (I : GMap LeaseItem w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      leaseFrag γl q L ∗ items ↦*{dq} xs }}
+      leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
+      ⌜∀ it ∈ xs, I.lookup it = none ∨ I.lookup it = some id⌝ ∗ items ↦*{dq} xs }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Attach")) (Val #id)) (Val #items))
-  {{ (err : GoInterface), RET #err; leaseFrag γl q L ∗ items ↦*{dq} xs ∗
-      ⌜id ∈ L → err = GoInterface.nil⌝ }}
+  {{ RET #GoInterface.nil; leaseOwn γl L (insertAll I xs id) ∗ items ↦*{dq} xs }}
 
 end spec
 

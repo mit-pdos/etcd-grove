@@ -25,7 +25,7 @@ namespace informer
 open apimodel
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The store after applying deltas in order. -/
 def View.applyAll (s : View) (ds : List Delta) : View := ds.foldl View.apply s

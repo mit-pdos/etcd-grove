@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency concurren
   _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -93,7 +93,8 @@ theorem electionServer.Resign.wp_proof
     (try wp_auto)
     wp_apply hEH e s ⟨[], rev, null, hdr⟩ $$ [$Hcpkg $Hest] as Hest
     (try wp_auto)
-    wp_alloc r0 as Hr
+    irename «$r0» => Hr
+    generalize «$r0_ptr» = r0 at *
     (try wp_auto)
     iapply HΦ
     iright; ileft

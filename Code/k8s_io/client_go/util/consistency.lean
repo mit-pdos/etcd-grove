@@ -25,73 +25,83 @@ end pkg_id
 
 namespace k8s_io.client_go.util.consistency
 
-noncomputable def ConsistencyStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConsistencyStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistency.ConsistencyStore" [])
 
 attribute [irreducible] ConsistencyStore.ty
 
-noncomputable def ConsistencyError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConsistencyError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistency.ConsistencyError" [])
 
 attribute [irreducible] ConsistencyError.ty
 
-noncomputable def LastSyncRVGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LastSyncRVGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistency.LastSyncRVGetter" [])
 
 attribute [irreducible] LastSyncRVGetter.ty
 
-noncomputable def consistencyStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def consistencyStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistency.consistencyStore" [])
 
 attribute [irreducible] consistencyStore.ty
 
-noncomputable def ownerRecord.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ownerRecord.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistency.ownerRecord" [])
 
 attribute [irreducible] ownerRecord.ty
 
-noncomputable def noopConsistencyStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopConsistencyStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistency.noopConsistencyStore" [])
 
 attribute [irreducible] noopConsistencyStore.ty
 
-noncomputable def NewConsistencyStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConsistencyStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistency.NewConsistencyStore"
 
-noncomputable def newConsistencyStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newConsistencyStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistency.newConsistencyStore"
 
-noncomputable def newOwnerRecord [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newOwnerRecord [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistency.newOwnerRecord"
 
-noncomputable def NewNoopConsistencyStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNoopConsistencyStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistency.NewNoopConsistencyStore"
 
 /-- Error implements the error interface for a ConsistencyError.
 
     go: consistency.go:57:28 -/
-noncomputable def ConsistencyError.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConsistencyError.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConsistencyError.ty)))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (Val #(go!"read version: %s is not as new as written version: %s for group resource %s"))
+  (Let "$r0" (Let "$a0" (Val #(go!"read version: %s is not as new as written version: %s for group resource %s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ConsistencyError.ty go!"ReadRV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConsistencyError.ty)))) (Var "c")))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ConsistencyError.ty go!"WroteRV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConsistencyError.ty)))) (Var "c")))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef ConsistencyError.ty go!"GroupResource"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConsistencyError.ty)))) (Var "c")))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ConsistencyError.ty go!"ReadRV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConsistencyError.ty)))) (Var "c")))) (Val #(go!"")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (Val #(go!"read version is not synced (written version: %s) for group resource %s"))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ConsistencyError.ty go!"ReadRV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConsistencyError.ty)))) (Var "c")))) (Val #(go!"")))))
+  (Let "$r0" (Let "$a0" (Val #(go!"read version is not synced (written version: %s) for group resource %s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ConsistencyError.ty go!"WroteRV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConsistencyError.ty)))) (Var "c")))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef ConsistencyError.ty go!"GroupResource"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConsistencyError.ty)))) (Var "c")))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- NewConsistencyStore creates a new ConsistencyStore configured with stores
     implementing LastSyncRVGetter for each tracked GroupResource.
@@ -102,38 +112,55 @@ noncomputable def ConsistencyError.Error.impl [FfiSyntax] [GoGlobalContext] : va
     any sync yet, EnsureReady will return a ConsistencyError.
 
     go: consistency.go:91:6 -/
-noncomputable def NewConsistencyStore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewConsistencyStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "stores"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ConsistencyStore.ty))) (App (Val (GoInstruction (GoZeroVal ConsistencyStore.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "stores" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty LastSyncRVGetter.ty)))) (Var "stores"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType consistencyStore.ty) ConsistencyStore.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty LastSyncRVGetter.ty)))) (Var "stores"))
+  (App (App (Val (GoInstruction (FuncResolve newConsistencyStore []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType consistencyStore.ty) ConsistencyStore.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty LastSyncRVGetter.ty)))) (Var "stores"))
-  (App (App (Val (GoInstruction (FuncResolve newConsistencyStore []))) (Val #())) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ConsistencyStore.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ConsistencyStore.ty))) (Var "$res0")))))
 
 /-- go: consistency.go:95:6 -/
-noncomputable def newConsistencyStore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newConsistencyStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "stores"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistencyStore.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType consistencyStore.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "stores" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty LastSyncRVGetter.ty)))) (Var "stores"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc consistencyStore.ty))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))))) (LiteralValue []))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc consistencyStore.ty))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))))) (LiteralValue []))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty LastSyncRVGetter.ty)))) (Var "stores"))
-  (App (Val (GoInstruction (CompositeLiteral consistencyStore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"writes")) (ElementExpression (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty)) (Var "$v0"))), (KeyedElement (some (KeyField go!"stores")) (ElementExpression (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty LastSyncRVGetter.ty) (Var "$v1")))])))))))))
+  (App (Val (GoInstruction (CompositeLiteral consistencyStore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"writes")) (ElementExpression (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty)) (Var "$v0"))), (KeyedElement (some (KeyField go!"stores")) (ElementExpression (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty LastSyncRVGetter.ty) (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType consistencyStore.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "$res0")))))
 
 /-- getWrittenRecord returns the record for the given owner, or nil if no record exists.
 
     go: consistency.go:103:28 -/
-noncomputable def consistencyStore.getWrittenRecord.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def consistencyStore.getWrittenRecord.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "owner"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ownerRecord.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ownerRecord.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))
   (Let "owner" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (map.lookup1 _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writesLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -141,18 +168,20 @@ noncomputable def consistencyStore.getWrittenRecord.impl [FfiSyntax] [GoGlobalCo
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writesLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writesLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "$res0"))))))
 
 /-- ensureWrittenRecord returns a ownerRecord for the given owner and ownerUID.
     If there is no current record, one is created.
     If there is a current record with a different ownerUID, it is replaced with an empty record for the specified ownerUID.
 
     go: consistency.go:112:28 -/
-noncomputable def consistencyStore.ensureWrittenRecord.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def consistencyStore.ensureWrittenRecord.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "owner"
   (Lam "ownerUID"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ownerRecord.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ownerRecord.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))
   (Let "ownerUID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
@@ -167,8 +196,12 @@ noncomputable def consistencyStore.ensureWrittenRecord.impl [FfiSyntax] [GoGloba
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))) (Var "$r0")))))))
   (App (Val doExecute)
@@ -177,8 +210,12 @@ noncomputable def consistencyStore.ensureWrittenRecord.impl [FfiSyntax] [GoGloba
   (Let "record" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ownerRecord.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ownerRecord.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType ownerRecord.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ownerRecord.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (App (Val (GoInstruction (StructFieldRef ownerRecord.ty go!"ownerUID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record")))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID")))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -196,55 +233,55 @@ noncomputable def consistencyStore.ensureWrittenRecord.impl [FfiSyntax] [GoGloba
   (Let "record" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ownerRecord.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ownerRecord.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType ownerRecord.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ownerRecord.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (App (Val (GoInstruction (StructFieldRef ownerRecord.ty go!"ownerUID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record")))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID")))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "record") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "record") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "$res0")))))))
 
 /-- WroteAt writes the latest written RV if it is greater than the currently
     written RV for the owner.
 
     go: consistency.go:133:28 -/
-noncomputable def consistencyStore.WroteAt.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def consistencyStore.WroteAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "owner"
   (Lam "ownerUID"
   (Lam "resource"
   (Lam "rv"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))
   (Let "rv" (App (Val (GoInstruction (GoAlloc go.string))) (Var "rv"))
   (Let "resource" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "resource"))
   (Let "ownerUID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
   (Let "owner" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "resource"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "rv"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ownerRecord.ty) go!"WroteAt"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType consistencyStore.ty) go!"ensureWrittenRecord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))) (Var "$a0")) (Var "$a1")))))))))))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType consistencyStore.ty) go!"ensureWrittenRecord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))) (Var "$a0")) (Var "$a1")))))))))))
+  (Val #())))))))
 
 /-- Clear deletes the record for owner if it exists and matches the specified
     ownerUID (or the specified ownerUID is empty)
 
     go: consistency.go:139:28 -/
-noncomputable def consistencyStore.Clear.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def consistencyStore.Clear.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "owner"
   (Lam "ownerUID"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))
   (Let "ownerUID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
   (Let "owner" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (map.lookup1 _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner")))
@@ -267,17 +304,19 @@ noncomputable def consistencyStore.Clear.impl [FfiSyntax] [GoGlobalContext] : va
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writesLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c")))) (Val #())))))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef consistencyStore.ty go!"writesLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistencyStore.ty)))) (Var "c")))) (Val #())))))))))
+  (Val #())))))
 
 /-- EnsureReady returns nil if observed resource versions are at least as new as
     any recorded versions for the given owner, otherwise returning the error of
     what happened. Must not be called concurrent with WroteAt for the same owner.
 
     go: consistency.go:151:28 -/
-noncomputable def consistencyStore.EnsureReady.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def consistencyStore.EnsureReady.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "owner"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))
   (Let "owner" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
@@ -290,12 +329,20 @@ noncomputable def consistencyStore.EnsureReady.impl [FfiSyntax] [GoGlobalContext
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (App (Val (GoInstruction (StructFieldRef ownerRecord.ty go!"ownerUID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record"))))
@@ -305,39 +352,47 @@ noncomputable def consistencyStore.EnsureReady.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType ownerRecord.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "record")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ownerRecord.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "record") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "record") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: consistency.go:172:6 -/
-noncomputable def newOwnerRecord.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newOwnerRecord.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ownerUID"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ownerRecord.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ownerRecord.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ownerUID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc ownerRecord.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc ownerRecord.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
   (Let "$v1" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go.string)))) (LiteralValue []))
-  (App (Val (GoInstruction (CompositeLiteral ownerRecord.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ownerUID")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"versions")) (ElementExpression (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go.string) (Var "$v1")))])))))))))
+  (App (Val (GoInstruction (CompositeLiteral ownerRecord.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ownerUID")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"versions")) (ElementExpression (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go.string) (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ownerRecord.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "$res0")))))
 
 /-- WroteAt increments the written resource version of an ownerRecord if it is
     the newest seen resource version for that resource.
 
     go: consistency.go:178:23 -/
-noncomputable def ownerRecord.WroteAt.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ownerRecord.WroteAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "resource"
   (Lam "rv"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ownerRecord.ty)))) (Var "w"))
   (Let "rv" (App (Val (GoInstruction (GoAlloc go.string))) (Var "rv"))
   (Let "resource" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "resource"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -413,24 +468,30 @@ noncomputable def ownerRecord.WroteAt.impl [FfiSyntax] [GoGlobalContext] : val :
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ownerRecord.ty go!"versionsLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "w")))) (Val #())))))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ownerRecord.ty go!"versionsLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "w")))) (Val #())))))))))
+  (Val #())))))
 
 /-- EnsureReady checks whether or not the ownerRecord is ready compared to the
     read resource versions in the consistency store.
 
     go: consistency.go:197:23 -/
-noncomputable def ownerRecord.EnsureReady.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ownerRecord.EnsureReady.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "c"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ownerRecord.ty)))) (Var "w"))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistencyStore.ty)))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go.string)))) (App (Val (GoInstruction (StructFieldRef ownerRecord.ty go!"versions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "w"))))
   (Let "wroteRV" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Let "gr" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Val #())))
@@ -466,11 +527,15 @@ noncomputable def ownerRecord.EnsureReady.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType ConsistencyError.ty) go.error))) (App (Val (GoInstruction (GoAlloc ConsistencyError.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "wroteRV"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType ConsistencyError.ty) go.error))) (App (Val (GoInstruction (GoAlloc ConsistencyError.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "wroteRV"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "readRV"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "gr"))
-  (App (Val (GoInstruction (CompositeLiteral ConsistencyError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"WroteRV")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"ReadRV")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"GroupResource")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty (Var "$v2")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral ConsistencyError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"WroteRV")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"ReadRV")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"GroupResource")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty (Var "$v2")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -482,21 +547,29 @@ noncomputable def ownerRecord.EnsureReady.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "readRV")) (Val #(go!"")))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType ConsistencyError.ty) go.error))) (App (Val (GoInstruction (GoAlloc ConsistencyError.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "wroteRV"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType ConsistencyError.ty) go.error))) (App (Val (GoInstruction (GoAlloc ConsistencyError.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "wroteRV"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "readRV"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "gr"))
-  (App (Val (GoInstruction (CompositeLiteral ConsistencyError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"WroteRV")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"ReadRV")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"GroupResource")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty (Var "$v2")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral ConsistencyError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"WroteRV")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"ReadRV")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"GroupResource")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty (Var "$v2")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "readRV") (Var "$r0")))))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals LastSyncRVGetter.ty))) (Pair (App (Val (GoInstruction (GoLoad LastSyncRVGetter.ty))) (Var "store")) (App (Val (GoInstruction (Convert go.untypedNil LastSyncRVGetter.ty))) (Val UntypedNil)))))
-  (App (Val doReturn)
-  (Let "$a0" (Val #(go!"no store registered for group resource %s"))
+  (Let "$r0" (Let "$a0" (Val #(go!"no store registered for group resource %s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty) go!"String"))) (Var "gr")) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -514,42 +587,51 @@ noncomputable def ownerRecord.EnsureReady.impl [FfiSyntax] [GoGlobalContext] : v
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ownerRecord.ty go!"versionsLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "w")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ownerRecord.ty go!"versionsLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ownerRecord.ty)))) (Var "w")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: consistency.go:236:30 -/
-noncomputable def noopConsistencyStore.WroteAt.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopConsistencyStore.WroteAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "owner"
   (Lam "ownerUID"
   (Lam "resource"
   (Lam "rv"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "rv" (App (Val (GoInstruction (GoAlloc go.string))) (Var "rv"))
   (Let "resource" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "resource"))
   (Let "ownerUID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
   (Let "owner" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
-  (App (Val doReturn)
-  (Val #()))))))))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #())))))))
 
 /-- go: consistency.go:239:30 -/
-noncomputable def noopConsistencyStore.Clear.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopConsistencyStore.Clear.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "owner"
   (Lam "ownerUID"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ownerUID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "ownerUID"))
   (Let "owner" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
-  (App (Val doReturn)
-  (Val #()))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Val #())))))
 
 /-- go: consistency.go:241:30 -/
-noncomputable def noopConsistencyStore.EnsureReady.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopConsistencyStore.EnsureReady.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "owner"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "owner" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "owner"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- NewNoopConsistencyStore creates a ConsistencyStore that records nothing and always
     returns nil from EnsureReady. It can be used when consistency tracking is disabled
@@ -558,18 +640,24 @@ noncomputable def noopConsistencyStore.EnsureReady.impl [FfiSyntax] [GoGlobalCon
     methods unconditionally without nil checks.
 
     go: consistency.go:250:6 -/
-noncomputable def NewNoopConsistencyStore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewNoopConsistencyStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ConsistencyStore.ty))) (App (Val (GoInstruction (GoZeroVal ConsistencyStore.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType noopConsistencyStore.ty) ConsistencyStore.ty))) (App (Val (GoInstruction (GoAlloc noopConsistencyStore.ty))) (App (Val (GoInstruction (CompositeLiteral noopConsistencyStore.ty))) (LiteralValue []))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType noopConsistencyStore.ty) ConsistencyStore.ty))) (App (Val (GoInstruction (GoAlloc noopConsistencyStore.ty))) (App (Val (GoInstruction (CompositeLiteral noopConsistencyStore.ty))) (LiteralValue [])))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ConsistencyStore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad ConsistencyStore.ty))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.consistency where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.sync, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.util.resourceversion]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.util.consistency)) (Lam BAnon
   (App (Val exceptionDo)
@@ -594,41 +682,45 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.initialize') (Val #()))))))))
 
-abbrev ConsistencyStore [FfiSyntax] : Type := GoInterface
+abbrev ConsistencyStore [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ConsistencyStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConsistencyStore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Clear" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false [])), (go.InterfaceElem.MethodElem go!"EnsureReady" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"WroteAt" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, go.string] false []))])
 
-class ConsistencyStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConsistencyStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConsistencyStore.ty ConsistencyStore.underlying
+  method_set : go.MethodSetIs ConsistencyStore.ty [(go!"Clear", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"EnsureReady", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty] false [go.error]))), (go!"WroteAt", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConsistencyStore.ty) []
 
 attribute [instance] ConsistencyStore.TypeAssumptions.underlying
+  ConsistencyStore.TypeAssumptions.method_set
+  ConsistencyStore.TypeAssumptions.ptr_method_set
 
-structure ConsistencyError [FfiSyntax] where
+structure ConsistencyError [GooseExts] where
   mk ::
   ReadRV' : GoString
   WroteRV' : GoString
   GroupResource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource
 
-noncomputable instance ConsistencyError.zero_val [FfiSyntax] : ZeroVal ConsistencyError :=
+noncomputable instance ConsistencyError.zero_val [GooseExts] : ZeroVal ConsistencyError :=
   ⟨ConsistencyError.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConsistencyError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConsistencyError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ReadRV" go.string),
 (go.field_decl.FieldDecl go!"WroteRV" go.string),
 (go.field_decl.FieldDecl go!"GroupResource" _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty)]
 
-@[irreducible] noncomputable def ConsistencyError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConsistencyError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConsistencyError.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConsistencyError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConsistencyError [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConsistencyError.fields ConsistencyError.fieldsUnsealed :=
   ⟨by unfold ConsistencyError.fields; rfl⟩
 
-@[reducible] noncomputable def ConsistencyError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConsistencyError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConsistencyError.fields)
 
-class ConsistencyError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConsistencyError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConsistencyError.underlying ConsistencyError
   underlying : go.UnderlyingDirectedEq ConsistencyError.ty ConsistencyError.underlying
   get_ReadRV : ∀ (x : ConsistencyError), go.IsGoStepPureDetTagged under (StructFieldGet ConsistencyError.underlying go!"ReadRV") #x (Val #(x.ReadRV'))
@@ -637,6 +729,8 @@ class ConsistencyError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_WroteRV : ∀ (x : ConsistencyError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConsistencyError.underlying go!"WroteRV") (PairV #x #y) (Val #(({ x with WroteRV' := y } : ConsistencyError)))
   get_GroupResource : ∀ (x : ConsistencyError), go.IsGoStepPureDetTagged under (StructFieldGet ConsistencyError.underlying go!"GroupResource") #x (Val #(x.GroupResource'))
   set_GroupResource : ∀ (x : ConsistencyError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet ConsistencyError.underlying go!"GroupResource") (PairV #x #y) (Val #(({ x with GroupResource' := y } : ConsistencyError)))
+  method_set : go.MethodSetIs ConsistencyError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConsistencyError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType ConsistencyError.ty) go!"Error" ConsistencyError.Error.impl
 
 attribute [instance] ConsistencyError.TypeAssumptions.type_repr
@@ -647,43 +741,49 @@ attribute [instance] ConsistencyError.TypeAssumptions.type_repr
   ConsistencyError.TypeAssumptions.set_WroteRV
   ConsistencyError.TypeAssumptions.get_GroupResource
   ConsistencyError.TypeAssumptions.set_GroupResource
+  ConsistencyError.TypeAssumptions.method_set
+  ConsistencyError.TypeAssumptions.ptr_method_set
   ConsistencyError.TypeAssumptions.ptr_Error_unfold
 
-abbrev LastSyncRVGetter [FfiSyntax] : Type := GoInterface
+abbrev LastSyncRVGetter [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def LastSyncRVGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LastSyncRVGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"LastStoreSyncResourceVersion" (go.signature.Signature [] false [go.string]))])
 
-class LastSyncRVGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LastSyncRVGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LastSyncRVGetter.ty LastSyncRVGetter.underlying
+  method_set : go.MethodSetIs LastSyncRVGetter.ty [(go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LastSyncRVGetter.ty) []
 
 attribute [instance] LastSyncRVGetter.TypeAssumptions.underlying
+  LastSyncRVGetter.TypeAssumptions.method_set
+  LastSyncRVGetter.TypeAssumptions.ptr_method_set
 
-structure consistencyStore [FfiSyntax] where
+structure consistencyStore [GooseExts] where
   mk ::
   writesLock' : _root_.Perennial.sync.RWMutex
   writes' : GoMap
   stores' : GoMap
 
-noncomputable instance consistencyStore.zero_val [FfiSyntax] : ZeroVal consistencyStore :=
+noncomputable instance consistencyStore.zero_val [GooseExts] : ZeroVal consistencyStore :=
   ⟨consistencyStore.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def consistencyStore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def consistencyStore.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"writesLock" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"writes" (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty (go.GoType.PointerType ownerRecord.ty))),
 (go.field_decl.FieldDecl go!"stores" (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty LastSyncRVGetter.ty))]
 
-@[irreducible] noncomputable def consistencyStore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def consistencyStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   consistencyStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_consistencyStore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_consistencyStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold consistencyStore.fields consistencyStore.fieldsUnsealed :=
   ⟨by unfold consistencyStore.fields; rfl⟩
 
-@[reducible] noncomputable def consistencyStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def consistencyStore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType consistencyStore.fields)
 
-class consistencyStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class consistencyStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying consistencyStore.underlying consistencyStore
   underlying : go.UnderlyingDirectedEq consistencyStore.ty consistencyStore.underlying
   get_writesLock : ∀ (x : consistencyStore), go.IsGoStepPureDetTagged under (StructFieldGet consistencyStore.underlying go!"writesLock") #x (Val #(x.writesLock'))
@@ -692,6 +792,8 @@ class consistencyStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_writes : ∀ (x : consistencyStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet consistencyStore.underlying go!"writes") (PairV #x #y) (Val #(({ x with writes' := y } : consistencyStore)))
   get_stores : ∀ (x : consistencyStore), go.IsGoStepPureDetTagged under (StructFieldGet consistencyStore.underlying go!"stores") #x (Val #(x.stores'))
   set_stores : ∀ (x : consistencyStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet consistencyStore.underlying go!"stores") (PairV #x #y) (Val #(({ x with stores' := y } : consistencyStore)))
+  method_set : go.MethodSetIs consistencyStore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType consistencyStore.ty) [(go!"Clear", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"EnsureReady", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty] false [go.error]))), (go!"WroteAt", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, go.string] false []))), (go!"k8s.io/client-go/util/consistency.ensureWrittenRecord", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false [(go.GoType.PointerType ownerRecord.ty)]))), (go!"k8s.io/client-go/util/consistency.getWrittenRecord", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty] false [(go.GoType.PointerType ownerRecord.ty)])))]
   ptr_Clear_unfold : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"Clear" consistencyStore.Clear.impl
   ptr_EnsureReady_unfold : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"EnsureReady" consistencyStore.EnsureReady.impl
   ptr_WroteAt_unfold : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"WroteAt" consistencyStore.WroteAt.impl
@@ -706,37 +808,39 @@ attribute [instance] consistencyStore.TypeAssumptions.type_repr
   consistencyStore.TypeAssumptions.set_writes
   consistencyStore.TypeAssumptions.get_stores
   consistencyStore.TypeAssumptions.set_stores
+  consistencyStore.TypeAssumptions.method_set
+  consistencyStore.TypeAssumptions.ptr_method_set
   consistencyStore.TypeAssumptions.ptr_Clear_unfold
   consistencyStore.TypeAssumptions.ptr_EnsureReady_unfold
   consistencyStore.TypeAssumptions.ptr_WroteAt_unfold
   consistencyStore.TypeAssumptions.ptr_ensureWrittenRecord_unfold
   consistencyStore.TypeAssumptions.ptr_getWrittenRecord_unfold
 
-structure ownerRecord [FfiSyntax] where
+structure ownerRecord [GooseExts] where
   mk ::
   ownerUID' : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID
   versionsLock' : _root_.Perennial.sync.Mutex
   versions' : GoMap
 
-noncomputable instance ownerRecord.zero_val [FfiSyntax] : ZeroVal ownerRecord :=
+noncomputable instance ownerRecord.zero_val [GooseExts] : ZeroVal ownerRecord :=
   ⟨ownerRecord.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ownerRecord.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ownerRecord.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ownerUID" _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty),
 (go.field_decl.FieldDecl go!"versionsLock" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"versions" (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go.string))]
 
-@[irreducible] noncomputable def ownerRecord.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ownerRecord.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ownerRecord.fieldsUnsealed
 
-noncomputable instance equals_unfold_ownerRecord [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ownerRecord [GooseExts] [GoGlobalContext] :
     EqualsUnfold ownerRecord.fields ownerRecord.fieldsUnsealed :=
   ⟨by unfold ownerRecord.fields; rfl⟩
 
-@[reducible] noncomputable def ownerRecord.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ownerRecord.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ownerRecord.fields)
 
-class ownerRecord.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ownerRecord.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ownerRecord.underlying ownerRecord
   underlying : go.UnderlyingDirectedEq ownerRecord.ty ownerRecord.underlying
   get_ownerUID : ∀ (x : ownerRecord), go.IsGoStepPureDetTagged under (StructFieldGet ownerRecord.underlying go!"ownerUID") #x (Val #(x.ownerUID'))
@@ -745,6 +849,8 @@ class ownerRecord.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_versionsLock : ∀ (x : ownerRecord) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ownerRecord.underlying go!"versionsLock") (PairV #x #y) (Val #(({ x with versionsLock' := y } : ownerRecord)))
   get_versions : ∀ (x : ownerRecord), go.IsGoStepPureDetTagged under (StructFieldGet ownerRecord.underlying go!"versions") #x (Val #(x.versions'))
   set_versions : ∀ (x : ownerRecord) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ownerRecord.underlying go!"versions") (PairV #x #y) (Val #(({ x with versions' := y } : ownerRecord)))
+  method_set : go.MethodSetIs ownerRecord.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ownerRecord.ty) [(go!"EnsureReady", (some (go.signature.Signature [(go.GoType.PointerType consistencyStore.ty)] false [go.error]))), (go!"WroteAt", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, go.string] false [])))]
   ptr_EnsureReady_unfold : MethodUnfold (go.GoType.PointerType ownerRecord.ty) go!"EnsureReady" ownerRecord.EnsureReady.impl
   ptr_WroteAt_unfold : MethodUnfold (go.GoType.PointerType ownerRecord.ty) go!"WroteAt" ownerRecord.WroteAt.impl
 
@@ -756,42 +862,48 @@ attribute [instance] ownerRecord.TypeAssumptions.type_repr
   ownerRecord.TypeAssumptions.set_versionsLock
   ownerRecord.TypeAssumptions.get_versions
   ownerRecord.TypeAssumptions.set_versions
+  ownerRecord.TypeAssumptions.method_set
+  ownerRecord.TypeAssumptions.ptr_method_set
   ownerRecord.TypeAssumptions.ptr_EnsureReady_unfold
   ownerRecord.TypeAssumptions.ptr_WroteAt_unfold
 
-structure noopConsistencyStore [FfiSyntax] where
+structure noopConsistencyStore [GooseExts] where
   mk ::
 
-noncomputable instance noopConsistencyStore.zero_val [FfiSyntax] : ZeroVal noopConsistencyStore :=
+noncomputable instance noopConsistencyStore.zero_val [GooseExts] : ZeroVal noopConsistencyStore :=
   ⟨noopConsistencyStore.mk⟩
 
-@[reducible] noncomputable def noopConsistencyStore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noopConsistencyStore.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def noopConsistencyStore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noopConsistencyStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopConsistencyStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopConsistencyStore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noopConsistencyStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopConsistencyStore.fields noopConsistencyStore.fieldsUnsealed :=
   ⟨by unfold noopConsistencyStore.fields; rfl⟩
 
-@[reducible] noncomputable def noopConsistencyStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noopConsistencyStore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noopConsistencyStore.fields)
 
-class noopConsistencyStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopConsistencyStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopConsistencyStore.underlying noopConsistencyStore
   underlying : go.UnderlyingDirectedEq noopConsistencyStore.ty noopConsistencyStore.underlying
+  method_set : go.MethodSetIs noopConsistencyStore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopConsistencyStore.ty) [(go!"Clear", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"EnsureReady", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty] false [go.error]))), (go!"WroteAt", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, go.string] false [])))]
   ptr_Clear_unfold : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"Clear" noopConsistencyStore.Clear.impl
   ptr_EnsureReady_unfold : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"EnsureReady" noopConsistencyStore.EnsureReady.impl
   ptr_WroteAt_unfold : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"WroteAt" noopConsistencyStore.WroteAt.impl
 
 attribute [instance] noopConsistencyStore.TypeAssumptions.type_repr
   noopConsistencyStore.TypeAssumptions.underlying
+  noopConsistencyStore.TypeAssumptions.method_set
+  noopConsistencyStore.TypeAssumptions.ptr_method_set
   noopConsistencyStore.TypeAssumptions.ptr_Clear_unfold
   noopConsistencyStore.TypeAssumptions.ptr_EnsureReady_unfold
   noopConsistencyStore.TypeAssumptions.ptr_WroteAt_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ConsistencyStore_instance : ConsistencyStore.TypeAssumptions
   ConsistencyError_instance : ConsistencyError.TypeAssumptions
   LastSyncRVGetter_instance : LastSyncRVGetter.TypeAssumptions

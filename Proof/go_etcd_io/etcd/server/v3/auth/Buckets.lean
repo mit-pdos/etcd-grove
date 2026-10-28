@@ -80,7 +80,7 @@ opaque userEncode : UserRec → GoString
 opaque roleEncode : RoleRec → GoString
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -216,11 +216,12 @@ def userOut (u : Loc) (st : AuthState) (name : GoString) : IProp GF :=
       ⌜ur.name = name ∧ ur.roles = roles ∧ roles.Pairwise go.GoStringLt⌝ ∗ ownUser u ur)
 
 /-- What `UnsafeGetRole(name)` returns of the state `st`: nil if `st` has no such role, else a
-message holding a record of that name whose permissions of a known type are the state's. -/
+message holding a record of that name whose permissions of a known type are the state's, up to
+order (`List.Perm`: the record is sorted by key, unstably; the auth plan's E3z). -/
 def roleOut (r : Loc) (st : AuthState) (name : GoString) : IProp GF :=
   match st.roles.lookup name with
   | none => iprop(⌜r = null⌝)
-  | some ps => iprop(∃ rr : RoleRec, ⌜rr.name = name ∧ rr.toRole = ps⌝ ∗ ownRole r rr)
+  | some ps => iprop(∃ rr : RoleRec, ⌜rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRole r rr)
 
 /-- `userOut` with the message as `proto.Unmarshal` returns it (`ownUserX`): what a batch
 transaction's `UnsafeGetUser` returns (the auth plan's S4c). -/
@@ -234,7 +235,7 @@ def userOutX (u : Loc) (st : AuthState) (name : GoString) : IProp GF :=
 def roleOutX (r : Loc) (st : AuthState) (name : GoString) : IProp GF :=
   match st.roles.lookup name with
   | none => iprop(⌜r = null⌝)
-  | some ps => iprop(∃ rr : RoleRec, ⌜rr.name = name ∧ rr.toRole = ps⌝ ∗ ownRoleX r rr)
+  | some ps => iprop(∃ rr : RoleRec, ⌜rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRoleX r rr)
 
 theorem userOutX_persist (u : Loc) (st : AuthState) (name : GoString) :
     userOutX (GF := GF) u st name ⊢ |==> userOut u st name := by
@@ -267,6 +268,49 @@ def authSnap (M : AuthMode) (st : AuthState) : IProp GF :=
 instance authSnap_persistent (M : AuthMode) (st : AuthState) :
     Persistent (authSnap (GF := GF) M st) := by
   unfold authSnap; cases M <;> infer_instance
+
+/-- **A reader's lower bound of the published index** `i` in the mode `M` (persistent; the auth
+plan's E3g): in `on γa`, `authPubLb γa i`; otherwise nothing. -/
+def authPubLbM (M : AuthMode) (i : Nat) : IProp GF :=
+  match M with
+  | .on γa => authPubLb γa i
+  | _ => iprop(True)
+
+instance authPubLbM_persistent (M : AuthMode) (i : Nat) :
+    Persistent (authPubLbM (GF := GF) M i) := by
+  unfold authPubLbM; cases M <;> infer_instance
+
+/-- **A state of the mode no older than the index `i`** (persistent; the auth plan's E3g): as
+`authSnap`, in `on γa` recorded at an index at least `i`. -/
+def authSnapFrom (M : AuthMode) (i : Nat) (st : AuthState) : IProp GF :=
+  match M with
+  | .off => iprop(⌜st.enabled = false⌝)
+  | .any => iprop(True)
+  | .on γa => iprop(∃ j : Nat, authStateAt γa j st ∗ ⌜i ≤ j⌝)
+
+instance authSnapFrom_persistent (M : AuthMode) (i : Nat) (st : AuthState) :
+    Persistent (authSnapFrom (GF := GF) M i st) := by
+  unfold authSnapFrom; cases M <;> infer_instance
+
+/-- A state no older than an index is a state of the mode. -/
+theorem authSnapFrom_snap (M : AuthMode) (i : Nat) (st : AuthState) :
+    authSnapFrom (GF := GF) M i st ⊢ authSnap M st := by
+  cases M
+  · simp only [authSnapFrom, authSnap]; iintro H; iexact H
+  · simp only [authSnapFrom, authSnap]; iintro -; itrivial
+  · simp only [authSnapFrom, authSnap]
+    iintro ⟨%j, #H, -⟩
+    iexists j; iexact H
+
+/-- Every state of the mode is no older than `0`. -/
+theorem authSnapFrom_zero (M : AuthMode) (st : AuthState) :
+    authSnap (GF := GF) M st ⊢ authSnapFrom M 0 st := by
+  cases M
+  · simp only [authSnapFrom, authSnap]; iintro H; iexact H
+  · simp only [authSnapFrom, authSnap]; iintro -; itrivial
+  · simp only [authSnapFrom, authSnap]
+    iintro ⟨%j, #H⟩
+    iexists j; iframe H; ipureintro; omega
 
 theorem authSnap_any (st : AuthState) : ⊢ authSnap (GF := GF) .any st := by
   unfold authSnap; ipureintro; trivial

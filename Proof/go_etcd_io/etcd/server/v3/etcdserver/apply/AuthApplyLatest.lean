@@ -38,7 +38,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_e
 namespace apply
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The outcome `oc` decided at the latest state** for the checked permissions `perms`: the
 auth layer's rejection with one of them refused, or the inner chain `c`'s outcome with all of them
@@ -87,7 +87,7 @@ def deletePermsM (o : OpFull) : List Perm3 :=
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -126,14 +126,102 @@ def lookupNil (le : GoInterface) : IProp GF :=
 instance lookupNil_persistent (le : GoInterface) : Persistent (lookupNil (GF := GF) le) := by
   unfold lookupNil; infer_instance
 
+/-- **The certificates of the outcomes `X` admits** (`certPre`'s, for the outcomes of `c` meeting
+`X` only; the auth plan's E3f): with the verdict at the latest state, a KV request the auth layer
+refuses there never reaches the store, so only the outcomes that verdict lets through need their
+log's certificate. In the mode `on` the apply thread can certify no more: a write the model
+refuses is the model's log of no committed prefix. -/
+def certPreW (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) (X : Outcome → Prop) :
+    IProp GF :=
+  iprop(□ ∀ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ X oc⌝ -∗
+    mvcc.certOk E.γ (oc.logAfter log))
+
+instance certPreW_persistent (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (X : Outcome → Prop) : Persistent (certPreW E c rq log X) := by
+  unfold certPreW; infer_instance
+
+/-- `certPreW` with `v3` (`certPreV`'s). -/
+def certPreVW (v3 : Bool) (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (X : Outcome → Prop) : IProp GF :=
+  if v3 then certPreW E c rq log X else iprop(True)
+
+instance certPreVW_persistent (v3 : Bool) (E : AEnv GF) (c : Chain) (rq : IRRModel)
+    (log : mvcc.Log) (X : Outcome → Prop) : Persistent (certPreVW v3 E c rq log X) := by
+  unfold certPreVW; split <;> infer_instance
+
+/-- `putPre` with the certificates of the outcomes `X` admits (`certPreW`). -/
+def putPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (X : Outcome → Prop) : IProp GF :=
+  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ certPreW E c rq log X ∗
+    txn.putRequestIs r o ∗
+    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
+
+/-- `deletePre` with the certificates of the outcomes `X` admits (`certPreW`). -/
+def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (X : Outcome → Prop) : IProp GF :=
+  iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
+    certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mvcc.storeWT E.γ ∗
+    mPre E c a info log Pre Q Post)
+
+/-- `txnPre` with the certificates of the outcomes `X` admits (`certPreW`). -/
+def txnPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (X : Outcome → Prop) : IProp GF :=
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPre log t⌝ ∗ certPreW E c rq log X ∗
+    txn.txnRequestIs r t ∗
+    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
+
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+
+/-- `certPre` gives the certificates of any outcomes. -/
+theorem certPreW_of_certPre (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (X : Outcome → Prop) : certPre E c rq log ⊢ certPreW E c rq log X := by
+  iintro #H
+  iunfold certPre at H
+  iunfold certPreW
+  iintro !> %oc %h
+  iapply H $$ %oc %h.1
+
+/-- `certPreW` for fewer outcomes. -/
+theorem certPreW_mono (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (X Y : Outcome → Prop) (h : ∀ oc, Y oc → X oc) :
+    certPreW E c rq log X ⊢ certPreW E c rq log Y := by
+  iintro #H
+  iunfold certPreW at H
+  iunfold certPreW
+  iintro !> %oc %hy
+  iapply H $$ %oc %(⟨hy.1, h oc hy.2⟩)
+
+theorem certPreVW_true (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (X : Outcome → Prop) : certPreVW true E c rq log X ⊢ certPreW E c rq log X := by
+  simp only [certPreVW, ↓reduceIte]; exact .rfl
+
+theorem certPreVW_of_certPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (rq : IRRModel)
+    (log : mvcc.Log) (X : Outcome → Prop) : certPreV v3 E c rq log ⊢ certPreVW v3 E c rq log X := by
+  cases v3
+  · simp only [certPreV, certPreVW, Bool.false_eq_true, ↓reduceIte]; iintro -; itrivial
+  · simp only [certPreV, certPreVW, ↓reduceIte]; exact certPreW_of_certPre E c rq log X
+
+/-- **Past the auth layer's check**: when every outcome of the inner chain `c` is one `X` admits
+(the check passed at the latest state), the auth chain's `certPreW` is the inner chain's
+`certPre`. -/
+theorem certPreW_inner (E : AEnv GF) (on : Bool) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (X : Outcome → Prop) (h : ∀ oc, chainStep backendStep c rq log oc → X oc) :
+    certPreW E (.auth on c) rq log X ⊢ certPre E c rq log := by
+  iintro #H
+  iunfold certPreW at H
+  iunfold certPre
+  iintro !> %oc %hs
+  iapply H $$ %oc %(⟨by simp only [chainStep]; split <;> simp [hs], h oc hs⟩)
 
 theorem kvPostFL_kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel) (log F : mvcc.Log)
@@ -211,7 +299,7 @@ end apply
 /-! ## The specs -/
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -235,7 +323,8 @@ abbrev apply.authApplierV3.Range.specL : Prop :=
       L hs ∗ apply.traceRes trace }}
 
 /-- **`DeleteRange` on the apply thread**: `DeleteRange.spec`'s, the outcome decided at the
-latest state for the write (and with `PrevKv` the read) as the checks saw them. -/
+latest state for the write (and with `PrevKv` the read) as the checks saw them; the certificates
+asked only of the outcomes that verdict admits (`deletePreW`, E3f). -/
 abbrev apply.authApplierV3.DeleteRange.specL : Prop :=
   ∀ (E : apply.AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel)
     (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
@@ -243,7 +332,10 @@ abbrev apply.authApplierV3.DeleteRange.specL : Prop :=
     (L : List auth.AuthState → IProp GF) (hs : List auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.applierSpec E c inner ∗
-      apply.deletePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log Pre Q Post ∗
+      apply.deletePreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log Pre Q Post
+        (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
+          apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
+            ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
       mvcc.idxCert E.γ.idx F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.deletePermsM o)⌝ }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
@@ -257,7 +349,7 @@ abbrev apply.authApplierV3.DeleteRange.specL : Prop :=
 end spec
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -373,9 +465,8 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   icases Hauth with ⟨#Happ, -, -, -⟩
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
-  iunfold apply.deletePre at Hpre
+  iunfold apply.deletePreW at Hpre
   icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-  ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
@@ -444,6 +535,12 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
       iframe Hpw
       iintro %h; rw [hpk] at h; cases h
     ihave #Hrc := apply.reqClass_deleteRange E.authMode info rq o Hk.1 Hk.2.1 $$ Hdc
+    ihave #Hcp := apply.certPreW_inner E E.authOn c rq log _ (fun oc hoc => by
+      refine ⟨e, hend, Or.inr ⟨hoc, ?_⟩⟩
+      rw [hpk]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      rw [← hkey] at Honew
+      exact Honew.1 rfl) $$ Hcp
     iunfold apply.chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
     wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
@@ -509,6 +606,13 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     iframe Hpw
     iintro %_; iexact Hpr
   ihave #Hrc := apply.reqClass_deleteRange E.authMode info rq o Hk.1 Hk.2.1 $$ Hdc
+  ihave #Hcp := apply.certPreW_inner E E.authOn c rq log _ (fun oc hoc => by
+    refine ⟨e, hend, Or.inr ⟨hoc, ?_⟩⟩
+    rw [hpk]
+    simp only [↓reduceIte]
+    rw [← hkey] at Honew Honer
+    exact apply.passedL_append _ _ _ [(o.key, e, .write)] [(o.key, e, .read)] (Honew.1 rfl)
+      (Honer.1 rfl)) $$ Hcp
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
   wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩

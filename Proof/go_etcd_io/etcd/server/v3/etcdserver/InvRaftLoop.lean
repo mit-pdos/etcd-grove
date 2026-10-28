@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -62,6 +62,12 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         committedLast E.γr ce := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
+  icases HP with (HP | HP)
+  rotate_left
+  · -- (D22 J6a; 2026-10-27) no snapshot payload
+    iunfold rnApSnap at HP
+    iexfalso; iexact HP
+  iunfold rnApN at HP
   icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, -⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
@@ -77,7 +83,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
   ipureintro; exact Hsnap
 
 /-- (D43 M3) In raft's static mode the view is any `nodeCfg`: it holds after any log. -/
-theorem rnCfgAt_static (γ : RNNames) (L L' : List EntryModel) (h : γ.node.mode.isDyn = false) :
+theorem rnCfgAt_static (γ : RNNames) (L L' : List EntryModel) (h : γ.node.dyn = false) :
     rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ L' := by
   unfold rnCfgAt
   rw [ite_eq_right (by rw [h]; decide), ite_eq_right (by rw [h]; decide)]
@@ -88,7 +94,7 @@ theorem rnCfgAt_normal1 (γ : RNNames) (L : List EntryModel) (m : EntryModel)
     rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ [m]) := by
   unfold rnCfgAt
   split
-  · have := dvView_normal (GF := GF) ⟨γ.node.raft, γ.pre, W64 0⟩ (some γ.node) L m hm
+  · have := dvView_normal (GF := GF) γ.srv (some γ.nl) L m hm
     unfold dvView at this
     exact this
   · exact .rfl
@@ -133,7 +139,7 @@ theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce
     (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
       rnCfgAt γ (L ++ ce) := by
   unfold rnApR
-  cases hd : γ.node.mode.isDyn
+  cases hd : γ.node.dyn
   · have hh : rnHands γ ce = false := by unfold rnHands; simp [hd]
     rw [ite_eq_right (by rw [hh]; decide), ite_eq_right (by rw [hh]; decide)]
     iintro ⟨H, -⟩
@@ -145,42 +151,42 @@ theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce
 
 /-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
 (`rnHands`). -/
-def rnDv (γ : RNNames) (ce : List EntryModel) : Option NodeNames :=
-  if rnHands γ ce then some γ.node else none
+def rnDv (γ : RNNames) (ce : List EntryModel) : Option Loc :=
+  if rnHands γ ce then some γ.nl else none
 
 /-- (D43 M3) What the apply thread's receive deposits, as the apply side states it. -/
 theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre)
-    (A ce : List EntryModel) :
+    (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
     rnApR (GF := GF) γ A ce = dvView γs (rnDv γ ce) (A ++ ce) := by
   unfold rnApR rnDv dvView
   by_cases h : rnHands γ ce
-  · have hd : γ.node.mode.isDyn = true := by
+  · have hd : γ.node.dyn = true := by
       unfold rnHands at h; simp only [Bool.and_eq_true] at h; exact h.1
     rw [ite_eq_left h, ite_eq_left h]
-    unfold rnCfgAt
-    rw [ite_eq_left hd, hpre]
+    unfold rnCfgAt srvCfgView
+    rw [ite_eq_left hd, hpre, hraft]
   · rw [ite_eq_right h, ite_eq_right h]
 
 /-- (D43 M3) What goes along with the batch, as the apply side states it, with the node's dynamic
 contract (`isRaftNodeIfc`'s, in the dynamic mode). -/
 theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre)
-    (A ce : List EntryModel) :
-    (⌜γ.node.mode.isDyn = false⌝ ∨ srvRaftNodeDyn (GF := GF) s γ.node) ∗ rnApGive γ A ce ⊢
+    (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
+    (⌜γ.node.dyn = false⌝ ∨ srvRaftNodeDyn (GF := GF) s γ.srv γ.nl) ∗ rnApGive γ A ce ⊢
       dvView γs (rnDv γ ce) A ∗ dvRes s γs (rnDv γ ce) (A ++ ce) := by
   unfold rnApGive rnDv dvView dvRes
   by_cases h : rnHands γ ce
-  · have hd : γ.node.mode.isDyn = true := by
+  · have hd : γ.node.dyn = true := by
       unfold rnHands at h; simp only [Bool.and_eq_true] at h; exact h.1
     rw [ite_eq_left h, ite_eq_left h]
     simp only
-    unfold rnCfgAt
-    rw [ite_eq_left hd]
+    unfold rnCfgAt srvCfgView
+    rw [ite_eq_left hd, srvRaftNodeDyn_congr s γs γ.srv γ.nl hraft]
     iintro ⟨(%Hf | #Hn), Hv, #Hd⟩
     · rw [hd] at Hf; cases Hf
-    rw [← hpre]
+    have hγs : γs = ⟨γ.node, γ.pre, γs.ai0⟩ := by cases γs; simp_all
+    rw [hγs]
     iframe Hv Hn
-    unfold rnLogOf srvLogOf at *
-    rw [← hpre]
+    unfold srvLE at *
     iexact Hd
   · rw [ite_eq_right h, ite_eq_right h]
     simp only
@@ -190,7 +196,7 @@ theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.
 /-- (D43 M3) The server's node meets the dynamic contract in raft's dynamic mode: the wrapper's
 node contract's (`isRaftNodeIfc`). -/
 theorem srvRaftNodeDyn_of_isRaftNode (E : RNEnv GF) (γ : RNNames) (s : Loc) :
-    isRaftNode E γ (srvRAddr s) ⊢ ⌜γ.node.mode.isDyn = false⌝ ∨ srvRaftNodeDyn s γ.node := by
+    isRaftNode E γ (srvRAddr s) ⊢ ⌜γ.node.dyn = false⌝ ∨ srvRaftNodeDyn s γ.srv γ.nl := by
   iintro #H
   iunfold isRaftNode at H
   iNamed H

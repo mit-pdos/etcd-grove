@@ -18,7 +18,7 @@ environment's `AEnv.RO` its resource. Of the writers the apply path reaches:
   saved (`members/<id> := json(member)`, `MustSaveMemberToBackend`: the **in-memory** member,
   exception 7, which is why the in-memory list is part of the state); for another id nothing
   (a removed member's: a warning; neither: a panic the contract does not model, as before);
-* the server's `applyConfChange` (`AddNode`, `membership.ccRest`, server-level).
+* the server's `applyConfChange` (`AddNode`, `RemoveNode`: `ccRest`, server-level).
 
 The writers the workload does not reach (the alarm store's `Activate`/`Deactivate`, the auth
 store's writes, the lessor's `Grant`/`Checkpoint`, the cluster's `SetDowngradeInfo`) take the
@@ -33,6 +33,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
 
 @[expose] public section
 
@@ -41,17 +42,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace apply
-
-/-- **A cluster member, as a value** (`membership.Member`: its id, its `RaftAttributes`' peer
-URLs and learner flag, its `Attributes`' name and client URLs): what `json.Unmarshal` of a
-member's JSON gives (the members' records and a conf change's context are the members' JSON). -/
-structure MemberM where
-  id : w64
-  peerURLs : List GoString
-  isLearner : Bool
-  name : GoString
-  clientURLs : List GoString
-  deriving Inhabited
 
 /-- **The rest buckets and the cluster's in-memory members** (see the file header): each rest
 bucket's contents (absent if absent: `backend.rbData`'s value) and the cluster's member list. -/
@@ -70,14 +60,37 @@ request's version `v` (its `String()` normalizes it). -/
 opaque semverNorm : GoString → GoString
 
 /-- The `cluster` bucket's version key (`schema.ClusterClusterVersionKeyName`). -/
-def clusterVersionKey [FfiSyntax] : GoString := go!"clusterVersion"
+def clusterVersionKey [GooseExts] : GoString := go!"clusterVersion"
+
+/-- `n/k := v` in the tracked buckets `bk` (the bucket created if absent; D43 M5b′, 2026-10-26: the
+member backend's contracts' effect). -/
+def bkPut (bk : GMap GoString backend.BktData) (n k v : GoString) : GMap GoString backend.BktData :=
+  bk.insert n (((bk.lookup n).getD ∅).insert k v)
+
+/-- `delete(n, k)` in the tracked buckets `bk` (the bucket created empty if absent; D43 M5b′). -/
+def bkDel (bk : GMap GoString backend.BktData) (n k : GoString) : GMap GoString backend.BktData :=
+  bk.insert n (((bk.lookup n).getD ∅).delete k)
 
 /-- `n/k := v` in the rest buckets (the bucket created if absent). -/
 def RestM.putIn (r : RestM) (n k v : GoString) : RestM :=
   { r with bk := r.bk.insert n (((r.bk.lookup n).getD ∅).insert k v) }
 
+/-- `delete(n, k)` in the rest buckets (D43 M5b′, 2026-10-26: `MustDeleteMemberFromBackend`'s;
+the bucket created empty if absent, as `putIn`). -/
+def RestM.delIn (r : RestM) (n k : GoString) : RestM :=
+  { r with bk := r.bk.insert n (((r.bk.lookup n).getD ∅).delete k) }
+
+theorem RestM.putIn_bk (r : RestM) (n k v : GoString) : (r.putIn n k v).bk = bkPut r.bk n k v :=
+  rfl
+
+theorem RestM.delIn_bk (r : RestM) (n k : GoString) : (r.delIn n k).bk = bkDel r.bk n k := rfl
+
+theorem RestM.putIn_mem (r : RestM) (n k v : GoString) : (r.putIn n k v).mem = r.mem := rfl
+
+theorem RestM.delIn_mem (r : RestM) (n k : GoString) : (r.delIn n k).mem = r.mem := rfl
+
 /-- **`SetVersion` of the version `MustParse(s)`** (see the file header). -/
-def restSetVersion [FfiSyntax] (v3 : Bool) (s : GoString) (r : RestM) : RestM :=
+def restSetVersion [GooseExts] (v3 : Bool) (s : GoString) (r : RestM) : RestM :=
   if v3 then r.putIn go!"cluster" clusterVersionKey (semverNorm s) else r
 
 /-- A member with the attributes `a`. -/
@@ -85,7 +98,7 @@ def MemberM.withAttrs (m : MemberM) (a : MemberAttrModel) : MemberM :=
   { m with name := a.name, clientURLs := a.clientURLs }
 
 /-- **`UpdateAttributes(a.memberID, a, v3)`** (see the file header). -/
-def restUpdateAttrs [FfiSyntax] (v3 : Bool) (a : MemberAttrModel) (r : RestM) : RestM :=
+def restUpdateAttrs [GooseExts] (v3 : Bool) (a : MemberAttrModel) (r : RestM) : RestM :=
   match r.mem.lookup a.memberID with
   | none => r
   | some m =>
@@ -95,7 +108,7 @@ def restUpdateAttrs [FfiSyntax] (v3 : Bool) (a : MemberAttrModel) (r : RestM) : 
 /-- **What `dispatch(rq, v3)` does to the rest buckets and the members** (see the file header):
 the cluster version's and the member attributes' requests (`dispatch`'s first two cases, in its
 order: `dispatchKind`); nothing else (the writers it does not reach take `AEnv.RW`). -/
-def restAfter [FfiSyntax] (rq : IRRModel) (v3 : Bool) (r : RestM) : RestM :=
+def restAfter [GooseExts] (rq : IRRModel) (v3 : Bool) (r : RestM) : RestM :=
   match rq.clusterVersionSet with
   | some v => restSetVersion v3 v r
   | none =>
@@ -104,7 +117,7 @@ def restAfter [FfiSyntax] (rq : IRRModel) (v3 : Bool) (r : RestM) : RestM :=
     | none => r
 
 /-- A request of another kind leaves them. -/
-theorem restAfter_other [FfiSyntax] (rq : IRRModel) (v3 : Bool) (r : RestM)
+theorem restAfter_other [GooseExts] (rq : IRRModel) (v3 : Bool) (r : RestM)
     (h1 : rq.clusterVersionSet = none) (h2 : rq.clusterMemberAttrSet = none) :
     restAfter rq v3 r = r := by
   unfold restAfter; rw [h1, h2]
@@ -117,7 +130,7 @@ inductive ClusterReq where
   | dg (d : DowngradeModel)
 
 /-- What a cluster method does to `RestM` (`DowngradeInfoSet` writes through `AEnv.RW`). -/
-def ClusterReq.eff [FfiSyntax] : ClusterReq → Bool → RestM → RestM
+def ClusterReq.eff [GooseExts] : ClusterReq → Bool → RestM → RestM
   | .ver v, v3, r => restSetVersion v3 v r
   | .attr a, v3, r => restUpdateAttrs v3 a r
   | .dg _, _, r => r
@@ -140,7 +153,7 @@ instance semverIs_persistent (v : Loc) (s : GoString) : Persistent (semverIs (GF
 end defs
 
 /-- The method a cluster request is for. -/
-def ClusterReq.method [FfiSyntax] : ClusterReq → GoString
+def ClusterReq.method [GooseExts] : ClusterReq → GoString
   | .ver _ => go!"ClusterVersionSet"
   | .attr _ => go!"ClusterMemberAttrSet"
   | .dg _ => go!"DowngradeInfoSet"

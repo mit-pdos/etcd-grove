@@ -19,7 +19,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.et
 /-! ## `modify` -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The zero `Loc` is nil. -/
 theorem zero_val_loc : (zero_val Loc : Loc) = null := rfl
@@ -242,7 +242,7 @@ theorem add_lis (k : GoString) (e : LeaseEntry) (st : LeaseCacheSt) :
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

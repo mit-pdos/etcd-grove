@@ -13,10 +13,13 @@ to `run` (2026-10-16, stage R8b, D12).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 public import Spec.go_etcd_io.raft.v3.RawNode__Bootstrap
 public import Spec.go_etcd_io.raft.v3.newNode
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 
@@ -28,7 +31,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -71,7 +74,7 @@ abbrev setupNode.spec : Prop :=
   cv.ID' ∈ ps →
   γ.reCfg = GMap.listToSet ps →
   γ.reBoot = bootLog →
-  BootLogOk γ.reCCOk ps bootLog →
+  BootLogOk ps bootLog →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗

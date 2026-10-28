@@ -128,12 +128,12 @@ instance MI.countable : Pos.Countable MI :=
   .ofInjective (fun i => Pos.Countable.encode (encMI i))
     (fun _ _ h => encMI_inj (Pos.encode_inj h))
 
-instance KVState.inhabited : Inhabited KVState := ⟨⟨0, ∅, []⟩⟩
+instance KVState.inhabited : Inhabited KVState := ⟨{ compacted := 0, base := ∅, changes := [] }⟩
 
 /-! ## Pure part -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The pending writes (in some order). -/
 def pendIns (M : GMap Nat MI) : List MI := M.toList.map Prod.snd
@@ -280,7 +280,7 @@ end pure
 /-! ## The ghost state and the invariant -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -428,7 +428,7 @@ end defs
 /-! ## The steps -/
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -463,10 +463,10 @@ theorem run_snoc (h : List OpV) (S S' : linkv.PSet MS MI) (a : OpV)
     | some s1 => exact ih s1
 
 /-- The revisions' map, after a step: the next revision's state added, if it moved. -/
-theorem revOwn_step (γ : LinkvNames) (op : KVOp) (σ : KVState) :
+theorem revOwn_step (γ : LinkvNames) (op : KVOp) (σ : KVState) (hop : op.isKV) :
     revOwn (GF := GF) γ σ ⊢ |==> revOwn γ (kvOpStep op σ) := by
   iintro H
-  rcases kvOpStep_cases op σ with he | hr
+  rcases kvOpStep_cases op σ hop with he | hr
   · rw [he]; imodintro; iexact H
   iunfold revOwn at H
   icases H with ⟨%Mr, HA, -, %Hok⟩
@@ -566,7 +566,7 @@ theorem write_ok_au (γ : LinkvNames) (γk : KVNames) (x : Input) (i : MI) (hx :
   · -- commit: the write takes effect, `lintest`'s update commits
     iintro Hσ
     imod Hclose2 with -
-    imod (revOwn_step γ (opIn i) σ) $$ Hrv with Hrv
+    imod (revOwn_step γ (opIn i) σ (linkv.opOf_isKV _ _ i)) $$ Hrv with Hrv
     imod (fupd_mask_subseteq HE) with Hclose3
     iunfold linU at HU
     imod HU with ⟨%S0, HS, HU⟩
@@ -662,7 +662,7 @@ theorem write_pend_au (γ : LinkvNames) (γk : KVNames) (n : Nat) (i : MI) :
     iexact Htok
   · iintro Hσ
     imod Hclose2 with -
-    imod (revOwn_step γ (opIn i) σ) $$ Hrv with Hrv
+    imod (revOwn_step γ (opIn i) σ (linkv.opOf_isKV _ _ i)) $$ Hrv with Hrv
     iunfold pendTok at Htok
     ihave %Hn := ghost_map_lookup $$ HM Htok
     imod ghost_map_delete $$ HM Htok with HM

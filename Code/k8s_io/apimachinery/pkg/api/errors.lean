@@ -24,191 +24,191 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.api.errors
 
-noncomputable def StatusError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatusError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/errors.StatusError" [])
 
 attribute [irreducible] StatusError.ty
 
-noncomputable def APIStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def APIStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/errors.APIStatus" [])
 
 attribute [irreducible] APIStatus.ty
 
-noncomputable def UnexpectedObjectError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnexpectedObjectError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/errors.UnexpectedObjectError" [])
 
 attribute [irreducible] UnexpectedObjectError.ty
 
-noncomputable def ErrorReporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ErrorReporter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/errors.ErrorReporter" [])
 
 attribute [irreducible] ErrorReporter.ty
 
-axiom UnexpectedObjectError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UnexpectedObjectError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def knownReasons [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def knownReasons [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.knownReasons"
 
-axiom knownReasons.init [FfiSyntax] [GoGlobalContext] : val
+axiom knownReasons.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def HasStatusCause [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HasStatusCause [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.HasStatusCause"
 
-noncomputable def StatusCause [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatusCause [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.StatusCause"
 
-noncomputable def FromObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.FromObject"
 
-noncomputable def NewNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewNotFound"
 
-noncomputable def NewAlreadyExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewAlreadyExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewAlreadyExists"
 
-noncomputable def NewGenerateNameConflict [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGenerateNameConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewGenerateNameConflict"
 
-noncomputable def NewUnauthorized [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewUnauthorized [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewUnauthorized"
 
-noncomputable def NewForbidden [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForbidden [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewForbidden"
 
-noncomputable def NewConflict [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewConflict"
 
-noncomputable def NewApplyConflict [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewApplyConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewApplyConflict"
 
-noncomputable def NewGone [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGone [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewGone"
 
-noncomputable def NewResourceExpired [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewResourceExpired [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewResourceExpired"
 
-noncomputable def NewInvalid [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInvalid [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewInvalid"
 
-noncomputable def NewBadRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewBadRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewBadRequest"
 
-noncomputable def NewTooManyRequests [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewTooManyRequests"
 
-noncomputable def NewServiceUnavailable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServiceUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewServiceUnavailable"
 
-noncomputable def NewMethodNotSupported [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMethodNotSupported [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewMethodNotSupported"
 
-noncomputable def NewServerTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServerTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewServerTimeout"
 
-noncomputable def NewServerTimeoutForKind [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServerTimeoutForKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewServerTimeoutForKind"
 
-noncomputable def NewInternalError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInternalError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewInternalError"
 
-noncomputable def NewTimeoutError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTimeoutError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewTimeoutError"
 
-noncomputable def NewTooManyRequestsError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTooManyRequestsError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewTooManyRequestsError"
 
-noncomputable def NewRequestEntityTooLargeError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRequestEntityTooLargeError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewRequestEntityTooLargeError"
 
-noncomputable def NewGenericServerResponse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGenericServerResponse [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewGenericServerResponse"
 
-noncomputable def IsNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsNotFound"
 
-noncomputable def IsAlreadyExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsAlreadyExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsAlreadyExists"
 
-noncomputable def IsConflict [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsConflict"
 
-noncomputable def IsInvalid [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsInvalid [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsInvalid"
 
-noncomputable def IsGone [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsGone [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsGone"
 
-noncomputable def IsResourceExpired [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsResourceExpired [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsResourceExpired"
 
-noncomputable def IsNotAcceptable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsNotAcceptable [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsNotAcceptable"
 
-noncomputable def IsUnsupportedMediaType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsUnsupportedMediaType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsUnsupportedMediaType"
 
-noncomputable def IsMethodNotSupported [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsMethodNotSupported [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsMethodNotSupported"
 
-noncomputable def IsServiceUnavailable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsServiceUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsServiceUnavailable"
 
-noncomputable def IsBadRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsBadRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsBadRequest"
 
-noncomputable def IsUnauthorized [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsUnauthorized [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsUnauthorized"
 
-noncomputable def IsForbidden [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsForbidden [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsForbidden"
 
-noncomputable def IsTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsTimeout"
 
-noncomputable def IsServerTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsServerTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsServerTimeout"
 
-noncomputable def IsInternalError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsInternalError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsInternalError"
 
-noncomputable def IsTooManyRequests [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsTooManyRequests"
 
-noncomputable def IsRequestEntityTooLargeError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsRequestEntityTooLargeError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsRequestEntityTooLargeError"
 
-noncomputable def IsUnexpectedServerError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsUnexpectedServerError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsUnexpectedServerError"
 
-noncomputable def IsUnexpectedObjectError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsUnexpectedObjectError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsUnexpectedObjectError"
 
-noncomputable def IsStoreReadError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsStoreReadError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.IsStoreReadError"
 
-noncomputable def SuggestsClientDelay [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SuggestsClientDelay [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.SuggestsClientDelay"
 
-noncomputable def ReasonForError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReasonForError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.ReasonForError"
 
-noncomputable def reasonAndCodeForError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reasonAndCodeForError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.reasonAndCodeForError"
 
-noncomputable def NewClientErrorReporter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewClientErrorReporter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewClientErrorReporter"
 
 /-- NewNotFound returns a new error which indicates that the resource of the kind and the name was not found.
 
     go: errors.go:145:6 -/
-noncomputable def NewNotFound.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewNotFound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "qualifiedResource"
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "qualifiedResource" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "qualifiedResource"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int32))) (Val _root_.Perennial.net.http.StatusNotFound))
   (Let "$v2" (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReasonNotFound)
   (Let "$v3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go!"Group"))) (Var "qualifiedResource")))
@@ -221,19 +221,25 @@ noncomputable def NewNotFound.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Details")) (ElementExpression (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v4")))])))))))
-  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0"))))))
 
 /-- NewAlreadyExists returns an error indicating the item requested exists by that identifier.
 
     go: errors.go:160:6 -/
-noncomputable def NewAlreadyExists.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewAlreadyExists.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "qualifiedResource"
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "qualifiedResource" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "qualifiedResource"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int32))) (Val _root_.Perennial.net.http.StatusConflict))
   (Let "$v2" (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReasonAlreadyExists)
   (Let "$v3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go!"Group"))) (Var "qualifiedResource")))
@@ -246,51 +252,69 @@ noncomputable def NewAlreadyExists.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Details")) (ElementExpression (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v4")))])))))))
-  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0"))))))
 
 /-- NewResourceExpired creates an error that indicates that the requested resource content has expired from
     the server (usually due to a resourceVersion that is too old).
 
     go: errors.go:274:6 -/
-noncomputable def NewResourceExpired.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewResourceExpired.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "message"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "message" (App (Val (GoInstruction (GoAlloc go.string))) (Var "message"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int32))) (Val _root_.Perennial.net.http.StatusGone))
   (Let "$v2" (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReasonExpired)
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.string))) (Var "message"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v3")))]))))))
-  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0")))))
 
 /-- NewBadRequest creates an error that indicates that the request is invalid and can not be processed.
 
     go: errors.go:315:6 -/
-noncomputable def NewBadRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewBadRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "reason"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "reason" (App (Val (GoInstruction (GoAlloc go.string))) (Var "reason"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int32))) (Val _root_.Perennial.net.http.StatusBadRequest))
   (Let "$v2" (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReasonBadRequest)
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.string))) (Var "reason"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v3")))]))))))
-  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0")))))
 
 /-- NewTimeoutError returns an error indicating that a timeout occurred before the request
     could be completed.  Clients may retry, but the operation may still complete.
 
     go: errors.go:401:6 -/
-noncomputable def NewTimeoutError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewTimeoutError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "message"
   (Lam "retryAfterSeconds"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "retryAfterSeconds" (App (Val (GoInstruction (GoAlloc go.int))) (Var "retryAfterSeconds"))
   (Let "message" (App (Val (GoInstruction (GoAlloc go.string))) (Var "message"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int32))) (Val _root_.Perennial.net.http.StatusGatewayTimeout))
   (Let "$v2" (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReasonTimeout)
   (Let "$v3" (Let "$a0" (Val #(go!"Timeout: %s"))
@@ -300,14 +324,20 @@ noncomputable def NewTimeoutError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v4" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.int go.int32))) (App (Val (GoInstruction (GoLoad go.int))) (Var "retryAfterSeconds")))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"RetryAfterSeconds")) (ElementExpression go.int32 (Var "$v0")))]))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Details")) (ElementExpression (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty) (Var "$v4")))])))))))
-  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.errors where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.net.http, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime.schema]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.api.errors)) (Lam BAnon
   (App (Val exceptionDo)
@@ -329,85 +359,97 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.initialize') (Val #()))))))))
 
-structure StatusError [FfiSyntax] where
+structure StatusError [GooseExts] where
   mk ::
   ErrStatus' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status
 
-noncomputable instance StatusError.zero_val [FfiSyntax] : ZeroVal StatusError :=
+noncomputable instance StatusError.zero_val [GooseExts] : ZeroVal StatusError :=
   ⟨StatusError.mk zeroValDef⟩
 
-@[reducible] noncomputable def StatusError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatusError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ErrStatus" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty)]
 
-@[irreducible] noncomputable def StatusError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatusError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatusError.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatusError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatusError [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatusError.fields StatusError.fieldsUnsealed :=
   ⟨by unfold StatusError.fields; rfl⟩
 
-@[reducible] noncomputable def StatusError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatusError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatusError.fields)
 
-class StatusError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatusError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatusError.underlying StatusError
   underlying : go.UnderlyingDirectedEq StatusError.ty StatusError.underlying
   get_ErrStatus : ∀ (x : StatusError), go.IsGoStepPureDetTagged under (StructFieldGet StatusError.underlying go!"ErrStatus") #x (Val #(x.ErrStatus'))
   set_ErrStatus : ∀ (x : StatusError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status), go.IsGoStepPureDetTagged under (StructFieldSet StatusError.underlying go!"ErrStatus") (PairV #x #y) (Val #(({ x with ErrStatus' := y } : StatusError)))
+  method_set : go.MethodSetIs StatusError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatusError.ty) [(go!"DebugError", (some (go.signature.Signature [] false [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty])))]
 
 attribute [instance] StatusError.TypeAssumptions.type_repr
   StatusError.TypeAssumptions.underlying
   StatusError.TypeAssumptions.get_ErrStatus
   StatusError.TypeAssumptions.set_ErrStatus
+  StatusError.TypeAssumptions.method_set
+  StatusError.TypeAssumptions.ptr_method_set
 
-abbrev APIStatus [FfiSyntax] : Type := GoInterface
+abbrev APIStatus [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def APIStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def APIStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Status" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty]))])
 
-class APIStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class APIStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq APIStatus.ty APIStatus.underlying
+  method_set : go.MethodSetIs APIStatus.ty [(go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType APIStatus.ty) []
 
 attribute [instance] APIStatus.TypeAssumptions.underlying
+  APIStatus.TypeAssumptions.method_set
+  APIStatus.TypeAssumptions.ptr_method_set
 
 axiom UnexpectedObjectError : Type
 axiom UnexpectedObjectError.zero_val : ZeroVal UnexpectedObjectError
 attribute [instance] UnexpectedObjectError.zero_val
 
-class UnexpectedObjectError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnexpectedObjectError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnexpectedObjectError.underlying UnexpectedObjectError
   underlying : go.UnderlyingDirectedEq UnexpectedObjectError.ty UnexpectedObjectError.underlying
   isUnderlying : go.IsUnderlying UnexpectedObjectError.underlying UnexpectedObjectError.underlying
+  method_set : go.MethodSetIs UnexpectedObjectError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnexpectedObjectError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UnexpectedObjectError.TypeAssumptions.type_repr
   UnexpectedObjectError.TypeAssumptions.underlying
   UnexpectedObjectError.TypeAssumptions.isUnderlying
+  UnexpectedObjectError.TypeAssumptions.method_set
+  UnexpectedObjectError.TypeAssumptions.ptr_method_set
 
-structure ErrorReporter [FfiSyntax] where
+structure ErrorReporter [GooseExts] where
   mk ::
   code' : w64
   verb' : GoString
   reason' : GoString
 
-noncomputable instance ErrorReporter.zero_val [FfiSyntax] : ZeroVal ErrorReporter :=
+noncomputable instance ErrorReporter.zero_val [GooseExts] : ZeroVal ErrorReporter :=
   ⟨ErrorReporter.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ErrorReporter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ErrorReporter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"code" go.int),
 (go.field_decl.FieldDecl go!"verb" go.string),
 (go.field_decl.FieldDecl go!"reason" go.string)]
 
-@[irreducible] noncomputable def ErrorReporter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ErrorReporter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ErrorReporter.fieldsUnsealed
 
-noncomputable instance equals_unfold_ErrorReporter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ErrorReporter [GooseExts] [GoGlobalContext] :
     EqualsUnfold ErrorReporter.fields ErrorReporter.fieldsUnsealed :=
   ⟨by unfold ErrorReporter.fields; rfl⟩
 
-@[reducible] noncomputable def ErrorReporter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ErrorReporter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ErrorReporter.fields)
 
-class ErrorReporter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ErrorReporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ErrorReporter.underlying ErrorReporter
   underlying : go.UnderlyingDirectedEq ErrorReporter.ty ErrorReporter.underlying
   get_code : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"code") #x (Val #(x.code'))
@@ -416,6 +458,8 @@ class ErrorReporter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_verb : ∀ (x : ErrorReporter) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"verb") (PairV #x #y) (Val #(({ x with verb' := y } : ErrorReporter)))
   get_reason : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"reason") #x (Val #(x.reason'))
   set_reason : ∀ (x : ErrorReporter) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"reason") (PairV #x #y) (Val #(({ x with reason' := y } : ErrorReporter)))
+  method_set : go.MethodSetIs ErrorReporter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorReporter.ty) [(go!"AsObject", (some (go.signature.Signature [go.error] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])])))]
 
 attribute [instance] ErrorReporter.TypeAssumptions.type_repr
   ErrorReporter.TypeAssumptions.underlying
@@ -425,8 +469,10 @@ attribute [instance] ErrorReporter.TypeAssumptions.type_repr
   ErrorReporter.TypeAssumptions.set_verb
   ErrorReporter.TypeAssumptions.get_reason
   ErrorReporter.TypeAssumptions.set_reason
+  ErrorReporter.TypeAssumptions.method_set
+  ErrorReporter.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   StatusError_instance : StatusError.TypeAssumptions
   APIStatus_instance : APIStatus.TypeAssumptions
   UnexpectedObjectError_instance : UnexpectedObjectError.TypeAssumptions

@@ -320,7 +320,7 @@ theorem demuxBC_chainEnd (c : DemuxCore) : chainEnd c.base c.stream = c.lastRev 
   unfold chainEnd DemuxCore.lastRev; rfl
 
 section iris
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -406,7 +406,7 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
 end iris
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -419,6 +419,7 @@ theorem demux.Broadcast.wp_proof
     demux.Broadcast.spec (GF := GF) (hG := hG) := by
   intro d γd cap C c resp r
   wp_start as ⟨#Hisd, Hw, #Hresp, % ⟨Hsorted, Hbd⟩, Hcert⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

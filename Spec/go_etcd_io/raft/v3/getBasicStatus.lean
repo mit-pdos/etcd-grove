@@ -14,7 +14,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section defs
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The `BasicStatus` of a node `id` in physical state `s`: its id, `r.hardState()`,
 `r.softState()`, `r.raftLog.applied` and `r.leadTransferee` (`NState.lt`).
@@ -28,7 +28,7 @@ def basicStatusOf (id : w64) (s : NState) (hp : Loc) : BasicStatus :=
 end defs
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

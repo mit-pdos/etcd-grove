@@ -20,1624 +20,1624 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.apis.core.validation
 
-noncomputable def ValidateNameFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValidateNameFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNameFunc" [])
 
 attribute [irreducible] ValidateNameFunc.ty
 
-noncomputable def ValidateCSIDriverNameOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValidateCSIDriverNameOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateCSIDriverNameOption" [])
 
 attribute [irreducible] ValidateCSIDriverNameOption.ty
 
-noncomputable def PersistentVolumeSpecValidationOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeSpecValidationOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/kubernetes/pkg/apis/core/validation.PersistentVolumeSpecValidationOptions" [])
 
 attribute [irreducible] PersistentVolumeSpecValidationOptions.ty
 
-noncomputable def PersistentVolumeClaimSpecValidationOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimSpecValidationOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/kubernetes/pkg/apis/core/validation.PersistentVolumeClaimSpecValidationOptions" [])
 
 attribute [irreducible] PersistentVolumeClaimSpecValidationOptions.ty
 
-noncomputable def commonHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def commonHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/kubernetes/pkg/apis/core/validation.commonHandler" [])
 
 attribute [irreducible] commonHandler.ty
 
-noncomputable def ValidateTolerationsOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValidateTolerationsOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateTolerationsOption" [])
 
 attribute [irreducible] ValidateTolerationsOption.ty
 
-noncomputable def PodValidationOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodValidationOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/kubernetes/pkg/apis/core/validation.PodValidationOptions" [])
 
 attribute [irreducible] PodValidationOptions.ty
 
-axiom ValidateNameFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ValidateNameFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidateNameFuncWithErrors [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ValidateNameFuncWithErrors [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom commonHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom commonHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReportingInstanceLengthLimit [FfiSyntax] [GoGlobalContext] : val
+axiom ReportingInstanceLengthLimit [GooseExts] [GoGlobalContext] : val
 
-axiom ActionLengthLimit [FfiSyntax] [GoGlobalContext] : val
+axiom ActionLengthLimit [GooseExts] [GoGlobalContext] : val
 
-axiom ReasonLengthLimit [FfiSyntax] [GoGlobalContext] : val
+axiom ReasonLengthLimit [GooseExts] [GoGlobalContext] : val
 
-axiom NoteLengthLimit [FfiSyntax] [GoGlobalContext] : val
+axiom NoteLengthLimit [GooseExts] [GoGlobalContext] : val
 
-axiom isNegativeErrorMsg [FfiSyntax] [GoGlobalContext] : val
+axiom isNegativeErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom isInvalidQuotaResource [FfiSyntax] [GoGlobalContext] : val
+axiom isInvalidQuotaResource [GooseExts] [GoGlobalContext] : val
 
-axiom fieldImmutableErrorMsg [FfiSyntax] [GoGlobalContext] : val
+axiom fieldImmutableErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom isNotIntegerErrorMsg [FfiSyntax] [GoGlobalContext] : val
+axiom isNotIntegerErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom isNotPositiveErrorMsg [FfiSyntax] [GoGlobalContext] : val
+axiom isNotPositiveErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom resourceStatusClaimPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom resourceStatusClaimPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom MaxPodEvictionResponders [FfiSyntax] [GoGlobalContext] : val
+axiom MaxPodEvictionResponders [GooseExts] [GoGlobalContext] : val
 
-axiom RequiredCovered [FfiSyntax] [GoGlobalContext] : val
+axiom RequiredCovered [GooseExts] [GoGlobalContext] : val
 
-axiom SizeCovered [FfiSyntax] [GoGlobalContext] : val
+axiom SizeCovered [GooseExts] [GoGlobalContext] : val
 
-axiom FormatCovered [FfiSyntax] [GoGlobalContext] : val
+axiom FormatCovered [GooseExts] [GoGlobalContext] : val
 
-axiom hugepagesRequestsPrefixDownwardAPI [FfiSyntax] [GoGlobalContext] : val
+axiom hugepagesRequestsPrefixDownwardAPI [GooseExts] [GoGlobalContext] : val
 
-axiom hugepagesLimitsPrefixDownwardAPI [FfiSyntax] [GoGlobalContext] : val
+axiom hugepagesLimitsPrefixDownwardAPI [GooseExts] [GoGlobalContext] : val
 
-axiom MaxDNSNameservers [FfiSyntax] [GoGlobalContext] : val
+axiom MaxDNSNameservers [GooseExts] [GoGlobalContext] : val
 
-axiom MaxDNSSearchPaths [FfiSyntax] [GoGlobalContext] : val
+axiom MaxDNSSearchPaths [GooseExts] [GoGlobalContext] : val
 
-axiom MaxDNSSearchListChars [FfiSyntax] [GoGlobalContext] : val
+axiom MaxDNSSearchListChars [GooseExts] [GoGlobalContext] : val
 
-axiom KeyFormatCovered [FfiSyntax] [GoGlobalContext] : val
+axiom KeyFormatCovered [GooseExts] [GoGlobalContext] : val
 
-axiom SysctlSegmentFmt [FfiSyntax] [GoGlobalContext] : val
+axiom SysctlSegmentFmt [GooseExts] [GoGlobalContext] : val
 
-axiom SysctlContainSlashFmt [FfiSyntax] [GoGlobalContext] : val
+axiom SysctlContainSlashFmt [GooseExts] [GoGlobalContext] : val
 
-axiom SysctlMaxLength [FfiSyntax] [GoGlobalContext] : val
+axiom SysctlMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom maxGMSACredentialSpecLengthInKiB [FfiSyntax] [GoGlobalContext] : val
+axiom maxGMSACredentialSpecLengthInKiB [GooseExts] [GoGlobalContext] : val
 
-axiom maxGMSACredentialSpecLength [FfiSyntax] [GoGlobalContext] : val
+axiom maxGMSACredentialSpecLength [GooseExts] [GoGlobalContext] : val
 
-axiom maxRunAsUserNameDomainLength [FfiSyntax] [GoGlobalContext] : val
+axiom maxRunAsUserNameDomainLength [GooseExts] [GoGlobalContext] : val
 
-axiom maxRunAsUserNameUserLength [FfiSyntax] [GoGlobalContext] : val
+axiom maxRunAsUserNameUserLength [GooseExts] [GoGlobalContext] : val
 
-noncomputable def pdPartitionErrorMsg [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pdPartitionErrorMsg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.pdPartitionErrorMsg"
 
-axiom pdPartitionErrorMsg.init [FfiSyntax] [GoGlobalContext] : val
+axiom pdPartitionErrorMsg.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def fileModeErrorMsg [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fileModeErrorMsg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.fileModeErrorMsg"
 
-axiom fileModeErrorMsg.init [FfiSyntax] [GoGlobalContext] : val
+axiom fileModeErrorMsg.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def emptyDirModeErrorMsg [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyDirModeErrorMsg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.emptyDirModeErrorMsg"
 
-axiom emptyDirModeErrorMsg.init [FfiSyntax] [GoGlobalContext] : val
+axiom emptyDirModeErrorMsg.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BannedOwners [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BannedOwners [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.BannedOwners"
 
-axiom BannedOwners.init [FfiSyntax] [GoGlobalContext] : val
+axiom BannedOwners.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def nodeDeclaredFeatureRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nodeDeclaredFeatureRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.nodeDeclaredFeatureRegexp"
 
-axiom nodeDeclaredFeatureRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom nodeDeclaredFeatureRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def iscsiInitiatorIqnRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def iscsiInitiatorIqnRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.iscsiInitiatorIqnRegex"
 
-axiom iscsiInitiatorIqnRegex.init [FfiSyntax] [GoGlobalContext] : val
+axiom iscsiInitiatorIqnRegex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def iscsiInitiatorEuiRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def iscsiInitiatorEuiRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.iscsiInitiatorEuiRegex"
 
-axiom iscsiInitiatorEuiRegex.init [FfiSyntax] [GoGlobalContext] : val
+axiom iscsiInitiatorEuiRegex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def iscsiInitiatorNaaRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def iscsiInitiatorNaaRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.iscsiInitiatorNaaRegex"
 
-axiom iscsiInitiatorNaaRegex.init [FfiSyntax] [GoGlobalContext] : val
+axiom iscsiInitiatorNaaRegex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def allowedEphemeralContainerFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def allowedEphemeralContainerFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.allowedEphemeralContainerFields"
 
-axiom allowedEphemeralContainerFields.init [FfiSyntax] [GoGlobalContext] : val
+axiom allowedEphemeralContainerFields.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validOS [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validOS [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validOS"
 
-axiom validOS.init [FfiSyntax] [GoGlobalContext] : val
+axiom validOS.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidatePodName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodName"
 
-axiom ValidatePodName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidatePodName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateServiceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateServiceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceName"
 
-axiom ValidateServiceName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateServiceName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateNodeName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNodeName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeName"
 
-axiom ValidateNodeName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateNodeName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateNamespaceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNamespaceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNamespaceName"
 
-axiom ValidateNamespaceName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateNamespaceName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateLimitRangeName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateLimitRangeName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateLimitRangeName"
 
-axiom ValidateLimitRangeName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateLimitRangeName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateResourceQuotaName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceQuotaName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuotaName"
 
-axiom ValidateResourceQuotaName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateResourceQuotaName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateSecretName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateSecretName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSecretName"
 
-axiom ValidateSecretName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateSecretName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateServiceAccountName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateServiceAccountName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceAccountName"
 
-axiom ValidateServiceAccountName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateServiceAccountName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateEndpointsName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEndpointsName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEndpointsName"
 
-axiom ValidateEndpointsName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateEndpointsName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateClassName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateClassName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateClassName"
 
-axiom ValidateClassName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateClassName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidatePriorityClassName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePriorityClassName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePriorityClassName"
 
-axiom ValidatePriorityClassName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidatePriorityClassName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateResourceClaimName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceClaimName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceClaimName"
 
-axiom ValidateResourceClaimName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateResourceClaimName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateResourceClaimTemplateName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceClaimTemplateName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceClaimTemplateName"
 
-axiom ValidateResourceClaimTemplateName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateResourceClaimTemplateName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidatePodGroupName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodGroupName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodGroupName"
 
-axiom ValidatePodGroupName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidatePodGroupName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validVolumeDownwardAPIFieldPathExpressions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validVolumeDownwardAPIFieldPathExpressions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validVolumeDownwardAPIFieldPathExpressions"
 
-axiom validVolumeDownwardAPIFieldPathExpressions.init [FfiSyntax] [GoGlobalContext] : val
+axiom validVolumeDownwardAPIFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedHostPathTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedHostPathTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedHostPathTypes"
 
-axiom supportedHostPathTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedHostPathTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def allowedTemplateObjectMetaFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def allowedTemplateObjectMetaFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.allowedTemplateObjectMetaFields"
 
-axiom allowedTemplateObjectMetaFields.init [FfiSyntax] [GoGlobalContext] : val
+axiom allowedTemplateObjectMetaFields.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidatePersistentVolumeName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeName"
 
-axiom ValidatePersistentVolumeName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidatePersistentVolumeName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedAccessModes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedAccessModes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedAccessModes"
 
-axiom supportedAccessModes.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedAccessModes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedReclaimPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedReclaimPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedReclaimPolicy"
 
-axiom supportedReclaimPolicy.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedReclaimPolicy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedVolumeModes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedVolumeModes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedVolumeModes"
 
-axiom supportedVolumeModes.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedVolumeModes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def resizeStatusSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resizeStatusSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.resizeStatusSet"
 
-axiom resizeStatusSet.init [FfiSyntax] [GoGlobalContext] : val
+axiom resizeStatusSet.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedPortProtocols [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedPortProtocols [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedPortProtocols"
 
-axiom supportedPortProtocols.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedPortProtocols.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validEnvDownwardAPIFieldPathExpressions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validEnvDownwardAPIFieldPathExpressions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validEnvDownwardAPIFieldPathExpressions"
 
-axiom validEnvDownwardAPIFieldPathExpressions.init [FfiSyntax] [GoGlobalContext] : val
+axiom validEnvDownwardAPIFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validContainerResourceFieldPathExpressions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validContainerResourceFieldPathExpressions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceFieldPathExpressions"
 
-axiom validContainerResourceFieldPathExpressions.init [FfiSyntax] [GoGlobalContext] : val
+axiom validContainerResourceFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages"
 
-axiom validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages.init [FfiSyntax] [GoGlobalContext] : val
+axiom validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validContainerResourceDivisorForCPU [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validContainerResourceDivisorForCPU [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceDivisorForCPU"
 
-axiom validContainerResourceDivisorForCPU.init [FfiSyntax] [GoGlobalContext] : val
+axiom validContainerResourceDivisorForCPU.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validContainerResourceDivisorForMemory [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validContainerResourceDivisorForMemory [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceDivisorForMemory"
 
-axiom validContainerResourceDivisorForMemory.init [FfiSyntax] [GoGlobalContext] : val
+axiom validContainerResourceDivisorForMemory.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validContainerResourceDivisorForHugePages [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validContainerResourceDivisorForHugePages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceDivisorForHugePages"
 
-axiom validContainerResourceDivisorForHugePages.init [FfiSyntax] [GoGlobalContext] : val
+axiom validContainerResourceDivisorForHugePages.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validContainerResourceDivisorForEphemeralStorage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validContainerResourceDivisorForEphemeralStorage [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceDivisorForEphemeralStorage"
 
-axiom validContainerResourceDivisorForEphemeralStorage.init [FfiSyntax] [GoGlobalContext] : val
+axiom validContainerResourceDivisorForEphemeralStorage.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedBindMountOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedBindMountOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedBindMountOptions"
 
-axiom supportedBindMountOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedBindMountOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedHTTPSchemes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedHTTPSchemes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedHTTPSchemes"
 
-axiom supportedHTTPSchemes.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedHTTPSchemes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedHTTPProtocols [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedHTTPProtocols [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedHTTPProtocols"
 
-axiom supportedHTTPProtocols.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedHTTPProtocols.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedGRPCProbeModes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedGRPCProbeModes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedGRPCProbeModes"
 
-axiom supportedGRPCProbeModes.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedGRPCProbeModes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedStopSignalsLinux [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedStopSignalsLinux [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedStopSignalsLinux"
 
-axiom supportedStopSignalsLinux.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedStopSignalsLinux.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedStopSignalsWindows [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedStopSignalsWindows [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedStopSignalsWindows"
 
-axiom supportedStopSignalsWindows.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedStopSignalsWindows.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedPullPolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedPullPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedPullPolicies"
 
-axiom supportedPullPolicies.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedPullPolicies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedResizeResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedResizeResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedResizeResources"
 
-axiom supportedResizeResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedResizeResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedResizePolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedResizePolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedResizePolicies"
 
-axiom supportedResizePolicies.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedResizePolicies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedContainerRestartPolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedContainerRestartPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedContainerRestartPolicies"
 
-axiom supportedContainerRestartPolicies.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedContainerRestartPolicies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedContainerRestartPolicyOperators [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedContainerRestartPolicyOperators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedContainerRestartPolicyOperators"
 
-axiom supportedContainerRestartPolicyOperators.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedContainerRestartPolicyOperators.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedContainerRestartRuleActions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedContainerRestartRuleActions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedContainerRestartRuleActions"
 
-axiom supportedContainerRestartRuleActions.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedContainerRestartRuleActions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedContainerRestartRuleActionsWithRestartAllContainers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedContainerRestartRuleActionsWithRestartAllContainers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedContainerRestartRuleActionsWithRestartAllContainers"
 
-axiom supportedContainerRestartRuleActionsWithRestartAllContainers.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedContainerRestartRuleActionsWithRestartAllContainers.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validFSGroupChangePolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validFSGroupChangePolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validFSGroupChangePolicies"
 
-axiom validFSGroupChangePolicies.init [FfiSyntax] [GoGlobalContext] : val
+axiom validFSGroupChangePolicies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def nodeFieldSelectorValidators [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nodeFieldSelectorValidators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.nodeFieldSelectorValidators"
 
-axiom nodeFieldSelectorValidators.init [FfiSyntax] [GoGlobalContext] : val
+axiom nodeFieldSelectorValidators.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def sysctlContainSlashRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sysctlContainSlashRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.sysctlContainSlashRegexp"
 
-axiom sysctlContainSlashRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom sysctlContainSlashRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validSELinuxChangePolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validSELinuxChangePolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validSELinuxChangePolicies"
 
-axiom validSELinuxChangePolicies.init [FfiSyntax] [GoGlobalContext] : val
+axiom validSELinuxChangePolicies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def updatablePodSpecFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def updatablePodSpecFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.updatablePodSpecFields"
 
-axiom updatablePodSpecFields.init [FfiSyntax] [GoGlobalContext] : val
+axiom updatablePodSpecFields.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedSessionAffinityType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedSessionAffinityType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedSessionAffinityType"
 
-axiom supportedSessionAffinityType.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedSessionAffinityType.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedServiceType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedServiceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedServiceType"
 
-axiom supportedServiceType.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedServiceType.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedServiceInternalTrafficPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedServiceInternalTrafficPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedServiceInternalTrafficPolicy"
 
-axiom supportedServiceInternalTrafficPolicy.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedServiceInternalTrafficPolicy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedServiceIPFamily [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedServiceIPFamily [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedServiceIPFamily"
 
-axiom supportedServiceIPFamily.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedServiceIPFamily.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedServiceIPFamilyPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedServiceIPFamilyPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedServiceIPFamilyPolicy"
 
-axiom supportedServiceIPFamilyPolicy.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedServiceIPFamilyPolicy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validExternalTrafficPolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validExternalTrafficPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validExternalTrafficPolicies"
 
-axiom validExternalTrafficPolicies.init [FfiSyntax] [GoGlobalContext] : val
+axiom validExternalTrafficPolicies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedTrafficDistribution [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedTrafficDistribution [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedTrafficDistribution"
 
-axiom supportedTrafficDistribution.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedTrafficDistribution.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateConfigMapName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateConfigMapName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateConfigMapName"
 
-axiom ValidateConfigMapName.init [FfiSyntax] [GoGlobalContext] : val
+axiom ValidateConfigMapName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ctrlRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ctrlRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ctrlRegex"
 
-axiom ctrlRegex.init [FfiSyntax] [GoGlobalContext] : val
+axiom ctrlRegex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validNetBiosRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validNetBiosRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validNetBiosRegex"
 
-axiom validNetBiosRegex.init [FfiSyntax] [GoGlobalContext] : val
+axiom validNetBiosRegex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dnsLabelFormat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dnsLabelFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.dnsLabelFormat"
 
-axiom dnsLabelFormat.init [FfiSyntax] [GoGlobalContext] : val
+axiom dnsLabelFormat.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dnsSubdomainFormat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dnsSubdomainFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.dnsSubdomainFormat"
 
-axiom dnsSubdomainFormat.init [FfiSyntax] [GoGlobalContext] : val
+axiom dnsSubdomainFormat.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validWindowsUserDomainDNSRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validWindowsUserDomainDNSRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validWindowsUserDomainDNSRegex"
 
-axiom validWindowsUserDomainDNSRegex.init [FfiSyntax] [GoGlobalContext] : val
+axiom validWindowsUserDomainDNSRegex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def invalidUserNameCharsRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def invalidUserNameCharsRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.invalidUserNameCharsRegex"
 
-axiom invalidUserNameCharsRegex.init [FfiSyntax] [GoGlobalContext] : val
+axiom invalidUserNameCharsRegex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def invalidUserNameDotsSpacesRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def invalidUserNameDotsSpacesRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.invalidUserNameDotsSpacesRegex"
 
-axiom invalidUserNameDotsSpacesRegex.init [FfiSyntax] [GoGlobalContext] : val
+axiom invalidUserNameDotsSpacesRegex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validLogStreams [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validLogStreams [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validLogStreams"
 
-axiom validLogStreams.init [FfiSyntax] [GoGlobalContext] : val
+axiom validLogStreams.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedLoadBalancerIPMode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedLoadBalancerIPMode [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedLoadBalancerIPMode"
 
-axiom supportedLoadBalancerIPMode.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedLoadBalancerIPMode.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedScheduleActions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedScheduleActions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedScheduleActions"
 
-axiom supportedScheduleActions.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedScheduleActions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedPodTopologySpreadNodePolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedPodTopologySpreadNodePolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedPodTopologySpreadNodePolicies"
 
-axiom supportedPodTopologySpreadNodePolicies.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedPodTopologySpreadNodePolicies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def betaToGALabel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def betaToGALabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.betaToGALabel"
 
-axiom betaToGALabel.init [FfiSyntax] [GoGlobalContext] : val
+axiom betaToGALabel.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def maskNodeSelectorLabelChangeEqualities [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maskNodeSelectorLabelChangeEqualities [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.maskNodeSelectorLabelChangeEqualities"
 
-noncomputable def initMaskNodeSelectorLabelChangeEqualities [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def initMaskNodeSelectorLabelChangeEqualities [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.initMaskNodeSelectorLabelChangeEqualities"
 
-noncomputable def validSupplementalGroupsPolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validSupplementalGroupsPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validSupplementalGroupsPolicies"
 
-axiom validSupplementalGroupsPolicies.init [FfiSyntax] [GoGlobalContext] : val
+axiom validSupplementalGroupsPolicies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ValidateEventCreate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEventCreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEventCreate"
 
-noncomputable def ValidateEventUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEventUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEventUpdate"
 
-noncomputable def validateV1EventSeries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateV1EventSeries [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateV1EventSeries"
 
-noncomputable def legacyValidateEvent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyValidateEvent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.legacyValidateEvent"
 
-noncomputable def IsKubernetesSignerName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsKubernetesSignerName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.IsKubernetesSignerName"
 
-noncomputable def ValidateSignerName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateSignerName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSignerName"
 
-noncomputable def ValidateClusterTrustBundleName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateClusterTrustBundleName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateClusterTrustBundleName"
 
-noncomputable def extractSignerNameFromClusterTrustBundleName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def extractSignerNameFromClusterTrustBundleName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.extractSignerNameFromClusterTrustBundleName"
 
-noncomputable def ValidateHasLabel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateHasLabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateHasLabel"
 
-noncomputable def ValidateAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateAnnotations"
 
-noncomputable def ValidateUserAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateUserAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateUserAnnotations"
 
-noncomputable def ValidateDNS1123Label [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateDNS1123Label [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateDNS1123Label"
 
-noncomputable def ValidateQualifiedName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateQualifiedName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateQualifiedName"
 
-noncomputable def ValidateDNS1123SubdomainWithUnderScore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateDNS1123SubdomainWithUnderScore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateDNS1123SubdomainWithUnderScore"
 
-noncomputable def ValidateDNS1123Subdomain [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateDNS1123Subdomain [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateDNS1123Subdomain"
 
-noncomputable def ValidatePodSpecificAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodSpecificAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodSpecificAnnotations"
 
-noncomputable def ValidateTolerationsInPodAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateTolerationsInPodAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateTolerationsInPodAnnotations"
 
-noncomputable def ValidatePodSpecificAnnotationUpdates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodSpecificAnnotationUpdates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodSpecificAnnotationUpdates"
 
-noncomputable def ValidateEndpointsSpecificAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEndpointsSpecificAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEndpointsSpecificAnnotations"
 
-noncomputable def ValidateRuntimeClassName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateRuntimeClassName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateRuntimeClassName"
 
-noncomputable def validateOverhead [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateOverhead [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateOverhead"
 
-noncomputable def ValidateNonnegativeField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNonnegativeField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNonnegativeField"
 
-noncomputable def ValidateNonnegativeQuantity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNonnegativeQuantity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNonnegativeQuantity"
 
-noncomputable def ValidatePositiveField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePositiveField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePositiveField"
 
-noncomputable def ValidatePositiveQuantityValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePositiveQuantityValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePositiveQuantityValue"
 
-noncomputable def ValidateImmutableField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateImmutableField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateImmutableField"
 
-noncomputable def ValidateImmutableAnnotation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateImmutableAnnotation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateImmutableAnnotation"
 
-noncomputable def ValidateObjectMetaWithOpts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateObjectMetaWithOpts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateObjectMetaWithOpts"
 
-noncomputable def ValidateObjectMeta [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateObjectMeta [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateObjectMeta"
 
-noncomputable def ValidateObjectMetaUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateObjectMetaUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateObjectMetaUpdate"
 
-noncomputable def ValidateVolumes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateVolumes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateVolumes"
 
-noncomputable def IsMatchedVolume [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsMatchedVolume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.IsMatchedVolume"
 
-noncomputable def isMatchedDevice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isMatchedDevice [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.isMatchedDevice"
 
-noncomputable def mountNameAlreadyExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mountNameAlreadyExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.mountNameAlreadyExists"
 
-noncomputable def mountPathAlreadyExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mountPathAlreadyExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.mountPathAlreadyExists"
 
-noncomputable def deviceNameAlreadyExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def deviceNameAlreadyExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.deviceNameAlreadyExists"
 
-noncomputable def devicePathAlreadyExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def devicePathAlreadyExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.devicePathAlreadyExists"
 
-noncomputable def validateVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateVolumeSource"
 
-noncomputable def validateHostPathVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateHostPathVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateHostPathVolumeSource"
 
-noncomputable def validateGitRepoVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateGitRepoVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateGitRepoVolumeSource"
 
-noncomputable def validateISCSIVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateISCSIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateISCSIVolumeSource"
 
-noncomputable def validateISCSIPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateISCSIPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateISCSIPersistentVolumeSource"
 
-noncomputable def validateFCVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFCVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFCVolumeSource"
 
-noncomputable def validateGCEPersistentDiskVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateGCEPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateGCEPersistentDiskVolumeSource"
 
-noncomputable def validateAWSElasticBlockStoreVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateAWSElasticBlockStoreVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateAWSElasticBlockStoreVolumeSource"
 
-noncomputable def validateSecretVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSecretVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSecretVolumeSource"
 
-noncomputable def validateConfigMapVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateConfigMapVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateConfigMapVolumeSource"
 
-noncomputable def validateKeyToPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateKeyToPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateKeyToPath"
 
-noncomputable def validatePersistentClaimVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePersistentClaimVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePersistentClaimVolumeSource"
 
-noncomputable def validateNFSVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNFSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNFSVolumeSource"
 
-noncomputable def validateQuobyteVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateQuobyteVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateQuobyteVolumeSource"
 
-noncomputable def validateGlusterfsVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateGlusterfsVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateGlusterfsVolumeSource"
 
-noncomputable def validateGlusterfsPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateGlusterfsPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateGlusterfsPersistentVolumeSource"
 
-noncomputable def validateFlockerVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFlockerVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFlockerVolumeSource"
 
-noncomputable def validateDownwardAPIVolumeFile [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateDownwardAPIVolumeFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateDownwardAPIVolumeFile"
 
-noncomputable def validateDownwardAPIVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateDownwardAPIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateDownwardAPIVolumeSource"
 
-noncomputable def validateProjectionSources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateProjectionSources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateProjectionSources"
 
-noncomputable def validateProjectedVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateProjectedVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateProjectedVolumeSource"
 
-noncomputable def validateHostPathType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateHostPathType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateHostPathType"
 
-noncomputable def validateLocalDescendingPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLocalDescendingPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLocalDescendingPath"
 
-noncomputable def validatePathNoBacksteps [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePathNoBacksteps [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePathNoBacksteps"
 
-noncomputable def validateMountPropagation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateMountPropagation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateMountPropagation"
 
-noncomputable def validateMountRecursiveReadOnly [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateMountRecursiveReadOnly [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateMountRecursiveReadOnly"
 
-noncomputable def ValidateLocalNonReservedPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateLocalNonReservedPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateLocalNonReservedPath"
 
-noncomputable def validateRBDVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateRBDVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateRBDVolumeSource"
 
-noncomputable def validateRBDPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateRBDPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateRBDPersistentVolumeSource"
 
-noncomputable def validateCinderVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateCinderVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateCinderVolumeSource"
 
-noncomputable def validateCinderPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateCinderPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateCinderPersistentVolumeSource"
 
-noncomputable def validateCephFSVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateCephFSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateCephFSVolumeSource"
 
-noncomputable def validateCephFSPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateCephFSPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateCephFSPersistentVolumeSource"
 
-noncomputable def validateFlexVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFlexVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFlexVolumeSource"
 
-noncomputable def validateFlexPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFlexPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFlexPersistentVolumeSource"
 
-noncomputable def validateAzureFile [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateAzureFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateAzureFile"
 
-noncomputable def validateAzureFilePV [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateAzureFilePV [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateAzureFilePV"
 
-noncomputable def validateAzureDisk [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateAzureDisk [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateAzureDisk"
 
-noncomputable def validateVsphereVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateVsphereVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateVsphereVolumeSource"
 
-noncomputable def validatePhotonPersistentDiskVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePhotonPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePhotonPersistentDiskVolumeSource"
 
-noncomputable def validatePortworxVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePortworxVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePortworxVolumeSource"
 
-noncomputable def validateScaleIOVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateScaleIOVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateScaleIOVolumeSource"
 
-noncomputable def validateScaleIOPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateScaleIOPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateScaleIOPersistentVolumeSource"
 
-noncomputable def validateLocalVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLocalVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLocalVolumeSource"
 
-noncomputable def validateStorageOSVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateStorageOSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateStorageOSVolumeSource"
 
-noncomputable def validateStorageOSPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateStorageOSPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateStorageOSPersistentVolumeSource"
 
-noncomputable def validateUserField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateUserField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateUserField"
 
-noncomputable def validatePVSecretReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePVSecretReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePVSecretReference"
 
-noncomputable def ValidateCSIDriverName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateCSIDriverName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateCSIDriverName"
 
-noncomputable def validateCSIPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateCSIPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateCSIPersistentVolumeSource"
 
-noncomputable def validateCSIVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateCSIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateCSIVolumeSource"
 
-noncomputable def validateEphemeralVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateEphemeralVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateEphemeralVolumeSource"
 
-noncomputable def ValidatePersistentVolumeClaimTemplate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeClaimTemplate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeClaimTemplate"
 
-noncomputable def ValidateTemplateObjectMeta [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateTemplateObjectMeta [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateTemplateObjectMeta"
 
-noncomputable def ValidationOptionsForPersistentVolume [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidationOptionsForPersistentVolume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidationOptionsForPersistentVolume"
 
-noncomputable def ValidatePersistentVolumeSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeSpec"
 
-noncomputable def ValidatePersistentVolume [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolume"
 
-noncomputable def ValidatePersistentVolumeUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeUpdate"
 
-noncomputable def ValidatePersistentVolumeStatusUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeStatusUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeStatusUpdate"
 
-noncomputable def ValidationOptionsForPersistentVolumeClaimCreate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidationOptionsForPersistentVolumeClaimCreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidationOptionsForPersistentVolumeClaimCreate"
 
-noncomputable def ValidationOptionsForPersistentVolumeClaim [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidationOptionsForPersistentVolumeClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidationOptionsForPersistentVolumeClaim"
 
-noncomputable def ValidationOptionsForPersistentVolumeClaimTemplate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidationOptionsForPersistentVolumeClaimTemplate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidationOptionsForPersistentVolumeClaimTemplate"
 
-noncomputable def allowInvalidAPIGroupInDataSourceOrRef [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def allowInvalidAPIGroupInDataSourceOrRef [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.allowInvalidAPIGroupInDataSourceOrRef"
 
-noncomputable def ValidatePersistentVolumeClaim [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeClaim"
 
-noncomputable def validateDataSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateDataSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateDataSource"
 
-noncomputable def validateDataSourceRef [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateDataSourceRef [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateDataSourceRef"
 
-noncomputable def ValidatePersistentVolumeClaimSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeClaimSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeClaimSpec"
 
-noncomputable def isDataSourceEqualDataSourceRef [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isDataSourceEqualDataSourceRef [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.isDataSourceEqualDataSourceRef"
 
-noncomputable def ValidatePersistentVolumeClaimUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeClaimUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeClaimUpdate"
 
-noncomputable def validateStorageClassUpgradeFromAnnotation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateStorageClassUpgradeFromAnnotation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateStorageClassUpgradeFromAnnotation"
 
-noncomputable def validateStorageClassUpgradeFromNil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateStorageClassUpgradeFromNil [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateStorageClassUpgradeFromNil"
 
-noncomputable def validatePersistentVolumeClaimResourceKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePersistentVolumeClaimResourceKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePersistentVolumeClaimResourceKey"
 
-noncomputable def validatePodVolumeHealth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodVolumeHealth [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodVolumeHealth"
 
-noncomputable def validateVolumeHealthStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateVolumeHealthStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateVolumeHealthStatus"
 
-noncomputable def validateVolumeHealthConditions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateVolumeHealthConditions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateVolumeHealthConditions"
 
-noncomputable def validateVolumeHealthCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateVolumeHealthCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateVolumeHealthCondition"
 
-noncomputable def ValidatePersistentVolumeClaimStatusUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePersistentVolumeClaimStatusUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeClaimStatusUpdate"
 
-noncomputable def validateContainerPorts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerPorts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerPorts"
 
-noncomputable def ValidateEnv [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEnv [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEnv"
 
-noncomputable def validateEnvVarValueFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateEnvVarValueFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateEnvVarValueFrom"
 
-noncomputable def validateObjectFieldSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateObjectFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateObjectFieldSelector"
 
-noncomputable def validateContainerResourceFieldSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerResourceFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerResourceFieldSelector"
 
-noncomputable def ValidateEnvFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEnvFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEnvFrom"
 
-noncomputable def validateConfigMapEnvSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateConfigMapEnvSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateConfigMapEnvSource"
 
-noncomputable def validateSecretEnvSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSecretEnvSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSecretEnvSource"
 
-noncomputable def validateContainerResourceDivisor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerResourceDivisor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerResourceDivisor"
 
-noncomputable def validateConfigMapKeySelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateConfigMapKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateConfigMapKeySelector"
 
-noncomputable def validateSecretKeySelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSecretKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSecretKeySelector"
 
-noncomputable def validateFileKeySelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFileKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFileKeySelector"
 
-noncomputable def GetVolumeMountMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetVolumeMountMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.GetVolumeMountMap"
 
-noncomputable def GetVolumeDeviceMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetVolumeDeviceMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.GetVolumeDeviceMap"
 
-noncomputable def ValidateVolumeMounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateVolumeMounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateVolumeMounts"
 
-noncomputable def validateBindMountOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateBindMountOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateBindMountOptions"
 
-noncomputable def ValidateVolumeDevices [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateVolumeDevices [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateVolumeDevices"
 
-noncomputable def validatePodResourceClaims [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodResourceClaims [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodResourceClaims"
 
-noncomputable def gatherPodResourceClaimNames [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def gatherPodResourceClaimNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.gatherPodResourceClaimNames"
 
-noncomputable def validatePodResourceClaim [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodResourceClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodResourceClaim"
 
-noncomputable def validateLivenessProbe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLivenessProbe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLivenessProbe"
 
-noncomputable def validateReadinessProbe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateReadinessProbe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateReadinessProbe"
 
-noncomputable def validateStartupProbe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateStartupProbe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateStartupProbe"
 
-noncomputable def validateProbe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateProbe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateProbe"
 
-noncomputable def validateInitContainerRestartPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateInitContainerRestartPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateInitContainerRestartPolicy"
 
-noncomputable def handlerFromProbe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def handlerFromProbe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.handlerFromProbe"
 
-noncomputable def handlerFromLifecycle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def handlerFromLifecycle [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.handlerFromLifecycle"
 
-noncomputable def validateSleepAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSleepAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSleepAction"
 
-noncomputable def validateClientIPAffinityConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateClientIPAffinityConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateClientIPAffinityConfig"
 
-noncomputable def validateAffinityTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateAffinityTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateAffinityTimeout"
 
-noncomputable def AccumulateUniqueHostPorts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AccumulateUniqueHostPorts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.AccumulateUniqueHostPorts"
 
-noncomputable def checkHostPortConflicts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkHostPortConflicts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.checkHostPortConflicts"
 
-noncomputable def validateExecAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateExecAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateExecAction"
 
-noncomputable def validateHTTPGetAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateHTTPGetAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateHTTPGetAction"
 
-noncomputable def ValidatePortNumOrName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePortNumOrName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePortNumOrName"
 
-noncomputable def validateTCPSocketAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateTCPSocketAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateTCPSocketAction"
 
-noncomputable def validateGRPCAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateGRPCAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateGRPCAction"
 
-noncomputable def validateHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateHandler"
 
-noncomputable def validateStopSignal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateStopSignal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateStopSignal"
 
-noncomputable def validateLifecycle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLifecycle [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLifecycle"
 
-noncomputable def validatePullPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePullPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePullPolicy"
 
-noncomputable def validateResizePolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateResizePolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateResizePolicy"
 
-noncomputable def validateContainerRestartPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerRestartPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerRestartPolicy"
 
-noncomputable def validateEphemeralContainers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateEphemeralContainers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateEphemeralContainers"
 
-noncomputable def validateFieldAllowList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFieldAllowList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFieldAllowList"
 
-noncomputable def validateInitContainers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateInitContainers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateInitContainers"
 
-noncomputable def validateContainerCommon [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerCommon [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerCommon"
 
-noncomputable def validateHostUsers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateHostUsers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateHostUsers"
 
-noncomputable def validateFileKeyRefVolumes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFileKeyRefVolumes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFileKeyRefVolumes"
 
-noncomputable def validatePodHostName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodHostName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodHostName"
 
-noncomputable def validateContainers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainers"
 
-noncomputable def validateRestartPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateRestartPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateRestartPolicy"
 
-noncomputable def ValidatePreemptionPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePreemptionPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePreemptionPolicy"
 
-noncomputable def validateDNSPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateDNSPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateDNSPolicy"
 
-noncomputable def validateFSGroupChangePolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFSGroupChangePolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFSGroupChangePolicy"
 
-noncomputable def validateReadinessGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateReadinessGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateReadinessGates"
 
-noncomputable def validateSchedulingGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSchedulingGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSchedulingGates"
 
-noncomputable def validatePodDNSConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodDNSConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodDNSConfig"
 
-noncomputable def validatePodHostNetworkDeps [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodHostNetworkDeps [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodHostNetworkDeps"
 
-noncomputable def validateImagePullSecrets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateImagePullSecrets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateImagePullSecrets"
 
-noncomputable def validateAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateAffinity"
 
-noncomputable def validateTaintEffect [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateTaintEffect [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateTaintEffect"
 
-noncomputable def validateOnlyAddedTolerations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateOnlyAddedTolerations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateOnlyAddedTolerations"
 
-noncomputable def validateOnlyDeletedSchedulingGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateOnlyDeletedSchedulingGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateOnlyDeletedSchedulingGates"
 
-noncomputable def ValidateHostAliases [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateHostAliases [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateHostAliases"
 
-noncomputable def ValidateTolerations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateTolerations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateTolerations"
 
-noncomputable def validateContainersOnlyForPod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainersOnlyForPod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainersOnlyForPod"
 
-noncomputable def validateContainerOnlyForPod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerOnlyForPod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerOnlyForPod"
 
-noncomputable def validatePodMetadataAndSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodMetadataAndSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodMetadataAndSpec"
 
-noncomputable def validatePodIPs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodIPs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodIPs"
 
-noncomputable def validateHostIPs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateHostIPs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateHostIPs"
 
-noncomputable def ValidatePodSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodSpec"
 
-noncomputable def validatePodResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodResources"
 
-noncomputable def validatePodResourceConsistency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodResourceConsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodResourceConsistency"
 
-noncomputable def validateLinux [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLinux [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLinux"
 
-noncomputable def validateWindows [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateWindows [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateWindows"
 
-noncomputable def ValidateNodeSelectorRequirement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNodeSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeSelectorRequirement"
 
-noncomputable def ValidateNodeFieldSelectorRequirement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNodeFieldSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeFieldSelectorRequirement"
 
-noncomputable def ValidateNodeSelectorTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNodeSelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeSelectorTerm"
 
-noncomputable def ValidateNodeSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNodeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeSelector"
 
-noncomputable def validateTopologySelectorLabelRequirement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateTopologySelectorLabelRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateTopologySelectorLabelRequirement"
 
-noncomputable def ValidateTopologySelectorTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateTopologySelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateTopologySelectorTerm"
 
-noncomputable def ValidateAvoidPodsInNodeAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateAvoidPodsInNodeAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateAvoidPodsInNodeAnnotations"
 
-noncomputable def validatePreferAvoidPodsEntry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePreferAvoidPodsEntry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePreferAvoidPodsEntry"
 
-noncomputable def ValidatePreferredSchedulingTerms [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePreferredSchedulingTerms [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePreferredSchedulingTerms"
 
-noncomputable def validatePodAffinityTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodAffinityTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodAffinityTerm"
 
-noncomputable def validatePodAffinityTerms [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodAffinityTerms [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodAffinityTerms"
 
-noncomputable def validateWeightedPodAffinityTerms [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateWeightedPodAffinityTerms [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateWeightedPodAffinityTerms"
 
-noncomputable def validatePodAntiAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodAntiAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodAntiAffinity"
 
-noncomputable def validateNodeAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeAffinity"
 
-noncomputable def validatePodAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodAffinity"
 
-noncomputable def validateSeccompProfileField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSeccompProfileField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSeccompProfileField"
 
-noncomputable def ValidateSeccompProfile [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateSeccompProfile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSeccompProfile"
 
-noncomputable def ValidateSeccompPodAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateSeccompPodAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSeccompPodAnnotations"
 
-noncomputable def validateSeccompProfileType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSeccompProfileType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSeccompProfileType"
 
-noncomputable def ValidateAppArmorProfileField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateAppArmorProfileField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateAppArmorProfileField"
 
-noncomputable def ValidateAppArmorPodAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateAppArmorPodAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateAppArmorPodAnnotations"
 
-noncomputable def ValidateAppArmorProfileFormat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateAppArmorProfileFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateAppArmorProfileFormat"
 
-noncomputable def validateAppArmorAnnotationsAndFieldsMatchOnCreate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateAppArmorAnnotationsAndFieldsMatchOnCreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateAppArmorAnnotationsAndFieldsMatchOnCreate"
 
-noncomputable def podSpecHasContainer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def podSpecHasContainer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.podSpecHasContainer"
 
-noncomputable def IsValidSysctlName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsValidSysctlName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.IsValidSysctlName"
 
-noncomputable def validateSysctls [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSysctls [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSysctls"
 
-noncomputable def ValidateHostSysctl [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateHostSysctl [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateHostSysctl"
 
-noncomputable def validateSELinuxChangePolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSELinuxChangePolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSELinuxChangePolicy"
 
-noncomputable def validatePodSpecSecurityContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodSpecSecurityContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodSpecSecurityContext"
 
-noncomputable def validateShareProcessNamespace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateShareProcessNamespace [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateShareProcessNamespace"
 
-noncomputable def ValidateContainerUpdates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateContainerUpdates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateContainerUpdates"
 
-noncomputable def ValidatePodCreate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodCreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodCreate"
 
-noncomputable def validateSeccompAnnotationsAndFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSeccompAnnotationsAndFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSeccompAnnotationsAndFields"
 
-noncomputable def validateSeccompAnnotationsAndFieldsMatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSeccompAnnotationsAndFieldsMatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSeccompAnnotationsAndFieldsMatch"
 
-noncomputable def ValidatePodUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodUpdate"
 
-noncomputable def ValidateContainerStateTransition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateContainerStateTransition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateContainerStateTransition"
 
-noncomputable def ValidateInitContainerStateTransition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateInitContainerStateTransition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateInitContainerStateTransition"
 
-noncomputable def ValidateEphemeralContainerStateTransition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEphemeralContainerStateTransition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEphemeralContainerStateTransition"
 
-noncomputable def ValidatePodStatusUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodStatusUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodStatusUpdate"
 
-noncomputable def validatePodConditions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodConditions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodConditions"
 
-noncomputable def validatePodResourceClaimStatuses [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodResourceClaimStatuses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodResourceClaimStatuses"
 
-noncomputable def validateNodeAllocatableResourceClaimStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeAllocatableResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeAllocatableResourceClaimStatus"
 
-noncomputable def validateNodeAllocatableMappedResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeAllocatableMappedResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeAllocatableMappedResources"
 
-noncomputable def validateNodeAllocatableOverheadResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeAllocatableOverheadResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeAllocatableOverheadResources"
 
-noncomputable def validatePodExtendedResourceClaimStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodExtendedResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodExtendedResourceClaimStatus"
 
-noncomputable def havePodClaim [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def havePodClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.havePodClaim"
 
-noncomputable def ValidatePodEphemeralContainersUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodEphemeralContainersUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodEphemeralContainersUpdate"
 
-noncomputable def ValidatePodResize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodResize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodResize"
 
-noncomputable def validatePodResizeContainerOrdering [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodResizeContainerOrdering [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodResizeContainerOrdering"
 
-noncomputable def validatePodLevelResourcesResize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodLevelResourcesResize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodLevelResourcesResize"
 
-noncomputable def dropCPUMemoryUpdates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dropCPUMemoryUpdates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.dropCPUMemoryUpdates"
 
-noncomputable def dropCPUMemoryResourcesFromContainer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dropCPUMemoryResourcesFromContainer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.dropCPUMemoryResourcesFromContainer"
 
-noncomputable def dropCPUMemoryResourceRequirementsUpdates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dropCPUMemoryResourceRequirementsUpdates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.dropCPUMemoryResourceRequirementsUpdates"
 
-noncomputable def validatePodLevelResourcesCoverDRA [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodLevelResourcesCoverDRA [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodLevelResourcesCoverDRA"
 
-noncomputable def isPodResizeRequestSupported [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isPodResizeRequestSupported [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.isPodResizeRequestSupported"
 
-noncomputable def validateContainerResize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerResize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerResize"
 
-noncomputable def resourcesRemoved [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resourcesRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.resourcesRemoved"
 
-noncomputable def ValidatePodBinding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodBinding [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodBinding"
 
-noncomputable def ValidatePodTemplate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodTemplate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodTemplate"
 
-noncomputable def ValidatePodTemplateUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodTemplateUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodTemplateUpdate"
 
-noncomputable def validateService [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateService [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateService"
 
-noncomputable def validateServicePort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateServicePort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateServicePort"
 
-noncomputable def validateServiceExternalTrafficPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateServiceExternalTrafficPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateServiceExternalTrafficPolicy"
 
-noncomputable def validateServiceExternalTrafficFieldsUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateServiceExternalTrafficFieldsUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateServiceExternalTrafficFieldsUpdate"
 
-noncomputable def validateServiceInternalTrafficFieldsValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateServiceInternalTrafficFieldsValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateServiceInternalTrafficFieldsValue"
 
-noncomputable def validateServiceTrafficDistribution [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateServiceTrafficDistribution [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateServiceTrafficDistribution"
 
-noncomputable def ValidateServiceCreate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateServiceCreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceCreate"
 
-noncomputable def ValidateServiceUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateServiceUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceUpdate"
 
-noncomputable def ValidateServiceStatusUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateServiceStatusUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceStatusUpdate"
 
-noncomputable def ValidateReplicationController [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateReplicationController [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateReplicationController"
 
-noncomputable def ValidateReplicationControllerUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateReplicationControllerUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateReplicationControllerUpdate"
 
-noncomputable def ValidateReplicationControllerStatusUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateReplicationControllerStatusUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateReplicationControllerStatusUpdate"
 
-noncomputable def ValidateReplicationControllerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateReplicationControllerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateReplicationControllerStatus"
 
-noncomputable def ValidateNonEmptySelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNonEmptySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNonEmptySelector"
 
-noncomputable def ValidatePodTemplateSpecForRC [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodTemplateSpecForRC [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodTemplateSpecForRC"
 
-noncomputable def ValidateReplicationControllerSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateReplicationControllerSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateReplicationControllerSpec"
 
-noncomputable def ValidatePodTemplateSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodTemplateSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodTemplateSpec"
 
-noncomputable def ValidateTaintsInNodeAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateTaintsInNodeAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateTaintsInNodeAnnotations"
 
-noncomputable def validateNodeTaints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeTaints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeTaints"
 
-noncomputable def ValidateNodeSpecificAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNodeSpecificAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeSpecificAnnotations"
 
-noncomputable def validateNodeDeclaredFeatureName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeDeclaredFeatureName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeDeclaredFeatureName"
 
-noncomputable def validateNodeDeclaredFeatures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeDeclaredFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeDeclaredFeatures"
 
-noncomputable def ValidateNode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNode [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNode"
 
-noncomputable def ValidateNodeResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNodeResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeResources"
 
-noncomputable def ValidateNodeUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNodeUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeUpdate"
 
-noncomputable def validateNodeConfigSourceSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeConfigSourceSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeConfigSourceSpec"
 
-noncomputable def validateConfigMapNodeConfigSourceSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateConfigMapNodeConfigSourceSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateConfigMapNodeConfigSourceSpec"
 
-noncomputable def validateNodeConfigStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeConfigStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeConfigStatus"
 
-noncomputable def validateNodeConfigSourceStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeConfigSourceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeConfigSourceStatus"
 
-noncomputable def validateConfigMapNodeConfigSourceStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateConfigMapNodeConfigSourceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateConfigMapNodeConfigSourceStatus"
 
-noncomputable def validateConfigMapNodeConfigSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateConfigMapNodeConfigSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateConfigMapNodeConfigSource"
 
-noncomputable def validateResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateResourceName"
 
-noncomputable def ValidateContainerResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateContainerResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateContainerResourceName"
 
-noncomputable def validatePodResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodResourceName"
 
-noncomputable def ValidateResourceQuotaResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceQuotaResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuotaResourceName"
 
-noncomputable def validateLimitRangeTypeName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLimitRangeTypeName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLimitRangeTypeName"
 
-noncomputable def validateLimitRangeResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLimitRangeResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLimitRangeResourceName"
 
-noncomputable def ValidateLimitRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateLimitRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateLimitRange"
 
-noncomputable def ValidateServiceAccount [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateServiceAccount [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceAccount"
 
-noncomputable def ValidateServiceAccountUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateServiceAccountUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceAccountUpdate"
 
-noncomputable def ValidateSecret [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateSecret [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSecret"
 
-noncomputable def ValidateSecretUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateSecretUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSecretUpdate"
 
-noncomputable def ValidateConfigMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateConfigMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateConfigMap"
 
-noncomputable def ValidateConfigMapUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateConfigMapUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateConfigMapUpdate"
 
-noncomputable def validateBasicResource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateBasicResource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateBasicResource"
 
-noncomputable def validatePodResourceRequirements [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePodResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePodResourceRequirements"
 
-noncomputable def ValidateContainerResourceRequirements [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateContainerResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateContainerResourceRequirements"
 
-noncomputable def validateResourceRequirements [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateResourceRequirements"
 
-noncomputable def validateResourceClaimNames [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateResourceClaimNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateResourceClaimNames"
 
-noncomputable def validateResourceQuantityHugePageValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateResourceQuantityHugePageValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateResourceQuantityHugePageValue"
 
-noncomputable def validateResourceQuotaScopes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateResourceQuotaScopes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateResourceQuotaScopes"
 
-noncomputable def validateScopedResourceSelectorRequirement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateScopedResourceSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateScopedResourceSelectorRequirement"
 
-noncomputable def validateScopeSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateScopeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateScopeSelector"
 
-noncomputable def ValidateResourceQuota [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceQuota [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuota"
 
-noncomputable def ValidateResourceQuotaStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceQuotaStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuotaStatus"
 
-noncomputable def ValidateResourceQuotaSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceQuotaSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuotaSpec"
 
-noncomputable def validateResourceQuotaSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateResourceQuotaSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateResourceQuotaSpec"
 
-noncomputable def validateResourceQuotaResourceList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateResourceQuotaResourceList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateResourceQuotaResourceList"
 
-noncomputable def isStoredQuantity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isStoredQuantity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.isStoredQuantity"
 
-noncomputable def isIntegerResourceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isIntegerResourceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.isIntegerResourceValue"
 
-noncomputable def ValidateResourceQuantityValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceQuantityValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuantityValue"
 
-noncomputable def ValidateResourceQuotaUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceQuotaUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuotaUpdate"
 
-noncomputable def ValidateResourceQuotaStatusUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateResourceQuotaStatusUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuotaStatusUpdate"
 
-noncomputable def ValidateNamespace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNamespace [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNamespace"
 
-noncomputable def validateFinalizerName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFinalizerName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateFinalizerName"
 
-noncomputable def validateKubeFinalizerName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateKubeFinalizerName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateKubeFinalizerName"
 
-noncomputable def ValidateNamespaceUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNamespaceUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNamespaceUpdate"
 
-noncomputable def ValidateNamespaceStatusUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNamespaceStatusUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNamespaceStatusUpdate"
 
-noncomputable def ValidateNamespaceFinalizeUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateNamespaceFinalizeUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNamespaceFinalizeUpdate"
 
-noncomputable def ValidateEndpoints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEndpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEndpoints"
 
-noncomputable def ValidateEndpointsCreate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEndpointsCreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEndpointsCreate"
 
-noncomputable def ValidateEndpointsUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEndpointsUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEndpointsUpdate"
 
-noncomputable def validateEndpointSubsets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateEndpointSubsets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateEndpointSubsets"
 
-noncomputable def validateEndpointAddress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateEndpointAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateEndpointAddress"
 
-noncomputable def ValidateEndpointIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEndpointIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEndpointIP"
 
-noncomputable def validateEndpointPort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateEndpointPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateEndpointPort"
 
-noncomputable def ValidateSecurityContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateSecurityContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSecurityContext"
 
-noncomputable def validateWindowsSecurityContextOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateWindowsSecurityContextOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateWindowsSecurityContextOptions"
 
-noncomputable def validateWindowsHostProcessPod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateWindowsHostProcessPod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateWindowsHostProcessPod"
 
-noncomputable def validateOS [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateOS [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateOS"
 
-noncomputable def ValidatePodLogOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodLogOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodLogOptions"
 
-noncomputable def ValidateLoadBalancerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateLoadBalancerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateLoadBalancerStatus"
 
-noncomputable def validateVolumeNodeAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateVolumeNodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateVolumeNodeAffinity"
 
-noncomputable def IsDecremented [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsDecremented [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.IsDecremented"
 
-noncomputable def ValidateProcMountType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateProcMountType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateProcMountType"
 
-noncomputable def validateTopologySpreadConstraints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateTopologySpreadConstraints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateTopologySpreadConstraints"
 
-noncomputable def validateMinDomains [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateMinDomains [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateMinDomains"
 
-noncomputable def ValidateTopologyKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateTopologyKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateTopologyKey"
 
-noncomputable def ValidateWhenUnsatisfiable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateWhenUnsatisfiable [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateWhenUnsatisfiable"
 
-noncomputable def ValidateSpreadConstraintNotRepeat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateSpreadConstraintNotRepeat [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSpreadConstraintNotRepeat"
 
-noncomputable def validateNodeInclusionPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeInclusionPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeInclusionPolicy"
 
-noncomputable def ValidateMatchLabelKeysAndMismatchLabelKeys [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateMatchLabelKeysAndMismatchLabelKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateMatchLabelKeysAndMismatchLabelKeys"
 
-noncomputable def ValidateMatchLabelKeysInTopologySpread [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateMatchLabelKeysInTopologySpread [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateMatchLabelKeysInTopologySpread"
 
-noncomputable def validateLabelKeys [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLabelKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLabelKeys"
 
-noncomputable def ValidateServiceClusterIPsRelatedFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateServiceClusterIPsRelatedFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceClusterIPsRelatedFields"
 
-noncomputable def validateUpgradeDowngradeClusterIPs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateUpgradeDowngradeClusterIPs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateUpgradeDowngradeClusterIPs"
 
-noncomputable def validateUpgradeDowngradeIPFamilies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateUpgradeDowngradeIPFamilies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateUpgradeDowngradeIPFamilies"
 
-noncomputable def isHeadlessService [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isHeadlessService [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.isHeadlessService"
 
-noncomputable def validateLoadBalancerClassField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateLoadBalancerClassField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateLoadBalancerClassField"
 
-noncomputable def isTypeLoadBalancer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isTypeLoadBalancer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.isTypeLoadBalancer"
 
-noncomputable def sameLoadBalancerClass [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sameLoadBalancerClass [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.sameLoadBalancerClass"
 
-noncomputable def ValidatePodAffinityTermSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidatePodAffinityTermSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodAffinityTermSelector"
 
-noncomputable def getMaskNodeSelectorLabelChangeEqualities [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getMaskNodeSelectorLabelChangeEqualities [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.getMaskNodeSelectorLabelChangeEqualities"
 
-noncomputable def validatePvNodeAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePvNodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validatePvNodeAffinity"
 
-noncomputable def validateNodeSelectorMutation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeSelectorMutation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeSelectorMutation"
 
-noncomputable def validateNodeAffinityMutation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeAffinityMutation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeAffinityMutation"
 
-noncomputable def validateNodeSelectorTermHasOnlyAdditions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeSelectorTermHasOnlyAdditions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeSelectorTermHasOnlyAdditions"
 
-noncomputable def validateSupplementalGroupsPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSupplementalGroupsPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSupplementalGroupsPolicy"
 
-noncomputable def validateContainerStatusUsers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerStatusUsers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerStatusUsers"
 
-noncomputable def validateContainerStatusNoAllocatedResourcesStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerStatusNoAllocatedResourcesStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerStatusNoAllocatedResourcesStatus"
 
-noncomputable def validateContainerStatusAllocatedResourcesStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateContainerStatusAllocatedResourcesStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateContainerStatusAllocatedResourcesStatus"
 
-noncomputable def matchesExtendedResourceClaimStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def matchesExtendedResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.matchesExtendedResourceClaimStatus"
 
-noncomputable def resourceStatusName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resourceStatusName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.resourceStatusName"
 
-noncomputable def parseResourceStatusName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseResourceStatusName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.parseResourceStatusName"
 
-noncomputable def validateImageVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateImageVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateImageVolumeSource"
 
-noncomputable def isRestartableInitContainer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isRestartableInitContainer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.isRestartableInitContainer"
 
-noncomputable def IsValidIPForLegacyField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsValidIPForLegacyField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.IsValidIPForLegacyField"
 
-noncomputable def IsValidCIDRForLegacyField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsValidCIDRForLegacyField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.IsValidCIDRForLegacyField"
 
-noncomputable def validateNodeSwapStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateNodeSwapStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateNodeSwapStatus"
 
-noncomputable def validateSchedulingGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSchedulingGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateSchedulingGroup"
 
-noncomputable def validateImageVolumeStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateImageVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateImageVolumeStatus"
 
-noncomputable def validateVolumeStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validateVolumeStatus"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.apis.core.validation where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.kubernetes.pkg.apis.core.validation)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1882,54 +1882,64 @@ axiom ValidateNameFunc : Type
 axiom ValidateNameFunc.zero_val : ZeroVal ValidateNameFunc
 attribute [instance] ValidateNameFunc.zero_val
 
-class ValidateNameFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ValidateNameFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ValidateNameFunc.underlying ValidateNameFunc
   underlying : go.UnderlyingDirectedEq ValidateNameFunc.ty ValidateNameFunc.underlying
   isUnderlying : go.IsUnderlying ValidateNameFunc.underlying ValidateNameFunc.underlying
+  method_set : go.MethodSetIs ValidateNameFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValidateNameFunc.ty) []
 
 attribute [instance] ValidateNameFunc.TypeAssumptions.type_repr
   ValidateNameFunc.TypeAssumptions.underlying
   ValidateNameFunc.TypeAssumptions.isUnderlying
+  ValidateNameFunc.TypeAssumptions.method_set
+  ValidateNameFunc.TypeAssumptions.ptr_method_set
 
-abbrev ValidateCSIDriverNameOption [FfiSyntax] : Type := w64
+abbrev ValidateCSIDriverNameOption [GooseExts] : Type := w64
 
-@[reducible] noncomputable def ValidateCSIDriverNameOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ValidateCSIDriverNameOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class ValidateCSIDriverNameOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ValidateCSIDriverNameOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ValidateCSIDriverNameOption.ty ValidateCSIDriverNameOption.underlying
+  method_set : go.MethodSetIs ValidateCSIDriverNameOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValidateCSIDriverNameOption.ty) []
 
 attribute [instance] ValidateCSIDriverNameOption.TypeAssumptions.underlying
+  ValidateCSIDriverNameOption.TypeAssumptions.method_set
+  ValidateCSIDriverNameOption.TypeAssumptions.ptr_method_set
 
-structure PersistentVolumeSpecValidationOptions [FfiSyntax] where
+structure PersistentVolumeSpecValidationOptions [GooseExts] where
   mk ::
   EnableVolumeAttributesClass' : Bool
   AllowInvalidLabelValueInRequiredNodeAffinity' : Bool
 
-noncomputable instance PersistentVolumeSpecValidationOptions.zero_val [FfiSyntax] : ZeroVal PersistentVolumeSpecValidationOptions :=
+noncomputable instance PersistentVolumeSpecValidationOptions.zero_val [GooseExts] : ZeroVal PersistentVolumeSpecValidationOptions :=
   ⟨PersistentVolumeSpecValidationOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeSpecValidationOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeSpecValidationOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"EnableVolumeAttributesClass" go.bool),
 (go.field_decl.FieldDecl go!"AllowInvalidLabelValueInRequiredNodeAffinity" go.bool)]
 
-@[irreducible] noncomputable def PersistentVolumeSpecValidationOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeSpecValidationOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeSpecValidationOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeSpecValidationOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeSpecValidationOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeSpecValidationOptions.fields PersistentVolumeSpecValidationOptions.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeSpecValidationOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeSpecValidationOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeSpecValidationOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeSpecValidationOptions.fields)
 
-class PersistentVolumeSpecValidationOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeSpecValidationOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeSpecValidationOptions.underlying PersistentVolumeSpecValidationOptions
   underlying : go.UnderlyingDirectedEq PersistentVolumeSpecValidationOptions.ty PersistentVolumeSpecValidationOptions.underlying
   get_EnableVolumeAttributesClass : ∀ (x : PersistentVolumeSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") #x (Val #(x.EnableVolumeAttributesClass'))
   set_EnableVolumeAttributesClass : ∀ (x : PersistentVolumeSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") (PairV #x #y) (Val #(({ x with EnableVolumeAttributesClass' := y } : PersistentVolumeSpecValidationOptions)))
   get_AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PersistentVolumeSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpecValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") #x (Val #(x.AllowInvalidLabelValueInRequiredNodeAffinity'))
   set_AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PersistentVolumeSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpecValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInRequiredNodeAffinity' := y } : PersistentVolumeSpecValidationOptions)))
+  method_set : go.MethodSetIs PersistentVolumeSpecValidationOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeSpecValidationOptions.ty) []
 
 attribute [instance] PersistentVolumeSpecValidationOptions.TypeAssumptions.type_repr
   PersistentVolumeSpecValidationOptions.TypeAssumptions.underlying
@@ -1937,34 +1947,36 @@ attribute [instance] PersistentVolumeSpecValidationOptions.TypeAssumptions.type_
   PersistentVolumeSpecValidationOptions.TypeAssumptions.set_EnableVolumeAttributesClass
   PersistentVolumeSpecValidationOptions.TypeAssumptions.get_AllowInvalidLabelValueInRequiredNodeAffinity
   PersistentVolumeSpecValidationOptions.TypeAssumptions.set_AllowInvalidLabelValueInRequiredNodeAffinity
+  PersistentVolumeSpecValidationOptions.TypeAssumptions.method_set
+  PersistentVolumeSpecValidationOptions.TypeAssumptions.ptr_method_set
 
-structure PersistentVolumeClaimSpecValidationOptions [FfiSyntax] where
+structure PersistentVolumeClaimSpecValidationOptions [GooseExts] where
   mk ::
   EnableRecoverFromExpansionFailure' : Bool
   AllowInvalidLabelValueInSelector' : Bool
   AllowInvalidAPIGroupInDataSourceOrRef' : Bool
   EnableVolumeAttributesClass' : Bool
 
-noncomputable instance PersistentVolumeClaimSpecValidationOptions.zero_val [FfiSyntax] : ZeroVal PersistentVolumeClaimSpecValidationOptions :=
+noncomputable instance PersistentVolumeClaimSpecValidationOptions.zero_val [GooseExts] : ZeroVal PersistentVolumeClaimSpecValidationOptions :=
   ⟨PersistentVolumeClaimSpecValidationOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimSpecValidationOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeClaimSpecValidationOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"EnableRecoverFromExpansionFailure" go.bool),
 (go.field_decl.FieldDecl go!"AllowInvalidLabelValueInSelector" go.bool),
 (go.field_decl.FieldDecl go!"AllowInvalidAPIGroupInDataSourceOrRef" go.bool),
 (go.field_decl.FieldDecl go!"EnableVolumeAttributesClass" go.bool)]
 
-@[irreducible] noncomputable def PersistentVolumeClaimSpecValidationOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeClaimSpecValidationOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaimSpecValidationOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaimSpecValidationOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeClaimSpecValidationOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaimSpecValidationOptions.fields PersistentVolumeClaimSpecValidationOptions.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaimSpecValidationOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimSpecValidationOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimSpecValidationOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeClaimSpecValidationOptions.fields)
 
-class PersistentVolumeClaimSpecValidationOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeClaimSpecValidationOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimSpecValidationOptions.underlying PersistentVolumeClaimSpecValidationOptions
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimSpecValidationOptions.ty PersistentVolumeClaimSpecValidationOptions.underlying
   get_EnableRecoverFromExpansionFailure : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableRecoverFromExpansionFailure") #x (Val #(x.EnableRecoverFromExpansionFailure'))
@@ -1975,6 +1987,8 @@ class PersistentVolumeClaimSpecValidationOptions.TypeAssumptions [FfiSyntax] [Go
   set_AllowInvalidAPIGroupInDataSourceOrRef : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidAPIGroupInDataSourceOrRef") (PairV #x #y) (Val #(({ x with AllowInvalidAPIGroupInDataSourceOrRef' := y } : PersistentVolumeClaimSpecValidationOptions)))
   get_EnableVolumeAttributesClass : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") #x (Val #(x.EnableVolumeAttributesClass'))
   set_EnableVolumeAttributesClass : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") (PairV #x #y) (Val #(({ x with EnableVolumeAttributesClass' := y } : PersistentVolumeClaimSpecValidationOptions)))
+  method_set : go.MethodSetIs PersistentVolumeClaimSpecValidationOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimSpecValidationOptions.ty) []
 
 attribute [instance] PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.type_repr
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.underlying
@@ -1986,31 +2000,41 @@ attribute [instance] PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set_AllowInvalidAPIGroupInDataSourceOrRef
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get_EnableVolumeAttributesClass
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set_EnableVolumeAttributesClass
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.method_set
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.ptr_method_set
 
 axiom commonHandler : Type
 axiom commonHandler.zero_val : ZeroVal commonHandler
 attribute [instance] commonHandler.zero_val
 
-class commonHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class commonHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying commonHandler.underlying commonHandler
   underlying : go.UnderlyingDirectedEq commonHandler.ty commonHandler.underlying
   isUnderlying : go.IsUnderlying commonHandler.underlying commonHandler.underlying
+  method_set : go.MethodSetIs commonHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType commonHandler.ty) []
 
 attribute [instance] commonHandler.TypeAssumptions.type_repr
   commonHandler.TypeAssumptions.underlying
   commonHandler.TypeAssumptions.isUnderlying
+  commonHandler.TypeAssumptions.method_set
+  commonHandler.TypeAssumptions.ptr_method_set
 
-abbrev ValidateTolerationsOption [FfiSyntax] : Type := w64
+abbrev ValidateTolerationsOption [GooseExts] : Type := w64
 
-@[reducible] noncomputable def ValidateTolerationsOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ValidateTolerationsOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class ValidateTolerationsOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ValidateTolerationsOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ValidateTolerationsOption.ty ValidateTolerationsOption.underlying
+  method_set : go.MethodSetIs ValidateTolerationsOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValidateTolerationsOption.ty) []
 
 attribute [instance] ValidateTolerationsOption.TypeAssumptions.underlying
+  ValidateTolerationsOption.TypeAssumptions.method_set
+  ValidateTolerationsOption.TypeAssumptions.ptr_method_set
 
-structure PodValidationOptions [FfiSyntax] where
+structure PodValidationOptions [GooseExts] where
   mk ::
   AllowInvalidPodDeletionCost' : Bool
   AllowInvalidLabelValueInSelector' : Bool
@@ -2042,10 +2066,10 @@ structure PodValidationOptions [FfiSyntax] where
   AllowSysAdminWhenPrivilegeEscalationFalse' : Bool
   AllowMLDSAPodCertificateKeyTypes' : Bool
 
-noncomputable instance PodValidationOptions.zero_val [FfiSyntax] : ZeroVal PodValidationOptions :=
+noncomputable instance PodValidationOptions.zero_val [GooseExts] : ZeroVal PodValidationOptions :=
   ⟨PodValidationOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodValidationOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodValidationOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"AllowInvalidPodDeletionCost" go.bool),
 (go.field_decl.FieldDecl go!"AllowInvalidLabelValueInSelector" go.bool),
 (go.field_decl.FieldDecl go!"AllowIndivisibleHugePagesValues" go.bool),
@@ -2076,17 +2100,17 @@ noncomputable instance PodValidationOptions.zero_val [FfiSyntax] : ZeroVal PodVa
 (go.field_decl.FieldDecl go!"AllowSysAdminWhenPrivilegeEscalationFalse" go.bool),
 (go.field_decl.FieldDecl go!"AllowMLDSAPodCertificateKeyTypes" go.bool)]
 
-@[irreducible] noncomputable def PodValidationOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodValidationOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodValidationOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodValidationOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodValidationOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodValidationOptions.fields PodValidationOptions.fieldsUnsealed :=
   ⟨by unfold PodValidationOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PodValidationOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodValidationOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodValidationOptions.fields)
 
-class PodValidationOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodValidationOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodValidationOptions.underlying PodValidationOptions
   underlying : go.UnderlyingDirectedEq PodValidationOptions.ty PodValidationOptions.underlying
   get_AllowInvalidPodDeletionCost : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidPodDeletionCost") #x (Val #(x.AllowInvalidPodDeletionCost'))
@@ -2147,6 +2171,8 @@ class PodValidationOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   set_AllowSysAdminWhenPrivilegeEscalationFalse : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowSysAdminWhenPrivilegeEscalationFalse") (PairV #x #y) (Val #(({ x with AllowSysAdminWhenPrivilegeEscalationFalse' := y } : PodValidationOptions)))
   get_AllowMLDSAPodCertificateKeyTypes : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowMLDSAPodCertificateKeyTypes") #x (Val #(x.AllowMLDSAPodCertificateKeyTypes'))
   set_AllowMLDSAPodCertificateKeyTypes : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowMLDSAPodCertificateKeyTypes") (PairV #x #y) (Val #(({ x with AllowMLDSAPodCertificateKeyTypes' := y } : PodValidationOptions)))
+  method_set : go.MethodSetIs PodValidationOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodValidationOptions.ty) []
 
 attribute [instance] PodValidationOptions.TypeAssumptions.type_repr
   PodValidationOptions.TypeAssumptions.underlying
@@ -2208,8 +2234,10 @@ attribute [instance] PodValidationOptions.TypeAssumptions.type_repr
   PodValidationOptions.TypeAssumptions.set_AllowSysAdminWhenPrivilegeEscalationFalse
   PodValidationOptions.TypeAssumptions.get_AllowMLDSAPodCertificateKeyTypes
   PodValidationOptions.TypeAssumptions.set_AllowMLDSAPodCertificateKeyTypes
+  PodValidationOptions.TypeAssumptions.method_set
+  PodValidationOptions.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ValidateNameFunc_instance : ValidateNameFunc.TypeAssumptions
   ValidateCSIDriverNameOption_instance : ValidateCSIDriverNameOption.TypeAssumptions
   PersistentVolumeSpecValidationOptions_instance : PersistentVolumeSpecValidationOptions.TypeAssumptions

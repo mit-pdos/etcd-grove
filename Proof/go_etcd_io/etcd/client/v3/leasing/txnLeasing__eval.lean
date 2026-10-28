@@ -24,7 +24,7 @@ namespace leasing
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -42,6 +42,7 @@ theorem txnLeasing.eval.wp_proof (hgather : gatherOps.spec (GF := GF) (hG := hG)
   icases ownTxnLeasing_acc $$ Htxn with ⟨%csl, %tsl, %esl, %tops, %eops, Hl, Hc, Hcs, Hts, Hes,
     #⟨Hlkv, Hctx, Hcmps, Hthen, Helse⟩, %Hops, Hback⟩
   obtain ⟨Ht, He⟩ := Hops
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave ⟨%tvs, #Htvs, Htl⟩ := opsAt_gather tsl b.thenOs tops Ht $$ Hthen
   wp_apply hgather $$ [$Htvs $Htl] as %tr ⟨Htr, %Htr4⟩
@@ -203,10 +204,10 @@ theorem txnLeasing.eval.wp_proof (hgather : gatherOps.spec (GF := GF) (hG := hG)
           wp_apply hcopy $$ [$HhdrOk] as %h' Hh'
           icases Hh' with (%Hcn | ⟨-, #Hh'⟩)
           · exact absurd Hcn.1 hh
-          wp_alloc r as Hr
+          irename «$r0» => Hr
+          generalize «$r0_ptr» = r at *
           ihave %Hrnn := typedPointsto_not_null $$ Hr
           iStructNamed Hr
-          wp_auto
           wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hclose Hentries Hemap Hrv Hrmap Hhdr Hents HX Hinst]
             as Hrd
           · inext
@@ -252,10 +253,10 @@ theorem txnLeasing.eval.wp_proof (hgather : gatherOps.spec (GF := GF) (hG := hG)
           wp_apply hcopy $$ [$HhdrOk] as %h' Hh'
           icases Hh' with (%Hcn | ⟨-, #Hh'⟩)
           · exact absurd Hcn.1 hh
-          wp_alloc r as Hr
+          irename «$r0» => Hr
+          generalize «$r0_ptr» = r at *
           ihave %Hrnn := typedPointsto_not_null $$ Hr
           iStructNamed Hr
-          wp_auto
           wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hclose Hentries Hemap Hrv Hrmap Hhdr Hents HX Hinst]
             as Hrd
           · inext

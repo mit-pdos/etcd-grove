@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open _root_.Perennial.context
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -52,7 +52,6 @@ theorem wp_WithCancel_gen_nn (parent : GoInterfaceOk) (P Pre : IProp GF)
   wp_apply wp_withCancel parent P Pre Hprop $$ [$Hcci $Hpre] as %c %γ ⟨#Hc, #Hf⟩
   ipersist c
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   iframe #
   isplitr

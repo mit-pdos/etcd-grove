@@ -25,7 +25,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section certLink
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -73,7 +73,7 @@ instance certElemOk_timeless (γ : RaftNames) (e : CertKey) :
 
 /-- The registry's invariant, at raft's names `γ`. -/
 def memCertInv (γ : RaftNames) (γs : MemStorNames) : IProp GF :=
-  inv raftCertN iprop(∃ L : List CertKey, monoListAuthOwn γs.cert 1 L ∗ [∗list] e ∈ L, certElemOk γ e)
+  inv (raftCertN γ) iprop(∃ L : List CertKey, monoListAuthOwn γs.cert 1 L ∗ [∗list] e ∈ L, certElemOk γ e)
 
 instance memCertInv_persistent (γ : RaftNames) (γs : MemStorNames) :
     Persistent (memCertInv (GF := GF) γ γs) := by
@@ -95,7 +95,7 @@ theorem memCertInv_alloc (γ : RaftNames) (γs : MemStorNames) (E : CoPset) :
 
 /-- A registered snapshot is certified for raft. -/
 theorem memCert_read (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : CoPset)
-    (hE : ↑raftCertN ⊆ E) :
+    (hE : ↑(raftCertN γ) ⊆ E) :
     ⊢ memCertInv (GF := GF) γ γs -∗ memStorCert γs k ={E}=∗ raftSnapCertD γ k := by
   iintro #Hinv #Hc
   iunfold memStorCert at Hc
@@ -117,7 +117,7 @@ theorem memCert_read (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : C
 
 /-- A certified snapshot can be registered (by anyone holding raft's certificate). -/
 theorem memCert_register (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : CoPset)
-    (hE : ↑raftCertN ⊆ E) :
+    (hE : ↑(raftCertN γ) ⊆ E) :
     ⊢ memCertInv (GF := GF) γ γs -∗ raftSnapCertD γ k ={E}=∗ memStorCert γs k := by
   iintro #Hinv #Hk
   unfold memCertInv
@@ -138,7 +138,7 @@ theorem memCert_register (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E
 
 /-- ... at any term (an any-term entry): what `CreateSnapshot`'s premise asks. -/
 theorem memCert_registerAny (γ : RaftNames) (γs : MemStorNames) (i : w64) (cl : CSLists)
-    (al : Bool) (d : List w8) (E : CoPset) (hE : ↑raftCertN ⊆ E) :
+    (al : Bool) (d : List w8) (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
     ⊢ memCertInv (GF := GF) γ γs -∗ (□ ∀ t : w64, raftSnapCertD γ ⟨⟨t, i⟩, cl, al, d⟩) ={E}=∗
       □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al, d⟩ := by
   iintro #Hinv #Hk

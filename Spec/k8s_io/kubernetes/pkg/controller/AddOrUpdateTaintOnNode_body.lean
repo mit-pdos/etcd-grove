@@ -28,7 +28,7 @@ open Iris Iris.BI k8s_io.kubernetes.pkg.controller
 
 section body
 /-- go: controller_utils.go:1274:6 -/
-noncomputable def AddOrUpdateTaintOnNode.body [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def AddOrUpdateTaintOnNode.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "c"
   (Lam "nodeName"
@@ -173,7 +173,7 @@ noncomputable def AddOrUpdateTaintOnNode.body [FfiSyntax] [GoGlobalContext] : va
 end body
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

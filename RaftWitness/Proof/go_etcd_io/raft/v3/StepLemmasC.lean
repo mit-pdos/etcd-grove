@@ -20,7 +20,7 @@ namespace EtcdGrove
 open go_etcd_io.raft.v3
 
 section step_lemmasC
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 variable (c : CfgM)
 /- (2026-10-18, D19b stage 5) the bound of the indices a step may create (`Step`'s) -/
 variable {B : Int}
@@ -43,7 +43,7 @@ theorem stepC_send_frees (id : w64) (ps : PState) (ms : List Msg)
       (IH (psendMsgs ps [m]) (fun m' h => Hms m' (List.mem_cons_of_mem _ h)))
     simpa using this
 
-omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+omit [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] in
 /-- The voters a campaign asks (2026-10-20, witness support, W3b-C): every other voter of either
 half but the configuration's witness, which `campaign` skips (it is asked by
 `sendRequestVoteToWitness` once the candidate is a vote short). Without a witness, every other
@@ -51,17 +51,17 @@ voter (`campSet_nw`). -/
 def campSet (c : CfgM) (id : w64) : GSet w64 :=
   if c.wit = W64 0 then c.voters \ {[id]} else (c.voters \ {[id]}) \ {[c.wit]}
 
-omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+omit [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] in
 theorem campSet_nw (c : CfgM) (id : w64) (h : c.wit = W64 0) :
     campSet c id = c.voters \ {[id]} := by
   unfold campSet; exact if_pos h
 
-omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+omit [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] in
 theorem campSet_ne {c : CfgM} {id z : w64} (h : z ∈ campSet c id) : z ≠ id := by
   unfold campSet at h
   split at h <;> simp_all [GMap.elem_of_difference, GMap.elem_of_singleton]
 
-omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+omit [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] in
 /-- `campSet` lists as the other voters but the witness, in any order. -/
 theorem campSet_perm_filter (c : CfgM) (id : w64) :
     elements (campSet c id) ≡ₚ (elements (c.voters \ {[id]})).filter
@@ -76,7 +76,7 @@ theorem campSet_perm_filter (c : CfgM) (id : w64) :
   · rw [ite_eq_right hw]; simp only [hw, GMap.elem_of_difference, GMap.elem_of_singleton, false_or,
       decide_eq_true_eq]
 
-omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+omit [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] in
 /-- What a campaign sends `campSet`, a sub-permutation of what it would send every other voter. -/
 theorem campSet_subperm {β : Type _} (c : CfgM) (id : w64) (f : w64 → β) (peers : List w64)
     (h : peers ≡ₚ elements (campSet c id)) :

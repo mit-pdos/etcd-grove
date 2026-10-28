@@ -28,52 +28,70 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.config
 
-noncomputable def ServerConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/config.ServerConfig" [])
 
 attribute [irreducible] ServerConfig.ty
 
-@[reducible] noncomputable def grpcOverheadBytes [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def grpcOverheadBytes [GooseExts] [GoGlobalContext] : val :=
   #(524288 : Int)
 
-noncomputable def CheckDuplicateURL [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckDuplicateURL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/config.CheckDuplicateURL"
 
 /-- ReqTimeout returns timeout for request to finish.
 
     go: config.go:316:24 -/
-noncomputable def ServerConfig.ReqTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ServerConfig.ReqTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerConfig.ty)))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second))) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))))) (Val _root_.Perennial.time.Millisecond)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second))) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))))) (Val _root_.Perennial.time.Millisecond))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- go: config.go:322:24 -/
-noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ServerConfig.ElectionTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerConfig.ty)))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))) (Val _root_.Perennial.time.Millisecond)))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))) (Val _root_.Perennial.time.Millisecond))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- go: config.go:354:24 -/
-noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerConfig.ty)))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"MaxRequestBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint))) (Val grpcOverheadBytes))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"MaxRequestBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint))) (Val grpcOverheadBytes)))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.uint))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.config where
   pkgImportedPkgs := [pkg_id.time, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.config)) (Lam BAnon
   (App (Val exceptionDo)
@@ -101,7 +119,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.initialize') (Val #()))))))))
 
-structure ServerConfig [FfiSyntax] where
+structure ServerConfig [GooseExts] where
   mk ::
   Name' : GoString
   DiscoveryCfg' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig
@@ -161,10 +179,10 @@ structure ServerConfig [FfiSyntax] where
   ServerFeatureGate' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate
   Metrics' : GoString
 
-noncomputable instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
+noncomputable instance ServerConfig.zero_val [GooseExts] : ZeroVal ServerConfig :=
   ⟨ServerConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServerConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServerConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"DiscoveryCfg" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.ty),
 (go.field_decl.FieldDecl go!"ClientURLs" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty),
@@ -223,17 +241,17 @@ noncomputable instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig 
 (go.field_decl.FieldDecl go!"ServerFeatureGate" _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty),
 (go.field_decl.FieldDecl go!"Metrics" go.string)]
 
-@[irreducible] noncomputable def ServerConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServerConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServerConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServerConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServerConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServerConfig.fields ServerConfig.fieldsUnsealed :=
   ⟨by unfold ServerConfig.fields; rfl⟩
 
-@[reducible] noncomputable def ServerConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServerConfig.fields)
 
-class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerConfig.underlying ServerConfig
   underlying : go.UnderlyingDirectedEq ServerConfig.ty ServerConfig.underlying
   get_Name : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Name") #x (Val #(x.Name'))
@@ -350,6 +368,8 @@ class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_ServerFeatureGate : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ServerFeatureGate") (PairV #x #y) (Val #(({ x with ServerFeatureGate' := y } : ServerConfig)))
   get_Metrics : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Metrics") #x (Val #(x.Metrics'))
   set_Metrics : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Metrics") (PairV #x #y) (Val #(({ x with Metrics' := y } : ServerConfig)))
+  method_set : go.MethodSetIs ServerConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerConfig.ty) [(go!"BackendPath", (some (go.signature.Signature [] false [go.string]))), (go!"BootstrapTimeoutEffective", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ElectionTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"MaxRequestBytesWithOverhead", (some (go.signature.Signature [] false [go.uint]))), (go!"MemberDir", (some (go.signature.Signature [] false [go.string]))), (go!"PeerDialTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ShouldDiscover", (some (go.signature.Signature [] false [go.bool]))), (go!"SnapDir", (some (go.signature.Signature [] false [go.string]))), (go!"VerifyBootstrap", (some (go.signature.Signature [] false [go.error]))), (go!"VerifyJoinExisting", (some (go.signature.Signature [] false [go.error]))), (go!"WALDir", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/config.advertiseMatchesCluster", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/config.hasLocalMember", (some (go.signature.Signature [] false [go.error])))]
   ptr_ElectionTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ElectionTimeout" ServerConfig.ElectionTimeout.impl
   ptr_MaxRequestBytesWithOverhead_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"MaxRequestBytesWithOverhead" ServerConfig.MaxRequestBytesWithOverhead.impl
   ptr_ReqTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ReqTimeout" ServerConfig.ReqTimeout.impl
@@ -470,11 +490,13 @@ attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.set_ServerFeatureGate
   ServerConfig.TypeAssumptions.get_Metrics
   ServerConfig.TypeAssumptions.set_Metrics
+  ServerConfig.TypeAssumptions.method_set
+  ServerConfig.TypeAssumptions.ptr_method_set
   ServerConfig.TypeAssumptions.ptr_ElectionTimeout_unfold
   ServerConfig.TypeAssumptions.ptr_MaxRequestBytesWithOverhead_unfold
   ServerConfig.TypeAssumptions.ptr_ReqTimeout_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ServerConfig_instance : ServerConfig.TypeAssumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_otelgrpc_Assumption : _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions

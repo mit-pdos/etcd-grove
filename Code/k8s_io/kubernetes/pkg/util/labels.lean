@@ -21,33 +21,34 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.util.labels
 
-noncomputable def CloneAndAddLabel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CloneAndAddLabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/labels.CloneAndAddLabel"
 
-noncomputable def CloneAndRemoveLabel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CloneAndRemoveLabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/labels.CloneAndRemoveLabel"
 
-noncomputable def AddLabel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddLabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/labels.AddLabel"
 
-noncomputable def CloneSelectorAndAddLabel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CloneSelectorAndAddLabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/labels.CloneSelectorAndAddLabel"
 
-noncomputable def AddLabelToSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddLabelToSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/labels.AddLabelToSelector"
 
-noncomputable def SelectorHasLabel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SelectorHasLabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/labels.SelectorHasLabel"
 
 /-- Clones the given map and returns a new map with the given key and value added.
     Returns the given map, if labelKey is empty.
 
     go: labels.go:25:6 -/
-noncomputable def CloneAndAddLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CloneAndAddLabel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "labels"
   (Lam "labelKey"
   (Lam "labelValue"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "labelValue" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelValue"))
   (Let "labelKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelKey"))
   (Let "labels" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "labels"))
@@ -58,8 +59,12 @@ noncomputable def CloneAndAddLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "labelValue"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "newLabels"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "newLabels")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "newLabels"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey"))) (Var "$r0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels"))
@@ -80,19 +85,25 @@ noncomputable def CloneAndAddLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "newLabels") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey")) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "$res0")))))))
 
 /-- CloneAndRemoveLabel clones the given map and returns a new map with the given key removed.
     Returns the given map, if labelKey is empty.
 
     go: labels.go:41:6 -/
-noncomputable def CloneAndRemoveLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CloneAndRemoveLabel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "labels"
   (Lam "labelKey"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "labelKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelKey"))
   (Let "labels" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "labels"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -101,8 +112,12 @@ noncomputable def CloneAndRemoveLabel.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "newLabels"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "newLabels")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "newLabels"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey"))
@@ -125,19 +140,25 @@ noncomputable def CloneAndRemoveLabel.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "newLabels") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey")) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "$res0"))))))
 
 /-- AddLabel returns a map with the given key and value added to the given map.
 
     go: labels.go:56:6 -/
-noncomputable def AddLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def AddLabel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "labels"
   (Lam "labelKey"
   (Lam "labelValue"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "labelValue" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelValue"))
   (Let "labelKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelKey"))
   (Let "labels" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "labels"))
@@ -145,8 +166,12 @@ noncomputable def AddLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "labelValue"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey"))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.string go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.string)))) (Val UntypedNil)))))
@@ -156,20 +181,26 @@ noncomputable def AddLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey")) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "$res0")))))))
 
 /-- Clones the given selector and returns a new selector with the given key and value added.
     Returns the given selector, if labelKey is empty.
 
     go: labels.go:70:6 -/
-noncomputable def CloneSelectorAndAddLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CloneSelectorAndAddLabel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "selector"
   (Lam "labelKey"
   (Lam "labelValue"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "labelValue" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelValue"))
   (Let "labelKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelKey"))
   (Let "selector" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))
@@ -183,8 +214,12 @@ noncomputable def CloneSelectorAndAddLabel.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "labelValue"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "newSelector"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "newSelector")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty go!"MatchExpressions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement.ty)))) (Val UntypedNil))))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement.ty)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty go!"MatchExpressions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement.ty)]))) (Val #())) (Var "$a0"))))
@@ -257,19 +292,25 @@ noncomputable def CloneSelectorAndAddLabel.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Pair (Var "newSelector") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey")) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "$res0")))))))
 
 /-- AddLabelToSelector returns a selector with the given key and value added to the given selector's MatchLabels.
 
     go: labels.go:109:6 -/
-noncomputable def AddLabelToSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def AddLabelToSelector.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "selector"
   (Lam "labelKey"
   (Lam "labelValue"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "labelValue" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelValue"))
   (Let "labelKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelKey"))
   (Let "selector" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))
@@ -277,8 +318,12 @@ noncomputable def AddLabelToSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "labelValue"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty go!"MatchLabels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey"))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.string go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty go!"MatchLabels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.string)))) (Val UntypedNil)))))
@@ -288,35 +333,46 @@ noncomputable def AddLabelToSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey")) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "$res0")))))))
 
 /-- SelectorHasLabel checks if the given selector contains the given label key in its MatchLabels
 
     go: labels.go:122:6 -/
-noncomputable def SelectorHasLabel.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectorHasLabel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "selector"
   (Lam "labelKey"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "labelKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "labelKey"))
   (Let "selector" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty go!"MatchLabels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty go!"MatchLabels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)))) (Var "selector"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "labelKey")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.util.labels where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.kubernetes.pkg.util.labels)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.initialize') (Val #())))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CloneAndAddLabel_unfold : FuncUnfold CloneAndAddLabel [] CloneAndAddLabel.impl
   CloneAndRemoveLabel_unfold : FuncUnfold CloneAndRemoveLabel [] CloneAndRemoveLabel.impl
   AddLabel_unfold : FuncUnfold AddLabel [] AddLabel.impl

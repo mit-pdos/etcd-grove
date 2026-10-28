@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -38,8 +38,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev newRaftNode.spec : Prop :=
-  ∀ (E : RNEnv GF) (node : NodeNames) (id : w64) (nl : Loc) (pre : List EntryModel)
-    (ms : Loc) (γs : MemStorNames) (reg : GName) (cv : raftNodeConfig),
+  ∀ (E : RNEnv GF) (node : SrvRaft) (id : w64) (nl : Loc) (pre : List EntryModel)
+    (ms : Loc) (γs : MemStorNames) (cv : raftNodeConfig),
   cv.lg' ≠ null →
   cv.heartbeat' ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -48,8 +48,7 @@ abbrev newRaftNode.spec : Prop :=
     (App (Val (@! newRaftNode)) (Val #cv))
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames,
-        ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs ∧
-          γ.reg = reg⌝ ∗
+        ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs⌝ ∗
         rnBuilt E γ r cv }}
 
 end spec

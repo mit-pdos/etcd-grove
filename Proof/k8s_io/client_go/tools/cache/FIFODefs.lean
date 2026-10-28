@@ -32,18 +32,18 @@ namespace cache
 open Iris Iris.BI k8s_io.client_go.tools.cache
 
 /-- A queued delta, abstractly. -/
-inductive FD [FfiSyntax] where
+inductive FD [GooseExts] where
   | obj (t : GoString) (o : GoInterface)
   | replaced (objs : List GoInterface) (rv : GoString)
   | bookmark (rv : GoString)
 
 /-- `FD` as a sum, for its encoding. -/
-def FD.toSum [FfiSyntax] : FD → (GoString × GoInterface) ⊕ ((List GoInterface × GoString) ⊕ GoString)
+def FD.toSum [GooseExts] : FD → (GoString × GoInterface) ⊕ ((List GoInterface × GoString) ⊕ GoString)
   | .obj t o => .inl (t, o)
   | .replaced objs rv => .inr (.inl (objs, rv))
   | .bookmark rv => .inr (.inr rv)
 
-instance FD.countable [FfiSyntax] : Pos.Countable FD :=
+instance FD.countable [GooseExts] : Pos.Countable FD :=
   .ofInjective (fun d => Pos.Countable.encode d.toSum)
     (by
       intro a b h
@@ -51,14 +51,14 @@ instance FD.countable [FfiSyntax] : Pos.Countable FD :=
       cases a <;> cases b <;> simp_all [FD.toSum])
 
 /-- **The queue's state.** -/
-structure FQ [FfiSyntax] where
+structure FQ [GooseExts] where
   items : List FD
   populated : Bool
   initCount : Nat
   synced : Bool
   closed : Bool
 
-instance FQ.countable [FfiSyntax] : Pos.Countable FQ :=
+instance FQ.countable [GooseExts] : Pos.Countable FQ :=
   .ofInjective (fun q => Pos.Countable.encode (q.items, q.populated, q.initCount, q.synced, q.closed))
     (by
       rintro ⟨a, b, c, d, e⟩ ⟨a', b', c', d', e'⟩ h
@@ -68,25 +68,25 @@ instance FQ.countable [FfiSyntax] : Pos.Countable FQ :=
 
 /-- `Add`/`Update`/`Delete(obj)`: populated, synced if no initial item is left (`checkSynced`),
 the delta `{t, obj}` queued. -/
-def FQ.addObj [FfiSyntax] (t : GoString) (o : GoInterface) (q : FQ) : FQ :=
+def FQ.addObj [GooseExts] (t : GoString) (o : GoInterface) (q : FQ) : FQ :=
   { q with items := q.items ++ [.obj t o], populated := true,
            synced := q.synced || q.initCount == 0 }
 
 /-- `Replace(objs, rv)` (atomic events): the relist's delta queued; the first time (not yet
 populated), populated with the queue's length as the initial items (never synced then: the
 queue holds at least the relist). -/
-def FQ.replace [FfiSyntax] (objs : List GoInterface) (rv : GoString) (q : FQ) : FQ :=
+def FQ.replace [GooseExts] (objs : List GoInterface) (rv : GoString) (q : FQ) : FQ :=
   if q.populated then { q with items := q.items ++ [.replaced objs rv] }
   else { q with items := q.items ++ [.replaced objs rv], populated := true,
                 initCount := q.items.length + 1 }
 
-theorem FQ.replace_synced [FfiSyntax] (objs : List GoInterface) (rv : GoString) (q : FQ) :
+theorem FQ.replace_synced [GooseExts] (objs : List GoInterface) (rv : GoString) (q : FQ) :
     (q.replace objs rv).synced = q.synced := by
   unfold FQ.replace; split <;> rfl
 
 /-- `Pop`'s deferred step, after the delta's processing: one initial item fewer, synced once none
 is left (`checkSynced`). -/
-def FQ.popDone [FfiSyntax] (q : FQ) : FQ :=
+def FQ.popDone [GooseExts] (q : FQ) : FQ :=
   if 0 < q.initCount then
     { q with initCount := q.initCount - 1,
              synced := q.synced || (q.populated && q.initCount - 1 == 0) }
@@ -101,7 +101,7 @@ structure FifoNames where
   ch : ChanNames
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -20,72 +20,72 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.coordination.v1alpha2
 
-noncomputable def CoordinationV1alpha2Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CoordinationV1alpha2Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.CoordinationV1alpha2Interface" [])
 
 attribute [irreducible] CoordinationV1alpha2Interface.ty
 
-noncomputable def CoordinationV1alpha2Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CoordinationV1alpha2Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.CoordinationV1alpha2Client" [])
 
 attribute [irreducible] CoordinationV1alpha2Client.ty
 
-noncomputable def LeaseCandidateExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaseCandidateExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.LeaseCandidateExpansion" [])
 
 attribute [irreducible] LeaseCandidateExpansion.ty
 
-noncomputable def LeaseCandidatesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaseCandidatesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.LeaseCandidatesGetter" [])
 
 attribute [irreducible] LeaseCandidatesGetter.ty
 
-noncomputable def LeaseCandidateInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaseCandidateInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.LeaseCandidateInterface" [])
 
 attribute [irreducible] LeaseCandidateInterface.ty
 
-noncomputable def leaseCandidates.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def leaseCandidates.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.leaseCandidates" [])
 
 attribute [irreducible] leaseCandidates.ty
 
-axiom CoordinationV1alpha2Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CoordinationV1alpha2Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CoordinationV1alpha2Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CoordinationV1alpha2Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseCandidateExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LeaseCandidateExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseCandidatesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LeaseCandidatesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseCandidateInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LeaseCandidateInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom leaseCandidates.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom leaseCandidates.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.setConfigDefaults"
 
-noncomputable def newLeaseCandidates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newLeaseCandidates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.newLeaseCandidates"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2)) (Lam BAnon
   (App (Val exceptionDo)
@@ -96,81 +96,105 @@ axiom CoordinationV1alpha2Interface : Type
 axiom CoordinationV1alpha2Interface.zero_val : ZeroVal CoordinationV1alpha2Interface
 attribute [instance] CoordinationV1alpha2Interface.zero_val
 
-class CoordinationV1alpha2Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CoordinationV1alpha2Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CoordinationV1alpha2Interface.underlying CoordinationV1alpha2Interface
   underlying : go.UnderlyingDirectedEq CoordinationV1alpha2Interface.ty CoordinationV1alpha2Interface.underlying
   isUnderlying : go.IsUnderlying CoordinationV1alpha2Interface.underlying CoordinationV1alpha2Interface.underlying
+  method_set : go.MethodSetIs CoordinationV1alpha2Interface.ty [(go!"LeaseCandidates", (some (go.signature.Signature [go.string] false [LeaseCandidateInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CoordinationV1alpha2Interface.ty) []
 
 attribute [instance] CoordinationV1alpha2Interface.TypeAssumptions.type_repr
   CoordinationV1alpha2Interface.TypeAssumptions.underlying
   CoordinationV1alpha2Interface.TypeAssumptions.isUnderlying
+  CoordinationV1alpha2Interface.TypeAssumptions.method_set
+  CoordinationV1alpha2Interface.TypeAssumptions.ptr_method_set
 
 axiom CoordinationV1alpha2Client : Type
 axiom CoordinationV1alpha2Client.zero_val : ZeroVal CoordinationV1alpha2Client
 attribute [instance] CoordinationV1alpha2Client.zero_val
 
-class CoordinationV1alpha2Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CoordinationV1alpha2Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CoordinationV1alpha2Client.underlying CoordinationV1alpha2Client
   underlying : go.UnderlyingDirectedEq CoordinationV1alpha2Client.ty CoordinationV1alpha2Client.underlying
   isUnderlying : go.IsUnderlying CoordinationV1alpha2Client.underlying CoordinationV1alpha2Client.underlying
+  method_set : go.MethodSetIs CoordinationV1alpha2Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CoordinationV1alpha2Client.ty) [(go!"LeaseCandidates", (some (go.signature.Signature [go.string] false [LeaseCandidateInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
 
 attribute [instance] CoordinationV1alpha2Client.TypeAssumptions.type_repr
   CoordinationV1alpha2Client.TypeAssumptions.underlying
   CoordinationV1alpha2Client.TypeAssumptions.isUnderlying
+  CoordinationV1alpha2Client.TypeAssumptions.method_set
+  CoordinationV1alpha2Client.TypeAssumptions.ptr_method_set
 
 axiom LeaseCandidateExpansion : Type
 axiom LeaseCandidateExpansion.zero_val : ZeroVal LeaseCandidateExpansion
 attribute [instance] LeaseCandidateExpansion.zero_val
 
-class LeaseCandidateExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaseCandidateExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseCandidateExpansion.underlying LeaseCandidateExpansion
   underlying : go.UnderlyingDirectedEq LeaseCandidateExpansion.ty LeaseCandidateExpansion.underlying
   isUnderlying : go.IsUnderlying LeaseCandidateExpansion.underlying LeaseCandidateExpansion.underlying
+  method_set : go.MethodSetIs LeaseCandidateExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseCandidateExpansion.ty) []
 
 attribute [instance] LeaseCandidateExpansion.TypeAssumptions.type_repr
   LeaseCandidateExpansion.TypeAssumptions.underlying
   LeaseCandidateExpansion.TypeAssumptions.isUnderlying
+  LeaseCandidateExpansion.TypeAssumptions.method_set
+  LeaseCandidateExpansion.TypeAssumptions.ptr_method_set
 
 axiom LeaseCandidatesGetter : Type
 axiom LeaseCandidatesGetter.zero_val : ZeroVal LeaseCandidatesGetter
 attribute [instance] LeaseCandidatesGetter.zero_val
 
-class LeaseCandidatesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaseCandidatesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseCandidatesGetter.underlying LeaseCandidatesGetter
   underlying : go.UnderlyingDirectedEq LeaseCandidatesGetter.ty LeaseCandidatesGetter.underlying
   isUnderlying : go.IsUnderlying LeaseCandidatesGetter.underlying LeaseCandidatesGetter.underlying
+  method_set : go.MethodSetIs LeaseCandidatesGetter.ty [(go!"LeaseCandidates", (some (go.signature.Signature [go.string] false [LeaseCandidateInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseCandidatesGetter.ty) []
 
 attribute [instance] LeaseCandidatesGetter.TypeAssumptions.type_repr
   LeaseCandidatesGetter.TypeAssumptions.underlying
   LeaseCandidatesGetter.TypeAssumptions.isUnderlying
+  LeaseCandidatesGetter.TypeAssumptions.method_set
+  LeaseCandidatesGetter.TypeAssumptions.ptr_method_set
 
 axiom LeaseCandidateInterface : Type
 axiom LeaseCandidateInterface.zero_val : ZeroVal LeaseCandidateInterface
 attribute [instance] LeaseCandidateInterface.zero_val
 
-class LeaseCandidateInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaseCandidateInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseCandidateInterface.underlying LeaseCandidateInterface
   underlying : go.UnderlyingDirectedEq LeaseCandidateInterface.ty LeaseCandidateInterface.underlying
   isUnderlying : go.IsUnderlying LeaseCandidateInterface.underlying LeaseCandidateInterface.underlying
+  method_set : go.MethodSetIs LeaseCandidateInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/coordination/v1alpha2.LeaseCandidateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidateList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseCandidateInterface.ty) []
 
 attribute [instance] LeaseCandidateInterface.TypeAssumptions.type_repr
   LeaseCandidateInterface.TypeAssumptions.underlying
   LeaseCandidateInterface.TypeAssumptions.isUnderlying
+  LeaseCandidateInterface.TypeAssumptions.method_set
+  LeaseCandidateInterface.TypeAssumptions.ptr_method_set
 
 axiom leaseCandidates : Type
 axiom leaseCandidates.zero_val : ZeroVal leaseCandidates
 attribute [instance] leaseCandidates.zero_val
 
-class leaseCandidates.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class leaseCandidates.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leaseCandidates.underlying leaseCandidates
   underlying : go.UnderlyingDirectedEq leaseCandidates.ty leaseCandidates.underlying
   isUnderlying : go.IsUnderlying leaseCandidates.underlying leaseCandidates.underlying
+  method_set : go.MethodSetIs leaseCandidates.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/coordination/v1alpha2.LeaseCandidateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/coordination/v1alpha2.LeaseCandidateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidateList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leaseCandidates.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/coordination/v1alpha2.LeaseCandidateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/coordination/v1alpha2.LeaseCandidateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidateList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/coordination/v1alpha2.LeaseCandidate" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] leaseCandidates.TypeAssumptions.type_repr
   leaseCandidates.TypeAssumptions.underlying
   leaseCandidates.TypeAssumptions.isUnderlying
+  leaseCandidates.TypeAssumptions.method_set
+  leaseCandidates.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CoordinationV1alpha2Interface_instance : CoordinationV1alpha2Interface.TypeAssumptions
   CoordinationV1alpha2Client_instance : CoordinationV1alpha2Client.TypeAssumptions
   LeaseCandidateExpansion_instance : LeaseCandidateExpansion.TypeAssumptions

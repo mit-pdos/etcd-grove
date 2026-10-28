@@ -36,289 +36,302 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.k8setcd3
 
-noncomputable def Obj.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Obj.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Obj" [])
 
 attribute [irreducible] Obj.ty
 
-noncomputable def codec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def codec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.codec" [])
 
 attribute [irreducible] codec.ty
 
-noncomputable def versioner.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def versioner.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.versioner" [])
 
 attribute [irreducible] versioner.ty
 
-noncomputable def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def decoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.decoder" [])
 
 attribute [irreducible] decoder.ty
 
-noncomputable def identity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def identity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.identity" [])
 
 attribute [irreducible] identity.ty
 
-noncomputable def noCompactor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noCompactor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.noCompactor" [])
 
 attribute [irreducible] noCompactor.ty
 
-noncomputable def Input.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Input.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Input" [])
 
 attribute [irreducible] Input.ty
 
-noncomputable def Output.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Output.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Output" [])
 
 attribute [irreducible] Output.ty
 
-noncomputable def item.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def item.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.item" [])
 
 attribute [irreducible] item.ty
 
-noncomputable def mstore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mstore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.mstore" [])
 
 attribute [irreducible] mstore.ty
 
-noncomputable def mcfg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mcfg.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.mcfg" [])
 
 attribute [irreducible] mcfg.ty
 
-noncomputable def state.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def state.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.state" [])
 
 attribute [irreducible] state.ty
 
-@[reducible] noncomputable def tagV1 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def tagV1 [GooseExts] [GoGlobalContext] : val :=
   #(go!"v1:")
 
-@[reducible] noncomputable def tagV0 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def tagV0 [GooseExts] [GoGlobalContext] : val :=
   #(go!"v0:")
 
-@[reducible] noncomputable def KCreate [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KCreate [GooseExts] [GoGlobalContext] : val :=
   #(0 : Int)
 
-@[reducible] noncomputable def KDelete [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KDelete [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-@[reducible] noncomputable def KUpdate [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KUpdate [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
-@[reducible] noncomputable def KGet [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KGet [GooseExts] [GoGlobalContext] : val :=
   #(3 : Int)
 
-@[reducible] noncomputable def ENone [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ENone [GooseExts] [GoGlobalContext] : val :=
   #(0 : Int)
 
-@[reducible] noncomputable def ENotFound [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ENotFound [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-@[reducible] noncomputable def EExists [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EExists [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
-@[reducible] noncomputable def ERejected [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ERejected [GooseExts] [GoGlobalContext] : val :=
   #(3 : Int)
 
-@[reducible] noncomputable def EOther [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EOther [GooseExts] [GoGlobalContext] : val :=
   #(4 : Int)
 
-@[reducible] noncomputable def Prefix [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Prefix [GooseExts] [GoGlobalContext] : val :=
   #(go!"/registry")
 
-@[reducible] noncomputable def ResourcePrefix [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ResourcePrefix [GooseExts] [GoGlobalContext] : val :=
   #(go!"/objs")
 
-@[reducible] noncomputable def clientAddr [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23896")
 
-noncomputable def errNotObj [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errNotObj [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.errNotObj"
 
-noncomputable def errBadData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errBadData [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.errBadData"
 
-noncomputable def errBadRV [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errBadRV [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.errBadRV"
 
-noncomputable def errNoList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errNoList [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.errNoList"
 
-noncomputable def errDeleteRejected [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errDeleteRejected [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.errDeleteRejected"
 
-noncomputable def errUpdateRejected [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errUpdateRejected [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.errUpdateRejected"
 
-noncomputable def encodeWith [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeWith [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.encodeWith"
 
-noncomputable def encodeObj [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeObj [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.encodeObj"
 
-noncomputable def encodeV0 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeV0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.encodeV0"
 
-noncomputable def decodeObj [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decodeObj [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.decodeObj"
 
-noncomputable def parseRV [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseRV [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.parseRV"
 
-noncomputable def newObj [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newObj [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.newObj"
 
-noncomputable def storeKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def storeKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.storeKey"
 
-noncomputable def validateFor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateFor [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.validateFor"
 
-noncomputable def updated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def updated [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.updated"
 
-noncomputable def tryUpdateFor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def tryUpdateFor [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.tryUpdateFor"
 
-noncomputable def lookup' [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def lookup' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.lookup"
 
-noncomputable def setItem [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setItem [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.setItem"
 
-noncomputable def delItem [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def delItem [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.delItem"
 
-noncomputable def notFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def notFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.notFound"
 
-noncomputable def objOut [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def objOut [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.objOut"
 
-noncomputable def mcreate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mcreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.mcreate"
 
-noncomputable def mdelete [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mdelete [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.mdelete"
 
-noncomputable def mupdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mupdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.mupdate"
 
-noncomputable def mget [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mget [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.mget"
 
-noncomputable def mstep [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mstep [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.mstep"
 
-noncomputable def isWrite [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isWrite [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.isWrite"
 
-noncomputable def outEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def outEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.outEqual"
 
-noncomputable def inputEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def inputEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.inputEqual"
 
-noncomputable def storeEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def storeEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.storeEqual"
 
-noncomputable def configEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def configEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.configEqual"
 
-noncomputable def addConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.addConfig"
 
-noncomputable def removeAt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def removeAt [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.removeAt"
 
-noncomputable def closure [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def closure [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.closure"
 
-noncomputable def step [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def step [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.step"
 
-noncomputable def Model [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Model [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Model"
 
-noncomputable def workloadKeys [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def workloadKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.workloadKeys"
 
-noncomputable def workloadVals [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def workloadVals [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.workloadVals"
 
-noncomputable def pick [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pick [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.pick"
 
-noncomputable def genFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def genFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.genFrom"
 
-noncomputable def Gen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Gen [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Gen"
 
-noncomputable def errOut [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errOut [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.errOut"
 
-noncomputable def call [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def call [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.call"
 
-noncomputable def Apply [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Apply [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Apply"
 
-noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Check"
 
-noncomputable def seedOne [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def seedOne [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.seedOne"
 
-noncomputable def seed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def seed [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.seed"
 
-noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Main"
 
 /-- GetObjectKind is runtime.Object's: the driver's objects carry no kind.
 
     go: k8setcd3.go:69:15 -/
-noncomputable def Obj.GetObjectKind.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Obj.GetObjectKind.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "o"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Obj.ty)))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.emptyObjectKind.ty _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.emptyObjectKind.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.EmptyObjectKind))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.emptyObjectKind.ty _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.emptyObjectKind.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.EmptyObjectKind))) (Val #())))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty))) (Var "$res0"))))))
 
 /-- DeepCopyObject is runtime.Object's: a copy.
 
     go: k8setcd3.go:74:15 -/
-noncomputable def Obj.DeepCopyObject.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Obj.DeepCopyObject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "o"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Obj.ty)))) (Var "o"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad Obj.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o")))
   (Let "c" (App (Val (GoInstruction (GoAlloc Obj.ty))) (App (Val (GoInstruction (GoZeroVal Obj.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Obj.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType Obj.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "c")))))
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Obj.ty))) (Pair (Var "c") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Obj.ty))) (Pair (Var "c") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0"))))))
 
 /-- encodeWith is the encoding of an object's name and value (not its resource version) under the
     tag tag: the tag, the name's length (one byte; names are shorter than 256 bytes), the name and
     the value.
 
     go: k8setcd3.go:88:6 -/
-noncomputable def encodeWith.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def encodeWith.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tag"
   (Lam "name"
   (Lam "val"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "val" (App (Val (GoInstruction (GoAlloc go.string))) (Var "val"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "tag" (App (Val (GoInstruction (GoAlloc go.string))) (Var "tag"))
@@ -335,51 +348,71 @@ noncomputable def encodeWith.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "out"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "out"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "val")))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "out") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "out") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "out") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "out") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))))
 
 /-- encodeObj is the current encoding of an object.
 
     go: k8setcd3.go:96:6 -/
-noncomputable def encodeObj.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def encodeObj.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "o"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Obj.ty)))) (Var "o"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val tagV1))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val tagV1))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))))
-  (App (App (App (App (Val (GoInstruction (FuncResolve encodeWith []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve encodeWith []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))
 
 /-- encodeV0 is the older encoding. The driver seeds some keys with it.
 
     go: k8setcd3.go:101:6 -/
-noncomputable def encodeV0.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def encodeV0.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "val"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "val" (App (Val (GoInstruction (GoAlloc go.string))) (Var "val"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val tagV0))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val tagV0))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "val"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve encodeWith []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve encodeWith []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
 /-- decodeObj decodes either encoding: the name and value, or false.
 
     go: k8setcd3.go:106:6 -/
-noncomputable def decodeObj.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def decodeObj.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "data"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
@@ -391,38 +424,88 @@ noncomputable def decodeObj.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 4))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 4)) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))))))
+  (Let "$r1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 4)) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s"))))))
+  (Let "$r2" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 4))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 4)) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))))) (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 4)) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s"))))))) (Val #true)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 4)) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))))
+  (Let "$r0" (Val #(go!""))
+  (Let "$r1" (Val #(go!""))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (Val #(go!"")) (Val #(go!""))) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val tagV1))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val tagV0))))) (Val #false)))
+  (Let "$r0" (Val #(go!""))
+  (Let "$r1" (Val #(go!""))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (Val #(go!"")) (Val #(go!""))) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tag") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 4)))))
+  (Let "$r0" (Val #(go!""))
+  (Let "$r1" (Val #(go!""))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (Val #(go!"")) (Val #(go!""))) (Val #false)))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res2"))))))))
 
 /-- go: k8setcd3.go:129:14 -/
-noncomputable def codec.Encode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def codec.Encode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
   (Lam "w"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "w"))
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Obj.ty)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj")))
@@ -445,37 +528,55 @@ noncomputable def codec.Encode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (Var "$r0")))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- go: k8setcd3.go:138:14 -/
-noncomputable def codec.Identifier.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def codec.Identifier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Val #(go!"k8setcd3"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(go!"k8setcd3"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:142:14 -/
-noncomputable def codec.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def codec.Decode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "data"
   (Lam "defaults"
   (Lam "into"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "into" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "into"))
   (Let "defaults" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "defaults"))
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
@@ -507,15 +608,39 @@ noncomputable def codec.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "val"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Obj.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Val UntypedNil))
+  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType Obj.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Val UntypedNil))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errBadData))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errBadData))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -525,29 +650,52 @@ noncomputable def codec.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$r0"))))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Val UntypedNil))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))))
 
 /-- parseRV parses a resource version string, the versioner's form of a number: empty for 0, its
     eight bytes (big-endian) otherwise.
 
     go: k8setcd3.go:158:6 -/
-noncomputable def parseRV.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def parseRV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -563,23 +711,41 @@ noncomputable def parseRV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 8))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errBadRV))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errBadRV))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #(W64 0)) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
 /-- go: k8setcd3.go:175:18 -/
-noncomputable def versioner.UpdateObject.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def versioner.UpdateObject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
   (Lam "resourceVersion"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "resourceVersion" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "resourceVersion"))
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Obj.ty)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj")))
@@ -594,40 +760,56 @@ noncomputable def versioner.UpdateObject.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "resourceVersion"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Obj.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- go: k8setcd3.go:184:18 -/
-noncomputable def versioner.UpdateList.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def versioner.UpdateList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
   (Lam "resourceVersion"
   (Lam "continueValue"
   (Lam "remainingItemCount"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "remainingItemCount" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType go.int64)))) (Var "remainingItemCount"))
   (Let "continueValue" (App (Val (GoInstruction (GoAlloc go.string))) (Var "continueValue"))
   (Let "resourceVersion" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "resourceVersion"))
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNoList))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNoList))) (Val #()))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))))
 
 /-- go: k8setcd3.go:188:18 -/
-noncomputable def versioner.PrepareObjectForStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def versioner.PrepareObjectForStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Obj.ty)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -641,25 +823,36 @@ noncomputable def versioner.PrepareObjectForStorage.impl [FfiSyntax] [GoGlobalCo
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Obj.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:197:18 -/
-noncomputable def versioner.ObjectResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def versioner.ObjectResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Obj.ty)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -671,38 +864,67 @@ noncomputable def versioner.ObjectResourceVersion.impl [FfiSyntax] [GoGlobalCont
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: k8setcd3.go:205:18 -/
-noncomputable def versioner.ParseResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def versioner.ParseResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "resourceVersion"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "resourceVersion" (App (Val (GoInstruction (GoAlloc go.string))) (Var "resourceVersion"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "resourceVersion"))
   (App (App (Val (GoInstruction (FuncResolve parseRV []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: k8setcd3.go:212:16 -/
-noncomputable def decoder.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def decoder.Decode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "data"
   (Lam "objPtr"
   (Lam "rev"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "rev"))
   (Let "objPtr" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "objPtr"))
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
@@ -736,8 +958,12 @@ noncomputable def decoder.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "rev")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Obj.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -745,8 +971,12 @@ noncomputable def decoder.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errBadData))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errBadData))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -756,92 +986,154 @@ noncomputable def decoder.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$r0"))))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
 /-- go: k8setcd3.go:227:16 -/
-noncomputable def decoder.DecodeListItem.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def decoder.DecodeListItem.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "ctx"
   (Lam "data"
   (Lam "rev"
   (Lam "newItemFunc"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "newItemFunc" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))))) (Var "newItemFunc"))
   (Let "rev" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "rev"))
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNoList))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNoList))) (Val #())))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))
 
 /-- go: k8setcd3.go:234:17 -/
-noncomputable def identity.TransformFromStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def identity.TransformFromStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "ctx"
   (Lam "data"
   (Lam "dataCtx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "dataCtx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty))) (Var "dataCtx"))
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$r1" (Val #false)
+  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data")) (Val #false)) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))))
 
 /-- go: k8setcd3.go:238:17 -/
-noncomputable def identity.TransformToStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def identity.TransformToStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "ctx"
   (Lam "data"
   (Lam "dataCtx"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "dataCtx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty))) (Var "dataCtx"))
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 /-- go: k8setcd3.go:245:20 -/
-noncomputable def noCompactor.CompactRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noCompactor.CompactRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:249:6 -/
-noncomputable def newObj.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newObj.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Obj.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoAlloc Obj.ty))) (App (Val (GoInstruction (CompositeLiteral Obj.ty))) (LiteralValue []))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType Obj.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoAlloc Obj.ty))) (App (Val (GoInstruction (CompositeLiteral Obj.ty))) (LiteralValue [])))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")))))
 
 /-- storeKey is the key the store is called with for a name (the Model's item key).
 
     go: k8setcd3.go:311:6 -/
-noncomputable def storeKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"/objs/")) (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"/objs/")) (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 /-- validateFor is a Delete's validateDeletion: it rejects an object of value reject.
 
     go: k8setcd3.go:320:6 -/
-noncomputable def validateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def validateFor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "reject"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.ValidateObjectFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.storage.ValidateObjectFunc.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "reject" (App (Val (GoInstruction (GoAlloc go.string))) (Var "reject"))
-  (App (Val doReturn)
-  (Lam "ctx"
+  (Let "$r0" (Lam "ctx"
   (Lam "obj"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Obj.ty)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj")))
@@ -855,32 +1147,53 @@ noncomputable def validateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "reject")) (Val #(go!""))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "reject")))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errDeleteRejected))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errDeleteRejected))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0")))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.storage.ValidateObjectFunc.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.storage.ValidateObjectFunc.ty))) (Var "$res0")))))
 
 /-- updated is a GuaranteedUpdate's result on the object o (a new object), or its error: the
     correctness test's randomUpdate, specialized (traffic.go: a copy, rejected on the drawn value,
     unchanged for a no-op, else the new value).
 
     go: k8setcd3.go:336:6 -/
-noncomputable def updated.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def updated.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "o"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Obj.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Obj.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Obj.ty)))) (Var "o"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -888,8 +1201,16 @@ noncomputable def updated.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "c" (App (Val (GoInstruction (GoAlloc Obj.ty))) (App (Val (GoInstruction (GoZeroVal Obj.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Var "c")
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "c") (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"NoOp"))) (Var "in"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Val"))) (Var "in")))
   (App (Val doExecute)
@@ -899,22 +1220,34 @@ noncomputable def updated.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Obj.ty))) (Pair (Var "c") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Reject"))) (Var "in"))) (Val #(go!""))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "o")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Reject"))) (Var "in"))))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Obj.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errUpdateRejected))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Obj.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errUpdateRejected))) (Val #())))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- tryUpdateFor is a GuaranteedUpdate's tryUpdate (updated, with no TTL).
 
     go: k8setcd3.go:348:6 -/
-noncomputable def tryUpdateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def tryUpdateFor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.UpdateFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.storage.UpdateFunc.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
-  (App (Val doReturn)
-  (Lam "input"
+  (Let "$r0" (Lam "input"
   (Lam "res"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType go.uint64)))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "res" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.ResponseMeta.ty))) (Var "res"))
   (Let "input" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "input"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Obj.ty)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "input")))
@@ -939,11 +1272,35 @@ noncomputable def tryUpdateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Obj.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "r")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))
+  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType Obj.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -951,25 +1308,54 @@ noncomputable def tryUpdateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotObj))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0")))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0")))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.storage.UpdateFunc.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.storage.UpdateFunc.ty))) (Var "$res0")))))
 
 /-- go: k8setcd3.go:389:6 -/
-noncomputable def lookup.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lookup.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "items"
   (Lam "k"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc item.ty))) (App (Val (GoInstruction (GoZeroVal item.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType item.ty)))) (Var "items"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral item.ty))) (LiteralValue []))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (CompositeLiteral item.ty))) (LiteralValue [])) (Val #false)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "items"))
   (Let "it" (App (Val (GoInstruction (GoAlloc item.ty))) (App (Val (GoInstruction (GoZeroVal item.ty))) (Val #())))
   (App (App (Val (slice.forRange item.ty)) (Var "$range"))
@@ -978,22 +1364,32 @@ noncomputable def lookup.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef item.ty go!"key"))) (Var "it"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad item.ty))) (Var "it"))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad item.ty))) (Var "it")) (Val #true)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "it") (Var "$value"))))))))))))))))
+  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "it") (Var "$value"))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad item.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- setItem returns items with k's item it (in key order; a new slice).
 
     go: k8setcd3.go:399:6 -/
-noncomputable def setItem.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def setItem.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "items"
   (Lam "it"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType item.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "it" (App (Val (GoInstruction (GoAlloc item.ty))) (Var "it"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType item.ty)))) (Var "items"))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType item.ty)]))) (Val #())) (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "items"))
@@ -1005,8 +1401,12 @@ noncomputable def setItem.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "out"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "out")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType item.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "done")))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "out"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad item.ty))) (Var "it"))
@@ -1069,15 +1469,17 @@ noncomputable def setItem.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "done") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType item.ty)))) (Pair (Var "out") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType item.ty)))) (Pair (Var "out") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "$res0"))))))
 
 /-- delItem returns items without k's item (a new slice).
 
     go: k8setcd3.go:423:6 -/
-noncomputable def delItem.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def delItem.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "items"
   (Lam "k"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType item.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType item.ty)))) (Var "items"))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType item.ty)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "items"))
@@ -1085,8 +1487,12 @@ noncomputable def delItem.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType item.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "out"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "out")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType item.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "items"))
   (Let "e" (App (Val (GoInstruction (GoAlloc item.ty))) (App (Val (GoInstruction (GoZeroVal item.ty))) (Val #())))
   (App (App (Val (slice.forRange item.ty)) (Var "$range"))
@@ -1108,41 +1514,56 @@ noncomputable def delItem.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "e") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType item.ty)))) (Pair (Var "out") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType item.ty)))) (Pair (Var "out") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:433:6 -/
-noncomputable def notFound.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def notFound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "st"
   (Lam "key"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
   (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENotFound))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENotFound))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Prefix)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (App (Val (GoInstruction (FuncResolve storeKey []))) (Val #())) (Var "$a0")))))
   (Let "$v2" (App (Val (GoInstruction (Convert go.uint64 go.int64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"rv"))) (Var "st"))))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))])))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:437:6 -/
-noncomputable def objOut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def objOut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "o"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "o" (App (Val (GoInstruction (GoAlloc Obj.ty))) (Var "o"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENone))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENone))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Name"))) (Var "o")))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Value"))) (Var "o")))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"ResourceVersion"))) (Var "o")))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"RV")) (ElementExpression go.uint64 (Var "$v3")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"RV")) (ElementExpression go.uint64 (Var "$v3")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res0")))))
 
 /-- mcreate is the Model's create: "key exists", or the object at the next resource version.
 
     go: k8setcd3.go:442:6 -/
-noncomputable def mcreate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def mcreate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1155,16 +1576,24 @@ noncomputable def mcreate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral Obj.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ResourceVersion")) (ElementExpression go.uint64 (Var "$v2")))])))))
   (Let "o" (App (Val (GoInstruction (GoAlloc Obj.ty))) (App (Val (GoInstruction (GoZeroVal Obj.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
+  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
   (Let "$a1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
   (Let "$v2" (Val #true)
   (App (Val (GoInstruction (CompositeLiteral item.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"obj")) (ElementExpression Obj.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"canon")) (ElementExpression go.bool (Var "$v2")))])))))
   (App (App (App (Val (GoInstruction (FuncResolve setItem []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
-  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))])))) (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
-  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))))))
+  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
+  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Obj.ty))) (Pair (Var "o") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -1180,27 +1609,38 @@ noncomputable def mcreate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st")) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val EExists))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r1" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val EExists))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Prefix)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
   (App (App (Val (GoInstruction (FuncResolve storeKey []))) (Val #())) (Var "$a0")))))
   (Let "$v2" (Val #(W64 0))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0")))))))))))))))
+  (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res1"))))))))
 
 /-- mdelete is the Model's delete: "not found", validateDeletion's error on the stored object, or
     the item gone at the next resource version, answered with the object at that version.
 
     go: k8setcd3.go:453:6 -/
-noncomputable def mdelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def mdelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
@@ -1227,13 +1667,21 @@ noncomputable def mdelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
+  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
   (App (App (App (Val (GoInstruction (FuncResolve delItem []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
-  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))])))) (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
-  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))))))
+  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
+  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Obj.ty go!"ResourceVersion"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1247,9 +1695,17 @@ noncomputable def mdelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r1" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ERejected))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st")) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ERejected))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))])))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1257,16 +1713,25 @@ noncomputable def mdelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Obj.ty))) (Pair (Var "c") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st")) (Let "$a0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
-  (App (App (App (Val (GoInstruction (FuncResolve notFound []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve notFound []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "it") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "it") (Var "$r0")))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res1"))))))))
 
 /-- mupdate is the Model's update (no ignoreNotFound): "not found", tryUpdate's error on the
     stored object, the stored object if tryUpdate left it unchanged (its resource version aside)
@@ -1274,10 +1739,12 @@ noncomputable def mdelete.impl [FfiSyntax] [GoGlobalContext] : val :=
     version.
 
     go: k8setcd3.go:472:6 -/
-noncomputable def mupdate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def mupdate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
@@ -1316,16 +1783,24 @@ noncomputable def mupdate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
+  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
   (Let "$a1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
   (Let "$v2" (Val #true)
   (App (Val (GoInstruction (CompositeLiteral item.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"obj")) (ElementExpression Obj.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"canon")) (ElementExpression go.bool (Var "$v2")))])))))
   (App (App (App (Val (GoInstruction (FuncResolve setItem []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
-  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))])))) (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
-  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))))))
+  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
+  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Obj.ty go!"ResourceVersion"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1333,15 +1808,31 @@ noncomputable def mupdate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "rv") (Var "$r0")))))))))
   (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Name"))) (App (Val (GoInstruction (StructFieldRef item.ty go!"obj"))) (Var "it")))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Obj.ty go!"Value"))) (App (Val (GoInstruction (StructFieldRef item.ty go!"obj"))) (Var "it")))))) (Val #false)) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef item.ty go!"canon"))) (Var "it"))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (App (Val (GoInstruction (StructFieldRef item.ty go!"obj"))) (Var "it")))
+  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st")) (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (App (Val (GoInstruction (StructFieldRef item.ty go!"obj"))) (Var "it")))
-  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r1" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ERejected))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st")) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ERejected))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))])))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1351,25 +1842,35 @@ noncomputable def mupdate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Obj.ty))) (Pair (Var "cur") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st")) (Let "$a0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
-  (App (App (App (Val (GoInstruction (FuncResolve notFound []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve notFound []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "it") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "it") (Var "$r0")))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res1"))))))))
 
 /-- mget is the Model's get (no resource version): the stored object, the zero object for a
     missing key with IgnoreNotFound, or "not found".
 
     go: k8setcd3.go:493:6 -/
-noncomputable def mget.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def mget.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
@@ -1384,19 +1885,31 @@ noncomputable def mget.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (App (Val (GoInstruction (StructFieldRef item.ty go!"obj"))) (Var "it")))
-  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0"))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (App (Val (GoInstruction (StructFieldRef item.ty go!"obj"))) (Var "it")))
+  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
-  (App (App (App (Val (GoInstruction (FuncResolve notFound []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
-  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"IgnoreNotFound"))) (Var "in")))
+  (App (App (App (Val (GoInstruction (FuncResolve notFound []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENone))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))]))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"IgnoreNotFound"))) (Var "in")))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENone))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
@@ -1404,32 +1917,51 @@ noncomputable def mget.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "it") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore item.ty))) (Pair (Var "it") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res0"))))))
 
 /-- mstep is the Model's execute: the next store and the answer.
 
     go: k8setcd3.go:505:6 -/
-noncomputable def mstep.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def mstep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st")) (Let "$a0" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
-  (App (App (App (Val (GoInstruction (FuncResolve mget []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve mget []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KUpdate)))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
   (App (App (App (Val (GoInstruction (FuncResolve mupdate []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KDelete)))))
@@ -1438,8 +1970,16 @@ noncomputable def mstep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve mdelete []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KCreate)))))
@@ -1448,50 +1988,82 @@ noncomputable def mstep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve mcreate []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res1"))))))))
 
 /-- go: k8setcd3.go:518:6 -/
-noncomputable def isWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KGet)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KGet)))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- go: k8setcd3.go:522:6 -/
-noncomputable def outEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def outEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc Output.ty))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc Output.ty))) (Var "a"))
+  (Let "$r0" (If (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "b"))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrKey"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrKey"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrRV"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrRV"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Name"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Name"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Value"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Value"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "b"))))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (If (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "b"))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrKey"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrKey"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrRV"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrRV"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Name"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Name"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Value"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Value"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "b"))))) (Val #false))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:527:6 -/
-noncomputable def inputEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def inputEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "a"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals Input.ty))) (Pair (App (Val (GoInstruction (GoLoad Input.ty))) (Var "a")) (App (Val (GoInstruction (GoLoad Input.ty))) (Var "b"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoEquals Input.ty))) (Pair (App (Val (GoInstruction (GoLoad Input.ty))) (Var "a")) (App (Val (GoInstruction (GoLoad Input.ty))) (Var "b"))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:531:6 -/
-noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "a"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "a")))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange item.ty)) (Var "$range"))
@@ -1499,8 +2071,12 @@ noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals item.ty))) (Pair (App (Val (GoInstruction (GoLoad item.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType item.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad item.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType item.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "b"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1508,22 +2084,32 @@ noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"rv"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"rv"))) (Var "b")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "a")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType item.ty)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType item.ty)]))) (Val #())) (Var "$a0"))))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:543:6 -/
-noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def configEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc mcfg.ty))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc mcfg.ty))) (Var "a"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"pend"))) (Var "a")))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange Input.ty)) (Var "$range"))
@@ -1533,8 +2119,12 @@ noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Input.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Input.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"pend"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad Input.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Input.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"pend"))) (Var "b"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (App (Val (GoInstruction (FuncResolve inputEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1544,24 +2134,34 @@ noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve storeEqual []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"pend"))) (Var "a")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Input.ty)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"pend"))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Input.ty)]))) (Val #())) (Var "$a0")))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: k8setcd3.go:555:6 -/
-noncomputable def addConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def addConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc state.ty))) (App (Val (GoInstruction (GoZeroVal state.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc mcfg.ty))) (Var "c"))
   (Let "s" (App (Val (GoInstruction (GoAlloc state.ty))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "c"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType mcfg.ty)))) (LiteralValue [(KeyedElement none (ElementExpression mcfg.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [state.ty]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [state.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad state.ty))) (Var "s"))
   (Let "d" (App (Val (GoInstruction (GoAlloc mcfg.ty))) (App (Val (GoInstruction (GoZeroVal mcfg.ty))) (Val #())))
   (App (App (Val (slice.forRange mcfg.ty)) (Var "$range"))
@@ -1572,22 +2172,28 @@ noncomputable def addConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "c"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "d"))
   (App (App (App (Val (GoInstruction (FuncResolve configEqual []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad state.ty))) (Var "s")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore mcfg.ty))) (Pair (Var "d") (Var "$value"))))))))))))))))
+  (App (Val (GoInstruction (GoStore mcfg.ty))) (Pair (Var "d") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoLoad state.ty))) (Var "$res0"))))))
 
 /-- removeAt returns pend without its i-th input (a new slice).
 
     go: k8setcd3.go:565:6 -/
-noncomputable def removeAt.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def removeAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pend"
   (Lam "i"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Input.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
   (Let "pend" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Input.ty)))) (Var "pend"))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType Input.ty)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (Var "pend"))
@@ -1599,22 +2205,28 @@ noncomputable def removeAt.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Slice (go.GoType.SliceType Input.ty)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Input.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (Var "out"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (Var "out"))
   (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (Var "pend"))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType Input.ty)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Input.ty)]))) (Val #())) (Var "$s")))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Input.ty)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Input.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Input.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType Input.ty)))) (Pair (Var "out") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Input.ty)))) (Pair (Var "out") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Input.ty)))) (Pair (Var "out") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (Var "$res0"))))))
 
 /-- closure adds to s every configuration reachable by pending writes taking effect.
 
     go: k8setcd3.go:572:6 -/
-noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def closure.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc state.ty))) (App (Val (GoInstruction (GoZeroVal state.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc state.ty))) (Var "s"))
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral state.ty))) (LiteralValue []))
   (Let "out" (App (Val (GoInstruction (GoAlloc state.ty))) (App (Val (GoInstruction (GoZeroVal state.ty))) (Val #())))
@@ -1625,8 +2237,12 @@ noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "work" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType mcfg.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType mcfg.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "out"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad state.ty))) (Var "out")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType mcfg.ty)))) (Var "work"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType mcfg.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))) (Lam BAnon
@@ -1701,18 +2317,20 @@ noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType mcfg.ty)))) (Pair (Var "work") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "out") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad state.ty))) (Var "$res0")))))
 
 /-- step returns the configurations c steps to by (in, out): a call that returned no error took
     effect and answered the model's output; a failed write becomes pending; a failed read does
     nothing.
 
     go: k8setcd3.go:594:6 -/
-noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "in"
   (Lam "out"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType mcfg.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType mcfg.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "out" (App (Val (GoInstruction (GoAlloc Output.ty))) (Var "out"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (Let "c" (App (Val (GoInstruction (GoAlloc mcfg.ty))) (Var "c"))
@@ -1729,15 +2347,23 @@ noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"pend"))) (Var "c")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType mcfg.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"st")) (ElementExpression mstore.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"pend")) (ElementExpression (go.GoType.SliceType Input.ty) (Var "$v1")))]))])))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType mcfg.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"st")) (ElementExpression mstore.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"pend")) (ElementExpression (go.GoType.SliceType Input.ty) (Var "$v1")))]))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType mcfg.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Output.ty))) (Var "out"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad Output.ty))) (Var "o"))
   (App (App (App (Val (GoInstruction (FuncResolve outEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType mcfg.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType mcfg.ty)))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType mcfg.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1746,9 +2372,13 @@ noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "st") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "out"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val EOther)))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "c"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType mcfg.ty)))) (LiteralValue [(KeyedElement none (ElementExpression mcfg.ty (Var "$v0")))])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "c"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType mcfg.ty)))) (LiteralValue [(KeyedElement none (ElementExpression mcfg.ty (Var "$v0")))]))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType mcfg.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
   (App (App (Val (GoInstruction (FuncResolve isWrite []))) (Val #())) (Var "$a0")))
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType Input.ty)]))) (Val #())) (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"pend"))) (Var "c")))
@@ -1764,10 +2394,14 @@ noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"pend"))) (Var "c")))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Input.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad mstore.ty))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"st"))) (Var "c")))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad mstore.ty))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"st"))) (Var "c")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Input.ty)))) (Var "pend"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType mcfg.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"st")) (ElementExpression mstore.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"pend")) (ElementExpression (go.GoType.SliceType Input.ty) (Var "$v1")))]))])))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType mcfg.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"st")) (ElementExpression mstore.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"pend")) (ElementExpression (go.GoType.SliceType Input.ty) (Var "$v1")))]))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType mcfg.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType Input.ty)))) (Pair (Var "pend") (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1777,26 +2411,35 @@ noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType mcfg.ty)))) (Var "$res0")))))))
 
 /-- Model is the store as a porcupine model, from the store st0 (the seeded keys).
 
     go: k8setcd3.go:612:6 -/
-noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "st0"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "st0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st0"))
-  (App (Val doReturn)
-  (Let "$v0" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert state.ty go.any))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st0"))
+  (Let "$r0" (Let "$v0" (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert state.ty go.any))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st0"))
   (App (Val (GoInstruction (CompositeLiteral mcfg.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"st")) (ElementExpression mstore.ty (Var "$v0")))])))
-  (App (Val (GoInstruction (CompositeLiteral state.ty))) (LiteralValue [(KeyedElement none (ElementExpression mcfg.ty (Var "$v0")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral state.ty))) (LiteralValue [(KeyedElement none (ElementExpression mcfg.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")))))
   (Let "$v1" (Lam "st"
   (Lam "input"
   (Lam "output"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "output" (App (Val (GoInstruction (GoAlloc go.any))) (Var "output"))
   (Let "input" (App (Val (GoInstruction (GoAlloc go.any))) (Var "input"))
   (Let "st" (App (Val (GoInstruction (GoAlloc go.any))) (Var "st"))
@@ -1813,9 +2456,17 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "next"))
   (App (App (Val (GoInstruction (FuncResolve closure []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "next"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [state.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))
+  (Let "$r1" (App (Val (GoInstruction (Convert state.ty go.any))) (App (Val (GoInstruction (GoLoad state.ty))) (Var "next")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "next"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [state.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (Convert state.ty go.any))) (App (Val (GoInstruction (GoLoad state.ty))) (Var "next")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "next") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (TypeAssert state.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "st")))
@@ -1853,10 +2504,12 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "out") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "in") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "in") (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.any))) (Var "$res1")))))))))
   (Let "$v2" (Lam "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.any))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc go.any))) (Var "a"))
   (Let "$r0" (App (Val (GoInstruction (TypeAssert state.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "a")))
@@ -1867,8 +2520,12 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad state.ty))) (Var "sa"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange mcfg.ty)) (Var "$range"))
@@ -1878,8 +2535,12 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad mcfg.ty))) (App (Val (GoInstruction (IndexRef state.ty))) (Pair (App (Val (GoInstruction (GoLoad state.ty))) (Var "sa")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad mcfg.ty))) (App (Val (GoInstruction (IndexRef state.ty))) (Pair (App (Val (GoInstruction (GoLoad state.ty))) (Var "sb")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (App (Val (GoInstruction (FuncResolve configEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1887,47 +2548,81 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "sa"))
   (App (App (Val (GoInstruction (FuncResolve go.len [state.ty]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad state.ty))) (Var "sb"))
   (App (App (Val (GoInstruction (FuncResolve go.len [state.ty]))) (Val #())) (Var "$a0")))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "sb") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "sa") (Var "$r0"))))))))))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Init")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [go.any])) (Var "$v0"))), (KeyedElement (some (KeyField go!"Step")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any, go.any] false [go.bool, go.any])) (Var "$v1"))), (KeyedElement (some (KeyField go!"Equal")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.bool])) (Var "$v2")))])))))))))
+  (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "sa") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Init")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [go.any])) (Var "$v0"))), (KeyedElement (some (KeyField go!"Step")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any, go.any] false [go.bool, go.any])) (Var "$v1"))), (KeyedElement (some (KeyField go!"Equal")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.bool])) (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Var "$res0")))))
 
 /-- go: k8setcd3.go:646:6 -/
-noncomputable def workloadKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def workloadKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$v0" (Val #(go!"a"))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$v0" (Val #(go!"a"))
   (Let "$v1" (Val #(go!"b"))
   (Let "$v2" (Val #(go!"c"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")))))
 
 /-- go: k8setcd3.go:650:6 -/
-noncomputable def workloadVals.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def workloadVals.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$v0" (Val #(go!"x"))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$v0" (Val #(go!"x"))
   (Let "$v1" (Val #(go!"y"))
   (Let "$v2" (Val #(go!"z"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")))))
 
 /-- pick returns n mod m and n / m.
 
     go: k8setcd3.go:655:6 -/
-noncomputable def pick.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "m"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "m"))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "n"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "m"))))
+  (Let "$r1" (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "m"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "m")))) (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "m")))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res1"))))))))
 
 /-- genFrom is the operation Gen picks for the random number n (out of 100): a Create (25), a
     Delete (15), a GuaranteedUpdate (35) or a Get (25), of a random key and value; a quarter of the
@@ -1935,9 +2630,10 @@ noncomputable def pick.impl [FfiSyntax] [GoGlobalContext] : val :=
     ignore "not found".
 
     go: k8setcd3.go:663:6 -/
-noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def genFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Input.ty))) (App (Val (GoInstruction (GoZeroVal Input.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "n"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve workloadKeys []))) (Val #())) (Val #()))
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -2031,35 +2727,51 @@ noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KGet))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KGet))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (Let "$v2" (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ign")) (Val #(W64 0))))
-  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"IgnoreNotFound")) (ElementExpression go.bool (Var "$v2")))]))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 75)))))
+  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"IgnoreNotFound")) (ElementExpression go.bool (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KUpdate))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 75)))))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KUpdate))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.string))) (Var "reject"))
   (Let "$v4" (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "nop")) (Val #(W64 0))))
-  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"NoOp")) (ElementExpression go.bool (Var "$v4")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"NoOp")) (ElementExpression go.bool (Var "$v4")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 40)))))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KDelete))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KDelete))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "reject"))
-  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression go.string (Var "$v2")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression go.string (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 25)))))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KCreate))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KCreate))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
-  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rj")) (Val #(W64 0)))))
@@ -2105,35 +2817,51 @@ noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "vals") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "keys") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "keys") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Input.ty))) (Var "$res0")))))
 
 /-- Gen picks an operation at random (genFrom of a random number).
 
     go: k8setcd3.go:692:6 -/
-noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
+  (Let "$r0" (App (Val (GoInstruction (Convert Input.ty go.any))) (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve genFrom []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert Input.ty go.any))) (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #()))
-  (App (App (Val (GoInstruction (FuncResolve genFrom []))) (Val #())) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")))))
 
 /-- errOut is a call's error as an output.
 
     go: k8setcd3.go:700:6 -/
-noncomputable def errOut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def errOut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val EOther))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val EOther))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))]))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errDeleteRejected))) (Val #()))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errUpdateRejected))) (Val #())))))))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ERejected))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ERejected))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0")))]))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
@@ -2148,19 +2876,27 @@ noncomputable def errOut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (Var "se")))) (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.ErrCodeKeyExists))))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val EExists))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val EExists))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (Var "se"))))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (Var "se"))))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (Var "se")))) (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.ErrCodeKeyNotFound))))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENotFound))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENotFound))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (Var "se"))))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (Var "se"))))
-  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
@@ -2168,16 +2904,18 @@ noncomputable def errOut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (Pair (Var "se") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.StorageError.ty)))) (Pair (Var "se") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res0")))))
 
 /-- call runs one operation through the store s: its output (the object it left in a fresh out, or
     its error).
 
     go: k8setcd3.go:717:6 -/
-noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "in"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty))) (Var "s"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
@@ -2189,13 +2927,21 @@ noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "out")))
+  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad Obj.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Obj.ty)))) (Var "out")))
-  (App (App (Val (GoInstruction (FuncResolve objOut []))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve errOut []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val (GoInstruction (FuncResolve errOut []))) (Val #())) (Var "$a0"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KCreate)))))
@@ -2248,7 +2994,8 @@ noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "out") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res0"))))))
 
 /-- Apply runs one operation through the store s, resolving a prophecy with the output's numeric
     fields (its error kind, its error's resource version, its object's resource version): what the
@@ -2256,10 +3003,11 @@ noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
     following from them.
 
     go: k8setcd3.go:742:6 -/
-noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "input"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "input" (App (Val (GoInstruction (GoAlloc go.any))) (Var "input"))
   (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty))) (Var "s"))
   (Let "$r0" (App (Val (GoInstruction (TypeAssert Input.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "input")))
@@ -2276,8 +3024,12 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert Output.ty go.any))) (App (Val (GoInstruction (GoLoad Output.ty))) (Var "out")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert Output.ty go.any))) (App (Val (GoInstruction (GoLoad Output.ty))) (Var "out"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "out")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0")))))))
@@ -2292,35 +3044,42 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "p") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "in") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "in") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
 
 /-- Check runs lintest.Run of clients concurrent clients of the store s, each running ops
     operations, and returns porcupine's verdict against Model from the store st0.
 
     go: k8setcd3.go:754:6 -/
-noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "st0"
   (Lam "clients"
   (Lam "ops"
   (Lam "timeout"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "timeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "timeout"))
   (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
   (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
   (Let "st0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st0"))
   (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty))) (Var "s"))
   (Let "$r0" (Lam "input"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "input" (App (Val (GoInstruction (GoAlloc go.any))) (Var "input"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty))) (Var "s"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "input"))
-  (App (App (App (Val (GoInstruction (FuncResolve Apply []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve Apply []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st0"))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")))))
+  (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st0"))
   (App (App (Val (GoInstruction (FuncResolve Model []))) (Val #())) (Var "$a0")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
   (Let "$a2" (App (Val (GoInstruction (FuncResolve Gen []))) (Val #()))
@@ -2328,20 +3087,28 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
   (Let "$a6" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "timeout"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.Run []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6"))))))))))))
+  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.Run []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")))))))))
 
 /-- seedOne writes the key k's object of value "x" in the older encoding directly through the
     client cli (non-canonical data, as a store with an older codec left: D30g) and returns the
     model's store st with it, or false if the put failed.
 
     go: k8setcd3.go:762:6 -/
-noncomputable def seedOne.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def seedOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "st"
   (Lam "k"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
   (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st"))
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
@@ -2371,36 +3138,55 @@ noncomputable def seedOne.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral Obj.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ResourceVersion")) (ElementExpression go.uint64 (Var "$v2")))])))))
   (Let "o" (App (Val (GoInstruction (GoAlloc Obj.ty))) (App (Val (GoInstruction (GoZeroVal Obj.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
+  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
   (Let "$a1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
   (Let "$v2" (Val #false)
   (App (Val (GoInstruction (CompositeLiteral item.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"obj")) (ElementExpression Obj.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"canon")) (ElementExpression go.bool (Var "$v2")))])))))
   (App (App (App (Val (GoInstruction (FuncResolve setItem []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
-  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))])))) (Val #true)))))
+  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Obj.ty))) (Pair (Var "o") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "rv") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue []))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [])) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))))
 
 /-- seed writes the seed keys "a" and "b" in the older encoding (seedOne) and returns the model's
     store after them, or false if a put failed.
 
     go: k8setcd3.go:774:6 -/
-noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def seed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
   (Let "$a1" (Let "$v0" (Val #(W64 1))
@@ -2422,17 +3208,34 @@ noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (App (Val (GoInstruction (FuncResolve seedOne []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue []))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [])) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "st") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "st") (Var "$r0"))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
 
 /-- Main starts one member of a new cluster (as examples/linkvtxn's Main does), connects a
     kubernetes client configured for one attempt per call, seeds the keys, makes the store and runs
@@ -2440,10 +3243,11 @@ noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
     Main without a check.
 
     go: k8setcd3.go:790:6 -/
-noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
   (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
@@ -2521,8 +3325,12 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "r")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "r")) (Val _root_.Perennial.github_com.anishathalye.porcupine.Illegal))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"k8setcd3: porcupine found the history not linearizable")))
@@ -2532,8 +3340,12 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2541,8 +3353,12 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.store.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2550,8 +3366,12 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "st0") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2564,15 +3384,23 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2580,12 +3408,13 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "srv") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.io, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.client.v3.kubernetes, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.storage.etcd3, pkg_id.k8s_io.apiserver.pkg.storage.value, pkg_id.github_com.mit_pdos.etcd_grove.examples.common, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3)) (Lam BAnon
   (App (Val exceptionDo)
@@ -2685,31 +3514,31 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc errUpdateRejected go.error)) (Val #()))))))))
 
-structure Obj [FfiSyntax] where
+structure Obj [GooseExts] where
   mk ::
   Name' : GoString
   Value' : GoString
   ResourceVersion' : w64
 
-noncomputable instance Obj.zero_val [FfiSyntax] : ZeroVal Obj :=
+noncomputable instance Obj.zero_val [GooseExts] : ZeroVal Obj :=
   ⟨Obj.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Obj.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Obj.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Value" go.string),
 (go.field_decl.FieldDecl go!"ResourceVersion" go.uint64)]
 
-@[irreducible] noncomputable def Obj.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Obj.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Obj.fieldsUnsealed
 
-noncomputable instance equals_unfold_Obj [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Obj [GooseExts] [GoGlobalContext] :
     EqualsUnfold Obj.fields Obj.fieldsUnsealed :=
   ⟨by unfold Obj.fields; rfl⟩
 
-@[reducible] noncomputable def Obj.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Obj.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Obj.fields)
 
-class Obj.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Obj.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Obj.underlying Obj
   underlying : go.UnderlyingDirectedEq Obj.ty Obj.underlying
   get_Name : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Name") #x (Val #(x.Name'))
@@ -2718,6 +3547,8 @@ class Obj.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
   set_Value : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Obj)))
   get_ResourceVersion : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
   set_ResourceVersion : ∀ (x : Obj) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : Obj)))
+  method_set : go.MethodSetIs Obj.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Obj.ty) [(go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty])))]
   ptr_DeepCopyObject_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"DeepCopyObject" Obj.DeepCopyObject.impl
   ptr_GetObjectKind_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetObjectKind" Obj.GetObjectKind.impl
 
@@ -2729,31 +3560,35 @@ attribute [instance] Obj.TypeAssumptions.type_repr
   Obj.TypeAssumptions.set_Value
   Obj.TypeAssumptions.get_ResourceVersion
   Obj.TypeAssumptions.set_ResourceVersion
+  Obj.TypeAssumptions.method_set
+  Obj.TypeAssumptions.ptr_method_set
   Obj.TypeAssumptions.ptr_DeepCopyObject_unfold
   Obj.TypeAssumptions.ptr_GetObjectKind_unfold
 
-structure codec [FfiSyntax] where
+structure codec [GooseExts] where
   mk ::
 
-noncomputable instance codec.zero_val [FfiSyntax] : ZeroVal codec :=
+noncomputable instance codec.zero_val [GooseExts] : ZeroVal codec :=
   ⟨codec.mk⟩
 
-@[reducible] noncomputable def codec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def codec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def codec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def codec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   codec.fieldsUnsealed
 
-noncomputable instance equals_unfold_codec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_codec [GooseExts] [GoGlobalContext] :
     EqualsUnfold codec.fields codec.fieldsUnsealed :=
   ⟨by unfold codec.fields; rfl⟩
 
-@[reducible] noncomputable def codec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def codec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType codec.fields)
 
-class codec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying codec.underlying codec
   underlying : go.UnderlyingDirectedEq codec.ty codec.underlying
+  method_set : go.MethodSetIs codec.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codec.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty])))]
   Decode_unfold : MethodUnfold codec.ty go!"Decode" codec.Decode.impl
   Encode_unfold : MethodUnfold codec.ty go!"Encode" codec.Encode.impl
   Identifier_unfold : MethodUnfold codec.ty go!"Identifier" codec.Identifier.impl
@@ -2766,6 +3601,8 @@ class codec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] codec.TypeAssumptions.type_repr
   codec.TypeAssumptions.underlying
+  codec.TypeAssumptions.method_set
+  codec.TypeAssumptions.ptr_method_set
   codec.TypeAssumptions.Decode_unfold
   codec.TypeAssumptions.Encode_unfold
   codec.TypeAssumptions.Identifier_unfold
@@ -2773,28 +3610,30 @@ attribute [instance] codec.TypeAssumptions.type_repr
   codec.TypeAssumptions.ptr_Encode_unfold
   codec.TypeAssumptions.ptr_Identifier_unfold
 
-structure versioner [FfiSyntax] where
+structure versioner [GooseExts] where
   mk ::
 
-noncomputable instance versioner.zero_val [FfiSyntax] : ZeroVal versioner :=
+noncomputable instance versioner.zero_val [GooseExts] : ZeroVal versioner :=
   ⟨versioner.mk⟩
 
-@[reducible] noncomputable def versioner.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def versioner.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def versioner.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def versioner.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   versioner.fieldsUnsealed
 
-noncomputable instance equals_unfold_versioner [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_versioner [GooseExts] [GoGlobalContext] :
     EqualsUnfold versioner.fields versioner.fieldsUnsealed :=
   ⟨by unfold versioner.fields; rfl⟩
 
-@[reducible] noncomputable def versioner.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def versioner.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType versioner.fields)
 
-class versioner.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class versioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying versioner.underlying versioner
   underlying : go.UnderlyingDirectedEq versioner.ty versioner.underlying
+  method_set : go.MethodSetIs versioner.ty [(go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType versioner.ty) [(go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
   ObjectResourceVersion_unfold : MethodUnfold versioner.ty go!"ObjectResourceVersion" versioner.ObjectResourceVersion.impl
   ParseResourceVersion_unfold : MethodUnfold versioner.ty go!"ParseResourceVersion" versioner.ParseResourceVersion.impl
   PrepareObjectForStorage_unfold : MethodUnfold versioner.ty go!"PrepareObjectForStorage" versioner.PrepareObjectForStorage.impl
@@ -2813,6 +3652,8 @@ class versioner.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] versioner.TypeAssumptions.type_repr
   versioner.TypeAssumptions.underlying
+  versioner.TypeAssumptions.method_set
+  versioner.TypeAssumptions.ptr_method_set
   versioner.TypeAssumptions.ObjectResourceVersion_unfold
   versioner.TypeAssumptions.ParseResourceVersion_unfold
   versioner.TypeAssumptions.PrepareObjectForStorage_unfold
@@ -2824,28 +3665,30 @@ attribute [instance] versioner.TypeAssumptions.type_repr
   versioner.TypeAssumptions.ptr_UpdateList_unfold
   versioner.TypeAssumptions.ptr_UpdateObject_unfold
 
-structure decoder [FfiSyntax] where
+structure decoder [GooseExts] where
   mk ::
 
-noncomputable instance decoder.zero_val [FfiSyntax] : ZeroVal decoder :=
+noncomputable instance decoder.zero_val [GooseExts] : ZeroVal decoder :=
   ⟨decoder.mk⟩
 
-@[reducible] noncomputable def decoder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def decoder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def decoder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def decoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   decoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_decoder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_decoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold decoder.fields decoder.fieldsUnsealed :=
   ⟨by unfold decoder.fields; rfl⟩
 
-@[reducible] noncomputable def decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType decoder.fields)
 
-class decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decoder.underlying decoder
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
+  method_set : go.MethodSetIs decoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.int64] false [go.error]))), (go!"DecodeListItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), go.uint64, (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.int64] false [go.error]))), (go!"DecodeListItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), go.uint64, (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error])))]
   Decode_unfold : MethodUnfold decoder.ty go!"Decode" decoder.Decode.impl
   DecodeListItem_unfold : MethodUnfold decoder.ty go!"DecodeListItem" decoder.DecodeListItem.impl
   ptr_Decode_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"Decode" (LamV "$r"
@@ -2855,33 +3698,37 @@ class decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.underlying
+  decoder.TypeAssumptions.method_set
+  decoder.TypeAssumptions.ptr_method_set
   decoder.TypeAssumptions.Decode_unfold
   decoder.TypeAssumptions.DecodeListItem_unfold
   decoder.TypeAssumptions.ptr_Decode_unfold
   decoder.TypeAssumptions.ptr_DecodeListItem_unfold
 
-structure identity [FfiSyntax] where
+structure identity [GooseExts] where
   mk ::
 
-noncomputable instance identity.zero_val [FfiSyntax] : ZeroVal identity :=
+noncomputable instance identity.zero_val [GooseExts] : ZeroVal identity :=
   ⟨identity.mk⟩
 
-@[reducible] noncomputable def identity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def identity.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def identity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def identity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   identity.fieldsUnsealed
 
-noncomputable instance equals_unfold_identity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_identity [GooseExts] [GoGlobalContext] :
     EqualsUnfold identity.fields identity.fieldsUnsealed :=
   ⟨by unfold identity.fields; rfl⟩
 
-@[reducible] noncomputable def identity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def identity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType identity.fields)
 
-class identity.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class identity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying identity.underlying identity
   underlying : go.UnderlyingDirectedEq identity.ty identity.underlying
+  method_set : go.MethodSetIs identity.ty [(go!"TransformFromStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType identity.ty) [(go!"TransformFromStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
   TransformFromStorage_unfold : MethodUnfold identity.ty go!"TransformFromStorage" identity.TransformFromStorage.impl
   TransformToStorage_unfold : MethodUnfold identity.ty go!"TransformToStorage" identity.TransformToStorage.impl
   ptr_TransformFromStorage_unfold : MethodUnfold (go.GoType.PointerType identity.ty) go!"TransformFromStorage" (LamV "$r"
@@ -2891,43 +3738,49 @@ class identity.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] identity.TypeAssumptions.type_repr
   identity.TypeAssumptions.underlying
+  identity.TypeAssumptions.method_set
+  identity.TypeAssumptions.ptr_method_set
   identity.TypeAssumptions.TransformFromStorage_unfold
   identity.TypeAssumptions.TransformToStorage_unfold
   identity.TypeAssumptions.ptr_TransformFromStorage_unfold
   identity.TypeAssumptions.ptr_TransformToStorage_unfold
 
-structure noCompactor [FfiSyntax] where
+structure noCompactor [GooseExts] where
   mk ::
 
-noncomputable instance noCompactor.zero_val [FfiSyntax] : ZeroVal noCompactor :=
+noncomputable instance noCompactor.zero_val [GooseExts] : ZeroVal noCompactor :=
   ⟨noCompactor.mk⟩
 
-@[reducible] noncomputable def noCompactor.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noCompactor.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def noCompactor.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noCompactor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noCompactor.fieldsUnsealed
 
-noncomputable instance equals_unfold_noCompactor [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noCompactor [GooseExts] [GoGlobalContext] :
     EqualsUnfold noCompactor.fields noCompactor.fieldsUnsealed :=
   ⟨by unfold noCompactor.fields; rfl⟩
 
-@[reducible] noncomputable def noCompactor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noCompactor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noCompactor.fields)
 
-class noCompactor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noCompactor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noCompactor.underlying noCompactor
   underlying : go.UnderlyingDirectedEq noCompactor.ty noCompactor.underlying
+  method_set : go.MethodSetIs noCompactor.ty [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noCompactor.ty) [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64])))]
   CompactRevision_unfold : MethodUnfold noCompactor.ty go!"CompactRevision" noCompactor.CompactRevision.impl
   ptr_CompactRevision_unfold : MethodUnfold (go.GoType.PointerType noCompactor.ty) go!"CompactRevision" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve noCompactor.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad noCompactor.ty))) (Var "$r"))))
 
 attribute [instance] noCompactor.TypeAssumptions.type_repr
   noCompactor.TypeAssumptions.underlying
+  noCompactor.TypeAssumptions.method_set
+  noCompactor.TypeAssumptions.ptr_method_set
   noCompactor.TypeAssumptions.CompactRevision_unfold
   noCompactor.TypeAssumptions.ptr_CompactRevision_unfold
 
-structure Input [FfiSyntax] where
+structure Input [GooseExts] where
   mk ::
   Kind' : w64
   Key' : GoString
@@ -2936,10 +3789,10 @@ structure Input [FfiSyntax] where
   NoOp' : Bool
   IgnoreNotFound' : Bool
 
-noncomputable instance Input.zero_val [FfiSyntax] : ZeroVal Input :=
+noncomputable instance Input.zero_val [GooseExts] : ZeroVal Input :=
   ⟨Input.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Input.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Input.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Kind" go.int),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Val" go.string),
@@ -2947,17 +3800,17 @@ noncomputable instance Input.zero_val [FfiSyntax] : ZeroVal Input :=
 (go.field_decl.FieldDecl go!"NoOp" go.bool),
 (go.field_decl.FieldDecl go!"IgnoreNotFound" go.bool)]
 
-@[irreducible] noncomputable def Input.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Input.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Input.fieldsUnsealed
 
-noncomputable instance equals_unfold_Input [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Input [GooseExts] [GoGlobalContext] :
     EqualsUnfold Input.fields Input.fieldsUnsealed :=
   ⟨by unfold Input.fields; rfl⟩
 
-@[reducible] noncomputable def Input.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Input.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Input.fields)
 
-class Input.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Input.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Input.underlying Input
   underlying : go.UnderlyingDirectedEq Input.ty Input.underlying
   get_Kind : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Kind") #x (Val #(x.Kind'))
@@ -2972,6 +3825,8 @@ class Input.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_NoOp : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"NoOp") (PairV #x #y) (Val #(({ x with NoOp' := y } : Input)))
   get_IgnoreNotFound : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"IgnoreNotFound") #x (Val #(x.IgnoreNotFound'))
   set_IgnoreNotFound : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"IgnoreNotFound") (PairV #x #y) (Val #(({ x with IgnoreNotFound' := y } : Input)))
+  method_set : go.MethodSetIs Input.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Input.ty) []
 
 attribute [instance] Input.TypeAssumptions.type_repr
   Input.TypeAssumptions.underlying
@@ -2987,8 +3842,10 @@ attribute [instance] Input.TypeAssumptions.type_repr
   Input.TypeAssumptions.set_NoOp
   Input.TypeAssumptions.get_IgnoreNotFound
   Input.TypeAssumptions.set_IgnoreNotFound
+  Input.TypeAssumptions.method_set
+  Input.TypeAssumptions.ptr_method_set
 
-structure Output [FfiSyntax] where
+structure Output [GooseExts] where
   mk ::
   Err' : w64
   ErrKey' : GoString
@@ -2997,10 +3854,10 @@ structure Output [FfiSyntax] where
   Value' : GoString
   RV' : w64
 
-noncomputable instance Output.zero_val [FfiSyntax] : ZeroVal Output :=
+noncomputable instance Output.zero_val [GooseExts] : ZeroVal Output :=
   ⟨Output.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Output.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Output.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Err" go.int),
 (go.field_decl.FieldDecl go!"ErrKey" go.string),
 (go.field_decl.FieldDecl go!"ErrRV" go.int64),
@@ -3008,17 +3865,17 @@ noncomputable instance Output.zero_val [FfiSyntax] : ZeroVal Output :=
 (go.field_decl.FieldDecl go!"Value" go.string),
 (go.field_decl.FieldDecl go!"RV" go.uint64)]
 
-@[irreducible] noncomputable def Output.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Output.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Output.fieldsUnsealed
 
-noncomputable instance equals_unfold_Output [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Output [GooseExts] [GoGlobalContext] :
     EqualsUnfold Output.fields Output.fieldsUnsealed :=
   ⟨by unfold Output.fields; rfl⟩
 
-@[reducible] noncomputable def Output.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Output.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Output.fields)
 
-class Output.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Output.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Output.underlying Output
   underlying : go.UnderlyingDirectedEq Output.ty Output.underlying
   get_Err : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Err") #x (Val #(x.Err'))
@@ -3033,6 +3890,8 @@ class Output.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_Value : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Output)))
   get_RV : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"RV") #x (Val #(x.RV'))
   set_RV : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"RV") (PairV #x #y) (Val #(({ x with RV' := y } : Output)))
+  method_set : go.MethodSetIs Output.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Output.ty) []
 
 attribute [instance] Output.TypeAssumptions.type_repr
   Output.TypeAssumptions.underlying
@@ -3048,32 +3907,34 @@ attribute [instance] Output.TypeAssumptions.type_repr
   Output.TypeAssumptions.set_Value
   Output.TypeAssumptions.get_RV
   Output.TypeAssumptions.set_RV
+  Output.TypeAssumptions.method_set
+  Output.TypeAssumptions.ptr_method_set
 
-structure item [FfiSyntax] where
+structure item [GooseExts] where
   mk ::
   key' : GoString
   obj' : Obj
   canon' : Bool
 
-noncomputable instance item.zero_val [FfiSyntax] : ZeroVal item :=
+noncomputable instance item.zero_val [GooseExts] : ZeroVal item :=
   ⟨item.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def item.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def item.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"key" go.string),
 (go.field_decl.FieldDecl go!"obj" Obj.ty),
 (go.field_decl.FieldDecl go!"canon" go.bool)]
 
-@[irreducible] noncomputable def item.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def item.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   item.fieldsUnsealed
 
-noncomputable instance equals_unfold_item [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_item [GooseExts] [GoGlobalContext] :
     EqualsUnfold item.fields item.fieldsUnsealed :=
   ⟨by unfold item.fields; rfl⟩
 
-@[reducible] noncomputable def item.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def item.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType item.fields)
 
-class item.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class item.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying item.underlying item
   underlying : go.UnderlyingDirectedEq item.ty item.underlying
   get_key : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"key") #x (Val #(x.key'))
@@ -3082,6 +3943,8 @@ class item.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_obj : ∀ (x : item) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : item)))
   get_canon : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"canon") #x (Val #(x.canon'))
   set_canon : ∀ (x : item) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"canon") (PairV #x #y) (Val #(({ x with canon' := y } : item)))
+  method_set : go.MethodSetIs item.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType item.ty) []
 
 attribute [instance] item.TypeAssumptions.type_repr
   item.TypeAssumptions.underlying
@@ -3091,36 +3954,40 @@ attribute [instance] item.TypeAssumptions.type_repr
   item.TypeAssumptions.set_obj
   item.TypeAssumptions.get_canon
   item.TypeAssumptions.set_canon
+  item.TypeAssumptions.method_set
+  item.TypeAssumptions.ptr_method_set
 
-structure mstore [FfiSyntax] where
+structure mstore [GooseExts] where
   mk ::
   items' : GoSlice
   rv' : w64
 
-noncomputable instance mstore.zero_val [FfiSyntax] : ZeroVal mstore :=
+noncomputable instance mstore.zero_val [GooseExts] : ZeroVal mstore :=
   ⟨mstore.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def mstore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def mstore.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"items" (go.GoType.SliceType item.ty)),
 (go.field_decl.FieldDecl go!"rv" go.uint64)]
 
-@[irreducible] noncomputable def mstore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def mstore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mstore.fieldsUnsealed
 
-noncomputable instance equals_unfold_mstore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_mstore [GooseExts] [GoGlobalContext] :
     EqualsUnfold mstore.fields mstore.fieldsUnsealed :=
   ⟨by unfold mstore.fields; rfl⟩
 
-@[reducible] noncomputable def mstore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mstore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType mstore.fields)
 
-class mstore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mstore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mstore.underlying mstore
   underlying : go.UnderlyingDirectedEq mstore.ty mstore.underlying
   get_items : ∀ (x : mstore), go.IsGoStepPureDetTagged under (StructFieldGet mstore.underlying go!"items") #x (Val #(x.items'))
   set_items : ∀ (x : mstore) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mstore.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : mstore)))
   get_rv : ∀ (x : mstore), go.IsGoStepPureDetTagged under (StructFieldGet mstore.underlying go!"rv") #x (Val #(x.rv'))
   set_rv : ∀ (x : mstore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet mstore.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : mstore)))
+  method_set : go.MethodSetIs mstore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mstore.ty) []
 
 attribute [instance] mstore.TypeAssumptions.type_repr
   mstore.TypeAssumptions.underlying
@@ -3128,36 +3995,40 @@ attribute [instance] mstore.TypeAssumptions.type_repr
   mstore.TypeAssumptions.set_items
   mstore.TypeAssumptions.get_rv
   mstore.TypeAssumptions.set_rv
+  mstore.TypeAssumptions.method_set
+  mstore.TypeAssumptions.ptr_method_set
 
-structure mcfg [FfiSyntax] where
+structure mcfg [GooseExts] where
   mk ::
   st' : mstore
   pend' : GoSlice
 
-noncomputable instance mcfg.zero_val [FfiSyntax] : ZeroVal mcfg :=
+noncomputable instance mcfg.zero_val [GooseExts] : ZeroVal mcfg :=
   ⟨mcfg.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def mcfg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def mcfg.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"st" mstore.ty),
 (go.field_decl.FieldDecl go!"pend" (go.GoType.SliceType Input.ty))]
 
-@[irreducible] noncomputable def mcfg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def mcfg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mcfg.fieldsUnsealed
 
-noncomputable instance equals_unfold_mcfg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_mcfg [GooseExts] [GoGlobalContext] :
     EqualsUnfold mcfg.fields mcfg.fieldsUnsealed :=
   ⟨by unfold mcfg.fields; rfl⟩
 
-@[reducible] noncomputable def mcfg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mcfg.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType mcfg.fields)
 
-class mcfg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mcfg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mcfg.underlying mcfg
   underlying : go.UnderlyingDirectedEq mcfg.ty mcfg.underlying
   get_st : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"st") #x (Val #(x.st'))
   set_st : ∀ (x : mcfg) (y : mstore), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : mcfg)))
   get_pend : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"pend") #x (Val #(x.pend'))
   set_pend : ∀ (x : mcfg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"pend") (PairV #x #y) (Val #(({ x with pend' := y } : mcfg)))
+  method_set : go.MethodSetIs mcfg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mcfg.ty) []
 
 attribute [instance] mcfg.TypeAssumptions.type_repr
   mcfg.TypeAssumptions.underlying
@@ -3165,18 +4036,24 @@ attribute [instance] mcfg.TypeAssumptions.type_repr
   mcfg.TypeAssumptions.set_st
   mcfg.TypeAssumptions.get_pend
   mcfg.TypeAssumptions.set_pend
+  mcfg.TypeAssumptions.method_set
+  mcfg.TypeAssumptions.ptr_method_set
 
-abbrev state [FfiSyntax] : Type := GoSlice
+abbrev state [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def state.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def state.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType mcfg.ty)
 
-class state.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class state.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq state.ty state.underlying
+  method_set : go.MethodSetIs state.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType state.ty) []
 
 attribute [instance] state.TypeAssumptions.underlying
+  state.TypeAssumptions.method_set
+  state.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Obj_instance : Obj.TypeAssumptions
   codec_instance : codec.TypeAssumptions
   versioner_instance : versioner.TypeAssumptions

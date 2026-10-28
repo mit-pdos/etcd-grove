@@ -18,12 +18,11 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 theorem rafthttp.messageDecoder.decodeLimit.wp_proof
     (wp_ReadUint64 : binary.ReadUint64.spec (GF := GF) (hG := hG))
@@ -33,8 +32,11 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
   wp_start as ⟨#Hr, #Hrf, HRd, #HV⟩
   iunfold readFullAt at Hrf
   wp_auto
+  ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+  · iPkgInit
+  ihave %Hbe := bigEndian_ne_null $$ Hbin
   wp_apply (encoding.binary.wp_load_struct_nofields (V := encoding.binary.bigEndian)
-    (globalAddr encoding.binary.BigEndian))
+    (globalAddr encoding.binary.BigEndian) Hbe)
   iintro -
   wp_auto
   ihave Hbr := wp_ReadUint64 r l_ptr _ iprop(Rd rs)

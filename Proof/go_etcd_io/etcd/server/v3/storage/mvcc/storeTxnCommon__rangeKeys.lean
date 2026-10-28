@@ -27,7 +27,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -61,7 +61,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
   (try wp_auto)
   -- a future revision
   wp_if_destruct
-  · wp_alloc r as Hr
+  · irename «$r0» => Hr
+    generalize «$r0_ptr» = r at *
     ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
     (try wp_auto)
     iapply HΦ
@@ -109,7 +110,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (try simp only [h0z] at *)
     have hcz : sint.Z (W64 c) = c := by word
     wp_if_destruct
-    · wp_alloc r as Hr
+    · irename «$r0» => Hr
+      generalize «$r0_ptr» = r at *
       ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
       (try wp_auto)
       iapply HΦ
@@ -137,7 +139,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
       wp_apply (hStep trace te _ slice.nil) $$ [Hown] as Hown
       · iframe #; iframe Hown; iapply traceutil.ownFields_nil
       (try wp_auto)
-      wp_alloc r as Hr
+      irename «$r0» => Hr
+      generalize «$r0_ptr» = r at *
       ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
       (try wp_auto)
       iapply HΦ
@@ -186,7 +189,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             rw [← List.length_eq_zero_iff, Hklen.1, Hif]; decide
           have htaken : taken = [] := by
             rw [hkss] at Hkslen; exact (List.length_eq_zero_iff.1 Hkslen.symm)
-          wp_alloc r as Hr
+          irename «$r0» => Hr
+          generalize «$r0_ptr» = r at *
           ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
           (try wp_auto)
           iapply HΦ
@@ -353,7 +357,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             wp_for_post
             (try wp_auto)
             (try simp only [named])
-            iframe HΦ tr ro curRev Hend0 key ctx Hrevp Hti0 Hidx0 Hmodcap Hcrecap Hverscap keys modifies
+            iframe HΦ «$res0» «$res1» tr ro curRev Hend0 key ctx Hrevp Hti0 Hidx0 Hmodcap Hcrecap Hverscap keys modifies
               creates versions total Hkcap Hzip Hkvscap kvs HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
             iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int))
             (try simp only [named])
@@ -390,7 +394,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               rw [hi] at hge; unfold sint.nat at *; unfold sint.Z at *; omega
             subst hin
             rw [Nat.sub_self, List.replicate_zero, List.append_nil]
-            wp_alloc r as Hr
+            irename «$r0» => Hr
+            generalize «$r0_ptr» = r at *
             ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
             (try wp_auto)
             iapply HΦ
@@ -443,7 +448,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         · -- no revision: no key-value
           have htaken : taken = [] := by
             rw [← List.length_eq_zero_iff, Hrlen.1, Hif]; decide
-          wp_alloc r as Hr
+          irename «$r0» => Hr
+          generalize «$r0_ptr» = r at *
           ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
           (try wp_auto)
           subst Htotal
@@ -593,6 +599,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                     mvcc.crevUB γ.idx qc c ∗ traceutil.ownTrace trace te ∗
                     mvcc.rangeOutcomeC r err log rev c (decide (endk = slice.nil)) k e ro -∗
                     Φ (PairV #r #err)) ∗
+                  «$res0_ptr» ↦ zero_val Loc ∗ «$res1_ptr» ↦ GoInterface.nil ∗
                   txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
                   txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
                   txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗ traceutil.ownTrace trace te ∗ R ∗
@@ -611,7 +618,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   [∗list] pa ∈ ps.zip (taken.take i), ∃ kv : EtcdKv,
                     ⌜mvcc.findKey pa.2.1 (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev ro.Rev'))) =
                       some kv⌝ ∗ mvcc.kvPtrIs true pa.1 kv)
-                $$ [] [HΦ HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu tr ro curRev Hend0 key ctx Hti0 Hidx0 Hrevscap revpairs total Hkvscap kvs Hi Hgo
+                $$ [] [HΦ «$res0» «$res1» HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu tr ro curRev Hend0 key ctx Hti0 Hidx0 Hrevscap revpairs total Hkvscap kvs Hi Hgo
                   Hrp revBytes Hrb Hrbcap Hkvs Hps] []
             · cases todo
               case true =>
@@ -622,7 +629,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   iapply chan.nilClausePre_recv Unit dch _ Hnil
                 -- a context never canceled: the case never fires (it would give `PDone`)
                 ileft
-                iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0,
+                iintro ⟨HΦ, «$res0», «$res1», HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0,
                   Hrevscap, revpairs, total, Hkvscap, kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs,
                   Hps⟩
                 simp only [chan.nonblockingAltClausePre]
@@ -643,7 +650,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               icases Hdone with ⟨%γd, #Hdone⟩
               ihave #Hctx2 := Hctx
               iNamed Hctx2
-              iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0, Hrevscap,
+              iintro ⟨HΦ, «$res0», «$res1», HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0, Hrevscap,
                 revpairs, total, Hkvscap,
                 kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs, Hps⟩
               simp only [chan.nonblockingAltClausePre]
@@ -688,7 +695,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iexact He'
               · iframe
             · iframe
-            · iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0, Hrevscap,
+            · iintro ⟨HΦ, «$res0», «$res1», HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0, Hrevscap,
                 revpairs, total, Hkvscap,
                 kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs, Hps⟩ -
               (try wp_auto)
@@ -773,7 +780,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               wp_for_post
               (try wp_auto)
               (try simp only [named])
-              iframe HΦ tr ro curRev Hend0 key ctx Hti0 Hidx0 Hrevscap revpairs total Hkvscap kvs
+              iframe HΦ «$res0» «$res1» tr ro curRev Hend0 key ctx Hti0 Hidx0 Hrevscap revpairs total Hkvscap kvs
                 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
               iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int)), (mvcc.revVal a.2.1), rb',
                 (mvcc.revBytes a.2.1 false)
@@ -815,7 +822,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             wp_apply (hStep trace te _ slice.nil) $$ [Hown] as Hown
             · iframe #; iframe Hown; iapply traceutil.ownFields_nil
             (try wp_auto)
-            wp_alloc r as Hr
+            irename «$r0» => Hr
+            generalize «$r0_ptr» = r at *
             ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
             (try wp_auto)
             subst Htotal

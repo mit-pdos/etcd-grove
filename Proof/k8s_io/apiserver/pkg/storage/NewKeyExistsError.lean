@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,8 +31,8 @@ theorem storage.NewKeyExistsError.wp_proof :
   intro key rv
   wp_start
   wp_auto
-  wp_alloc e as He
-  wp_auto
+  irename «$r0» => He
+  generalize «$r0_ptr» = e at *
   iapply HΦ
   iexact He
 

@@ -9,12 +9,15 @@ package's axiom `<pkg>.<X>_init : errorsNewVarInit X.init X msg` states it of on
 is checked against its Go line.
 
 `ErrorStringLeaf`: the method set of `*errorString` (Go's `errors` package defines only `Error`)
-has no `As`, `Unwrap` or `Is` method. A fact about the method sets, which the semantics leaves
-uninterpreted: a premise, as Perennial's `context.ErrorStringIsError`.
+has no `As`, `Unwrap` or `Is` method. A theorem (`errorStringLeaf_inst`) of the method set goose
+emits for `*errorString` (`errorString.TypeAssumptions.ptr_method_set`, in `errors.Assumptions`);
+until the Perennial pin `6b58510f9` the semantics left method sets uninterpreted and this was a
+premise.
 -/
 module
 
 public import Perennial.Proof.errors.Base
+public import Perennial.Golang.Theory.TypeSet
 
 @[expose] public section
 
@@ -27,7 +30,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 /-- The method set of `*errors.errorString` has no `As`, `Unwrap` or `Is` method (Go's `errors`
 package gives it only `Error`). -/
-class ErrorStringLeaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class ErrorStringLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   leaf : ∀ v : val,
     _root_.Perennial.errors.isLeafError
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, v⟩
@@ -35,7 +38,7 @@ class ErrorStringLeaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Pro
     some (go.Signature [go.error] false [go.bool])
 
 /-- An `errors.New` error (a `*errorString`) is a leaf pointer error without an `Is` method. -/
-theorem errorString_leaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
+theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
     (x : Loc) :
     _root_.Perennial.errors.IsPointerError
         ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
@@ -45,8 +48,18 @@ theorem errorString_leaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] [E
         some (go.Signature [go.error] false [go.bool]) :=
   ⟨⟨_, _, rfl, rfl⟩, ErrorStringLeaf.leaf _, ErrorStringLeaf.noIs⟩
 
+/-- `ErrorStringLeaf` holds: `*errorString`'s method set (goose's `ptr_method_set`) is `Error`
+only. -/
+instance errorStringLeaf_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+    [_root_.Perennial.errors.Assumptions] : ErrorStringLeaf := by
+  have h := fun m =>
+    go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) m
+  have hAs := h go!"As"; have hU := h go!"Unwrap"; have hIs := h go!"Is"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hIs
+  exact ⟨fun _ => by simp [_root_.Perennial.errors.isLeafError, hAs, hU], by simp [hIs]⟩
+
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

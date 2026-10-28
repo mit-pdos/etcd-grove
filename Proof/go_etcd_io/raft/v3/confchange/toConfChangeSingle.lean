@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -35,6 +35,9 @@ theorem confchange.toConfChangeSingle.wp_proof
   wp_start as Hcs
   iNamed Hcs
   -- `in` is a Lean keyword: name its cell by hand before `wp_auto` names the others
+  -- (the named result `out` is allocated before it)
+  wp_pures
+  wp_alloc out_ptr as out
   wp_pures
   wp_alloc in_ptr as Hin
   wp_auto

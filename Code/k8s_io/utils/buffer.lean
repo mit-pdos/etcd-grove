@@ -22,79 +22,100 @@ end pkg_id
 
 namespace k8s_io.utils.buffer
 
-noncomputable def TypedRingFixed.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedRingFixed.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/buffer.TypedRingFixed" [T])
 
 attribute [irreducible] TypedRingFixed.ty
 
-noncomputable def RingGrowingOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RingGrowingOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/buffer.RingGrowingOptions" [])
 
 attribute [irreducible] RingGrowingOptions.ty
 
-noncomputable def TypedRingGrowing.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedRingGrowing.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/buffer.TypedRingGrowing" [T])
 
 attribute [irreducible] TypedRingGrowing.ty
 
-noncomputable def RingOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RingOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/buffer.RingOptions" [])
 
 attribute [irreducible] RingOptions.ty
 
-noncomputable def Ring.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def Ring.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/buffer.Ring" [T])
 
 attribute [irreducible] Ring.ty
 
-@[reducible] noncomputable def RingGrowing.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RingGrowing.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedRingGrowing.ty go.any)
 
-@[reducible] noncomputable def defaultRingSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def defaultRingSize [GooseExts] [GoGlobalContext] : val :=
   #(16 : Int)
 
-noncomputable def ErrInvalidSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.ErrInvalidSize"
 
-axiom ErrInvalidSize.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidSize.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewTypedRingFixed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedRingFixed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.NewTypedRingFixed"
 
-noncomputable def NewRingGrowing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRingGrowing [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.NewRingGrowing"
 
-noncomputable def NewTypedRingGrowing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedRingGrowing [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.NewTypedRingGrowing"
 
-noncomputable def NewRing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRing [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.NewRing"
 
 /-- NewTypedRingFixed creates a circular buffer with the given capacity (must be > 0).
 
     go: ring_fixed.go:41:6 -/
-noncomputable def NewTypedRingFixed.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedRingFixed.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "size"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (TypedRingFixed.ty T))))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (Var "size"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoAlloc (TypedRingFixed.ty T)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (TypedRingFixed.ty T)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "size"))
-  (App (Val (GoInstruction (CompositeLiteral (TypedRingFixed.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType T) (Var "$v0"))), (KeyedElement (some (KeyField go!"size")) (ElementExpression go.int (Var "$v1")))]))))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "size")) (Val #(W64 0)))))
+  (App (Val (GoInstruction (CompositeLiteral (TypedRingFixed.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType T) (Var "$v0"))), (KeyedElement (some (KeyField go!"size")) (ElementExpression go.int (Var "$v1")))])))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (TypedRingFixed.ty T))))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalidSize))) (Val #())))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingFixed.ty T))))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "size")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (TypedRingFixed.ty T))))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalidSize))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingFixed.ty T))))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
 /-- Write writes p to the buffer, overwriting old data if needed.
 
     go: ring_fixed.go:52:29 -/
-noncomputable def TypedRingFixed.Write.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Write.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "p"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (Var "p"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "p"))
@@ -113,8 +134,16 @@ noncomputable def TypedRingFixed.Write.impl [FfiSyntax] [GoGlobalContext] (T : g
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int))) (Var "remain")))))
@@ -149,15 +178,17 @@ noncomputable def TypedRingFixed.Write.impl [FfiSyntax] [GoGlobalContext] (T : g
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen")))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "originalLen") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "originalLen") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- Slice returns buffer contents in write order. Don't modify the returned slice.
 
     go: ring_fixed.go:76:29 -/
-noncomputable def TypedRingFixed.Slice.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Slice.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -167,8 +198,12 @@ noncomputable def TypedRingFixed.Slice.impl [FfiSyntax] [GoGlobalContext] (T : g
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "out"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "out")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "out"))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
@@ -183,115 +218,162 @@ noncomputable def TypedRingFixed.Slice.impl [FfiSyntax] [GoGlobalContext] (T : g
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "out") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType T)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType T)))) (Val UntypedNil)))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "$res0"))))))
 
 /-- Size returns the buffer capacity.
 
     go: ring_fixed.go:99:29 -/
-noncomputable def TypedRingFixed.Size.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Size.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- Len returns how many elements are currently in the buffer.
 
     go: ring_fixed.go:104:29 -/
-noncomputable def TypedRingFixed.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.int64 go.int))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.int))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- TotalWritten returns total elements ever written (including overwritten ones).
 
     go: ring_fixed.go:112:29 -/
-noncomputable def TypedRingFixed.TotalWritten.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.TotalWritten.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- Reset clears the buffer.
 
     go: ring_fixed.go:117:29 -/
-noncomputable def TypedRingFixed.Reset.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Reset.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (Var "$r0"))))))))
+  (Val #()))))
 
 /-- NewRingGrowing constructs a new RingGrowing instance with provided parameters.
 
     Deprecated: Use NewTypedRingGrowing[any] instead.
 
     go: ring_growing.go:39:6 -/
-noncomputable def NewRingGrowing.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewRingGrowing.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "initialSize"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RingGrowing.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType RingGrowing.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "initialSize" (App (Val (GoInstruction (GoAlloc go.int))) (Var "initialSize"))
-  (App (Val doReturn)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "initialSize"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "initialSize"))
   (App (Val (GoInstruction (CompositeLiteral RingGrowingOptions.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"InitialSize")) (ElementExpression go.int (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve NewTypedRingGrowing [go.any]))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve NewTypedRingGrowing [go.any]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RingGrowing.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RingGrowing.ty)))) (Var "$res0")))))
 
 /-- NewTypedRingGrowing constructs a new TypedRingGrowing instance with provided parameters.
 
     go: ring_growing.go:54:6 -/
-noncomputable def NewTypedRingGrowing.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedRingGrowing.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "opts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc RingGrowingOptions.ty))) (Var "opts"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc (TypedRingGrowing.ty T)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingGrowingOptions.ty go!"InitialSize"))) (Var "opts"))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (TypedRingGrowing.ty T)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingGrowingOptions.ty go!"InitialSize"))) (Var "opts"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingGrowingOptions.ty go!"InitialSize"))) (Var "opts")))
-  (App (Val (GoInstruction (CompositeLiteral (TypedRingGrowing.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType T) (Var "$v0"))), (KeyedElement (some (KeyField go!"n")) (ElementExpression go.int (Var "$v1")))])))))))))
+  (App (Val (GoInstruction (CompositeLiteral (TypedRingGrowing.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType T) (Var "$v0"))), (KeyedElement (some (KeyField go!"n")) (ElementExpression go.int (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "$res0")))))
 
 /-- ReadOne reads (consumes) first item from the buffer if it is available, otherwise returns false.
 
     go: ring_growing.go:62:31 -/
-noncomputable def TypedRingGrowing.ReadOne.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingGrowing.ReadOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "data" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (Var "data")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (Var "ok")
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -302,8 +384,16 @@ noncomputable def TypedRingGrowing.ReadOne.impl [FfiSyntax] [GoGlobalContext] (T
   (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "zero"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "element"))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "element")) (Val #true)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 1)))))))
   (Let "$r0" (Val #(W64 0))
   (App (Val doExecute)
@@ -318,22 +408,20 @@ noncomputable def TypedRingGrowing.ReadOne.impl [FfiSyntax] [GoGlobalContext] (T
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 1))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 0)))))
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "data")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))))
+  (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
 
 /-- WriteOne adds an item to the end of the buffer, growing it if it is full.
 
     go: ring_growing.go:80:31 -/
-noncomputable def TypedRingGrowing.WriteOne.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingGrowing.WriteOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "data"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))
   (Let "data" (App (Val (GoInstruction (GoAlloc T))) (Var "data"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "data"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -397,55 +485,76 @@ noncomputable def TypedRingGrowing.WriteOne.impl [FfiSyntax] [GoGlobalContext] (
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "newN") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- Len returns the number of items in the buffer.
 
     go: ring_growing.go:104:31 -/
-noncomputable def TypedRingGrowing.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingGrowing.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- Cap returns the capacity of the buffer.
 
     go: ring_growing.go:109:31 -/
-noncomputable def TypedRingGrowing.Cap.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingGrowing.Cap.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- NewRing constructs a new Ring instance with provided parameters.
 
     go: ring_growing.go:133:6 -/
-noncomputable def NewRing.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewRing.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "opts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Ring.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc RingOptions.ty))) (Var "opts"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc (Ring.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedRingGrowing.ty T)))) (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingOptions.ty go!"InitialSize"))) (Var "opts")))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (Ring.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedRingGrowing.ty T)))) (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingOptions.ty go!"InitialSize"))) (Var "opts")))
   (App (Val (GoInstruction (CompositeLiteral RingGrowingOptions.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"InitialSize")) (ElementExpression go.int (Var "$v0")))])))
   (App (App (Val (GoInstruction (FuncResolve NewTypedRingGrowing [T]))) (Val #())) (Var "$a0"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingOptions.ty go!"NormalSize"))) (Var "opts")))
-  (App (Val (GoInstruction (CompositeLiteral (Ring.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"growing")) (ElementExpression (TypedRingGrowing.ty T) (Var "$v0"))), (KeyedElement (some (KeyField go!"normalSize")) (ElementExpression go.int (Var "$v1")))])))))))))
+  (App (Val (GoInstruction (CompositeLiteral (Ring.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"growing")) (ElementExpression (TypedRingGrowing.ty T) (Var "$v0"))), (KeyedElement (some (KeyField go!"normalSize")) (ElementExpression go.int (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Ring.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "$res0")))))
 
 /-- ReadOne reads (consumes) first item from the buffer if it is available,
     otherwise returns false. When the buffer has been totally consumed and has
     grown in size beyond its normal size, it shrinks down to its normal size again.
 
     go: ring_growing.go:143:19 -/
-noncomputable def Ring.ReadOne.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Ring.ReadOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "data" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (Var "data")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (Var "ok")
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (Var "r"))
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"ReadOne"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
@@ -456,8 +565,16 @@ noncomputable def Ring.ReadOne.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "element"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "element")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r"))))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"normalSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))))) (Val #false)))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"normalSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -475,50 +592,61 @@ noncomputable def Ring.ReadOne.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "element") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "element") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
 
 /-- WriteOne adds an item to the end of the buffer, growing it if it is full.
 
     go: ring_growing.go:158:19 -/
-noncomputable def Ring.WriteOne.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Ring.WriteOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "data"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (Var "r"))
   (Let "data" (App (Val (GoInstruction (GoAlloc T))) (Var "data"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "data"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"WriteOne"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Var "$a0"))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"WriteOne"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Var "$a0")))))))
+  (Val #()))))
 
 /-- Len returns the number of items in the buffer.
 
     go: ring_growing.go:163:19 -/
-noncomputable def Ring.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Ring.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (Var "r"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Len"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Len"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Val #())))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- Cap returns the capacity of the buffer.
 
     go: ring_growing.go:168:19 -/
-noncomputable def Ring.Cap.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Ring.Cap.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (Var "r"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Cap"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Cap"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Val #())))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.buffer where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.io]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.utils.buffer)) (Lam BAnon
   (App (Val exceptionDo)
@@ -532,33 +660,33 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))))
 
-structure TypedRingFixed [FfiSyntax] (T : Type) where
+structure TypedRingFixed [GooseExts] (T : Type) where
   mk ::
   data' : GoSlice
   size' : w64
   writeCursor' : w64
   written' : w64
 
-noncomputable instance TypedRingFixed.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedRingFixed T) :=
+noncomputable instance TypedRingFixed.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedRingFixed T) :=
   ⟨TypedRingFixed.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedRingFixed.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedRingFixed.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType T)),
 (go.field_decl.FieldDecl go!"size" go.int),
 (go.field_decl.FieldDecl go!"writeCursor" go.int),
 (go.field_decl.FieldDecl go!"written" go.int64)]
 
-@[irreducible] noncomputable def TypedRingFixed.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedRingFixed.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedRingFixed.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedRingFixed [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedRingFixed [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedRingFixed.fields T) (TypedRingFixed.fieldsUnsealed T) :=
   ⟨by unfold TypedRingFixed.fields; rfl⟩
 
-@[reducible] noncomputable def TypedRingFixed.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedRingFixed.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedRingFixed.fields T))
 
-class TypedRingFixed.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedRingFixed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedRingFixed.underlying T) (TypedRingFixed T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedRingFixed.ty T) (TypedRingFixed.underlying T)
   get_data : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T) go!"data") #x (Val #(x.data'))
@@ -569,6 +697,8 @@ class TypedRingFixed.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_writeCursor : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T) go!"writeCursor") (PairV #x #y) (Val #(({ x with writeCursor' := y } : (TypedRingFixed T'))))
   get_written : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T) go!"written") #x (Val #(x.written'))
   set_written : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T) go!"written") (PairV #x #y) (Val #(({ x with written' := y } : (TypedRingFixed T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedRingFixed.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRingFixed.ty T)) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType T)]))), (go!"TotalWritten", (some (go.signature.Signature [] false [go.int64]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType T)] false [go.int, go.error])))]
   ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"Len" (TypedRingFixed.Len.impl T)
   ptr_Reset_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"Reset" (TypedRingFixed.Reset.impl T)
   ptr_Size_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"Size" (TypedRingFixed.Size.impl T)
@@ -586,6 +716,8 @@ attribute [instance] TypedRingFixed.TypeAssumptions.type_repr
   TypedRingFixed.TypeAssumptions.set_writeCursor
   TypedRingFixed.TypeAssumptions.get_written
   TypedRingFixed.TypeAssumptions.set_written
+  TypedRingFixed.TypeAssumptions.method_set
+  TypedRingFixed.TypeAssumptions.ptr_method_set
   TypedRingFixed.TypeAssumptions.ptr_Len_unfold
   TypedRingFixed.TypeAssumptions.ptr_Reset_unfold
   TypedRingFixed.TypeAssumptions.ptr_Size_unfold
@@ -593,64 +725,68 @@ attribute [instance] TypedRingFixed.TypeAssumptions.type_repr
   TypedRingFixed.TypeAssumptions.ptr_TotalWritten_unfold
   TypedRingFixed.TypeAssumptions.ptr_Write_unfold
 
-structure RingGrowingOptions [FfiSyntax] where
+structure RingGrowingOptions [GooseExts] where
   mk ::
   InitialSize' : w64
 
-noncomputable instance RingGrowingOptions.zero_val [FfiSyntax] : ZeroVal RingGrowingOptions :=
+noncomputable instance RingGrowingOptions.zero_val [GooseExts] : ZeroVal RingGrowingOptions :=
   ⟨RingGrowingOptions.mk zeroValDef⟩
 
-@[reducible] noncomputable def RingGrowingOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RingGrowingOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"InitialSize" go.int)]
 
-@[irreducible] noncomputable def RingGrowingOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RingGrowingOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RingGrowingOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_RingGrowingOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RingGrowingOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold RingGrowingOptions.fields RingGrowingOptions.fieldsUnsealed :=
   ⟨by unfold RingGrowingOptions.fields; rfl⟩
 
-@[reducible] noncomputable def RingGrowingOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RingGrowingOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RingGrowingOptions.fields)
 
-class RingGrowingOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RingGrowingOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RingGrowingOptions.underlying RingGrowingOptions
   underlying : go.UnderlyingDirectedEq RingGrowingOptions.ty RingGrowingOptions.underlying
   get_InitialSize : ∀ (x : RingGrowingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingGrowingOptions.underlying go!"InitialSize") #x (Val #(x.InitialSize'))
   set_InitialSize : ∀ (x : RingGrowingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingGrowingOptions.underlying go!"InitialSize") (PairV #x #y) (Val #(({ x with InitialSize' := y } : RingGrowingOptions)))
+  method_set : go.MethodSetIs RingGrowingOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RingGrowingOptions.ty) []
 
 attribute [instance] RingGrowingOptions.TypeAssumptions.type_repr
   RingGrowingOptions.TypeAssumptions.underlying
   RingGrowingOptions.TypeAssumptions.get_InitialSize
   RingGrowingOptions.TypeAssumptions.set_InitialSize
+  RingGrowingOptions.TypeAssumptions.method_set
+  RingGrowingOptions.TypeAssumptions.ptr_method_set
 
-structure TypedRingGrowing [FfiSyntax] (T : Type) where
+structure TypedRingGrowing [GooseExts] (T : Type) where
   mk ::
   data' : GoSlice
   n' : w64
   beg' : w64
   readable' : w64
 
-noncomputable instance TypedRingGrowing.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedRingGrowing T) :=
+noncomputable instance TypedRingGrowing.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedRingGrowing T) :=
   ⟨TypedRingGrowing.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedRingGrowing.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedRingGrowing.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType T)),
 (go.field_decl.FieldDecl go!"n" go.int),
 (go.field_decl.FieldDecl go!"beg" go.int),
 (go.field_decl.FieldDecl go!"readable" go.int)]
 
-@[irreducible] noncomputable def TypedRingGrowing.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedRingGrowing.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedRingGrowing.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedRingGrowing [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedRingGrowing [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedRingGrowing.fields T) (TypedRingGrowing.fieldsUnsealed T) :=
   ⟨by unfold TypedRingGrowing.fields; rfl⟩
 
-@[reducible] noncomputable def TypedRingGrowing.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedRingGrowing.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedRingGrowing.fields T))
 
-class TypedRingGrowing.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedRingGrowing.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedRingGrowing.underlying T) (TypedRingGrowing T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedRingGrowing.ty T) (TypedRingGrowing.underlying T)
   get_data : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T) go!"data") #x (Val #(x.data'))
@@ -661,6 +797,8 @@ class TypedRingGrowing.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_beg : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T) go!"beg") (PairV #x #y) (Val #(({ x with beg' := y } : (TypedRingGrowing T'))))
   get_readable : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T) go!"readable") #x (Val #(x.readable'))
   set_readable : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T) go!"readable") (PairV #x #y) (Val #(({ x with readable' := y } : (TypedRingGrowing T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedRingGrowing.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRingGrowing.ty T)) [(go!"Cap", (some (go.signature.Signature [] false [go.int]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ReadOne", (some (go.signature.Signature [] false [T, go.bool]))), (go!"WriteOne", (some (go.signature.Signature [T] false [])))]
   ptr_Cap_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Cap" (TypedRingGrowing.Cap.impl T)
   ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Len" (TypedRingGrowing.Len.impl T)
   ptr_ReadOne_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"ReadOne" (TypedRingGrowing.ReadOne.impl T)
@@ -676,40 +814,44 @@ attribute [instance] TypedRingGrowing.TypeAssumptions.type_repr
   TypedRingGrowing.TypeAssumptions.set_beg
   TypedRingGrowing.TypeAssumptions.get_readable
   TypedRingGrowing.TypeAssumptions.set_readable
+  TypedRingGrowing.TypeAssumptions.method_set
+  TypedRingGrowing.TypeAssumptions.ptr_method_set
   TypedRingGrowing.TypeAssumptions.ptr_Cap_unfold
   TypedRingGrowing.TypeAssumptions.ptr_Len_unfold
   TypedRingGrowing.TypeAssumptions.ptr_ReadOne_unfold
   TypedRingGrowing.TypeAssumptions.ptr_WriteOne_unfold
 
-structure RingOptions [FfiSyntax] where
+structure RingOptions [GooseExts] where
   mk ::
   InitialSize' : w64
   NormalSize' : w64
 
-noncomputable instance RingOptions.zero_val [FfiSyntax] : ZeroVal RingOptions :=
+noncomputable instance RingOptions.zero_val [GooseExts] : ZeroVal RingOptions :=
   ⟨RingOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RingOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RingOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"InitialSize" go.int),
 (go.field_decl.FieldDecl go!"NormalSize" go.int)]
 
-@[irreducible] noncomputable def RingOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RingOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RingOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_RingOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RingOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold RingOptions.fields RingOptions.fieldsUnsealed :=
   ⟨by unfold RingOptions.fields; rfl⟩
 
-@[reducible] noncomputable def RingOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RingOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RingOptions.fields)
 
-class RingOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RingOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RingOptions.underlying RingOptions
   underlying : go.UnderlyingDirectedEq RingOptions.ty RingOptions.underlying
   get_InitialSize : ∀ (x : RingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingOptions.underlying go!"InitialSize") #x (Val #(x.InitialSize'))
   set_InitialSize : ∀ (x : RingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingOptions.underlying go!"InitialSize") (PairV #x #y) (Val #(({ x with InitialSize' := y } : RingOptions)))
   get_NormalSize : ∀ (x : RingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingOptions.underlying go!"NormalSize") #x (Val #(x.NormalSize'))
   set_NormalSize : ∀ (x : RingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingOptions.underlying go!"NormalSize") (PairV #x #y) (Val #(({ x with NormalSize' := y } : RingOptions)))
+  method_set : go.MethodSetIs RingOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RingOptions.ty) []
 
 attribute [instance] RingOptions.TypeAssumptions.type_repr
   RingOptions.TypeAssumptions.underlying
@@ -717,36 +859,40 @@ attribute [instance] RingOptions.TypeAssumptions.type_repr
   RingOptions.TypeAssumptions.set_InitialSize
   RingOptions.TypeAssumptions.get_NormalSize
   RingOptions.TypeAssumptions.set_NormalSize
+  RingOptions.TypeAssumptions.method_set
+  RingOptions.TypeAssumptions.ptr_method_set
 
-structure Ring [FfiSyntax] (T : Type) where
+structure Ring [GooseExts] (T : Type) where
   mk ::
   growing' : (TypedRingGrowing T)
   normalSize' : w64
 
-noncomputable instance Ring.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (Ring T) :=
+noncomputable instance Ring.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (Ring T) :=
   ⟨Ring.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Ring.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def Ring.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"growing" (TypedRingGrowing.ty T)),
 (go.field_decl.FieldDecl go!"normalSize" go.int)]
 
-@[irreducible] noncomputable def Ring.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def Ring.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (Ring.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_Ring [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_Ring [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (Ring.fields T) (Ring.fieldsUnsealed T) :=
   ⟨by unfold Ring.fields; rfl⟩
 
-@[reducible] noncomputable def Ring.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def Ring.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (Ring.fields T))
 
-class Ring.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Ring.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (Ring.underlying T) (Ring T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (Ring.ty T) (Ring.underlying T)
   get_growing : ∀ (T : go.GoType) (T' : Type) (x : (Ring T')), go.IsGoStepPureDetTagged under (StructFieldGet (Ring.underlying T) go!"growing") #x (Val #(x.growing'))
   set_growing : ∀ (T : go.GoType) (T' : Type) (x : (Ring T')) (y : (TypedRingGrowing T')), go.IsGoStepPureDetTagged under (StructFieldSet (Ring.underlying T) go!"growing") (PairV #x #y) (Val #(({ x with growing' := y } : (Ring T'))))
   get_normalSize : ∀ (T : go.GoType) (T' : Type) (x : (Ring T')), go.IsGoStepPureDetTagged under (StructFieldGet (Ring.underlying T) go!"normalSize") #x (Val #(x.normalSize'))
   set_normalSize : ∀ (T : go.GoType) (T' : Type) (x : (Ring T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (Ring.underlying T) go!"normalSize") (PairV #x #y) (Val #(({ x with normalSize' := y } : (Ring T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (Ring.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (Ring.ty T)) [(go!"Cap", (some (go.signature.Signature [] false [go.int]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ReadOne", (some (go.signature.Signature [] false [T, go.bool]))), (go!"WriteOne", (some (go.signature.Signature [T] false [])))]
   ptr_Cap_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T)) go!"Cap" (Ring.Cap.impl T)
   ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T)) go!"Len" (Ring.Len.impl T)
   ptr_ReadOne_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T)) go!"ReadOne" (Ring.ReadOne.impl T)
@@ -758,12 +904,14 @@ attribute [instance] Ring.TypeAssumptions.type_repr
   Ring.TypeAssumptions.set_growing
   Ring.TypeAssumptions.get_normalSize
   Ring.TypeAssumptions.set_normalSize
+  Ring.TypeAssumptions.method_set
+  Ring.TypeAssumptions.ptr_method_set
   Ring.TypeAssumptions.ptr_Cap_unfold
   Ring.TypeAssumptions.ptr_Len_unfold
   Ring.TypeAssumptions.ptr_ReadOne_unfold
   Ring.TypeAssumptions.ptr_WriteOne_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   TypedRingFixed_instance : TypedRingFixed.TypeAssumptions
   RingGrowingOptions_instance : RingGrowingOptions.TypeAssumptions
   TypedRingGrowing_instance : TypedRingGrowing.TypeAssumptions

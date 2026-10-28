@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -97,6 +97,22 @@ theorem EtcdServer.UserGrantRole.wp_proof : EtcdServer.UserGrantRole.spec (GF :=
       iframe HQ
       ipureintro; exact ⟨rfl, He⟩
     · exact absurd rfl He
+
+/-- `spec`'s instance at `raftRequest.specM true` (`authRaftOk_on`). -/
+theorem EtcdServer.UserGrantRole.wp_proofOn
+    (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
+    EtcdServer.UserGrantRole.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd r user role F
+  wp_start_folded as ⟨#Hreq, %Hn, HP⟩
+  ihave #Hc : authRaftOk s ctx (irrUserGrantRole user role) etcdserverpb.AuthUserGrantRoleResponse.ty (adminPreOn s E ρ ctx cd F)
+      (adminOutOn s E ρ (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role)) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ []
+  · iapply authRaftOk_on hRR s E ρ ctx cd (irrUserGrantRole user role) F _ _ rfl rfl (adminPropOk_userGrantRole user role Hn)
+      (irrNoZeroEnd_admin _ rfl rfl rfl) (fun _ _ => .rfl)
+  wp_apply EtcdServer.UserGrantRole.wp_proof s ctx r user role (adminPreOn s E ρ ctx cd F)
+      (adminOutOn s E ρ (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role)) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ [HP] as %resp %err H
+  · iframe # HP
+  iapply HΦ
+  iexact H
 
 end proof
 

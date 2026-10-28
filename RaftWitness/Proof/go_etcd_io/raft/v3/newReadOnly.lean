@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -26,8 +26,8 @@ theorem newReadOnly.wp_proof : newReadOnly.spec (GF := GF) (hG := hG) := by
   wp_start
   wp_auto
   wp_apply wp_map_make1 as %mref Hmref
-  wp_alloc ro' as Hro'
-  wp_auto
+  irename «$r0» => Hro'
+  generalize «$r0_ptr» = ro' at *
   iapply HΦ
   unfold ownReadOnly
   iexists _, []

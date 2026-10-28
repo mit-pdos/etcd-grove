@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.lease lease
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 theorem lease.Lease.persistTo.wp_proof
     (hPut : schema.MustUnsafePutLease.spec (GF := GF) (hG := hG)) :
     lease.Lease.persistTo.spec (GF := GF) (hG := hG) := by
-  intro l b P f T R Pre Q Post id t r dq1 dq2 dq3
-  wp_start as ⟨#Hbk, Hcs, HT, HR, Hid, Ht, Hr⟩
+  intro l b P f T R Rb rb Pre Q Post id t r dq1 dq2 dq3
+  wp_start as ⟨#Hbk, Hcs, HT, HR, HRb, Hid, Ht, Hr⟩
   ihave #Hschema : isPkgInit (PROP := IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
@@ -54,14 +54,18 @@ theorem lease.Lease.persistTo.wp_proof
   (try wp_auto)
   wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease))
     (Val #(GoInterface.ok tx))) (Val #lpb_ptr))
-  iapply (hPut tx lpb_ptr _ bk (Lk iprop(Post ∗ R)) (Lk iprop(Post ∗ R))) $$ [lpb HLk] [-]
-  · iframe Hschema Hbkv lpb HLk
-    iintro !> %key %val %kb %vb %Φ' !> ⟨%Hk8, #Hk, #Hv, HL⟩ HΦ'
-    iapply HUnsafePut $$ [HL] HΦ'
-    iframe HL Hbkv Hk Hv
-    ipureintro; exact Hk8
+  iapply (hPut tx lpb_ptr _ bk iprop(Lk iprop(Post ∗ R) ∗ Rb rb)
+      iprop(Lk iprop(Post ∗ R) ∗
+        Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id t r)))) $$ [lpb HLk HRb] [-]
+  · iframe Hschema Hbkv lpb HLk HRb
+    isplitr
+    · ipureintro; rfl
+    iintro !> %key %val %Φ' !> ⟨#Hk, #Hv, HL, HRb⟩ HΦ'
+    iapply HUnsafePut $$ [HL HRb] HΦ'
+    iframe HL Hbkv Hk Hv HRb
+    ipureintro; rw [List.length_reverse, u64Le_length]
   inext
-  iintro ⟨-, HLk⟩
+  iintro ⟨-, HLk, HRb⟩
   (try wp_auto)
   wp_bind (App (Val #(methods tx.ty go!"Unlock" tx.v)) (Val #()))
   iapply HUnlock $$ [HLk] [-]

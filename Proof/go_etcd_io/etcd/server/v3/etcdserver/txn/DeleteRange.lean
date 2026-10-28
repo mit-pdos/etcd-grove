@@ -24,7 +24,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
   go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -38,8 +38,8 @@ theorem txn.DeleteRange.wp_proof
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te Lw
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hdr, #Hctx, #Hct, Hto, #Hnd, #Hcok, Hcs, Hhook⟩
+  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te Lw L I
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hdr, Hown, #HIp, #Hctx, #Hct, Hto, #Hnd, #Hcok, Hcs, Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -49,6 +49,7 @@ theorem txn.DeleteRange.wp_proof
   ihave #Hdr0 := Hdr
   iunfold txn.deleteRangeRequestIs at Hdr0
   icases Hdr0 with ⟨%Hdnn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, #He, #Hes, #Hpk, %Ho, -⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply wp_bytes_to_string $$ [$Hks] as -
@@ -88,14 +89,17 @@ theorem txn.DeleteRange.wp_proof
     $$ [$Htoks $Hc0 $Htx]
   ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog [] (W64 0) (W64 0) (W64 0) $$ Htx
   -- `deleteRange(ctx, txnWrite, dr)`
+  ihave %HI := HIp $$ %ilog %Hpin
+  ihave Hown : EtcdGrove.lease.leaseOwn γ.leases L (mvcc.pendItems ilog []) $$ [Hown]
+  · rw [show mvcc.pendItems ilog [] = I from HI.symm]; iexact Hown
   wp_apply (hdel trace ctx' { cd with Values := vs } nd mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o
-      tyX vX) $$ [$Hctx' $Htx $Hw $Hdr] as %resp %err Hout
+      L tyX vX) $$ [$Hctx' $Htx $Hw $Hdr $Hown] as %resp %err Hout
   · cases nd
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
   rw [txn.pendState_nil]
   simp only [List.nil_append]
-  icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp, Hhdr⟩ | ⟨%Hne, Htx⟩)
+  icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp, Hhdr, Hown⟩ | ⟨%Hne, Htx, Hown⟩)
   · -- deleted: the deferred `End` commits (if something was deleted)
     (try wp_auto)
     wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog
@@ -120,7 +124,10 @@ theorem txn.DeleteRange.wp_proof
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
     ileft
     iframe Hresp Hhdr Hc Htok Hwl
-    ipureintro; exact Herr
+    isplitl []
+    · ipureintro; exact Herr
+    rw [stateAfter_commitLog]
+    iexact Hown
   · -- the range read's context error: nothing written, the token back
     (try wp_auto)
     wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) m P f)
@@ -145,7 +152,10 @@ theorem txn.DeleteRange.wp_proof
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
     iright
     iframe Htok Hc Hwl
-    ipureintro; exact Hne
+    isplitl []
+    · ipureintro; exact Hne
+    rw [show I = mvcc.pendItems ilog [] from HI]
+    iexact Hown
 
 end proof
 

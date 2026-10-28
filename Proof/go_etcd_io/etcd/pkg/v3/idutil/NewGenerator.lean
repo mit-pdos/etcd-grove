@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -42,10 +42,12 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
   icases Hshare with ⟨Hcnt, HS⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
+  iapply wp_fupd
   wp_auto
   wp_apply time.Time.wp_ptr_UnixNano now_ptr now $$ [$now] as %ns now
   wp_apply hL _ (W64 40) (by word)
-  wp_alloc gp as Hgp
+  irename «$r0» => Hgp
+  generalize «$r0_ptr» = gp at *
   ihave ⟨Hgp, %Hgpn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hgp
   iStructNamed Hgp
   ipersist prefix'
@@ -75,7 +77,7 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
     simp only [List.not_mem_nil, GMap.lookup_empty, Option.isSome_none, Bool.false_eq_true,
       false_iff]
     exact ⟨hn, hn⟩
-  wp_auto
+  imodintro
   iapply HΦ
   iunfold idGen
   iexists s0

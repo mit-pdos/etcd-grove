@@ -29,7 +29,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
   go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -112,9 +112,10 @@ theorem v3rpc.serverWatchStream.isWatchPermitted_bound
     · iframe #
     subst Hai
     (try wp_auto)
-    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -, #Hv⟩
+    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2a, -, #Hv⟩
     · iframe #
       ipureintro; word
+    ihave #Herr2 := authApplyErrIs_apply err2 $$ Herr2a
     (try wp_auto)
     iapply HΦ
     iframe
@@ -137,9 +138,10 @@ theorem v3rpc.serverWatchStream.isWatchPermitted_bound
     · iframe #
     subst Hai
     (try wp_auto)
-    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -, #Hv⟩
+    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2a, -, #Hv⟩
     · iframe #
       ipureintro; word
+    ihave #Herr2 := authApplyErrIs_apply err2 $$ Herr2a
     (try wp_auto)
     iapply HΦ
     iframe

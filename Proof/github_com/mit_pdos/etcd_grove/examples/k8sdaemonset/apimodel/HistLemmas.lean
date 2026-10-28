@@ -21,7 +21,7 @@ namespace apimodel
 open Iris Iris.BI Iris.ProofMode
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem histOk_snoc {L : List St} {σ σ' : St} (h : histOk (L ++ [σ])) (hle : St.le σ σ')
     (hwf : σ'.wf) : histOk ((L ++ [σ]) ++ [σ']) := by
@@ -45,7 +45,7 @@ theorem histOk_last_wf {L : List St} {σ : St} (h : histOk (L ++ [σ])) : σ.wf 
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

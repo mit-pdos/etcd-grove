@@ -20,7 +20,7 @@ namespace recipes
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -47,9 +47,9 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
   · subst Heq
     unfold ownRemoteKV RemoteKVSt.val'
     wp_auto
-    wp_alloc ek as Hek
+    irename «$r0» => Hek
+    generalize «$r0_ptr» = ek at *
     iStructNamed Hek
-    wp_auto
     iapply HΦ
     ileft
     isplitr

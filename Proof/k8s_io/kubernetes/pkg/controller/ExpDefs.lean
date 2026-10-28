@@ -41,7 +41,7 @@ open Iris Iris.BI k8s_io.kubernetes.pkg.controller cache
 
 /-- The expectations' names: the `*cache`, its thread-safe store and ghost names, its key
 function. -/
-structure ExpNames [FfiSyntax] where
+structure ExpNames [GooseExts] where
   ca : Loc
   ts : Loc
   γ : TsNames
@@ -52,7 +52,7 @@ def expN : Namespace := nroot.@"dsctl_expectations"
 def ceN : Namespace := nroot.@"dsctl_controllee"
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -212,7 +212,7 @@ end defs
 stores (`initialize'`, copied from the translation `Code/k8s_io/kubernetes/pkg/controller.lean`:
 the package's `isPkgInit` is `True`, so the variable's value is not available to the proofs; a
 proof of the package's initialization would give `globalAddr ExpKeyFunc ↦□ expKeyFn`). -/
-def expKeyFn [FfiSyntax] [GoGlobalContext] : GoFunc :=
+def expKeyFn [GooseExts] [GoGlobalContext] : GoFunc :=
   func.mk BAnon "obj"
   (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "obj"))

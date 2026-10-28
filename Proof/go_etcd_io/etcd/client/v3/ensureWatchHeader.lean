@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,9 +31,9 @@ theorem ensureWatchHeader.wp_proof : ensureWatchHeader.spec (GF := GF) (hG := hG
   wp_start
   wp_auto
   wp_if_destruct
-  · wp_alloc h as Hh
+  · irename «$r0» => Hh
+    generalize «$r0_ptr» = h at *
     ihave %Hhn := typedPointsto_not_null _ _ _ $$ Hh
-    wp_auto
     iapply HΦ
     isplitl []
     · ipureintro; exact Hhn

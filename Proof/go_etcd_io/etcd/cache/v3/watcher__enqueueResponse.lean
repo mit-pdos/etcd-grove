@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -37,8 +37,10 @@ theorem watcher.enqueueResponse.wp_proof
   wp_join (Q := fun v => iprop(
       (⌜v = executeVal⌝ ∗ ∃ (resp' : go_etcd_io.etcd.client.v3.WatchResponse) (r' : RespModel),
         "resp" ∷ resp_ptr ↦ resp' ∗ "#Hresp'" ∷ respAt resp' r' ∗
-        "%Hr'" ∷ ⌜filterResp pred r = some r' ∧ resp'.Header' = resp.Header'⌝) ∨
-      (⌜v = returnVal #true⌝ ∗ ⌜filterResp pred r = none⌝))) at next with [resp]
+        "%Hr'" ∷ ⌜filterResp pred r = some r' ∧ resp'.Header' = resp.Header'⌝ ∗
+        "«$res0»" ∷ «$res0_ptr» ↦ zero_val Bool) ∨
+      (⌜v = returnVal #()⌝ ∗ ⌜filterResp pred r = none⌝ ∗ «$res0_ptr» ↦ true))) at next
+      with [resp «$res0»]
   · cases pred with
     | none =>
       unfold keyPredOk
@@ -126,8 +128,8 @@ theorem watcher.enqueueResponse.wp_proof
           wp_if_destruct
           · -- nothing selected: `return true`
             iright
+            iframe
             ipureintro
-            refine ⟨by first | rfl | trivial, ?_⟩
             have h0 : (filterPairs p ls r.events).length = 0 := by
               simp only [List.length_map] at Hflen; word
             have : r.events.filter (fun e => p e.key) = [] := by
@@ -168,7 +170,7 @@ theorem watcher.enqueueResponse.wp_proof
         ileft; iframe; iframe #; ipureintro
         simp [filterResp, hpn]
   iintro HQ
-  icases HQ with (⟨%Hv, %resp', %r', resp, #Hresp', %Hr'⟩ | ⟨%Hv, %Hnone⟩)
+  icases HQ with (⟨%Hv, %resp', %r', resp, #Hresp', %Hr', «$res0»⟩ | ⟨%Hv, %Hnone, «$res0»⟩)
   rotate_left
   · -- the filter dropped every event: nothing sent, reported delivered
     subst Hv

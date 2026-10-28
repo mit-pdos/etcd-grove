@@ -20,103 +20,103 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.batch.v1
 
-noncomputable def BatchV1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BatchV1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.BatchV1Interface" [])
 
 attribute [irreducible] BatchV1Interface.ty
 
-noncomputable def BatchV1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BatchV1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.BatchV1Client" [])
 
 attribute [irreducible] BatchV1Client.ty
 
-noncomputable def CronJobsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CronJobsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.CronJobsGetter" [])
 
 attribute [irreducible] CronJobsGetter.ty
 
-noncomputable def CronJobInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CronJobInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.CronJobInterface" [])
 
 attribute [irreducible] CronJobInterface.ty
 
-noncomputable def cronJobs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cronJobs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.cronJobs" [])
 
 attribute [irreducible] cronJobs.ty
 
-noncomputable def CronJobExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CronJobExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.CronJobExpansion" [])
 
 attribute [irreducible] CronJobExpansion.ty
 
-noncomputable def JobExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def JobExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.JobExpansion" [])
 
 attribute [irreducible] JobExpansion.ty
 
-noncomputable def JobsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def JobsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.JobsGetter" [])
 
 attribute [irreducible] JobsGetter.ty
 
-noncomputable def JobInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def JobInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.JobInterface" [])
 
 attribute [irreducible] JobInterface.ty
 
-noncomputable def jobs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jobs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.jobs" [])
 
 attribute [irreducible] jobs.ty
 
-axiom BatchV1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom BatchV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BatchV1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom BatchV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CronJobsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CronJobInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cronJobs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cronJobs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CronJobExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom JobExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom JobExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom JobsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom JobsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom JobInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom JobInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom jobs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom jobs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1.setConfigDefaults"
 
-noncomputable def newCronJobs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCronJobs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1.newCronJobs"
 
-noncomputable def newJobs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newJobs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1.newJobs"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.batch.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.batch.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -127,133 +127,173 @@ axiom BatchV1Interface : Type
 axiom BatchV1Interface.zero_val : ZeroVal BatchV1Interface
 attribute [instance] BatchV1Interface.zero_val
 
-class BatchV1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BatchV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BatchV1Interface.underlying BatchV1Interface
   underlying : go.UnderlyingDirectedEq BatchV1Interface.ty BatchV1Interface.underlying
   isUnderlying : go.IsUnderlying BatchV1Interface.underlying BatchV1Interface.underlying
+  method_set : go.MethodSetIs BatchV1Interface.ty [(go!"CronJobs", (some (go.signature.Signature [go.string] false [CronJobInterface.ty]))), (go!"Jobs", (some (go.signature.Signature [go.string] false [JobInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BatchV1Interface.ty) []
 
 attribute [instance] BatchV1Interface.TypeAssumptions.type_repr
   BatchV1Interface.TypeAssumptions.underlying
   BatchV1Interface.TypeAssumptions.isUnderlying
+  BatchV1Interface.TypeAssumptions.method_set
+  BatchV1Interface.TypeAssumptions.ptr_method_set
 
 axiom BatchV1Client : Type
 axiom BatchV1Client.zero_val : ZeroVal BatchV1Client
 attribute [instance] BatchV1Client.zero_val
 
-class BatchV1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BatchV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BatchV1Client.underlying BatchV1Client
   underlying : go.UnderlyingDirectedEq BatchV1Client.ty BatchV1Client.underlying
   isUnderlying : go.IsUnderlying BatchV1Client.underlying BatchV1Client.underlying
+  method_set : go.MethodSetIs BatchV1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BatchV1Client.ty) [(go!"CronJobs", (some (go.signature.Signature [go.string] false [CronJobInterface.ty]))), (go!"Jobs", (some (go.signature.Signature [go.string] false [JobInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
 
 attribute [instance] BatchV1Client.TypeAssumptions.type_repr
   BatchV1Client.TypeAssumptions.underlying
   BatchV1Client.TypeAssumptions.isUnderlying
+  BatchV1Client.TypeAssumptions.method_set
+  BatchV1Client.TypeAssumptions.ptr_method_set
 
 axiom CronJobsGetter : Type
 axiom CronJobsGetter.zero_val : ZeroVal CronJobsGetter
 attribute [instance] CronJobsGetter.zero_val
 
-class CronJobsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CronJobsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CronJobsGetter.underlying CronJobsGetter
   underlying : go.UnderlyingDirectedEq CronJobsGetter.ty CronJobsGetter.underlying
   isUnderlying : go.IsUnderlying CronJobsGetter.underlying CronJobsGetter.underlying
+  method_set : go.MethodSetIs CronJobsGetter.ty [(go!"CronJobs", (some (go.signature.Signature [go.string] false [CronJobInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CronJobsGetter.ty) []
 
 attribute [instance] CronJobsGetter.TypeAssumptions.type_repr
   CronJobsGetter.TypeAssumptions.underlying
   CronJobsGetter.TypeAssumptions.isUnderlying
+  CronJobsGetter.TypeAssumptions.method_set
+  CronJobsGetter.TypeAssumptions.ptr_method_set
 
 axiom CronJobInterface : Type
 axiom CronJobInterface.zero_val : ZeroVal CronJobInterface
 attribute [instance] CronJobInterface.zero_val
 
-class CronJobInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CronJobInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CronJobInterface.underlying CronJobInterface
   underlying : go.UnderlyingDirectedEq CronJobInterface.ty CronJobInterface.underlying
   isUnderlying : go.IsUnderlying CronJobInterface.underlying CronJobInterface.underlying
+  method_set : go.MethodSetIs CronJobInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.CronJobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.CronJobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJobList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CronJobInterface.ty) []
 
 attribute [instance] CronJobInterface.TypeAssumptions.type_repr
   CronJobInterface.TypeAssumptions.underlying
   CronJobInterface.TypeAssumptions.isUnderlying
+  CronJobInterface.TypeAssumptions.method_set
+  CronJobInterface.TypeAssumptions.ptr_method_set
 
 axiom cronJobs : Type
 axiom cronJobs.zero_val : ZeroVal cronJobs
 attribute [instance] cronJobs.zero_val
 
-class cronJobs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cronJobs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cronJobs.underlying cronJobs
   underlying : go.UnderlyingDirectedEq cronJobs.ty cronJobs.underlying
   isUnderlying : go.IsUnderlying cronJobs.underlying cronJobs.underlying
+  method_set : go.MethodSetIs cronJobs.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.CronJobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.CronJobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJobList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cronJobs.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.CronJobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.CronJobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJobList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.CronJob" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] cronJobs.TypeAssumptions.type_repr
   cronJobs.TypeAssumptions.underlying
   cronJobs.TypeAssumptions.isUnderlying
+  cronJobs.TypeAssumptions.method_set
+  cronJobs.TypeAssumptions.ptr_method_set
 
 axiom CronJobExpansion : Type
 axiom CronJobExpansion.zero_val : ZeroVal CronJobExpansion
 attribute [instance] CronJobExpansion.zero_val
 
-class CronJobExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CronJobExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CronJobExpansion.underlying CronJobExpansion
   underlying : go.UnderlyingDirectedEq CronJobExpansion.ty CronJobExpansion.underlying
   isUnderlying : go.IsUnderlying CronJobExpansion.underlying CronJobExpansion.underlying
+  method_set : go.MethodSetIs CronJobExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CronJobExpansion.ty) []
 
 attribute [instance] CronJobExpansion.TypeAssumptions.type_repr
   CronJobExpansion.TypeAssumptions.underlying
   CronJobExpansion.TypeAssumptions.isUnderlying
+  CronJobExpansion.TypeAssumptions.method_set
+  CronJobExpansion.TypeAssumptions.ptr_method_set
 
 axiom JobExpansion : Type
 axiom JobExpansion.zero_val : ZeroVal JobExpansion
 attribute [instance] JobExpansion.zero_val
 
-class JobExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class JobExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying JobExpansion.underlying JobExpansion
   underlying : go.UnderlyingDirectedEq JobExpansion.ty JobExpansion.underlying
   isUnderlying : go.IsUnderlying JobExpansion.underlying JobExpansion.underlying
+  method_set : go.MethodSetIs JobExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType JobExpansion.ty) []
 
 attribute [instance] JobExpansion.TypeAssumptions.type_repr
   JobExpansion.TypeAssumptions.underlying
   JobExpansion.TypeAssumptions.isUnderlying
+  JobExpansion.TypeAssumptions.method_set
+  JobExpansion.TypeAssumptions.ptr_method_set
 
 axiom JobsGetter : Type
 axiom JobsGetter.zero_val : ZeroVal JobsGetter
 attribute [instance] JobsGetter.zero_val
 
-class JobsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class JobsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying JobsGetter.underlying JobsGetter
   underlying : go.UnderlyingDirectedEq JobsGetter.ty JobsGetter.underlying
   isUnderlying : go.IsUnderlying JobsGetter.underlying JobsGetter.underlying
+  method_set : go.MethodSetIs JobsGetter.ty [(go!"Jobs", (some (go.signature.Signature [go.string] false [JobInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType JobsGetter.ty) []
 
 attribute [instance] JobsGetter.TypeAssumptions.type_repr
   JobsGetter.TypeAssumptions.underlying
   JobsGetter.TypeAssumptions.isUnderlying
+  JobsGetter.TypeAssumptions.method_set
+  JobsGetter.TypeAssumptions.ptr_method_set
 
 axiom JobInterface : Type
 axiom JobInterface.zero_val : ZeroVal JobInterface
 attribute [instance] JobInterface.zero_val
 
-class JobInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class JobInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying JobInterface.underlying JobInterface
   underlying : go.UnderlyingDirectedEq JobInterface.ty JobInterface.underlying
   isUnderlying : go.IsUnderlying JobInterface.underlying JobInterface.underlying
+  method_set : go.MethodSetIs JobInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.JobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.JobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.JobList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType JobInterface.ty) []
 
 attribute [instance] JobInterface.TypeAssumptions.type_repr
   JobInterface.TypeAssumptions.underlying
   JobInterface.TypeAssumptions.isUnderlying
+  JobInterface.TypeAssumptions.method_set
+  JobInterface.TypeAssumptions.ptr_method_set
 
 axiom jobs : Type
 axiom jobs.zero_val : ZeroVal jobs
 attribute [instance] jobs.zero_val
 
-class jobs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class jobs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jobs.underlying jobs
   underlying : go.UnderlyingDirectedEq jobs.ty jobs.underlying
   isUnderlying : go.IsUnderlying jobs.underlying jobs.underlying
+  method_set : go.MethodSetIs jobs.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.JobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.JobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.JobList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jobs.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.JobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/batch/v1.JobApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.JobList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/batch/v1.Job" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] jobs.TypeAssumptions.type_repr
   jobs.TypeAssumptions.underlying
   jobs.TypeAssumptions.isUnderlying
+  jobs.TypeAssumptions.method_set
+  jobs.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BatchV1Interface_instance : BatchV1Interface.TypeAssumptions
   BatchV1Client_instance : BatchV1Client.TypeAssumptions
   CronJobsGetter_instance : CronJobsGetter.TypeAssumptions

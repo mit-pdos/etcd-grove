@@ -52,7 +52,7 @@ namespace EtcdGrove
 open GMap go_etcd_io.raft.v3
 
 section frame
-variable [FfiSyntax]
+variable [GooseExts]
 
 variable (c : CfgM) (id : w64)
 
@@ -294,7 +294,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
 end frame
 
 section frame_lemmas
-variable [FfiSyntax]
+variable [GooseExts]
 variable {B : Int}
 
 /-- The `pci` an `RState` keeps across a step to `p'`: its own at a leader, `0` elsewhere. -/
@@ -549,7 +549,7 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
 end frame_lemmas
 
 section code
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 variable {B : Int}
 
 /-- The ghost part of a node's `RState`: the configuration index, the configuration (with the

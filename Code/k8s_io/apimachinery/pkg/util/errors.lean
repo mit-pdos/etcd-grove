@@ -20,108 +20,124 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.errors
 
-noncomputable def MessageCountMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageCountMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.MessageCountMap" [])
 
 attribute [irreducible] MessageCountMap.ty
 
-noncomputable def Aggregate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Aggregate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.Aggregate" [])
 
 attribute [irreducible] Aggregate.ty
 
-noncomputable def aggregate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aggregate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.aggregate" [])
 
 attribute [irreducible] aggregate.ty
 
-noncomputable def Matcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Matcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.Matcher" [])
 
 attribute [irreducible] Matcher.ty
 
-noncomputable def ErrPreconditionViolated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrPreconditionViolated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.ErrPreconditionViolated"
 
-axiom ErrPreconditionViolated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrPreconditionViolated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewAggregate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewAggregate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.NewAggregate"
 
-noncomputable def FilterOut [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FilterOut [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.FilterOut"
 
-noncomputable def matchesError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def matchesError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.matchesError"
 
-noncomputable def filterErrors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def filterErrors [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.filterErrors"
 
-noncomputable def Flatten [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Flatten [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.Flatten"
 
-noncomputable def CreateAggregateFromMessageCountMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CreateAggregateFromMessageCountMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.CreateAggregateFromMessageCountMap"
 
-noncomputable def Reduce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Reduce [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.Reduce"
 
-noncomputable def AggregateGoroutines [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AggregateGoroutines [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.AggregateGoroutines"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.errors where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.errors)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val ErrPreconditionViolated.init) (Val #())))))))
 
-abbrev MessageCountMap [FfiSyntax] : Type := GoMap
+abbrev MessageCountMap [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def MessageCountMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageCountMap.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string go.int)
 
-class MessageCountMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MessageCountMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MessageCountMap.ty MessageCountMap.underlying
+  method_set : go.MethodSetIs MessageCountMap.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MessageCountMap.ty) []
 
 attribute [instance] MessageCountMap.TypeAssumptions.underlying
+  MessageCountMap.TypeAssumptions.method_set
+  MessageCountMap.TypeAssumptions.ptr_method_set
 
-abbrev Aggregate [FfiSyntax] : Type := GoInterface
+abbrev Aggregate [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Aggregate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Errors" (go.signature.Signature [] false [(go.GoType.SliceType go.error)])), (go.InterfaceElem.MethodElem go!"Is" (go.signature.Signature [go.error] false [go.bool])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm go.error)])])
+@[reducible] noncomputable def Aggregate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Error" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Errors" (go.signature.Signature [] false [(go.GoType.SliceType go.error)])), (go.InterfaceElem.MethodElem go!"Is" (go.signature.Signature [go.error] false [go.bool]))])
 
-class Aggregate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Aggregate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Aggregate.ty Aggregate.underlying
+  method_set : go.MethodSetIs Aggregate.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Aggregate.ty) []
 
 attribute [instance] Aggregate.TypeAssumptions.underlying
+  Aggregate.TypeAssumptions.method_set
+  Aggregate.TypeAssumptions.ptr_method_set
 
-abbrev aggregate [FfiSyntax] : Type := GoSlice
+abbrev aggregate [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def aggregate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def aggregate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.error)
 
-class aggregate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class aggregate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq aggregate.ty aggregate.underlying
+  method_set : go.MethodSetIs aggregate.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/util/errors.visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType aggregate.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/util/errors.visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))] false [go.bool])))]
 
 attribute [instance] aggregate.TypeAssumptions.underlying
+  aggregate.TypeAssumptions.method_set
+  aggregate.TypeAssumptions.ptr_method_set
 
-abbrev Matcher [FfiSyntax] : Type := GoFunc
+abbrev Matcher [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def Matcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Matcher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))
 
-class Matcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Matcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Matcher.ty Matcher.underlying
+  method_set : go.MethodSetIs Matcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Matcher.ty) []
 
 attribute [instance] Matcher.TypeAssumptions.underlying
+  Matcher.TypeAssumptions.method_set
+  Matcher.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   MessageCountMap_instance : MessageCountMap.TypeAssumptions
   Aggregate_instance : Aggregate.TypeAssumptions
   aggregate_instance : aggregate.TypeAssumptions

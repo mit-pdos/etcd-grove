@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -34,11 +34,13 @@ theorem rafthttp.startRemote.wp_proof
     rafthttp.startRemote.spec (GF := GF) (hG := hG) := by
   intro Rh t lid γd R urls uvs pid Hne Hurls Hmem Hnp Hpm
   wp_start as ⟨#Htr, #Hus, HR1, HR2, HR3, HR4⟩
+  iapply wp_fupd
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %Hmem⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
   wp_auto
@@ -47,31 +49,34 @@ theorem rafthttp.startRemote.wp_proof
   (try wp_auto)
   wp_apply hNewStatus lg lid pid Hlgnn as %ps #Hps
   (try wp_auto)
+  obtain ⟨pl, hpl⟩ : ∃ pl : Loc, pl = «$r0_ptr» := ⟨_, rfl⟩
+  subst hpl
   iStructNamedSuffix «$r0» "P"
   ipersist peerIDP; ipersist trP; ipersist pickerP; ipersist statusP; ipersist raftP
   ipersist errorcP; ipersist followerStatsP
-  imod sync.init_WaitGroup (sync.join.wgjN.@"wg") («$r0_ptr».[rafthttp.pipeline, go!"wg"]) $$ wgP
+  imod sync.init_WaitGroup (sync.join.wgjN.@"wg") (pl.[rafthttp.pipeline, go!"wg"]) $$ wgP
     with ⟨%γwg, Hwg⟩
   imod sync.join.init _ γwg $$ Hwg with Hwg
-  wp_apply hPipeStart Rh «$r0_ptr» pid R $$ [msgcP stopcP Hwg HR1 HR2 HR3 HR4] as Hpl
+  wp_apply hPipeStart Rh pl pid R $$ [msgcP stopcP Hwg HR1 HR2 HR3 HR4] as Hpl
   · iframe
     iunfold pipeFixed
     iexists t, pk, ec, lg, turls, tuvs, lid, cid, prt, ps, null, r, lid, γd
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; exact ⟨Hmem, Hnp⟩
-  (try wp_auto)
-  obtain ⟨pl, hpl⟩ : ∃ pl : Loc, pl = «$r0_ptr» := ⟨_, rfl⟩
-  subst hpl
+    isplitr
+    · ipureintro; exact ⟨Hmem, Hnp⟩
+    ipureintro; exact Hturls
   ihave #Hph : pipeHandleOk Rh pl pid R $$ [Hpl]
   · iunfold pipeStarted at Hpl
     icases Hpl with ⟨#Hph, -⟩
     iexact Hph
-  wp_alloc g as Hg
+  (try wp_auto)
+  irename «$r0» => Hg
+  generalize «$r0_ptr» = g at *
   iStructNamed Hg
   ipersist lg; ipersist localID; ipersist id; ipersist status; ipersist pipeline
-  (try wp_auto)
+  imodintro
   iapply HΦ
   isplitr
   · iunfold remoteOk

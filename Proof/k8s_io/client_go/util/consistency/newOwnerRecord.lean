@@ -18,7 +18,7 @@ namespace consistency
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.util.consistency
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -30,10 +30,8 @@ theorem newOwnerRecord.wp_proof : newOwnerRecord.spec (GF := GF) (hG := hG) := b
   wp_auto
   wp_apply wp_map_make1 (K := GR) (V := GoString)
     k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go.string as %vm Hvm
-  wp_alloc r as Hr
-  wp_auto
-  ihave %Hnn := typedPointsto_not_null $$ Hr
-  iStructNamed Hr
+  ihave %Hnn := typedPointsto_not_null $$ «$r0»
+  iStructNamed «$r0»
   iapply HΦ
   iexists vm
   iframe

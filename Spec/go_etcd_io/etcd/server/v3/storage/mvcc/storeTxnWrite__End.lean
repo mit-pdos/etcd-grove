@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -28,13 +28,14 @@ revision is committed (`currentRev++` and the batch transaction's write-back, un
 again (`storeReaderC`, with the reader's tag `Z`; 2026-10-13, unit 6a), and so is its revision
 token if no revision was made (`pend = []`). `Unlock` takes the batch lock's invariant `P` (the
 store's, `hookIs`) back; the writer's fragment is given back (D22 receiver epochs, S5b). A commit takes the outer quarter of the committed log's authority and
-gives it back at the committed log (`logQPre`/`logQPost`, unit W-K). The frozen statement (`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+gives it back at the committed log (`logQPre`/`logQPost`, unit W-K). The lock token may be the
+one the lessor's delete from `Lease` left (`ld`, leases T3, 2026-10-25). The frozen statement (`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
 abbrev mvcc.storeTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int)
-    (Z : IProp GF),
+    (Z : IProp GF) (ld : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ∗ mvcc.hookIs γ P f ∗ P ∗
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ld ∗ mvcc.hookIs γ P f ∗ P ∗
       mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗

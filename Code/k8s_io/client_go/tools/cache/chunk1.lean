@@ -16,42 +16,70 @@ noncomputable section
 
 namespace k8s_io.client_go.tools.cache
 
-class Queue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Queue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Queue.ty Queue.underlying
+  method_set : go.MethodSetIs Queue.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Queue.ty) []
 
 attribute [instance] Queue.TypeAssumptions.underlying
+  Queue.TypeAssumptions.method_set
+  Queue.TypeAssumptions.ptr_method_set
 
-class ListerWatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListerWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ListerWatcher.ty ListerWatcher.underlying
+  method_set : go.MethodSetIs ListerWatcher.ty [(go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListerWatcher.ty) []
 
 attribute [instance] ListerWatcher.TypeAssumptions.underlying
+  ListerWatcher.TypeAssumptions.method_set
+  ListerWatcher.TypeAssumptions.ptr_method_set
 
-class ProcessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ProcessFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ProcessFunc.ty ProcessFunc.underlying
+  method_set : go.MethodSetIs ProcessFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProcessFunc.ty) []
 
 attribute [instance] ProcessFunc.TypeAssumptions.underlying
+  ProcessFunc.TypeAssumptions.method_set
+  ProcessFunc.TypeAssumptions.ptr_method_set
 
-class ProcessBatchFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ProcessBatchFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ProcessBatchFunc.ty ProcessBatchFunc.underlying
+  method_set : go.MethodSetIs ProcessBatchFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProcessBatchFunc.ty) []
 
 attribute [instance] ProcessBatchFunc.TypeAssumptions.underlying
+  ProcessBatchFunc.TypeAssumptions.method_set
+  ProcessBatchFunc.TypeAssumptions.ptr_method_set
 
-class ShouldResyncFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ShouldResyncFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ShouldResyncFunc.ty ShouldResyncFunc.underlying
+  method_set : go.MethodSetIs ShouldResyncFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ShouldResyncFunc.ty) []
 
 attribute [instance] ShouldResyncFunc.TypeAssumptions.underlying
+  ShouldResyncFunc.TypeAssumptions.method_set
+  ShouldResyncFunc.TypeAssumptions.ptr_method_set
 
-class WatchErrorHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchErrorHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchErrorHandler.ty WatchErrorHandler.underlying
+  method_set : go.MethodSetIs WatchErrorHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchErrorHandler.ty) []
 
 attribute [instance] WatchErrorHandler.TypeAssumptions.underlying
+  WatchErrorHandler.TypeAssumptions.method_set
+  WatchErrorHandler.TypeAssumptions.ptr_method_set
 
-class WatchErrorHandlerWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchErrorHandlerWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchErrorHandlerWithContext.ty WatchErrorHandlerWithContext.underlying
+  method_set : go.MethodSetIs WatchErrorHandlerWithContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchErrorHandlerWithContext.ty) []
 
 attribute [instance] WatchErrorHandlerWithContext.TypeAssumptions.underlying
+  WatchErrorHandlerWithContext.TypeAssumptions.method_set
+  WatchErrorHandlerWithContext.TypeAssumptions.ptr_method_set
 
-class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
   get_Queue : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Queue") #x (Val #(x.Queue'))
@@ -78,6 +106,8 @@ class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_WatchErrorHandlerWithContext : ∀ (x : Config) (y : WatchErrorHandlerWithContext), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"WatchErrorHandlerWithContext") (PairV #x #y) (Val #(({ x with WatchErrorHandlerWithContext' := y } : Config)))
   get_WatchListPageSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"WatchListPageSize") #x (Val #(x.WatchListPageSize'))
   set_WatchListPageSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"WatchListPageSize") (PairV #x #y) (Val #(({ x with WatchListPageSize' := y } : Config)))
+  method_set : go.MethodSetIs Config.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
   Add_unfold : MethodUnfold Config.ty go!"Add" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Queue.ty go!"Add"))) (App (Val (GoInstruction (StructFieldGet Config.ty go!"Queue"))) (Var "$r"))))
   Close_unfold : MethodUnfold Config.ty go!"Close" (LamV "$r"
@@ -149,6 +179,8 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.set_WatchErrorHandlerWithContext
   Config.TypeAssumptions.get_WatchListPageSize
   Config.TypeAssumptions.set_WatchListPageSize
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
   Config.TypeAssumptions.Add_unfold
   Config.TypeAssumptions.Close_unfold
   Config.TypeAssumptions.Delete_unfold
@@ -172,7 +204,7 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.ptr_Update_unfold
   Config.TypeAssumptions.ptr_Watch_unfold
 
-class controller.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class controller.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying controller.underlying controller
   underlying : go.UnderlyingDirectedEq controller.ty controller.underlying
   get_config : ∀ (x : controller), go.IsGoStepPureDetTagged under (StructFieldGet controller.underlying go!"config") #x (Val #(x.config'))
@@ -183,6 +215,8 @@ class controller.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_reflectorMutex : ∀ (x : controller) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet controller.underlying go!"reflectorMutex") (PairV #x #y) (Val #(({ x with reflectorMutex' := y } : controller)))
   get_clock : ∀ (x : controller), go.IsGoStepPureDetTagged under (StructFieldGet controller.underlying go!"clock") #x (Val #(x.clock'))
   set_clock : ∀ (x : controller) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet controller.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : controller)))
+  method_set : go.MethodSetIs controller.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType controller.ty) [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"k8s.io/client-go/tools/cache.processLoop", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])))]
   ptr_HasSynced_unfold : MethodUnfold (go.GoType.PointerType controller.ty) go!"HasSynced" controller.HasSynced.impl
   ptr_HasSyncedChecker_unfold : MethodUnfold (go.GoType.PointerType controller.ty) go!"HasSyncedChecker" controller.HasSyncedChecker.impl
   ptr_LastSyncResourceVersion_unfold : MethodUnfold (go.GoType.PointerType controller.ty) go!"LastSyncResourceVersion" controller.LastSyncResourceVersion.impl
@@ -200,6 +234,8 @@ attribute [instance] controller.TypeAssumptions.type_repr
   controller.TypeAssumptions.set_reflectorMutex
   controller.TypeAssumptions.get_clock
   controller.TypeAssumptions.set_clock
+  controller.TypeAssumptions.method_set
+  controller.TypeAssumptions.ptr_method_set
   controller.TypeAssumptions.ptr_HasSynced_unfold
   controller.TypeAssumptions.ptr_HasSyncedChecker_unfold
   controller.TypeAssumptions.ptr_LastSyncResourceVersion_unfold
@@ -207,37 +243,55 @@ attribute [instance] controller.TypeAssumptions.type_repr
   controller.TypeAssumptions.ptr_RunWithContext_unfold
   controller.TypeAssumptions.ptr_processLoop_unfold
 
-class Controller.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Controller.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Controller.ty Controller.underlying
+  method_set : go.MethodSetIs Controller.ty [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Controller.ty) []
 
 attribute [instance] Controller.TypeAssumptions.underlying
+  Controller.TypeAssumptions.method_set
+  Controller.TypeAssumptions.ptr_method_set
 
-class ResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ResourceEventHandler.ty ResourceEventHandler.underlying
+  method_set : go.MethodSetIs ResourceEventHandler.ty [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceEventHandler.ty) []
 
 attribute [instance] ResourceEventHandler.TypeAssumptions.underlying
+  ResourceEventHandler.TypeAssumptions.method_set
+  ResourceEventHandler.TypeAssumptions.ptr_method_set
 
-class Object.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Object.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Object.underlying Object
   underlying : go.UnderlyingDirectedEq Object.ty Object.underlying
   isUnderlying : go.IsUnderlying Object.underlying Object.underlying
+  method_set : go.MethodSetIs Object.ty [(go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Object.ty) []
 
 attribute [instance] Object.TypeAssumptions.type_repr
   Object.TypeAssumptions.underlying
   Object.TypeAssumptions.isUnderlying
+  Object.TypeAssumptions.method_set
+  Object.TypeAssumptions.ptr_method_set
 
-class TypedResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedResourceEventHandler.ty T) (TypedResourceEventHandler.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedResourceEventHandler.ty T) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedResourceEventHandler.ty T)) []
 
 attribute [instance] TypedResourceEventHandler.TypeAssumptions.underlying
+  TypedResourceEventHandler.TypeAssumptions.method_set
+  TypedResourceEventHandler.TypeAssumptions.ptr_method_set
 
-class DeletedObject.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeletedObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (DeletedObject.underlying T) (DeletedObject T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (DeletedObject.ty T) (DeletedObject.underlying T)
   get_OptionalObj : ∀ (T : go.GoType) (T' : Type) (x : (DeletedObject T')), go.IsGoStepPureDetTagged under (StructFieldGet (DeletedObject.underlying T) go!"OptionalObj") #x (Val #(x.OptionalObj'))
   set_OptionalObj : ∀ (T : go.GoType) (T' : Type) (x : (DeletedObject T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (DeletedObject.underlying T) go!"OptionalObj") (PairV #x #y) (Val #(({ x with OptionalObj' := y } : (DeletedObject T'))))
   get_FinalStateUnknown : ∀ (T : go.GoType) (T' : Type) (x : (DeletedObject T')), go.IsGoStepPureDetTagged under (StructFieldGet (DeletedObject.underlying T) go!"FinalStateUnknown") #x (Val #(x.FinalStateUnknown'))
   set_FinalStateUnknown : ∀ (T : go.GoType) (T' : Type) (x : (DeletedObject T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (DeletedObject.underlying T) go!"FinalStateUnknown") (PairV #x #y) (Val #(({ x with FinalStateUnknown' := y } : (DeletedObject T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (DeletedObject.ty T) [(go!"GetKey", (some (go.signature.Signature [] false [go.string]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectName", (some (go.signature.Signature [] false [ObjectName.ty])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (DeletedObject.ty T)) [(go!"GetKey", (some (go.signature.Signature [] false [go.string]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectName", (some (go.signature.Signature [] false [ObjectName.ty])))]
   GetKey_unfold : ∀ (T : go.GoType), MethodUnfold (DeletedObject.ty T) go!"GetKey" (DeletedObject.GetKey.impl T)
   GetName_unfold : ∀ (T : go.GoType), MethodUnfold (DeletedObject.ty T) go!"GetName" (DeletedObject.GetName.impl T)
   GetNamespace_unfold : ∀ (T : go.GoType), MethodUnfold (DeletedObject.ty T) go!"GetNamespace" (DeletedObject.GetNamespace.impl T)
@@ -257,6 +311,8 @@ attribute [instance] DeletedObject.TypeAssumptions.type_repr
   DeletedObject.TypeAssumptions.set_OptionalObj
   DeletedObject.TypeAssumptions.get_FinalStateUnknown
   DeletedObject.TypeAssumptions.set_FinalStateUnknown
+  DeletedObject.TypeAssumptions.method_set
+  DeletedObject.TypeAssumptions.ptr_method_set
   DeletedObject.TypeAssumptions.GetKey_unfold
   DeletedObject.TypeAssumptions.GetName_unfold
   DeletedObject.TypeAssumptions.GetNamespace_unfold
@@ -266,7 +322,7 @@ attribute [instance] DeletedObject.TypeAssumptions.type_repr
   DeletedObject.TypeAssumptions.ptr_GetNamespace_unfold
   DeletedObject.TypeAssumptions.ptr_GetObjectName_unfold
 
-class ResourceEventHandlerFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceEventHandlerFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceEventHandlerFuncs.underlying ResourceEventHandlerFuncs
   underlying : go.UnderlyingDirectedEq ResourceEventHandlerFuncs.ty ResourceEventHandlerFuncs.underlying
   get_AddFunc : ∀ (x : ResourceEventHandlerFuncs), go.IsGoStepPureDetTagged under (StructFieldGet ResourceEventHandlerFuncs.underlying go!"AddFunc") #x (Val #(x.AddFunc'))
@@ -275,6 +331,8 @@ class ResourceEventHandlerFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [G
   set_UpdateFunc : ∀ (x : ResourceEventHandlerFuncs) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet ResourceEventHandlerFuncs.underlying go!"UpdateFunc") (PairV #x #y) (Val #(({ x with UpdateFunc' := y } : ResourceEventHandlerFuncs)))
   get_DeleteFunc : ∀ (x : ResourceEventHandlerFuncs), go.IsGoStepPureDetTagged under (StructFieldGet ResourceEventHandlerFuncs.underlying go!"DeleteFunc") #x (Val #(x.DeleteFunc'))
   set_DeleteFunc : ∀ (x : ResourceEventHandlerFuncs) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet ResourceEventHandlerFuncs.underlying go!"DeleteFunc") (PairV #x #y) (Val #(({ x with DeleteFunc' := y } : ResourceEventHandlerFuncs)))
+  method_set : go.MethodSetIs ResourceEventHandlerFuncs.ty [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceEventHandlerFuncs.ty) [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
   OnAdd_unfold : MethodUnfold ResourceEventHandlerFuncs.ty go!"OnAdd" ResourceEventHandlerFuncs.OnAdd.impl
   OnDelete_unfold : MethodUnfold ResourceEventHandlerFuncs.ty go!"OnDelete" ResourceEventHandlerFuncs.OnDelete.impl
   OnUpdate_unfold : MethodUnfold ResourceEventHandlerFuncs.ty go!"OnUpdate" ResourceEventHandlerFuncs.OnUpdate.impl
@@ -293,6 +351,8 @@ attribute [instance] ResourceEventHandlerFuncs.TypeAssumptions.type_repr
   ResourceEventHandlerFuncs.TypeAssumptions.set_UpdateFunc
   ResourceEventHandlerFuncs.TypeAssumptions.get_DeleteFunc
   ResourceEventHandlerFuncs.TypeAssumptions.set_DeleteFunc
+  ResourceEventHandlerFuncs.TypeAssumptions.method_set
+  ResourceEventHandlerFuncs.TypeAssumptions.ptr_method_set
   ResourceEventHandlerFuncs.TypeAssumptions.OnAdd_unfold
   ResourceEventHandlerFuncs.TypeAssumptions.OnDelete_unfold
   ResourceEventHandlerFuncs.TypeAssumptions.OnUpdate_unfold
@@ -300,7 +360,7 @@ attribute [instance] ResourceEventHandlerFuncs.TypeAssumptions.type_repr
   ResourceEventHandlerFuncs.TypeAssumptions.ptr_OnDelete_unfold
   ResourceEventHandlerFuncs.TypeAssumptions.ptr_OnUpdate_unfold
 
-class TypedResourceEventHandlerFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedResourceEventHandlerFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedResourceEventHandlerFuncs.underlying T) (TypedResourceEventHandlerFuncs T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedResourceEventHandlerFuncs.ty T) (TypedResourceEventHandlerFuncs.underlying T)
   get_AddFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedResourceEventHandlerFuncs T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedResourceEventHandlerFuncs.underlying T) go!"AddFunc") #x (Val #(x.AddFunc'))
@@ -309,6 +369,8 @@ class TypedResourceEventHandlerFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContex
   set_UpdateFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedResourceEventHandlerFuncs T')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (TypedResourceEventHandlerFuncs.underlying T) go!"UpdateFunc") (PairV #x #y) (Val #(({ x with UpdateFunc' := y } : (TypedResourceEventHandlerFuncs T'))))
   get_DeleteFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedResourceEventHandlerFuncs T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedResourceEventHandlerFuncs.underlying T) go!"DeleteFunc") #x (Val #(x.DeleteFunc'))
   set_DeleteFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedResourceEventHandlerFuncs T')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (TypedResourceEventHandlerFuncs.underlying T) go!"DeleteFunc") (PairV #x #y) (Val #(({ x with DeleteFunc' := y } : (TypedResourceEventHandlerFuncs T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedResourceEventHandlerFuncs.ty T) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedResourceEventHandlerFuncs.ty T)) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
   OnAdd_unfold : ∀ (T : go.GoType), MethodUnfold (TypedResourceEventHandlerFuncs.ty T) go!"OnAdd" (TypedResourceEventHandlerFuncs.OnAdd.impl T)
   OnDelete_unfold : ∀ (T : go.GoType), MethodUnfold (TypedResourceEventHandlerFuncs.ty T) go!"OnDelete" (TypedResourceEventHandlerFuncs.OnDelete.impl T)
   OnUpdate_unfold : ∀ (T : go.GoType), MethodUnfold (TypedResourceEventHandlerFuncs.ty T) go!"OnUpdate" (TypedResourceEventHandlerFuncs.OnUpdate.impl T)
@@ -327,6 +389,8 @@ attribute [instance] TypedResourceEventHandlerFuncs.TypeAssumptions.type_repr
   TypedResourceEventHandlerFuncs.TypeAssumptions.set_UpdateFunc
   TypedResourceEventHandlerFuncs.TypeAssumptions.get_DeleteFunc
   TypedResourceEventHandlerFuncs.TypeAssumptions.set_DeleteFunc
+  TypedResourceEventHandlerFuncs.TypeAssumptions.method_set
+  TypedResourceEventHandlerFuncs.TypeAssumptions.ptr_method_set
   TypedResourceEventHandlerFuncs.TypeAssumptions.OnAdd_unfold
   TypedResourceEventHandlerFuncs.TypeAssumptions.OnDelete_unfold
   TypedResourceEventHandlerFuncs.TypeAssumptions.OnUpdate_unfold
@@ -334,7 +398,7 @@ attribute [instance] TypedResourceEventHandlerFuncs.TypeAssumptions.type_repr
   TypedResourceEventHandlerFuncs.TypeAssumptions.ptr_OnDelete_unfold
   TypedResourceEventHandlerFuncs.TypeAssumptions.ptr_OnUpdate_unfold
 
-class ResourceEventHandlerDetailedFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceEventHandlerDetailedFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceEventHandlerDetailedFuncs.underlying ResourceEventHandlerDetailedFuncs
   underlying : go.UnderlyingDirectedEq ResourceEventHandlerDetailedFuncs.ty ResourceEventHandlerDetailedFuncs.underlying
   get_AddFunc : ∀ (x : ResourceEventHandlerDetailedFuncs), go.IsGoStepPureDetTagged under (StructFieldGet ResourceEventHandlerDetailedFuncs.underlying go!"AddFunc") #x (Val #(x.AddFunc'))
@@ -343,6 +407,8 @@ class ResourceEventHandlerDetailedFuncs.TypeAssumptions [FfiSyntax] [GoGlobalCon
   set_UpdateFunc : ∀ (x : ResourceEventHandlerDetailedFuncs) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet ResourceEventHandlerDetailedFuncs.underlying go!"UpdateFunc") (PairV #x #y) (Val #(({ x with UpdateFunc' := y } : ResourceEventHandlerDetailedFuncs)))
   get_DeleteFunc : ∀ (x : ResourceEventHandlerDetailedFuncs), go.IsGoStepPureDetTagged under (StructFieldGet ResourceEventHandlerDetailedFuncs.underlying go!"DeleteFunc") #x (Val #(x.DeleteFunc'))
   set_DeleteFunc : ∀ (x : ResourceEventHandlerDetailedFuncs) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet ResourceEventHandlerDetailedFuncs.underlying go!"DeleteFunc") (PairV #x #y) (Val #(({ x with DeleteFunc' := y } : ResourceEventHandlerDetailedFuncs)))
+  method_set : go.MethodSetIs ResourceEventHandlerDetailedFuncs.ty [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceEventHandlerDetailedFuncs.ty) [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
   OnAdd_unfold : MethodUnfold ResourceEventHandlerDetailedFuncs.ty go!"OnAdd" ResourceEventHandlerDetailedFuncs.OnAdd.impl
   OnDelete_unfold : MethodUnfold ResourceEventHandlerDetailedFuncs.ty go!"OnDelete" ResourceEventHandlerDetailedFuncs.OnDelete.impl
   OnUpdate_unfold : MethodUnfold ResourceEventHandlerDetailedFuncs.ty go!"OnUpdate" ResourceEventHandlerDetailedFuncs.OnUpdate.impl
@@ -361,6 +427,8 @@ attribute [instance] ResourceEventHandlerDetailedFuncs.TypeAssumptions.type_repr
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.set_UpdateFunc
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.get_DeleteFunc
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.set_DeleteFunc
+  ResourceEventHandlerDetailedFuncs.TypeAssumptions.method_set
+  ResourceEventHandlerDetailedFuncs.TypeAssumptions.ptr_method_set
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.OnAdd_unfold
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.OnDelete_unfold
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.OnUpdate_unfold
@@ -368,7 +436,7 @@ attribute [instance] ResourceEventHandlerDetailedFuncs.TypeAssumptions.type_repr
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.ptr_OnDelete_unfold
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.ptr_OnUpdate_unfold
 
-class TypedResourceEventHandlerDetailedFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedResourceEventHandlerDetailedFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedResourceEventHandlerDetailedFuncs.underlying T) (TypedResourceEventHandlerDetailedFuncs T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedResourceEventHandlerDetailedFuncs.ty T) (TypedResourceEventHandlerDetailedFuncs.underlying T)
   get_AddFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedResourceEventHandlerDetailedFuncs T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedResourceEventHandlerDetailedFuncs.underlying T) go!"AddFunc") #x (Val #(x.AddFunc'))
@@ -377,6 +445,8 @@ class TypedResourceEventHandlerDetailedFuncs.TypeAssumptions [FfiSyntax] [GoGlob
   set_UpdateFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedResourceEventHandlerDetailedFuncs T')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (TypedResourceEventHandlerDetailedFuncs.underlying T) go!"UpdateFunc") (PairV #x #y) (Val #(({ x with UpdateFunc' := y } : (TypedResourceEventHandlerDetailedFuncs T'))))
   get_DeleteFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedResourceEventHandlerDetailedFuncs T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedResourceEventHandlerDetailedFuncs.underlying T) go!"DeleteFunc") #x (Val #(x.DeleteFunc'))
   set_DeleteFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedResourceEventHandlerDetailedFuncs T')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (TypedResourceEventHandlerDetailedFuncs.underlying T) go!"DeleteFunc") (PairV #x #y) (Val #(({ x with DeleteFunc' := y } : (TypedResourceEventHandlerDetailedFuncs T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedResourceEventHandlerDetailedFuncs.ty T) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedResourceEventHandlerDetailedFuncs.ty T)) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
   OnAdd_unfold : ∀ (T : go.GoType), MethodUnfold (TypedResourceEventHandlerDetailedFuncs.ty T) go!"OnAdd" (TypedResourceEventHandlerDetailedFuncs.OnAdd.impl T)
   OnDelete_unfold : ∀ (T : go.GoType), MethodUnfold (TypedResourceEventHandlerDetailedFuncs.ty T) go!"OnDelete" (TypedResourceEventHandlerDetailedFuncs.OnDelete.impl T)
   OnUpdate_unfold : ∀ (T : go.GoType), MethodUnfold (TypedResourceEventHandlerDetailedFuncs.ty T) go!"OnUpdate" (TypedResourceEventHandlerDetailedFuncs.OnUpdate.impl T)
@@ -395,6 +465,8 @@ attribute [instance] TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.type
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.set_UpdateFunc
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.get_DeleteFunc
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.set_DeleteFunc
+  TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.method_set
+  TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.ptr_method_set
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.OnAdd_unfold
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.OnDelete_unfold
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.OnUpdate_unfold
@@ -402,13 +474,15 @@ attribute [instance] TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.type
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.ptr_OnDelete_unfold
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.ptr_OnUpdate_unfold
 
-class FilteringResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FilteringResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FilteringResourceEventHandler.underlying FilteringResourceEventHandler
   underlying : go.UnderlyingDirectedEq FilteringResourceEventHandler.ty FilteringResourceEventHandler.underlying
   get_FilterFunc : ∀ (x : FilteringResourceEventHandler), go.IsGoStepPureDetTagged under (StructFieldGet FilteringResourceEventHandler.underlying go!"FilterFunc") #x (Val #(x.FilterFunc'))
   set_FilterFunc : ∀ (x : FilteringResourceEventHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet FilteringResourceEventHandler.underlying go!"FilterFunc") (PairV #x #y) (Val #(({ x with FilterFunc' := y } : FilteringResourceEventHandler)))
   get_Handler : ∀ (x : FilteringResourceEventHandler), go.IsGoStepPureDetTagged under (StructFieldGet FilteringResourceEventHandler.underlying go!"Handler") #x (Val #(x.Handler'))
   set_Handler : ∀ (x : FilteringResourceEventHandler) (y : ResourceEventHandler), go.IsGoStepPureDetTagged under (StructFieldSet FilteringResourceEventHandler.underlying go!"Handler") (PairV #x #y) (Val #(({ x with Handler' := y } : FilteringResourceEventHandler)))
+  method_set : go.MethodSetIs FilteringResourceEventHandler.ty [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FilteringResourceEventHandler.ty) [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
   OnAdd_unfold : MethodUnfold FilteringResourceEventHandler.ty go!"OnAdd" FilteringResourceEventHandler.OnAdd.impl
   OnDelete_unfold : MethodUnfold FilteringResourceEventHandler.ty go!"OnDelete" FilteringResourceEventHandler.OnDelete.impl
   OnUpdate_unfold : MethodUnfold FilteringResourceEventHandler.ty go!"OnUpdate" FilteringResourceEventHandler.OnUpdate.impl
@@ -425,6 +499,8 @@ attribute [instance] FilteringResourceEventHandler.TypeAssumptions.type_repr
   FilteringResourceEventHandler.TypeAssumptions.set_FilterFunc
   FilteringResourceEventHandler.TypeAssumptions.get_Handler
   FilteringResourceEventHandler.TypeAssumptions.set_Handler
+  FilteringResourceEventHandler.TypeAssumptions.method_set
+  FilteringResourceEventHandler.TypeAssumptions.ptr_method_set
   FilteringResourceEventHandler.TypeAssumptions.OnAdd_unfold
   FilteringResourceEventHandler.TypeAssumptions.OnDelete_unfold
   FilteringResourceEventHandler.TypeAssumptions.OnUpdate_unfold
@@ -432,13 +508,15 @@ attribute [instance] FilteringResourceEventHandler.TypeAssumptions.type_repr
   FilteringResourceEventHandler.TypeAssumptions.ptr_OnDelete_unfold
   FilteringResourceEventHandler.TypeAssumptions.ptr_OnUpdate_unfold
 
-class TypedFilteringResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedFilteringResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedFilteringResourceEventHandler.underlying T) (TypedFilteringResourceEventHandler T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedFilteringResourceEventHandler.ty T) (TypedFilteringResourceEventHandler.underlying T)
   get_FilterFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedFilteringResourceEventHandler T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedFilteringResourceEventHandler.underlying T) go!"FilterFunc") #x (Val #(x.FilterFunc'))
   set_FilterFunc : ∀ (T : go.GoType) (T' : Type) (x : (TypedFilteringResourceEventHandler T')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (TypedFilteringResourceEventHandler.underlying T) go!"FilterFunc") (PairV #x #y) (Val #(({ x with FilterFunc' := y } : (TypedFilteringResourceEventHandler T'))))
   get_Handler : ∀ (T : go.GoType) (T' : Type) (x : (TypedFilteringResourceEventHandler T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedFilteringResourceEventHandler.underlying T) go!"Handler") #x (Val #(x.Handler'))
   set_Handler : ∀ (T : go.GoType) (T' : Type) (x : (TypedFilteringResourceEventHandler T')) (y : (TypedResourceEventHandler T')), go.IsGoStepPureDetTagged under (StructFieldSet (TypedFilteringResourceEventHandler.underlying T) go!"Handler") (PairV #x #y) (Val #(({ x with Handler' := y } : (TypedFilteringResourceEventHandler T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedFilteringResourceEventHandler.ty T) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedFilteringResourceEventHandler.ty T)) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
   OnAdd_unfold : ∀ (T : go.GoType), MethodUnfold (TypedFilteringResourceEventHandler.ty T) go!"OnAdd" (TypedFilteringResourceEventHandler.OnAdd.impl T)
   OnDelete_unfold : ∀ (T : go.GoType), MethodUnfold (TypedFilteringResourceEventHandler.ty T) go!"OnDelete" (TypedFilteringResourceEventHandler.OnDelete.impl T)
   OnUpdate_unfold : ∀ (T : go.GoType), MethodUnfold (TypedFilteringResourceEventHandler.ty T) go!"OnUpdate" (TypedFilteringResourceEventHandler.OnUpdate.impl T)
@@ -455,6 +533,8 @@ attribute [instance] TypedFilteringResourceEventHandler.TypeAssumptions.type_rep
   TypedFilteringResourceEventHandler.TypeAssumptions.set_FilterFunc
   TypedFilteringResourceEventHandler.TypeAssumptions.get_Handler
   TypedFilteringResourceEventHandler.TypeAssumptions.set_Handler
+  TypedFilteringResourceEventHandler.TypeAssumptions.method_set
+  TypedFilteringResourceEventHandler.TypeAssumptions.ptr_method_set
   TypedFilteringResourceEventHandler.TypeAssumptions.OnAdd_unfold
   TypedFilteringResourceEventHandler.TypeAssumptions.OnDelete_unfold
   TypedFilteringResourceEventHandler.TypeAssumptions.OnUpdate_unfold
@@ -462,17 +542,25 @@ attribute [instance] TypedFilteringResourceEventHandler.TypeAssumptions.type_rep
   TypedFilteringResourceEventHandler.TypeAssumptions.ptr_OnDelete_unfold
   TypedFilteringResourceEventHandler.TypeAssumptions.ptr_OnUpdate_unfold
 
-class Indexers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Indexers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Indexers.ty Indexers.underlying
+  method_set : go.MethodSetIs Indexers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Indexers.ty) []
 
 attribute [instance] Indexers.TypeAssumptions.underlying
+  Indexers.TypeAssumptions.method_set
+  Indexers.TypeAssumptions.ptr_method_set
 
-class TransformFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransformFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TransformFunc.ty TransformFunc.underlying
+  method_set : go.MethodSetIs TransformFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransformFunc.ty) []
 
 attribute [instance] TransformFunc.TypeAssumptions.underlying
+  TransformFunc.TypeAssumptions.method_set
+  TransformFunc.TypeAssumptions.ptr_method_set
 
-class InformerNameAndResource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerNameAndResource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerNameAndResource.underlying InformerNameAndResource
   underlying : go.UnderlyingDirectedEq InformerNameAndResource.ty InformerNameAndResource.underlying
   get_name : ∀ (x : InformerNameAndResource), go.IsGoStepPureDetTagged under (StructFieldGet InformerNameAndResource.underlying go!"name") #x (Val #(x.name'))
@@ -481,6 +569,8 @@ class InformerNameAndResource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoL
   set_gvr : ∀ (x : InformerNameAndResource) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource), go.IsGoStepPureDetTagged under (StructFieldSet InformerNameAndResource.underlying go!"gvr") (PairV #x #y) (Val #(({ x with gvr' := y } : InformerNameAndResource)))
   get_reserved : ∀ (x : InformerNameAndResource), go.IsGoStepPureDetTagged under (StructFieldGet InformerNameAndResource.underlying go!"reserved") #x (Val #(x.reserved'))
   set_reserved : ∀ (x : InformerNameAndResource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet InformerNameAndResource.underlying go!"reserved") (PairV #x #y) (Val #(({ x with reserved' := y } : InformerNameAndResource)))
+  method_set : go.MethodSetIs InformerNameAndResource.ty [(go!"GroupVersionResource", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Reserved", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerNameAndResource.ty) [(go!"GroupVersionResource", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Reserved", (some (go.signature.Signature [] false [go.bool])))]
   GroupVersionResource_unfold : MethodUnfold InformerNameAndResource.ty go!"GroupVersionResource" InformerNameAndResource.GroupVersionResource.impl
   Name_unfold : MethodUnfold InformerNameAndResource.ty go!"Name" InformerNameAndResource.Name.impl
   Reserved_unfold : MethodUnfold InformerNameAndResource.ty go!"Reserved" InformerNameAndResource.Reserved.impl
@@ -499,6 +589,8 @@ attribute [instance] InformerNameAndResource.TypeAssumptions.type_repr
   InformerNameAndResource.TypeAssumptions.set_gvr
   InformerNameAndResource.TypeAssumptions.get_reserved
   InformerNameAndResource.TypeAssumptions.set_reserved
+  InformerNameAndResource.TypeAssumptions.method_set
+  InformerNameAndResource.TypeAssumptions.ptr_method_set
   InformerNameAndResource.TypeAssumptions.GroupVersionResource_unfold
   InformerNameAndResource.TypeAssumptions.Name_unfold
   InformerNameAndResource.TypeAssumptions.Reserved_unfold
@@ -506,12 +598,16 @@ attribute [instance] InformerNameAndResource.TypeAssumptions.type_repr
   InformerNameAndResource.TypeAssumptions.ptr_Name_unfold
   InformerNameAndResource.TypeAssumptions.ptr_Reserved_unfold
 
-class InformerMetricsProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerMetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InformerMetricsProvider.ty InformerMetricsProvider.underlying
+  method_set : go.MethodSetIs InformerMetricsProvider.ty [(go!"NewProcessingLatencyMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [HistogramMetric.ty]))), (go!"NewQueuedItemMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [GaugeMetric.ty]))), (go!"NewStoreResourceVersionMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [GaugeMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerMetricsProvider.ty) []
 
 attribute [instance] InformerMetricsProvider.TypeAssumptions.underlying
+  InformerMetricsProvider.TypeAssumptions.method_set
+  InformerMetricsProvider.TypeAssumptions.ptr_method_set
 
-class InformerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerOptions.underlying InformerOptions
   underlying : go.UnderlyingDirectedEq InformerOptions.ty InformerOptions.underlying
   get_Logger : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"Logger") #x (Val #(x.Logger'))
@@ -534,6 +630,8 @@ class InformerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_Identifier : ∀ (x : InformerOptions) (y : InformerNameAndResource), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"Identifier") (PairV #x #y) (Val #(({ x with Identifier' := y } : InformerOptions)))
   get_InformerMetricsProvider : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"InformerMetricsProvider") #x (Val #(x.InformerMetricsProvider'))
   set_InformerMetricsProvider : ∀ (x : InformerOptions) (y : InformerMetricsProvider), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"InformerMetricsProvider") (PairV #x #y) (Val #(({ x with InformerMetricsProvider' := y } : InformerOptions)))
+  method_set : go.MethodSetIs InformerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerOptions.ty) []
 
 attribute [instance] InformerOptions.TypeAssumptions.type_repr
   InformerOptions.TypeAssumptions.underlying
@@ -557,14 +655,18 @@ attribute [instance] InformerOptions.TypeAssumptions.type_repr
   InformerOptions.TypeAssumptions.set_Identifier
   InformerOptions.TypeAssumptions.get_InformerMetricsProvider
   InformerOptions.TypeAssumptions.set_InformerMetricsProvider
+  InformerOptions.TypeAssumptions.method_set
+  InformerOptions.TypeAssumptions.ptr_method_set
 
-class replacement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class replacement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replacement.underlying replacement
   underlying : go.UnderlyingDirectedEq replacement.ty replacement.underlying
   get_oldObj : ∀ (x : replacement), go.IsGoStepPureDetTagged under (StructFieldGet replacement.underlying go!"oldObj") #x (Val #(x.oldObj'))
   set_oldObj : ∀ (x : replacement) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet replacement.underlying go!"oldObj") (PairV #x #y) (Val #(({ x with oldObj' := y } : replacement)))
   get_newObj : ∀ (x : replacement), go.IsGoStepPureDetTagged under (StructFieldGet replacement.underlying go!"newObj") #x (Val #(x.newObj'))
   set_newObj : ∀ (x : replacement) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet replacement.underlying go!"newObj") (PairV #x #y) (Val #(({ x with newObj' := y } : replacement)))
+  method_set : go.MethodSetIs replacement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replacement.ty) []
 
 attribute [instance] replacement.TypeAssumptions.type_repr
   replacement.TypeAssumptions.underlying
@@ -572,18 +674,28 @@ attribute [instance] replacement.TypeAssumptions.type_repr
   replacement.TypeAssumptions.set_oldObj
   replacement.TypeAssumptions.get_newObj
   replacement.TypeAssumptions.set_newObj
+  replacement.TypeAssumptions.method_set
+  replacement.TypeAssumptions.ptr_method_set
 
-class KeyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KeyFunc.ty KeyFunc.underlying
+  method_set : go.MethodSetIs KeyFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyFunc.ty) []
 
 attribute [instance] KeyFunc.TypeAssumptions.underlying
+  KeyFunc.TypeAssumptions.method_set
+  KeyFunc.TypeAssumptions.ptr_method_set
 
-class KeyListerGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyListerGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KeyListerGetter.ty KeyListerGetter.underlying
+  method_set : go.MethodSetIs KeyListerGetter.ty [(go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyListerGetter.ty) []
 
 attribute [instance] KeyListerGetter.TypeAssumptions.underlying
+  KeyListerGetter.TypeAssumptions.method_set
+  KeyListerGetter.TypeAssumptions.ptr_method_set
 
-class DeltaFIFOOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeltaFIFOOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeltaFIFOOptions.underlying DeltaFIFOOptions
   underlying : go.UnderlyingDirectedEq DeltaFIFOOptions.ty DeltaFIFOOptions.underlying
   get_Logger : ∀ (x : DeltaFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet DeltaFIFOOptions.underlying go!"Logger") #x (Val #(x.Logger'))
@@ -598,6 +710,8 @@ class DeltaFIFOOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_EmitDeltaTypeReplaced : ∀ (x : DeltaFIFOOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeltaFIFOOptions.underlying go!"EmitDeltaTypeReplaced") (PairV #x #y) (Val #(({ x with EmitDeltaTypeReplaced' := y } : DeltaFIFOOptions)))
   get_Transformer : ∀ (x : DeltaFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet DeltaFIFOOptions.underlying go!"Transformer") #x (Val #(x.Transformer'))
   set_Transformer : ∀ (x : DeltaFIFOOptions) (y : TransformFunc), go.IsGoStepPureDetTagged under (StructFieldSet DeltaFIFOOptions.underlying go!"Transformer") (PairV #x #y) (Val #(({ x with Transformer' := y } : DeltaFIFOOptions)))
+  method_set : go.MethodSetIs DeltaFIFOOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeltaFIFOOptions.ty) []
 
 attribute [instance] DeltaFIFOOptions.TypeAssumptions.type_repr
   DeltaFIFOOptions.TypeAssumptions.underlying
@@ -613,8 +727,10 @@ attribute [instance] DeltaFIFOOptions.TypeAssumptions.type_repr
   DeltaFIFOOptions.TypeAssumptions.set_EmitDeltaTypeReplaced
   DeltaFIFOOptions.TypeAssumptions.get_Transformer
   DeltaFIFOOptions.TypeAssumptions.set_Transformer
+  DeltaFIFOOptions.TypeAssumptions.method_set
+  DeltaFIFOOptions.TypeAssumptions.ptr_method_set
 
-class DeltaFIFO.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeltaFIFO.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeltaFIFO.underlying DeltaFIFO
   underlying : go.UnderlyingDirectedEq DeltaFIFO.ty DeltaFIFO.underlying
   get_logger : ∀ (x : DeltaFIFO), go.IsGoStepPureDetTagged under (StructFieldGet DeltaFIFO.underlying go!"logger") #x (Val #(x.logger'))
@@ -647,6 +763,8 @@ class DeltaFIFO.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_emitDeltaTypeReplaced : ∀ (x : DeltaFIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeltaFIFO.underlying go!"emitDeltaTypeReplaced") (PairV #x #y) (Val #(({ x with emitDeltaTypeReplaced' := y } : DeltaFIFO)))
   get_transformer : ∀ (x : DeltaFIFO), go.IsGoStepPureDetTagged under (StructFieldGet DeltaFIFO.underlying go!"transformer") #x (Val #(x.transformer'))
   set_transformer : ∀ (x : DeltaFIFO) (y : TransformFunc), go.IsGoStepPureDetTagged under (StructFieldSet DeltaFIFO.underlying go!"transformer") (PairV #x #y) (Val #(({ x with transformer' := y } : DeltaFIFO)))
+  method_set : go.MethodSetIs DeltaFIFO.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeltaFIFO.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsClosed", (some (go.signature.Signature [] false [go.bool]))), (go!"KeyOf", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string, go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transformer", (some (go.signature.Signature [] false [TransformFunc.ty]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.checkSynced_locked", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.hasSynced_locked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.queueActionInternalLocked", (some (go.signature.Signature [DeltaType.ty, DeltaType.ty, (go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.queueActionLocked", (some (go.signature.Signature [DeltaType.ty, (go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.syncKeyLocked", (some (go.signature.Signature [go.string] false [go.error])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType DeltaFIFO.ty) go!"Add" DeltaFIFO.Add.impl
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType DeltaFIFO.ty) go!"Close" DeltaFIFO.Close.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType DeltaFIFO.ty) go!"Delete" DeltaFIFO.Delete.impl
@@ -699,6 +817,8 @@ attribute [instance] DeltaFIFO.TypeAssumptions.type_repr
   DeltaFIFO.TypeAssumptions.set_emitDeltaTypeReplaced
   DeltaFIFO.TypeAssumptions.get_transformer
   DeltaFIFO.TypeAssumptions.set_transformer
+  DeltaFIFO.TypeAssumptions.method_set
+  DeltaFIFO.TypeAssumptions.ptr_method_set
   DeltaFIFO.TypeAssumptions.ptr_Add_unfold
   DeltaFIFO.TypeAssumptions.ptr_Close_unfold
   DeltaFIFO.TypeAssumptions.ptr_Delete_unfold
@@ -719,18 +839,24 @@ attribute [instance] DeltaFIFO.TypeAssumptions.type_repr
   DeltaFIFO.TypeAssumptions.ptr_queueActionLocked_unfold
   DeltaFIFO.TypeAssumptions.ptr_syncKeyLocked_unfold
 
-class DeltaType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeltaType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DeltaType.ty DeltaType.underlying
+  method_set : go.MethodSetIs DeltaType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeltaType.ty) []
 
 attribute [instance] DeltaType.TypeAssumptions.underlying
+  DeltaType.TypeAssumptions.method_set
+  DeltaType.TypeAssumptions.ptr_method_set
 
-class Delta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Delta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Delta.underlying Delta
   underlying : go.UnderlyingDirectedEq Delta.ty Delta.underlying
   get_Type : ∀ (x : Delta), go.IsGoStepPureDetTagged under (StructFieldGet Delta.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : Delta) (y : DeltaType), go.IsGoStepPureDetTagged under (StructFieldSet Delta.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Delta)))
   get_Object : ∀ (x : Delta), go.IsGoStepPureDetTagged under (StructFieldGet Delta.underlying go!"Object") #x (Val #(x.Object'))
   set_Object : ∀ (x : Delta) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Delta.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Delta)))
+  method_set : go.MethodSetIs Delta.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Delta.ty) []
 
 attribute [instance] Delta.TypeAssumptions.type_repr
   Delta.TypeAssumptions.underlying
@@ -738,9 +864,13 @@ attribute [instance] Delta.TypeAssumptions.type_repr
   Delta.TypeAssumptions.set_Type
   Delta.TypeAssumptions.get_Object
   Delta.TypeAssumptions.set_Object
+  Delta.TypeAssumptions.method_set
+  Delta.TypeAssumptions.ptr_method_set
 
-class Deltas.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Deltas.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Deltas.ty Deltas.underlying
+  method_set : go.MethodSetIs Deltas.ty [(go!"Newest", (some (go.signature.Signature [] false [(go.GoType.PointerType Delta.ty)]))), (go!"Oldest", (some (go.signature.Signature [] false [(go.GoType.PointerType Delta.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Deltas.ty) [(go!"Newest", (some (go.signature.Signature [] false [(go.GoType.PointerType Delta.ty)]))), (go!"Oldest", (some (go.signature.Signature [] false [(go.GoType.PointerType Delta.ty)])))]
   Newest_unfold : MethodUnfold Deltas.ty go!"Newest" Deltas.Newest.impl
   Oldest_unfold : MethodUnfold Deltas.ty go!"Oldest" Deltas.Oldest.impl
   ptr_Newest_unfold : MethodUnfold (go.GoType.PointerType Deltas.ty) go!"Newest" (LamV "$r"
@@ -749,28 +879,40 @@ class Deltas.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 (App (Val (GoInstruction (MethodResolve Deltas.ty go!"Oldest"))) (App (Val (GoInstruction (GoLoad Deltas.ty))) (Var "$r"))))
 
 attribute [instance] Deltas.TypeAssumptions.underlying
+  Deltas.TypeAssumptions.method_set
+  Deltas.TypeAssumptions.ptr_method_set
   Deltas.TypeAssumptions.Newest_unfold
   Deltas.TypeAssumptions.Oldest_unfold
   Deltas.TypeAssumptions.ptr_Newest_unfold
   Deltas.TypeAssumptions.ptr_Oldest_unfold
 
-class KeyLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KeyLister.ty KeyLister.underlying
+  method_set : go.MethodSetIs KeyLister.ty [(go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyLister.ty) []
 
 attribute [instance] KeyLister.TypeAssumptions.underlying
+  KeyLister.TypeAssumptions.method_set
+  KeyLister.TypeAssumptions.ptr_method_set
 
-class KeyGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KeyGetter.ty KeyGetter.underlying
+  method_set : go.MethodSetIs KeyGetter.ty [(go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyGetter.ty) []
 
 attribute [instance] KeyGetter.TypeAssumptions.underlying
+  KeyGetter.TypeAssumptions.method_set
+  KeyGetter.TypeAssumptions.ptr_method_set
 
-class DeletedFinalStateUnknown.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeletedFinalStateUnknown.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeletedFinalStateUnknown.underlying DeletedFinalStateUnknown
   underlying : go.UnderlyingDirectedEq DeletedFinalStateUnknown.ty DeletedFinalStateUnknown.underlying
   get_Key : ∀ (x : DeletedFinalStateUnknown), go.IsGoStepPureDetTagged under (StructFieldGet DeletedFinalStateUnknown.underlying go!"Key") #x (Val #(x.Key'))
   set_Key : ∀ (x : DeletedFinalStateUnknown) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DeletedFinalStateUnknown.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : DeletedFinalStateUnknown)))
   get_Obj : ∀ (x : DeletedFinalStateUnknown), go.IsGoStepPureDetTagged under (StructFieldGet DeletedFinalStateUnknown.underlying go!"Obj") #x (Val #(x.Obj'))
   set_Obj : ∀ (x : DeletedFinalStateUnknown) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet DeletedFinalStateUnknown.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : DeletedFinalStateUnknown)))
+  method_set : go.MethodSetIs DeletedFinalStateUnknown.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeletedFinalStateUnknown.ty) []
 
 attribute [instance] DeletedFinalStateUnknown.TypeAssumptions.type_repr
   DeletedFinalStateUnknown.TypeAssumptions.underlying
@@ -778,18 +920,28 @@ attribute [instance] DeletedFinalStateUnknown.TypeAssumptions.type_repr
   DeletedFinalStateUnknown.TypeAssumptions.set_Key
   DeletedFinalStateUnknown.TypeAssumptions.get_Obj
   DeletedFinalStateUnknown.TypeAssumptions.set_Obj
+  DeletedFinalStateUnknown.TypeAssumptions.method_set
+  DeletedFinalStateUnknown.TypeAssumptions.ptr_method_set
 
-class ThreadSafeStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ThreadSafeStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ThreadSafeStore.ty ThreadSafeStore.underlying
+  method_set : go.MethodSetIs ThreadSafeStore.ty [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"DeleteWithObject", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.string] false []))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ThreadSafeStore.ty) []
 
 attribute [instance] ThreadSafeStore.TypeAssumptions.underlying
+  ThreadSafeStore.TypeAssumptions.method_set
+  ThreadSafeStore.TypeAssumptions.ptr_method_set
 
-class ExpirationPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExpirationPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ExpirationPolicy.ty ExpirationPolicy.underlying
+  method_set : go.MethodSetIs ExpirationPolicy.ty [(go!"IsExpired", (some (go.signature.Signature [(go.GoType.PointerType TimestampedEntry.ty)] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExpirationPolicy.ty) []
 
 attribute [instance] ExpirationPolicy.TypeAssumptions.underlying
+  ExpirationPolicy.TypeAssumptions.method_set
+  ExpirationPolicy.TypeAssumptions.ptr_method_set
 
-class ExpirationCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExpirationCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExpirationCache.underlying ExpirationCache
   underlying : go.UnderlyingDirectedEq ExpirationCache.ty ExpirationCache.underlying
   get_cacheStorage : ∀ (x : ExpirationCache), go.IsGoStepPureDetTagged under (StructFieldGet ExpirationCache.underlying go!"cacheStorage") #x (Val #(x.cacheStorage'))
@@ -802,6 +954,8 @@ class ExpirationCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_expirationPolicy : ∀ (x : ExpirationCache) (y : ExpirationPolicy), go.IsGoStepPureDetTagged under (StructFieldSet ExpirationCache.underlying go!"expirationPolicy") (PairV #x #y) (Val #(({ x with expirationPolicy' := y } : ExpirationCache)))
   get_expirationLock : ∀ (x : ExpirationCache), go.IsGoStepPureDetTagged under (StructFieldGet ExpirationCache.underlying go!"expirationLock") #x (Val #(x.expirationLock'))
   set_expirationLock : ∀ (x : ExpirationCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ExpirationCache.underlying go!"expirationLock") (PairV #x #y) (Val #(({ x with expirationLock' := y } : ExpirationCache)))
+  method_set : go.MethodSetIs ExpirationCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExpirationCache.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.getOrExpire", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"k8s.io/client-go/tools/cache.getTimestampedEntry", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType TimestampedEntry.ty), go.bool])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ExpirationCache.ty) go!"Add" ExpirationCache.Add.impl
   ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType ExpirationCache.ty) go!"Bookmark" ExpirationCache.Bookmark.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType ExpirationCache.ty) go!"Delete" ExpirationCache.Delete.impl
@@ -828,6 +982,8 @@ attribute [instance] ExpirationCache.TypeAssumptions.type_repr
   ExpirationCache.TypeAssumptions.set_expirationPolicy
   ExpirationCache.TypeAssumptions.get_expirationLock
   ExpirationCache.TypeAssumptions.set_expirationLock
+  ExpirationCache.TypeAssumptions.method_set
+  ExpirationCache.TypeAssumptions.ptr_method_set
   ExpirationCache.TypeAssumptions.ptr_Add_unfold
   ExpirationCache.TypeAssumptions.ptr_Bookmark_unfold
   ExpirationCache.TypeAssumptions.ptr_Delete_unfold
@@ -842,13 +998,15 @@ attribute [instance] ExpirationCache.TypeAssumptions.type_repr
   ExpirationCache.TypeAssumptions.ptr_getOrExpire_unfold
   ExpirationCache.TypeAssumptions.ptr_getTimestampedEntry_unfold
 
-class TTLPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TTLPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TTLPolicy.underlying TTLPolicy
   underlying : go.UnderlyingDirectedEq TTLPolicy.ty TTLPolicy.underlying
   get_TTL : ∀ (x : TTLPolicy), go.IsGoStepPureDetTagged under (StructFieldGet TTLPolicy.underlying go!"TTL") #x (Val #(x.TTL'))
   set_TTL : ∀ (x : TTLPolicy) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet TTLPolicy.underlying go!"TTL") (PairV #x #y) (Val #(({ x with TTL' := y } : TTLPolicy)))
   get_Clock : ∀ (x : TTLPolicy), go.IsGoStepPureDetTagged under (StructFieldGet TTLPolicy.underlying go!"Clock") #x (Val #(x.Clock'))
   set_Clock : ∀ (x : TTLPolicy) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet TTLPolicy.underlying go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : TTLPolicy)))
+  method_set : go.MethodSetIs TTLPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TTLPolicy.ty) [(go!"IsExpired", (some (go.signature.Signature [(go.GoType.PointerType TimestampedEntry.ty)] false [go.bool])))]
   ptr_IsExpired_unfold : MethodUnfold (go.GoType.PointerType TTLPolicy.ty) go!"IsExpired" TTLPolicy.IsExpired.impl
 
 attribute [instance] TTLPolicy.TypeAssumptions.type_repr
@@ -857,9 +1015,11 @@ attribute [instance] TTLPolicy.TypeAssumptions.type_repr
   TTLPolicy.TypeAssumptions.set_TTL
   TTLPolicy.TypeAssumptions.get_Clock
   TTLPolicy.TypeAssumptions.set_Clock
+  TTLPolicy.TypeAssumptions.method_set
+  TTLPolicy.TypeAssumptions.ptr_method_set
   TTLPolicy.TypeAssumptions.ptr_IsExpired_unfold
 
-class TimestampedEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TimestampedEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TimestampedEntry.underlying TimestampedEntry
   underlying : go.UnderlyingDirectedEq TimestampedEntry.ty TimestampedEntry.underlying
   get_Obj : ∀ (x : TimestampedEntry), go.IsGoStepPureDetTagged under (StructFieldGet TimestampedEntry.underlying go!"Obj") #x (Val #(x.Obj'))
@@ -868,6 +1028,8 @@ class TimestampedEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_Timestamp : ∀ (x : TimestampedEntry) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet TimestampedEntry.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : TimestampedEntry)))
   get_key : ∀ (x : TimestampedEntry), go.IsGoStepPureDetTagged under (StructFieldGet TimestampedEntry.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : TimestampedEntry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TimestampedEntry.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : TimestampedEntry)))
+  method_set : go.MethodSetIs TimestampedEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimestampedEntry.ty) []
 
 attribute [instance] TimestampedEntry.TypeAssumptions.type_repr
   TimestampedEntry.TypeAssumptions.underlying
@@ -877,14 +1039,18 @@ attribute [instance] TimestampedEntry.TypeAssumptions.type_repr
   TimestampedEntry.TypeAssumptions.set_Timestamp
   TimestampedEntry.TypeAssumptions.get_key
   TimestampedEntry.TypeAssumptions.set_key
+  TimestampedEntry.TypeAssumptions.method_set
+  TimestampedEntry.TypeAssumptions.ptr_method_set
 
-class fakeThreadSafeMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class fakeThreadSafeMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fakeThreadSafeMap.underlying fakeThreadSafeMap
   underlying : go.UnderlyingDirectedEq fakeThreadSafeMap.ty fakeThreadSafeMap.underlying
   get_ThreadSafeStore : ∀ (x : fakeThreadSafeMap), go.IsGoStepPureDetTagged under (StructFieldGet fakeThreadSafeMap.underlying go!"ThreadSafeStore") #x (Val #(x.ThreadSafeStore'))
   set_ThreadSafeStore : ∀ (x : fakeThreadSafeMap) (y : ThreadSafeStore), go.IsGoStepPureDetTagged under (StructFieldSet fakeThreadSafeMap.underlying go!"ThreadSafeStore") (PairV #x #y) (Val #(({ x with ThreadSafeStore' := y } : fakeThreadSafeMap)))
   get_deletedKeys : ∀ (x : fakeThreadSafeMap), go.IsGoStepPureDetTagged under (StructFieldGet fakeThreadSafeMap.underlying go!"deletedKeys") #x (Val #(x.deletedKeys'))
   set_deletedKeys : ∀ (x : fakeThreadSafeMap) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fakeThreadSafeMap.underlying go!"deletedKeys") (PairV #x #y) (Val #(({ x with deletedKeys' := y } : fakeThreadSafeMap)))
+  method_set : go.MethodSetIs fakeThreadSafeMap.ty [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"DeleteWithObject", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.string] false []))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeThreadSafeMap.ty) [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"DeleteWithObject", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.string] false []))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
   Add_unfold : MethodUnfold fakeThreadSafeMap.ty go!"Add" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ThreadSafeStore.ty go!"Add"))) (App (Val (GoInstruction (StructFieldGet fakeThreadSafeMap.ty go!"ThreadSafeStore"))) (Var "$r"))))
   AddIndexers_unfold : MethodUnfold fakeThreadSafeMap.ty go!"AddIndexers" (LamV "$r"
@@ -957,6 +1123,8 @@ attribute [instance] fakeThreadSafeMap.TypeAssumptions.type_repr
   fakeThreadSafeMap.TypeAssumptions.set_ThreadSafeStore
   fakeThreadSafeMap.TypeAssumptions.get_deletedKeys
   fakeThreadSafeMap.TypeAssumptions.set_deletedKeys
+  fakeThreadSafeMap.TypeAssumptions.method_set
+  fakeThreadSafeMap.TypeAssumptions.ptr_method_set
   fakeThreadSafeMap.TypeAssumptions.Add_unfold
   fakeThreadSafeMap.TypeAssumptions.AddIndexers_unfold
   fakeThreadSafeMap.TypeAssumptions.Bookmark_unfold
@@ -991,13 +1159,15 @@ attribute [instance] fakeThreadSafeMap.TypeAssumptions.type_repr
   fakeThreadSafeMap.TypeAssumptions.ptr_Resync_unfold
   fakeThreadSafeMap.TypeAssumptions.ptr_Update_unfold
 
-class FakeExpirationPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FakeExpirationPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeExpirationPolicy.underlying FakeExpirationPolicy
   underlying : go.UnderlyingDirectedEq FakeExpirationPolicy.ty FakeExpirationPolicy.underlying
   get_NeverExpire : ∀ (x : FakeExpirationPolicy), go.IsGoStepPureDetTagged under (StructFieldGet FakeExpirationPolicy.underlying go!"NeverExpire") #x (Val #(x.NeverExpire'))
   set_NeverExpire : ∀ (x : FakeExpirationPolicy) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' GoString)), go.IsGoStepPureDetTagged under (StructFieldSet FakeExpirationPolicy.underlying go!"NeverExpire") (PairV #x #y) (Val #(({ x with NeverExpire' := y } : FakeExpirationPolicy)))
   get_RetrieveKeyFunc : ∀ (x : FakeExpirationPolicy), go.IsGoStepPureDetTagged under (StructFieldGet FakeExpirationPolicy.underlying go!"RetrieveKeyFunc") #x (Val #(x.RetrieveKeyFunc'))
   set_RetrieveKeyFunc : ∀ (x : FakeExpirationPolicy) (y : KeyFunc), go.IsGoStepPureDetTagged under (StructFieldSet FakeExpirationPolicy.underlying go!"RetrieveKeyFunc") (PairV #x #y) (Val #(({ x with RetrieveKeyFunc' := y } : FakeExpirationPolicy)))
+  method_set : go.MethodSetIs FakeExpirationPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeExpirationPolicy.ty) [(go!"IsExpired", (some (go.signature.Signature [(go.GoType.PointerType TimestampedEntry.ty)] false [go.bool])))]
   ptr_IsExpired_unfold : MethodUnfold (go.GoType.PointerType FakeExpirationPolicy.ty) go!"IsExpired" FakeExpirationPolicy.IsExpired.impl
 
 attribute [instance] FakeExpirationPolicy.TypeAssumptions.type_repr
@@ -1006,9 +1176,11 @@ attribute [instance] FakeExpirationPolicy.TypeAssumptions.type_repr
   FakeExpirationPolicy.TypeAssumptions.set_NeverExpire
   FakeExpirationPolicy.TypeAssumptions.get_RetrieveKeyFunc
   FakeExpirationPolicy.TypeAssumptions.set_RetrieveKeyFunc
+  FakeExpirationPolicy.TypeAssumptions.method_set
+  FakeExpirationPolicy.TypeAssumptions.ptr_method_set
   FakeExpirationPolicy.TypeAssumptions.ptr_IsExpired_unfold
 
-class FakeCustomStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FakeCustomStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeCustomStore.underlying FakeCustomStore
   underlying : go.UnderlyingDirectedEq FakeCustomStore.ty FakeCustomStore.underlying
   get_AddFunc : ∀ (x : FakeCustomStore), go.IsGoStepPureDetTagged under (StructFieldGet FakeCustomStore.underlying go!"AddFunc") #x (Val #(x.AddFunc'))
@@ -1033,6 +1205,8 @@ class FakeCustomStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_BookmarkFunc : ∀ (x : FakeCustomStore) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet FakeCustomStore.underlying go!"BookmarkFunc") (PairV #x #y) (Val #(({ x with BookmarkFunc' := y } : FakeCustomStore)))
   get_LastStoreSyncResourceVersionFunc : ∀ (x : FakeCustomStore), go.IsGoStepPureDetTagged under (StructFieldGet FakeCustomStore.underlying go!"LastStoreSyncResourceVersionFunc") #x (Val #(x.LastStoreSyncResourceVersionFunc'))
   set_LastStoreSyncResourceVersionFunc : ∀ (x : FakeCustomStore) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet FakeCustomStore.underlying go!"LastStoreSyncResourceVersionFunc") (PairV #x #y) (Val #(({ x with LastStoreSyncResourceVersionFunc' := y } : FakeCustomStore)))
+  method_set : go.MethodSetIs FakeCustomStore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeCustomStore.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType FakeCustomStore.ty) go!"Add" FakeCustomStore.Add.impl
   ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType FakeCustomStore.ty) go!"Bookmark" FakeCustomStore.Bookmark.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType FakeCustomStore.ty) go!"Delete" FakeCustomStore.Delete.impl
@@ -1069,6 +1243,8 @@ attribute [instance] FakeCustomStore.TypeAssumptions.type_repr
   FakeCustomStore.TypeAssumptions.set_BookmarkFunc
   FakeCustomStore.TypeAssumptions.get_LastStoreSyncResourceVersionFunc
   FakeCustomStore.TypeAssumptions.set_LastStoreSyncResourceVersionFunc
+  FakeCustomStore.TypeAssumptions.method_set
+  FakeCustomStore.TypeAssumptions.ptr_method_set
   FakeCustomStore.TypeAssumptions.ptr_Add_unfold
   FakeCustomStore.TypeAssumptions.ptr_Bookmark_unfold
   FakeCustomStore.TypeAssumptions.ptr_Delete_unfold
@@ -1080,208 +1256,6 @@ attribute [instance] FakeCustomStore.TypeAssumptions.type_repr
   FakeCustomStore.TypeAssumptions.ptr_Replace_unfold
   FakeCustomStore.TypeAssumptions.ptr_Resync_unfold
   FakeCustomStore.TypeAssumptions.ptr_Update_unfold
-
-class PopProcessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq PopProcessFunc.ty PopProcessFunc.underlying
-
-attribute [instance] PopProcessFunc.TypeAssumptions.underlying
-
-class QueueWithBatch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq QueueWithBatch.ty QueueWithBatch.underlying
-
-attribute [instance] QueueWithBatch.TypeAssumptions.underlying
-
-class FIFO.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying FIFO.underlying FIFO
-  underlying : go.UnderlyingDirectedEq FIFO.ty FIFO.underlying
-  get_lock : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : FIFO) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : FIFO)))
-  get_cond : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"cond") #x (Val #(x.cond'))
-  set_cond : ∀ (x : FIFO) (y : _root_.Perennial.sync.Cond), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : FIFO)))
-  get_items : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"items") #x (Val #(x.items'))
-  set_items : ∀ (x : FIFO) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : FIFO)))
-  get_queue : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"queue") #x (Val #(x.queue'))
-  set_queue : ∀ (x : FIFO) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"queue") (PairV #x #y) (Val #(({ x with queue' := y } : FIFO)))
-  get_synced : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"synced") #x (Val #(x.synced'))
-  set_synced : ∀ (x : FIFO) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"synced") (PairV #x #y) (Val #(({ x with synced' := y } : FIFO)))
-  get_syncedClosed : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"syncedClosed") #x (Val #(x.syncedClosed'))
-  set_syncedClosed : ∀ (x : FIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"syncedClosed") (PairV #x #y) (Val #(({ x with syncedClosed' := y } : FIFO)))
-  get_populated : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"populated") #x (Val #(x.populated'))
-  set_populated : ∀ (x : FIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"populated") (PairV #x #y) (Val #(({ x with populated' := y } : FIFO)))
-  get_initialPopulationCount : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"initialPopulationCount") #x (Val #(x.initialPopulationCount'))
-  set_initialPopulationCount : ∀ (x : FIFO) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"initialPopulationCount") (PairV #x #y) (Val #(({ x with initialPopulationCount' := y } : FIFO)))
-  get_keyFunc : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"keyFunc") #x (Val #(x.keyFunc'))
-  set_keyFunc : ∀ (x : FIFO) (y : KeyFunc), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"keyFunc") (PairV #x #y) (Val #(({ x with keyFunc' := y } : FIFO)))
-  get_closed : ∀ (x : FIFO), go.IsGoStepPureDetTagged under (StructFieldGet FIFO.underlying go!"closed") #x (Val #(x.closed'))
-  set_closed : ∀ (x : FIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FIFO.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : FIFO)))
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Add" FIFO.Add.impl
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Close" FIFO.Close.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Delete" FIFO.Delete.impl
-  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Done" FIFO.Done.impl
-  ptr_HasSynced_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"HasSynced" FIFO.HasSynced.impl
-  ptr_HasSyncedChecker_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"HasSyncedChecker" FIFO.HasSyncedChecker.impl
-  ptr_IsClosed_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"IsClosed" FIFO.IsClosed.impl
-  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Name" FIFO.Name.impl
-  ptr_Pop_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Pop" FIFO.Pop.impl
-  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Replace" FIFO.Replace.impl
-  ptr_Resync_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Resync" FIFO.Resync.impl
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"Update" FIFO.Update.impl
-  ptr_checkSynced_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"checkSynced" FIFO.checkSynced.impl
-  ptr_hasSynced_locked_unfold : MethodUnfold (go.GoType.PointerType FIFO.ty) go!"hasSynced_locked" FIFO.hasSynced_locked.impl
-
-attribute [instance] FIFO.TypeAssumptions.type_repr
-  FIFO.TypeAssumptions.underlying
-  FIFO.TypeAssumptions.get_lock
-  FIFO.TypeAssumptions.set_lock
-  FIFO.TypeAssumptions.get_cond
-  FIFO.TypeAssumptions.set_cond
-  FIFO.TypeAssumptions.get_items
-  FIFO.TypeAssumptions.set_items
-  FIFO.TypeAssumptions.get_queue
-  FIFO.TypeAssumptions.set_queue
-  FIFO.TypeAssumptions.get_synced
-  FIFO.TypeAssumptions.set_synced
-  FIFO.TypeAssumptions.get_syncedClosed
-  FIFO.TypeAssumptions.set_syncedClosed
-  FIFO.TypeAssumptions.get_populated
-  FIFO.TypeAssumptions.set_populated
-  FIFO.TypeAssumptions.get_initialPopulationCount
-  FIFO.TypeAssumptions.set_initialPopulationCount
-  FIFO.TypeAssumptions.get_keyFunc
-  FIFO.TypeAssumptions.set_keyFunc
-  FIFO.TypeAssumptions.get_closed
-  FIFO.TypeAssumptions.set_closed
-  FIFO.TypeAssumptions.ptr_Add_unfold
-  FIFO.TypeAssumptions.ptr_Close_unfold
-  FIFO.TypeAssumptions.ptr_Delete_unfold
-  FIFO.TypeAssumptions.ptr_Done_unfold
-  FIFO.TypeAssumptions.ptr_HasSynced_unfold
-  FIFO.TypeAssumptions.ptr_HasSyncedChecker_unfold
-  FIFO.TypeAssumptions.ptr_IsClosed_unfold
-  FIFO.TypeAssumptions.ptr_Name_unfold
-  FIFO.TypeAssumptions.ptr_Pop_unfold
-  FIFO.TypeAssumptions.ptr_Replace_unfold
-  FIFO.TypeAssumptions.ptr_Resync_unfold
-  FIFO.TypeAssumptions.ptr_Update_unfold
-  FIFO.TypeAssumptions.ptr_checkSynced_unfold
-  FIFO.TypeAssumptions.ptr_hasSynced_locked_unfold
-
-class LessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq LessFunc.ty LessFunc.underlying
-
-attribute [instance] LessFunc.TypeAssumptions.underlying
-
-class heapItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying heapItem.underlying heapItem
-  underlying : go.UnderlyingDirectedEq heapItem.ty heapItem.underlying
-  get_obj : ∀ (x : heapItem), go.IsGoStepPureDetTagged under (StructFieldGet heapItem.underlying go!"obj") #x (Val #(x.obj'))
-  set_obj : ∀ (x : heapItem) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet heapItem.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : heapItem)))
-  get_index : ∀ (x : heapItem), go.IsGoStepPureDetTagged under (StructFieldGet heapItem.underlying go!"index") #x (Val #(x.index'))
-  set_index : ∀ (x : heapItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet heapItem.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : heapItem)))
-
-attribute [instance] heapItem.TypeAssumptions.type_repr
-  heapItem.TypeAssumptions.underlying
-  heapItem.TypeAssumptions.get_obj
-  heapItem.TypeAssumptions.set_obj
-  heapItem.TypeAssumptions.get_index
-  heapItem.TypeAssumptions.set_index
-
-class itemKeyValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying itemKeyValue.underlying itemKeyValue
-  underlying : go.UnderlyingDirectedEq itemKeyValue.ty itemKeyValue.underlying
-  get_key : ∀ (x : itemKeyValue), go.IsGoStepPureDetTagged under (StructFieldGet itemKeyValue.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : itemKeyValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet itemKeyValue.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : itemKeyValue)))
-  get_obj : ∀ (x : itemKeyValue), go.IsGoStepPureDetTagged under (StructFieldGet itemKeyValue.underlying go!"obj") #x (Val #(x.obj'))
-  set_obj : ∀ (x : itemKeyValue) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet itemKeyValue.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : itemKeyValue)))
-
-attribute [instance] itemKeyValue.TypeAssumptions.type_repr
-  itemKeyValue.TypeAssumptions.underlying
-  itemKeyValue.TypeAssumptions.get_key
-  itemKeyValue.TypeAssumptions.set_key
-  itemKeyValue.TypeAssumptions.get_obj
-  itemKeyValue.TypeAssumptions.set_obj
-
-class heapData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying heapData.underlying heapData
-  underlying : go.UnderlyingDirectedEq heapData.ty heapData.underlying
-  get_items : ∀ (x : heapData), go.IsGoStepPureDetTagged under (StructFieldGet heapData.underlying go!"items") #x (Val #(x.items'))
-  set_items : ∀ (x : heapData) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet heapData.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : heapData)))
-  get_queue : ∀ (x : heapData), go.IsGoStepPureDetTagged under (StructFieldGet heapData.underlying go!"queue") #x (Val #(x.queue'))
-  set_queue : ∀ (x : heapData) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet heapData.underlying go!"queue") (PairV #x #y) (Val #(({ x with queue' := y } : heapData)))
-  get_keyFunc : ∀ (x : heapData), go.IsGoStepPureDetTagged under (StructFieldGet heapData.underlying go!"keyFunc") #x (Val #(x.keyFunc'))
-  set_keyFunc : ∀ (x : heapData) (y : KeyFunc), go.IsGoStepPureDetTagged under (StructFieldSet heapData.underlying go!"keyFunc") (PairV #x #y) (Val #(({ x with keyFunc' := y } : heapData)))
-  get_lessFunc : ∀ (x : heapData), go.IsGoStepPureDetTagged under (StructFieldGet heapData.underlying go!"lessFunc") #x (Val #(x.lessFunc'))
-  set_lessFunc : ∀ (x : heapData) (y : LessFunc), go.IsGoStepPureDetTagged under (StructFieldSet heapData.underlying go!"lessFunc") (PairV #x #y) (Val #(({ x with lessFunc' := y } : heapData)))
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType heapData.ty) go!"Len" heapData.Len.impl
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType heapData.ty) go!"Less" heapData.Less.impl
-  ptr_Pop_unfold : MethodUnfold (go.GoType.PointerType heapData.ty) go!"Pop" heapData.Pop.impl
-  ptr_Push_unfold : MethodUnfold (go.GoType.PointerType heapData.ty) go!"Push" heapData.Push.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType heapData.ty) go!"Swap" heapData.Swap.impl
-
-attribute [instance] heapData.TypeAssumptions.type_repr
-  heapData.TypeAssumptions.underlying
-  heapData.TypeAssumptions.get_items
-  heapData.TypeAssumptions.set_items
-  heapData.TypeAssumptions.get_queue
-  heapData.TypeAssumptions.set_queue
-  heapData.TypeAssumptions.get_keyFunc
-  heapData.TypeAssumptions.set_keyFunc
-  heapData.TypeAssumptions.get_lessFunc
-  heapData.TypeAssumptions.set_lessFunc
-  heapData.TypeAssumptions.ptr_Len_unfold
-  heapData.TypeAssumptions.ptr_Less_unfold
-  heapData.TypeAssumptions.ptr_Pop_unfold
-  heapData.TypeAssumptions.ptr_Push_unfold
-  heapData.TypeAssumptions.ptr_Swap_unfold
-
-class Heap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Heap.underlying Heap
-  underlying : go.UnderlyingDirectedEq Heap.ty Heap.underlying
-  get_lock : ∀ (x : Heap), go.IsGoStepPureDetTagged under (StructFieldGet Heap.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : Heap) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Heap.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : Heap)))
-  get_cond : ∀ (x : Heap), go.IsGoStepPureDetTagged under (StructFieldGet Heap.underlying go!"cond") #x (Val #(x.cond'))
-  set_cond : ∀ (x : Heap) (y : _root_.Perennial.sync.Cond), go.IsGoStepPureDetTagged under (StructFieldSet Heap.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : Heap)))
-  get_data : ∀ (x : Heap), go.IsGoStepPureDetTagged under (StructFieldGet Heap.underlying go!"data") #x (Val #(x.data'))
-  set_data : ∀ (x : Heap) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Heap.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : Heap)))
-  get_closed : ∀ (x : Heap), go.IsGoStepPureDetTagged under (StructFieldGet Heap.underlying go!"closed") #x (Val #(x.closed'))
-  set_closed : ∀ (x : Heap) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Heap.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : Heap)))
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"Add" Heap.Add.impl
-  ptr_AddIfNotPresent_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"AddIfNotPresent" Heap.AddIfNotPresent.impl
-  ptr_BulkAdd_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"BulkAdd" Heap.BulkAdd.impl
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"Close" Heap.Close.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"Delete" Heap.Delete.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"Get" Heap.Get.impl
-  ptr_GetByKey_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"GetByKey" Heap.GetByKey.impl
-  ptr_IsClosed_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"IsClosed" Heap.IsClosed.impl
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"List" Heap.List.impl
-  ptr_ListKeys_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"ListKeys" Heap.ListKeys.impl
-  ptr_Pop_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"Pop" Heap.Pop.impl
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"Update" Heap.Update.impl
-  ptr_addIfNotPresentLocked_unfold : MethodUnfold (go.GoType.PointerType Heap.ty) go!"addIfNotPresentLocked" Heap.addIfNotPresentLocked.impl
-
-attribute [instance] Heap.TypeAssumptions.type_repr
-  Heap.TypeAssumptions.underlying
-  Heap.TypeAssumptions.get_lock
-  Heap.TypeAssumptions.set_lock
-  Heap.TypeAssumptions.get_cond
-  Heap.TypeAssumptions.set_cond
-  Heap.TypeAssumptions.get_data
-  Heap.TypeAssumptions.set_data
-  Heap.TypeAssumptions.get_closed
-  Heap.TypeAssumptions.set_closed
-  Heap.TypeAssumptions.ptr_Add_unfold
-  Heap.TypeAssumptions.ptr_AddIfNotPresent_unfold
-  Heap.TypeAssumptions.ptr_BulkAdd_unfold
-  Heap.TypeAssumptions.ptr_Close_unfold
-  Heap.TypeAssumptions.ptr_Delete_unfold
-  Heap.TypeAssumptions.ptr_Get_unfold
-  Heap.TypeAssumptions.ptr_GetByKey_unfold
-  Heap.TypeAssumptions.ptr_IsClosed_unfold
-  Heap.TypeAssumptions.ptr_List_unfold
-  Heap.TypeAssumptions.ptr_ListKeys_unfold
-  Heap.TypeAssumptions.ptr_Pop_unfold
-  Heap.TypeAssumptions.ptr_Update_unfold
-  Heap.TypeAssumptions.ptr_addIfNotPresentLocked_unfold
 
 end k8s_io.client_go.tools.cache
 

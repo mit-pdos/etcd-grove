@@ -51,10 +51,10 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 
 /-- The test's input struct. -/
-abbrev KVInput [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.Input
+abbrev KVInput [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kv.Input
 
 section model
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext]
 
 /-- The type `map[string]string`. -/
 abbrev kvMapTy : go.GoType := go.GoType.MapType go.string go.string
@@ -95,7 +95,7 @@ def kvM : SeqModel KVMap OpV where
 end model
 
 section inj
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
 variable [GoSemanticsFunctions] [go.CoreSemantics]
 variable [ta : github_com.mit_pdos.etcd_grove.examples.kv.Input.TypeAssumptions]
 
@@ -150,7 +150,7 @@ theorem kvM_step_box (s : KVMap) (x : KVInput) (o : GoString) :
 end inj
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

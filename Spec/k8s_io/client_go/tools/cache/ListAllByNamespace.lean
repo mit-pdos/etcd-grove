@@ -18,11 +18,11 @@ namespace cache
 open Iris Iris.BI k8s_io.client_go.tools.cache
 
 /-- The namespace index's query object at `q`. -/
-def qObj [FfiSyntax] [GoGlobalContext] (q : Loc) : GoInterface :=
+def qObj [GooseExts] [GoGlobalContext] (q : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) #q
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

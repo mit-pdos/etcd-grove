@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -143,6 +143,7 @@ theorem MemoryStorage.Append.wp_proof
     simp only [List.length_nil] at Hblen
     rw [List.length_eq_zero_iff.1 Hblen] at Hslen
     simp only [List.length_nil] at Hslen
+    wp_auto
     wp_apply wp_with_defer as %defer defer
     wp_if_destruct
     · iapply HΦ
@@ -167,6 +168,7 @@ theorem MemoryStorage.Append.wp_proof
   ihave %Hslen := ownSlice_len $$ Hsb
   simp only [List.length_cons] at Hslen Hb0 Hblen
   icases entsBig_lookup lsb (e0 :: rest) 0 e0 rfl $$ Hbigb with ⟨%lb0, %Hlb0, #Heb0⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_if_destruct
   · exfalso

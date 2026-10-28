@@ -20,103 +20,103 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.resource.v1alpha3
 
-noncomputable def DeviceTaintRulesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeviceTaintRulesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.DeviceTaintRulesGetter" [])
 
 attribute [irreducible] DeviceTaintRulesGetter.ty
 
-noncomputable def DeviceTaintRuleInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeviceTaintRuleInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.DeviceTaintRuleInterface" [])
 
 attribute [irreducible] DeviceTaintRuleInterface.ty
 
-noncomputable def deviceTaintRules.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def deviceTaintRules.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.deviceTaintRules" [])
 
 attribute [irreducible] deviceTaintRules.ty
 
-noncomputable def DeviceTaintRuleExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeviceTaintRuleExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.DeviceTaintRuleExpansion" [])
 
 attribute [irreducible] DeviceTaintRuleExpansion.ty
 
-noncomputable def ResourcePoolStatusRequestExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourcePoolStatusRequestExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.ResourcePoolStatusRequestExpansion" [])
 
 attribute [irreducible] ResourcePoolStatusRequestExpansion.ty
 
-noncomputable def ResourceV1alpha3Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceV1alpha3Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.ResourceV1alpha3Interface" [])
 
 attribute [irreducible] ResourceV1alpha3Interface.ty
 
-noncomputable def ResourceV1alpha3Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceV1alpha3Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.ResourceV1alpha3Client" [])
 
 attribute [irreducible] ResourceV1alpha3Client.ty
 
-noncomputable def ResourcePoolStatusRequestsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourcePoolStatusRequestsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.ResourcePoolStatusRequestsGetter" [])
 
 attribute [irreducible] ResourcePoolStatusRequestsGetter.ty
 
-noncomputable def ResourcePoolStatusRequestInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourcePoolStatusRequestInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.ResourcePoolStatusRequestInterface" [])
 
 attribute [irreducible] ResourcePoolStatusRequestInterface.ty
 
-noncomputable def resourcePoolStatusRequests.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resourcePoolStatusRequests.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.resourcePoolStatusRequests" [])
 
 attribute [irreducible] resourcePoolStatusRequests.ty
 
-axiom DeviceTaintRulesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeviceTaintRulesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeviceTaintRuleInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeviceTaintRuleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deviceTaintRules.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom deviceTaintRules.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeviceTaintRuleExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeviceTaintRuleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePoolStatusRequestExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourcePoolStatusRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceV1alpha3Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceV1alpha3Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceV1alpha3Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceV1alpha3Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePoolStatusRequestsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourcePoolStatusRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePoolStatusRequestInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourcePoolStatusRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourcePoolStatusRequests.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom resourcePoolStatusRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def newDeviceTaintRules [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newDeviceTaintRules [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.newDeviceTaintRules"
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.setConfigDefaults"
 
-noncomputable def newResourcePoolStatusRequests [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newResourcePoolStatusRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.newResourcePoolStatusRequests"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1alpha3 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1alpha3)) (Lam BAnon
   (App (Val exceptionDo)
@@ -127,133 +127,173 @@ axiom DeviceTaintRulesGetter : Type
 axiom DeviceTaintRulesGetter.zero_val : ZeroVal DeviceTaintRulesGetter
 attribute [instance] DeviceTaintRulesGetter.zero_val
 
-class DeviceTaintRulesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeviceTaintRulesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeviceTaintRulesGetter.underlying DeviceTaintRulesGetter
   underlying : go.UnderlyingDirectedEq DeviceTaintRulesGetter.ty DeviceTaintRulesGetter.underlying
   isUnderlying : go.IsUnderlying DeviceTaintRulesGetter.underlying DeviceTaintRulesGetter.underlying
+  method_set : go.MethodSetIs DeviceTaintRulesGetter.ty [(go!"DeviceTaintRules", (some (go.signature.Signature [] false [DeviceTaintRuleInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeviceTaintRulesGetter.ty) []
 
 attribute [instance] DeviceTaintRulesGetter.TypeAssumptions.type_repr
   DeviceTaintRulesGetter.TypeAssumptions.underlying
   DeviceTaintRulesGetter.TypeAssumptions.isUnderlying
+  DeviceTaintRulesGetter.TypeAssumptions.method_set
+  DeviceTaintRulesGetter.TypeAssumptions.ptr_method_set
 
 axiom DeviceTaintRuleInterface : Type
 axiom DeviceTaintRuleInterface.zero_val : ZeroVal DeviceTaintRuleInterface
 attribute [instance] DeviceTaintRuleInterface.zero_val
 
-class DeviceTaintRuleInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeviceTaintRuleInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeviceTaintRuleInterface.underlying DeviceTaintRuleInterface
   underlying : go.UnderlyingDirectedEq DeviceTaintRuleInterface.ty DeviceTaintRuleInterface.underlying
   isUnderlying : go.IsUnderlying DeviceTaintRuleInterface.underlying DeviceTaintRuleInterface.underlying
+  method_set : go.MethodSetIs DeviceTaintRuleInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.DeviceTaintRuleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.DeviceTaintRuleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRuleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeviceTaintRuleInterface.ty) []
 
 attribute [instance] DeviceTaintRuleInterface.TypeAssumptions.type_repr
   DeviceTaintRuleInterface.TypeAssumptions.underlying
   DeviceTaintRuleInterface.TypeAssumptions.isUnderlying
+  DeviceTaintRuleInterface.TypeAssumptions.method_set
+  DeviceTaintRuleInterface.TypeAssumptions.ptr_method_set
 
 axiom deviceTaintRules : Type
 axiom deviceTaintRules.zero_val : ZeroVal deviceTaintRules
 attribute [instance] deviceTaintRules.zero_val
 
-class deviceTaintRules.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class deviceTaintRules.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deviceTaintRules.underlying deviceTaintRules
   underlying : go.UnderlyingDirectedEq deviceTaintRules.ty deviceTaintRules.underlying
   isUnderlying : go.IsUnderlying deviceTaintRules.underlying deviceTaintRules.underlying
+  method_set : go.MethodSetIs deviceTaintRules.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.DeviceTaintRuleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.DeviceTaintRuleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRuleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType deviceTaintRules.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.DeviceTaintRuleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.DeviceTaintRuleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRuleList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.DeviceTaintRule" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] deviceTaintRules.TypeAssumptions.type_repr
   deviceTaintRules.TypeAssumptions.underlying
   deviceTaintRules.TypeAssumptions.isUnderlying
+  deviceTaintRules.TypeAssumptions.method_set
+  deviceTaintRules.TypeAssumptions.ptr_method_set
 
 axiom DeviceTaintRuleExpansion : Type
 axiom DeviceTaintRuleExpansion.zero_val : ZeroVal DeviceTaintRuleExpansion
 attribute [instance] DeviceTaintRuleExpansion.zero_val
 
-class DeviceTaintRuleExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeviceTaintRuleExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeviceTaintRuleExpansion.underlying DeviceTaintRuleExpansion
   underlying : go.UnderlyingDirectedEq DeviceTaintRuleExpansion.ty DeviceTaintRuleExpansion.underlying
   isUnderlying : go.IsUnderlying DeviceTaintRuleExpansion.underlying DeviceTaintRuleExpansion.underlying
+  method_set : go.MethodSetIs DeviceTaintRuleExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeviceTaintRuleExpansion.ty) []
 
 attribute [instance] DeviceTaintRuleExpansion.TypeAssumptions.type_repr
   DeviceTaintRuleExpansion.TypeAssumptions.underlying
   DeviceTaintRuleExpansion.TypeAssumptions.isUnderlying
+  DeviceTaintRuleExpansion.TypeAssumptions.method_set
+  DeviceTaintRuleExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourcePoolStatusRequestExpansion : Type
 axiom ResourcePoolStatusRequestExpansion.zero_val : ZeroVal ResourcePoolStatusRequestExpansion
 attribute [instance] ResourcePoolStatusRequestExpansion.zero_val
 
-class ResourcePoolStatusRequestExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourcePoolStatusRequestExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourcePoolStatusRequestExpansion.underlying ResourcePoolStatusRequestExpansion
   underlying : go.UnderlyingDirectedEq ResourcePoolStatusRequestExpansion.ty ResourcePoolStatusRequestExpansion.underlying
   isUnderlying : go.IsUnderlying ResourcePoolStatusRequestExpansion.underlying ResourcePoolStatusRequestExpansion.underlying
+  method_set : go.MethodSetIs ResourcePoolStatusRequestExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourcePoolStatusRequestExpansion.ty) []
 
 attribute [instance] ResourcePoolStatusRequestExpansion.TypeAssumptions.type_repr
   ResourcePoolStatusRequestExpansion.TypeAssumptions.underlying
   ResourcePoolStatusRequestExpansion.TypeAssumptions.isUnderlying
+  ResourcePoolStatusRequestExpansion.TypeAssumptions.method_set
+  ResourcePoolStatusRequestExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourceV1alpha3Interface : Type
 axiom ResourceV1alpha3Interface.zero_val : ZeroVal ResourceV1alpha3Interface
 attribute [instance] ResourceV1alpha3Interface.zero_val
 
-class ResourceV1alpha3Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceV1alpha3Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceV1alpha3Interface.underlying ResourceV1alpha3Interface
   underlying : go.UnderlyingDirectedEq ResourceV1alpha3Interface.ty ResourceV1alpha3Interface.underlying
   isUnderlying : go.IsUnderlying ResourceV1alpha3Interface.underlying ResourceV1alpha3Interface.underlying
+  method_set : go.MethodSetIs ResourceV1alpha3Interface.ty [(go!"DeviceTaintRules", (some (go.signature.Signature [] false [DeviceTaintRuleInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ResourcePoolStatusRequests", (some (go.signature.Signature [] false [ResourcePoolStatusRequestInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceV1alpha3Interface.ty) []
 
 attribute [instance] ResourceV1alpha3Interface.TypeAssumptions.type_repr
   ResourceV1alpha3Interface.TypeAssumptions.underlying
   ResourceV1alpha3Interface.TypeAssumptions.isUnderlying
+  ResourceV1alpha3Interface.TypeAssumptions.method_set
+  ResourceV1alpha3Interface.TypeAssumptions.ptr_method_set
 
 axiom ResourceV1alpha3Client : Type
 axiom ResourceV1alpha3Client.zero_val : ZeroVal ResourceV1alpha3Client
 attribute [instance] ResourceV1alpha3Client.zero_val
 
-class ResourceV1alpha3Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceV1alpha3Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceV1alpha3Client.underlying ResourceV1alpha3Client
   underlying : go.UnderlyingDirectedEq ResourceV1alpha3Client.ty ResourceV1alpha3Client.underlying
   isUnderlying : go.IsUnderlying ResourceV1alpha3Client.underlying ResourceV1alpha3Client.underlying
+  method_set : go.MethodSetIs ResourceV1alpha3Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceV1alpha3Client.ty) [(go!"DeviceTaintRules", (some (go.signature.Signature [] false [DeviceTaintRuleInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ResourcePoolStatusRequests", (some (go.signature.Signature [] false [ResourcePoolStatusRequestInterface.ty])))]
 
 attribute [instance] ResourceV1alpha3Client.TypeAssumptions.type_repr
   ResourceV1alpha3Client.TypeAssumptions.underlying
   ResourceV1alpha3Client.TypeAssumptions.isUnderlying
+  ResourceV1alpha3Client.TypeAssumptions.method_set
+  ResourceV1alpha3Client.TypeAssumptions.ptr_method_set
 
 axiom ResourcePoolStatusRequestsGetter : Type
 axiom ResourcePoolStatusRequestsGetter.zero_val : ZeroVal ResourcePoolStatusRequestsGetter
 attribute [instance] ResourcePoolStatusRequestsGetter.zero_val
 
-class ResourcePoolStatusRequestsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourcePoolStatusRequestsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourcePoolStatusRequestsGetter.underlying ResourcePoolStatusRequestsGetter
   underlying : go.UnderlyingDirectedEq ResourcePoolStatusRequestsGetter.ty ResourcePoolStatusRequestsGetter.underlying
   isUnderlying : go.IsUnderlying ResourcePoolStatusRequestsGetter.underlying ResourcePoolStatusRequestsGetter.underlying
+  method_set : go.MethodSetIs ResourcePoolStatusRequestsGetter.ty [(go!"ResourcePoolStatusRequests", (some (go.signature.Signature [] false [ResourcePoolStatusRequestInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourcePoolStatusRequestsGetter.ty) []
 
 attribute [instance] ResourcePoolStatusRequestsGetter.TypeAssumptions.type_repr
   ResourcePoolStatusRequestsGetter.TypeAssumptions.underlying
   ResourcePoolStatusRequestsGetter.TypeAssumptions.isUnderlying
+  ResourcePoolStatusRequestsGetter.TypeAssumptions.method_set
+  ResourcePoolStatusRequestsGetter.TypeAssumptions.ptr_method_set
 
 axiom ResourcePoolStatusRequestInterface : Type
 axiom ResourcePoolStatusRequestInterface.zero_val : ZeroVal ResourcePoolStatusRequestInterface
 attribute [instance] ResourcePoolStatusRequestInterface.zero_val
 
-class ResourcePoolStatusRequestInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourcePoolStatusRequestInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourcePoolStatusRequestInterface.underlying ResourcePoolStatusRequestInterface
   underlying : go.UnderlyingDirectedEq ResourcePoolStatusRequestInterface.ty ResourcePoolStatusRequestInterface.underlying
   isUnderlying : go.IsUnderlying ResourcePoolStatusRequestInterface.underlying ResourcePoolStatusRequestInterface.underlying
+  method_set : go.MethodSetIs ResourcePoolStatusRequestInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.ResourcePoolStatusRequestApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.ResourcePoolStatusRequestApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequestList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourcePoolStatusRequestInterface.ty) []
 
 attribute [instance] ResourcePoolStatusRequestInterface.TypeAssumptions.type_repr
   ResourcePoolStatusRequestInterface.TypeAssumptions.underlying
   ResourcePoolStatusRequestInterface.TypeAssumptions.isUnderlying
+  ResourcePoolStatusRequestInterface.TypeAssumptions.method_set
+  ResourcePoolStatusRequestInterface.TypeAssumptions.ptr_method_set
 
 axiom resourcePoolStatusRequests : Type
 axiom resourcePoolStatusRequests.zero_val : ZeroVal resourcePoolStatusRequests
 attribute [instance] resourcePoolStatusRequests.zero_val
 
-class resourcePoolStatusRequests.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class resourcePoolStatusRequests.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resourcePoolStatusRequests.underlying resourcePoolStatusRequests
   underlying : go.UnderlyingDirectedEq resourcePoolStatusRequests.ty resourcePoolStatusRequests.underlying
   isUnderlying : go.IsUnderlying resourcePoolStatusRequests.underlying resourcePoolStatusRequests.underlying
+  method_set : go.MethodSetIs resourcePoolStatusRequests.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.ResourcePoolStatusRequestApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.ResourcePoolStatusRequestApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequestList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resourcePoolStatusRequests.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.ResourcePoolStatusRequestApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1alpha3.ResourcePoolStatusRequestApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequestList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1alpha3.ResourcePoolStatusRequest" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] resourcePoolStatusRequests.TypeAssumptions.type_repr
   resourcePoolStatusRequests.TypeAssumptions.underlying
   resourcePoolStatusRequests.TypeAssumptions.isUnderlying
+  resourcePoolStatusRequests.TypeAssumptions.method_set
+  resourcePoolStatusRequests.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DeviceTaintRulesGetter_instance : DeviceTaintRulesGetter.TypeAssumptions
   DeviceTaintRuleInterface_instance : DeviceTaintRuleInterface.TypeAssumptions
   deviceTaintRules_instance : deviceTaintRules.TypeAssumptions

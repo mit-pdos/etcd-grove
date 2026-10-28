@@ -19,7 +19,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
   go_etcd_io.etcd.server.v3.storage
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -32,9 +32,10 @@ theorem schema.ReadConsistentIndex.wp_proof
   wp_start as #Hrt
   unfold metaReadTx
   icases Hrt with ⟨#HRLock, #HRUnlock, #Hrd⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply HRLock
-  wp_apply_core (hR rt E View (fun _ => iprop(True))) $$ [] [HΦ defer]
+  wp_apply_core (hR rt E View (fun _ => iprop(True))) $$ [] [HΦ defer «$res0» «$res1»]
   · iframe Hpkg Hrd
   iapply readCIAU_A
   iapply readCIAU_wand $$ HΦ

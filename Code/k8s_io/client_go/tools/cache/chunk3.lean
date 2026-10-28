@@ -16,7 +16,535 @@ noncomputable section
 
 namespace k8s_io.client_go.tools.cache
 
-class sharedIndexInformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceVersionUpdater.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ResourceVersionUpdater.ty ResourceVersionUpdater.underlying
+  method_set : go.MethodSetIs ResourceVersionUpdater.ty [(go!"UpdateResourceVersion", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceVersionUpdater.ty) []
+
+attribute [instance] ResourceVersionUpdater.TypeAssumptions.underlying
+  ResourceVersionUpdater.TypeAssumptions.method_set
+  ResourceVersionUpdater.TypeAssumptions.ptr_method_set
+
+class ReflectorOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ReflectorOptions.underlying ReflectorOptions
+  underlying : go.UnderlyingDirectedEq ReflectorOptions.ty ReflectorOptions.underlying
+  get_Logger : ∀ (x : ReflectorOptions), go.IsGoStepPureDetTagged under (StructFieldGet ReflectorOptions.underlying go!"Logger") #x (Val #(x.Logger'))
+  set_Logger : ∀ (x : ReflectorOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReflectorOptions.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : ReflectorOptions)))
+  get_Name : ∀ (x : ReflectorOptions), go.IsGoStepPureDetTagged under (StructFieldGet ReflectorOptions.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : ReflectorOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReflectorOptions.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ReflectorOptions)))
+  get_TypeDescription : ∀ (x : ReflectorOptions), go.IsGoStepPureDetTagged under (StructFieldGet ReflectorOptions.underlying go!"TypeDescription") #x (Val #(x.TypeDescription'))
+  set_TypeDescription : ∀ (x : ReflectorOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReflectorOptions.underlying go!"TypeDescription") (PairV #x #y) (Val #(({ x with TypeDescription' := y } : ReflectorOptions)))
+  get_ResyncPeriod : ∀ (x : ReflectorOptions), go.IsGoStepPureDetTagged under (StructFieldGet ReflectorOptions.underlying go!"ResyncPeriod") #x (Val #(x.ResyncPeriod'))
+  set_ResyncPeriod : ∀ (x : ReflectorOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ReflectorOptions.underlying go!"ResyncPeriod") (PairV #x #y) (Val #(({ x with ResyncPeriod' := y } : ReflectorOptions)))
+  get_MinWatchTimeout : ∀ (x : ReflectorOptions), go.IsGoStepPureDetTagged under (StructFieldGet ReflectorOptions.underlying go!"MinWatchTimeout") #x (Val #(x.MinWatchTimeout'))
+  set_MinWatchTimeout : ∀ (x : ReflectorOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ReflectorOptions.underlying go!"MinWatchTimeout") (PairV #x #y) (Val #(({ x with MinWatchTimeout' := y } : ReflectorOptions)))
+  get_Clock : ∀ (x : ReflectorOptions), go.IsGoStepPureDetTagged under (StructFieldGet ReflectorOptions.underlying go!"Clock") #x (Val #(x.Clock'))
+  set_Clock : ∀ (x : ReflectorOptions) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet ReflectorOptions.underlying go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : ReflectorOptions)))
+  get_Backoff : ∀ (x : ReflectorOptions), go.IsGoStepPureDetTagged under (StructFieldGet ReflectorOptions.underlying go!"Backoff") #x (Val #(x.Backoff'))
+  set_Backoff : ∀ (x : ReflectorOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReflectorOptions.underlying go!"Backoff") (PairV #x #y) (Val #(({ x with Backoff' := y } : ReflectorOptions)))
+  method_set : go.MethodSetIs ReflectorOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReflectorOptions.ty) []
+
+attribute [instance] ReflectorOptions.TypeAssumptions.type_repr
+  ReflectorOptions.TypeAssumptions.underlying
+  ReflectorOptions.TypeAssumptions.get_Logger
+  ReflectorOptions.TypeAssumptions.set_Logger
+  ReflectorOptions.TypeAssumptions.get_Name
+  ReflectorOptions.TypeAssumptions.set_Name
+  ReflectorOptions.TypeAssumptions.get_TypeDescription
+  ReflectorOptions.TypeAssumptions.set_TypeDescription
+  ReflectorOptions.TypeAssumptions.get_ResyncPeriod
+  ReflectorOptions.TypeAssumptions.set_ResyncPeriod
+  ReflectorOptions.TypeAssumptions.get_MinWatchTimeout
+  ReflectorOptions.TypeAssumptions.set_MinWatchTimeout
+  ReflectorOptions.TypeAssumptions.get_Clock
+  ReflectorOptions.TypeAssumptions.set_Clock
+  ReflectorOptions.TypeAssumptions.get_Backoff
+  ReflectorOptions.TypeAssumptions.set_Backoff
+  ReflectorOptions.TypeAssumptions.method_set
+  ReflectorOptions.TypeAssumptions.ptr_method_set
+
+class initialEventsEndBookmarkTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying initialEventsEndBookmarkTicker.underlying initialEventsEndBookmarkTicker
+  underlying : go.UnderlyingDirectedEq initialEventsEndBookmarkTicker.ty initialEventsEndBookmarkTicker.underlying
+  get_Ticker : ∀ (x : initialEventsEndBookmarkTicker), go.IsGoStepPureDetTagged under (StructFieldGet initialEventsEndBookmarkTicker.underlying go!"Ticker") #x (Val #(x.Ticker'))
+  set_Ticker : ∀ (x : initialEventsEndBookmarkTicker) (y : _root_.Perennial.k8s_io.utils.clock.Ticker), go.IsGoStepPureDetTagged under (StructFieldSet initialEventsEndBookmarkTicker.underlying go!"Ticker") (PairV #x #y) (Val #(({ x with Ticker' := y } : initialEventsEndBookmarkTicker)))
+  get_clock : ∀ (x : initialEventsEndBookmarkTicker), go.IsGoStepPureDetTagged under (StructFieldGet initialEventsEndBookmarkTicker.underlying go!"clock") #x (Val #(x.clock'))
+  set_clock : ∀ (x : initialEventsEndBookmarkTicker) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet initialEventsEndBookmarkTicker.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : initialEventsEndBookmarkTicker)))
+  get_name : ∀ (x : initialEventsEndBookmarkTicker), go.IsGoStepPureDetTagged under (StructFieldGet initialEventsEndBookmarkTicker.underlying go!"name") #x (Val #(x.name'))
+  set_name : ∀ (x : initialEventsEndBookmarkTicker) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet initialEventsEndBookmarkTicker.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : initialEventsEndBookmarkTicker)))
+  get_logger : ∀ (x : initialEventsEndBookmarkTicker), go.IsGoStepPureDetTagged under (StructFieldGet initialEventsEndBookmarkTicker.underlying go!"logger") #x (Val #(x.logger'))
+  set_logger : ∀ (x : initialEventsEndBookmarkTicker) (y : _root_.Perennial.github_com.go_logr.logr.Logger), go.IsGoStepPureDetTagged under (StructFieldSet initialEventsEndBookmarkTicker.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : initialEventsEndBookmarkTicker)))
+  get_watchStart : ∀ (x : initialEventsEndBookmarkTicker), go.IsGoStepPureDetTagged under (StructFieldGet initialEventsEndBookmarkTicker.underlying go!"watchStart") #x (Val #(x.watchStart'))
+  set_watchStart : ∀ (x : initialEventsEndBookmarkTicker) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet initialEventsEndBookmarkTicker.underlying go!"watchStart") (PairV #x #y) (Val #(({ x with watchStart' := y } : initialEventsEndBookmarkTicker)))
+  get_tickInterval : ∀ (x : initialEventsEndBookmarkTicker), go.IsGoStepPureDetTagged under (StructFieldGet initialEventsEndBookmarkTicker.underlying go!"tickInterval") #x (Val #(x.tickInterval'))
+  set_tickInterval : ∀ (x : initialEventsEndBookmarkTicker) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet initialEventsEndBookmarkTicker.underlying go!"tickInterval") (PairV #x #y) (Val #(({ x with tickInterval' := y } : initialEventsEndBookmarkTicker)))
+  get_lastEventObserveTime : ∀ (x : initialEventsEndBookmarkTicker), go.IsGoStepPureDetTagged under (StructFieldGet initialEventsEndBookmarkTicker.underlying go!"lastEventObserveTime") #x (Val #(x.lastEventObserveTime'))
+  set_lastEventObserveTime : ∀ (x : initialEventsEndBookmarkTicker) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet initialEventsEndBookmarkTicker.underlying go!"lastEventObserveTime") (PairV #x #y) (Val #(({ x with lastEventObserveTime' := y } : initialEventsEndBookmarkTicker)))
+  method_set : go.MethodSetIs initialEventsEndBookmarkTicker.ty [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType initialEventsEndBookmarkTicker.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.observeLastEventTimeStamp", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"k8s.io/client-go/tools/cache.produceWarningIfExpired", (some (go.signature.Signature [] false [go.error]))), (go!"k8s.io/client-go/tools/cache.warnIfExpired", (some (go.signature.Signature [] false [])))]
+  C_unfold : MethodUnfold initialEventsEndBookmarkTicker.ty go!"C" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.Ticker.ty go!"C"))) (App (Val (GoInstruction (StructFieldGet initialEventsEndBookmarkTicker.ty go!"Ticker"))) (Var "$r"))))
+  Stop_unfold : MethodUnfold initialEventsEndBookmarkTicker.ty go!"Stop" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.Ticker.ty go!"Stop"))) (App (Val (GoInstruction (StructFieldGet initialEventsEndBookmarkTicker.ty go!"Ticker"))) (Var "$r"))))
+  ptr_C_unfold : MethodUnfold (go.GoType.PointerType initialEventsEndBookmarkTicker.ty) go!"C" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.Ticker.ty go!"C"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.Ticker.ty))) (App (Val (GoInstruction (StructFieldRef initialEventsEndBookmarkTicker.ty go!"Ticker"))) (Var "$r")))))
+  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType initialEventsEndBookmarkTicker.ty) go!"Stop" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.Ticker.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.Ticker.ty))) (App (Val (GoInstruction (StructFieldRef initialEventsEndBookmarkTicker.ty go!"Ticker"))) (Var "$r")))))
+  ptr_observeLastEventTimeStamp_unfold : MethodUnfold (go.GoType.PointerType initialEventsEndBookmarkTicker.ty) go!"observeLastEventTimeStamp" initialEventsEndBookmarkTicker.observeLastEventTimeStamp.impl
+  ptr_produceWarningIfExpired_unfold : MethodUnfold (go.GoType.PointerType initialEventsEndBookmarkTicker.ty) go!"produceWarningIfExpired" initialEventsEndBookmarkTicker.produceWarningIfExpired.impl
+  ptr_warnIfExpired_unfold : MethodUnfold (go.GoType.PointerType initialEventsEndBookmarkTicker.ty) go!"warnIfExpired" initialEventsEndBookmarkTicker.warnIfExpired.impl
+
+attribute [instance] initialEventsEndBookmarkTicker.TypeAssumptions.type_repr
+  initialEventsEndBookmarkTicker.TypeAssumptions.underlying
+  initialEventsEndBookmarkTicker.TypeAssumptions.get_Ticker
+  initialEventsEndBookmarkTicker.TypeAssumptions.set_Ticker
+  initialEventsEndBookmarkTicker.TypeAssumptions.get_clock
+  initialEventsEndBookmarkTicker.TypeAssumptions.set_clock
+  initialEventsEndBookmarkTicker.TypeAssumptions.get_name
+  initialEventsEndBookmarkTicker.TypeAssumptions.set_name
+  initialEventsEndBookmarkTicker.TypeAssumptions.get_logger
+  initialEventsEndBookmarkTicker.TypeAssumptions.set_logger
+  initialEventsEndBookmarkTicker.TypeAssumptions.get_watchStart
+  initialEventsEndBookmarkTicker.TypeAssumptions.set_watchStart
+  initialEventsEndBookmarkTicker.TypeAssumptions.get_tickInterval
+  initialEventsEndBookmarkTicker.TypeAssumptions.set_tickInterval
+  initialEventsEndBookmarkTicker.TypeAssumptions.get_lastEventObserveTime
+  initialEventsEndBookmarkTicker.TypeAssumptions.set_lastEventObserveTime
+  initialEventsEndBookmarkTicker.TypeAssumptions.method_set
+  initialEventsEndBookmarkTicker.TypeAssumptions.ptr_method_set
+  initialEventsEndBookmarkTicker.TypeAssumptions.C_unfold
+  initialEventsEndBookmarkTicker.TypeAssumptions.Stop_unfold
+  initialEventsEndBookmarkTicker.TypeAssumptions.ptr_C_unfold
+  initialEventsEndBookmarkTicker.TypeAssumptions.ptr_Stop_unfold
+  initialEventsEndBookmarkTicker.TypeAssumptions.ptr_observeLastEventTimeStamp_unfold
+  initialEventsEndBookmarkTicker.TypeAssumptions.ptr_produceWarningIfExpired_unfold
+  initialEventsEndBookmarkTicker.TypeAssumptions.ptr_warnIfExpired_unfold
+
+class noopTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying noopTicker.underlying noopTicker
+  underlying : go.UnderlyingDirectedEq noopTicker.ty noopTicker.underlying
+  method_set : go.MethodSetIs noopTicker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTicker.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_C_unfold : MethodUnfold (go.GoType.PointerType noopTicker.ty) go!"C" noopTicker.C.impl
+  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType noopTicker.ty) go!"Stop" noopTicker.Stop.impl
+
+attribute [instance] noopTicker.TypeAssumptions.type_repr
+  noopTicker.TypeAssumptions.underlying
+  noopTicker.TypeAssumptions.method_set
+  noopTicker.TypeAssumptions.ptr_method_set
+  noopTicker.TypeAssumptions.ptr_C_unfold
+  noopTicker.TypeAssumptions.ptr_Stop_unfold
+
+class VeryShortWatchError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying VeryShortWatchError.underlying VeryShortWatchError
+  underlying : go.UnderlyingDirectedEq VeryShortWatchError.ty VeryShortWatchError.underlying
+  get_Name : ∀ (x : VeryShortWatchError), go.IsGoStepPureDetTagged under (StructFieldGet VeryShortWatchError.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : VeryShortWatchError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet VeryShortWatchError.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : VeryShortWatchError)))
+  method_set : go.MethodSetIs VeryShortWatchError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VeryShortWatchError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType VeryShortWatchError.ty) go!"Error" VeryShortWatchError.Error.impl
+
+attribute [instance] VeryShortWatchError.TypeAssumptions.type_repr
+  VeryShortWatchError.TypeAssumptions.underlying
+  VeryShortWatchError.TypeAssumptions.get_Name
+  VeryShortWatchError.TypeAssumptions.set_Name
+  VeryShortWatchError.TypeAssumptions.method_set
+  VeryShortWatchError.TypeAssumptions.ptr_method_set
+  VeryShortWatchError.TypeAssumptions.ptr_Error_unfold
+
+class CounterMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq CounterMetric.ty CounterMetric.underlying
+  method_set : go.MethodSetIs CounterMetric.ty [(go!"Inc", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterMetric.ty) []
+
+attribute [instance] CounterMetric.TypeAssumptions.underlying
+  CounterMetric.TypeAssumptions.method_set
+  CounterMetric.TypeAssumptions.ptr_method_set
+
+class SummaryMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq SummaryMetric.ty SummaryMetric.underlying
+  method_set : go.MethodSetIs SummaryMetric.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryMetric.ty) []
+
+attribute [instance] SummaryMetric.TypeAssumptions.underlying
+  SummaryMetric.TypeAssumptions.method_set
+  SummaryMetric.TypeAssumptions.ptr_method_set
+
+class noopMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying noopMetric.underlying noopMetric
+  underlying : go.UnderlyingDirectedEq noopMetric.ty noopMetric.underlying
+  method_set : go.MethodSetIs noopMetric.ty [(go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopMetric.ty) [(go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false [])))]
+  Dec_unfold : MethodUnfold noopMetric.ty go!"Dec" noopMetric.Dec.impl
+  Inc_unfold : MethodUnfold noopMetric.ty go!"Inc" noopMetric.Inc.impl
+  Observe_unfold : MethodUnfold noopMetric.ty go!"Observe" noopMetric.Observe.impl
+  Set_unfold : MethodUnfold noopMetric.ty go!"Set" noopMetric.Set.impl
+  ptr_Dec_unfold : MethodUnfold (go.GoType.PointerType noopMetric.ty) go!"Dec" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetric.ty go!"Dec"))) (App (Val (GoInstruction (GoLoad noopMetric.ty))) (Var "$r"))))
+  ptr_Inc_unfold : MethodUnfold (go.GoType.PointerType noopMetric.ty) go!"Inc" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetric.ty go!"Inc"))) (App (Val (GoInstruction (GoLoad noopMetric.ty))) (Var "$r"))))
+  ptr_Observe_unfold : MethodUnfold (go.GoType.PointerType noopMetric.ty) go!"Observe" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetric.ty go!"Observe"))) (App (Val (GoInstruction (GoLoad noopMetric.ty))) (Var "$r"))))
+  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType noopMetric.ty) go!"Set" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetric.ty go!"Set"))) (App (Val (GoInstruction (GoLoad noopMetric.ty))) (Var "$r"))))
+
+attribute [instance] noopMetric.TypeAssumptions.type_repr
+  noopMetric.TypeAssumptions.underlying
+  noopMetric.TypeAssumptions.method_set
+  noopMetric.TypeAssumptions.ptr_method_set
+  noopMetric.TypeAssumptions.Dec_unfold
+  noopMetric.TypeAssumptions.Inc_unfold
+  noopMetric.TypeAssumptions.Observe_unfold
+  noopMetric.TypeAssumptions.Set_unfold
+  noopMetric.TypeAssumptions.ptr_Dec_unfold
+  noopMetric.TypeAssumptions.ptr_Inc_unfold
+  noopMetric.TypeAssumptions.ptr_Observe_unfold
+  noopMetric.TypeAssumptions.ptr_Set_unfold
+
+class MetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq MetricsProvider.ty MetricsProvider.underlying
+  method_set : go.MethodSetIs MetricsProvider.ty [(go!"NewItemsInListMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewItemsInWatchMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewLastResourceVersionMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewListDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewListsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewShortWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewWatchDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricsProvider.ty) []
+
+attribute [instance] MetricsProvider.TypeAssumptions.underlying
+  MetricsProvider.TypeAssumptions.method_set
+  MetricsProvider.TypeAssumptions.ptr_method_set
+
+class noopMetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying noopMetricsProvider.underlying noopMetricsProvider
+  underlying : go.UnderlyingDirectedEq noopMetricsProvider.ty noopMetricsProvider.underlying
+  method_set : go.MethodSetIs noopMetricsProvider.ty [(go!"NewItemsInListMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewItemsInWatchMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewLastResourceVersionMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewListDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewListsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewShortWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewWatchDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopMetricsProvider.ty) [(go!"NewItemsInListMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewItemsInWatchMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewLastResourceVersionMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewListDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewListsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewShortWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewWatchDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty])))]
+  NewItemsInListMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewItemsInListMetric" noopMetricsProvider.NewItemsInListMetric.impl
+  NewItemsInWatchMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewItemsInWatchMetric" noopMetricsProvider.NewItemsInWatchMetric.impl
+  NewLastResourceVersionMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewLastResourceVersionMetric" noopMetricsProvider.NewLastResourceVersionMetric.impl
+  NewListDurationMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewListDurationMetric" noopMetricsProvider.NewListDurationMetric.impl
+  NewListsMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewListsMetric" noopMetricsProvider.NewListsMetric.impl
+  NewShortWatchesMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewShortWatchesMetric" noopMetricsProvider.NewShortWatchesMetric.impl
+  NewWatchDurationMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewWatchDurationMetric" noopMetricsProvider.NewWatchDurationMetric.impl
+  NewWatchesMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewWatchesMetric" noopMetricsProvider.NewWatchesMetric.impl
+  ptr_NewItemsInListMetric_unfold : MethodUnfold (go.GoType.PointerType noopMetricsProvider.ty) go!"NewItemsInListMetric" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetricsProvider.ty go!"NewItemsInListMetric"))) (App (Val (GoInstruction (GoLoad noopMetricsProvider.ty))) (Var "$r"))))
+  ptr_NewItemsInWatchMetric_unfold : MethodUnfold (go.GoType.PointerType noopMetricsProvider.ty) go!"NewItemsInWatchMetric" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetricsProvider.ty go!"NewItemsInWatchMetric"))) (App (Val (GoInstruction (GoLoad noopMetricsProvider.ty))) (Var "$r"))))
+  ptr_NewLastResourceVersionMetric_unfold : MethodUnfold (go.GoType.PointerType noopMetricsProvider.ty) go!"NewLastResourceVersionMetric" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetricsProvider.ty go!"NewLastResourceVersionMetric"))) (App (Val (GoInstruction (GoLoad noopMetricsProvider.ty))) (Var "$r"))))
+  ptr_NewListDurationMetric_unfold : MethodUnfold (go.GoType.PointerType noopMetricsProvider.ty) go!"NewListDurationMetric" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetricsProvider.ty go!"NewListDurationMetric"))) (App (Val (GoInstruction (GoLoad noopMetricsProvider.ty))) (Var "$r"))))
+  ptr_NewListsMetric_unfold : MethodUnfold (go.GoType.PointerType noopMetricsProvider.ty) go!"NewListsMetric" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetricsProvider.ty go!"NewListsMetric"))) (App (Val (GoInstruction (GoLoad noopMetricsProvider.ty))) (Var "$r"))))
+  ptr_NewShortWatchesMetric_unfold : MethodUnfold (go.GoType.PointerType noopMetricsProvider.ty) go!"NewShortWatchesMetric" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetricsProvider.ty go!"NewShortWatchesMetric"))) (App (Val (GoInstruction (GoLoad noopMetricsProvider.ty))) (Var "$r"))))
+  ptr_NewWatchDurationMetric_unfold : MethodUnfold (go.GoType.PointerType noopMetricsProvider.ty) go!"NewWatchDurationMetric" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetricsProvider.ty go!"NewWatchDurationMetric"))) (App (Val (GoInstruction (GoLoad noopMetricsProvider.ty))) (Var "$r"))))
+  ptr_NewWatchesMetric_unfold : MethodUnfold (go.GoType.PointerType noopMetricsProvider.ty) go!"NewWatchesMetric" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopMetricsProvider.ty go!"NewWatchesMetric"))) (App (Val (GoInstruction (GoLoad noopMetricsProvider.ty))) (Var "$r"))))
+
+attribute [instance] noopMetricsProvider.TypeAssumptions.type_repr
+  noopMetricsProvider.TypeAssumptions.underlying
+  noopMetricsProvider.TypeAssumptions.method_set
+  noopMetricsProvider.TypeAssumptions.ptr_method_set
+  noopMetricsProvider.TypeAssumptions.NewItemsInListMetric_unfold
+  noopMetricsProvider.TypeAssumptions.NewItemsInWatchMetric_unfold
+  noopMetricsProvider.TypeAssumptions.NewLastResourceVersionMetric_unfold
+  noopMetricsProvider.TypeAssumptions.NewListDurationMetric_unfold
+  noopMetricsProvider.TypeAssumptions.NewListsMetric_unfold
+  noopMetricsProvider.TypeAssumptions.NewShortWatchesMetric_unfold
+  noopMetricsProvider.TypeAssumptions.NewWatchDurationMetric_unfold
+  noopMetricsProvider.TypeAssumptions.NewWatchesMetric_unfold
+  noopMetricsProvider.TypeAssumptions.ptr_NewItemsInListMetric_unfold
+  noopMetricsProvider.TypeAssumptions.ptr_NewItemsInWatchMetric_unfold
+  noopMetricsProvider.TypeAssumptions.ptr_NewLastResourceVersionMetric_unfold
+  noopMetricsProvider.TypeAssumptions.ptr_NewListDurationMetric_unfold
+  noopMetricsProvider.TypeAssumptions.ptr_NewListsMetric_unfold
+  noopMetricsProvider.TypeAssumptions.ptr_NewShortWatchesMetric_unfold
+  noopMetricsProvider.TypeAssumptions.ptr_NewWatchDurationMetric_unfold
+  noopMetricsProvider.TypeAssumptions.ptr_NewWatchesMetric_unfold
+
+class RetryWithDeadline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq RetryWithDeadline.ty RetryWithDeadline.underlying
+  method_set : go.MethodSetIs RetryWithDeadline.ty [(go!"After", (some (go.signature.Signature [go.error] false []))), (go!"ShouldRetry", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RetryWithDeadline.ty) []
+
+attribute [instance] RetryWithDeadline.TypeAssumptions.underlying
+  RetryWithDeadline.TypeAssumptions.method_set
+  RetryWithDeadline.TypeAssumptions.ptr_method_set
+
+class retryWithDeadlineImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying retryWithDeadlineImpl.underlying retryWithDeadlineImpl
+  underlying : go.UnderlyingDirectedEq retryWithDeadlineImpl.ty retryWithDeadlineImpl.underlying
+  get_firstErrorTime : ∀ (x : retryWithDeadlineImpl), go.IsGoStepPureDetTagged under (StructFieldGet retryWithDeadlineImpl.underlying go!"firstErrorTime") #x (Val #(x.firstErrorTime'))
+  set_firstErrorTime : ∀ (x : retryWithDeadlineImpl) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet retryWithDeadlineImpl.underlying go!"firstErrorTime") (PairV #x #y) (Val #(({ x with firstErrorTime' := y } : retryWithDeadlineImpl)))
+  get_lastErrorTime : ∀ (x : retryWithDeadlineImpl), go.IsGoStepPureDetTagged under (StructFieldGet retryWithDeadlineImpl.underlying go!"lastErrorTime") #x (Val #(x.lastErrorTime'))
+  set_lastErrorTime : ∀ (x : retryWithDeadlineImpl) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet retryWithDeadlineImpl.underlying go!"lastErrorTime") (PairV #x #y) (Val #(({ x with lastErrorTime' := y } : retryWithDeadlineImpl)))
+  get_maxRetryDuration : ∀ (x : retryWithDeadlineImpl), go.IsGoStepPureDetTagged under (StructFieldGet retryWithDeadlineImpl.underlying go!"maxRetryDuration") #x (Val #(x.maxRetryDuration'))
+  set_maxRetryDuration : ∀ (x : retryWithDeadlineImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet retryWithDeadlineImpl.underlying go!"maxRetryDuration") (PairV #x #y) (Val #(({ x with maxRetryDuration' := y } : retryWithDeadlineImpl)))
+  get_minResetPeriod : ∀ (x : retryWithDeadlineImpl), go.IsGoStepPureDetTagged under (StructFieldGet retryWithDeadlineImpl.underlying go!"minResetPeriod") #x (Val #(x.minResetPeriod'))
+  set_minResetPeriod : ∀ (x : retryWithDeadlineImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet retryWithDeadlineImpl.underlying go!"minResetPeriod") (PairV #x #y) (Val #(({ x with minResetPeriod' := y } : retryWithDeadlineImpl)))
+  get_isRetryable : ∀ (x : retryWithDeadlineImpl), go.IsGoStepPureDetTagged under (StructFieldGet retryWithDeadlineImpl.underlying go!"isRetryable") #x (Val #(x.isRetryable'))
+  set_isRetryable : ∀ (x : retryWithDeadlineImpl) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet retryWithDeadlineImpl.underlying go!"isRetryable") (PairV #x #y) (Val #(({ x with isRetryable' := y } : retryWithDeadlineImpl)))
+  get_clock : ∀ (x : retryWithDeadlineImpl), go.IsGoStepPureDetTagged under (StructFieldGet retryWithDeadlineImpl.underlying go!"clock") #x (Val #(x.clock'))
+  set_clock : ∀ (x : retryWithDeadlineImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet retryWithDeadlineImpl.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : retryWithDeadlineImpl)))
+  method_set : go.MethodSetIs retryWithDeadlineImpl.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryWithDeadlineImpl.ty) [(go!"After", (some (go.signature.Signature [go.error] false []))), (go!"ShouldRetry", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.reset", (some (go.signature.Signature [] false [])))]
+  ptr_After_unfold : MethodUnfold (go.GoType.PointerType retryWithDeadlineImpl.ty) go!"After" retryWithDeadlineImpl.After.impl
+  ptr_ShouldRetry_unfold : MethodUnfold (go.GoType.PointerType retryWithDeadlineImpl.ty) go!"ShouldRetry" retryWithDeadlineImpl.ShouldRetry.impl
+  ptr_reset_unfold : MethodUnfold (go.GoType.PointerType retryWithDeadlineImpl.ty) go!"reset" retryWithDeadlineImpl.reset.impl
+
+attribute [instance] retryWithDeadlineImpl.TypeAssumptions.type_repr
+  retryWithDeadlineImpl.TypeAssumptions.underlying
+  retryWithDeadlineImpl.TypeAssumptions.get_firstErrorTime
+  retryWithDeadlineImpl.TypeAssumptions.set_firstErrorTime
+  retryWithDeadlineImpl.TypeAssumptions.get_lastErrorTime
+  retryWithDeadlineImpl.TypeAssumptions.set_lastErrorTime
+  retryWithDeadlineImpl.TypeAssumptions.get_maxRetryDuration
+  retryWithDeadlineImpl.TypeAssumptions.set_maxRetryDuration
+  retryWithDeadlineImpl.TypeAssumptions.get_minResetPeriod
+  retryWithDeadlineImpl.TypeAssumptions.set_minResetPeriod
+  retryWithDeadlineImpl.TypeAssumptions.get_isRetryable
+  retryWithDeadlineImpl.TypeAssumptions.set_isRetryable
+  retryWithDeadlineImpl.TypeAssumptions.get_clock
+  retryWithDeadlineImpl.TypeAssumptions.set_clock
+  retryWithDeadlineImpl.TypeAssumptions.method_set
+  retryWithDeadlineImpl.TypeAssumptions.ptr_method_set
+  retryWithDeadlineImpl.TypeAssumptions.ptr_After_unfold
+  retryWithDeadlineImpl.TypeAssumptions.ptr_ShouldRetry_unfold
+  retryWithDeadlineImpl.TypeAssumptions.ptr_reset_unfold
+
+class SharedInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq SharedInformer.ty SharedInformer.underlying
+  method_set : go.MethodSetIs SharedInformer.ty [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetShardSelector", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SharedInformer.ty) []
+
+attribute [instance] SharedInformer.TypeAssumptions.underlying
+  SharedInformer.TypeAssumptions.method_set
+  SharedInformer.TypeAssumptions.ptr_method_set
+
+class ResourceEventHandlerRegistration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ResourceEventHandlerRegistration.ty ResourceEventHandlerRegistration.underlying
+  method_set : go.MethodSetIs ResourceEventHandlerRegistration.ty [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceEventHandlerRegistration.ty) []
+
+attribute [instance] ResourceEventHandlerRegistration.TypeAssumptions.underlying
+  ResourceEventHandlerRegistration.TypeAssumptions.method_set
+  ResourceEventHandlerRegistration.TypeAssumptions.ptr_method_set
+
+class HandlerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying HandlerOptions.underlying HandlerOptions
+  underlying : go.UnderlyingDirectedEq HandlerOptions.ty HandlerOptions.underlying
+  get_Logger : ∀ (x : HandlerOptions), go.IsGoStepPureDetTagged under (StructFieldGet HandlerOptions.underlying go!"Logger") #x (Val #(x.Logger'))
+  set_Logger : ∀ (x : HandlerOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HandlerOptions.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : HandlerOptions)))
+  get_ResyncPeriod : ∀ (x : HandlerOptions), go.IsGoStepPureDetTagged under (StructFieldGet HandlerOptions.underlying go!"ResyncPeriod") #x (Val #(x.ResyncPeriod'))
+  set_ResyncPeriod : ∀ (x : HandlerOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HandlerOptions.underlying go!"ResyncPeriod") (PairV #x #y) (Val #(({ x with ResyncPeriod' := y } : HandlerOptions)))
+  method_set : go.MethodSetIs HandlerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HandlerOptions.ty) []
+
+attribute [instance] HandlerOptions.TypeAssumptions.type_repr
+  HandlerOptions.TypeAssumptions.underlying
+  HandlerOptions.TypeAssumptions.get_Logger
+  HandlerOptions.TypeAssumptions.set_Logger
+  HandlerOptions.TypeAssumptions.get_ResyncPeriod
+  HandlerOptions.TypeAssumptions.set_ResyncPeriod
+  HandlerOptions.TypeAssumptions.method_set
+  HandlerOptions.TypeAssumptions.ptr_method_set
+
+class SharedIndexInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq SharedIndexInformer.ty SharedIndexInformer.underlying
+  method_set : go.MethodSetIs SharedIndexInformer.ty [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetShardSelector", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SharedIndexInformer.ty) []
+
+attribute [instance] SharedIndexInformer.TypeAssumptions.underlying
+  SharedIndexInformer.TypeAssumptions.method_set
+  SharedIndexInformer.TypeAssumptions.ptr_method_set
+
+class TypedSharedIndexInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedSharedIndexInformer.ty T) (TypedSharedIndexInformer.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedSharedIndexInformer.ty T) [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedEventHandler", (some (go.signature.Signature [(TypedResourceEventHandler.ty T), (go.GoType.SliceType HandlerOptions.ty)] true [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"GetTypedIndexer", (some (go.signature.Signature [] false [(TypedIndexer.ty T)]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetShardSelector", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedSharedIndexInformer.ty T)) []
+
+attribute [instance] TypedSharedIndexInformer.TypeAssumptions.underlying
+  TypedSharedIndexInformer.TypeAssumptions.method_set
+  TypedSharedIndexInformer.TypeAssumptions.ptr_method_set
+
+class typedSharedIndexInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (typedSharedIndexInformer.underlying T) (typedSharedIndexInformer T')
+  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (typedSharedIndexInformer.ty T) (typedSharedIndexInformer.underlying T)
+  get_SharedIndexInformer : ∀ (T : go.GoType) (T' : Type) (x : (typedSharedIndexInformer T')), go.IsGoStepPureDetTagged under (StructFieldGet (typedSharedIndexInformer.underlying T) go!"SharedIndexInformer") #x (Val #(x.SharedIndexInformer'))
+  set_SharedIndexInformer : ∀ (T : go.GoType) (T' : Type) (x : (typedSharedIndexInformer T')) (y : SharedIndexInformer), go.IsGoStepPureDetTagged under (StructFieldSet (typedSharedIndexInformer.underlying T) go!"SharedIndexInformer") (PairV #x #y) (Val #(({ x with SharedIndexInformer' := y } : (typedSharedIndexInformer T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (typedSharedIndexInformer.ty T) [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedEventHandler", (some (go.signature.Signature [(TypedResourceEventHandler.ty T), (go.GoType.SliceType HandlerOptions.ty)] true [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"GetTypedIndexer", (some (go.signature.Signature [] false [(TypedIndexer.ty T)]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetShardSelector", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (typedSharedIndexInformer.ty T)) [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedEventHandler", (some (go.signature.Signature [(TypedResourceEventHandler.ty T), (go.GoType.SliceType HandlerOptions.ty)] true [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"GetTypedIndexer", (some (go.signature.Signature [] false [(TypedIndexer.ty T)]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetShardSelector", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  AddTypedEventHandler_unfold : ∀ (T : go.GoType), MethodUnfold (typedSharedIndexInformer.ty T) go!"AddTypedEventHandler" (typedSharedIndexInformer.AddTypedEventHandler.impl T)
+  AddTypedIndexers_unfold : ∀ (T : go.GoType), MethodUnfold (typedSharedIndexInformer.ty T) go!"AddTypedIndexers" (typedSharedIndexInformer.AddTypedIndexers.impl T)
+  GetTypedIndexer_unfold : ∀ (T : go.GoType), MethodUnfold (typedSharedIndexInformer.ty T) go!"GetTypedIndexer" (typedSharedIndexInformer.GetTypedIndexer.impl T)
+  ptr_AddTypedEventHandler_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedSharedIndexInformer.ty T)) go!"AddTypedEventHandler" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (typedSharedIndexInformer.ty T) go!"AddTypedEventHandler"))) (App (Val (GoInstruction (GoLoad (typedSharedIndexInformer.ty T)))) (Var "$r"))))
+  ptr_AddTypedIndexers_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedSharedIndexInformer.ty T)) go!"AddTypedIndexers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (typedSharedIndexInformer.ty T) go!"AddTypedIndexers"))) (App (Val (GoInstruction (GoLoad (typedSharedIndexInformer.ty T)))) (Var "$r"))))
+  ptr_GetTypedIndexer_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedSharedIndexInformer.ty T)) go!"GetTypedIndexer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (typedSharedIndexInformer.ty T) go!"GetTypedIndexer"))) (App (Val (GoInstruction (GoLoad (typedSharedIndexInformer.ty T)))) (Var "$r"))))
+
+attribute [instance] typedSharedIndexInformer.TypeAssumptions.type_repr
+  typedSharedIndexInformer.TypeAssumptions.underlying
+  typedSharedIndexInformer.TypeAssumptions.get_SharedIndexInformer
+  typedSharedIndexInformer.TypeAssumptions.set_SharedIndexInformer
+  typedSharedIndexInformer.TypeAssumptions.method_set
+  typedSharedIndexInformer.TypeAssumptions.ptr_method_set
+  typedSharedIndexInformer.TypeAssumptions.AddTypedEventHandler_unfold
+  typedSharedIndexInformer.TypeAssumptions.AddTypedIndexers_unfold
+  typedSharedIndexInformer.TypeAssumptions.GetTypedIndexer_unfold
+  typedSharedIndexInformer.TypeAssumptions.ptr_AddTypedEventHandler_unfold
+  typedSharedIndexInformer.TypeAssumptions.ptr_AddTypedIndexers_unfold
+  typedSharedIndexInformer.TypeAssumptions.ptr_GetTypedIndexer_unfold
+
+class typedResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (typedResourceEventHandler.underlying T) (typedResourceEventHandler T')
+  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (typedResourceEventHandler.ty T) (typedResourceEventHandler.underlying T)
+  get_handler : ∀ (T : go.GoType) (T' : Type) (x : (typedResourceEventHandler T')), go.IsGoStepPureDetTagged under (StructFieldGet (typedResourceEventHandler.underlying T) go!"handler") #x (Val #(x.handler'))
+  set_handler : ∀ (T : go.GoType) (T' : Type) (x : (typedResourceEventHandler T')) (y : (TypedResourceEventHandler T')), go.IsGoStepPureDetTagged under (StructFieldSet (typedResourceEventHandler.underlying T) go!"handler") (PairV #x #y) (Val #(({ x with handler' := y } : (typedResourceEventHandler T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (typedResourceEventHandler.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (typedResourceEventHandler.ty T)) [(go!"OnAdd", (some (go.signature.Signature [go.any, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [go.any] false []))), (go!"OnUpdate", (some (go.signature.Signature [go.any, go.any] false [])))]
+  ptr_OnAdd_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedResourceEventHandler.ty T)) go!"OnAdd" (typedResourceEventHandler.OnAdd.impl T)
+  ptr_OnDelete_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedResourceEventHandler.ty T)) go!"OnDelete" (typedResourceEventHandler.OnDelete.impl T)
+  ptr_OnUpdate_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedResourceEventHandler.ty T)) go!"OnUpdate" (typedResourceEventHandler.OnUpdate.impl T)
+
+attribute [instance] typedResourceEventHandler.TypeAssumptions.type_repr
+  typedResourceEventHandler.TypeAssumptions.underlying
+  typedResourceEventHandler.TypeAssumptions.get_handler
+  typedResourceEventHandler.TypeAssumptions.set_handler
+  typedResourceEventHandler.TypeAssumptions.method_set
+  typedResourceEventHandler.TypeAssumptions.ptr_method_set
+  typedResourceEventHandler.TypeAssumptions.ptr_OnAdd_unfold
+  typedResourceEventHandler.TypeAssumptions.ptr_OnDelete_unfold
+  typedResourceEventHandler.TypeAssumptions.ptr_OnUpdate_unfold
+
+class typedIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (typedIndexer.underlying T) (typedIndexer T')
+  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (typedIndexer.ty T) (typedIndexer.underlying T)
+  get_Indexer : ∀ (T : go.GoType) (T' : Type) (x : (typedIndexer T')), go.IsGoStepPureDetTagged under (StructFieldGet (typedIndexer.underlying T) go!"Indexer") #x (Val #(x.Indexer'))
+  set_Indexer : ∀ (T : go.GoType) (T' : Type) (x : (typedIndexer T')) (y : Indexer), go.IsGoStepPureDetTagged under (StructFieldSet (typedIndexer.underlying T) go!"Indexer") (PairV #x #y) (Val #(({ x with Indexer' := y } : (typedIndexer T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (typedIndexer.ty T) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"ByTypedIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType T), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"TypedIndex", (some (go.signature.Signature [go.string, T] false [(go.GoType.SliceType T), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (typedIndexer.ty T)) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"ByTypedIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType T), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"TypedIndex", (some (go.signature.Signature [go.string, T] false [(go.GoType.SliceType T), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  AddTypedIndexers_unfold : ∀ (T : go.GoType), MethodUnfold (typedIndexer.ty T) go!"AddTypedIndexers" (typedIndexer.AddTypedIndexers.impl T)
+  ByTypedIndex_unfold : ∀ (T : go.GoType), MethodUnfold (typedIndexer.ty T) go!"ByTypedIndex" (typedIndexer.ByTypedIndex.impl T)
+  TypedIndex_unfold : ∀ (T : go.GoType), MethodUnfold (typedIndexer.ty T) go!"TypedIndex" (typedIndexer.TypedIndex.impl T)
+  ptr_AddTypedIndexers_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedIndexer.ty T)) go!"AddTypedIndexers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (typedIndexer.ty T) go!"AddTypedIndexers"))) (App (Val (GoInstruction (GoLoad (typedIndexer.ty T)))) (Var "$r"))))
+  ptr_ByTypedIndex_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedIndexer.ty T)) go!"ByTypedIndex" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (typedIndexer.ty T) go!"ByTypedIndex"))) (App (Val (GoInstruction (GoLoad (typedIndexer.ty T)))) (Var "$r"))))
+  ptr_TypedIndex_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (typedIndexer.ty T)) go!"TypedIndex" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (typedIndexer.ty T) go!"TypedIndex"))) (App (Val (GoInstruction (GoLoad (typedIndexer.ty T)))) (Var "$r"))))
+
+attribute [instance] typedIndexer.TypeAssumptions.type_repr
+  typedIndexer.TypeAssumptions.underlying
+  typedIndexer.TypeAssumptions.get_Indexer
+  typedIndexer.TypeAssumptions.set_Indexer
+  typedIndexer.TypeAssumptions.method_set
+  typedIndexer.TypeAssumptions.ptr_method_set
+  typedIndexer.TypeAssumptions.AddTypedIndexers_unfold
+  typedIndexer.TypeAssumptions.ByTypedIndex_unfold
+  typedIndexer.TypeAssumptions.TypedIndex_unfold
+  typedIndexer.TypeAssumptions.ptr_AddTypedIndexers_unfold
+  typedIndexer.TypeAssumptions.ptr_ByTypedIndex_unfold
+  typedIndexer.TypeAssumptions.ptr_TypedIndex_unfold
+
+class SharedIndexInformerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying SharedIndexInformerOptions.underlying SharedIndexInformerOptions
+  underlying : go.UnderlyingDirectedEq SharedIndexInformerOptions.ty SharedIndexInformerOptions.underlying
+  get_ResyncPeriod : ∀ (x : SharedIndexInformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet SharedIndexInformerOptions.underlying go!"ResyncPeriod") #x (Val #(x.ResyncPeriod'))
+  set_ResyncPeriod : ∀ (x : SharedIndexInformerOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet SharedIndexInformerOptions.underlying go!"ResyncPeriod") (PairV #x #y) (Val #(({ x with ResyncPeriod' := y } : SharedIndexInformerOptions)))
+  get_Indexers : ∀ (x : SharedIndexInformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet SharedIndexInformerOptions.underlying go!"Indexers") #x (Val #(x.Indexers'))
+  set_Indexers : ∀ (x : SharedIndexInformerOptions) (y : Indexers), go.IsGoStepPureDetTagged under (StructFieldSet SharedIndexInformerOptions.underlying go!"Indexers") (PairV #x #y) (Val #(({ x with Indexers' := y } : SharedIndexInformerOptions)))
+  get_ObjectDescription : ∀ (x : SharedIndexInformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet SharedIndexInformerOptions.underlying go!"ObjectDescription") #x (Val #(x.ObjectDescription'))
+  set_ObjectDescription : ∀ (x : SharedIndexInformerOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SharedIndexInformerOptions.underlying go!"ObjectDescription") (PairV #x #y) (Val #(({ x with ObjectDescription' := y } : SharedIndexInformerOptions)))
+  get_Identifier : ∀ (x : SharedIndexInformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet SharedIndexInformerOptions.underlying go!"Identifier") #x (Val #(x.Identifier'))
+  set_Identifier : ∀ (x : SharedIndexInformerOptions) (y : InformerNameAndResource), go.IsGoStepPureDetTagged under (StructFieldSet SharedIndexInformerOptions.underlying go!"Identifier") (PairV #x #y) (Val #(({ x with Identifier' := y } : SharedIndexInformerOptions)))
+  get_InformerMetricsProvider : ∀ (x : SharedIndexInformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet SharedIndexInformerOptions.underlying go!"InformerMetricsProvider") #x (Val #(x.InformerMetricsProvider'))
+  set_InformerMetricsProvider : ∀ (x : SharedIndexInformerOptions) (y : InformerMetricsProvider), go.IsGoStepPureDetTagged under (StructFieldSet SharedIndexInformerOptions.underlying go!"InformerMetricsProvider") (PairV #x #y) (Val #(({ x with InformerMetricsProvider' := y } : SharedIndexInformerOptions)))
+  get_ShardSelector : ∀ (x : SharedIndexInformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet SharedIndexInformerOptions.underlying go!"ShardSelector") #x (Val #(x.ShardSelector'))
+  set_ShardSelector : ∀ (x : SharedIndexInformerOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector), go.IsGoStepPureDetTagged under (StructFieldSet SharedIndexInformerOptions.underlying go!"ShardSelector") (PairV #x #y) (Val #(({ x with ShardSelector' := y } : SharedIndexInformerOptions)))
+  method_set : go.MethodSetIs SharedIndexInformerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SharedIndexInformerOptions.ty) []
+
+attribute [instance] SharedIndexInformerOptions.TypeAssumptions.type_repr
+  SharedIndexInformerOptions.TypeAssumptions.underlying
+  SharedIndexInformerOptions.TypeAssumptions.get_ResyncPeriod
+  SharedIndexInformerOptions.TypeAssumptions.set_ResyncPeriod
+  SharedIndexInformerOptions.TypeAssumptions.get_Indexers
+  SharedIndexInformerOptions.TypeAssumptions.set_Indexers
+  SharedIndexInformerOptions.TypeAssumptions.get_ObjectDescription
+  SharedIndexInformerOptions.TypeAssumptions.set_ObjectDescription
+  SharedIndexInformerOptions.TypeAssumptions.get_Identifier
+  SharedIndexInformerOptions.TypeAssumptions.set_Identifier
+  SharedIndexInformerOptions.TypeAssumptions.get_InformerMetricsProvider
+  SharedIndexInformerOptions.TypeAssumptions.set_InformerMetricsProvider
+  SharedIndexInformerOptions.TypeAssumptions.get_ShardSelector
+  SharedIndexInformerOptions.TypeAssumptions.set_ShardSelector
+  SharedIndexInformerOptions.TypeAssumptions.method_set
+  SharedIndexInformerOptions.TypeAssumptions.ptr_method_set
+
+class InformerSynced.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq InformerSynced.ty InformerSynced.underlying
+  method_set : go.MethodSetIs InformerSynced.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerSynced.ty) []
+
+attribute [instance] InformerSynced.TypeAssumptions.underlying
+  InformerSynced.TypeAssumptions.method_set
+  InformerSynced.TypeAssumptions.ptr_method_set
+
+class DoneChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq DoneChecker.ty DoneChecker.underlying
+  method_set : go.MethodSetIs DoneChecker.ty [(go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DoneChecker.ty) []
+
+attribute [instance] DoneChecker.TypeAssumptions.underlying
+  DoneChecker.TypeAssumptions.method_set
+  DoneChecker.TypeAssumptions.ptr_method_set
+
+class result.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying result.underlying result
+  underlying : go.UnderlyingDirectedEq result.ty result.underlying
+  get_checker : ∀ (x : result), go.IsGoStepPureDetTagged under (StructFieldGet result.underlying go!"checker") #x (Val #(x.checker'))
+  set_checker : ∀ (x : result) (y : DoneChecker), go.IsGoStepPureDetTagged under (StructFieldSet result.underlying go!"checker") (PairV #x #y) (Val #(({ x with checker' := y } : result)))
+  get_done : ∀ (x : result), go.IsGoStepPureDetTagged under (StructFieldGet result.underlying go!"done") #x (Val #(x.done'))
+  set_done : ∀ (x : result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet result.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : result)))
+  method_set : go.MethodSetIs result.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType result.ty) []
+
+attribute [instance] result.TypeAssumptions.type_repr
+  result.TypeAssumptions.underlying
+  result.TypeAssumptions.get_checker
+  result.TypeAssumptions.set_checker
+  result.TypeAssumptions.get_done
+  result.TypeAssumptions.set_done
+  result.TypeAssumptions.method_set
+  result.TypeAssumptions.ptr_method_set
+
+class SyncResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying SyncResult.underlying SyncResult
+  underlying : go.UnderlyingDirectedEq SyncResult.ty SyncResult.underlying
+  get_Err : ∀ (x : SyncResult), go.IsGoStepPureDetTagged under (StructFieldGet SyncResult.underlying go!"Err") #x (Val #(x.Err'))
+  set_Err : ∀ (x : SyncResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet SyncResult.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : SyncResult)))
+  get_Synced : ∀ (x : SyncResult), go.IsGoStepPureDetTagged under (StructFieldGet SyncResult.underlying go!"Synced") #x (Val #(x.Synced'))
+  set_Synced : ∀ (x : SyncResult) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet SyncResult.underlying go!"Synced") (PairV #x #y) (Val #(({ x with Synced' := y } : SyncResult)))
+  method_set : go.MethodSetIs SyncResult.ty [(go!"AsError", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SyncResult.ty) [(go!"AsError", (some (go.signature.Signature [] false [go.error])))]
+  AsError_unfold : MethodUnfold SyncResult.ty go!"AsError" SyncResult.AsError.impl
+  ptr_AsError_unfold : MethodUnfold (go.GoType.PointerType SyncResult.ty) go!"AsError" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve SyncResult.ty go!"AsError"))) (App (Val (GoInstruction (GoLoad SyncResult.ty))) (Var "$r"))))
+
+attribute [instance] SyncResult.TypeAssumptions.type_repr
+  SyncResult.TypeAssumptions.underlying
+  SyncResult.TypeAssumptions.get_Err
+  SyncResult.TypeAssumptions.set_Err
+  SyncResult.TypeAssumptions.get_Synced
+  SyncResult.TypeAssumptions.set_Synced
+  SyncResult.TypeAssumptions.method_set
+  SyncResult.TypeAssumptions.ptr_method_set
+  SyncResult.TypeAssumptions.AsError_unfold
+  SyncResult.TypeAssumptions.ptr_AsError_unfold
+
+class sharedIndexInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sharedIndexInformer.underlying sharedIndexInformer
   underlying : go.UnderlyingDirectedEq sharedIndexInformer.ty sharedIndexInformer.underlying
   get_indexer : ∀ (x : sharedIndexInformer), go.IsGoStepPureDetTagged under (StructFieldGet sharedIndexInformer.underlying go!"indexer") #x (Val #(x.indexer'))
@@ -61,6 +589,8 @@ class sharedIndexInformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   set_informerMetricsProvider : ∀ (x : sharedIndexInformer) (y : InformerMetricsProvider), go.IsGoStepPureDetTagged under (StructFieldSet sharedIndexInformer.underlying go!"informerMetricsProvider") (PairV #x #y) (Val #(({ x with informerMetricsProvider' := y } : sharedIndexInformer)))
   get_keyFunc : ∀ (x : sharedIndexInformer), go.IsGoStepPureDetTagged under (StructFieldGet sharedIndexInformer.underlying go!"keyFunc") #x (Val #(x.keyFunc'))
   set_keyFunc : ∀ (x : sharedIndexInformer) (y : KeyFunc), go.IsGoStepPureDetTagged under (StructFieldSet sharedIndexInformer.underlying go!"keyFunc") (PairV #x #y) (Val #(({ x with keyFunc' := y } : sharedIndexInformer)))
+  method_set : go.MethodSetIs sharedIndexInformer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sharedIndexInformer.ty) [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"HasStarted", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetShardSelector", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error]))), (go!"k8s.io/client-go/tools/cache.handleBatchDeltas", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.SliceType Delta.ty), go.bool] false [go.error]))), (go!"k8s.io/client-go/tools/cache.handleDeltas", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.InterfaceType []), go.bool] false [go.error])))]
   ptr_AddEventHandler_unfold : MethodUnfold (go.GoType.PointerType sharedIndexInformer.ty) go!"AddEventHandler" sharedIndexInformer.AddEventHandler.impl
   ptr_AddEventHandlerWithOptions_unfold : MethodUnfold (go.GoType.PointerType sharedIndexInformer.ty) go!"AddEventHandlerWithOptions" sharedIndexInformer.AddEventHandlerWithOptions.impl
   ptr_AddEventHandlerWithResyncPeriod_unfold : MethodUnfold (go.GoType.PointerType sharedIndexInformer.ty) go!"AddEventHandlerWithResyncPeriod" sharedIndexInformer.AddEventHandlerWithResyncPeriod.impl
@@ -130,6 +660,8 @@ attribute [instance] sharedIndexInformer.TypeAssumptions.type_repr
   sharedIndexInformer.TypeAssumptions.set_informerMetricsProvider
   sharedIndexInformer.TypeAssumptions.get_keyFunc
   sharedIndexInformer.TypeAssumptions.set_keyFunc
+  sharedIndexInformer.TypeAssumptions.method_set
+  sharedIndexInformer.TypeAssumptions.ptr_method_set
   sharedIndexInformer.TypeAssumptions.ptr_AddEventHandler_unfold
   sharedIndexInformer.TypeAssumptions.ptr_AddEventHandlerWithOptions_unfold
   sharedIndexInformer.TypeAssumptions.ptr_AddEventHandlerWithResyncPeriod_unfold
@@ -155,11 +687,13 @@ attribute [instance] sharedIndexInformer.TypeAssumptions.type_repr
   sharedIndexInformer.TypeAssumptions.ptr_handleBatchDeltas_unfold
   sharedIndexInformer.TypeAssumptions.ptr_handleDeltas_unfold
 
-class dummyController.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class dummyController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dummyController.underlying dummyController
   underlying : go.UnderlyingDirectedEq dummyController.ty dummyController.underlying
   get_informer : ∀ (x : dummyController), go.IsGoStepPureDetTagged under (StructFieldGet dummyController.underlying go!"informer") #x (Val #(x.informer'))
   set_informer : ∀ (x : dummyController) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet dummyController.underlying go!"informer") (PairV #x #y) (Val #(({ x with informer' := y } : dummyController)))
+  method_set : go.MethodSetIs dummyController.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dummyController.ty) [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])))]
   ptr_HasSynced_unfold : MethodUnfold (go.GoType.PointerType dummyController.ty) go!"HasSynced" dummyController.HasSynced.impl
   ptr_HasSyncedChecker_unfold : MethodUnfold (go.GoType.PointerType dummyController.ty) go!"HasSyncedChecker" dummyController.HasSyncedChecker.impl
   ptr_LastSyncResourceVersion_unfold : MethodUnfold (go.GoType.PointerType dummyController.ty) go!"LastSyncResourceVersion" dummyController.LastSyncResourceVersion.impl
@@ -170,19 +704,23 @@ attribute [instance] dummyController.TypeAssumptions.type_repr
   dummyController.TypeAssumptions.underlying
   dummyController.TypeAssumptions.get_informer
   dummyController.TypeAssumptions.set_informer
+  dummyController.TypeAssumptions.method_set
+  dummyController.TypeAssumptions.ptr_method_set
   dummyController.TypeAssumptions.ptr_HasSynced_unfold
   dummyController.TypeAssumptions.ptr_HasSyncedChecker_unfold
   dummyController.TypeAssumptions.ptr_LastSyncResourceVersion_unfold
   dummyController.TypeAssumptions.ptr_Run_unfold
   dummyController.TypeAssumptions.ptr_RunWithContext_unfold
 
-class updateNotification.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class updateNotification.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying updateNotification.underlying updateNotification
   underlying : go.UnderlyingDirectedEq updateNotification.ty updateNotification.underlying
   get_oldObj : ∀ (x : updateNotification), go.IsGoStepPureDetTagged under (StructFieldGet updateNotification.underlying go!"oldObj") #x (Val #(x.oldObj'))
   set_oldObj : ∀ (x : updateNotification) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet updateNotification.underlying go!"oldObj") (PairV #x #y) (Val #(({ x with oldObj' := y } : updateNotification)))
   get_newObj : ∀ (x : updateNotification), go.IsGoStepPureDetTagged under (StructFieldGet updateNotification.underlying go!"newObj") #x (Val #(x.newObj'))
   set_newObj : ∀ (x : updateNotification) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet updateNotification.underlying go!"newObj") (PairV #x #y) (Val #(({ x with newObj' := y } : updateNotification)))
+  method_set : go.MethodSetIs updateNotification.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType updateNotification.ty) []
 
 attribute [instance] updateNotification.TypeAssumptions.type_repr
   updateNotification.TypeAssumptions.underlying
@@ -190,14 +728,18 @@ attribute [instance] updateNotification.TypeAssumptions.type_repr
   updateNotification.TypeAssumptions.set_oldObj
   updateNotification.TypeAssumptions.get_newObj
   updateNotification.TypeAssumptions.set_newObj
+  updateNotification.TypeAssumptions.method_set
+  updateNotification.TypeAssumptions.ptr_method_set
 
-class addNotification.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class addNotification.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying addNotification.underlying addNotification
   underlying : go.UnderlyingDirectedEq addNotification.ty addNotification.underlying
   get_newObj : ∀ (x : addNotification), go.IsGoStepPureDetTagged under (StructFieldGet addNotification.underlying go!"newObj") #x (Val #(x.newObj'))
   set_newObj : ∀ (x : addNotification) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet addNotification.underlying go!"newObj") (PairV #x #y) (Val #(({ x with newObj' := y } : addNotification)))
   get_isInInitialList : ∀ (x : addNotification), go.IsGoStepPureDetTagged under (StructFieldGet addNotification.underlying go!"isInInitialList") #x (Val #(x.isInInitialList'))
   set_isInInitialList : ∀ (x : addNotification) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet addNotification.underlying go!"isInInitialList") (PairV #x #y) (Val #(({ x with isInInitialList' := y } : addNotification)))
+  method_set : go.MethodSetIs addNotification.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addNotification.ty) []
 
 attribute [instance] addNotification.TypeAssumptions.type_repr
   addNotification.TypeAssumptions.underlying
@@ -205,23 +747,31 @@ attribute [instance] addNotification.TypeAssumptions.type_repr
   addNotification.TypeAssumptions.set_newObj
   addNotification.TypeAssumptions.get_isInInitialList
   addNotification.TypeAssumptions.set_isInInitialList
+  addNotification.TypeAssumptions.method_set
+  addNotification.TypeAssumptions.ptr_method_set
 
-class deleteNotification.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class deleteNotification.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deleteNotification.underlying deleteNotification
   underlying : go.UnderlyingDirectedEq deleteNotification.ty deleteNotification.underlying
   get_oldObj : ∀ (x : deleteNotification), go.IsGoStepPureDetTagged under (StructFieldGet deleteNotification.underlying go!"oldObj") #x (Val #(x.oldObj'))
   set_oldObj : ∀ (x : deleteNotification) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet deleteNotification.underlying go!"oldObj") (PairV #x #y) (Val #(({ x with oldObj' := y } : deleteNotification)))
+  method_set : go.MethodSetIs deleteNotification.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType deleteNotification.ty) []
 
 attribute [instance] deleteNotification.TypeAssumptions.type_repr
   deleteNotification.TypeAssumptions.underlying
   deleteNotification.TypeAssumptions.get_oldObj
   deleteNotification.TypeAssumptions.set_oldObj
+  deleteNotification.TypeAssumptions.method_set
+  deleteNotification.TypeAssumptions.ptr_method_set
 
-class sharedIndexInformerDone.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sharedIndexInformerDone.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sharedIndexInformerDone.underlying sharedIndexInformerDone
   underlying : go.UnderlyingDirectedEq sharedIndexInformerDone.ty sharedIndexInformerDone.underlying
   get_s : ∀ (x : sharedIndexInformerDone), go.IsGoStepPureDetTagged under (StructFieldGet sharedIndexInformerDone.underlying go!"s") #x (Val #(x.s'))
   set_s : ∀ (x : sharedIndexInformerDone) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet sharedIndexInformerDone.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : sharedIndexInformerDone)))
+  method_set : go.MethodSetIs sharedIndexInformerDone.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sharedIndexInformerDone.ty) [(go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
   ptr_Done_unfold : MethodUnfold (go.GoType.PointerType sharedIndexInformerDone.ty) go!"Done" sharedIndexInformerDone.Done.impl
   ptr_Name_unfold : MethodUnfold (go.GoType.PointerType sharedIndexInformerDone.ty) go!"Name" sharedIndexInformerDone.Name.impl
 
@@ -229,10 +779,12 @@ attribute [instance] sharedIndexInformerDone.TypeAssumptions.type_repr
   sharedIndexInformerDone.TypeAssumptions.underlying
   sharedIndexInformerDone.TypeAssumptions.get_s
   sharedIndexInformerDone.TypeAssumptions.set_s
+  sharedIndexInformerDone.TypeAssumptions.method_set
+  sharedIndexInformerDone.TypeAssumptions.ptr_method_set
   sharedIndexInformerDone.TypeAssumptions.ptr_Done_unfold
   sharedIndexInformerDone.TypeAssumptions.ptr_Name_unfold
 
-class sharedProcessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sharedProcessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sharedProcessor.underlying sharedProcessor
   underlying : go.UnderlyingDirectedEq sharedProcessor.ty sharedProcessor.underlying
   get_listenersStarted : ∀ (x : sharedProcessor), go.IsGoStepPureDetTagged under (StructFieldGet sharedProcessor.underlying go!"listenersStarted") #x (Val #(x.listenersStarted'))
@@ -247,6 +799,8 @@ class sharedProcessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_clock : ∀ (x : sharedProcessor) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet sharedProcessor.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : sharedProcessor)))
   get_wg : ∀ (x : sharedProcessor), go.IsGoStepPureDetTagged under (StructFieldGet sharedProcessor.underlying go!"wg") #x (Val #(x.wg'))
   set_wg : ∀ (x : sharedProcessor) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Group), go.IsGoStepPureDetTagged under (StructFieldSet sharedProcessor.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : sharedProcessor)))
+  method_set : go.MethodSetIs sharedProcessor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sharedProcessor.ty) [(go!"k8s.io/client-go/tools/cache.addListener", (some (go.signature.Signature [(go.GoType.PointerType processorListener.ty)] false [ResourceEventHandlerRegistration.ty, go.bool]))), (go!"k8s.io/client-go/tools/cache.distribute", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"k8s.io/client-go/tools/cache.getListener", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [(go.GoType.PointerType processorListener.ty)]))), (go!"k8s.io/client-go/tools/cache.removeListener", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"k8s.io/client-go/tools/cache.resyncCheckPeriodChanged", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), _root_.Perennial.time.Duration.ty] false []))), (go!"k8s.io/client-go/tools/cache.run", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"k8s.io/client-go/tools/cache.shouldResync", (some (go.signature.Signature [] false [go.bool])))]
   ptr_addListener_unfold : MethodUnfold (go.GoType.PointerType sharedProcessor.ty) go!"addListener" sharedProcessor.addListener.impl
   ptr_distribute_unfold : MethodUnfold (go.GoType.PointerType sharedProcessor.ty) go!"distribute" sharedProcessor.distribute.impl
   ptr_getListener_unfold : MethodUnfold (go.GoType.PointerType sharedProcessor.ty) go!"getListener" sharedProcessor.getListener.impl
@@ -269,6 +823,8 @@ attribute [instance] sharedProcessor.TypeAssumptions.type_repr
   sharedProcessor.TypeAssumptions.set_clock
   sharedProcessor.TypeAssumptions.get_wg
   sharedProcessor.TypeAssumptions.set_wg
+  sharedProcessor.TypeAssumptions.method_set
+  sharedProcessor.TypeAssumptions.ptr_method_set
   sharedProcessor.TypeAssumptions.ptr_addListener_unfold
   sharedProcessor.TypeAssumptions.ptr_distribute_unfold
   sharedProcessor.TypeAssumptions.ptr_getListener_unfold
@@ -277,7 +833,7 @@ attribute [instance] sharedProcessor.TypeAssumptions.type_repr
   sharedProcessor.TypeAssumptions.ptr_run_unfold
   sharedProcessor.TypeAssumptions.ptr_shouldResync_unfold
 
-class processorListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class processorListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying processorListener.underlying processorListener
   underlying : go.UnderlyingDirectedEq processorListener.ty processorListener.underlying
   get_logger : ∀ (x : processorListener), go.IsGoStepPureDetTagged under (StructFieldGet processorListener.underlying go!"logger") #x (Val #(x.logger'))
@@ -310,6 +866,8 @@ class processorListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_nextResync : ∀ (x : processorListener) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet processorListener.underlying go!"nextResync") (PairV #x #y) (Val #(({ x with nextResync' := y } : processorListener)))
   get_resyncLock : ∀ (x : processorListener), go.IsGoStepPureDetTagged under (StructFieldGet processorListener.underlying go!"resyncLock") #x (Val #(x.resyncLock'))
   set_resyncLock : ∀ (x : processorListener) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet processorListener.underlying go!"resyncLock") (PairV #x #y) (Val #(({ x with resyncLock' := y } : processorListener)))
+  method_set : go.MethodSetIs processorListener.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType processorListener.ty) [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"ShutdownChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"k8s.io/client-go/tools/cache.add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"k8s.io/client-go/tools/cache.determineNextResync", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"k8s.io/client-go/tools/cache.pop", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.run", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.setResyncPeriod", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"k8s.io/client-go/tools/cache.shouldResync", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.watchSynced", (some (go.signature.Signature [] false [])))]
   ptr_HasSynced_unfold : MethodUnfold (go.GoType.PointerType processorListener.ty) go!"HasSynced" processorListener.HasSynced.impl
   ptr_HasSyncedChecker_unfold : MethodUnfold (go.GoType.PointerType processorListener.ty) go!"HasSyncedChecker" processorListener.HasSyncedChecker.impl
   ptr_ShutdownChan_unfold : MethodUnfold (go.GoType.PointerType processorListener.ty) go!"ShutdownChan" processorListener.ShutdownChan.impl
@@ -353,6 +911,8 @@ attribute [instance] processorListener.TypeAssumptions.type_repr
   processorListener.TypeAssumptions.set_nextResync
   processorListener.TypeAssumptions.get_resyncLock
   processorListener.TypeAssumptions.set_resyncLock
+  processorListener.TypeAssumptions.method_set
+  processorListener.TypeAssumptions.ptr_method_set
   processorListener.TypeAssumptions.ptr_HasSynced_unfold
   processorListener.TypeAssumptions.ptr_HasSyncedChecker_unfold
   processorListener.TypeAssumptions.ptr_ShutdownChan_unfold
@@ -364,18 +924,24 @@ attribute [instance] processorListener.TypeAssumptions.type_repr
   processorListener.TypeAssumptions.ptr_shouldResync_unfold
   processorListener.TypeAssumptions.ptr_watchSynced_unfold
 
-class TransactionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransactionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TransactionType.ty TransactionType.underlying
+  method_set : go.MethodSetIs TransactionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransactionType.ty) []
 
 attribute [instance] TransactionType.TypeAssumptions.underlying
+  TransactionType.TypeAssumptions.method_set
+  TransactionType.TypeAssumptions.ptr_method_set
 
-class Transaction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Transaction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Transaction.underlying Transaction
   underlying : go.UnderlyingDirectedEq Transaction.ty Transaction.underlying
   get_Object : ∀ (x : Transaction), go.IsGoStepPureDetTagged under (StructFieldGet Transaction.underlying go!"Object") #x (Val #(x.Object'))
   set_Object : ∀ (x : Transaction) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Transaction.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Transaction)))
   get_Type : ∀ (x : Transaction), go.IsGoStepPureDetTagged under (StructFieldGet Transaction.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : Transaction) (y : TransactionType), go.IsGoStepPureDetTagged under (StructFieldSet Transaction.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Transaction)))
+  method_set : go.MethodSetIs Transaction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transaction.ty) []
 
 attribute [instance] Transaction.TypeAssumptions.type_repr
   Transaction.TypeAssumptions.underlying
@@ -383,13 +949,19 @@ attribute [instance] Transaction.TypeAssumptions.type_repr
   Transaction.TypeAssumptions.set_Object
   Transaction.TypeAssumptions.get_Type
   Transaction.TypeAssumptions.set_Type
+  Transaction.TypeAssumptions.method_set
+  Transaction.TypeAssumptions.ptr_method_set
 
-class TransactionStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransactionStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TransactionStore.ty TransactionStore.underlying
+  method_set : go.MethodSetIs TransactionStore.ty [(go!"Transaction", (some (go.signature.Signature [(go.GoType.SliceType Transaction.ty)] true [(go.GoType.PointerType TransactionError.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransactionStore.ty) []
 
 attribute [instance] TransactionStore.TypeAssumptions.underlying
+  TransactionStore.TypeAssumptions.method_set
+  TransactionStore.TypeAssumptions.ptr_method_set
 
-class TransactionError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransactionError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TransactionError.underlying TransactionError
   underlying : go.UnderlyingDirectedEq TransactionError.ty TransactionError.underlying
   get_SuccessfulIndices : ∀ (x : TransactionError), go.IsGoStepPureDetTagged under (StructFieldGet TransactionError.underlying go!"SuccessfulIndices") #x (Val #(x.SuccessfulIndices'))
@@ -398,6 +970,8 @@ class TransactionError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_TotalTransactions : ∀ (x : TransactionError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TransactionError.underlying go!"TotalTransactions") (PairV #x #y) (Val #(({ x with TotalTransactions' := y } : TransactionError)))
   get_Errors : ∀ (x : TransactionError), go.IsGoStepPureDetTagged under (StructFieldGet TransactionError.underlying go!"Errors") #x (Val #(x.Errors'))
   set_Errors : ∀ (x : TransactionError) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TransactionError.underlying go!"Errors") (PairV #x #y) (Val #(({ x with Errors' := y } : TransactionError)))
+  method_set : go.MethodSetIs TransactionError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransactionError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType TransactionError.ty) go!"Error" TransactionError.Error.impl
 
 attribute [instance] TransactionError.TypeAssumptions.type_repr
@@ -408,15 +982,19 @@ attribute [instance] TransactionError.TypeAssumptions.type_repr
   TransactionError.TypeAssumptions.set_TotalTransactions
   TransactionError.TypeAssumptions.get_Errors
   TransactionError.TypeAssumptions.set_Errors
+  TransactionError.TypeAssumptions.method_set
+  TransactionError.TypeAssumptions.ptr_method_set
   TransactionError.TypeAssumptions.ptr_Error_unfold
 
-class KeyError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyError.underlying KeyError
   underlying : go.UnderlyingDirectedEq KeyError.ty KeyError.underlying
   get_Obj : ∀ (x : KeyError), go.IsGoStepPureDetTagged under (StructFieldGet KeyError.underlying go!"Obj") #x (Val #(x.Obj'))
   set_Obj : ∀ (x : KeyError) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet KeyError.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : KeyError)))
   get_Err : ∀ (x : KeyError), go.IsGoStepPureDetTagged under (StructFieldGet KeyError.underlying go!"Err") #x (Val #(x.Err'))
   set_Err : ∀ (x : KeyError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet KeyError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : KeyError)))
+  method_set : go.MethodSetIs KeyError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
   Error_unfold : MethodUnfold KeyError.ty go!"Error" KeyError.Error.impl
   Unwrap_unfold : MethodUnfold KeyError.ty go!"Unwrap" KeyError.Unwrap.impl
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType KeyError.ty) go!"Error" (LamV "$r"
@@ -430,17 +1008,23 @@ attribute [instance] KeyError.TypeAssumptions.type_repr
   KeyError.TypeAssumptions.set_Obj
   KeyError.TypeAssumptions.get_Err
   KeyError.TypeAssumptions.set_Err
+  KeyError.TypeAssumptions.method_set
+  KeyError.TypeAssumptions.ptr_method_set
   KeyError.TypeAssumptions.Error_unfold
   KeyError.TypeAssumptions.Unwrap_unfold
   KeyError.TypeAssumptions.ptr_Error_unfold
   KeyError.TypeAssumptions.ptr_Unwrap_unfold
 
-class ExplicitKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExplicitKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ExplicitKey.ty ExplicitKey.underlying
+  method_set : go.MethodSetIs ExplicitKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExplicitKey.ty) []
 
 attribute [instance] ExplicitKey.TypeAssumptions.underlying
+  ExplicitKey.TypeAssumptions.method_set
+  ExplicitKey.TypeAssumptions.ptr_method_set
 
-class cache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cache.underlying cache
   underlying : go.UnderlyingDirectedEq cache.ty cache.underlying
   get_cacheStorage : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"cacheStorage") #x (Val #(x.cacheStorage'))
@@ -453,6 +1037,8 @@ class cache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_identifier : ∀ (x : cache) (y : InformerNameAndResource), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"identifier") (PairV #x #y) (Val #(({ x with identifier' := y } : cache)))
   get_metrics : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"metrics") #x (Val #(x.metrics'))
   set_metrics : ∀ (x : cache) (y : InformerMetricsProvider), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : cache)))
+  method_set : go.MethodSetIs cache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cache.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transaction", (some (go.signature.Signature [(go.GoType.SliceType Transaction.ty)] true [(go.GoType.PointerType TransactionError.ty)]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Add" cache.Add.impl
   ptr_AddIndexers_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"AddIndexers" cache.AddIndexers.impl
   ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Bookmark" cache.Bookmark.impl
@@ -484,6 +1070,8 @@ attribute [instance] cache.TypeAssumptions.type_repr
   cache.TypeAssumptions.set_identifier
   cache.TypeAssumptions.get_metrics
   cache.TypeAssumptions.set_metrics
+  cache.TypeAssumptions.method_set
+  cache.TypeAssumptions.ptr_method_set
   cache.TypeAssumptions.ptr_Add_unfold
   cache.TypeAssumptions.ptr_AddIndexers_unfold
   cache.TypeAssumptions.ptr_Bookmark_unfold
@@ -503,7 +1091,7 @@ attribute [instance] cache.TypeAssumptions.type_repr
   cache.TypeAssumptions.ptr_Transaction_unfold
   cache.TypeAssumptions.ptr_Update_unfold
 
-class RealFIFOOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RealFIFOOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RealFIFOOptions.underlying RealFIFOOptions
   underlying : go.UnderlyingDirectedEq RealFIFOOptions.ty RealFIFOOptions.underlying
   get_Logger : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"Logger") #x (Val #(x.Logger'))
@@ -526,6 +1114,8 @@ class RealFIFOOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_MetricsProvider : ∀ (x : RealFIFOOptions) (y : InformerMetricsProvider), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"MetricsProvider") (PairV #x #y) (Val #(({ x with MetricsProvider' := y } : RealFIFOOptions)))
   get_EmitDeltaTypeBookmark : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"EmitDeltaTypeBookmark") #x (Val #(x.EmitDeltaTypeBookmark'))
   set_EmitDeltaTypeBookmark : ∀ (x : RealFIFOOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"EmitDeltaTypeBookmark") (PairV #x #y) (Val #(({ x with EmitDeltaTypeBookmark' := y } : RealFIFOOptions)))
+  method_set : go.MethodSetIs RealFIFOOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealFIFOOptions.ty) []
 
 attribute [instance] RealFIFOOptions.TypeAssumptions.type_repr
   RealFIFOOptions.TypeAssumptions.underlying
@@ -549,8 +1139,10 @@ attribute [instance] RealFIFOOptions.TypeAssumptions.type_repr
   RealFIFOOptions.TypeAssumptions.set_MetricsProvider
   RealFIFOOptions.TypeAssumptions.get_EmitDeltaTypeBookmark
   RealFIFOOptions.TypeAssumptions.set_EmitDeltaTypeBookmark
+  RealFIFOOptions.TypeAssumptions.method_set
+  RealFIFOOptions.TypeAssumptions.ptr_method_set
 
-class RealFIFO.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RealFIFO.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RealFIFO.underlying RealFIFO
   underlying : go.UnderlyingDirectedEq RealFIFO.ty RealFIFO.underlying
   get_logger : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"logger") #x (Val #(x.logger'))
@@ -591,6 +1183,8 @@ class RealFIFO.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_metrics : ∀ (x : RealFIFO) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : RealFIFO)))
   get_emitDeltaTypeBookmark : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"emitDeltaTypeBookmark") #x (Val #(x.emitDeltaTypeBookmark'))
   set_emitDeltaTypeBookmark : ∀ (x : RealFIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"emitDeltaTypeBookmark") (PairV #x #y) (Val #(({ x with emitDeltaTypeBookmark' := y } : RealFIFO)))
+  method_set : go.MethodSetIs RealFIFO.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealFIFO.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsClosed", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"PopBatch", (some (go.signature.Signature [ProcessBatchFunc.ty, PopProcessFunc.ty] false [go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transformer", (some (go.signature.Signature [] false [TransformFunc.ty]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addReplaceToItemsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addResyncToItemsLocked", (some (go.signature.Signature [] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addToItems_locked", (some (go.signature.Signature [DeltaType.ty, go.bool, (go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.checkSynced_locked", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.hasSynced_locked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.keyOf", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string, go.error]))), (go!"k8s.io/client-go/tools/cache.whileProcessing_locked", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.error]))] false [go.error])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Add" RealFIFO.Add.impl
   ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Bookmark" RealFIFO.Bookmark.impl
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Close" RealFIFO.Close.impl
@@ -653,6 +1247,8 @@ attribute [instance] RealFIFO.TypeAssumptions.type_repr
   RealFIFO.TypeAssumptions.set_metrics
   RealFIFO.TypeAssumptions.get_emitDeltaTypeBookmark
   RealFIFO.TypeAssumptions.set_emitDeltaTypeBookmark
+  RealFIFO.TypeAssumptions.method_set
+  RealFIFO.TypeAssumptions.ptr_method_set
   RealFIFO.TypeAssumptions.ptr_Add_unfold
   RealFIFO.TypeAssumptions.ptr_Bookmark_unfold
   RealFIFO.TypeAssumptions.ptr_Close_unfold
@@ -674,222 +1270,6 @@ attribute [instance] RealFIFO.TypeAssumptions.type_repr
   RealFIFO.TypeAssumptions.ptr_hasSynced_locked_unfold
   RealFIFO.TypeAssumptions.ptr_keyOf_unfold
   RealFIFO.TypeAssumptions.ptr_whileProcessing_locked_unfold
-
-class ReplacedAllInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ReplacedAllInfo.underlying ReplacedAllInfo
-  underlying : go.UnderlyingDirectedEq ReplacedAllInfo.ty ReplacedAllInfo.underlying
-  get_ResourceVersion : ∀ (x : ReplacedAllInfo), go.IsGoStepPureDetTagged under (StructFieldGet ReplacedAllInfo.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
-  set_ResourceVersion : ∀ (x : ReplacedAllInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplacedAllInfo.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : ReplacedAllInfo)))
-  get_Objects : ∀ (x : ReplacedAllInfo), go.IsGoStepPureDetTagged under (StructFieldGet ReplacedAllInfo.underlying go!"Objects") #x (Val #(x.Objects'))
-  set_Objects : ∀ (x : ReplacedAllInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReplacedAllInfo.underlying go!"Objects") (PairV #x #y) (Val #(({ x with Objects' := y } : ReplacedAllInfo)))
-
-attribute [instance] ReplacedAllInfo.TypeAssumptions.type_repr
-  ReplacedAllInfo.TypeAssumptions.underlying
-  ReplacedAllInfo.TypeAssumptions.get_ResourceVersion
-  ReplacedAllInfo.TypeAssumptions.set_ResourceVersion
-  ReplacedAllInfo.TypeAssumptions.get_Objects
-  ReplacedAllInfo.TypeAssumptions.set_Objects
-
-class BookmarkInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying BookmarkInfo.underlying BookmarkInfo
-  underlying : go.UnderlyingDirectedEq BookmarkInfo.ty BookmarkInfo.underlying
-  get_ResourceVersion : ∀ (x : BookmarkInfo), go.IsGoStepPureDetTagged under (StructFieldGet BookmarkInfo.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
-  set_ResourceVersion : ∀ (x : BookmarkInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet BookmarkInfo.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : BookmarkInfo)))
-
-attribute [instance] BookmarkInfo.TypeAssumptions.type_repr
-  BookmarkInfo.TypeAssumptions.underlying
-  BookmarkInfo.TypeAssumptions.get_ResourceVersion
-  BookmarkInfo.TypeAssumptions.set_ResourceVersion
-
-class SyncAllInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying SyncAllInfo.underlying SyncAllInfo
-  underlying : go.UnderlyingDirectedEq SyncAllInfo.ty SyncAllInfo.underlying
-
-attribute [instance] SyncAllInfo.TypeAssumptions.type_repr
-  SyncAllInfo.TypeAssumptions.underlying
-
-class ThreadSafeStoreWithTransaction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ThreadSafeStoreWithTransaction.ty ThreadSafeStoreWithTransaction.underlying
-
-attribute [instance] ThreadSafeStoreWithTransaction.TypeAssumptions.underlying
-
-class ThreadSafeStoreTransaction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ThreadSafeStoreTransaction.underlying ThreadSafeStoreTransaction
-  underlying : go.UnderlyingDirectedEq ThreadSafeStoreTransaction.ty ThreadSafeStoreTransaction.underlying
-  get_Transaction : ∀ (x : ThreadSafeStoreTransaction), go.IsGoStepPureDetTagged under (StructFieldGet ThreadSafeStoreTransaction.underlying go!"Transaction") #x (Val #(x.Transaction'))
-  set_Transaction : ∀ (x : ThreadSafeStoreTransaction) (y : Transaction), go.IsGoStepPureDetTagged under (StructFieldSet ThreadSafeStoreTransaction.underlying go!"Transaction") (PairV #x #y) (Val #(({ x with Transaction' := y } : ThreadSafeStoreTransaction)))
-  get_Key : ∀ (x : ThreadSafeStoreTransaction), go.IsGoStepPureDetTagged under (StructFieldGet ThreadSafeStoreTransaction.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : ThreadSafeStoreTransaction) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ThreadSafeStoreTransaction.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : ThreadSafeStoreTransaction)))
-
-attribute [instance] ThreadSafeStoreTransaction.TypeAssumptions.type_repr
-  ThreadSafeStoreTransaction.TypeAssumptions.underlying
-  ThreadSafeStoreTransaction.TypeAssumptions.get_Transaction
-  ThreadSafeStoreTransaction.TypeAssumptions.set_Transaction
-  ThreadSafeStoreTransaction.TypeAssumptions.get_Key
-  ThreadSafeStoreTransaction.TypeAssumptions.set_Key
-
-class storeIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying storeIndex.underlying storeIndex
-  underlying : go.UnderlyingDirectedEq storeIndex.ty storeIndex.underlying
-  get_indexers : ∀ (x : storeIndex), go.IsGoStepPureDetTagged under (StructFieldGet storeIndex.underlying go!"indexers") #x (Val #(x.indexers'))
-  set_indexers : ∀ (x : storeIndex) (y : Indexers), go.IsGoStepPureDetTagged under (StructFieldSet storeIndex.underlying go!"indexers") (PairV #x #y) (Val #(({ x with indexers' := y } : storeIndex)))
-  get_indices : ∀ (x : storeIndex), go.IsGoStepPureDetTagged under (StructFieldGet storeIndex.underlying go!"indices") #x (Val #(x.indices'))
-  set_indices : ∀ (x : storeIndex) (y : Indices), go.IsGoStepPureDetTagged under (StructFieldSet storeIndex.underlying go!"indices") (PairV #x #y) (Val #(({ x with indices' := y } : storeIndex)))
-  ptr_addIndexers_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"addIndexers" storeIndex.addIndexers.impl
-  ptr_addKeyToIndex_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"addKeyToIndex" storeIndex.addKeyToIndex.impl
-  ptr_deleteKeyFromIndex_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"deleteKeyFromIndex" storeIndex.deleteKeyFromIndex.impl
-  ptr_getIndexValues_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"getIndexValues" storeIndex.getIndexValues.impl
-  ptr_getKeysByIndex_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"getKeysByIndex" storeIndex.getKeysByIndex.impl
-  ptr_getKeysFromIndex_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"getKeysFromIndex" storeIndex.getKeysFromIndex.impl
-  ptr_reset_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"reset" storeIndex.reset.impl
-  ptr_updateIndices_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"updateIndices" storeIndex.updateIndices.impl
-  ptr_updateSingleIndex_unfold : MethodUnfold (go.GoType.PointerType storeIndex.ty) go!"updateSingleIndex" storeIndex.updateSingleIndex.impl
-
-attribute [instance] storeIndex.TypeAssumptions.type_repr
-  storeIndex.TypeAssumptions.underlying
-  storeIndex.TypeAssumptions.get_indexers
-  storeIndex.TypeAssumptions.set_indexers
-  storeIndex.TypeAssumptions.get_indices
-  storeIndex.TypeAssumptions.set_indices
-  storeIndex.TypeAssumptions.ptr_addIndexers_unfold
-  storeIndex.TypeAssumptions.ptr_addKeyToIndex_unfold
-  storeIndex.TypeAssumptions.ptr_deleteKeyFromIndex_unfold
-  storeIndex.TypeAssumptions.ptr_getIndexValues_unfold
-  storeIndex.TypeAssumptions.ptr_getKeysByIndex_unfold
-  storeIndex.TypeAssumptions.ptr_getKeysFromIndex_unfold
-  storeIndex.TypeAssumptions.ptr_reset_unfold
-  storeIndex.TypeAssumptions.ptr_updateIndices_unfold
-  storeIndex.TypeAssumptions.ptr_updateSingleIndex_unfold
-
-class threadSafeMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying threadSafeMap.underlying threadSafeMap
-  underlying : go.UnderlyingDirectedEq threadSafeMap.ty threadSafeMap.underlying
-  get_lock : ∀ (x : threadSafeMap), go.IsGoStepPureDetTagged under (StructFieldGet threadSafeMap.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : threadSafeMap) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet threadSafeMap.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : threadSafeMap)))
-  get_items : ∀ (x : threadSafeMap), go.IsGoStepPureDetTagged under (StructFieldGet threadSafeMap.underlying go!"items") #x (Val #(x.items'))
-  set_items : ∀ (x : threadSafeMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet threadSafeMap.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : threadSafeMap)))
-  get_index : ∀ (x : threadSafeMap), go.IsGoStepPureDetTagged under (StructFieldGet threadSafeMap.underlying go!"index") #x (Val #(x.index'))
-  set_index : ∀ (x : threadSafeMap) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet threadSafeMap.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : threadSafeMap)))
-  get_rv : ∀ (x : threadSafeMap), go.IsGoStepPureDetTagged under (StructFieldGet threadSafeMap.underlying go!"rv") #x (Val #(x.rv'))
-  set_rv : ∀ (x : threadSafeMap) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet threadSafeMap.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : threadSafeMap)))
-  get_metrics : ∀ (x : threadSafeMap), go.IsGoStepPureDetTagged under (StructFieldGet threadSafeMap.underlying go!"metrics") #x (Val #(x.metrics'))
-  set_metrics : ∀ (x : threadSafeMap) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet threadSafeMap.underlying go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : threadSafeMap)))
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"Add" threadSafeMap.Add.impl
-  ptr_AddIndexers_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"AddIndexers" threadSafeMap.AddIndexers.impl
-  ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"Bookmark" threadSafeMap.Bookmark.impl
-  ptr_ByIndex_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"ByIndex" threadSafeMap.ByIndex.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"Delete" threadSafeMap.Delete.impl
-  ptr_DeleteWithObject_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"DeleteWithObject" threadSafeMap.DeleteWithObject.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"Get" threadSafeMap.Get.impl
-  ptr_GetIndexers_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"GetIndexers" threadSafeMap.GetIndexers.impl
-  ptr_Index_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"Index" threadSafeMap.Index.impl
-  ptr_IndexKeys_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"IndexKeys" threadSafeMap.IndexKeys.impl
-  ptr_LastStoreSyncResourceVersion_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"LastStoreSyncResourceVersion" threadSafeMap.LastStoreSyncResourceVersion.impl
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"List" threadSafeMap.List.impl
-  ptr_ListIndexFuncValues_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"ListIndexFuncValues" threadSafeMap.ListIndexFuncValues.impl
-  ptr_ListKeys_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"ListKeys" threadSafeMap.ListKeys.impl
-  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"Replace" threadSafeMap.Replace.impl
-  ptr_Resync_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"Resync" threadSafeMap.Resync.impl
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"Update" threadSafeMap.Update.impl
-  ptr_deleteLocked_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"deleteLocked" threadSafeMap.deleteLocked.impl
-  ptr_updateLocked_unfold : MethodUnfold (go.GoType.PointerType threadSafeMap.ty) go!"updateLocked" threadSafeMap.updateLocked.impl
-
-attribute [instance] threadSafeMap.TypeAssumptions.type_repr
-  threadSafeMap.TypeAssumptions.underlying
-  threadSafeMap.TypeAssumptions.get_lock
-  threadSafeMap.TypeAssumptions.set_lock
-  threadSafeMap.TypeAssumptions.get_items
-  threadSafeMap.TypeAssumptions.set_items
-  threadSafeMap.TypeAssumptions.get_index
-  threadSafeMap.TypeAssumptions.set_index
-  threadSafeMap.TypeAssumptions.get_rv
-  threadSafeMap.TypeAssumptions.set_rv
-  threadSafeMap.TypeAssumptions.get_metrics
-  threadSafeMap.TypeAssumptions.set_metrics
-  threadSafeMap.TypeAssumptions.ptr_Add_unfold
-  threadSafeMap.TypeAssumptions.ptr_AddIndexers_unfold
-  threadSafeMap.TypeAssumptions.ptr_Bookmark_unfold
-  threadSafeMap.TypeAssumptions.ptr_ByIndex_unfold
-  threadSafeMap.TypeAssumptions.ptr_Delete_unfold
-  threadSafeMap.TypeAssumptions.ptr_DeleteWithObject_unfold
-  threadSafeMap.TypeAssumptions.ptr_Get_unfold
-  threadSafeMap.TypeAssumptions.ptr_GetIndexers_unfold
-  threadSafeMap.TypeAssumptions.ptr_Index_unfold
-  threadSafeMap.TypeAssumptions.ptr_IndexKeys_unfold
-  threadSafeMap.TypeAssumptions.ptr_LastStoreSyncResourceVersion_unfold
-  threadSafeMap.TypeAssumptions.ptr_List_unfold
-  threadSafeMap.TypeAssumptions.ptr_ListIndexFuncValues_unfold
-  threadSafeMap.TypeAssumptions.ptr_ListKeys_unfold
-  threadSafeMap.TypeAssumptions.ptr_Replace_unfold
-  threadSafeMap.TypeAssumptions.ptr_Resync_unfold
-  threadSafeMap.TypeAssumptions.ptr_Update_unfold
-  threadSafeMap.TypeAssumptions.ptr_deleteLocked_unfold
-  threadSafeMap.TypeAssumptions.ptr_updateLocked_unfold
-
-class UndeltaStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying UndeltaStore.underlying UndeltaStore
-  underlying : go.UnderlyingDirectedEq UndeltaStore.ty UndeltaStore.underlying
-  get_Store : ∀ (x : UndeltaStore), go.IsGoStepPureDetTagged under (StructFieldGet UndeltaStore.underlying go!"Store") #x (Val #(x.Store'))
-  set_Store : ∀ (x : UndeltaStore) (y : Store), go.IsGoStepPureDetTagged under (StructFieldSet UndeltaStore.underlying go!"Store") (PairV #x #y) (Val #(({ x with Store' := y } : UndeltaStore)))
-  get_PushFunc : ∀ (x : UndeltaStore), go.IsGoStepPureDetTagged under (StructFieldGet UndeltaStore.underlying go!"PushFunc") #x (Val #(x.PushFunc'))
-  set_PushFunc : ∀ (x : UndeltaStore) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet UndeltaStore.underlying go!"PushFunc") (PairV #x #y) (Val #(({ x with PushFunc' := y } : UndeltaStore)))
-  Bookmark_unfold : MethodUnfold UndeltaStore.ty go!"Bookmark" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"Bookmark"))) (App (Val (GoInstruction (StructFieldGet UndeltaStore.ty go!"Store"))) (Var "$r"))))
-  Get_unfold : MethodUnfold UndeltaStore.ty go!"Get" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"Get"))) (App (Val (GoInstruction (StructFieldGet UndeltaStore.ty go!"Store"))) (Var "$r"))))
-  GetByKey_unfold : MethodUnfold UndeltaStore.ty go!"GetByKey" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"GetByKey"))) (App (Val (GoInstruction (StructFieldGet UndeltaStore.ty go!"Store"))) (Var "$r"))))
-  LastStoreSyncResourceVersion_unfold : MethodUnfold UndeltaStore.ty go!"LastStoreSyncResourceVersion" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"LastStoreSyncResourceVersion"))) (App (Val (GoInstruction (StructFieldGet UndeltaStore.ty go!"Store"))) (Var "$r"))))
-  List_unfold : MethodUnfold UndeltaStore.ty go!"List" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"List"))) (App (Val (GoInstruction (StructFieldGet UndeltaStore.ty go!"Store"))) (Var "$r"))))
-  ListKeys_unfold : MethodUnfold UndeltaStore.ty go!"ListKeys" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"ListKeys"))) (App (Val (GoInstruction (StructFieldGet UndeltaStore.ty go!"Store"))) (Var "$r"))))
-  Resync_unfold : MethodUnfold UndeltaStore.ty go!"Resync" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"Resync"))) (App (Val (GoInstruction (StructFieldGet UndeltaStore.ty go!"Store"))) (Var "$r"))))
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"Add" UndeltaStore.Add.impl
-  ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"Bookmark" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"Bookmark"))) (App (Val (GoInstruction (GoLoad Store.ty))) (App (Val (GoInstruction (StructFieldRef UndeltaStore.ty go!"Store"))) (Var "$r")))))
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"Delete" UndeltaStore.Delete.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"Get" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Store.ty))) (App (Val (GoInstruction (StructFieldRef UndeltaStore.ty go!"Store"))) (Var "$r")))))
-  ptr_GetByKey_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"GetByKey" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"GetByKey"))) (App (Val (GoInstruction (GoLoad Store.ty))) (App (Val (GoInstruction (StructFieldRef UndeltaStore.ty go!"Store"))) (Var "$r")))))
-  ptr_LastStoreSyncResourceVersion_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"LastStoreSyncResourceVersion" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"LastStoreSyncResourceVersion"))) (App (Val (GoInstruction (GoLoad Store.ty))) (App (Val (GoInstruction (StructFieldRef UndeltaStore.ty go!"Store"))) (Var "$r")))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"List" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"List"))) (App (Val (GoInstruction (GoLoad Store.ty))) (App (Val (GoInstruction (StructFieldRef UndeltaStore.ty go!"Store"))) (Var "$r")))))
-  ptr_ListKeys_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"ListKeys" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"ListKeys"))) (App (Val (GoInstruction (GoLoad Store.ty))) (App (Val (GoInstruction (StructFieldRef UndeltaStore.ty go!"Store"))) (Var "$r")))))
-  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"Replace" UndeltaStore.Replace.impl
-  ptr_Resync_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"Resync" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Store.ty go!"Resync"))) (App (Val (GoInstruction (GoLoad Store.ty))) (App (Val (GoInstruction (StructFieldRef UndeltaStore.ty go!"Store"))) (Var "$r")))))
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType UndeltaStore.ty) go!"Update" UndeltaStore.Update.impl
-
-attribute [instance] UndeltaStore.TypeAssumptions.type_repr
-  UndeltaStore.TypeAssumptions.underlying
-  UndeltaStore.TypeAssumptions.get_Store
-  UndeltaStore.TypeAssumptions.set_Store
-  UndeltaStore.TypeAssumptions.get_PushFunc
-  UndeltaStore.TypeAssumptions.set_PushFunc
-  UndeltaStore.TypeAssumptions.Bookmark_unfold
-  UndeltaStore.TypeAssumptions.Get_unfold
-  UndeltaStore.TypeAssumptions.GetByKey_unfold
-  UndeltaStore.TypeAssumptions.LastStoreSyncResourceVersion_unfold
-  UndeltaStore.TypeAssumptions.List_unfold
-  UndeltaStore.TypeAssumptions.ListKeys_unfold
-  UndeltaStore.TypeAssumptions.Resync_unfold
-  UndeltaStore.TypeAssumptions.ptr_Add_unfold
-  UndeltaStore.TypeAssumptions.ptr_Bookmark_unfold
-  UndeltaStore.TypeAssumptions.ptr_Delete_unfold
-  UndeltaStore.TypeAssumptions.ptr_Get_unfold
-  UndeltaStore.TypeAssumptions.ptr_GetByKey_unfold
-  UndeltaStore.TypeAssumptions.ptr_LastStoreSyncResourceVersion_unfold
-  UndeltaStore.TypeAssumptions.ptr_List_unfold
-  UndeltaStore.TypeAssumptions.ptr_ListKeys_unfold
-  UndeltaStore.TypeAssumptions.ptr_Replace_unfold
-  UndeltaStore.TypeAssumptions.ptr_Resync_unfold
-  UndeltaStore.TypeAssumptions.ptr_Update_unfold
 
 end k8s_io.client_go.tools.cache
 

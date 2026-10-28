@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -29,7 +29,7 @@ theorem raftNode.ReadIndex.wp_proof : raftNode.ReadIndex.spec (GF := GF) (hG := 
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, -, -, -, -, #HRI⟩
+  icases Hni with ⟨%ni, %Hnieq, -, -, -, -, -, #HRI, -⟩
   subst Hnieq
   ihave Hcred' := rnReadCred_of_srv E γ $$ [Hcred]
   · iframe Henv Hcred

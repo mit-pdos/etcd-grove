@@ -31,6 +31,7 @@ public import Proof.go_uber_org.zap.Init
 public import Proof.golang_org.x.crypto.bcrypt.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.errors.NewVar
+public import Proof.errors.NewVarCell
 public import Perennial.Proof.context.NewErrorString
 public import Perennial.Proof.sync.RWMutexGuard
 public import Proof.runtime.PkgInitExt
@@ -53,7 +54,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section opaqueInits
 namespace go_etcd_io.etcd.server.v3.auth
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -88,15 +89,11 @@ end go_etcd_io.etcd.server.v3.auth
 end opaqueInits
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions]
-variable [EtcdGrove.ErrorStringLeaf]
-variable [EtcdGrove.RpctypesEtcdErrorMethods]
-variable [_root_.Perennial.context.ErrorStringIsError]
-  [_root_.Perennial.context.DeadlineExceededIsError]
 
 namespace go_etcd_io.etcd.server.v3.auth
 
@@ -190,25 +187,25 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrInvalidAuthToken))
   -- translated initializer of ErrInvalidAuthOpts))
   -- translated initializer of ErrInvalidAuthMgmt))
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRootUserNotExist #MErrRootUserNotExist
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRootRoleNotExist #MErrRootRoleNotExist
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrUserAlreadyExist #MErrUserAlreadyExist
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrUserEmpty #MErrUserEmpty
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrUserNotFound #MErrUserNotFound
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRoleAlreadyExist #MErrRoleAlreadyExist
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRoleNotFound #MErrRoleNotFound
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRoleEmpty #MErrRoleEmpty
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrPermissionNotGiven #MErrPermissionNotGiven
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrAuthFailed #MErrAuthFailed
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrNoPasswordUser #MErrNoPasswordUser
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrPermissionDenied #MErrPermissionDenied
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRoleNotGranted #MErrRoleNotGranted
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrPermissionNotGranted #MErrPermissionNotGranted
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrAuthNotEnabled #MErrAuthNotEnabled
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrAuthOldRevision #MErrAuthOldRevision
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalidAuthToken #MErrInvalidAuthToken
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalidAuthOpts #MErrInvalidAuthOpts
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalidAuthMgmt #MErrInvalidAuthMgmt
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrRootUserNotExist ⟨#MErrRootUserNotExist, #CErrRootUserNotExist⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrRootRoleNotExist ⟨#MErrRootRoleNotExist, #CErrRootRoleNotExist⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrUserAlreadyExist ⟨#MErrUserAlreadyExist, #CErrUserAlreadyExist⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrUserEmpty ⟨#MErrUserEmpty, #CErrUserEmpty⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrUserNotFound ⟨#MErrUserNotFound, #CErrUserNotFound⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrRoleAlreadyExist ⟨#MErrRoleAlreadyExist, #CErrRoleAlreadyExist⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrRoleNotFound ⟨#MErrRoleNotFound, #CErrRoleNotFound⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrRoleEmpty ⟨#MErrRoleEmpty, #CErrRoleEmpty⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrPermissionNotGiven ⟨#MErrPermissionNotGiven, #CErrPermissionNotGiven⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrAuthFailed ⟨#MErrAuthFailed, #CErrAuthFailed⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrNoPasswordUser ⟨#MErrNoPasswordUser, #CErrNoPasswordUser⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrPermissionDenied ⟨#MErrPermissionDenied, #CErrPermissionDenied⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrRoleNotGranted ⟨#MErrRoleNotGranted, #CErrRoleNotGranted⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrPermissionNotGranted ⟨#MErrPermissionNotGranted, #CErrPermissionNotGranted⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrAuthNotEnabled ⟨#MErrAuthNotEnabled, #CErrAuthNotEnabled⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrAuthOldRevision ⟨#MErrAuthOldRevision, #CErrAuthOldRevision⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrInvalidAuthToken ⟨#MErrInvalidAuthToken, #CErrInvalidAuthToken⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrInvalidAuthOpts ⟨#MErrInvalidAuthOpts, #CErrInvalidAuthOpts⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrInvalidAuthMgmt ⟨#MErrInvalidAuthMgmt, #CErrInvalidAuthMgmt⟩
   wp_apply (opaqueInitsOk ErrInvalidAuthMethod.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrMissingKey.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrKeyMismatch.init (by mem_tac))
@@ -253,6 +250,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave #TErrInvalidAuthToken := EtcdGrove.errorMsg_triple _ _ _ $$ MErrInvalidAuthToken
   ihave #TErrInvalidAuthOpts := EtcdGrove.errorMsg_triple _ _ _ $$ MErrInvalidAuthOpts
   ihave #TErrInvalidAuthMgmt := EtcdGrove.errorMsg_triple _ _ _ $$ MErrInvalidAuthMgmt
+  ihave #VCells : (EtcdGrove.errVarCells go_etcd_io.etcd.server.v3.auth.authErrMsgs : IProp GF) $$ []
+  · unfold go_etcd_io.etcd.server.v3.auth.authErrMsgs
+    simp only [EtcdGrove.errVarCells, EtcdGrove.errVarCell]
+    iframe #
+    repeat (first | (isplitl []; · (iexists _; iframe #)) | (iexists _; iframe #))
+    try itrivial
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd17
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩

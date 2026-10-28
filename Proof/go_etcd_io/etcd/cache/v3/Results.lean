@@ -51,7 +51,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section results
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -127,7 +127,7 @@ contract about its client (`isEtcdClient`) discharged at the server's model, so 
 results (`cache_Get`, `cache_Watch`, `cache_Watch_delivery`) are about etcd's server. -/
 
 section cache_client
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -173,7 +173,7 @@ its `KV` a client of the KV `γ.kv` from the members' registrations at `ep` (`cl
 its `Watcher` etcd's client watcher, a client watcher of `γ.kv` (`isNewClient_watcher`, given the
 watch server's facts at `ep`, `watchAddrFacts V`, at `γ.kv`'s state, `V.kst`). -/
 theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF)
@@ -224,7 +224,7 @@ slots: `etcd_watch_served_chain`'s) give the right to serve `gs` on `lis`, etcd'
 at `addr` (`kvRegs`, the server's request names' read names `γr`), and the watch server's facts at `addr` (`watchAddrFacts V`), given the wire's and the
 packages' facts `watchAddrFacts` lists beyond the stream's. With `clientv3.New`'s result at `addr`
 these are what `cache_end_to_end_new` takes (and `isServerRead`, `sortNamesOk`, `kvAnyAu`). -/
-theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString)
+theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × val × GoInterface)) (N nw : Nat)

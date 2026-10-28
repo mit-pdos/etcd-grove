@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -114,8 +114,8 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       wp_auto
       wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
       · iexact Hb
-      wp_alloc resp as Hresp
-      wp_auto
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       wp_for_post
       iapply HΦ
       isplitl; rotate_left
@@ -130,8 +130,8 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       · iexact HPP
     wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
     · iexact Hb
-    wp_alloc resp as Hresp
-    wp_auto
+    irename «$r0» => Hresp
+    generalize «$r0_ptr» = resp at *
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil

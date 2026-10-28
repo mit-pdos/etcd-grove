@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,6 +31,7 @@ theorem wait.list.IsRegistered.wp_proof : wait.list.IsRegistered.spec (GF := GF)
   · iPkgInit
   iunfold waitListReader at Hrd
   icases Hrd with ⟨%sl, #He, %Hlen, Hrs⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   have hidx : 0 ≤ sint.Z (id % W64 64) ∧ sint.Z (id % W64 64) < sint.Z sl.len := by
     rw [Hlen]; word

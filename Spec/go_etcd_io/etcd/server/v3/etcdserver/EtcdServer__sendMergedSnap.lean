@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -37,11 +37,11 @@ send's end (`CloseNotify()`) or the server's stop and, on a successful send, for
 log lines in between. -/
 abbrev EtcdServer.sendMergedSnap.spec : Prop :=
   ∀ (s mg ml : Loc) (rc : GoInterface) (lg : Loc) (id : w64) (stg : Loc) (tr : GoInterface)
-    (γn : NetNames GF) (S : IProp GF) (lid : w64),
+    (γn : NetNames GF) (S TS : IProp GF) (lid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvGoRes s ∗ srvLgReader s ∗ srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
       srvMemberIDAddr s ↦□ id ∗ srvInflight s ∗ srvStoppingAddr s ↦□ stg ∗ stopChan stg ∗
-      rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn lid tr S ∗
+      rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn lid tr S TS ∗
       mergedMsg mg ml rc ∗ netSnapBundle γn.N ml rc }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"sendMergedSnap")) (Val #mg))
   {{ RET #(); srvGoRes s ∗ srvLgReader s }}

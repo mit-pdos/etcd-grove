@@ -20,7 +20,7 @@ namespace cacher
 open Iris Iris.BI Iris.ProofMode k8s_io.apiserver.pkg.storage.cacher.store
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -38,7 +38,8 @@ theorem btreeStore.Clone.wp_proof
   icases Hs with ⟨%t, Htr, Hrv, Ht⟩
   wp_auto
   wp_apply (wp_Clone elemOrder t s) $$ [$Ht] as %t2 ⟨Ht, Ht2⟩
-  wp_alloc p2 as Hp2
+  irename «$r0» => Hp2
+  generalize «$r0_ptr» = p2 at *
   icases typedPointsto_split _ _ _ $$ Hp2 with Hp2
   try simp only [TypedPointsto.typedPointstoDef]
   icases Hp2 with ⟨Htr2, Hrv2, -⟩

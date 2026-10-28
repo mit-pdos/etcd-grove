@@ -121,7 +121,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 /-! ### Countability of the data the ghost state stores (Lean addition) -/
 
-instance entryID_countable [FfiSyntax] : Pos.Countable entryID :=
+instance entryID_countable [GooseExts] : Pos.Countable entryID :=
   .ofInjective (fun b => Pos.Countable.encode (b.term', b.index'))
     (by
       rintro ⟨_, _⟩ ⟨_, _⟩ h
@@ -130,7 +130,7 @@ instance entryID_countable [FfiSyntax] : Pos.Countable entryID :=
       obtain ⟨h1, h2⟩ := h
       subst h1 h2; rfl)
 
-instance raftpbEntry_countable [FfiSyntax] : Pos.Countable EntryM :=
+instance raftpbEntry_countable [GooseExts] : Pos.Countable EntryM :=
   .ofInjective (fun e => Pos.Countable.encode (e.Term', e.Index', e.Type', e.Data'))
     (by
       rintro ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h
@@ -170,26 +170,26 @@ committed log prefix (`fold`, partial: `none` past an entry that would panic), a
 of it the safety argument uses, that two prefixes of one log whose conf counts differ by at most
 one have overlapping configurations (`adj`; `fold_adjacent` for `cfgFold`). Abstract here: the
 ghost files sit below `CfgOverlap.lean`, which instantiates it (`DynCfg.ofFold`). -/
-structure DynCfg [FfiSyntax] where
+structure DynCfg [GooseExts] where
   fold : List EntryM → Option CfgM
   adj : ∀ (P1 P2 : List EntryM) (c1 c2 : CfgM), P1 <+: P2 →
     confCount P2 ≤ confCount P1 + 1 → fold P1 = some c1 → fold P2 = some c2 → QOverlap c1 c2
 
 /-- No configuration at all. -/
-def DynCfg.trivial [FfiSyntax] : DynCfg :=
+def DynCfg.trivial [GooseExts] : DynCfg :=
   ⟨fun _ => none, by intro _ _ _ _ _ _ h; cases h⟩
 
-/-- `D`, at its own `FfiSyntax` instance (`RaftNames.reDyn` is a function of the instance,
+/-- `D`, at its own `GooseExts` instance (`RaftNames.reDyn` is a function of the instance,
 since `RaftNames` takes none). -/
-def DynCfg.all [ext : FfiSyntax] (D : DynCfg) : (e : FfiSyntax) → @DynCfg e := by
+def DynCfg.all [ext : GooseExts] (D : DynCfg) : (e : GooseExts) → @DynCfg e := by
   classical
   exact fun e => if h : e = ext then h ▸ D else @DynCfg.trivial e
 
-theorem DynCfg.all_self [ext : FfiSyntax] (D : DynCfg) : D.all ext = D := by
+theorem DynCfg.all_self [ext : GooseExts] (D : DynCfg) : D.all ext = D := by
   unfold DynCfg.all; simp
 
 /-- A bootstrap entry (2026-10-16, stage R8b, D12): `EntryM`'s fields, instance-free, since
-`RaftNames` takes no `FfiSyntax` (as `reDyn`); `BootEntry.toEntry` is the entry. -/
+`RaftNames` takes no `GooseExts` (as `reDyn`); `BootEntry.toEntry` is the entry. -/
 structure BootEntry where
   term : w64
   index : w64
@@ -280,14 +280,13 @@ structure RaftNames where
   is the ghost state's voters `reCfg` (`CfgStatic`), what the code proofs use; `some D`,
   dynamic -- the configuration of a committed prefix is `D`'s fold (`CfgAt`), and the
   dynamic-only facts (`dynOn`: a commit fact's at-most-one and witnesses, a campaign
-  record's, the node-local witnesses) are required. A function of the `FfiSyntax` instance
+  record's, the node-local witnesses) are required. A function of the `GooseExts` instance
   (`DynCfg.all`), since `RaftNames` takes none. -/
-  reDyn : Option ((e : FfiSyntax) → @DynCfg e)
-  /-- The conf-change entries' bytes the cluster admits (2026-10-15, stage N): every conf-change
-  entry's data `bs`, of type `ty`, satisfies `reCCOk ty bs` (`entDataIs`), which
-  `ProposeConfChange` asks of the change it proposes (`CCAllowed`). A client that applies the
-  conf entries with a decoder of the entry alone (a pure `CCDec` cannot read a slice's bytes)
-  pins the changes it may meet here; `fun _ _ => True` admits every change. -/
+  reDyn : Option ((e : GooseExts) → @DynCfg e)
+  /-- The conf-change entries' bytes the cluster admits (2026-10-15, stage N). Unused since
+  2026-10-27: a conf-change entry is a tracked proposal (`propDataIs`), whose client states what it
+  admits in its own update, so neither the entries' data (`entDataIs`) nor `ProposeConfChange`
+  (`CCAllowed`, gone) mention it any more; only the allocation still sets it. -/
   reCCOk : w32 → List w8 → Prop
   /-- The cluster's bootstrap log (2026-10-16, stage R8b, D12): the entries every member starts
   with, committed from the start (`RawNode.Bootstrap`'s one `EntryConfChange` per peer at term
@@ -349,6 +348,15 @@ structure RaftNames where
   `node.Step` to the `Ready` that hands it out. Raft's own results, `examples/kv` and the
   no-snapshot clusters keep the default. -/
   reSnapLoc : w64 → Option GName := fun _ => none
+  /-- The namespace of the commit invariant (2026-10-27, the node API over an abstract log): every
+  client update's outer mask leaves it out (`raftN γ`). The node API's allocation puts it inside the
+  caller's namespace; the default is the fixed one the commit invariant had until then. -/
+  reNs : Namespace := nroot .@ "raft_commit"
+  /-- The namespace of the storages' snapshot-certificate registries (2026-10-27, the node API over
+  an abstract log; `raftCertN γ`, `storCertOk`, `memCertInv`): the node API's allocation puts it
+  inside the caller's namespace, apart from the commit invariant's; the default is the fixed one it
+  had until then. -/
+  reCertNs : Namespace := nroot .@ "raft_snapcert"
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -435,79 +443,79 @@ earlier term), `rqRecOk_confirm` (a read's confirming quorum and its doom quorum
 `CfgAt` as "`c` is the configuration of `cfgFold dec c0 P`" and replaces each use of
 `CfgAt.overlap` by the adjacent/far case split (`fold_adjacent` for the adjacent case). -/
 
-/-- The mode's dynamic configurations, at the ambient `FfiSyntax` instance. -/
-def BootEntry.toEntry [FfiSyntax] (b : BootEntry) : EntryM := ⟨b.term, b.index, b.type, b.data⟩
+/-- The mode's dynamic configurations, at the ambient `GooseExts` instance. -/
+def BootEntry.toEntry [GooseExts] (b : BootEntry) : EntryM := ⟨b.term, b.index, b.type, b.data⟩
 
-def BootEntry.ofEntry [FfiSyntax] (e : EntryM) : BootEntry := ⟨e.Term', e.Index', e.Type', e.Data'⟩
+def BootEntry.ofEntry [GooseExts] (e : EntryM) : BootEntry := ⟨e.Term', e.Index', e.Type', e.Data'⟩
 
-theorem BootEntry.toEntry_ofEntry [FfiSyntax] (e : EntryM) : (BootEntry.ofEntry e).toEntry = e := rfl
+theorem BootEntry.toEntry_ofEntry [GooseExts] (e : EntryM) : (BootEntry.ofEntry e).toEntry = e := rfl
 
-theorem BootEntry.map_toEntry_ofEntry [FfiSyntax] (L : List EntryM) :
+theorem BootEntry.map_toEntry_ofEntry [GooseExts] (L : List EntryM) :
     (L.map BootEntry.ofEntry).map BootEntry.toEntry = L := by
   induction L with
   | nil => rfl
   | cons e L ih => simp only [List.map_cons, BootEntry.toEntry_ofEntry, ih]
 
 /-- The cluster's bootstrap log (2026-10-16, stage R8b, D12; `RaftNames.reBootRaw`). -/
-def RaftNames.reBoot [FfiSyntax] (γ : RaftNames) : List EntryM :=
+def RaftNames.reBoot [GooseExts] (γ : RaftNames) : List EntryM :=
   γ.reBootRaw.map BootEntry.toEntry
 
 /-- The snapshots' data the cluster admits (2026-10-21, D22 S-r; `RaftNames.reSnapOkRaw`): of a
 committed log prefix and a snapshot's data. -/
-def RaftNames.reSnapOk [FfiSyntax] (γ : RaftNames) (L : List EntryM) (d : List w8) : Prop :=
+def RaftNames.reSnapOk [GooseExts] (γ : RaftNames) (L : List EntryM) (d : List w8) : Prop :=
   γ.reSnapOkRaw (L.map BootEntry.ofEntry) d
 
 /-- The no-snapshot mode is of a cluster with a bootstrap log (2026-10-19, D21 M3). -/
-theorem RaftNames.noSnap_boot [FfiSyntax] {γ : RaftNames} (h : γ.reNoSnap = true) :
+theorem RaftNames.noSnap_boot [GooseExts] {γ : RaftNames} (h : γ.reNoSnap = true) :
     γ.reBoot ≠ [] := by
   unfold RaftNames.reBoot
   intro he
   exact γ.reNoSnap_ok h (List.map_eq_nil_iff.1 he)
 
 /-- (2026-10-20, D22 S-c) The no-transfer mode is of a cluster with a bootstrap log. -/
-theorem RaftNames.noXfer_boot [FfiSyntax] {γ : RaftNames} (h : γ.reNoXfer = true) :
+theorem RaftNames.noXfer_boot [GooseExts] {γ : RaftNames} (h : γ.reNoXfer = true) :
     γ.reBoot ≠ [] := by
   unfold RaftNames.reBoot
   intro he
   exact γ.reNoXfer_ok h (List.map_eq_nil_iff.1 he)
 
-def RaftNames.dyn [ext : FfiSyntax] (γ : RaftNames) : Option DynCfg :=
+def RaftNames.dyn [ext : GooseExts] (γ : RaftNames) : Option DynCfg :=
   γ.reDyn.map fun f => f ext
 
-theorem RaftNames.dyn_none [FfiSyntax] {γ : RaftNames} (h : γ.reDyn = none) : γ.dyn = none := by
+theorem RaftNames.dyn_none [GooseExts] {γ : RaftNames} (h : γ.reDyn = none) : γ.dyn = none := by
   unfold RaftNames.dyn; rw [h]; rfl
 
-theorem RaftNames.dyn_eq_none [FfiSyntax] {γ : RaftNames} : γ.dyn = none ↔ γ.reDyn = none := by
+theorem RaftNames.dyn_eq_none [GooseExts] {γ : RaftNames} : γ.dyn = none ↔ γ.reDyn = none := by
   unfold RaftNames.dyn; cases γ.reDyn <;> simp
 
 /-- The configuration `c` is the one of the committed prefix `P`: static, the ghost state's
 (`CfgStatic`, the prefix unused); dynamic, the mode's fold of `P` (2026-10-14, reconfiguration
 stage B5; until then static only). -/
-def CfgAt [FfiSyntax] (γ : RaftNames) (P : List EntryM) (c : CfgM) : Prop :=
+def CfgAt [GooseExts] (γ : RaftNames) (P : List EntryM) (c : CfgM) : Prop :=
   match γ.dyn with
   | none => CfgStatic γ c
   | some D => D.fold P = some c
 
-theorem CfgAt.of_static [FfiSyntax] {γ : RaftNames} {c : CfgM} (P : List EntryM)
+theorem CfgAt.of_static [GooseExts] {γ : RaftNames} {c : CfgM} (P : List EntryM)
     (HC : CfgStatic γ c) : CfgAt γ P c := by
   unfold CfgAt; rw [RaftNames.dyn_none HC.2.2]; exact HC
 
-theorem CfgAt.static [FfiSyntax] {γ : RaftNames} {P : List EntryM} {c : CfgM}
+theorem CfgAt.static [GooseExts] {γ : RaftNames} {P : List EntryM} {c : CfgM}
     (Hst : γ.reDyn = none) (H : CfgAt γ P c) : CfgStatic γ c := by
   unfold CfgAt at H; rw [RaftNames.dyn_none Hst] at H; exact H
 
-theorem CfgAt.dyn [FfiSyntax] {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM}
+theorem CfgAt.dyn [GooseExts] {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM}
     (HD : γ.dyn = some D) (H : CfgAt γ P c) : D.fold P = some c := by
   unfold CfgAt at H; rw [HD] at H; exact H
 
-theorem CfgAt.of_dyn [FfiSyntax] {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM}
+theorem CfgAt.of_dyn [GooseExts] {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM}
     (HD : γ.dyn = some D) (H : D.fold P = some c) : CfgAt γ P c := by
   unfold CfgAt; rw [HD]; exact H
 
 /-- Two recorded configurations overlap, at a static ghost state (both are the ghost state's).
 Dynamic: only when their conf counts differ by at most one (`CfgAt.overlap_adj`); the far cases
 are `win_fresh`'s, `lc_core`'s and `rqRecOk_confirm`'s. -/
-theorem CfgAt.overlap [FfiSyntax] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM}
+theorem CfgAt.overlap [GooseExts] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM}
     (Hst : γ.reDyn = none) (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2 := by
   intro q1 q2 h1 h2
   obtain ⟨x, hx1, hx2⟩ := quorums_intersect γ.reCfg q1 q2
@@ -516,7 +524,7 @@ theorem CfgAt.overlap [FfiSyntax] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 
 
 /-- Two recorded configurations of comparable prefixes whose conf counts differ by at most
 one overlap (both modes). -/
-theorem CfgAt.overlap_adj [FfiSyntax] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM}
+theorem CfgAt.overlap_adj [GooseExts] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM}
     (Hp : P1 <+: P2 ∨ P2 <+: P1) (Hc1 : confCount P2 ≤ confCount P1 + 1)
     (Hc2 : confCount P1 ≤ confCount P2 + 1)
     (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2 := by
@@ -530,7 +538,7 @@ theorem CfgAt.overlap_adj [FfiSyntax] {γ : RaftNames} {P1 P2 : List EntryM} {c1
     · exact (D.adj P2 P1 c2 c1 Hp Hc2 h2 h1).symm
 
 /-- A joint quorum of a recorded configuration has a member. -/
-theorem CfgAt.member [FfiSyntax] {γ : RaftNames} {P : List EntryM} {c : CfgM}
+theorem CfgAt.member [GooseExts] {γ : RaftNames} {P : List EntryM} {c : CfgM}
     {q : GSet w64} (H : CfgAt γ P c) (hq : JQuorum c q) : ∃ x, x ∈ q := by
   obtain ⟨x, hx, -⟩ := CfgAt.overlap_adj (Or.inl (List.prefix_refl P)) (by omega) (by omega)
     H H q q hq hq
@@ -538,12 +546,12 @@ theorem CfgAt.member [FfiSyntax] {γ : RaftNames} {P : List EntryM} {c : CfgM}
 
 /-- An event of a node's history (`reEvs`): an acknowledgement `(t, i)`, or a vote in
 `T` cast knowing the leader of `T` iff `d`, with full log `F` (`isVlog`'s data). -/
-inductive Aev [FfiSyntax] where
+inductive Aev [GooseExts] where
   | ack (t i : w64)
   | vote (T : w64) (d : Bool) (F : List EntryM)
 
 section aev
-variable [FfiSyntax]
+variable [GooseExts]
 
 instance Aev_countable : Pos.Countable Aev :=
   .ofInjective (fun
@@ -584,7 +592,7 @@ theorem EvSorted_snoc (L : List Aev) (e : Aev) :
 end aev
 
 section snapcert_pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The configuration a `ConfState`'s lists denote; `AutoLeave` only when joint (what
 `Restore` keeps of it). -/
@@ -644,7 +652,7 @@ theorem snapLocal_of_elem {γ : RaftNames} {id : w64} {γd : GName} (h : γ.reSn
 end snaploc
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
 /-! ### Votes -/
@@ -987,7 +995,42 @@ What an entry's `Data'` holds, for the updates over the committed log (`propAu1`
 leader's own entry (the empty entry a new leader appends) has no bytes; every other
 entry was proposed, with data whose atomic update was deposited (`deposited`). Since D6
 (stage R4) `Data'` is the bytes themselves; until then it was the slice, and a ghost map of
-proposed slices (`isPropData`, `RaftNames.reSl`) recorded which bytes it held. -/
+proposed slices (`isPropData`, `RaftNames.reSl`) recorded which bytes it held.
+
+Since 2026-10-27 the line is drawn by `Filler`: an entry that carries nothing (an empty normal
+entry; until later that day also an empty `ConfChangeV2`) is raft's own and fires the standing
+`noopAu`; every other entry -- a normal entry with bytes, any conf-change entry, the bootstrap
+entries included -- is a tracked proposal, keyed in the registry by its type and data (`entKey`), whose own
+update fires (`propAu1`). Until then a conf-change entry was raft's own too, admitted by the
+cluster's policy `reCCOk`. -/
+
+/-- **A filler** (2026-10-27): an entry of type `ty` with data `d` that carries nothing -- an empty
+normal entry (type `EntryNormal`, `0`, no bytes). Raft appends these itself: a new leader's empty
+entry (raft.go:961), the empty normal entry in place of a refused conf change (raft.go:1341); a
+client's empty proposal is one too. Every other entry is a tracked proposal (`propDataIs`), an
+empty `ConfChangeV2` included (2026-10-27: until then a filler too, whose decoding, `ccDecodeV2`,
+is opaque, so that no law could tell a committed filler normal). Raft's own auto-leave entry
+(raft.go:742, an empty `ConfChangeV2`) is never appended: `raft.appliedTo`'s premise keeps
+`AutoLeave` off at a leader. -/
+def Filler (ty : w32) (d : List w8) : Prop := d = [] ∧ ty = W32 0
+
+instance (ty : w32) (d : List w8) : Decidable (Filler ty d) := by unfold Filler; infer_instance
+
+/-- **The registry key of an entry** of type `ty` with data `d` (2026-10-27): the type's four
+little-endian bytes, then the data. Injective (`entKey_inj`), so that a conf change and a normal
+proposal with the same bytes do not share a slot, and a client recovers both from the key. -/
+def entKey (ty : w32) (d : List w8) : List w8 := u32Le ty ++ d
+
+theorem entKey_inj {ty1 ty2 : w32} {d1 d2 : List w8} (h : entKey ty1 d1 = entKey ty2 d2) :
+    ty1 = ty2 ∧ d1 = d2 := by
+  unfold entKey at h
+  have hl : (u32Le ty1).length = (u32Le ty2).length := by rw [u32Le_length, u32Le_length]
+  obtain ⟨h1, h2⟩ := List.append_inj h hl
+  exact ⟨u32Le_inj h1, h2⟩
+
+/-- A normal entry's bytes decode as its type says: there is nothing to decode. -/
+theorem CCDecodes_normal (d : List w8) : CCDecodes (W32 0) d :=
+  ⟨fun h => absurd h (by decide), fun h => absurd h (by decide)⟩
 
 /-- A registered data's record (2026-10-21): its result predicate's name, its deposits' map's
 name. -/
@@ -1027,22 +1070,23 @@ theorem propTk_set (γ : RaftNames) (d : List w8) (i : w64) :
   iexists p, k, γt
   iframe Hp Hk Hv
 
-/-- The data of entry `e`: `some d` for a normal entry holding the (non-empty, D6) client data
-`d`; `none` for an entry that is not a client operation -- a normal entry with no bytes (a
-leader's own entry, a refused conf change's replacement), or (since 2026-10-13,
-reconfiguration stage D) an entry of another type, whose bytes decode as its type says
-(`CCDecodes`: a conf-change entry's, which `stepLeader` `Unmarshal`s). Only normal entries'
-data are client operations (`propAu1` of their data moves the client's log, `noopAu` the
-others', `GhostState.lean`). Until 2026-10-13 `none` was any entry with the zero slice, and
-every entry was normal.
+/-- The data of entry `e` (2026-10-27): `none` for a filler (`Filler`: raft's own entry, or a
+client's empty proposal), `some k` for every other entry, a tracked proposal registered under its
+key `k = entKey e.Type' e.Data'` (`deposited`). Either way the bytes decode as the type says
+(`CCDecodes`: a conf-change entry's, which `stepLeader` `Unmarshal`s). The standing `noopAu` fires
+at a filler, the proposal's `propAu1 γ k` at any other entry (`GhostState.lean`).
 
-Since 2026-10-19 (D21 M6, D20 (b)) this is the data of an entry in a log (stamped), and a
-client operation's carries the index its proposal was appended at (`propIdx γ d e.Index'`);
-a proposed entry, not yet stamped, has `propDataIs` (what `entDataIs` was until then). -/
+History: until 2026-10-13 every entry was normal and `none` the zero slice; until 2026-10-27 `some d`
+was a normal entry with bytes `d` (the registry keyed by data), and `none` also any conf-change entry
+the cluster's policy admitted (`reCCOk`), so conf changes and the bootstrap entries fired `noopAu`.
+
+Since 2026-10-19 (D21 M6, D20 (b)) this is the data of a proposed entry (not yet stamped);
+`entDataIs` is that of an entry in a log, whose proposal carries the index it was appended at
+(`propIdx γ k e.Index'`). -/
 def propDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF
-  | none => iprop(⌜e.Type' = W32 0 ∧ e.Data' = []⌝ ∨
-      ⌜e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ γ.reCCOk e.Type' e.Data'⌝)
-  | some d => iprop(⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ ∗ deposited γ d)
+  | none => iprop(⌜Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data'⌝)
+  | some k => iprop(⌜entKey e.Type' e.Data' = k ∧ ¬ Filler e.Type' e.Data' ∧
+      CCDecodes e.Type' e.Data'⌝ ∗ deposited γ k)
 
 def entDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF
   | none => propDataIs γ e none
@@ -1085,12 +1129,10 @@ theorem propDataIs_agree (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8)
     ⊢ propDataIs (GF := GF) γ e o1 -∗ propDataIs γ e o2 -∗ ⌜o1 = o2⌝ := by
   cases o1 <;> cases o2 <;> unfold propDataIs
   · iintro _ _; ipureintro; rfl
-  · iintro (%H1 | %H1) ⟨%H2, -⟩
-    · exact absurd (H2.1.symm.trans H1.2) H2.2.1
-    · exact absurd H2.2.2 H1.1
-  · iintro ⟨%H1, -⟩ (%H2 | %H2)
-    · exact absurd (H1.1.symm.trans H2.2) H1.2.1
-    · exact absurd H1.2.2 H2.1
+  · iintro %H1 ⟨%H2, -⟩
+    exact absurd H1.1 H2.2.1
+  · iintro ⟨%H1, -⟩ %H2
+    exact absurd H2.1 H1.2.1
   · iintro ⟨%H1, -⟩ ⟨%H2, -⟩
     ipureintro; rw [← H1.1, ← H2.1]
 
@@ -1127,11 +1169,11 @@ theorem propDataIs_stamp (γ : RaftNames) (e : EntryM) (t i : w64) (o : Option (
     propDataIs (GF := GF) γ { e with Term' := t, Index' := i } o = propDataIs γ e o := by
   cases o <;> rfl
 
-/-- **The ticket a proposed entry carries** (D21 M6): a client operation's (a normal entry with
-bytes), its data's ticket; nothing for any other entry. -/
+/-- **The ticket a proposed entry carries** (D21 M6): a tracked proposal's (2026-10-27: any entry
+but a filler; until then a normal entry with bytes), its key's ticket; nothing for a filler. -/
 def entTk (γ : RaftNames) (e : EntryM) : IProp GF :=
-  if e.Type' = W32 0 ∧ e.Data' ≠ [] then propTk γ e.Data'
-  else iprop(emp)
+  if Filler e.Type' e.Data' then iprop(emp)
+  else propTk γ (entKey e.Type' e.Data')
 
 /-- **The tickets a message carries** (D21 M6): a proposal's, its entries'. -/
 def msgTks (γ : RaftNames) (m : Msg) : IProp GF :=
@@ -1244,9 +1286,8 @@ theorem propData_zero (γ : RaftNames) : ⊢ propData (GF := GF) γ (zero_val En
   unfold propData
   iexists none
   unfold propDataIs
-  ileft
   ipureintro
-  exact ⟨rfl, rfl⟩
+  exact ⟨⟨rfl, rfl⟩, CCDecodes_normal _⟩
 
 /-- `stepLeader`'s conf-change loop keeps the entries' data: a kept entry's is its own, a
 replaced one's is the empty normal entry's (2026-10-13). -/
@@ -1284,7 +1325,7 @@ theorem entTk_propRepl (γ : RaftNames) (es es' : List EntryM) (H : PropRepl es 
       · iclear Hx'
         rw [Hz]
         unfold entTk
-        rw [if_neg (by intro h; exact h.2 rfl)]
+        rw [if_pos ⟨rfl, rfl⟩]
         iempintro
     · iapply ih $$ Hl
 
@@ -1304,11 +1345,12 @@ theorem propData_stampTk (γ : RaftNames) (e : EntryM) (t i : w64) :
     rw [propDataIs_stamp γ e t i]
     iexact Hd
   | some d =>
-    ihave %Hdd : ⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ $$ [Hd]
+    ihave %Hdd : ⌜entKey e.Type' e.Data' = d ∧ ¬ Filler e.Type' e.Data' ∧
+        CCDecodes e.Type' e.Data'⌝ $$ [Hd]
     · unfold propDataIs; icases Hd with ⟨%H, -⟩; ipureintro; exact H
-    obtain ⟨Hed, Hne, Hty⟩ := Hdd
+    obtain ⟨Hk, Hnf, Hdec⟩ := Hdd
     unfold entTk
-    rw [ite_eq_left_iff.mpr (fun h => absurd ⟨Hty, by rw [Hed]; exact Hne⟩ h), Hed]
+    rw [if_neg Hnf, Hk]
     iunfold propDataIs at Hd
     icases Hd with ⟨-, #Hdep⟩
     imod propTk_set γ d i $$ Htk with #Hi
@@ -1316,7 +1358,7 @@ theorem propData_stampTk (γ : RaftNames) (e : EntryM) (t i : w64) :
     iexists some d
     simp only [entDataIs, propDataIs]
     iframe Hdep Hi
-    ipureintro; exact ⟨trivial, Hne, Hty⟩
+    ipureintro; exact ⟨Hk, Hnf, Hdec⟩
 
 /-- The boot entry `e` of the bootstrap log `L` (2026-10-16, stage R8b, D12), with its
 predecessor's term `pt`: `e` is `L`'s entry at its index (`L[i - 1]`), of term `1`; its
@@ -2667,13 +2709,13 @@ theorem commitIn_committed (γ : RaftNames) (F : List EntryM) (c tm : w64) :
   · ileft; ipureintro; exact H0.1
   · iright; iexists t, n, G; iframe Hq; ipureintro; exact Hc.1
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem take_agree_le {α : Type _} {F F' : List α} {lim m : Nat} (h : F'.take lim = F.take lim)
     (hm : m ≤ lim) : F'.take m = F.take m := by
   have := congrArg (List.take m) h
   simpa [List.take_take, Nat.min_eq_left hm] using this
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem getElem?_agree_lt {α : Type _} {F F' : List α} {lim k : Nat}
     (h : F'.take lim = F.take lim) (hk : k < lim) : F'[k]? = F[k]? := by
   have := congrArg (fun l => l[k]?) h
@@ -2834,7 +2876,7 @@ theorem commitIn_move (γ : RaftNames) (F F' : List EntryM) (c tm tm' : w64) :
   icases full_take_eq γ F F' c Hw Hw' Hs Heq.symm $$ Hr Hr' with %Htk
   iapply commitIn_agree γ F F' c tm tm' Htm Heq Htk.symm $$ Hc
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- The first `c` entries of a log are those of any log it is a prefix of. -/
 theorem take_of_prefix {α : Type _} {L L' : List α} {c : Nat} (h : L <+: L')
     (hc : c ≤ L.length) : L'.take c = L.take c := by

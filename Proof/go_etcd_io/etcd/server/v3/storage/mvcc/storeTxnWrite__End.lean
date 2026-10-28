@@ -17,14 +17,14 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend chs ps sealed P f crev Z
+  intro trace tw s γ ilog pend chs ps sealed P f crev Z ld
   wp_start as ⟨Htw, HhookC, HP, #HokN, Hq⟩
   -- the caller's hook: its facts, and the writer's fragment, given back (D22 receiver epochs, S5b)
   icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
@@ -35,8 +35,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
-  iunfold mvcc.batchTxSpecG at Hbt
-  icases Hbt with ⟨-, -, #HUnlock0, #HUnlock, -⟩
+  -- the lock token, the batch transaction's or the one the lessor's delete left: its `Unlock`s
+  icases mvcc.lockedIs_unlock ld bt _ _ _ _ _ _ _ _ _ _ _ _ (mvcc.pendPuts ilog pend)
+    $$ [$Hbt $Hlocked] with ⟨%U, Hlocked, #Hul⟩
+  iunfold mvcc.unlockAt at Hul
+  icases Hul with ⟨#HUnlock0, #HUnlock⟩
   have hsplit := dfrac_own_half_half (1 : Qp)
   have hpend : pend = [] ↔ chs.len = 0 := by
     obtain ⟨h1, h2⟩ := Hlen
@@ -80,6 +83,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     ihave HW := mvcc.storeW_put s γ $$ [$Hreg $HW]
     rw [mvcc.pendPuts_nil]
     wp_apply HUnlock0 $$ [$Hlocked $HW $HP]
+    · ipureintro; rfl
     (try wp_auto)
     wp_if_destruct
     rotate_left
@@ -176,7 +180,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       exact ⟨by simp; omega, by simp⟩
     icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
     imod mvcc.writerInv_checkin s γ (ilog ++ [pend]) _ o $$ Hlc2 HwiS Hpin HL HwvW with ⟨Hwk, Hwr, HwvW, Hpin⟩
-    ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
+    ihave #HUnlock' := HUnlock $$ %(mvcc.bucketMap ilog)
       %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
     wp_apply HUnlock' $$ [$Hlocked $Hview $HP Hwk HwvW Hcres] as Hbucket
     · rw [← mvcc.bucketMap_append ilog pend Hne]

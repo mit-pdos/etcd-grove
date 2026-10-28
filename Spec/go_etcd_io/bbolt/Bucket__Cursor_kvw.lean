@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.bbolt backend
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -31,12 +31,13 @@ back only with the cursor. (Go's write-transaction cursor reads the materialized
 see a later `Put`: until audit B4b, 2026-10-18, this spec gave `ownWTx` back at once and the
 cursor kept the entries of `m`, false after a `Put` on the bucket.) -/
 abbrev bbolt.Bucket.Cursor_kvw.spec : Prop :=
-  ∀ (tx : Loc) (γ : DBNames) (D S : Data) (b : Loc) (n : GoString) (m : BktData),
-  S.lookup n = some m →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTx tx γ D S ∗ wBkt tx b n }}
+  ∀ (tx : Loc) (γ : DBNames) (D S : Data) (G : GoString → Nat) (b : Loc) (n : GoString) (g : Nat)
+    (m : BktData),
+  G n = g → S.lookup n = some m →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ wBkt tx b n g }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Cursor")) (Val #()))
   {{ (c : Loc), RET #c; ownCur tx c (bktEnts m) none ∗ txLive tx 1 ∗
-      (∀ pos : Option Nat, ownCur tx c (bktEnts m) pos -∗ txLive tx 1 -∗ ownWTx tx γ D S) }}
+      (∀ pos : Option Nat, ownCur tx c (bktEnts m) pos -∗ txLive tx 1 -∗ ownWTxG tx γ D S G) }}
 
 end spec
 

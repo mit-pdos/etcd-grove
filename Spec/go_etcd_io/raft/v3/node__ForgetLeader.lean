@@ -12,6 +12,7 @@ specified for `context.Background()`; the error said only whether the message re
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Perennial.Proof.context
 
 @[expose] public section
@@ -24,7 +25,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -34,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev node.ForgetLeader.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ForgetLeader"))
       (Val #(interface.ok ctx)))
   {{ (err : GoInterface), RET #err; nodeErr cd err }}

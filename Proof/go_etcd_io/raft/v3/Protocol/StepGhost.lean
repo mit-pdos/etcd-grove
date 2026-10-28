@@ -35,7 +35,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ### The log ghost state across a step -/
@@ -331,7 +331,7 @@ theorem cprefix_transfer (γ : RaftNames) (fp1 fp2 : List EntryM) (s : PState) :
   subst Heq
   iexact Hc
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem take_prefix_le {A : Type _} (l : List A) (n m : Nat) :
     n ≤ m → l.take n <+: l.take m := by
   intro H
@@ -1085,7 +1085,7 @@ theorem ownLogGhost_vote (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
     isplitr; · ipureintro; exact ⟨full_wf _ _ _ Hf Hw, fun x => full_up_to_date _ _ _ x Hf⟩
     iexact Hvev
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- (Lean helper.) The true branch of an `if` in a BI. -/
 private theorem ite_pos_elim {PROP : Type _} [BI PROP] {c : Prop} [Decidable c] (P Q : PROP)
     (h : c) : (if c then P else Q) ⊢ P := by

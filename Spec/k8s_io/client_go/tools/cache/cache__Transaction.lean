@@ -20,7 +20,7 @@ namespace cache
 open Iris Iris.BI k8s_io.client_go.tools.cache
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The write keyed by the key function `KF` (the key `cache.Transaction` computes). -/
 def Tx.keyed (KF : GoInterface → GoString) (x : Tx) : Tx := { x with k := KF x.o }
@@ -31,7 +31,7 @@ def Tx.keyed (KF : GoInterface → GoString) (x : Tx) : Tx := { x with k := KF x
 end model
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

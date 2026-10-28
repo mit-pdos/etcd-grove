@@ -345,7 +345,7 @@ theorem delCount_toTxnOps : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
     · cases h
 
 section bridge
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -564,7 +564,7 @@ theorem txnReq_of_requestIs (r : Loc) (t : TxnModel) (hp : TxnModel.plain t) :
 end bridge
 
 section resp
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -754,7 +754,7 @@ theorem siblingSafeL_of_flat : ∀ (us : List v3rpc.ReqOp) (ts : List TxnOp),
 
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -800,7 +800,7 @@ theorem txnRespMsg_of_server (skip : Bool) (resp h : Loc) (rev : w64) (t : TxnMo
 end proofs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -889,7 +889,7 @@ def etcdGrpcSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
 end defs
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1475,7 +1475,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       | false =>
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
         iunfold v3rpc.txnAppliedAns at Hans
-        icases Hans with ⟨%hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
+        icases Hans with ⟨%tw, %hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
           #Hcok, HQv⟩
         have hdq : d = .op1 (.txn t) Q := by
           rcases HdQ with ⟨h, -⟩ | ⟨-, h⟩
@@ -1499,12 +1499,12 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iapply Hspec
         unfold txnReplied
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
-        iexists hm, rq', t'', x, x', l, skip
+        iexists tw, hm, rq', t'', x, x', l, skip
         iframe Hcert HMint Hwit Hcok HQv
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
-        obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
-        refine ⟨s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
+        obtain ⟨s0, s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
+        refine ⟨s0, s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
         · rw [h1]
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr
@@ -1533,7 +1533,7 @@ theorem deleteReq_learnerOk (l : Loc) :
 `*quotaKVServer` `q` whose `Put` meets etcd's spec, under a chain of transparent interceptors
 (for requests the learner check reads); the run's resource is the method's and the
 interceptors'. -/
-theorem etcd_putMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AEnv GF)
+theorem etcd_putMethodOk (q : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Put")
         S (etcdPutSpec E γr cid mid) ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -1562,7 +1562,7 @@ theorem etcd_putMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AE
   iframe
 
 /-- **etcd's `Range`, as grpc runs it** (as `etcd_putMethodOk`). -/
-theorem etcd_rangeMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AEnv GF)
+theorem etcd_rangeMethodOk (q : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Range")
         S (etcdRangeSpec E γr cid mid) ∗
@@ -1594,7 +1594,7 @@ theorem etcd_rangeMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.
   iframe
 
 /-- **etcd's `DeleteRange`, as grpc runs it** (as `etcd_putMethodOk`). -/
-theorem etcd_deleteMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AEnv GF)
+theorem etcd_deleteMethodOk (q : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"DeleteRange")
         S (etcdDeleteSpec E γr cid mid) ∗
@@ -1630,7 +1630,7 @@ theorem txnReq_learnerOk (l : Loc) :
     simp [etcdserverpb.TxnRequest.ty, etcdserverpb.RangeRequest.ty])
 
 /-- **etcd's `Txn`, as grpc runs it** (as `etcd_putMethodOk`; the vertical slice's unit V2). -/
-theorem etcd_txnMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AEnv GF)
+theorem etcd_txnMethodOk (q : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Txn")
         S (etcdTxnSpec E γw γr cid mid) ∗
@@ -1669,7 +1669,7 @@ Premises: the server's (`isServerReq`, `isServerRead`, its `*kvServer` `p`, the 
 `NewQuotaKVServer(s)` returns), the interceptors' contracts (`srvInterceptorOk`: what
 `newLogUnaryInterceptor(s)` and `newUnaryInterceptor(s)` return, proved; grpc-prometheus's,
 assumed), the method-set fact `QuotaKVServerIsKVServer`, the packages'. -/
-theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s : Loc)
+theorem etcd_kv_served (addr : GoString) (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
     (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs) :
@@ -1784,7 +1784,7 @@ one environment, read names and ids) is the `client_*_end_to_end` results' case:
 -/
 
 section e2e
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2030,7 +2030,7 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64)
 end e2e
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2488,7 +2488,7 @@ theorem rangeReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
 end proofs
 
 section watch_stub
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2506,7 +2506,7 @@ theorem watchClient_Watch : EtcdGrove.watchClient.Watch.spec (GF := GF) (hG := h
 end watch_stub
 
 section watcher
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2543,14 +2543,9 @@ given the server's request-path premises `etcd_kv_served` takes (`isServerReq`, 
 the id budget, `N` run slots).
 -/
 
-/-- The method-set facts of `v3rpc.Server` give `QuotaKVServerIsKVServer` (the KV service's). -/
-instance quotaKV_of_methodSets [FfiSyntax] [GoGlobalContext] [GoLocalContext]
-    [GoSemanticsFunctions] [h : v3rpc.ServerMethodSets] : v3rpc.QuotaKVServerIsKVServer :=
-  ⟨h.kv_impl⟩
-
 section start
 open Iris.ProofMode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2576,7 +2571,7 @@ wrapper `q` over `p`, the interceptors' contracts) and a listener at `addr` beco
 step, the right to serve `gs` on `lis`, the stream registrations at `addr`, and etcd's specs of
 `Put`, `Range`, `DeleteRange` and `Txn` registered at `addr` (`isGrpcRpc`), given the server's
 request-path premises (`etcd_kv_served`'s). -/
-theorem etcd_kv_started [v3rpc.ServerMethodSets] (addr : GoString) (gs q p s : Loc)
+theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
     (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64)
     (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × val × GoInterface)) (N : Nat)
@@ -2612,7 +2607,7 @@ theorem etcd_kv_started [v3rpc.ServerMethodSets] (addr : GoString) (gs q p s : L
 end start
 
 section lease
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2667,7 +2662,7 @@ handlers' slot `etcdRunSlot`). The server side (`EtcdServer.LeaseGrant`/`LeaseRe
 
 section lease_served
 open Iris.ProofMode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2796,7 +2791,7 @@ theorem leaseRevokeReq_learnerOk (l : Loc) :
 /-- **etcd's `LeaseGrant`, as grpc runs it** (`grpcMethodOk`; as `etcd_putMethodOk`): the
 generated `_Lease_LeaseGrant_Handler` on the `*quotaLeaseServer` `q` whose `LeaseGrant` meets
 `Spec`, under a chain of transparent interceptors. -/
-theorem etcd_leaseGrantMethodOk [v3rpc.ServerMethodSets] (q : Loc)
+theorem etcd_leaseGrantMethodOk (q : Loc)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType
@@ -2830,7 +2825,7 @@ theorem etcd_leaseGrantMethodOk [v3rpc.ServerMethodSets] (q : Loc)
   iframe
 
 /-- **etcd's `LeaseRevoke`, as grpc runs it** (as `etcd_leaseGrantMethodOk`). -/
-theorem etcd_leaseRevokeMethodOk [v3rpc.ServerMethodSets] (q : Loc)
+theorem etcd_leaseRevokeMethodOk (q : Loc)
     (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType
@@ -2901,7 +2896,7 @@ theorem etcdGrpcSlot_eq (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 
 /-- **The Lease methods as grpc runs them**, from the server's facts and the lessor contract
 (what `etcd_lease_served` and `etcd_kv_lease_served` serve). -/
-theorem etcd_leaseMethodsOk [v3rpc.ServerMethodSets] (lp q s : Loc) (A : v3rpc.KVAns GF)
+theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) (S : IProp GF) (il im iu : GoFunc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -2952,7 +2947,7 @@ the `*quotaLeaseServer` `q` over the `*LeaseServer` `lp` (`etcdLeaseRegs q` amon
 methods), that hands the runtime `N` run slots (`etcdLeaseSlot`), registers etcd's `LeaseGrant` and
 `LeaseRevoke` specs at `addr` at the server's model of etcd (`isGrpcRpc`), given the server's lease
 methods' contract (`raftLessor s E S`, a premise: the server side through raft is not done). -/
-theorem etcd_lease_served [v3rpc.ServerMethodSets] (addr : GoString) (lp q s : Loc)
+theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
     (A : v3rpc.KVAns GF) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) (S : IProp GF)
     (il im iu : GoFunc) (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdLeaseRegs (GF := GF) q, x ∈ regs) :
@@ -2992,7 +2987,7 @@ theorem etcd_lease_served [v3rpc.ServerMethodSets] (addr : GoString) (lp q s : L
 `etcd_lease_served` together, as `grpc.serve` takes every served method at once): the run slot is
 the KV's `etcdGrpcSlot`, and the lessor contract is at the KV handlers' slot `etcdRunSlot s E γr`
 (what the server-side proof of `raftLessor` must meet). -/
-theorem etcd_kv_lease_served [v3rpc.ServerMethodSets] (addr : GoString) (p q lp ql s : Loc)
+theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n lcid lmid : w64)
     (il im iu : GoFunc) (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q ++ etcdLeaseRegs (GF := GF) ql, x ∈ regs) :
@@ -3099,7 +3094,7 @@ theorem etcd_kv_lease_served [v3rpc.ServerMethodSets] (addr : GoString) (p q lp 
 the premises are the server's (built with the Lease service on `q` over `lp`, the lessor contract
 `raftLessor s E S`, `N` run slots) and the keep-alive stream's (`leaseKAStreamOk`, still a
 premise). -/
-theorem client_lessor_isEtcdLease_served [v3rpc.ServerMethodSets] (l : Loc) (addr : GoString)
+theorem client_lessor_isEtcdLease_served (l : Loc) (addr : GoString)
     (lp q s : Loc) (A : v3rpc.KVAns GF) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
     (S : IProp GF) (il im iu : GoFunc) (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdLeaseRegs (GF := GF) q, x ∈ regs) :
@@ -3128,7 +3123,7 @@ theorem client_lessor_isEtcdLease_served [v3rpc.ServerMethodSets] (l : Loc) (add
 /-- **`clientv3.New`'s client has the clients' lease contract against etcd's server**
 (`client_new_isEtcdLeaseClient` at the server's model, its registrations from
 `etcd_lease_served`; as `client_lessor_isEtcdLease_served`). -/
-theorem client_new_isEtcdLeaseClient_served [v3rpc.ServerMethodSets] (cl : Loc) (ep : GoString)
+theorem client_new_isEtcdLeaseClient_served (cl : Loc) (ep : GoString)
     (V : WEnv GF) (lp q s : Loc) (A : v3rpc.KVAns GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (S : IProp GF) (il im iu : GoFunc)
     (regs : List (GoString × val × GoInterface)) (N : Nat)

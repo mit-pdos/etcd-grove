@@ -22,7 +22,7 @@ namespace counter
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -30,7 +30,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.
 
 theorem New.wp_proof : New.spec (GF := GF) (hG := hG) := by
   wp_start
-  wp_alloc c as Hc
+  iapply wp_fupd
+  wp_auto
+  irename «$r0» => Hc
+  generalize «$r0_ptr» = c at *
   iStructNamed Hc
   imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γ, Hv⟩
   icases ghostVar_split γ (W64 0) (1 : Qp).half (1 : Qp).half $$ [Hv] with ⟨Hv1, Hv2⟩
@@ -39,7 +42,7 @@ theorem New.wp_proof : New.spec (GF := GF) (hG := hG) := by
   · inext
     iexists W64 0
     iframe
-  wp_auto
+  imodintro
   iapply HΦ
   iexists γ
   iframe Hv2

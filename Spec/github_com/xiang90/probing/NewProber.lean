@@ -17,16 +17,19 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **A prober** (`probing.Prober`, an interface): its `RemoveAll()` returns (`Transport.Stop`'s).
-`probing.NewProber` returns one. -/
+/-- **A prober** (`probing.Prober`, an interface): its `RemoveAll()` returns (`Transport.Stop`'s),
+and (D43 M5a, 2026-10-26, the user's decision) its `Remove(id)` returns some error
+(`Transport.removePeer`'s, which ignores it). `probing.NewProber` returns one. -/
 def probing.proberOk (p : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜p = GoInterface.ok ti⌝ ∗
-    {{ True }} (App (Val #(methods ti.ty go!"RemoveAll" ti.v)) (Val #())) {{ RET #(); True }})
+    {{ True }} (App (Val #(methods ti.ty go!"RemoveAll" ti.v)) (Val #())) {{ RET #(); True }} ∗
+    ∀ id : GoString, {{ True }} (App (Val #(methods ti.ty go!"Remove" ti.v)) (Val #id))
+      {{ (e : GoInterface), RET #e; True }})
 
 instance probing.proberOk_persistent (p : GoInterface) : Persistent (probing.proberOk (GF := GF) p) := by
   unfold probing.proberOk; infer_instance
@@ -34,7 +37,7 @@ instance probing.proberOk_persistent (p : GoInterface) : Persistent (probing.pro
 end defs
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

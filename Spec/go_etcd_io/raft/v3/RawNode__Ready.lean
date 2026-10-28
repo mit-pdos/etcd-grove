@@ -29,7 +29,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, as in `Spec/raft__Step.lean`
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
@@ -56,7 +56,7 @@ The `Ready` it returns:
   (2026-10-13) comes with its read credit (`rdCred`: one for a `MsgReadIndex`, none
   otherwise), which the transport passes to the receiver's `Step`;
 - `Snapshot` empty (no snapshot pending);
-- `ReadStates`: `sts`, read-only (2026-10-13), each `readStateOk`: its context a slice
+- `ReadStates`: `sts`, read-only (2026-10-13), each `readStateRaw`: its context a slice
   proposed (`isPropData`), and its index at least the length of the committed log the
   read was created knowing (`readOk`), so applying up to it reads a linearizable state.
 
@@ -72,7 +72,7 @@ out (`ms : List QMsg`, a response at half -- `acceptReady` read the other half, 
 the node's way back and is dropped with the queues: the application gets responses read-only,
 `issues/nonissues/raft-ready-messages-read-after-handout.md`), the entries `entsRO`, the read states
 `readStatesPts`, `rd.Snapshot` `nil`, and the hard state `hsOpt rd.HardState' h` (new). The
-`ReadState`s' contexts are bytes (D6), `readStateOk` over `ReadStateM`. (D22 S-d3a, 2026-10-21) With
+`ReadState`s' contexts are bytes (D6), `readStateRaw` over `ReadStateM`. (D22 S-d3a, 2026-10-21) With
 a snapshot pending (until then a premise `rs.psnap = false`): handed out with the storage itself,
 the loan `L` recorded (`RawNode.readyWithoutAccept.spec`, `RawNode.acceptReady.spec`). -/
 abbrev RawNode.Ready.spec : Prop :=
@@ -107,7 +107,7 @@ abbrev RawNode.Ready.spec : Prop :=
       "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
       -- the read states (2026-10-13)
       "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
-      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
+      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateRaw γ st) ∗
       -- (2026-10-16, stage R5) the hard state, `nil` or fresh and read-only
       "#Hhard" ∷ hsOpt rd.HardState' h ∗
       -- (D22 S-b) a non-`nil` one is the node's: its witness (`hsWit`); (D22l) of `prevHardSt`

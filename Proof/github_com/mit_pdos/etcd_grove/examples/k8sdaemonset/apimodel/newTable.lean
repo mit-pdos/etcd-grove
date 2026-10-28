@@ -20,7 +20,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -29,16 +29,15 @@ variable [package_sem : apimodel.Assumptions]
 theorem newTable.wp_proof : newTable.spec (GF := GF) (hG := hG) := by
   intro _ r empty
   wp_start as #Hemp
+  iapply wp_fupd
   wp_auto
   wp_apply (wp_map_make1 (K := Key) (V := GoInterface)) as %m Hm
-  (try wp_auto)
-  wp_apply +noauto wp_alloc as %t Ht
-  iStructNamedSuffix Ht "_f"
+  iStructNamedSuffix «$r0» "_f"
   ipersist resource_f
   ipersist namespaced_f
   ipersist objs_f
   ipersist empty_f
-  wp_auto
+  imodintro
   iapply HΦ
   unfold tableFixed tableLocked
   iframe #

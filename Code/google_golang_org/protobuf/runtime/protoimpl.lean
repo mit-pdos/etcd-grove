@@ -21,61 +21,61 @@ end pkg_id
 
 namespace google_golang_org.protobuf.runtime.protoimpl
 
-noncomputable def EnforceVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnforceVersion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/runtime/protoimpl.EnforceVersion" [])
 
 attribute [irreducible] EnforceVersion.ty
 
-axiom DescBuilder [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DescBuilder [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypeBuilder [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TypeBuilder [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnumInfo [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EnumInfo [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MessageInfo [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MessageInfo [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionInfo [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionInfo [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def MessageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState.ty
 
-@[reducible] noncomputable def SizeCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SizeCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-axiom WeakFields [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WeakFields [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def UnknownFields.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnknownFields.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
-axiom ExtensionFields [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionFields [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionFieldV1 [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionFieldV1 [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Pointer [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Pointer [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LazyUnmarshalInfo [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LazyUnmarshalInfo [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RaceDetectHookData [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RaceDetectHookData [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnforceVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EnforceVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnsafeEnabled [FfiSyntax] [GoGlobalContext] : val
+axiom UnsafeEnabled [GooseExts] [GoGlobalContext] : val
 
-axiom MaxVersion [FfiSyntax] [GoGlobalContext] : val
+axiom MaxVersion [GooseExts] [GoGlobalContext] : val
 
-axiom GenVersion [FfiSyntax] [GoGlobalContext] : val
+axiom GenVersion [GooseExts] [GoGlobalContext] : val
 
-axiom MinVersion [FfiSyntax] [GoGlobalContext] : val
+axiom MinVersion [GooseExts] [GoGlobalContext] : val
 
-noncomputable def X [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def X [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/runtime/protoimpl.X"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.runtime.protoimpl where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.internal.impl]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.protobuf.runtime.protoimpl)) (Lam BAnon
   (App (Val exceptionDo)
@@ -86,16 +86,20 @@ axiom EnforceVersion : Type
 axiom EnforceVersion.zero_val : ZeroVal EnforceVersion
 attribute [instance] EnforceVersion.zero_val
 
-class EnforceVersion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EnforceVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EnforceVersion.underlying EnforceVersion
   underlying : go.UnderlyingDirectedEq EnforceVersion.ty EnforceVersion.underlying
   isUnderlying : go.IsUnderlying EnforceVersion.underlying EnforceVersion.underlying
+  method_set : go.MethodSetIs EnforceVersion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EnforceVersion.ty) []
 
 attribute [instance] EnforceVersion.TypeAssumptions.type_repr
   EnforceVersion.TypeAssumptions.underlying
   EnforceVersion.TypeAssumptions.isUnderlying
+  EnforceVersion.TypeAssumptions.method_set
+  EnforceVersion.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EnforceVersion_instance : EnforceVersion.TypeAssumptions
   import_impl_Assumption : _root_.Perennial.google_golang_org.protobuf.internal.impl.Assumptions
 

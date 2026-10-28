@@ -27,19 +27,20 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- A member's peer URLs and `IsLearner`, borrowed. -/
-theorem membership.ownMember_log_acc (m : Loc) :
-    membership.ownMember (GF := GF) m ⊢ ∃ (pu : GoSlice) (pus : List GoString) (il : Bool),
-      membership.mPeerURLsAddr m ↦ pu ∗ pu ↦* pus ∗ membership.mIsLearnerAddr m ↦ il := by
-  unfold membership.ownMember membership.memberIs
-  iintro ⟨%id, %Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
-  iexists pu, pus, il
+/-- A member's peer URLs and `IsLearner`, borrowed (the rest dropped). -/
+theorem membership.memberAt_log_acc (m : Loc) (q : Qp) (mm : apply.MemberM) :
+    membership.memberAt (GF := GF) m q mm ⊢ ∃ (pu : GoSlice),
+      membership.mPeerURLsAddr m ↦{DFrac.own q} pu ∗ pu ↦*{DFrac.own q} mm.peerURLs ∗
+      membership.mIsLearnerAddr m ↦{DFrac.own q} mm.isLearner := by
+  unfold membership.memberAt
+  iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
+  iexists pu
   iframe
 
 set_option maxHeartbeats 1000000 in
@@ -52,8 +53,8 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
     (wp_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (wp_Bool : zap.Bool.spec (GF := GF) (hG := hG)) :
     membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG) := by
-  intro c γ rm id v3 lg cid bi Pd Qd
-  wp_start as ⟨#Hrc, Hw, #Hlg, %Hlgnn, #Hcid, #Hbe, Hd⟩
+  intro c γ rm mem id dqb v3 lg cid bi Pd Qd
+  wp_start as ⟨#Hrc, Hw, Hcm, #Hlg, %Hlgnn, #Hcid, Hbe, Hd⟩
   iunfold membership.isRaftClusterG at Hrc
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -66,7 +67,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
   iunfold membership.rcLockInvG at Hinv
-  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, %lid, %rp, %rm', #Hlid, Hrf, Hrm, HRM⟩
+  icases Hinv with ⟨%mm, %mem', Hmem, %Hsz, %lid, %rp, %rm', #Hlid, Hrf, Hrm, HRM⟩
   iunfold membership.rcDyn at HRM
   iunfold membership.rcRemovedOwn at Hw
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hw HRM
@@ -93,11 +94,11 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
     (try wp_auto)
     wp_method_call
     wp_call
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrf Hrm HRM]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRM]
     · inext
       iunfold membership.rcLockInvG
-      iexists mp, mm
-      iframe Hmf Hmap Hmems
+      iexists mm, mem'
+      iframe Hmem
       isplitr
       · ipureintro; exact Hsz
       iexists lid, rp, rm
@@ -106,7 +107,9 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
       iexact HRM
     (try wp_auto)
     iapply HΦ
+    iframe Hbe
     simp only [Bool.false_eq_true, ↓reduceIte]
+    iframe Hcm
     iunfold membership.rcRemovedOwn
     iexact Hw
   · -- with `shouldApplyV3`: the backend's delete, by the caller's triple
@@ -118,6 +121,15 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
     iapply Hdel $$ HPd
     inext
     iintro HQd
+    -- the members map whole: the lock's half and the apply thread's
+    iunfold membership.clusterMem at Hcm
+    icases Hcm with ⟨%ms2, Hcm⟩
+    icases membership.memAt_join c mm ms2 mem' mem $$ [Hmem Hcm] with ⟨%Hag, Hmem⟩
+    · iframe
+    obtain ⟨-, Hmeq⟩ := Hag
+    subst Hmeq
+    iunfold membership.memAt at Hmem
+    icases Hmem with ⟨%mp, Hmf, Hmap, %Hdom, Hmems⟩
     (try wp_auto)
     -- `m, ok := c.members[id]`, `delete(c.members, id)`, `c.removed[id] = true`
     wp_apply wp_map_lookup2 _ _ mp mm id (DFrac.own 1) $$ [$Hmap] as Hmap
@@ -151,16 +163,21 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
       (try wp_auto)
       wp_apply wp_Warn $$ []
       · ipureintro; exact Hlgnn
-      ihave Hmems : iprop([∗map] _k ↦ m ∈ GMap.delete id mm, membership.ownMember m) $$ [Hmems]
-      · rw [GMap.delete_notin mm id Hm]; iexact Hmems
+      have Hmem0 : mem !! id = none := by
+        have := Hdom.1 id; rw [Hm] at this; cases h : mem !! id <;> simp_all
+      ihave Hmem : membership.memAt c 1 (GMap.delete id mm) (GMap.delete id mem)
+        $$ [Hmf Hmap Hmems]
+      · rw [GMap.delete_notin mm id Hm, GMap.delete_notin mem id Hmem0]
+        iunfold membership.memAt; iexists mp; iframe; ipureintro; exact Hdom
+      icases membership.memAt_halve c _ _ $$ Hmem with ⟨Hmem, Hcm⟩
       (try wp_auto)
       wp_method_call
       wp_call
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrf Hrm HRM]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRM]
       · inext
         iunfold membership.rcLockInvG
-        iexists mp, GMap.delete id mm
-        iframe Hmf Hmap Hmems
+        iexists GMap.delete id mm, GMap.delete id mem
+        iframe Hmem
         isplitr
         · ipureintro; exact Hsz'
         iexists lid, rp, GMap.insert id true rm
@@ -169,16 +186,20 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
         iexact HRM
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       try simp only [↓reduceIte]
       iframe HQd
-      iunfold membership.rcRemovedOwn
-      iexact Hw
+      isplitl [Hw]
+      · iunfold membership.rcRemovedOwn
+        iexact Hw
+      iunfold membership.clusterMem
+      iexists _
+      iexact Hcm
     | some m =>
       -- `lg.Info("removed member", ...)`, the member's record from the map
       simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
-      icases (BigSepM.bigSepM_delete (Φ := fun _ m => membership.ownMember (GF := GF) m) Hm).1
-        $$ Hmems with ⟨Hmem, Hmems⟩
-      icases membership.ownMember_log_acc m $$ Hmem with ⟨%pu, %pus, %il, Hpu, -, Hil⟩
+      icases membership.memMembers_delete 1 mm mem id m Hm $$ Hmems with ⟨Hm1, Hmems⟩
+      icases membership.memberAt_log_acc m _ _ $$ Hm1 with ⟨%pu, Hpu, -, Hil⟩
       (try wp_auto)
       wp_apply wp_IDStr $$ [$Htypes $Hcid] as %s1 ⟨-, -⟩
       wp_apply wp_String as %f1 -
@@ -202,11 +223,16 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
       (try wp_auto)
       wp_method_call
       wp_call
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrf Hrm HRM]
+      ihave Hmem : membership.memAt c 1 (GMap.delete id mm) (GMap.delete id mem)
+        $$ [Hmf Hmap Hmems]
+      · iunfold membership.memAt; iexists mp; iframe
+        ipureintro; exact membership.memDom_delete mm mem id Hdom
+      icases membership.memAt_halve c _ _ $$ Hmem with ⟨Hmem, Hcm⟩
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRM]
       · inext
         iunfold membership.rcLockInvG
-        iexists mp, GMap.delete id mm
-        iframe Hmf Hmap Hmems
+        iexists GMap.delete id mm, GMap.delete id mem
+        iframe Hmem
         isplitr
         · ipureintro; exact Hsz'
         iexists lid, rp, GMap.insert id true rm
@@ -215,10 +241,15 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
         iexact HRM
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       try simp only [↓reduceIte]
       iframe HQd
-      iunfold membership.rcRemovedOwn
-      iexact Hw
+      isplitl [Hw]
+      · iunfold membership.rcRemovedOwn
+        iexact Hw
+      iunfold membership.clusterMem
+      iexists _
+      iexact Hcm
 
 end proof
 

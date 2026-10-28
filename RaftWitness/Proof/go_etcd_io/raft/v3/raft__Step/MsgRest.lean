@@ -35,7 +35,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The free message that justifies a step-down to the term of a message outside the model
 (`StepC.higherTerm`): a pre-vote of that term, which carries nothing (`MsgFree`) and is not a
@@ -46,7 +46,7 @@ def stepdownMsg (id : w64) (m : MessageM) : Msg :=
 end results
 
 section branches
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

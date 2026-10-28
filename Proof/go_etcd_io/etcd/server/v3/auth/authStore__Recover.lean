@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -50,6 +50,8 @@ theorem auth.authStore.Recover.wp_proof
   icases HWR with ⟨⟨%be0, Hbe, -⟩, HT, Hen, Hca⟩
   iunfold enabledHalf at Hen
   icases Hen with ⟨%en, Hen, -⟩
+  iunfold flagAt at Hen
+  icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
   iunfold authBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HRT⟩
@@ -70,7 +72,7 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_apply HRT as %tx Htx
   iunfold authReadTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, -, #Hreads⟩
+  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, -, -, #Hreads⟩
   subst Hti
   iunfold authTxReads at Hreads
   icases Hreads with ⟨#Hrd, #HRU⟩
@@ -120,11 +122,11 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
-  iapply (h_refresh st R M ti Hs sta) $$ [Htok Hca]
-  · iframe Hpkg Hinv Hca Hrd Htok Hsnap
-    ipureintro; exact Hfit'
+  iapply (h_refresh st R M ti Hs sta (hs ++ [sta])) $$ [Htok Hca Hown]
+  · iframe Hpkg Hinv Hca Hrd Htok Hsnap Hown
+    ipureintro; exact ⟨Hfit', fun _ h => by subst h; exact Hlast⟩
   inext
-  iintro ⟨Htok, Hca⟩
+  iintro ⟨Htok, Hca, Hown⟩
   ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
@@ -134,9 +136,16 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlk, HP⟩
   iunfold enabledP at HP
-  icases HP with ⟨%en', Hen', -⟩
+  icases HP with ⟨%en', Hen', -, Hg⟩
   icombine Hen Hen' gives %Heq
   subst Heq
+  -- (E3h) the field's ghost variable set to the read state's flag (the latest)
+  icases (authOwnF_split M (hs ++ [sta])).1 $$ Hown with ⟨Hown, Hsh⟩
+  imod (enG_update st R M (hs ++ [sta]) en enb (fun γa stl _ hl => by
+    simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or, Option.some.injEq] at hl
+    subst hl; exact Henb)) $$ Hinv Hown Hg HenQ with ⟨Hown, Hg, HenQ⟩
+  ihave Hown := (authOwnF_split M (hs ++ [sta])).2 $$ [Hown Hsh]
+  · iframe Hown Hsh
   ihave Hen := (typedPointsto_half_split _ _ (1 : Qp)).2 $$ [Hen Hen']
   · iframe
   (try wp_auto)
@@ -152,8 +161,8 @@ theorem auth.authStore.Recover.wp_proof
     (try wp_auto)
     wp_join_done
   ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen']
-  · inext; iunfold enabledP; iexists enb; iframe Hen'; iexact Hev
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
+  · inext; iunfold enabledP; iexists enb; iframe Hen' Hg; iexact Hev
   (try wp_auto)
   iapply HΦ
 
@@ -161,10 +170,10 @@ theorem auth.authStore.Recover.wp_proof
 
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   iframe HR
-  isplitl [Hbe HT Hen Hca]
+  isplitl [Hbe HT Hen HenQ Hca]
   · iunfold authWR; iframe HT Hca; isplitl [Hbe]
     · iexists (GoInterface.ok bi); iframe Hbe Hwbeok
-    · iunfold enabledHalf; iexists enb; iframe Hen Hev
+    · iunfold enabledHalf; iexists enb; iframe Hev; iunfold flagAt; iframe Hen HenQ
   iexists sta
   iframe Hsnap Hown
 

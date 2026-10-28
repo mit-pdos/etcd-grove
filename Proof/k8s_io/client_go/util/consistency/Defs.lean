@@ -62,14 +62,14 @@ open Iris Iris.BI k8s_io.client_go.util.consistency resourceversion
 
 /-- A record's fixed facts: its owner and UID, the `versions` map's location, the ghost name of
 its versions' mirror. -/
-structure RecS [FfiSyntax] where
+structure RecS [GooseExts] where
   owner : Owner
   uid : GoString
   vm : Loc
   γv : GName
 
 /-- A pending write: to record `r`, of `rv` to `gr`, by a holder of `T _ q`. -/
-structure Pend [FfiSyntax] where
+structure Pend [GooseExts] where
   r : Loc
   gr : GR
   rv : GoString
@@ -77,13 +77,13 @@ structure Pend [FfiSyntax] where
 
 /-- `EnsureReady`'s slot: the record `r` it reads, its versions `V`, and whether it found them
 ready (the owner's record is then deleted, abstractly). -/
-structure EnsSt [FfiSyntax] where
+structure EnsSt [GooseExts] where
   r : Loc
   V : Vs
   cleared : Bool
 
 section count
-variable [FfiSyntax]
+variable [GooseExts]
 
 instance recS_countable : Pos.Countable RecS :=
   .ofInjective (fun s => Pos.Countable.encode (s.owner, s.uid, s.vm, s.γv))
@@ -138,7 +138,7 @@ def consN : Namespace := nroot.@"consistency"
 /-! ## The pure invariant -/
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The pending writes to `r`: `pin gr y` iff some pending write of `y` to `gr` is to `r`. -/
 def pendOf (P : GMap Nat Pend) (r : Loc) (gr : GR) (y : GoString) : Prop :=
@@ -175,7 +175,7 @@ end pure
 /-! ## The map keys -/
 
 section inj
-variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- Two string fields determine a value (their loads are deterministic). -/
 theorem two_fields_inj [go.BasicIntoValInj] {S : Type} (ty : go.GoType) (f1 f2 : GoString)
@@ -218,28 +218,47 @@ end inj
 /-! ## The separation-logic predicates -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.consistency.Assumptions]
 
 
-/-- An owner is a safe map key: comparing it with itself (field by field) does not panic. -/
+/-- An owner is a safe map key: comparing it with another (field by field) does not panic and is
+equality of values. -/
 instance owner_safeMapKey (o : Owner) :
     SafeMapKey (GF := GF) k8s_io.apimachinery.pkg.types.NamespacedName.ty o where
-  wp_go_eq_safe_map_key s E Φ := by
+  key_ok := trivial
+  wp_go_eq_map_key o' _ s E Φ := by
     iintro HΦ
     wp_pures
-    iapply HΦ
+    by_cases h1 : o.Namespace' = o'.Namespace'
+    · rw [decide_eq_true h1]
+      wp_pures
+      rw [show decide (o.Name' = o'.Name') = decide (o = o') by cases o; cases o'; simp_all]
+      iapply HΦ
+    · rw [decide_eq_false h1]
+      wp_pures
+      rw [show (false : Bool) = decide (o = o') by cases o; cases o'; simp_all]
+      iapply HΦ
 
 /-- A group resource is a safe map key. -/
 instance gr_safeMapKey (g : GR) :
     SafeMapKey (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty g where
-  wp_go_eq_safe_map_key s E Φ := by
+  key_ok := trivial
+  wp_go_eq_map_key g' _ s E Φ := by
     iintro HΦ
     wp_pures
-    iapply HΦ
+    by_cases h1 : g.Group' = g'.Group'
+    · rw [decide_eq_true h1]
+      wp_pures
+      rw [show decide (g.Resource' = g'.Resource') = decide (g = g') by cases g; cases g'; simp_all]
+      iapply HΦ
+    · rw [decide_eq_false h1]
+      wp_pures
+      rw [show (false : Bool) = decide (g = g') by cases g; cases g'; simp_all]
+      iapply HΦ
 
 /-- The caller's permissions: `T o 1` excludes every other `T o q`. -/
 def tokExcl (T : Owner → Qp → IProp GF) : IProp GF :=

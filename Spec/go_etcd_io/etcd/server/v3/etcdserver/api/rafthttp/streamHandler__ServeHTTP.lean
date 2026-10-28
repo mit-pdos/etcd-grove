@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -41,7 +41,7 @@ def streamHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp 
           ∃ pl : Loc, ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #pl⌝ ∗
             peerStreams Rh hv.id' pid pl) }}) ∗
     □ (∀ (pid : w64) (sl : GoSlice) (us : List GoString),
-      {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ hv.id'⌝ }}
+      {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ hv.id' ∧ peerURLsOk Rh pid us⌝ }}
         (App (App (Val (hv.tr' @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
           (Val #pid)) (Val #sl))
       {{ RET #(); True }}) ∗
@@ -56,7 +56,7 @@ instance streamHandlerOk_persistent (Rh : RaftHttp GF) (a : GoString) (γd : GNa
 end defs
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

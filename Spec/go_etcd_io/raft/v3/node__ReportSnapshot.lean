@@ -1,10 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-## `node.ReportSnapshot(id, status)` (node.go:586), 2026-10-13
+## `node.ReportSnapshot`
 
-From any goroutine: `pb.Message{Type: MsgSnapStatus, From: id, Reject: status ==
-SnapshotFailure}` onto `recvc` (`netP_local`), which `run` steps as
-`RawNode.ReportSnapshot` does: a leader's `Progress` of `id` only. `n.done` never fires.
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.ReportSnapshot.specRaw`.)
 -/
 module
 
@@ -20,18 +20,19 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- **`node.ReportSnapshot(id, status)`**, from any goroutine (the transport's); nothing is
+promised. -/
 abbrev node.ReportSnapshot.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64) (st : SnapshotStatus),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n }}
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64) (status : SnapshotStatus),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
-      (Val #st))
+      (Val #status))
   {{ RET #(); True }}
 
 end spec

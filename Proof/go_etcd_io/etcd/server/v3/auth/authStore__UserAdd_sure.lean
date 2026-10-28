@@ -28,7 +28,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -73,6 +73,7 @@ theorem auth.authStore.UserAdd.wp_sure
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hnl
@@ -247,17 +248,17 @@ theorem auth.authStore.UserAdd.wp_sure
       imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
-      iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState))
-        $$ [HL Hca]
+      iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState) (hs ++ [bump (putUser st0 urN.name urN.roles)]))
+        $$ [HL Hca Hown]
       · iframe Hpkg Hinv Hca
         isplitr
         · iapply HRd
         isplitl [HL]
         · iExactEq HL; rfl
         iframe Hsnap
-        ipureintro; exact permsFit_rev _ rev Hfit'
+        iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
       inext
-      iintro ⟨HL, Hca⟩
+      iintro ⟨HL, Hca, Hown⟩
       ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
       (try wp_auto)
       wp_apply h_String _ _ as %f1 -
@@ -270,7 +271,8 @@ theorem auth.authStore.UserAdd.wp_sure
       wp_apply h_Info
       · ipureintro; exact Hlgnn
       (try wp_auto)
-      wp_alloc resp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
@@ -336,17 +338,17 @@ theorem auth.authStore.UserAdd.wp_sure
     imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
-    iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState))
-      $$ [HL Hca]
+    iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState) (hs ++ [bump (putUser st0 urN.name urN.roles)]))
+      $$ [HL Hca Hown]
     · iframe Hpkg Hinv Hca
       isplitr
       · iapply HRd
       isplitl [HL]
       · iExactEq HL; rfl
       iframe Hsnap
-      ipureintro; exact permsFit_rev _ rev Hfit'
+      iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
     inext
-    iintro ⟨HL, Hca⟩
+    iintro ⟨HL, Hca, Hown⟩
     ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
     (try wp_auto)
     wp_apply h_String _ _ as %f1 -
@@ -359,7 +361,8 @@ theorem auth.authStore.UserAdd.wp_sure
     wp_apply h_Info
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_alloc resp as Hresp
+    irename «$r0» => Hresp
+    generalize «$r0_ptr» = resp at *
     ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
     icases typedPointsto_split _ _ _ $$ Hresp with Hresp
     simp only [TypedPointsto.typedPointstoDef]

@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -67,7 +67,7 @@ def pipeFixed (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF) : IProp GF 
     p.[rafthttp.pipeline, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
     p.[rafthttp.pipeline, go!"followerStats"] ↦□ fs ∗
     p.[rafthttp.pipeline, go!"raft"] ↦□ r ∗ netRaftOk Rh.γn id γd R r ∗ pipeReg Rh to ∗
-    ⌜Rh.member lid ∧ lid ≠ to⌝)
+    ⌜Rh.member lid ∧ lid ≠ to⌝ ∗ ⌜trURLsOk Rh lid uvs⌝)
 
 set_option synthInstance.maxHeartbeats 2000000 in
 set_option synthInstance.maxSize 16384 in

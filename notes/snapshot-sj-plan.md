@@ -78,9 +78,13 @@ theorem.
   Compact}`): atomic variants, the existing specs kept as corollaries.
 - **J4. The server's snapshot state shared** (`InvApplyAll`'s `srvSnapState` body, `EtcdServer.snapshot`,
   `compactRaftLog`, `snapshotIfNeededAndCompactRaftLog`, `storage.Release`): recommended to translate
-  and prove `snapshot` and `compactRaftLog` (−2 axioms). After J3, J0.
+  and prove `snapshot` and `compactRaftLog` (−2 axioms). After J3, J0. *Part a done (2026-10-26): the token
+  shared, `compactRaftLog` over it, `Release` over any `Rm`; `snapshot` left an axiom: J4b after
+  J1a (the registry authority from `bootOk`, J1a's bundle at the apply thread), and L3 gains
+  `ep.confState`'s certificate; the ceiling `γsc` is J6b's (`notes/decisions.md`, "D22 J4").*
 - **J5. The applied index lags its ghost** (`InvRequest`'s `srvAppliedInv`/`srvAppliedPre`, `InvRead`,
-  the read loop, `setAppliedIndex`): `applied_jump`; `appliedKeysOk` allows jumps.
+  the read loop, `setAppliedIndex`): `applied_jump`; `appliedKeysOk` allows jumps. *Done
+  (2026-10-26; `notes/decisions.md`, "D22 J5").*
 - **J7. The image facts** (new `SnapRecvFacts.lean`, `InvImage`, `InvRest`): from `srvImage γ i D`,
   raft's `isCommitted l.dlv` and the workload, specSnap's pure premises (`hmeta`, `hkI`, `hRok`,
   `hpre`, `hlease`, `halarm`, `hauthb`, `hmemb`, `hA'`), `R` with `[[],[]] ++ R = kvModel γk A'`,
@@ -94,7 +98,10 @@ theorem.
   takes `isRaftCluster`, `clusterMem` at `L`, `srvRLogLb γ L'`: not pure, see `notes/decisions.md`,
   "D22 J7". Left for J8a (not derivable from `srvImage`): `hmeta` at the snapshot's term and
   `hRok`; both need `imageAt`/`dbImage` strengthened at the sender (and raft's `Ready` to tie the
-  snapshot's term to its last entry's).
+  snapshot's term to its last entry's). **J7b done (2026-10-26)**: `imageAt` carries
+  `IdxWf (kvModel γk A) []` (`soleWriter_idxWf` at the sender), `SnapImageFacts.hRok`/`hlen`;
+  `hmeta` by generalizing `specSnap` to the image's stored term `tI` (no term tracking, no `Ready`
+  fact needed): `notes/decisions.md`, "D22 J7b".
 - **J6a. The raft node's payload with a snapshot** (`InvRaftNode`'s `rnReadyData`/`rnApP`,
   `InvRaftLoop`'s `rnApplyTok_recv`, `updateCommittedIndex`, `newRaftNode`, `InvRun`). After J2.
 - **J6b. `raftNode.start`'s snapshot branch** (its own module): `SaveSnap`, `Save`, `Sync`, the first
@@ -475,3 +482,35 @@ so the baseline is S8d's. The first Lean stage to merge runs `--check --update` 
   the rest unchanged; the Perennial change proposed in parallel from now.
 - Not done in J0: the plan's Go `-race` run with snapshot-heavy settings (left for J3's
   de-risking, risk 1).
+
+## Where J-T stopped (2026-10-27, branch `snapshot-jt`; paused by the user)
+
+**Landed on `lean` (2026-10-27)**: finished on lean's head (with J4b): the full build, the
+examples, `etc/gen-link.py` (only `--server` changed) and the trust base checked; the three
+fixes are in `notes/STATUS.md`'s Snapshots item. What follows is the state at the pause.
+
+Base: `origin/lean` at `ed462bf259` (M5's proved transport, the Perennial bump); the four J-T
+commits rebased onto it cleanly (they were first written on `f6e5c001d6`, also M5-based, pushed as
+`snapshot-jt-m5wip`; `snapshot-jt-old` is the abandoned J6a-based first attempt). Design and
+statement changes: `notes/decisions.md`, "D22 J-T".
+
+- **Done**: the stop invariant's no-remote tokens and opening flag (`TransportInv`,
+  `TransportState`: `trNoRem`, `trUnopened`/`trOpened`, `trNoRemAcc`, `trPeersNoRem`);
+  `AddPeer` gives the token out before opening; `AddRemote` needs `trOpened`; `CutPeer`/`MendPeer`
+  over `trNoRemOr`; `RemovePeer`/`RemoveAllPeers` take the tokens back, `RemoveAllPeers` returns
+  four `R`s per peer; `Handler` over the live transport; W8 (`peerURLsHdrOk` in `fromOkAt` and
+  `streamReq`, `trURLsOk` in the transport's views, `setPeerURLsHeader`/`createPostRequest` state
+  the header, `URLStringAny_ok` restated); `NewServer` unfrozen (pool of every other member,
+  tokens in `srvTrTok`, live right in `srvApRes`, new premise `peerURLsDir`); `applyConfChange`'s
+  static branch on `trLive`; `applySnapshot`'s walk takes `trPeersNoRem`; examples' `newServer`/
+  `StartServer` premise `"http://" ++ peerAddr ∈ dir id`, the five `Main`s discharging it.
+- **Builds**: on `f6e5c001d6` the rafthttp package, `Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`
+  (but `SnapApplyWalk`, fixed after, unchecked) and `NewServer` (lean-check, 0 errors) built. Not yet
+  checked: `SnapApplyWalk` after its fix, the examples (common, linkv3p, putget3, the five Mains),
+  the full `lake build` and `etc/tcb-report.py --check` on the rebased base (a full build was in
+  progress, no error up to module 7398/9399 when paused).
+- **Next step**: finish the full `lake build` on this branch, fix the examples' errors (expected:
+  the `NewServer` call sites' new premise, `srvTrTok`'s new shape where examples unfold it,
+  `EtcdServer.CutPeer`'s callers unchanged), run `etc/gen-link.py` for any mode whose callee lists
+  changed (`--server` done), `etc/tcb-report.py --check` (expect no change but the restated
+  `URLStringAny_ok`), then push and hand over to J1b/J8a ("D22 J-T", "For J1b/J8a").

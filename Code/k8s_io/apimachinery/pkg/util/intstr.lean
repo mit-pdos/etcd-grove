@@ -20,82 +20,82 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.intstr
 
-noncomputable def IntOrString.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IntOrString.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/intstr.IntOrString" [])
 
 attribute [irreducible] IntOrString.ty
 
-noncomputable def Type'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Type'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/intstr.Type" [])
 
 attribute [irreducible] Type'.ty
 
-axiom IntOrString.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom IntOrString.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Int' [FfiSyntax] [GoGlobalContext] : val
+axiom Int' [GooseExts] [GoGlobalContext] : val
 
-axiom String [FfiSyntax] [GoGlobalContext] : val
+axiom String [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrIntOverflowGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUnexpectedEndOfGroupGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def encodeVarintGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.encodeVarintGenerated"
 
-noncomputable def sovGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sovGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.sovGenerated"
 
-noncomputable def sozGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sozGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.sozGenerated"
 
-noncomputable def skipGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def skipGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.skipGenerated"
 
-noncomputable def FromInt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromInt [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.FromInt"
 
-noncomputable def FromInt32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromInt32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.FromInt32"
 
-noncomputable def FromString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.FromString"
 
-noncomputable def Parse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Parse [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.Parse"
 
-noncomputable def ValueOrDefault [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValueOrDefault [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.ValueOrDefault"
 
-noncomputable def GetScaledValueFromIntOrPercent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetScaledValueFromIntOrPercent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.GetScaledValueFromIntOrPercent"
 
-noncomputable def GetValueFromIntOrPercent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetValueFromIntOrPercent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.GetValueFromIntOrPercent"
 
-noncomputable def getIntOrPercentValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getIntOrPercentValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.getIntOrPercentValue"
 
-noncomputable def getIntOrPercentValueSafely [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getIntOrPercentValueSafely [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.getIntOrPercentValueSafely"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.intstr where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.intstr)) (Lam BAnon
   (App (Val exceptionDo)
@@ -115,26 +115,34 @@ axiom IntOrString : Type
 axiom IntOrString.zero_val : ZeroVal IntOrString
 attribute [instance] IntOrString.zero_val
 
-class IntOrString.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class IntOrString.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IntOrString.underlying IntOrString
   underlying : go.UnderlyingDirectedEq IntOrString.ty IntOrString.underlying
   isUnderlying : go.IsUnderlying IntOrString.underlying IntOrString.underlying
+  method_set : go.MethodSetIs IntOrString.ty [(go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaFormat", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaType", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OpenAPIV3OneOfTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IntOrString.ty) [(go!"IntValue", (some (go.signature.Signature [] false [go.int]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaFormat", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaType", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OpenAPIV3OneOfTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"RandFill", (some (go.signature.Signature [(go.GoType.Named go!"sigs.k8s.io/randfill.Continue" [])] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalCBOR", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IntOrString.TypeAssumptions.type_repr
   IntOrString.TypeAssumptions.underlying
   IntOrString.TypeAssumptions.isUnderlying
+  IntOrString.TypeAssumptions.method_set
+  IntOrString.TypeAssumptions.ptr_method_set
 
-abbrev Type' [FfiSyntax] : Type := w64
+abbrev Type' [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Type'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Type'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int64
 
-class «Type».TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class «Type».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Type'.ty Type'.underlying
+  method_set : go.MethodSetIs Type'.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Type'.ty) []
 
 attribute [instance] «Type».TypeAssumptions.underlying
+  «Type».TypeAssumptions.method_set
+  «Type».TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   IntOrString_instance : IntOrString.TypeAssumptions
   Type_instance : «Type».TypeAssumptions
 

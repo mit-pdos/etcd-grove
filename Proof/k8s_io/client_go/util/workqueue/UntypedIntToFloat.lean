@@ -30,7 +30,7 @@ namespace EtcdGrove
 
 /-- **`float64(c)` of an untyped integer constant `c`** (a hypothesis on the semantics in use, see
 the file header): an uninterpreted function of `c`. -/
-class UntypedIntToFloat64Semantics [FfiSyntax] [GoLocalContext] [GoGlobalContext]
+class UntypedIntToFloat64Semantics [GooseExts] [GoLocalContext] [GoGlobalContext]
     [GoSemanticsFunctions] where
   /-- `float64(c)` of the untyped integer `c`: uninterpreted. -/
   untypedIntToFloat64 : Int → w64

@@ -20,72 +20,72 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.autoscaling.v2
 
-noncomputable def AutoscalingV2Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AutoscalingV2Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.AutoscalingV2Interface" [])
 
 attribute [irreducible] AutoscalingV2Interface.ty
 
-noncomputable def AutoscalingV2Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AutoscalingV2Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.AutoscalingV2Client" [])
 
 attribute [irreducible] AutoscalingV2Client.ty
 
-noncomputable def HorizontalPodAutoscalerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.HorizontalPodAutoscalerExpansion" [])
 
 attribute [irreducible] HorizontalPodAutoscalerExpansion.ty
 
-noncomputable def HorizontalPodAutoscalersGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalersGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.HorizontalPodAutoscalersGetter" [])
 
 attribute [irreducible] HorizontalPodAutoscalersGetter.ty
 
-noncomputable def HorizontalPodAutoscalerInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.HorizontalPodAutoscalerInterface" [])
 
 attribute [irreducible] HorizontalPodAutoscalerInterface.ty
 
-noncomputable def horizontalPodAutoscalers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def horizontalPodAutoscalers.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.horizontalPodAutoscalers" [])
 
 attribute [irreducible] horizontalPodAutoscalers.ty
 
-axiom AutoscalingV2Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom AutoscalingV2Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AutoscalingV2Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom AutoscalingV2Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalersGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalersGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom horizontalPodAutoscalers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom horizontalPodAutoscalers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.setConfigDefaults"
 
-noncomputable def newHorizontalPodAutoscalers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newHorizontalPodAutoscalers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.newHorizontalPodAutoscalers"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.autoscaling.v2 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.autoscaling.v2)) (Lam BAnon
   (App (Val exceptionDo)
@@ -96,81 +96,105 @@ axiom AutoscalingV2Interface : Type
 axiom AutoscalingV2Interface.zero_val : ZeroVal AutoscalingV2Interface
 attribute [instance] AutoscalingV2Interface.zero_val
 
-class AutoscalingV2Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AutoscalingV2Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AutoscalingV2Interface.underlying AutoscalingV2Interface
   underlying : go.UnderlyingDirectedEq AutoscalingV2Interface.ty AutoscalingV2Interface.underlying
   isUnderlying : go.IsUnderlying AutoscalingV2Interface.underlying AutoscalingV2Interface.underlying
+  method_set : go.MethodSetIs AutoscalingV2Interface.ty [(go!"HorizontalPodAutoscalers", (some (go.signature.Signature [go.string] false [HorizontalPodAutoscalerInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AutoscalingV2Interface.ty) []
 
 attribute [instance] AutoscalingV2Interface.TypeAssumptions.type_repr
   AutoscalingV2Interface.TypeAssumptions.underlying
   AutoscalingV2Interface.TypeAssumptions.isUnderlying
+  AutoscalingV2Interface.TypeAssumptions.method_set
+  AutoscalingV2Interface.TypeAssumptions.ptr_method_set
 
 axiom AutoscalingV2Client : Type
 axiom AutoscalingV2Client.zero_val : ZeroVal AutoscalingV2Client
 attribute [instance] AutoscalingV2Client.zero_val
 
-class AutoscalingV2Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AutoscalingV2Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AutoscalingV2Client.underlying AutoscalingV2Client
   underlying : go.UnderlyingDirectedEq AutoscalingV2Client.ty AutoscalingV2Client.underlying
   isUnderlying : go.IsUnderlying AutoscalingV2Client.underlying AutoscalingV2Client.underlying
+  method_set : go.MethodSetIs AutoscalingV2Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AutoscalingV2Client.ty) [(go!"HorizontalPodAutoscalers", (some (go.signature.Signature [go.string] false [HorizontalPodAutoscalerInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
 
 attribute [instance] AutoscalingV2Client.TypeAssumptions.type_repr
   AutoscalingV2Client.TypeAssumptions.underlying
   AutoscalingV2Client.TypeAssumptions.isUnderlying
+  AutoscalingV2Client.TypeAssumptions.method_set
+  AutoscalingV2Client.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerExpansion : Type
 axiom HorizontalPodAutoscalerExpansion.zero_val : ZeroVal HorizontalPodAutoscalerExpansion
 attribute [instance] HorizontalPodAutoscalerExpansion.zero_val
 
-class HorizontalPodAutoscalerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerExpansion.underlying HorizontalPodAutoscalerExpansion
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerExpansion.ty HorizontalPodAutoscalerExpansion.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerExpansion.underlying HorizontalPodAutoscalerExpansion.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerExpansion.ty) []
 
 attribute [instance] HorizontalPodAutoscalerExpansion.TypeAssumptions.type_repr
   HorizontalPodAutoscalerExpansion.TypeAssumptions.underlying
   HorizontalPodAutoscalerExpansion.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerExpansion.TypeAssumptions.method_set
+  HorizontalPodAutoscalerExpansion.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalersGetter : Type
 axiom HorizontalPodAutoscalersGetter.zero_val : ZeroVal HorizontalPodAutoscalersGetter
 attribute [instance] HorizontalPodAutoscalersGetter.zero_val
 
-class HorizontalPodAutoscalersGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalersGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalersGetter.underlying HorizontalPodAutoscalersGetter
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalersGetter.ty HorizontalPodAutoscalersGetter.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalersGetter.underlying HorizontalPodAutoscalersGetter.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalersGetter.ty [(go!"HorizontalPodAutoscalers", (some (go.signature.Signature [go.string] false [HorizontalPodAutoscalerInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalersGetter.ty) []
 
 attribute [instance] HorizontalPodAutoscalersGetter.TypeAssumptions.type_repr
   HorizontalPodAutoscalersGetter.TypeAssumptions.underlying
   HorizontalPodAutoscalersGetter.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalersGetter.TypeAssumptions.method_set
+  HorizontalPodAutoscalersGetter.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerInterface : Type
 axiom HorizontalPodAutoscalerInterface.zero_val : ZeroVal HorizontalPodAutoscalerInterface
 attribute [instance] HorizontalPodAutoscalerInterface.zero_val
 
-class HorizontalPodAutoscalerInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerInterface.underlying HorizontalPodAutoscalerInterface
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerInterface.ty HorizontalPodAutoscalerInterface.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerInterface.underlying HorizontalPodAutoscalerInterface.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v2.HorizontalPodAutoscalerApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v2.HorizontalPodAutoscalerApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerInterface.ty) []
 
 attribute [instance] HorizontalPodAutoscalerInterface.TypeAssumptions.type_repr
   HorizontalPodAutoscalerInterface.TypeAssumptions.underlying
   HorizontalPodAutoscalerInterface.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerInterface.TypeAssumptions.method_set
+  HorizontalPodAutoscalerInterface.TypeAssumptions.ptr_method_set
 
 axiom horizontalPodAutoscalers : Type
 axiom horizontalPodAutoscalers.zero_val : ZeroVal horizontalPodAutoscalers
 attribute [instance] horizontalPodAutoscalers.zero_val
 
-class horizontalPodAutoscalers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class horizontalPodAutoscalers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying horizontalPodAutoscalers.underlying horizontalPodAutoscalers
   underlying : go.UnderlyingDirectedEq horizontalPodAutoscalers.ty horizontalPodAutoscalers.underlying
   isUnderlying : go.IsUnderlying horizontalPodAutoscalers.underlying horizontalPodAutoscalers.underlying
+  method_set : go.MethodSetIs horizontalPodAutoscalers.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v2.HorizontalPodAutoscalerApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v2.HorizontalPodAutoscalerApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType horizontalPodAutoscalers.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v2.HorizontalPodAutoscalerApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/autoscaling/v2.HorizontalPodAutoscalerApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/autoscaling/v2.HorizontalPodAutoscaler" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] horizontalPodAutoscalers.TypeAssumptions.type_repr
   horizontalPodAutoscalers.TypeAssumptions.underlying
   horizontalPodAutoscalers.TypeAssumptions.isUnderlying
+  horizontalPodAutoscalers.TypeAssumptions.method_set
+  horizontalPodAutoscalers.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   AutoscalingV2Interface_instance : AutoscalingV2Interface.TypeAssumptions
   AutoscalingV2Client_instance : AutoscalingV2Client.TypeAssumptions
   HorizontalPodAutoscalerExpansion_instance : HorizontalPodAutoscalerExpansion.TypeAssumptions

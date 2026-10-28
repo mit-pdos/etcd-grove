@@ -3,10 +3,10 @@
 stage R4): `ccEntOk`/`ccEntsOk`, an entry of a proposal against its decoded conf change.
 
 Until stage R4 this file also held the conf-change messages' Goose values and their ownership
-(`ownCCV1`, `ownCCV2`, `ownCCI`), the value builders of `ProposeConfChange` (`ccEntry`,
-`ccPropMsg`) and the pure vocabulary (`ccEntryType`, `CCData`, `enterJointOf`). In raft v3.7
-the messages are pointers: their predicates are `InvPb.lean`'s (stage R1: `ownCCV1`, `ownCCV2`,
-`ownCCI` over `*pb.ConfChange`/`*pb.ConfChangeV2`); the pure vocabulary is `CCModel.lean`'s
+(`ownConfChange`, `ownConfChangeV2`, `ownConfChangeI`), the value builders of `ProposeConfChange` (`ccEntry`,
+`ccPropMsg`) and the pure vocabulary (`confChangeEntryType`, `MarshalsConfChange`, `enterJointOf`). In raft v3.7
+the messages are pointers: their predicates are `InvPb.lean`'s (stage R1: `ownConfChange`, `ownConfChangeV2`,
+`ownConfChangeI` over `*pb.ConfChange`/`*pb.ConfChangeV2`); the pure vocabulary is `CCModel.lean`'s
 (R1); `ccEntry`/`ccPropMsg` go with `ProposeConfChange`'s port (stage R5). What is left is over
 the model's entries (`EntryM`), whose `Data'` is the entry's bytes (D6).
 -/
@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section own
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -34,32 +34,32 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 decoded conf change (2026-10-13): none for an entry that is not a conf change; for one,
 its bytes decode to `o` as its type says (pure since D6, stage R4: the record holds the bytes;
 until then its data slice held them read-only). (`Unmarshal` panics if decoding fails, so the
-proposer has to provide the bytes; `confChangeToMsg`'s `CCData`.) -/
-def ccEntOk (e : EntryM) : Option CCMsg → IProp GF
+proposer has to provide the bytes; `confChangeToMsg`'s `MarshalsConfChange`.) -/
+def ccEntOk (e : EntryM) : Option ConfChangeIM → IProp GF
   | none => iprop(⌜¬ IsConfEnt e⌝)
   | some (.v1 m) => iprop(⌜e.Type' = W32 1 ∧ ccDecodeV1 e.Data' = some m⌝)
   | some (.v2 m) => iprop(⌜e.Type' = W32 2 ∧ ccDecodeV2 e.Data' = some m⌝)
 
 /-- `ccEntOk` of every entry of a batch, with the decoded conf changes `cs`. -/
-def ccEntsOk (ents : List EntryM) (cs : List (Option CCMsg)) : IProp GF :=
+def ccEntsOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) : IProp GF :=
   [∗list] e;o ∈ ents;cs, ccEntOk e o
 
-instance ccEntOk_persistent (e : EntryM) (o : Option CCMsg) :
+instance ccEntOk_persistent (e : EntryM) (o : Option ConfChangeIM) :
     Persistent (ccEntOk (GF := GF) e o) := by
   rcases o with _ | (m | m) <;> unfold ccEntOk <;> infer_instance
 
-instance ccEntsOk_persistent (ents : List EntryM) (cs : List (Option CCMsg)) :
+instance ccEntsOk_persistent (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
     Persistent (ccEntsOk (GF := GF) ents cs) := by
   unfold ccEntsOk; infer_instance
 
-theorem ccEntOk_type (e : EntryM) (o : Option CCMsg) :
+theorem ccEntOk_type (e : EntryM) (o : Option ConfChangeIM) :
     ccEntOk (GF := GF) e o ⊢ ⌜o.isSome = decide (IsConfEnt e)⌝ := by
   rcases o with _ | (m | m) <;> unfold ccEntOk
   · iintro %H; ipureintro; simp [H]
   · iintro ⟨%H, -⟩; ipureintro; simp [IsConfEnt, H]
   · iintro ⟨%H, -⟩; ipureintro; simp [IsConfEnt, H]
 
-theorem ccEntsOk_types (ents : List EntryM) (cs : List (Option CCMsg)) :
+theorem ccEntsOk_types (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
     ccEntsOk (GF := GF) ents cs ⊢ ⌜CCTypesOk ents cs⌝ := by
   unfold ccEntsOk CCTypesOk
   induction ents generalizing cs with

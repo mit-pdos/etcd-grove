@@ -25,673 +25,691 @@ end pkg_id
 
 namespace k8s_io.client_go.listers.core.v1
 
-noncomputable def ComponentStatusLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ComponentStatusLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ComponentStatusLister" [])
 
 attribute [irreducible] ComponentStatusLister.ty
 
-noncomputable def componentStatusLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def componentStatusLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.componentStatusLister" [])
 
 attribute [irreducible] componentStatusLister.ty
 
-noncomputable def ConfigMapLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ConfigMapLister" [])
 
 attribute [irreducible] ConfigMapLister.ty
 
-noncomputable def configMapLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def configMapLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.configMapLister" [])
 
 attribute [irreducible] configMapLister.ty
 
-noncomputable def ConfigMapNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ConfigMapNamespaceLister" [])
 
 attribute [irreducible] ConfigMapNamespaceLister.ty
 
-noncomputable def configMapNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def configMapNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.configMapNamespaceLister" [])
 
 attribute [irreducible] configMapNamespaceLister.ty
 
-noncomputable def EndpointsLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointsLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.EndpointsLister" [])
 
 attribute [irreducible] EndpointsLister.ty
 
-noncomputable def endpointsLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def endpointsLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.endpointsLister" [])
 
 attribute [irreducible] endpointsLister.ty
 
-noncomputable def EndpointsNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointsNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.EndpointsNamespaceLister" [])
 
 attribute [irreducible] EndpointsNamespaceLister.ty
 
-noncomputable def endpointsNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def endpointsNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.endpointsNamespaceLister" [])
 
 attribute [irreducible] endpointsNamespaceLister.ty
 
-noncomputable def EventLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.EventLister" [])
 
 attribute [irreducible] EventLister.ty
 
-noncomputable def eventLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def eventLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.eventLister" [])
 
 attribute [irreducible] eventLister.ty
 
-noncomputable def EventNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.EventNamespaceLister" [])
 
 attribute [irreducible] EventNamespaceLister.ty
 
-noncomputable def eventNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def eventNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.eventNamespaceLister" [])
 
 attribute [irreducible] eventNamespaceLister.ty
 
-noncomputable def ComponentStatusListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ComponentStatusListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ComponentStatusListerExpansion" [])
 
 attribute [irreducible] ComponentStatusListerExpansion.ty
 
-noncomputable def ConfigMapListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ConfigMapListerExpansion" [])
 
 attribute [irreducible] ConfigMapListerExpansion.ty
 
-noncomputable def ConfigMapNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ConfigMapNamespaceListerExpansion" [])
 
 attribute [irreducible] ConfigMapNamespaceListerExpansion.ty
 
-noncomputable def EndpointsListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointsListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.EndpointsListerExpansion" [])
 
 attribute [irreducible] EndpointsListerExpansion.ty
 
-noncomputable def EndpointsNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointsNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.EndpointsNamespaceListerExpansion" [])
 
 attribute [irreducible] EndpointsNamespaceListerExpansion.ty
 
-noncomputable def EventListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.EventListerExpansion" [])
 
 attribute [irreducible] EventListerExpansion.ty
 
-noncomputable def EventNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.EventNamespaceListerExpansion" [])
 
 attribute [irreducible] EventNamespaceListerExpansion.ty
 
-noncomputable def LimitRangeListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitRangeListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.LimitRangeListerExpansion" [])
 
 attribute [irreducible] LimitRangeListerExpansion.ty
 
-noncomputable def LimitRangeNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitRangeNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.LimitRangeNamespaceListerExpansion" [])
 
 attribute [irreducible] LimitRangeNamespaceListerExpansion.ty
 
-noncomputable def NamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.NamespaceListerExpansion" [])
 
 attribute [irreducible] NamespaceListerExpansion.ty
 
-noncomputable def NodeListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.NodeListerExpansion" [])
 
 attribute [irreducible] NodeListerExpansion.ty
 
-noncomputable def PersistentVolumeListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PersistentVolumeListerExpansion" [])
 
 attribute [irreducible] PersistentVolumeListerExpansion.ty
 
-noncomputable def PersistentVolumeClaimListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PersistentVolumeClaimListerExpansion" [])
 
 attribute [irreducible] PersistentVolumeClaimListerExpansion.ty
 
-noncomputable def PersistentVolumeClaimNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PersistentVolumeClaimNamespaceListerExpansion" [])
 
 attribute [irreducible] PersistentVolumeClaimNamespaceListerExpansion.ty
 
-noncomputable def PodListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PodListerExpansion" [])
 
 attribute [irreducible] PodListerExpansion.ty
 
-noncomputable def PodNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PodNamespaceListerExpansion" [])
 
 attribute [irreducible] PodNamespaceListerExpansion.ty
 
-noncomputable def PodTemplateListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodTemplateListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PodTemplateListerExpansion" [])
 
 attribute [irreducible] PodTemplateListerExpansion.ty
 
-noncomputable def PodTemplateNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodTemplateNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PodTemplateNamespaceListerExpansion" [])
 
 attribute [irreducible] PodTemplateNamespaceListerExpansion.ty
 
-noncomputable def ResourceQuotaListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuotaListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ResourceQuotaListerExpansion" [])
 
 attribute [irreducible] ResourceQuotaListerExpansion.ty
 
-noncomputable def ResourceQuotaNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuotaNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ResourceQuotaNamespaceListerExpansion" [])
 
 attribute [irreducible] ResourceQuotaNamespaceListerExpansion.ty
 
-noncomputable def SecretListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.SecretListerExpansion" [])
 
 attribute [irreducible] SecretListerExpansion.ty
 
-noncomputable def SecretNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.SecretNamespaceListerExpansion" [])
 
 attribute [irreducible] SecretNamespaceListerExpansion.ty
 
-noncomputable def ServiceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ServiceListerExpansion" [])
 
 attribute [irreducible] ServiceListerExpansion.ty
 
-noncomputable def ServiceNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ServiceNamespaceListerExpansion" [])
 
 attribute [irreducible] ServiceNamespaceListerExpansion.ty
 
-noncomputable def ServiceAccountListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceAccountListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ServiceAccountListerExpansion" [])
 
 attribute [irreducible] ServiceAccountListerExpansion.ty
 
-noncomputable def ServiceAccountNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceAccountNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ServiceAccountNamespaceListerExpansion" [])
 
 attribute [irreducible] ServiceAccountNamespaceListerExpansion.ty
 
-noncomputable def LimitRangeLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitRangeLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.LimitRangeLister" [])
 
 attribute [irreducible] LimitRangeLister.ty
 
-noncomputable def limitRangeLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def limitRangeLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.limitRangeLister" [])
 
 attribute [irreducible] limitRangeLister.ty
 
-noncomputable def LimitRangeNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitRangeNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.LimitRangeNamespaceLister" [])
 
 attribute [irreducible] LimitRangeNamespaceLister.ty
 
-noncomputable def limitRangeNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def limitRangeNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.limitRangeNamespaceLister" [])
 
 attribute [irreducible] limitRangeNamespaceLister.ty
 
-noncomputable def NamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.NamespaceLister" [])
 
 attribute [irreducible] NamespaceLister.ty
 
-noncomputable def namespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def namespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.namespaceLister" [])
 
 attribute [irreducible] namespaceLister.ty
 
-noncomputable def NodeLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.NodeLister" [])
 
 attribute [irreducible] NodeLister.ty
 
-noncomputable def nodeLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nodeLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.nodeLister" [])
 
 attribute [irreducible] nodeLister.ty
 
-noncomputable def PersistentVolumeLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PersistentVolumeLister" [])
 
 attribute [irreducible] PersistentVolumeLister.ty
 
-noncomputable def persistentVolumeLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def persistentVolumeLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.persistentVolumeLister" [])
 
 attribute [irreducible] persistentVolumeLister.ty
 
-noncomputable def PersistentVolumeClaimLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PersistentVolumeClaimLister" [])
 
 attribute [irreducible] PersistentVolumeClaimLister.ty
 
-noncomputable def persistentVolumeClaimLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def persistentVolumeClaimLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.persistentVolumeClaimLister" [])
 
 attribute [irreducible] persistentVolumeClaimLister.ty
 
-noncomputable def PersistentVolumeClaimNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PersistentVolumeClaimNamespaceLister" [])
 
 attribute [irreducible] PersistentVolumeClaimNamespaceLister.ty
 
-noncomputable def persistentVolumeClaimNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def persistentVolumeClaimNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.persistentVolumeClaimNamespaceLister" [])
 
 attribute [irreducible] persistentVolumeClaimNamespaceLister.ty
 
-noncomputable def PodLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PodLister" [])
 
 attribute [irreducible] PodLister.ty
 
-noncomputable def podLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def podLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.podLister" [])
 
 attribute [irreducible] podLister.ty
 
-noncomputable def PodNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PodNamespaceLister" [])
 
 attribute [irreducible] PodNamespaceLister.ty
 
-noncomputable def podNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def podNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.podNamespaceLister" [])
 
 attribute [irreducible] podNamespaceLister.ty
 
-noncomputable def PodTemplateLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodTemplateLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PodTemplateLister" [])
 
 attribute [irreducible] PodTemplateLister.ty
 
-noncomputable def podTemplateLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def podTemplateLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.podTemplateLister" [])
 
 attribute [irreducible] podTemplateLister.ty
 
-noncomputable def PodTemplateNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodTemplateNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.PodTemplateNamespaceLister" [])
 
 attribute [irreducible] PodTemplateNamespaceLister.ty
 
-noncomputable def podTemplateNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def podTemplateNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.podTemplateNamespaceLister" [])
 
 attribute [irreducible] podTemplateNamespaceLister.ty
 
-noncomputable def ReplicationControllerLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ReplicationControllerLister" [])
 
 attribute [irreducible] ReplicationControllerLister.ty
 
-noncomputable def replicationControllerLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def replicationControllerLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.replicationControllerLister" [])
 
 attribute [irreducible] replicationControllerLister.ty
 
-noncomputable def ReplicationControllerNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ReplicationControllerNamespaceLister" [])
 
 attribute [irreducible] ReplicationControllerNamespaceLister.ty
 
-noncomputable def replicationControllerNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def replicationControllerNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.replicationControllerNamespaceLister" [])
 
 attribute [irreducible] replicationControllerNamespaceLister.ty
 
-noncomputable def ReplicationControllerListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ReplicationControllerListerExpansion" [])
 
 attribute [irreducible] ReplicationControllerListerExpansion.ty
 
-noncomputable def ReplicationControllerNamespaceListerExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerNamespaceListerExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ReplicationControllerNamespaceListerExpansion" [])
 
 attribute [irreducible] ReplicationControllerNamespaceListerExpansion.ty
 
-noncomputable def ResourceQuotaLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuotaLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ResourceQuotaLister" [])
 
 attribute [irreducible] ResourceQuotaLister.ty
 
-noncomputable def resourceQuotaLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resourceQuotaLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.resourceQuotaLister" [])
 
 attribute [irreducible] resourceQuotaLister.ty
 
-noncomputable def ResourceQuotaNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuotaNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ResourceQuotaNamespaceLister" [])
 
 attribute [irreducible] ResourceQuotaNamespaceLister.ty
 
-noncomputable def resourceQuotaNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resourceQuotaNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.resourceQuotaNamespaceLister" [])
 
 attribute [irreducible] resourceQuotaNamespaceLister.ty
 
-noncomputable def SecretLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.SecretLister" [])
 
 attribute [irreducible] SecretLister.ty
 
-noncomputable def secretLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def secretLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.secretLister" [])
 
 attribute [irreducible] secretLister.ty
 
-noncomputable def SecretNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.SecretNamespaceLister" [])
 
 attribute [irreducible] SecretNamespaceLister.ty
 
-noncomputable def secretNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def secretNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.secretNamespaceLister" [])
 
 attribute [irreducible] secretNamespaceLister.ty
 
-noncomputable def ServiceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ServiceLister" [])
 
 attribute [irreducible] ServiceLister.ty
 
-noncomputable def serviceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serviceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.serviceLister" [])
 
 attribute [irreducible] serviceLister.ty
 
-noncomputable def ServiceNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ServiceNamespaceLister" [])
 
 attribute [irreducible] ServiceNamespaceLister.ty
 
-noncomputable def serviceNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serviceNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.serviceNamespaceLister" [])
 
 attribute [irreducible] serviceNamespaceLister.ty
 
-noncomputable def ServiceAccountLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceAccountLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ServiceAccountLister" [])
 
 attribute [irreducible] ServiceAccountLister.ty
 
-noncomputable def serviceAccountLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serviceAccountLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.serviceAccountLister" [])
 
 attribute [irreducible] serviceAccountLister.ty
 
-noncomputable def ServiceAccountNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceAccountNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.ServiceAccountNamespaceLister" [])
 
 attribute [irreducible] ServiceAccountNamespaceLister.ty
 
-noncomputable def serviceAccountNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serviceAccountNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/listers/core/v1.serviceAccountNamespaceLister" [])
 
 attribute [irreducible] serviceAccountNamespaceLister.ty
 
-axiom ComponentStatusLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ComponentStatusLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom componentStatusLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom componentStatusLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ConfigMapLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom configMapLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom configMapLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ConfigMapNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom configMapNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom configMapNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointsLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EndpointsLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom endpointsLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom endpointsLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointsNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EndpointsNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom endpointsNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom endpointsNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom eventLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom eventLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom eventNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom eventNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ComponentStatusListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ComponentStatusListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ConfigMapListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ConfigMapNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointsListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EndpointsListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointsNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EndpointsNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LimitRangeListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LimitRangeListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LimitRangeNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LimitRangeNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom NamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PersistentVolumeListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PersistentVolumeClaimListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PersistentVolumeClaimNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodTemplateListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodTemplateListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodTemplateNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodTemplateNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceQuotaListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceQuotaListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceQuotaNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceQuotaNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SecretListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SecretNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceAccountListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceAccountListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceAccountNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceAccountNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LimitRangeLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LimitRangeLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom limitRangeLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom limitRangeLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LimitRangeNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LimitRangeNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom limitRangeNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom limitRangeNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom NamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom namespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom namespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PersistentVolumeLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom persistentVolumeLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom persistentVolumeLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PersistentVolumeClaimLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom persistentVolumeClaimLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom persistentVolumeClaimLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PersistentVolumeClaimNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom persistentVolumeClaimNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom persistentVolumeClaimNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodTemplateLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodTemplateLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom podTemplateLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom podTemplateLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodTemplateNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodTemplateNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom podTemplateNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom podTemplateNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicationControllerLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicationControllerLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom replicationControllerLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom replicationControllerLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicationControllerNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicationControllerNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom replicationControllerNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom replicationControllerNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicationControllerListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicationControllerListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicationControllerNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicationControllerNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceQuotaLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceQuotaLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceQuotaLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom resourceQuotaLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceQuotaNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceQuotaNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceQuotaNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom resourceQuotaNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SecretLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom secretLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom secretLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SecretNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom secretNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom secretNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serviceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serviceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serviceNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serviceNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceAccountLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceAccountLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serviceAccountLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serviceAccountLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceAccountNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceAccountNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serviceAccountNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serviceAccountNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewComponentStatusLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewComponentStatusLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewComponentStatusLister"
 
-noncomputable def NewConfigMapLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConfigMapLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewConfigMapLister"
 
-noncomputable def NewEndpointsLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEndpointsLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewEndpointsLister"
 
-noncomputable def NewEventLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEventLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewEventLister"
 
-noncomputable def NewLimitRangeLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLimitRangeLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewLimitRangeLister"
 
-noncomputable def NewNamespaceLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNamespaceLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewNamespaceLister"
 
-noncomputable def NewNodeLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNodeLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewNodeLister"
 
-noncomputable def NewPersistentVolumeLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewPersistentVolumeLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewPersistentVolumeLister"
 
-noncomputable def NewPersistentVolumeClaimLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewPersistentVolumeClaimLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewPersistentVolumeClaimLister"
 
-noncomputable def NewPodLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewPodLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewPodLister"
 
-noncomputable def NewPodTemplateLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewPodTemplateLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewPodTemplateLister"
 
-noncomputable def NewReplicationControllerLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewReplicationControllerLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewReplicationControllerLister"
 
-noncomputable def NewResourceQuotaLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewResourceQuotaLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewResourceQuotaLister"
 
-noncomputable def NewSecretLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSecretLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewSecretLister"
 
-noncomputable def NewServiceLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServiceLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewServiceLister"
 
-noncomputable def NewServiceAccountLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServiceAccountLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/core/v1.NewServiceAccountLister"
 
 /-- NewNodeLister returns a new NodeLister.
 
     go: node.go:46:6 -/
-noncomputable def NewNodeLister.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewNodeLister.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "indexer"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc NodeLister.ty))) (App (Val (GoInstruction (GoZeroVal NodeLister.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "indexer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.tools.cache.Indexer.ty))) (Var "indexer"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType nodeLister.ty) NodeLister.ty))) (App (Val (GoInstruction (GoAlloc nodeLister.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Indexer.ty))) (Var "indexer"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType nodeLister.ty) NodeLister.ty))) (App (Val (GoInstruction (GoAlloc nodeLister.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Indexer.ty))) (Var "indexer"))
   (Let "$a1" (Let "$a0" (Val #(go!"node"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.api.core.v1.Resource []))) (Val #())) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.listers.New [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral nodeLister.ty))) (LiteralValue [(KeyedElement none (ElementExpression (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)) (Var "$v0")))])))))))))
+  (App (Val (GoInstruction (CompositeLiteral nodeLister.ty))) (LiteralValue [(KeyedElement none (ElementExpression (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)) (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore NodeLister.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad NodeLister.ty))) (Var "$res0")))))
 
 /-- NewPodLister returns a new PodLister.
 
     go: pod.go:45:6 -/
-noncomputable def NewPodLister.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewPodLister.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "indexer"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc PodLister.ty))) (App (Val (GoInstruction (GoZeroVal PodLister.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "indexer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.tools.cache.Indexer.ty))) (Var "indexer"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType podLister.ty) PodLister.ty))) (App (Val (GoInstruction (GoAlloc podLister.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Indexer.ty))) (Var "indexer"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType podLister.ty) PodLister.ty))) (App (Val (GoInstruction (GoAlloc podLister.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Indexer.ty))) (Var "indexer"))
   (Let "$a1" (Let "$a0" (Val #(go!"pod"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.api.core.v1.Resource []))) (Val #())) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.listers.New [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral podLister.ty))) (LiteralValue [(KeyedElement none (ElementExpression (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) (Var "$v0")))])))))))))
+  (App (Val (GoInstruction (CompositeLiteral podLister.ty))) (LiteralValue [(KeyedElement none (ElementExpression (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore PodLister.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad PodLister.ty))) (Var "$res0")))))
 
 /-- Pods returns an object that can list and get Pods.
 
     go: pod.go:50:21 -/
-noncomputable def podLister.Pods.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def podLister.Pods.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "namespace"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc PodNamespaceLister.ty))) (App (Val (GoInstruction (GoZeroVal PodNamespaceLister.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType podLister.ty)))) (Var "s"))
   (Let "namespace" (App (Val (GoInstruction (GoAlloc go.string))) (Var "namespace"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert podNamespaceLister.ty PodNamespaceLister.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (App (Val (GoInstruction (StructFieldRef podLister.ty go!"ResourceIndexer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType podLister.ty)))) (Var "s"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert podNamespaceLister.ty PodNamespaceLister.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (App (Val (GoInstruction (StructFieldRef podLister.ty go!"ResourceIndexer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType podLister.ty)))) (Var "s"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.listers.NewNamespaced [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral podNamespaceLister.ty))) (LiteralValue [(KeyedElement none (ElementExpression (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) (Var "$v0")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral podNamespaceLister.ty))) (LiteralValue [(KeyedElement none (ElementExpression (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore PodNamespaceLister.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad PodNamespaceLister.ty))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.listers.core.v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.client_go.listers, pkg_id.k8s_io.client_go.tools.cache, pkg_id.fmt]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.listers.core.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -714,626 +732,816 @@ axiom ComponentStatusLister : Type
 axiom ComponentStatusLister.zero_val : ZeroVal ComponentStatusLister
 attribute [instance] ComponentStatusLister.zero_val
 
-class ComponentStatusLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ComponentStatusLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ComponentStatusLister.underlying ComponentStatusLister
   underlying : go.UnderlyingDirectedEq ComponentStatusLister.ty ComponentStatusLister.underlying
   isUnderlying : go.IsUnderlying ComponentStatusLister.underlying ComponentStatusLister.underlying
+  method_set : go.MethodSetIs ComponentStatusLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ComponentStatus.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ComponentStatus.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ComponentStatusLister.ty) []
 
 attribute [instance] ComponentStatusLister.TypeAssumptions.type_repr
   ComponentStatusLister.TypeAssumptions.underlying
   ComponentStatusLister.TypeAssumptions.isUnderlying
+  ComponentStatusLister.TypeAssumptions.method_set
+  ComponentStatusLister.TypeAssumptions.ptr_method_set
 
 axiom componentStatusLister : Type
 axiom componentStatusLister.zero_val : ZeroVal componentStatusLister
 attribute [instance] componentStatusLister.zero_val
 
-class componentStatusLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class componentStatusLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying componentStatusLister.underlying componentStatusLister
   underlying : go.UnderlyingDirectedEq componentStatusLister.ty componentStatusLister.underlying
   isUnderlying : go.IsUnderlying componentStatusLister.underlying componentStatusLister.underlying
+  method_set : go.MethodSetIs componentStatusLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ComponentStatus.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ComponentStatus.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType componentStatusLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ComponentStatus.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ComponentStatus.ty)), go.error])))]
 
 attribute [instance] componentStatusLister.TypeAssumptions.type_repr
   componentStatusLister.TypeAssumptions.underlying
   componentStatusLister.TypeAssumptions.isUnderlying
+  componentStatusLister.TypeAssumptions.method_set
+  componentStatusLister.TypeAssumptions.ptr_method_set
 
 axiom ConfigMapLister : Type
 axiom ConfigMapLister.zero_val : ZeroVal ConfigMapLister
 attribute [instance] ConfigMapLister.zero_val
 
-class ConfigMapLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfigMapLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfigMapLister.underlying ConfigMapLister
   underlying : go.UnderlyingDirectedEq ConfigMapLister.ty ConfigMapLister.underlying
   isUnderlying : go.IsUnderlying ConfigMapLister.underlying ConfigMapLister.underlying
+  method_set : go.MethodSetIs ConfigMapLister.ty [(go!"ConfigMaps", (some (go.signature.Signature [go.string] false [ConfigMapNamespaceLister.ty]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfigMapLister.ty) []
 
 attribute [instance] ConfigMapLister.TypeAssumptions.type_repr
   ConfigMapLister.TypeAssumptions.underlying
   ConfigMapLister.TypeAssumptions.isUnderlying
+  ConfigMapLister.TypeAssumptions.method_set
+  ConfigMapLister.TypeAssumptions.ptr_method_set
 
 axiom configMapLister : Type
 axiom configMapLister.zero_val : ZeroVal configMapLister
 attribute [instance] configMapLister.zero_val
 
-class configMapLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class configMapLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying configMapLister.underlying configMapLister
   underlying : go.UnderlyingDirectedEq configMapLister.ty configMapLister.underlying
   isUnderlying : go.IsUnderlying configMapLister.underlying configMapLister.underlying
+  method_set : go.MethodSetIs configMapLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType configMapLister.ty) [(go!"ConfigMaps", (some (go.signature.Signature [go.string] false [ConfigMapNamespaceLister.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty)), go.error])))]
 
 attribute [instance] configMapLister.TypeAssumptions.type_repr
   configMapLister.TypeAssumptions.underlying
   configMapLister.TypeAssumptions.isUnderlying
+  configMapLister.TypeAssumptions.method_set
+  configMapLister.TypeAssumptions.ptr_method_set
 
 axiom ConfigMapNamespaceLister : Type
 axiom ConfigMapNamespaceLister.zero_val : ZeroVal ConfigMapNamespaceLister
 attribute [instance] ConfigMapNamespaceLister.zero_val
 
-class ConfigMapNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfigMapNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfigMapNamespaceLister.underlying ConfigMapNamespaceLister
   underlying : go.UnderlyingDirectedEq ConfigMapNamespaceLister.ty ConfigMapNamespaceLister.underlying
   isUnderlying : go.IsUnderlying ConfigMapNamespaceLister.underlying ConfigMapNamespaceLister.underlying
+  method_set : go.MethodSetIs ConfigMapNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfigMapNamespaceLister.ty) []
 
 attribute [instance] ConfigMapNamespaceLister.TypeAssumptions.type_repr
   ConfigMapNamespaceLister.TypeAssumptions.underlying
   ConfigMapNamespaceLister.TypeAssumptions.isUnderlying
+  ConfigMapNamespaceLister.TypeAssumptions.method_set
+  ConfigMapNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom configMapNamespaceLister : Type
 axiom configMapNamespaceLister.zero_val : ZeroVal configMapNamespaceLister
 attribute [instance] configMapNamespaceLister.zero_val
 
-class configMapNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class configMapNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying configMapNamespaceLister.underlying configMapNamespaceLister
   underlying : go.UnderlyingDirectedEq configMapNamespaceLister.ty configMapNamespaceLister.underlying
   isUnderlying : go.IsUnderlying configMapNamespaceLister.underlying configMapNamespaceLister.underlying
+  method_set : go.MethodSetIs configMapNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType configMapNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ConfigMap.ty)), go.error])))]
 
 attribute [instance] configMapNamespaceLister.TypeAssumptions.type_repr
   configMapNamespaceLister.TypeAssumptions.underlying
   configMapNamespaceLister.TypeAssumptions.isUnderlying
+  configMapNamespaceLister.TypeAssumptions.method_set
+  configMapNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom EndpointsLister : Type
 axiom EndpointsLister.zero_val : ZeroVal EndpointsLister
 attribute [instance] EndpointsLister.zero_val
 
-class EndpointsLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EndpointsLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EndpointsLister.underlying EndpointsLister
   underlying : go.UnderlyingDirectedEq EndpointsLister.ty EndpointsLister.underlying
   isUnderlying : go.IsUnderlying EndpointsLister.underlying EndpointsLister.underlying
+  method_set : go.MethodSetIs EndpointsLister.ty [(go!"Endpoints", (some (go.signature.Signature [go.string] false [EndpointsNamespaceLister.ty]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EndpointsLister.ty) []
 
 attribute [instance] EndpointsLister.TypeAssumptions.type_repr
   EndpointsLister.TypeAssumptions.underlying
   EndpointsLister.TypeAssumptions.isUnderlying
+  EndpointsLister.TypeAssumptions.method_set
+  EndpointsLister.TypeAssumptions.ptr_method_set
 
 axiom endpointsLister : Type
 axiom endpointsLister.zero_val : ZeroVal endpointsLister
 attribute [instance] endpointsLister.zero_val
 
-class endpointsLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class endpointsLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying endpointsLister.underlying endpointsLister
   underlying : go.UnderlyingDirectedEq endpointsLister.ty endpointsLister.underlying
   isUnderlying : go.IsUnderlying endpointsLister.underlying endpointsLister.underlying
+  method_set : go.MethodSetIs endpointsLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType endpointsLister.ty) [(go!"Endpoints", (some (go.signature.Signature [go.string] false [EndpointsNamespaceLister.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty)), go.error])))]
 
 attribute [instance] endpointsLister.TypeAssumptions.type_repr
   endpointsLister.TypeAssumptions.underlying
   endpointsLister.TypeAssumptions.isUnderlying
+  endpointsLister.TypeAssumptions.method_set
+  endpointsLister.TypeAssumptions.ptr_method_set
 
 axiom EndpointsNamespaceLister : Type
 axiom EndpointsNamespaceLister.zero_val : ZeroVal EndpointsNamespaceLister
 attribute [instance] EndpointsNamespaceLister.zero_val
 
-class EndpointsNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EndpointsNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EndpointsNamespaceLister.underlying EndpointsNamespaceLister
   underlying : go.UnderlyingDirectedEq EndpointsNamespaceLister.ty EndpointsNamespaceLister.underlying
   isUnderlying : go.IsUnderlying EndpointsNamespaceLister.underlying EndpointsNamespaceLister.underlying
+  method_set : go.MethodSetIs EndpointsNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EndpointsNamespaceLister.ty) []
 
 attribute [instance] EndpointsNamespaceLister.TypeAssumptions.type_repr
   EndpointsNamespaceLister.TypeAssumptions.underlying
   EndpointsNamespaceLister.TypeAssumptions.isUnderlying
+  EndpointsNamespaceLister.TypeAssumptions.method_set
+  EndpointsNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom endpointsNamespaceLister : Type
 axiom endpointsNamespaceLister.zero_val : ZeroVal endpointsNamespaceLister
 attribute [instance] endpointsNamespaceLister.zero_val
 
-class endpointsNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class endpointsNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying endpointsNamespaceLister.underlying endpointsNamespaceLister
   underlying : go.UnderlyingDirectedEq endpointsNamespaceLister.ty endpointsNamespaceLister.underlying
   isUnderlying : go.IsUnderlying endpointsNamespaceLister.underlying endpointsNamespaceLister.underlying
+  method_set : go.MethodSetIs endpointsNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType endpointsNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Endpoints.ty)), go.error])))]
 
 attribute [instance] endpointsNamespaceLister.TypeAssumptions.type_repr
   endpointsNamespaceLister.TypeAssumptions.underlying
   endpointsNamespaceLister.TypeAssumptions.isUnderlying
+  endpointsNamespaceLister.TypeAssumptions.method_set
+  endpointsNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom EventLister : Type
 axiom EventLister.zero_val : ZeroVal EventLister
 attribute [instance] EventLister.zero_val
 
-class EventLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventLister.underlying EventLister
   underlying : go.UnderlyingDirectedEq EventLister.ty EventLister.underlying
   isUnderlying : go.IsUnderlying EventLister.underlying EventLister.underlying
+  method_set : go.MethodSetIs EventLister.ty [(go!"Events", (some (go.signature.Signature [go.string] false [EventNamespaceLister.ty]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventLister.ty) []
 
 attribute [instance] EventLister.TypeAssumptions.type_repr
   EventLister.TypeAssumptions.underlying
   EventLister.TypeAssumptions.isUnderlying
+  EventLister.TypeAssumptions.method_set
+  EventLister.TypeAssumptions.ptr_method_set
 
 axiom eventLister : Type
 axiom eventLister.zero_val : ZeroVal eventLister
 attribute [instance] eventLister.zero_val
 
-class eventLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class eventLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eventLister.underlying eventLister
   underlying : go.UnderlyingDirectedEq eventLister.ty eventLister.underlying
   isUnderlying : go.IsUnderlying eventLister.underlying eventLister.underlying
+  method_set : go.MethodSetIs eventLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType eventLister.ty) [(go!"Events", (some (go.signature.Signature [go.string] false [EventNamespaceLister.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)), go.error])))]
 
 attribute [instance] eventLister.TypeAssumptions.type_repr
   eventLister.TypeAssumptions.underlying
   eventLister.TypeAssumptions.isUnderlying
+  eventLister.TypeAssumptions.method_set
+  eventLister.TypeAssumptions.ptr_method_set
 
 axiom EventNamespaceLister : Type
 axiom EventNamespaceLister.zero_val : ZeroVal EventNamespaceLister
 attribute [instance] EventNamespaceLister.zero_val
 
-class EventNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventNamespaceLister.underlying EventNamespaceLister
   underlying : go.UnderlyingDirectedEq EventNamespaceLister.ty EventNamespaceLister.underlying
   isUnderlying : go.IsUnderlying EventNamespaceLister.underlying EventNamespaceLister.underlying
+  method_set : go.MethodSetIs EventNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventNamespaceLister.ty) []
 
 attribute [instance] EventNamespaceLister.TypeAssumptions.type_repr
   EventNamespaceLister.TypeAssumptions.underlying
   EventNamespaceLister.TypeAssumptions.isUnderlying
+  EventNamespaceLister.TypeAssumptions.method_set
+  EventNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom eventNamespaceLister : Type
 axiom eventNamespaceLister.zero_val : ZeroVal eventNamespaceLister
 attribute [instance] eventNamespaceLister.zero_val
 
-class eventNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class eventNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eventNamespaceLister.underlying eventNamespaceLister
   underlying : go.UnderlyingDirectedEq eventNamespaceLister.ty eventNamespaceLister.underlying
   isUnderlying : go.IsUnderlying eventNamespaceLister.underlying eventNamespaceLister.underlying
+  method_set : go.MethodSetIs eventNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType eventNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)), go.error])))]
 
 attribute [instance] eventNamespaceLister.TypeAssumptions.type_repr
   eventNamespaceLister.TypeAssumptions.underlying
   eventNamespaceLister.TypeAssumptions.isUnderlying
+  eventNamespaceLister.TypeAssumptions.method_set
+  eventNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom ComponentStatusListerExpansion : Type
 axiom ComponentStatusListerExpansion.zero_val : ZeroVal ComponentStatusListerExpansion
 attribute [instance] ComponentStatusListerExpansion.zero_val
 
-class ComponentStatusListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ComponentStatusListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ComponentStatusListerExpansion.underlying ComponentStatusListerExpansion
   underlying : go.UnderlyingDirectedEq ComponentStatusListerExpansion.ty ComponentStatusListerExpansion.underlying
   isUnderlying : go.IsUnderlying ComponentStatusListerExpansion.underlying ComponentStatusListerExpansion.underlying
+  method_set : go.MethodSetIs ComponentStatusListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ComponentStatusListerExpansion.ty) []
 
 attribute [instance] ComponentStatusListerExpansion.TypeAssumptions.type_repr
   ComponentStatusListerExpansion.TypeAssumptions.underlying
   ComponentStatusListerExpansion.TypeAssumptions.isUnderlying
+  ComponentStatusListerExpansion.TypeAssumptions.method_set
+  ComponentStatusListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ConfigMapListerExpansion : Type
 axiom ConfigMapListerExpansion.zero_val : ZeroVal ConfigMapListerExpansion
 attribute [instance] ConfigMapListerExpansion.zero_val
 
-class ConfigMapListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfigMapListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfigMapListerExpansion.underlying ConfigMapListerExpansion
   underlying : go.UnderlyingDirectedEq ConfigMapListerExpansion.ty ConfigMapListerExpansion.underlying
   isUnderlying : go.IsUnderlying ConfigMapListerExpansion.underlying ConfigMapListerExpansion.underlying
+  method_set : go.MethodSetIs ConfigMapListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfigMapListerExpansion.ty) []
 
 attribute [instance] ConfigMapListerExpansion.TypeAssumptions.type_repr
   ConfigMapListerExpansion.TypeAssumptions.underlying
   ConfigMapListerExpansion.TypeAssumptions.isUnderlying
+  ConfigMapListerExpansion.TypeAssumptions.method_set
+  ConfigMapListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ConfigMapNamespaceListerExpansion : Type
 axiom ConfigMapNamespaceListerExpansion.zero_val : ZeroVal ConfigMapNamespaceListerExpansion
 attribute [instance] ConfigMapNamespaceListerExpansion.zero_val
 
-class ConfigMapNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfigMapNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfigMapNamespaceListerExpansion.underlying ConfigMapNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq ConfigMapNamespaceListerExpansion.ty ConfigMapNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying ConfigMapNamespaceListerExpansion.underlying ConfigMapNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs ConfigMapNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfigMapNamespaceListerExpansion.ty) []
 
 attribute [instance] ConfigMapNamespaceListerExpansion.TypeAssumptions.type_repr
   ConfigMapNamespaceListerExpansion.TypeAssumptions.underlying
   ConfigMapNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  ConfigMapNamespaceListerExpansion.TypeAssumptions.method_set
+  ConfigMapNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom EndpointsListerExpansion : Type
 axiom EndpointsListerExpansion.zero_val : ZeroVal EndpointsListerExpansion
 attribute [instance] EndpointsListerExpansion.zero_val
 
-class EndpointsListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EndpointsListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EndpointsListerExpansion.underlying EndpointsListerExpansion
   underlying : go.UnderlyingDirectedEq EndpointsListerExpansion.ty EndpointsListerExpansion.underlying
   isUnderlying : go.IsUnderlying EndpointsListerExpansion.underlying EndpointsListerExpansion.underlying
+  method_set : go.MethodSetIs EndpointsListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EndpointsListerExpansion.ty) []
 
 attribute [instance] EndpointsListerExpansion.TypeAssumptions.type_repr
   EndpointsListerExpansion.TypeAssumptions.underlying
   EndpointsListerExpansion.TypeAssumptions.isUnderlying
+  EndpointsListerExpansion.TypeAssumptions.method_set
+  EndpointsListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom EndpointsNamespaceListerExpansion : Type
 axiom EndpointsNamespaceListerExpansion.zero_val : ZeroVal EndpointsNamespaceListerExpansion
 attribute [instance] EndpointsNamespaceListerExpansion.zero_val
 
-class EndpointsNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EndpointsNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EndpointsNamespaceListerExpansion.underlying EndpointsNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq EndpointsNamespaceListerExpansion.ty EndpointsNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying EndpointsNamespaceListerExpansion.underlying EndpointsNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs EndpointsNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EndpointsNamespaceListerExpansion.ty) []
 
 attribute [instance] EndpointsNamespaceListerExpansion.TypeAssumptions.type_repr
   EndpointsNamespaceListerExpansion.TypeAssumptions.underlying
   EndpointsNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  EndpointsNamespaceListerExpansion.TypeAssumptions.method_set
+  EndpointsNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom EventListerExpansion : Type
 axiom EventListerExpansion.zero_val : ZeroVal EventListerExpansion
 attribute [instance] EventListerExpansion.zero_val
 
-class EventListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventListerExpansion.underlying EventListerExpansion
   underlying : go.UnderlyingDirectedEq EventListerExpansion.ty EventListerExpansion.underlying
   isUnderlying : go.IsUnderlying EventListerExpansion.underlying EventListerExpansion.underlying
+  method_set : go.MethodSetIs EventListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventListerExpansion.ty) []
 
 attribute [instance] EventListerExpansion.TypeAssumptions.type_repr
   EventListerExpansion.TypeAssumptions.underlying
   EventListerExpansion.TypeAssumptions.isUnderlying
+  EventListerExpansion.TypeAssumptions.method_set
+  EventListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom EventNamespaceListerExpansion : Type
 axiom EventNamespaceListerExpansion.zero_val : ZeroVal EventNamespaceListerExpansion
 attribute [instance] EventNamespaceListerExpansion.zero_val
 
-class EventNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventNamespaceListerExpansion.underlying EventNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq EventNamespaceListerExpansion.ty EventNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying EventNamespaceListerExpansion.underlying EventNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs EventNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventNamespaceListerExpansion.ty) []
 
 attribute [instance] EventNamespaceListerExpansion.TypeAssumptions.type_repr
   EventNamespaceListerExpansion.TypeAssumptions.underlying
   EventNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  EventNamespaceListerExpansion.TypeAssumptions.method_set
+  EventNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom LimitRangeListerExpansion : Type
 axiom LimitRangeListerExpansion.zero_val : ZeroVal LimitRangeListerExpansion
 attribute [instance] LimitRangeListerExpansion.zero_val
 
-class LimitRangeListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LimitRangeListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LimitRangeListerExpansion.underlying LimitRangeListerExpansion
   underlying : go.UnderlyingDirectedEq LimitRangeListerExpansion.ty LimitRangeListerExpansion.underlying
   isUnderlying : go.IsUnderlying LimitRangeListerExpansion.underlying LimitRangeListerExpansion.underlying
+  method_set : go.MethodSetIs LimitRangeListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LimitRangeListerExpansion.ty) []
 
 attribute [instance] LimitRangeListerExpansion.TypeAssumptions.type_repr
   LimitRangeListerExpansion.TypeAssumptions.underlying
   LimitRangeListerExpansion.TypeAssumptions.isUnderlying
+  LimitRangeListerExpansion.TypeAssumptions.method_set
+  LimitRangeListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom LimitRangeNamespaceListerExpansion : Type
 axiom LimitRangeNamespaceListerExpansion.zero_val : ZeroVal LimitRangeNamespaceListerExpansion
 attribute [instance] LimitRangeNamespaceListerExpansion.zero_val
 
-class LimitRangeNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LimitRangeNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LimitRangeNamespaceListerExpansion.underlying LimitRangeNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq LimitRangeNamespaceListerExpansion.ty LimitRangeNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying LimitRangeNamespaceListerExpansion.underlying LimitRangeNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs LimitRangeNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LimitRangeNamespaceListerExpansion.ty) []
 
 attribute [instance] LimitRangeNamespaceListerExpansion.TypeAssumptions.type_repr
   LimitRangeNamespaceListerExpansion.TypeAssumptions.underlying
   LimitRangeNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  LimitRangeNamespaceListerExpansion.TypeAssumptions.method_set
+  LimitRangeNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom NamespaceListerExpansion : Type
 axiom NamespaceListerExpansion.zero_val : ZeroVal NamespaceListerExpansion
 attribute [instance] NamespaceListerExpansion.zero_val
 
-class NamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NamespaceListerExpansion.underlying NamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq NamespaceListerExpansion.ty NamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying NamespaceListerExpansion.underlying NamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs NamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NamespaceListerExpansion.ty) []
 
 attribute [instance] NamespaceListerExpansion.TypeAssumptions.type_repr
   NamespaceListerExpansion.TypeAssumptions.underlying
   NamespaceListerExpansion.TypeAssumptions.isUnderlying
+  NamespaceListerExpansion.TypeAssumptions.method_set
+  NamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
-abbrev NodeListerExpansion [FfiSyntax] : Type := GoInterface
+abbrev NodeListerExpansion [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def NodeListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [])
 
-class NodeListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NodeListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NodeListerExpansion.ty NodeListerExpansion.underlying
+  method_set : go.MethodSetIs NodeListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeListerExpansion.ty) []
 
 attribute [instance] NodeListerExpansion.TypeAssumptions.underlying
+  NodeListerExpansion.TypeAssumptions.method_set
+  NodeListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom PersistentVolumeListerExpansion : Type
 axiom PersistentVolumeListerExpansion.zero_val : ZeroVal PersistentVolumeListerExpansion
 attribute [instance] PersistentVolumeListerExpansion.zero_val
 
-class PersistentVolumeListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeListerExpansion.underlying PersistentVolumeListerExpansion
   underlying : go.UnderlyingDirectedEq PersistentVolumeListerExpansion.ty PersistentVolumeListerExpansion.underlying
   isUnderlying : go.IsUnderlying PersistentVolumeListerExpansion.underlying PersistentVolumeListerExpansion.underlying
+  method_set : go.MethodSetIs PersistentVolumeListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeListerExpansion.ty) []
 
 attribute [instance] PersistentVolumeListerExpansion.TypeAssumptions.type_repr
   PersistentVolumeListerExpansion.TypeAssumptions.underlying
   PersistentVolumeListerExpansion.TypeAssumptions.isUnderlying
+  PersistentVolumeListerExpansion.TypeAssumptions.method_set
+  PersistentVolumeListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom PersistentVolumeClaimListerExpansion : Type
 axiom PersistentVolumeClaimListerExpansion.zero_val : ZeroVal PersistentVolumeClaimListerExpansion
 attribute [instance] PersistentVolumeClaimListerExpansion.zero_val
 
-class PersistentVolumeClaimListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeClaimListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimListerExpansion.underlying PersistentVolumeClaimListerExpansion
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimListerExpansion.ty PersistentVolumeClaimListerExpansion.underlying
   isUnderlying : go.IsUnderlying PersistentVolumeClaimListerExpansion.underlying PersistentVolumeClaimListerExpansion.underlying
+  method_set : go.MethodSetIs PersistentVolumeClaimListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimListerExpansion.ty) []
 
 attribute [instance] PersistentVolumeClaimListerExpansion.TypeAssumptions.type_repr
   PersistentVolumeClaimListerExpansion.TypeAssumptions.underlying
   PersistentVolumeClaimListerExpansion.TypeAssumptions.isUnderlying
+  PersistentVolumeClaimListerExpansion.TypeAssumptions.method_set
+  PersistentVolumeClaimListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom PersistentVolumeClaimNamespaceListerExpansion : Type
 axiom PersistentVolumeClaimNamespaceListerExpansion.zero_val : ZeroVal PersistentVolumeClaimNamespaceListerExpansion
 attribute [instance] PersistentVolumeClaimNamespaceListerExpansion.zero_val
 
-class PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimNamespaceListerExpansion.underlying PersistentVolumeClaimNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimNamespaceListerExpansion.ty PersistentVolumeClaimNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying PersistentVolumeClaimNamespaceListerExpansion.underlying PersistentVolumeClaimNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs PersistentVolumeClaimNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimNamespaceListerExpansion.ty) []
 
 attribute [instance] PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions.type_repr
   PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions.underlying
   PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions.method_set
+  PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
-abbrev PodListerExpansion [FfiSyntax] : Type := GoInterface
+abbrev PodListerExpansion [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def PodListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [])
 
-class PodListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodListerExpansion.ty PodListerExpansion.underlying
+  method_set : go.MethodSetIs PodListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodListerExpansion.ty) []
 
 attribute [instance] PodListerExpansion.TypeAssumptions.underlying
+  PodListerExpansion.TypeAssumptions.method_set
+  PodListerExpansion.TypeAssumptions.ptr_method_set
 
-abbrev PodNamespaceListerExpansion [FfiSyntax] : Type := GoInterface
+abbrev PodNamespaceListerExpansion [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def PodNamespaceListerExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [])
 
-class PodNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodNamespaceListerExpansion.ty PodNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs PodNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodNamespaceListerExpansion.ty) []
 
 attribute [instance] PodNamespaceListerExpansion.TypeAssumptions.underlying
+  PodNamespaceListerExpansion.TypeAssumptions.method_set
+  PodNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom PodTemplateListerExpansion : Type
 axiom PodTemplateListerExpansion.zero_val : ZeroVal PodTemplateListerExpansion
 attribute [instance] PodTemplateListerExpansion.zero_val
 
-class PodTemplateListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodTemplateListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodTemplateListerExpansion.underlying PodTemplateListerExpansion
   underlying : go.UnderlyingDirectedEq PodTemplateListerExpansion.ty PodTemplateListerExpansion.underlying
   isUnderlying : go.IsUnderlying PodTemplateListerExpansion.underlying PodTemplateListerExpansion.underlying
+  method_set : go.MethodSetIs PodTemplateListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodTemplateListerExpansion.ty) []
 
 attribute [instance] PodTemplateListerExpansion.TypeAssumptions.type_repr
   PodTemplateListerExpansion.TypeAssumptions.underlying
   PodTemplateListerExpansion.TypeAssumptions.isUnderlying
+  PodTemplateListerExpansion.TypeAssumptions.method_set
+  PodTemplateListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom PodTemplateNamespaceListerExpansion : Type
 axiom PodTemplateNamespaceListerExpansion.zero_val : ZeroVal PodTemplateNamespaceListerExpansion
 attribute [instance] PodTemplateNamespaceListerExpansion.zero_val
 
-class PodTemplateNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodTemplateNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodTemplateNamespaceListerExpansion.underlying PodTemplateNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq PodTemplateNamespaceListerExpansion.ty PodTemplateNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying PodTemplateNamespaceListerExpansion.underlying PodTemplateNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs PodTemplateNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodTemplateNamespaceListerExpansion.ty) []
 
 attribute [instance] PodTemplateNamespaceListerExpansion.TypeAssumptions.type_repr
   PodTemplateNamespaceListerExpansion.TypeAssumptions.underlying
   PodTemplateNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  PodTemplateNamespaceListerExpansion.TypeAssumptions.method_set
+  PodTemplateNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourceQuotaListerExpansion : Type
 axiom ResourceQuotaListerExpansion.zero_val : ZeroVal ResourceQuotaListerExpansion
 attribute [instance] ResourceQuotaListerExpansion.zero_val
 
-class ResourceQuotaListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceQuotaListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceQuotaListerExpansion.underlying ResourceQuotaListerExpansion
   underlying : go.UnderlyingDirectedEq ResourceQuotaListerExpansion.ty ResourceQuotaListerExpansion.underlying
   isUnderlying : go.IsUnderlying ResourceQuotaListerExpansion.underlying ResourceQuotaListerExpansion.underlying
+  method_set : go.MethodSetIs ResourceQuotaListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceQuotaListerExpansion.ty) []
 
 attribute [instance] ResourceQuotaListerExpansion.TypeAssumptions.type_repr
   ResourceQuotaListerExpansion.TypeAssumptions.underlying
   ResourceQuotaListerExpansion.TypeAssumptions.isUnderlying
+  ResourceQuotaListerExpansion.TypeAssumptions.method_set
+  ResourceQuotaListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourceQuotaNamespaceListerExpansion : Type
 axiom ResourceQuotaNamespaceListerExpansion.zero_val : ZeroVal ResourceQuotaNamespaceListerExpansion
 attribute [instance] ResourceQuotaNamespaceListerExpansion.zero_val
 
-class ResourceQuotaNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceQuotaNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceQuotaNamespaceListerExpansion.underlying ResourceQuotaNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq ResourceQuotaNamespaceListerExpansion.ty ResourceQuotaNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying ResourceQuotaNamespaceListerExpansion.underlying ResourceQuotaNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs ResourceQuotaNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceQuotaNamespaceListerExpansion.ty) []
 
 attribute [instance] ResourceQuotaNamespaceListerExpansion.TypeAssumptions.type_repr
   ResourceQuotaNamespaceListerExpansion.TypeAssumptions.underlying
   ResourceQuotaNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  ResourceQuotaNamespaceListerExpansion.TypeAssumptions.method_set
+  ResourceQuotaNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom SecretListerExpansion : Type
 axiom SecretListerExpansion.zero_val : ZeroVal SecretListerExpansion
 attribute [instance] SecretListerExpansion.zero_val
 
-class SecretListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SecretListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SecretListerExpansion.underlying SecretListerExpansion
   underlying : go.UnderlyingDirectedEq SecretListerExpansion.ty SecretListerExpansion.underlying
   isUnderlying : go.IsUnderlying SecretListerExpansion.underlying SecretListerExpansion.underlying
+  method_set : go.MethodSetIs SecretListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SecretListerExpansion.ty) []
 
 attribute [instance] SecretListerExpansion.TypeAssumptions.type_repr
   SecretListerExpansion.TypeAssumptions.underlying
   SecretListerExpansion.TypeAssumptions.isUnderlying
+  SecretListerExpansion.TypeAssumptions.method_set
+  SecretListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom SecretNamespaceListerExpansion : Type
 axiom SecretNamespaceListerExpansion.zero_val : ZeroVal SecretNamespaceListerExpansion
 attribute [instance] SecretNamespaceListerExpansion.zero_val
 
-class SecretNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SecretNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SecretNamespaceListerExpansion.underlying SecretNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq SecretNamespaceListerExpansion.ty SecretNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying SecretNamespaceListerExpansion.underlying SecretNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs SecretNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SecretNamespaceListerExpansion.ty) []
 
 attribute [instance] SecretNamespaceListerExpansion.TypeAssumptions.type_repr
   SecretNamespaceListerExpansion.TypeAssumptions.underlying
   SecretNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  SecretNamespaceListerExpansion.TypeAssumptions.method_set
+  SecretNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ServiceListerExpansion : Type
 axiom ServiceListerExpansion.zero_val : ZeroVal ServiceListerExpansion
 attribute [instance] ServiceListerExpansion.zero_val
 
-class ServiceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceListerExpansion.underlying ServiceListerExpansion
   underlying : go.UnderlyingDirectedEq ServiceListerExpansion.ty ServiceListerExpansion.underlying
   isUnderlying : go.IsUnderlying ServiceListerExpansion.underlying ServiceListerExpansion.underlying
+  method_set : go.MethodSetIs ServiceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceListerExpansion.ty) []
 
 attribute [instance] ServiceListerExpansion.TypeAssumptions.type_repr
   ServiceListerExpansion.TypeAssumptions.underlying
   ServiceListerExpansion.TypeAssumptions.isUnderlying
+  ServiceListerExpansion.TypeAssumptions.method_set
+  ServiceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ServiceNamespaceListerExpansion : Type
 axiom ServiceNamespaceListerExpansion.zero_val : ZeroVal ServiceNamespaceListerExpansion
 attribute [instance] ServiceNamespaceListerExpansion.zero_val
 
-class ServiceNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceNamespaceListerExpansion.underlying ServiceNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq ServiceNamespaceListerExpansion.ty ServiceNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying ServiceNamespaceListerExpansion.underlying ServiceNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs ServiceNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceNamespaceListerExpansion.ty) []
 
 attribute [instance] ServiceNamespaceListerExpansion.TypeAssumptions.type_repr
   ServiceNamespaceListerExpansion.TypeAssumptions.underlying
   ServiceNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  ServiceNamespaceListerExpansion.TypeAssumptions.method_set
+  ServiceNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ServiceAccountListerExpansion : Type
 axiom ServiceAccountListerExpansion.zero_val : ZeroVal ServiceAccountListerExpansion
 attribute [instance] ServiceAccountListerExpansion.zero_val
 
-class ServiceAccountListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceAccountListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceAccountListerExpansion.underlying ServiceAccountListerExpansion
   underlying : go.UnderlyingDirectedEq ServiceAccountListerExpansion.ty ServiceAccountListerExpansion.underlying
   isUnderlying : go.IsUnderlying ServiceAccountListerExpansion.underlying ServiceAccountListerExpansion.underlying
+  method_set : go.MethodSetIs ServiceAccountListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceAccountListerExpansion.ty) []
 
 attribute [instance] ServiceAccountListerExpansion.TypeAssumptions.type_repr
   ServiceAccountListerExpansion.TypeAssumptions.underlying
   ServiceAccountListerExpansion.TypeAssumptions.isUnderlying
+  ServiceAccountListerExpansion.TypeAssumptions.method_set
+  ServiceAccountListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ServiceAccountNamespaceListerExpansion : Type
 axiom ServiceAccountNamespaceListerExpansion.zero_val : ZeroVal ServiceAccountNamespaceListerExpansion
 attribute [instance] ServiceAccountNamespaceListerExpansion.zero_val
 
-class ServiceAccountNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceAccountNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceAccountNamespaceListerExpansion.underlying ServiceAccountNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq ServiceAccountNamespaceListerExpansion.ty ServiceAccountNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying ServiceAccountNamespaceListerExpansion.underlying ServiceAccountNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs ServiceAccountNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceAccountNamespaceListerExpansion.ty) []
 
 attribute [instance] ServiceAccountNamespaceListerExpansion.TypeAssumptions.type_repr
   ServiceAccountNamespaceListerExpansion.TypeAssumptions.underlying
   ServiceAccountNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  ServiceAccountNamespaceListerExpansion.TypeAssumptions.method_set
+  ServiceAccountNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom LimitRangeLister : Type
 axiom LimitRangeLister.zero_val : ZeroVal LimitRangeLister
 attribute [instance] LimitRangeLister.zero_val
 
-class LimitRangeLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LimitRangeLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LimitRangeLister.underlying LimitRangeLister
   underlying : go.UnderlyingDirectedEq LimitRangeLister.ty LimitRangeLister.underlying
   isUnderlying : go.IsUnderlying LimitRangeLister.underlying LimitRangeLister.underlying
+  method_set : go.MethodSetIs LimitRangeLister.ty [(go!"LimitRanges", (some (go.signature.Signature [go.string] false [LimitRangeNamespaceLister.ty]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LimitRangeLister.ty) []
 
 attribute [instance] LimitRangeLister.TypeAssumptions.type_repr
   LimitRangeLister.TypeAssumptions.underlying
   LimitRangeLister.TypeAssumptions.isUnderlying
+  LimitRangeLister.TypeAssumptions.method_set
+  LimitRangeLister.TypeAssumptions.ptr_method_set
 
 axiom limitRangeLister : Type
 axiom limitRangeLister.zero_val : ZeroVal limitRangeLister
 attribute [instance] limitRangeLister.zero_val
 
-class limitRangeLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class limitRangeLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying limitRangeLister.underlying limitRangeLister
   underlying : go.UnderlyingDirectedEq limitRangeLister.ty limitRangeLister.underlying
   isUnderlying : go.IsUnderlying limitRangeLister.underlying limitRangeLister.underlying
+  method_set : go.MethodSetIs limitRangeLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitRangeLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty), go.error]))), (go!"LimitRanges", (some (go.signature.Signature [go.string] false [LimitRangeNamespaceLister.ty]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty)), go.error])))]
 
 attribute [instance] limitRangeLister.TypeAssumptions.type_repr
   limitRangeLister.TypeAssumptions.underlying
   limitRangeLister.TypeAssumptions.isUnderlying
+  limitRangeLister.TypeAssumptions.method_set
+  limitRangeLister.TypeAssumptions.ptr_method_set
 
 axiom LimitRangeNamespaceLister : Type
 axiom LimitRangeNamespaceLister.zero_val : ZeroVal LimitRangeNamespaceLister
 attribute [instance] LimitRangeNamespaceLister.zero_val
 
-class LimitRangeNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LimitRangeNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LimitRangeNamespaceLister.underlying LimitRangeNamespaceLister
   underlying : go.UnderlyingDirectedEq LimitRangeNamespaceLister.ty LimitRangeNamespaceLister.underlying
   isUnderlying : go.IsUnderlying LimitRangeNamespaceLister.underlying LimitRangeNamespaceLister.underlying
+  method_set : go.MethodSetIs LimitRangeNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LimitRangeNamespaceLister.ty) []
 
 attribute [instance] LimitRangeNamespaceLister.TypeAssumptions.type_repr
   LimitRangeNamespaceLister.TypeAssumptions.underlying
   LimitRangeNamespaceLister.TypeAssumptions.isUnderlying
+  LimitRangeNamespaceLister.TypeAssumptions.method_set
+  LimitRangeNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom limitRangeNamespaceLister : Type
 axiom limitRangeNamespaceLister.zero_val : ZeroVal limitRangeNamespaceLister
 attribute [instance] limitRangeNamespaceLister.zero_val
 
-class limitRangeNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class limitRangeNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying limitRangeNamespaceLister.underlying limitRangeNamespaceLister
   underlying : go.UnderlyingDirectedEq limitRangeNamespaceLister.ty limitRangeNamespaceLister.underlying
   isUnderlying : go.IsUnderlying limitRangeNamespaceLister.underlying limitRangeNamespaceLister.underlying
+  method_set : go.MethodSetIs limitRangeNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitRangeNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.LimitRange.ty)), go.error])))]
 
 attribute [instance] limitRangeNamespaceLister.TypeAssumptions.type_repr
   limitRangeNamespaceLister.TypeAssumptions.underlying
   limitRangeNamespaceLister.TypeAssumptions.isUnderlying
+  limitRangeNamespaceLister.TypeAssumptions.method_set
+  limitRangeNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom NamespaceLister : Type
 axiom NamespaceLister.zero_val : ZeroVal NamespaceLister
 attribute [instance] NamespaceLister.zero_val
 
-class NamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NamespaceLister.underlying NamespaceLister
   underlying : go.UnderlyingDirectedEq NamespaceLister.ty NamespaceLister.underlying
   isUnderlying : go.IsUnderlying NamespaceLister.underlying NamespaceLister.underlying
+  method_set : go.MethodSetIs NamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Namespace.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Namespace.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NamespaceLister.ty) []
 
 attribute [instance] NamespaceLister.TypeAssumptions.type_repr
   NamespaceLister.TypeAssumptions.underlying
   NamespaceLister.TypeAssumptions.isUnderlying
+  NamespaceLister.TypeAssumptions.method_set
+  NamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom namespaceLister : Type
 axiom namespaceLister.zero_val : ZeroVal namespaceLister
 attribute [instance] namespaceLister.zero_val
 
-class namespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class namespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying namespaceLister.underlying namespaceLister
   underlying : go.UnderlyingDirectedEq namespaceLister.ty namespaceLister.underlying
   isUnderlying : go.IsUnderlying namespaceLister.underlying namespaceLister.underlying
+  method_set : go.MethodSetIs namespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Namespace.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Namespace.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType namespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Namespace.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Namespace.ty)), go.error])))]
 
 attribute [instance] namespaceLister.TypeAssumptions.type_repr
   namespaceLister.TypeAssumptions.underlying
   namespaceLister.TypeAssumptions.isUnderlying
+  namespaceLister.TypeAssumptions.method_set
+  namespaceLister.TypeAssumptions.ptr_method_set
 
-abbrev NodeLister [FfiSyntax] : Type := GoInterface
+abbrev NodeLister [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def NodeLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm NodeListerExpansion.ty)])])
+@[reducible] noncomputable def NodeLister.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.error]))])
 
-class NodeLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NodeLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NodeLister.ty NodeLister.underlying
+  method_set : go.MethodSetIs NodeLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeLister.ty) []
 
 attribute [instance] NodeLister.TypeAssumptions.underlying
+  NodeLister.TypeAssumptions.method_set
+  NodeLister.TypeAssumptions.ptr_method_set
 
-structure nodeLister [FfiSyntax] where
+structure nodeLister [GooseExts] where
   mk ::
   ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)
 
-noncomputable instance nodeLister.zero_val [FfiSyntax] : ZeroVal nodeLister :=
+noncomputable instance nodeLister.zero_val [GooseExts] : ZeroVal nodeLister :=
   ⟨nodeLister.mk zeroValDef⟩
 
-@[reducible] noncomputable def nodeLister.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def nodeLister.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ResourceIndexer" (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))]
 
-@[irreducible] noncomputable def nodeLister.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def nodeLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nodeLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_nodeLister [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_nodeLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold nodeLister.fields nodeLister.fieldsUnsealed :=
   ⟨by unfold nodeLister.fields; rfl⟩
 
-@[reducible] noncomputable def nodeLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def nodeLister.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType nodeLister.fields)
 
-class nodeLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class nodeLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nodeLister.underlying nodeLister
   underlying : go.UnderlyingDirectedEq nodeLister.ty nodeLister.underlying
   get_ResourceIndexer : ∀ (x : nodeLister), go.IsGoStepPureDetTagged under (StructFieldGet nodeLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
   set_ResourceIndexer : ∀ (x : nodeLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet nodeLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : nodeLister)))
+  method_set : go.MethodSetIs nodeLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nodeLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.error])))]
   Get_unfold : MethodUnfold nodeLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet nodeLister.ty go!"ResourceIndexer"))) (Var "$r"))))
   List_unfold : MethodUnfold nodeLister.ty go!"List" (LamV "$r"
@@ -1347,6 +1555,8 @@ attribute [instance] nodeLister.TypeAssumptions.type_repr
   nodeLister.TypeAssumptions.underlying
   nodeLister.TypeAssumptions.get_ResourceIndexer
   nodeLister.TypeAssumptions.set_ResourceIndexer
+  nodeLister.TypeAssumptions.method_set
+  nodeLister.TypeAssumptions.ptr_method_set
   nodeLister.TypeAssumptions.Get_unfold
   nodeLister.TypeAssumptions.List_unfold
   nodeLister.TypeAssumptions.ptr_Get_unfold
@@ -1356,115 +1566,145 @@ axiom PersistentVolumeLister : Type
 axiom PersistentVolumeLister.zero_val : ZeroVal PersistentVolumeLister
 attribute [instance] PersistentVolumeLister.zero_val
 
-class PersistentVolumeLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeLister.underlying PersistentVolumeLister
   underlying : go.UnderlyingDirectedEq PersistentVolumeLister.ty PersistentVolumeLister.underlying
   isUnderlying : go.IsUnderlying PersistentVolumeLister.underlying PersistentVolumeLister.underlying
+  method_set : go.MethodSetIs PersistentVolumeLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolume.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolume.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeLister.ty) []
 
 attribute [instance] PersistentVolumeLister.TypeAssumptions.type_repr
   PersistentVolumeLister.TypeAssumptions.underlying
   PersistentVolumeLister.TypeAssumptions.isUnderlying
+  PersistentVolumeLister.TypeAssumptions.method_set
+  PersistentVolumeLister.TypeAssumptions.ptr_method_set
 
 axiom persistentVolumeLister : Type
 axiom persistentVolumeLister.zero_val : ZeroVal persistentVolumeLister
 attribute [instance] persistentVolumeLister.zero_val
 
-class persistentVolumeLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class persistentVolumeLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying persistentVolumeLister.underlying persistentVolumeLister
   underlying : go.UnderlyingDirectedEq persistentVolumeLister.ty persistentVolumeLister.underlying
   isUnderlying : go.IsUnderlying persistentVolumeLister.underlying persistentVolumeLister.underlying
+  method_set : go.MethodSetIs persistentVolumeLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolume.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolume.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType persistentVolumeLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolume.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolume.ty)), go.error])))]
 
 attribute [instance] persistentVolumeLister.TypeAssumptions.type_repr
   persistentVolumeLister.TypeAssumptions.underlying
   persistentVolumeLister.TypeAssumptions.isUnderlying
+  persistentVolumeLister.TypeAssumptions.method_set
+  persistentVolumeLister.TypeAssumptions.ptr_method_set
 
 axiom PersistentVolumeClaimLister : Type
 axiom PersistentVolumeClaimLister.zero_val : ZeroVal PersistentVolumeClaimLister
 attribute [instance] PersistentVolumeClaimLister.zero_val
 
-class PersistentVolumeClaimLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeClaimLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimLister.underlying PersistentVolumeClaimLister
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimLister.ty PersistentVolumeClaimLister.underlying
   isUnderlying : go.IsUnderlying PersistentVolumeClaimLister.underlying PersistentVolumeClaimLister.underlying
+  method_set : go.MethodSetIs PersistentVolumeClaimLister.ty [(go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty)), go.error]))), (go!"PersistentVolumeClaims", (some (go.signature.Signature [go.string] false [PersistentVolumeClaimNamespaceLister.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimLister.ty) []
 
 attribute [instance] PersistentVolumeClaimLister.TypeAssumptions.type_repr
   PersistentVolumeClaimLister.TypeAssumptions.underlying
   PersistentVolumeClaimLister.TypeAssumptions.isUnderlying
+  PersistentVolumeClaimLister.TypeAssumptions.method_set
+  PersistentVolumeClaimLister.TypeAssumptions.ptr_method_set
 
 axiom persistentVolumeClaimLister : Type
 axiom persistentVolumeClaimLister.zero_val : ZeroVal persistentVolumeClaimLister
 attribute [instance] persistentVolumeClaimLister.zero_val
 
-class persistentVolumeClaimLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class persistentVolumeClaimLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying persistentVolumeClaimLister.underlying persistentVolumeClaimLister
   underlying : go.UnderlyingDirectedEq persistentVolumeClaimLister.ty persistentVolumeClaimLister.underlying
   isUnderlying : go.IsUnderlying persistentVolumeClaimLister.underlying persistentVolumeClaimLister.underlying
+  method_set : go.MethodSetIs persistentVolumeClaimLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType persistentVolumeClaimLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty)), go.error]))), (go!"PersistentVolumeClaims", (some (go.signature.Signature [go.string] false [PersistentVolumeClaimNamespaceLister.ty])))]
 
 attribute [instance] persistentVolumeClaimLister.TypeAssumptions.type_repr
   persistentVolumeClaimLister.TypeAssumptions.underlying
   persistentVolumeClaimLister.TypeAssumptions.isUnderlying
+  persistentVolumeClaimLister.TypeAssumptions.method_set
+  persistentVolumeClaimLister.TypeAssumptions.ptr_method_set
 
 axiom PersistentVolumeClaimNamespaceLister : Type
 axiom PersistentVolumeClaimNamespaceLister.zero_val : ZeroVal PersistentVolumeClaimNamespaceLister
 attribute [instance] PersistentVolumeClaimNamespaceLister.zero_val
 
-class PersistentVolumeClaimNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeClaimNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimNamespaceLister.underlying PersistentVolumeClaimNamespaceLister
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimNamespaceLister.ty PersistentVolumeClaimNamespaceLister.underlying
   isUnderlying : go.IsUnderlying PersistentVolumeClaimNamespaceLister.underlying PersistentVolumeClaimNamespaceLister.underlying
+  method_set : go.MethodSetIs PersistentVolumeClaimNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimNamespaceLister.ty) []
 
 attribute [instance] PersistentVolumeClaimNamespaceLister.TypeAssumptions.type_repr
   PersistentVolumeClaimNamespaceLister.TypeAssumptions.underlying
   PersistentVolumeClaimNamespaceLister.TypeAssumptions.isUnderlying
+  PersistentVolumeClaimNamespaceLister.TypeAssumptions.method_set
+  PersistentVolumeClaimNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom persistentVolumeClaimNamespaceLister : Type
 axiom persistentVolumeClaimNamespaceLister.zero_val : ZeroVal persistentVolumeClaimNamespaceLister
 attribute [instance] persistentVolumeClaimNamespaceLister.zero_val
 
-class persistentVolumeClaimNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class persistentVolumeClaimNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying persistentVolumeClaimNamespaceLister.underlying persistentVolumeClaimNamespaceLister
   underlying : go.UnderlyingDirectedEq persistentVolumeClaimNamespaceLister.ty persistentVolumeClaimNamespaceLister.underlying
   isUnderlying : go.IsUnderlying persistentVolumeClaimNamespaceLister.underlying persistentVolumeClaimNamespaceLister.underlying
+  method_set : go.MethodSetIs persistentVolumeClaimNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType persistentVolumeClaimNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaim.ty)), go.error])))]
 
 attribute [instance] persistentVolumeClaimNamespaceLister.TypeAssumptions.type_repr
   persistentVolumeClaimNamespaceLister.TypeAssumptions.underlying
   persistentVolumeClaimNamespaceLister.TypeAssumptions.isUnderlying
+  persistentVolumeClaimNamespaceLister.TypeAssumptions.method_set
+  persistentVolumeClaimNamespaceLister.TypeAssumptions.ptr_method_set
 
-abbrev PodLister [FfiSyntax] : Type := GoInterface
+abbrev PodLister [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def PodLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])), (go.InterfaceElem.MethodElem go!"Pods" (go.signature.Signature [go.string] false [PodNamespaceLister.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm PodListerExpansion.ty)])])
+@[reducible] noncomputable def PodLister.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])), (go.InterfaceElem.MethodElem go!"Pods" (go.signature.Signature [go.string] false [PodNamespaceLister.ty]))])
 
-class PodLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodLister.ty PodLister.underlying
+  method_set : go.MethodSetIs PodLister.ty [(go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error]))), (go!"Pods", (some (go.signature.Signature [go.string] false [PodNamespaceLister.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodLister.ty) []
 
 attribute [instance] PodLister.TypeAssumptions.underlying
+  PodLister.TypeAssumptions.method_set
+  PodLister.TypeAssumptions.ptr_method_set
 
-structure podLister [FfiSyntax] where
+structure podLister [GooseExts] where
   mk ::
   ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)
 
-noncomputable instance podLister.zero_val [FfiSyntax] : ZeroVal podLister :=
+noncomputable instance podLister.zero_val [GooseExts] : ZeroVal podLister :=
   ⟨podLister.mk zeroValDef⟩
 
-@[reducible] noncomputable def podLister.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def podLister.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ResourceIndexer" (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))]
 
-@[irreducible] noncomputable def podLister.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def podLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   podLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_podLister [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_podLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold podLister.fields podLister.fieldsUnsealed :=
   ⟨by unfold podLister.fields; rfl⟩
 
-@[reducible] noncomputable def podLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def podLister.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType podLister.fields)
 
-class podLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class podLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying podLister.underlying podLister
   underlying : go.UnderlyingDirectedEq podLister.ty podLister.underlying
   get_ResourceIndexer : ∀ (x : podLister), go.IsGoStepPureDetTagged under (StructFieldGet podLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
   set_ResourceIndexer : ∀ (x : podLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet podLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : podLister)))
+  method_set : go.MethodSetIs podLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType podLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error]))), (go!"Pods", (some (go.signature.Signature [go.string] false [PodNamespaceLister.ty])))]
   Get_unfold : MethodUnfold podLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet podLister.ty go!"ResourceIndexer"))) (Var "$r"))))
   List_unfold : MethodUnfold podLister.ty go!"List" (LamV "$r"
@@ -1479,47 +1719,55 @@ attribute [instance] podLister.TypeAssumptions.type_repr
   podLister.TypeAssumptions.underlying
   podLister.TypeAssumptions.get_ResourceIndexer
   podLister.TypeAssumptions.set_ResourceIndexer
+  podLister.TypeAssumptions.method_set
+  podLister.TypeAssumptions.ptr_method_set
   podLister.TypeAssumptions.Get_unfold
   podLister.TypeAssumptions.List_unfold
   podLister.TypeAssumptions.ptr_Get_unfold
   podLister.TypeAssumptions.ptr_List_unfold
   podLister.TypeAssumptions.ptr_Pods_unfold
 
-abbrev PodNamespaceLister [FfiSyntax] : Type := GoInterface
+abbrev PodNamespaceLister [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def PodNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm PodNamespaceListerExpansion.ty)])])
+@[reducible] noncomputable def PodNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error]))])
 
-class PodNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodNamespaceLister.ty PodNamespaceLister.underlying
+  method_set : go.MethodSetIs PodNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodNamespaceLister.ty) []
 
 attribute [instance] PodNamespaceLister.TypeAssumptions.underlying
+  PodNamespaceLister.TypeAssumptions.method_set
+  PodNamespaceLister.TypeAssumptions.ptr_method_set
 
-structure podNamespaceLister [FfiSyntax] where
+structure podNamespaceLister [GooseExts] where
   mk ::
   ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)
 
-noncomputable instance podNamespaceLister.zero_val [FfiSyntax] : ZeroVal podNamespaceLister :=
+noncomputable instance podNamespaceLister.zero_val [GooseExts] : ZeroVal podNamespaceLister :=
   ⟨podNamespaceLister.mk zeroValDef⟩
 
-@[reducible] noncomputable def podNamespaceLister.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def podNamespaceLister.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ResourceIndexer" (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))]
 
-@[irreducible] noncomputable def podNamespaceLister.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def podNamespaceLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   podNamespaceLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_podNamespaceLister [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_podNamespaceLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold podNamespaceLister.fields podNamespaceLister.fieldsUnsealed :=
   ⟨by unfold podNamespaceLister.fields; rfl⟩
 
-@[reducible] noncomputable def podNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def podNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType podNamespaceLister.fields)
 
-class podNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class podNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying podNamespaceLister.underlying podNamespaceLister
   underlying : go.UnderlyingDirectedEq podNamespaceLister.ty podNamespaceLister.underlying
   get_ResourceIndexer : ∀ (x : podNamespaceLister), go.IsGoStepPureDetTagged under (StructFieldGet podNamespaceLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
   set_ResourceIndexer : ∀ (x : podNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet podNamespaceLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : podNamespaceLister)))
+  method_set : go.MethodSetIs podNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType podNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])))]
   Get_unfold : MethodUnfold podNamespaceLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet podNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
   List_unfold : MethodUnfold podNamespaceLister.ty go!"List" (LamV "$r"
@@ -1533,6 +1781,8 @@ attribute [instance] podNamespaceLister.TypeAssumptions.type_repr
   podNamespaceLister.TypeAssumptions.underlying
   podNamespaceLister.TypeAssumptions.get_ResourceIndexer
   podNamespaceLister.TypeAssumptions.set_ResourceIndexer
+  podNamespaceLister.TypeAssumptions.method_set
+  podNamespaceLister.TypeAssumptions.ptr_method_set
   podNamespaceLister.TypeAssumptions.Get_unfold
   podNamespaceLister.TypeAssumptions.List_unfold
   podNamespaceLister.TypeAssumptions.ptr_Get_unfold
@@ -1542,341 +1792,445 @@ axiom PodTemplateLister : Type
 axiom PodTemplateLister.zero_val : ZeroVal PodTemplateLister
 attribute [instance] PodTemplateLister.zero_val
 
-class PodTemplateLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodTemplateLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodTemplateLister.underlying PodTemplateLister
   underlying : go.UnderlyingDirectedEq PodTemplateLister.ty PodTemplateLister.underlying
   isUnderlying : go.IsUnderlying PodTemplateLister.underlying PodTemplateLister.underlying
+  method_set : go.MethodSetIs PodTemplateLister.ty [(go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty)), go.error]))), (go!"PodTemplates", (some (go.signature.Signature [go.string] false [PodTemplateNamespaceLister.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodTemplateLister.ty) []
 
 attribute [instance] PodTemplateLister.TypeAssumptions.type_repr
   PodTemplateLister.TypeAssumptions.underlying
   PodTemplateLister.TypeAssumptions.isUnderlying
+  PodTemplateLister.TypeAssumptions.method_set
+  PodTemplateLister.TypeAssumptions.ptr_method_set
 
 axiom podTemplateLister : Type
 axiom podTemplateLister.zero_val : ZeroVal podTemplateLister
 attribute [instance] podTemplateLister.zero_val
 
-class podTemplateLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class podTemplateLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying podTemplateLister.underlying podTemplateLister
   underlying : go.UnderlyingDirectedEq podTemplateLister.ty podTemplateLister.underlying
   isUnderlying : go.IsUnderlying podTemplateLister.underlying podTemplateLister.underlying
+  method_set : go.MethodSetIs podTemplateLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType podTemplateLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty)), go.error]))), (go!"PodTemplates", (some (go.signature.Signature [go.string] false [PodTemplateNamespaceLister.ty])))]
 
 attribute [instance] podTemplateLister.TypeAssumptions.type_repr
   podTemplateLister.TypeAssumptions.underlying
   podTemplateLister.TypeAssumptions.isUnderlying
+  podTemplateLister.TypeAssumptions.method_set
+  podTemplateLister.TypeAssumptions.ptr_method_set
 
 axiom PodTemplateNamespaceLister : Type
 axiom PodTemplateNamespaceLister.zero_val : ZeroVal PodTemplateNamespaceLister
 attribute [instance] PodTemplateNamespaceLister.zero_val
 
-class PodTemplateNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodTemplateNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodTemplateNamespaceLister.underlying PodTemplateNamespaceLister
   underlying : go.UnderlyingDirectedEq PodTemplateNamespaceLister.ty PodTemplateNamespaceLister.underlying
   isUnderlying : go.IsUnderlying PodTemplateNamespaceLister.underlying PodTemplateNamespaceLister.underlying
+  method_set : go.MethodSetIs PodTemplateNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodTemplateNamespaceLister.ty) []
 
 attribute [instance] PodTemplateNamespaceLister.TypeAssumptions.type_repr
   PodTemplateNamespaceLister.TypeAssumptions.underlying
   PodTemplateNamespaceLister.TypeAssumptions.isUnderlying
+  PodTemplateNamespaceLister.TypeAssumptions.method_set
+  PodTemplateNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom podTemplateNamespaceLister : Type
 axiom podTemplateNamespaceLister.zero_val : ZeroVal podTemplateNamespaceLister
 attribute [instance] podTemplateNamespaceLister.zero_val
 
-class podTemplateNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class podTemplateNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying podTemplateNamespaceLister.underlying podTemplateNamespaceLister
   underlying : go.UnderlyingDirectedEq podTemplateNamespaceLister.ty podTemplateNamespaceLister.underlying
   isUnderlying : go.IsUnderlying podTemplateNamespaceLister.underlying podTemplateNamespaceLister.underlying
+  method_set : go.MethodSetIs podTemplateNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType podTemplateNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplate.ty)), go.error])))]
 
 attribute [instance] podTemplateNamespaceLister.TypeAssumptions.type_repr
   podTemplateNamespaceLister.TypeAssumptions.underlying
   podTemplateNamespaceLister.TypeAssumptions.isUnderlying
+  podTemplateNamespaceLister.TypeAssumptions.method_set
+  podTemplateNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom ReplicationControllerLister : Type
 axiom ReplicationControllerLister.zero_val : ZeroVal ReplicationControllerLister
 attribute [instance] ReplicationControllerLister.zero_val
 
-class ReplicationControllerLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicationControllerLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicationControllerLister.underlying ReplicationControllerLister
   underlying : go.UnderlyingDirectedEq ReplicationControllerLister.ty ReplicationControllerLister.underlying
   isUnderlying : go.IsUnderlying ReplicationControllerLister.underlying ReplicationControllerLister.underlying
+  method_set : go.MethodSetIs ReplicationControllerLister.ty [(go!"GetPodControllers", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error]))), (go!"ReplicationControllers", (some (go.signature.Signature [go.string] false [ReplicationControllerNamespaceLister.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicationControllerLister.ty) []
 
 attribute [instance] ReplicationControllerLister.TypeAssumptions.type_repr
   ReplicationControllerLister.TypeAssumptions.underlying
   ReplicationControllerLister.TypeAssumptions.isUnderlying
+  ReplicationControllerLister.TypeAssumptions.method_set
+  ReplicationControllerLister.TypeAssumptions.ptr_method_set
 
 axiom replicationControllerLister : Type
 axiom replicationControllerLister.zero_val : ZeroVal replicationControllerLister
 attribute [instance] replicationControllerLister.zero_val
 
-class replicationControllerLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class replicationControllerLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replicationControllerLister.underlying replicationControllerLister
   underlying : go.UnderlyingDirectedEq replicationControllerLister.ty replicationControllerLister.underlying
   isUnderlying : go.IsUnderlying replicationControllerLister.underlying replicationControllerLister.underlying
+  method_set : go.MethodSetIs replicationControllerLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replicationControllerLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty), go.error]))), (go!"GetPodControllers", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error]))), (go!"ReplicationControllers", (some (go.signature.Signature [go.string] false [ReplicationControllerNamespaceLister.ty])))]
 
 attribute [instance] replicationControllerLister.TypeAssumptions.type_repr
   replicationControllerLister.TypeAssumptions.underlying
   replicationControllerLister.TypeAssumptions.isUnderlying
+  replicationControllerLister.TypeAssumptions.method_set
+  replicationControllerLister.TypeAssumptions.ptr_method_set
 
 axiom ReplicationControllerNamespaceLister : Type
 axiom ReplicationControllerNamespaceLister.zero_val : ZeroVal ReplicationControllerNamespaceLister
 attribute [instance] ReplicationControllerNamespaceLister.zero_val
 
-class ReplicationControllerNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicationControllerNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicationControllerNamespaceLister.underlying ReplicationControllerNamespaceLister
   underlying : go.UnderlyingDirectedEq ReplicationControllerNamespaceLister.ty ReplicationControllerNamespaceLister.underlying
   isUnderlying : go.IsUnderlying ReplicationControllerNamespaceLister.underlying ReplicationControllerNamespaceLister.underlying
+  method_set : go.MethodSetIs ReplicationControllerNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicationControllerNamespaceLister.ty) []
 
 attribute [instance] ReplicationControllerNamespaceLister.TypeAssumptions.type_repr
   ReplicationControllerNamespaceLister.TypeAssumptions.underlying
   ReplicationControllerNamespaceLister.TypeAssumptions.isUnderlying
+  ReplicationControllerNamespaceLister.TypeAssumptions.method_set
+  ReplicationControllerNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom replicationControllerNamespaceLister : Type
 axiom replicationControllerNamespaceLister.zero_val : ZeroVal replicationControllerNamespaceLister
 attribute [instance] replicationControllerNamespaceLister.zero_val
 
-class replicationControllerNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class replicationControllerNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replicationControllerNamespaceLister.underlying replicationControllerNamespaceLister
   underlying : go.UnderlyingDirectedEq replicationControllerNamespaceLister.ty replicationControllerNamespaceLister.underlying
   isUnderlying : go.IsUnderlying replicationControllerNamespaceLister.underlying replicationControllerNamespaceLister.underlying
+  method_set : go.MethodSetIs replicationControllerNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replicationControllerNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error])))]
 
 attribute [instance] replicationControllerNamespaceLister.TypeAssumptions.type_repr
   replicationControllerNamespaceLister.TypeAssumptions.underlying
   replicationControllerNamespaceLister.TypeAssumptions.isUnderlying
+  replicationControllerNamespaceLister.TypeAssumptions.method_set
+  replicationControllerNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom ReplicationControllerListerExpansion : Type
 axiom ReplicationControllerListerExpansion.zero_val : ZeroVal ReplicationControllerListerExpansion
 attribute [instance] ReplicationControllerListerExpansion.zero_val
 
-class ReplicationControllerListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicationControllerListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicationControllerListerExpansion.underlying ReplicationControllerListerExpansion
   underlying : go.UnderlyingDirectedEq ReplicationControllerListerExpansion.ty ReplicationControllerListerExpansion.underlying
   isUnderlying : go.IsUnderlying ReplicationControllerListerExpansion.underlying ReplicationControllerListerExpansion.underlying
+  method_set : go.MethodSetIs ReplicationControllerListerExpansion.ty [(go!"GetPodControllers", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ReplicationController.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicationControllerListerExpansion.ty) []
 
 attribute [instance] ReplicationControllerListerExpansion.TypeAssumptions.type_repr
   ReplicationControllerListerExpansion.TypeAssumptions.underlying
   ReplicationControllerListerExpansion.TypeAssumptions.isUnderlying
+  ReplicationControllerListerExpansion.TypeAssumptions.method_set
+  ReplicationControllerListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ReplicationControllerNamespaceListerExpansion : Type
 axiom ReplicationControllerNamespaceListerExpansion.zero_val : ZeroVal ReplicationControllerNamespaceListerExpansion
 attribute [instance] ReplicationControllerNamespaceListerExpansion.zero_val
 
-class ReplicationControllerNamespaceListerExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicationControllerNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicationControllerNamespaceListerExpansion.underlying ReplicationControllerNamespaceListerExpansion
   underlying : go.UnderlyingDirectedEq ReplicationControllerNamespaceListerExpansion.ty ReplicationControllerNamespaceListerExpansion.underlying
   isUnderlying : go.IsUnderlying ReplicationControllerNamespaceListerExpansion.underlying ReplicationControllerNamespaceListerExpansion.underlying
+  method_set : go.MethodSetIs ReplicationControllerNamespaceListerExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicationControllerNamespaceListerExpansion.ty) []
 
 attribute [instance] ReplicationControllerNamespaceListerExpansion.TypeAssumptions.type_repr
   ReplicationControllerNamespaceListerExpansion.TypeAssumptions.underlying
   ReplicationControllerNamespaceListerExpansion.TypeAssumptions.isUnderlying
+  ReplicationControllerNamespaceListerExpansion.TypeAssumptions.method_set
+  ReplicationControllerNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourceQuotaLister : Type
 axiom ResourceQuotaLister.zero_val : ZeroVal ResourceQuotaLister
 attribute [instance] ResourceQuotaLister.zero_val
 
-class ResourceQuotaLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceQuotaLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceQuotaLister.underlying ResourceQuotaLister
   underlying : go.UnderlyingDirectedEq ResourceQuotaLister.ty ResourceQuotaLister.underlying
   isUnderlying : go.IsUnderlying ResourceQuotaLister.underlying ResourceQuotaLister.underlying
+  method_set : go.MethodSetIs ResourceQuotaLister.ty [(go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty)), go.error]))), (go!"ResourceQuotas", (some (go.signature.Signature [go.string] false [ResourceQuotaNamespaceLister.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceQuotaLister.ty) []
 
 attribute [instance] ResourceQuotaLister.TypeAssumptions.type_repr
   ResourceQuotaLister.TypeAssumptions.underlying
   ResourceQuotaLister.TypeAssumptions.isUnderlying
+  ResourceQuotaLister.TypeAssumptions.method_set
+  ResourceQuotaLister.TypeAssumptions.ptr_method_set
 
 axiom resourceQuotaLister : Type
 axiom resourceQuotaLister.zero_val : ZeroVal resourceQuotaLister
 attribute [instance] resourceQuotaLister.zero_val
 
-class resourceQuotaLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class resourceQuotaLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resourceQuotaLister.underlying resourceQuotaLister
   underlying : go.UnderlyingDirectedEq resourceQuotaLister.ty resourceQuotaLister.underlying
   isUnderlying : go.IsUnderlying resourceQuotaLister.underlying resourceQuotaLister.underlying
+  method_set : go.MethodSetIs resourceQuotaLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resourceQuotaLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty)), go.error]))), (go!"ResourceQuotas", (some (go.signature.Signature [go.string] false [ResourceQuotaNamespaceLister.ty])))]
 
 attribute [instance] resourceQuotaLister.TypeAssumptions.type_repr
   resourceQuotaLister.TypeAssumptions.underlying
   resourceQuotaLister.TypeAssumptions.isUnderlying
+  resourceQuotaLister.TypeAssumptions.method_set
+  resourceQuotaLister.TypeAssumptions.ptr_method_set
 
 axiom ResourceQuotaNamespaceLister : Type
 axiom ResourceQuotaNamespaceLister.zero_val : ZeroVal ResourceQuotaNamespaceLister
 attribute [instance] ResourceQuotaNamespaceLister.zero_val
 
-class ResourceQuotaNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceQuotaNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceQuotaNamespaceLister.underlying ResourceQuotaNamespaceLister
   underlying : go.UnderlyingDirectedEq ResourceQuotaNamespaceLister.ty ResourceQuotaNamespaceLister.underlying
   isUnderlying : go.IsUnderlying ResourceQuotaNamespaceLister.underlying ResourceQuotaNamespaceLister.underlying
+  method_set : go.MethodSetIs ResourceQuotaNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceQuotaNamespaceLister.ty) []
 
 attribute [instance] ResourceQuotaNamespaceLister.TypeAssumptions.type_repr
   ResourceQuotaNamespaceLister.TypeAssumptions.underlying
   ResourceQuotaNamespaceLister.TypeAssumptions.isUnderlying
+  ResourceQuotaNamespaceLister.TypeAssumptions.method_set
+  ResourceQuotaNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom resourceQuotaNamespaceLister : Type
 axiom resourceQuotaNamespaceLister.zero_val : ZeroVal resourceQuotaNamespaceLister
 attribute [instance] resourceQuotaNamespaceLister.zero_val
 
-class resourceQuotaNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class resourceQuotaNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resourceQuotaNamespaceLister.underlying resourceQuotaNamespaceLister
   underlying : go.UnderlyingDirectedEq resourceQuotaNamespaceLister.ty resourceQuotaNamespaceLister.underlying
   isUnderlying : go.IsUnderlying resourceQuotaNamespaceLister.underlying resourceQuotaNamespaceLister.underlying
+  method_set : go.MethodSetIs resourceQuotaNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resourceQuotaNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.ty)), go.error])))]
 
 attribute [instance] resourceQuotaNamespaceLister.TypeAssumptions.type_repr
   resourceQuotaNamespaceLister.TypeAssumptions.underlying
   resourceQuotaNamespaceLister.TypeAssumptions.isUnderlying
+  resourceQuotaNamespaceLister.TypeAssumptions.method_set
+  resourceQuotaNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom SecretLister : Type
 axiom SecretLister.zero_val : ZeroVal SecretLister
 attribute [instance] SecretLister.zero_val
 
-class SecretLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SecretLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SecretLister.underlying SecretLister
   underlying : go.UnderlyingDirectedEq SecretLister.ty SecretLister.underlying
   isUnderlying : go.IsUnderlying SecretLister.underlying SecretLister.underlying
+  method_set : go.MethodSetIs SecretLister.ty [(go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty)), go.error]))), (go!"Secrets", (some (go.signature.Signature [go.string] false [SecretNamespaceLister.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SecretLister.ty) []
 
 attribute [instance] SecretLister.TypeAssumptions.type_repr
   SecretLister.TypeAssumptions.underlying
   SecretLister.TypeAssumptions.isUnderlying
+  SecretLister.TypeAssumptions.method_set
+  SecretLister.TypeAssumptions.ptr_method_set
 
 axiom secretLister : Type
 axiom secretLister.zero_val : ZeroVal secretLister
 attribute [instance] secretLister.zero_val
 
-class secretLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class secretLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying secretLister.underlying secretLister
   underlying : go.UnderlyingDirectedEq secretLister.ty secretLister.underlying
   isUnderlying : go.IsUnderlying secretLister.underlying secretLister.underlying
+  method_set : go.MethodSetIs secretLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType secretLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty)), go.error]))), (go!"Secrets", (some (go.signature.Signature [go.string] false [SecretNamespaceLister.ty])))]
 
 attribute [instance] secretLister.TypeAssumptions.type_repr
   secretLister.TypeAssumptions.underlying
   secretLister.TypeAssumptions.isUnderlying
+  secretLister.TypeAssumptions.method_set
+  secretLister.TypeAssumptions.ptr_method_set
 
 axiom SecretNamespaceLister : Type
 axiom SecretNamespaceLister.zero_val : ZeroVal SecretNamespaceLister
 attribute [instance] SecretNamespaceLister.zero_val
 
-class SecretNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SecretNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SecretNamespaceLister.underlying SecretNamespaceLister
   underlying : go.UnderlyingDirectedEq SecretNamespaceLister.ty SecretNamespaceLister.underlying
   isUnderlying : go.IsUnderlying SecretNamespaceLister.underlying SecretNamespaceLister.underlying
+  method_set : go.MethodSetIs SecretNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SecretNamespaceLister.ty) []
 
 attribute [instance] SecretNamespaceLister.TypeAssumptions.type_repr
   SecretNamespaceLister.TypeAssumptions.underlying
   SecretNamespaceLister.TypeAssumptions.isUnderlying
+  SecretNamespaceLister.TypeAssumptions.method_set
+  SecretNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom secretNamespaceLister : Type
 axiom secretNamespaceLister.zero_val : ZeroVal secretNamespaceLister
 attribute [instance] secretNamespaceLister.zero_val
 
-class secretNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class secretNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying secretNamespaceLister.underlying secretNamespaceLister
   underlying : go.UnderlyingDirectedEq secretNamespaceLister.ty secretNamespaceLister.underlying
   isUnderlying : go.IsUnderlying secretNamespaceLister.underlying secretNamespaceLister.underlying
+  method_set : go.MethodSetIs secretNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType secretNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Secret.ty)), go.error])))]
 
 attribute [instance] secretNamespaceLister.TypeAssumptions.type_repr
   secretNamespaceLister.TypeAssumptions.underlying
   secretNamespaceLister.TypeAssumptions.isUnderlying
+  secretNamespaceLister.TypeAssumptions.method_set
+  secretNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom ServiceLister : Type
 axiom ServiceLister.zero_val : ZeroVal ServiceLister
 attribute [instance] ServiceLister.zero_val
 
-class ServiceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceLister.underlying ServiceLister
   underlying : go.UnderlyingDirectedEq ServiceLister.ty ServiceLister.underlying
   isUnderlying : go.IsUnderlying ServiceLister.underlying ServiceLister.underlying
+  method_set : go.MethodSetIs ServiceLister.ty [(go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty)), go.error]))), (go!"Services", (some (go.signature.Signature [go.string] false [ServiceNamespaceLister.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceLister.ty) []
 
 attribute [instance] ServiceLister.TypeAssumptions.type_repr
   ServiceLister.TypeAssumptions.underlying
   ServiceLister.TypeAssumptions.isUnderlying
+  ServiceLister.TypeAssumptions.method_set
+  ServiceLister.TypeAssumptions.ptr_method_set
 
 axiom serviceLister : Type
 axiom serviceLister.zero_val : ZeroVal serviceLister
 attribute [instance] serviceLister.zero_val
 
-class serviceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serviceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serviceLister.underlying serviceLister
   underlying : go.UnderlyingDirectedEq serviceLister.ty serviceLister.underlying
   isUnderlying : go.IsUnderlying serviceLister.underlying serviceLister.underlying
+  method_set : go.MethodSetIs serviceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serviceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty)), go.error]))), (go!"Services", (some (go.signature.Signature [go.string] false [ServiceNamespaceLister.ty])))]
 
 attribute [instance] serviceLister.TypeAssumptions.type_repr
   serviceLister.TypeAssumptions.underlying
   serviceLister.TypeAssumptions.isUnderlying
+  serviceLister.TypeAssumptions.method_set
+  serviceLister.TypeAssumptions.ptr_method_set
 
 axiom ServiceNamespaceLister : Type
 axiom ServiceNamespaceLister.zero_val : ZeroVal ServiceNamespaceLister
 attribute [instance] ServiceNamespaceLister.zero_val
 
-class ServiceNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceNamespaceLister.underlying ServiceNamespaceLister
   underlying : go.UnderlyingDirectedEq ServiceNamespaceLister.ty ServiceNamespaceLister.underlying
   isUnderlying : go.IsUnderlying ServiceNamespaceLister.underlying ServiceNamespaceLister.underlying
+  method_set : go.MethodSetIs ServiceNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceNamespaceLister.ty) []
 
 attribute [instance] ServiceNamespaceLister.TypeAssumptions.type_repr
   ServiceNamespaceLister.TypeAssumptions.underlying
   ServiceNamespaceLister.TypeAssumptions.isUnderlying
+  ServiceNamespaceLister.TypeAssumptions.method_set
+  ServiceNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom serviceNamespaceLister : Type
 axiom serviceNamespaceLister.zero_val : ZeroVal serviceNamespaceLister
 attribute [instance] serviceNamespaceLister.zero_val
 
-class serviceNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serviceNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serviceNamespaceLister.underlying serviceNamespaceLister
   underlying : go.UnderlyingDirectedEq serviceNamespaceLister.ty serviceNamespaceLister.underlying
   isUnderlying : go.IsUnderlying serviceNamespaceLister.underlying serviceNamespaceLister.underlying
+  method_set : go.MethodSetIs serviceNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serviceNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Service.ty)), go.error])))]
 
 attribute [instance] serviceNamespaceLister.TypeAssumptions.type_repr
   serviceNamespaceLister.TypeAssumptions.underlying
   serviceNamespaceLister.TypeAssumptions.isUnderlying
+  serviceNamespaceLister.TypeAssumptions.method_set
+  serviceNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom ServiceAccountLister : Type
 axiom ServiceAccountLister.zero_val : ZeroVal ServiceAccountLister
 attribute [instance] ServiceAccountLister.zero_val
 
-class ServiceAccountLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceAccountLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceAccountLister.underlying ServiceAccountLister
   underlying : go.UnderlyingDirectedEq ServiceAccountLister.ty ServiceAccountLister.underlying
   isUnderlying : go.IsUnderlying ServiceAccountLister.underlying ServiceAccountLister.underlying
+  method_set : go.MethodSetIs ServiceAccountLister.ty [(go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty)), go.error]))), (go!"ServiceAccounts", (some (go.signature.Signature [go.string] false [ServiceAccountNamespaceLister.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceAccountLister.ty) []
 
 attribute [instance] ServiceAccountLister.TypeAssumptions.type_repr
   ServiceAccountLister.TypeAssumptions.underlying
   ServiceAccountLister.TypeAssumptions.isUnderlying
+  ServiceAccountLister.TypeAssumptions.method_set
+  ServiceAccountLister.TypeAssumptions.ptr_method_set
 
 axiom serviceAccountLister : Type
 axiom serviceAccountLister.zero_val : ZeroVal serviceAccountLister
 attribute [instance] serviceAccountLister.zero_val
 
-class serviceAccountLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serviceAccountLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serviceAccountLister.underlying serviceAccountLister
   underlying : go.UnderlyingDirectedEq serviceAccountLister.ty serviceAccountLister.underlying
   isUnderlying : go.IsUnderlying serviceAccountLister.underlying serviceAccountLister.underlying
+  method_set : go.MethodSetIs serviceAccountLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serviceAccountLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty)), go.error]))), (go!"ServiceAccounts", (some (go.signature.Signature [go.string] false [ServiceAccountNamespaceLister.ty])))]
 
 attribute [instance] serviceAccountLister.TypeAssumptions.type_repr
   serviceAccountLister.TypeAssumptions.underlying
   serviceAccountLister.TypeAssumptions.isUnderlying
+  serviceAccountLister.TypeAssumptions.method_set
+  serviceAccountLister.TypeAssumptions.ptr_method_set
 
 axiom ServiceAccountNamespaceLister : Type
 axiom ServiceAccountNamespaceLister.zero_val : ZeroVal ServiceAccountNamespaceLister
 attribute [instance] ServiceAccountNamespaceLister.zero_val
 
-class ServiceAccountNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceAccountNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceAccountNamespaceLister.underlying ServiceAccountNamespaceLister
   underlying : go.UnderlyingDirectedEq ServiceAccountNamespaceLister.ty ServiceAccountNamespaceLister.underlying
   isUnderlying : go.IsUnderlying ServiceAccountNamespaceLister.underlying ServiceAccountNamespaceLister.underlying
+  method_set : go.MethodSetIs ServiceAccountNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceAccountNamespaceLister.ty) []
 
 attribute [instance] ServiceAccountNamespaceLister.TypeAssumptions.type_repr
   ServiceAccountNamespaceLister.TypeAssumptions.underlying
   ServiceAccountNamespaceLister.TypeAssumptions.isUnderlying
+  ServiceAccountNamespaceLister.TypeAssumptions.method_set
+  ServiceAccountNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom serviceAccountNamespaceLister : Type
 axiom serviceAccountNamespaceLister.zero_val : ZeroVal serviceAccountNamespaceLister
 attribute [instance] serviceAccountNamespaceLister.zero_val
 
-class serviceAccountNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serviceAccountNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serviceAccountNamespaceLister.underlying serviceAccountNamespaceLister
   underlying : go.UnderlyingDirectedEq serviceAccountNamespaceLister.ty serviceAccountNamespaceLister.underlying
   isUnderlying : go.IsUnderlying serviceAccountNamespaceLister.underlying serviceAccountNamespaceLister.underlying
+  method_set : go.MethodSetIs serviceAccountNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty)), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serviceAccountNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ServiceAccount.ty)), go.error])))]
 
 attribute [instance] serviceAccountNamespaceLister.TypeAssumptions.type_repr
   serviceAccountNamespaceLister.TypeAssumptions.underlying
   serviceAccountNamespaceLister.TypeAssumptions.isUnderlying
+  serviceAccountNamespaceLister.TypeAssumptions.method_set
+  serviceAccountNamespaceLister.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ComponentStatusLister_instance : ComponentStatusLister.TypeAssumptions
   componentStatusLister_instance : componentStatusLister.TypeAssumptions
   ConfigMapLister_instance : ConfigMapLister.TypeAssumptions

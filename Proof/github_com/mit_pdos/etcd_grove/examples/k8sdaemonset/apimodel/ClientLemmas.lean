@@ -21,7 +21,7 @@ namespace apimodel
 open Iris Iris.BI Iris.ProofMode
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem createApply_res (r : Res) (ns : GoString) (o : Obj) (σ : St)
     (t : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) : (createApply r ns o σ t).1.res = o.res := by
@@ -90,7 +90,7 @@ theorem list_bnd {α : Type} (vs : List α) (z : α) (n ilen slen : w64) (hn : 0
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

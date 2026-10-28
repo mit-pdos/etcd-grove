@@ -18,7 +18,7 @@ namespace workqueue
 open sets (Elem present)
 
 section state
-variable [FfiSyntax] {K : Type} [DecidableEq K]
+variable [GooseExts] {K : Type} [DecidableEq K]
 
 theorem QState.init_wf : (QState.init : QState K).wf := by
   refine ⟨List.nodup_nil, fun k => ?_⟩

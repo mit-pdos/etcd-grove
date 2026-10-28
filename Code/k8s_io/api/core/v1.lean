@@ -8,6 +8,7 @@ public import Code.k8s_io.api.core.v1.chunk3
 public import Code.k8s_io.api.core.v1.chunk4
 public import Code.k8s_io.api.core.v1.chunk5
 public import Code.k8s_io.api.core.v1.chunk6
+public import Code.k8s_io.api.core.v1.chunk7
 
 @[expose] public section
 
@@ -22,7 +23,7 @@ noncomputable section
 
 namespace k8s_io.api.core.v1
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Volume_instance : Volume.TypeAssumptions
   VolumeSource_instance : VolumeSource.TypeAssumptions
   PersistentVolumeClaimVolumeSource_instance : PersistentVolumeClaimVolumeSource.TypeAssumptions

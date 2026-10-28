@@ -26,7 +26,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
   go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -44,6 +44,7 @@ theorem txn.Range.wp_proof
   wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hvst, #Hsort⟩
   ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
   obtain ⟨kty, kvv, rfl⟩ := Hkvok
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
     as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩

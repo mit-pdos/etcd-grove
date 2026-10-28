@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend go_uber_org
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -36,6 +36,7 @@ theorem backend.backend.Close.wp_proof
   unfold isStopChans isStopChansAt
   icases Hsc with ⟨%sc, %dc, %γsc, %γdc, #Hscf, #Hdcf, #Hscb, #Hdcb, #Hinv⟩
   ihave #Hdcc := ownBroadcastChan_is_chan _ _ _ _ $$ Hdcb
+  wp_auto
   wp_apply (lc := 1) wp_with_defer as %defer defer
   imod (stop_take γ sc γsc) $$ [$Hinv $Ho] with ⟨Hpend, #Hq⟩
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 Hpend with Hpend

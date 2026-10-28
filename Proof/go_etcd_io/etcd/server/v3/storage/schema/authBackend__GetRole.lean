@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -35,6 +35,7 @@ theorem schema.authBackend.GetRole.wp_proof
     schema.authBackend.GetRole.spec (GF := GF) (hG := hG) := by
   intro abe bi lg R Held name
   wp_start as ⟨#Hbe, #Hlg, %Hlgnn, #HBE, HR⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (hRT abe bi lg R Held) $$ [$Hbe $Hlg $HBE] as %tx ⟨%l, %rt, %Htx, #Htxf, #Hlgf, #Hrtx⟩

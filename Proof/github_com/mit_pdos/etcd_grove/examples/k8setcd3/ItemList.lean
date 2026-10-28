@@ -24,7 +24,7 @@ namespace k8setcd3
 open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (item)
 
 section go
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The items are sorted by key, strictly (so the keys are distinct). -/
 def SortedI (its : List item) : Prop := (its.map item.key').Pairwise go.GoStringLt

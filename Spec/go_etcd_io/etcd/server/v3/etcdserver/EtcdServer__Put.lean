@@ -5,6 +5,7 @@ counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 
@@ -16,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -53,6 +54,36 @@ abbrev EtcdServer.Put.spec : Prop :=
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
           mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
           mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log)) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+         ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) F err) ∨
+          srvMaybeDeposited ρ (irrPut op)))) }}
+
+
+/-- **`spec` in the auth mode `on`** (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): the server
+as a proposer sees it in the mode `on` (`isServerReqM true`) and the put's permission with a key
+not empty (`putPermitOn`); the same post: a success is a put the auth state the entry met granted
+(the apply thread's auth verdict is the model's, `authTie`), so its client's update fired there and
+its result `Q` holds at the log the entry met; a refusal is an error (`appliedErr`: the auth layer's
+rejection). -/
+abbrev EtcdServer.Put.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull)
+    (Q : KVState → IProp GF) (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
+      txn.putRequestIs r op ∗ putPermitOn ρ.kv op Q ∗ mvcc.idxCert E.γ.idx F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Put"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (x x' : apply.ApplyKV)
+          (o : apply.Outcome) (skip : Bool),
+          ⌜apply.applyStep (apply.withHeader (irrPut op) hm) true x x' (.dispatched o skip) ∧
+            (∃ log', o = .applied log' false) ∧ F <+: x.log⌝ ∗
+          apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
+          apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
+          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log) ∗
+          ∃ L, pubAfterM true E ρ (apply.withHeader (irrPut op) hm) L) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) F err) ∨
           srvMaybeDeposited ρ (irrPut op)))) }}

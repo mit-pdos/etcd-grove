@@ -9,7 +9,7 @@ roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/(Link|Results)\.lean$
 axiom backend.isDB
 axiom backend.optsAt
 axiom backend.ownDB
-axiom backend.ownWTx
+axiom backend.ownWTxG
 axiom backend.rBkt
 axiom backend.rtxSnap
 axiom backend.rtxStats

@@ -28,63 +28,86 @@ end pkg_id
 
 namespace k8s_io.client_go.tools.pager
 
-noncomputable def ListPageFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListPageFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/pager.ListPageFunc" [])
 
 attribute [irreducible] ListPageFunc.ty
 
-noncomputable def ListPager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListPager.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/pager.ListPager" [])
 
 attribute [irreducible] ListPager.ty
 
-@[reducible] noncomputable def defaultPageSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def defaultPageSize [GooseExts] [GoGlobalContext] : val :=
   #(500 : Int)
 
-@[reducible] noncomputable def defaultPageBufferSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def defaultPageBufferSize [GooseExts] [GoGlobalContext] : val :=
   #(10 : Int)
 
-noncomputable def SimplePageFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SimplePageFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/pager.SimplePageFunc"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/pager.New"
 
 /-- SimplePageFunc adapts a context-less list function into one that accepts a context.
 
     go: pager.go:38:6 -/
-noncomputable def SimplePageFunc.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SimplePageFunc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fn"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ListPageFunc.ty))) (App (Val (GoInstruction (GoZeroVal ListPageFunc.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "fn" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))))) (Var "fn"))
-  (App (Val doReturn)
-  (Lam "ctx"
+  (Let "$r0" (Lam "ctx"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "opts"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "opts"))
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))))) (Var "fn")) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1")))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ListPageFunc.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ListPageFunc.ty))) (Var "$res0")))))
 
 /-- New creates a new pager from the provided pager function using the default
     options. It will fall back to a full list if an expiration error is encountered
     as a last resort.
 
     go: pager.go:61:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fn"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListPager.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ListPager.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "fn" (App (Val (GoInstruction (GoAlloc ListPageFunc.ty))) (Var "fn"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc ListPager.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val defaultPageSize))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc ListPager.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val defaultPageSize))
   (Let "$v1" (App (Val (GoInstruction (GoLoad ListPageFunc.ty))) (Var "fn"))
   (Let "$v2" (Val #true)
   (Let "$v3" (App (Val (GoInstruction (Convert go.untypedInt go.int32))) (Val defaultPageBufferSize))
-  (App (Val (GoInstruction (CompositeLiteral ListPager.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"PageSize")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"PageFn")) (ElementExpression ListPageFunc.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"FullListIfExpired")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"PageBufferSize")) (ElementExpression go.int32 (Var "$v3")))])))))))))))
+  (App (Val (GoInstruction (CompositeLiteral ListPager.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"PageSize")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"PageFn")) (ElementExpression ListPageFunc.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"FullListIfExpired")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"PageBufferSize")) (ElementExpression go.int32 (Var "$v3")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ListPager.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "$res0")))))
 
 /-- List returns a single list object, but attempts to retrieve smaller chunks from the
     server to reduce the impact on the server. If the chunk attempt fails, it will load
@@ -95,11 +118,14 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
     use ListWithAlloc instead.
 
     go: pager.go:80:21 -/
-noncomputable def ListPager.List.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ListPager.List.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListPager.ty)))) (Var "p"))
   (Let "options" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -110,8 +136,21 @@ noncomputable def ListPager.List.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))
 
 /-- ListWithAlloc works like List, but avoids retaining references to the items slice returned by p.PageFn.
     It does this by making a shallow copy of non-pointer items in the slice returned by p.PageFn.
@@ -119,11 +158,14 @@ noncomputable def ListPager.List.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the items in the returned list are not retained, or are retained for the same duration, use List instead for memory efficiency.
 
     go: pager.go:88:21 -/
-noncomputable def ListPager.ListWithAlloc.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ListPager.ListWithAlloc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListPager.ty)))) (Var "p"))
   (Let "options" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -134,16 +176,32 @@ noncomputable def ListPager.ListWithAlloc.impl [FfiSyntax] [GoGlobalContext] : v
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))
 
 /-- go: pager.go:92:21 -/
-noncomputable def ListPager.list.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
   (Lam "allocNew"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListPager.ty)))) (Var "p"))
   (Let "allocNew" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "allocNew"))
   (Let "options" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
@@ -209,29 +267,59 @@ noncomputable def ListPager.list.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Continue"))) (Var "options")) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list")))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
+  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "$a1" (Lam "obj"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty go!"Items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list"))))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty go!"Items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list"))) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty go!"Items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
   (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))))) (Var "eachListItemFunc")) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -261,16 +349,40 @@ noncomputable def ListPager.list.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Val UntypedNil)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
+  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))) (Let "$a0" (Val #(go!"returned object must be a list: %v"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
+  (Let "$r2" (Let "$a0" (Val #(go!"returned object must be a list: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -298,8 +410,20 @@ noncomputable def ListPager.list.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "result" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "result"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "result")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
@@ -314,8 +438,20 @@ noncomputable def ListPager.list.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Limit"))) (Var "options")) (Var "$r0"))))))))
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.IsResourceExpired []))) (Val #())) (Var "$a0")))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef ListPager.ty go!"FullListIfExpired"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "p")))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Continue"))) (Var "options"))) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
@@ -327,8 +463,20 @@ noncomputable def ListPager.list.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
   (Val #()))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
+  (Let "$r2" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))))))]))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))]))))))
   (Lam BAnon
   (Val #())))))
   (App (Val doExecute)
@@ -342,7 +490,8 @@ noncomputable def ListPager.list.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Limit"))) (Var "options")) (Var "$r0")))))
   (App (Val doExecute)
-  (Val #())))))))))))))
+  (Val #())))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))))
 
 /-- EachListItem fetches runtime.Object items using this ListPager and invokes fn on each item. If
     fn returns an error, processing stops and that error is returned. If fn does not return an error,
@@ -359,27 +508,39 @@ noncomputable def ListPager.list.impl [FfiSyntax] [GoGlobalContext] : val :=
     use EachListItemWithAlloc instead.
 
     go: pager.go:183:21 -/
-noncomputable def ListPager.EachListItem.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ListPager.EachListItem.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
   (Lam "fn"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListPager.ty)))) (Var "p"))
   (Let "fn" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))))) (Var "fn"))
   (Let "options" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
   (Let "$a2" (Lam "obj"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))))) (Var "fn"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».EachListItem []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListPager.ty) go!"eachListChunkBuffered"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "p"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».EachListItem []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListPager.ty) go!"eachListChunkBuffered"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "p"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
 /-- EachListItemWithAlloc works like EachListItem, but avoids retaining references to the items slice returned by p.PageFn.
     It does this by making a shallow copy of non-pointer items in the slice returned by p.PageFn.
@@ -387,27 +548,39 @@ noncomputable def ListPager.EachListItem.impl [FfiSyntax] [GoGlobalContext] : va
     If the items passed to fn are not retained, or are retained for the same duration, use EachListItem instead for memory efficiency.
 
     go: pager.go:193:21 -/
-noncomputable def ListPager.EachListItemWithAlloc.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ListPager.EachListItemWithAlloc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
   (Lam "fn"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListPager.ty)))) (Var "p"))
   (Let "fn" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))))) (Var "fn"))
   (Let "options" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
   (Let "$a2" (Lam "obj"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))))) (Var "fn"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».EachListItemWithAlloc []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListPager.ty) go!"eachListChunkBuffered"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "p"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».EachListItemWithAlloc []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListPager.ty) go!"eachListChunkBuffered"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "p"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
 /-- eachListChunkBuffered fetches runtimeObject list chunks using this ListPager and invokes fn on
     each list chunk.  If fn returns an error, processing stops and that error is returned. If fn does
@@ -419,12 +592,13 @@ noncomputable def ListPager.EachListItemWithAlloc.impl [FfiSyntax] [GoGlobalCont
     Up to ListPager.PageBufferSize chunks are buffered concurrently in the background.
 
     go: pager.go:207:21 -/
-noncomputable def ListPager.eachListChunkBuffered.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ListPager.eachListChunkBuffered.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
   (Lam "fn"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListPager.ty)))) (Var "p"))
   (Let "fn" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))))) (Var "fn"))
@@ -448,39 +622,43 @@ noncomputable def ListPager.eachListChunkBuffered.impl [FfiSyntax] [GoGlobalCont
   (Let "bgResultC" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
   (Let "$a2" (Lam "chunk"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "chunk" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "chunk"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Var "chunkC"))
   (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "chunk"))
   (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty (Var "$ch0") (Var "$v0")) (App (Val doExecute)
   (Val #()))),
   (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())))))])))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))]))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListPager.ty) go!"eachListChunk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "p"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (Var "bgResultC"))
@@ -488,7 +666,8 @@ noncomputable def ListPager.eachListChunkBuffered.impl [FfiSyntax] [GoGlobalCont
   (App (App (Val (chan.send go.error)) (Var "$chan")) (Var "$v")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Var "chunkC"))
-  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)]))) (Val #())) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)]))) (Val #())) (Var "$a0"))))))
+  (Val #())))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
@@ -500,11 +679,16 @@ noncomputable def ListPager.eachListChunkBuffered.impl [FfiSyntax] [GoGlobalCont
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Var "$a0"))
-  (App (Var "$oldf") (Val #()))))))))))))))))
+  (App (Var "$oldf") (Val #()))))))))))))))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Fst (App (Val (chan.receive go.error)) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (Var "bgResultC"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Fst (App (Val (chan.receive go.error)) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (Var "bgResultC")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Var "chunkC"))
   (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
   (App (App (Val (chan.forRange _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)) (Var "$range"))
@@ -516,8 +700,12 @@ noncomputable def ListPager.eachListChunkBuffered.impl [FfiSyntax] [GoGlobalCont
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -525,8 +713,12 @@ noncomputable def ListPager.eachListChunkBuffered.impl [FfiSyntax] [GoGlobalCont
   (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
   (Val #()))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())))))]))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))]))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "o") (Var "$key"))))))))))))
   (App (Val doExecute)
@@ -547,13 +739,18 @@ noncomputable def ListPager.eachListChunkBuffered.impl [FfiSyntax] [GoGlobalCont
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int32))) (Pair (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef ListPager.ty go!"PageBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "p")))) (Val #(W32 0)))))
-  (App (Val doReturn)
-  (Let "$a0" (Val #(go!"ListPager.PageBufferSize must be >= 0, got %d"))
+  (Let "$r0" (Let "$a0" (Val #(go!"ListPager.PageBufferSize must be >= 0, got %d"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int32 go.any))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef ListPager.ty go!"PageBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListPager.ty)))) (Var "p")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
 /-- eachListChunk fetches runtimeObject list chunks using this ListPager and invokes fn on each list
     chunk. If fn returns an error, processing stops and that error is returned. If fn does not return
@@ -563,12 +760,13 @@ noncomputable def ListPager.eachListChunkBuffered.impl [FfiSyntax] [GoGlobalCont
     pagination list requests exceed the expiration limit of the apiserver being called.
 
     go: pager.go:260:21 -/
-noncomputable def ListPager.eachListChunk.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ListPager.eachListChunk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
   (Lam "fn"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListPager.ty)))) (Var "p"))
   (Let "fn" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))))) (Var "fn"))
   (Let "options" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (Var "options"))
@@ -606,8 +804,12 @@ noncomputable def ListPager.eachListChunk.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Continue"))) (Var "options")) (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
@@ -615,18 +817,26 @@ noncomputable def ListPager.eachListChunk.impl [FfiSyntax] [GoGlobalContext] : v
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (App (Val doReturn)
-  (Let "$a0" (Val #(go!"returned object must be a list: %v"))
+  (Let "$r0" (Let "$a0" (Val #(go!"returned object must be a list: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -634,8 +844,12 @@ noncomputable def ListPager.eachListChunk.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Pair (Var "m") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -645,8 +859,12 @@ noncomputable def ListPager.eachListChunk.impl [FfiSyntax] [GoGlobalContext] : v
   (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
   (Val #()))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())))))]))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))]))))))
   (Lam BAnon
   (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Limit"))) (Var "options"))) (Val #(W64 0)))))
@@ -654,12 +872,13 @@ noncomputable def ListPager.eachListChunk.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Limit"))) (Var "options")) (Var "$r0")))))
   (App (Val doExecute)
-  (Val #())))))))))))))
+  (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.tools.pager where
   pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.k8s_io.apimachinery.pkg.api.errors, pkg_id.k8s_io.apimachinery.pkg.api.«meta», pkg_id.k8s_io.apimachinery.pkg.apis.«meta».internalversion, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.util.runtime]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.tools.pager)) (Lam BAnon
   (App (Val exceptionDo)
@@ -687,43 +906,47 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.initialize') (Val #()))))))))
 
-abbrev ListPageFunc [FfiSyntax] : Type := GoFunc
+abbrev ListPageFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def ListPageFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ListPageFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))
 
-class ListPageFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListPageFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ListPageFunc.ty ListPageFunc.underlying
+  method_set : go.MethodSetIs ListPageFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListPageFunc.ty) []
 
 attribute [instance] ListPageFunc.TypeAssumptions.underlying
+  ListPageFunc.TypeAssumptions.method_set
+  ListPageFunc.TypeAssumptions.ptr_method_set
 
-structure ListPager [FfiSyntax] where
+structure ListPager [GooseExts] where
   mk ::
   PageSize' : w64
   PageFn' : ListPageFunc
   FullListIfExpired' : Bool
   PageBufferSize' : w32
 
-noncomputable instance ListPager.zero_val [FfiSyntax] : ZeroVal ListPager :=
+noncomputable instance ListPager.zero_val [GooseExts] : ZeroVal ListPager :=
   ⟨ListPager.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ListPager.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ListPager.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PageSize" go.int64),
 (go.field_decl.FieldDecl go!"PageFn" ListPageFunc.ty),
 (go.field_decl.FieldDecl go!"FullListIfExpired" go.bool),
 (go.field_decl.FieldDecl go!"PageBufferSize" go.int32)]
 
-@[irreducible] noncomputable def ListPager.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ListPager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ListPager.fieldsUnsealed
 
-noncomputable instance equals_unfold_ListPager [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ListPager [GooseExts] [GoGlobalContext] :
     EqualsUnfold ListPager.fields ListPager.fieldsUnsealed :=
   ⟨by unfold ListPager.fields; rfl⟩
 
-@[reducible] noncomputable def ListPager.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ListPager.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ListPager.fields)
 
-class ListPager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListPager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListPager.underlying ListPager
   underlying : go.UnderlyingDirectedEq ListPager.ty ListPager.underlying
   get_PageSize : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"PageSize") #x (Val #(x.PageSize'))
@@ -734,6 +957,8 @@ class ListPager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_FullListIfExpired : ∀ (x : ListPager) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"FullListIfExpired") (PairV #x #y) (Val #(({ x with FullListIfExpired' := y } : ListPager)))
   get_PageBufferSize : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"PageBufferSize") #x (Val #(x.PageBufferSize'))
   set_PageBufferSize : ∀ (x : ListPager) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"PageBufferSize") (PairV #x #y) (Val #(({ x with PageBufferSize' := y } : ListPager)))
+  method_set : go.MethodSetIs ListPager.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListPager.ty) [(go!"EachListItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"EachListItemWithAlloc", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, go.error]))), (go!"ListWithAlloc", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, go.error]))), (go!"k8s.io/client-go/tools/pager.eachListChunk", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"k8s.io/client-go/tools/pager.eachListChunkBuffered", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"k8s.io/client-go/tools/pager.list", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, go.bool] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, go.error])))]
   ptr_EachListItem_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"EachListItem" ListPager.EachListItem.impl
   ptr_EachListItemWithAlloc_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"EachListItemWithAlloc" ListPager.EachListItemWithAlloc.impl
   ptr_List_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"List" ListPager.List.impl
@@ -752,6 +977,8 @@ attribute [instance] ListPager.TypeAssumptions.type_repr
   ListPager.TypeAssumptions.set_FullListIfExpired
   ListPager.TypeAssumptions.get_PageBufferSize
   ListPager.TypeAssumptions.set_PageBufferSize
+  ListPager.TypeAssumptions.method_set
+  ListPager.TypeAssumptions.ptr_method_set
   ListPager.TypeAssumptions.ptr_EachListItem_unfold
   ListPager.TypeAssumptions.ptr_EachListItemWithAlloc_unfold
   ListPager.TypeAssumptions.ptr_List_unfold
@@ -760,7 +987,7 @@ attribute [instance] ListPager.TypeAssumptions.type_repr
   ListPager.TypeAssumptions.ptr_eachListChunkBuffered_unfold
   ListPager.TypeAssumptions.ptr_list_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ListPageFunc_instance : ListPageFunc.TypeAssumptions
   ListPager_instance : ListPager.TypeAssumptions
   SimplePageFunc_unfold : FuncUnfold SimplePageFunc [] SimplePageFunc.impl

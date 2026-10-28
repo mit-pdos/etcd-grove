@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -29,7 +29,7 @@ else dropped), in reverse order. -/
 abbrev raftNode.processMessages.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (ms : GoSlice) (msL : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
-      ms ↦*□ msL ∗ [∗list] m ∈ msL, rnMsgR E γ.node m }}
+      ms ↦*□ msL ∗ [∗list] m ∈ msL, rnMsgR E γ m }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"processMessages")) (Val #ms))
   {{ (out : GoSlice), RET #out; ∃ outL : List Loc, out ↦* outL ∗ [∗list] m ∈ outL, rnMsgOk E m }}
 

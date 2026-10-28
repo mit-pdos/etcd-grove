@@ -36,7 +36,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -62,7 +62,7 @@ theorem checkN_sub : (↑checkN : CoPset) ⊆ kvMask := by
   rw [LawfulSet.mem_diff, LawfulSet.mem_diff]
   refine ⟨⟨CoPset.mem_full, ?_⟩, ?_⟩
   · intro h
-    have := mask_ndot_ne' nroot "kvcheck" "raft_commit" (by decide) _ hp
+    have := mask_ndot_ne' nroot "kvcheck" "kv_raft" (by decide) _ hp
     rw [LawfulSet.mem_diff] at this
     exact this.2 h
   · intro h
@@ -76,7 +76,7 @@ theorem lintestN_checkMask : (↑lintest.lintestN : CoPset) ⊆ ⊤ \ checkMask 
   simp only [LawfulSet.mem_diff]
   refine ⟨CoPset.mem_full, fun h => h.2 ⟨⟨⟨CoPset.mem_full, ?_⟩, ?_⟩, ?_⟩⟩
   · intro h'
-    have := mask_ndot_ne' nroot "lintest" "raft_commit" (by decide) _ hp
+    have := mask_ndot_ne' nroot "lintest" "kv_raft" (by decide) _ hp
     rw [LawfulSet.mem_diff] at this
     exact this.2 h'
   · intro h'

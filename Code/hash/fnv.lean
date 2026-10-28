@@ -21,161 +21,185 @@ end pkg_id
 
 namespace hash.fnv
 
-noncomputable def sum32.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sum32.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash/fnv.sum32" [])
 
 attribute [irreducible] sum32.ty
 
-noncomputable def sum32a.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sum32a.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash/fnv.sum32a" [])
 
 attribute [irreducible] sum32a.ty
 
-noncomputable def sum64.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sum64.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash/fnv.sum64" [])
 
 attribute [irreducible] sum64.ty
 
-noncomputable def sum64a.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sum64a.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash/fnv.sum64a" [])
 
 attribute [irreducible] sum64a.ty
 
-noncomputable def sum128.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sum128.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash/fnv.sum128" [])
 
 attribute [irreducible] sum128.ty
 
-noncomputable def sum128a.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sum128a.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash/fnv.sum128a" [])
 
 attribute [irreducible] sum128a.ty
 
-axiom offset32 [FfiSyntax] [GoGlobalContext] : val
+axiom offset32 [GooseExts] [GoGlobalContext] : val
 
-axiom offset64 [FfiSyntax] [GoGlobalContext] : val
+axiom offset64 [GooseExts] [GoGlobalContext] : val
 
-axiom offset128Lower [FfiSyntax] [GoGlobalContext] : val
+axiom offset128Lower [GooseExts] [GoGlobalContext] : val
 
-axiom offset128Higher [FfiSyntax] [GoGlobalContext] : val
+axiom offset128Higher [GooseExts] [GoGlobalContext] : val
 
-axiom prime32 [FfiSyntax] [GoGlobalContext] : val
+axiom prime32 [GooseExts] [GoGlobalContext] : val
 
-axiom prime64 [FfiSyntax] [GoGlobalContext] : val
+axiom prime64 [GooseExts] [GoGlobalContext] : val
 
-axiom prime128Lower [FfiSyntax] [GoGlobalContext] : val
+axiom prime128Lower [GooseExts] [GoGlobalContext] : val
 
-axiom prime128Shift [FfiSyntax] [GoGlobalContext] : val
+axiom prime128Shift [GooseExts] [GoGlobalContext] : val
 
-axiom magic32 [FfiSyntax] [GoGlobalContext] : val
+axiom magic32 [GooseExts] [GoGlobalContext] : val
 
-axiom magic32a [FfiSyntax] [GoGlobalContext] : val
+axiom magic32a [GooseExts] [GoGlobalContext] : val
 
-axiom magic64 [FfiSyntax] [GoGlobalContext] : val
+axiom magic64 [GooseExts] [GoGlobalContext] : val
 
-axiom magic64a [FfiSyntax] [GoGlobalContext] : val
+axiom magic64a [GooseExts] [GoGlobalContext] : val
 
-axiom magic128 [FfiSyntax] [GoGlobalContext] : val
+axiom magic128 [GooseExts] [GoGlobalContext] : val
 
-axiom magic128a [FfiSyntax] [GoGlobalContext] : val
+axiom magic128a [GooseExts] [GoGlobalContext] : val
 
-axiom marshaledSize32 [FfiSyntax] [GoGlobalContext] : val
+axiom marshaledSize32 [GooseExts] [GoGlobalContext] : val
 
-axiom marshaledSize64 [FfiSyntax] [GoGlobalContext] : val
+axiom marshaledSize64 [GooseExts] [GoGlobalContext] : val
 
-axiom marshaledSize128 [FfiSyntax] [GoGlobalContext] : val
+axiom marshaledSize128 [GooseExts] [GoGlobalContext] : val
 
-noncomputable def New32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/fnv.New32"
 
-noncomputable def New32a [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New32a [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/fnv.New32a"
 
-noncomputable def New64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/fnv.New64"
 
-noncomputable def New64a [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New64a [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/fnv.New64a"
 
-noncomputable def New128 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New128 [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/fnv.New128"
 
-noncomputable def New128a [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New128a [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/fnv.New128a"
 
 noncomputable instance info' : PkgInfo pkg_id.hash.fnv where
   pkgImportedPkgs := [pkg_id.hash]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.hash.fnv)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.hash.initialize') (Val #())))))))
 
-abbrev sum32 [FfiSyntax] : Type := w32
+abbrev sum32 [GooseExts] : Type := w32
 
-@[reducible] noncomputable def sum32.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sum32.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint32
 
-class sum32.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sum32.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq sum32.ty sum32.underlying
+  method_set : go.MethodSetIs sum32.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sum32.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Sum32", (some (go.signature.Signature [] false [go.uint32]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] sum32.TypeAssumptions.underlying
+  sum32.TypeAssumptions.method_set
+  sum32.TypeAssumptions.ptr_method_set
 
-abbrev sum32a [FfiSyntax] : Type := w32
+abbrev sum32a [GooseExts] : Type := w32
 
-@[reducible] noncomputable def sum32a.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sum32a.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint32
 
-class sum32a.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sum32a.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq sum32a.ty sum32a.underlying
+  method_set : go.MethodSetIs sum32a.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sum32a.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Sum32", (some (go.signature.Signature [] false [go.uint32]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] sum32a.TypeAssumptions.underlying
+  sum32a.TypeAssumptions.method_set
+  sum32a.TypeAssumptions.ptr_method_set
 
-abbrev sum64 [FfiSyntax] : Type := w64
+abbrev sum64 [GooseExts] : Type := w64
 
-@[reducible] noncomputable def sum64.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sum64.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-class sum64.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sum64.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq sum64.ty sum64.underlying
+  method_set : go.MethodSetIs sum64.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sum64.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Sum64", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] sum64.TypeAssumptions.underlying
+  sum64.TypeAssumptions.method_set
+  sum64.TypeAssumptions.ptr_method_set
 
-abbrev sum64a [FfiSyntax] : Type := w64
+abbrev sum64a [GooseExts] : Type := w64
 
-@[reducible] noncomputable def sum64a.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sum64a.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-class sum64a.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sum64a.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq sum64a.ty sum64a.underlying
+  method_set : go.MethodSetIs sum64a.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sum64a.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Sum64", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] sum64a.TypeAssumptions.underlying
+  sum64a.TypeAssumptions.method_set
+  sum64a.TypeAssumptions.ptr_method_set
 
-abbrev sum128 [FfiSyntax] : Type := (GoArray w64 2)
+abbrev sum128 [GooseExts] : Type := (GoArray w64 2)
 
-@[reducible] noncomputable def sum128.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sum128.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 2 go.uint64)
 
-class sum128.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sum128.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq sum128.ty sum128.underlying
+  method_set : go.MethodSetIs sum128.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sum128.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] sum128.TypeAssumptions.underlying
+  sum128.TypeAssumptions.method_set
+  sum128.TypeAssumptions.ptr_method_set
 
-abbrev sum128a [FfiSyntax] : Type := (GoArray w64 2)
+abbrev sum128a [GooseExts] : Type := (GoArray w64 2)
 
-@[reducible] noncomputable def sum128a.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sum128a.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 2 go.uint64)
 
-class sum128a.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sum128a.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq sum128a.ty sum128a.underlying
+  method_set : go.MethodSetIs sum128a.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sum128a.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] sum128a.TypeAssumptions.underlying
+  sum128a.TypeAssumptions.method_set
+  sum128a.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   sum32_instance : sum32.TypeAssumptions
   sum32a_instance : sum32a.TypeAssumptions
   sum64_instance : sum64.TypeAssumptions

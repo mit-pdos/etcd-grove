@@ -18,7 +18,7 @@ namespace apierrors
 open Iris Iris.BI Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -28,7 +28,6 @@ theorem NewResourceExpired.wp_proof : NewResourceExpired.spec (GF := GF) (hG := 
   intro message
   wp_start
   wp_auto
-  wp_apply wp_alloc as %p Hp
   iapply HΦ
   iexists _
   iframe

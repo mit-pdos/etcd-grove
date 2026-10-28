@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -25,19 +25,26 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 (`ilog`'s length, for the committed log `ilog` the transaction found) is certified. Under the
 batch lock, by the critical-section contract (`csContract`: the store's hook on `Pre`, the
 caller's update to `Post` before `Unlock`). For a store without watchers (`γ.watchQ = false`, unit
-W-K: the watchable store replaces the views). -/
+W-K: the watchable store replaces the views). (Unit T3, L2b, 2026-10-25) The lease owner's item
+map `I` is that of every log the store certifies (the caller does not know which log the
+transaction finds: satisfiable by a store whose keys never had a lease, `I = ∅`); after, the
+committed state's. -/
 abbrev mvcc.writeView.Put.spec : Prop :=
   ∀ (wv s : Loc) (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (f : val)
-    (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64),
+    (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
-      value ↦*□ v ∗ lease.leaseOwn γ.leases L ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+      value ↦*□ v ∗ lease.leaseOwn γ.leases L I ∗
+      □ (∀ ilog : mvcc.Log, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
+      ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
       ⌜γ.watchQ = false⌝ }}
     (App (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"Put")) (Val #key))
       (Val #value)) (Val #leaseID))
-  {{ (rev : w64), RET #rev; mvcc.storeReader s γ ∗ Post ∗ lease.leaseOwn γ.leases L ∗
+  {{ (rev : w64), RET #rev; mvcc.storeReader s γ ∗ Post ∗
       ∃ ilog : mvcc.Log, mvcc.idxCert γ.idx (ilog ++ [[.put k v leaseID]]) ∗
+        lease.leaseOwn γ.leases L (mvcc.pendItems ilog [.put k v leaseID]) ∗
         ⌜rev = W64 (ilog.length : Int)⌝ }}
 
 end spec

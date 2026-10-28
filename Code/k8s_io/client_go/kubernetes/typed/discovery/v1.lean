@@ -20,72 +20,72 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.discovery.v1
 
-noncomputable def DiscoveryV1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryV1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1.DiscoveryV1Interface" [])
 
 attribute [irreducible] DiscoveryV1Interface.ty
 
-noncomputable def DiscoveryV1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryV1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1.DiscoveryV1Client" [])
 
 attribute [irreducible] DiscoveryV1Client.ty
 
-noncomputable def EndpointSlicesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointSlicesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1.EndpointSlicesGetter" [])
 
 attribute [irreducible] EndpointSlicesGetter.ty
 
-noncomputable def EndpointSliceInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointSliceInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1.EndpointSliceInterface" [])
 
 attribute [irreducible] EndpointSliceInterface.ty
 
-noncomputable def endpointSlices.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def endpointSlices.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1.endpointSlices" [])
 
 attribute [irreducible] endpointSlices.ty
 
-noncomputable def EndpointSliceExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointSliceExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1.EndpointSliceExpansion" [])
 
 attribute [irreducible] EndpointSliceExpansion.ty
 
-axiom DiscoveryV1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DiscoveryV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryV1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DiscoveryV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointSlicesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EndpointSlicesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointSliceInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EndpointSliceInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom endpointSlices.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom endpointSlices.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointSliceExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EndpointSliceExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/discovery/v1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/discovery/v1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/discovery/v1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/discovery/v1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/discovery/v1.setConfigDefaults"
 
-noncomputable def newEndpointSlices [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newEndpointSlices [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/discovery/v1.newEndpointSlices"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.discovery.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.discovery.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -96,81 +96,105 @@ axiom DiscoveryV1Interface : Type
 axiom DiscoveryV1Interface.zero_val : ZeroVal DiscoveryV1Interface
 attribute [instance] DiscoveryV1Interface.zero_val
 
-class DiscoveryV1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DiscoveryV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryV1Interface.underlying DiscoveryV1Interface
   underlying : go.UnderlyingDirectedEq DiscoveryV1Interface.ty DiscoveryV1Interface.underlying
   isUnderlying : go.IsUnderlying DiscoveryV1Interface.underlying DiscoveryV1Interface.underlying
+  method_set : go.MethodSetIs DiscoveryV1Interface.ty [(go!"EndpointSlices", (some (go.signature.Signature [go.string] false [EndpointSliceInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryV1Interface.ty) []
 
 attribute [instance] DiscoveryV1Interface.TypeAssumptions.type_repr
   DiscoveryV1Interface.TypeAssumptions.underlying
   DiscoveryV1Interface.TypeAssumptions.isUnderlying
+  DiscoveryV1Interface.TypeAssumptions.method_set
+  DiscoveryV1Interface.TypeAssumptions.ptr_method_set
 
 axiom DiscoveryV1Client : Type
 axiom DiscoveryV1Client.zero_val : ZeroVal DiscoveryV1Client
 attribute [instance] DiscoveryV1Client.zero_val
 
-class DiscoveryV1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DiscoveryV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryV1Client.underlying DiscoveryV1Client
   underlying : go.UnderlyingDirectedEq DiscoveryV1Client.ty DiscoveryV1Client.underlying
   isUnderlying : go.IsUnderlying DiscoveryV1Client.underlying DiscoveryV1Client.underlying
+  method_set : go.MethodSetIs DiscoveryV1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryV1Client.ty) [(go!"EndpointSlices", (some (go.signature.Signature [go.string] false [EndpointSliceInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
 
 attribute [instance] DiscoveryV1Client.TypeAssumptions.type_repr
   DiscoveryV1Client.TypeAssumptions.underlying
   DiscoveryV1Client.TypeAssumptions.isUnderlying
+  DiscoveryV1Client.TypeAssumptions.method_set
+  DiscoveryV1Client.TypeAssumptions.ptr_method_set
 
 axiom EndpointSlicesGetter : Type
 axiom EndpointSlicesGetter.zero_val : ZeroVal EndpointSlicesGetter
 attribute [instance] EndpointSlicesGetter.zero_val
 
-class EndpointSlicesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EndpointSlicesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EndpointSlicesGetter.underlying EndpointSlicesGetter
   underlying : go.UnderlyingDirectedEq EndpointSlicesGetter.ty EndpointSlicesGetter.underlying
   isUnderlying : go.IsUnderlying EndpointSlicesGetter.underlying EndpointSlicesGetter.underlying
+  method_set : go.MethodSetIs EndpointSlicesGetter.ty [(go!"EndpointSlices", (some (go.signature.Signature [go.string] false [EndpointSliceInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EndpointSlicesGetter.ty) []
 
 attribute [instance] EndpointSlicesGetter.TypeAssumptions.type_repr
   EndpointSlicesGetter.TypeAssumptions.underlying
   EndpointSlicesGetter.TypeAssumptions.isUnderlying
+  EndpointSlicesGetter.TypeAssumptions.method_set
+  EndpointSlicesGetter.TypeAssumptions.ptr_method_set
 
 axiom EndpointSliceInterface : Type
 axiom EndpointSliceInterface.zero_val : ZeroVal EndpointSliceInterface
 attribute [instance] EndpointSliceInterface.zero_val
 
-class EndpointSliceInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EndpointSliceInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EndpointSliceInterface.underlying EndpointSliceInterface
   underlying : go.UnderlyingDirectedEq EndpointSliceInterface.ty EndpointSliceInterface.underlying
   isUnderlying : go.IsUnderlying EndpointSliceInterface.underlying EndpointSliceInterface.underlying
+  method_set : go.MethodSetIs EndpointSliceInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/discovery/v1.EndpointSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSliceList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EndpointSliceInterface.ty) []
 
 attribute [instance] EndpointSliceInterface.TypeAssumptions.type_repr
   EndpointSliceInterface.TypeAssumptions.underlying
   EndpointSliceInterface.TypeAssumptions.isUnderlying
+  EndpointSliceInterface.TypeAssumptions.method_set
+  EndpointSliceInterface.TypeAssumptions.ptr_method_set
 
 axiom endpointSlices : Type
 axiom endpointSlices.zero_val : ZeroVal endpointSlices
 attribute [instance] endpointSlices.zero_val
 
-class endpointSlices.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class endpointSlices.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying endpointSlices.underlying endpointSlices
   underlying : go.UnderlyingDirectedEq endpointSlices.ty endpointSlices.underlying
   isUnderlying : go.IsUnderlying endpointSlices.underlying endpointSlices.underlying
+  method_set : go.MethodSetIs endpointSlices.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/discovery/v1.EndpointSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/discovery/v1.EndpointSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSliceList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType endpointSlices.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/discovery/v1.EndpointSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/discovery/v1.EndpointSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSliceList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/discovery/v1.EndpointSlice" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] endpointSlices.TypeAssumptions.type_repr
   endpointSlices.TypeAssumptions.underlying
   endpointSlices.TypeAssumptions.isUnderlying
+  endpointSlices.TypeAssumptions.method_set
+  endpointSlices.TypeAssumptions.ptr_method_set
 
 axiom EndpointSliceExpansion : Type
 axiom EndpointSliceExpansion.zero_val : ZeroVal EndpointSliceExpansion
 attribute [instance] EndpointSliceExpansion.zero_val
 
-class EndpointSliceExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EndpointSliceExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EndpointSliceExpansion.underlying EndpointSliceExpansion
   underlying : go.UnderlyingDirectedEq EndpointSliceExpansion.ty EndpointSliceExpansion.underlying
   isUnderlying : go.IsUnderlying EndpointSliceExpansion.underlying EndpointSliceExpansion.underlying
+  method_set : go.MethodSetIs EndpointSliceExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EndpointSliceExpansion.ty) []
 
 attribute [instance] EndpointSliceExpansion.TypeAssumptions.type_repr
   EndpointSliceExpansion.TypeAssumptions.underlying
   EndpointSliceExpansion.TypeAssumptions.isUnderlying
+  EndpointSliceExpansion.TypeAssumptions.method_set
+  EndpointSliceExpansion.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DiscoveryV1Interface_instance : DiscoveryV1Interface.TypeAssumptions
   DiscoveryV1Client_instance : DiscoveryV1Client.TypeAssumptions
   EndpointSlicesGetter_instance : EndpointSlicesGetter.TypeAssumptions

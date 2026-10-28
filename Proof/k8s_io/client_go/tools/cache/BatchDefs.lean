@@ -31,7 +31,7 @@ namespace cache
 open Iris Iris.BI k8s_io.client_go.tools.cache
 
 section model
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- **One write of a store transaction** (`ThreadSafeStoreTransaction`): its type, key, object. -/
 structure Tx where
@@ -73,7 +73,7 @@ def FD.batchable : FD → Bool
 /-- **The deltas `PopBatch` takes** from a queue: the first alone if it is not batchable; else the
 longest prefix of batchable deltas of at most `batchSize` (1000) and, while initial items remain
 (`initCount > 0`), at most their count. -/
-def FQ.batch [FfiSyntax] (q : FQ) : List FD :=
+def FQ.batch [GooseExts] (q : FQ) : List FD :=
   match q.items with
   | [] => []
   | d :: ds =>
@@ -84,15 +84,15 @@ def FQ.batch [FfiSyntax] (q : FQ) : List FD :=
 
 /-- `PopBatch`'s deferred step after a batch of `n` deltas: `n` initial items fewer, synced once
 none is left (`checkSynced`). -/
-def FQ.popDoneN [FfiSyntax] (n : Nat) (q : FQ) : FQ :=
+def FQ.popDoneN [GooseExts] (n : Nat) (q : FQ) : FQ :=
   if 0 < q.initCount then
     { q with initCount := q.initCount - n,
              synced := q.synced || (q.populated && q.initCount - n == 0) }
   else q
 
-theorem FQ.popDoneN_one [FfiSyntax] (q : FQ) : q.popDoneN 1 = q.popDone := rfl
+theorem FQ.popDoneN_one [GooseExts] (q : FQ) : q.popDoneN 1 = q.popDone := rfl
 
-theorem FQ.batch_prefix [FfiSyntax] (q : FQ) : q.batch <+: q.items := by
+theorem FQ.batch_prefix [GooseExts] (q : FQ) : q.batch <+: q.items := by
   unfold FQ.batch
   cases q.items with
   | nil => exact List.nil_prefix
@@ -335,7 +335,7 @@ def FD.isObjOk (d : FD) : Prop := (∃ t o, d = .obj t o) ∧ d.kindOk
 end model
 
 section tyOk
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **The method-set facts of the batch path** (`methodSet` is uninterpreted in the model, so they
 are premises, as `k8setcd3.objTyOk`): `*threadSafeMap` implements `ThreadSafeStoreWithTransaction`

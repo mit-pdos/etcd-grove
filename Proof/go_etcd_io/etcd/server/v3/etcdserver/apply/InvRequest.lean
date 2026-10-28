@@ -111,7 +111,9 @@ structure IRRModel where
   range : Option OpFull
   put : Option OpFull
   deleteRange : Option OpFull
-  txn : Option TxnModel
+  /-- the transaction as the wire has it (the auth plan's E3e, 2026-10-27: a `TxnModel` until then;
+  a put keeps its `PrevKv`, which the auth layer's checks read); `IRRModel.txn` is its `TxnModel` -/
+  txnW : Option txn.TxnModelW
   compaction : Option w64
   leaseGrant : Option LeaseGrantModel
   leaseRevoke : Option w64
@@ -145,6 +147,17 @@ structure IRRModel where
   clusterMemberAttrSet : Option MemberAttrModel
   downgradeInfoSet : Option DowngradeModel
   downgradeVersionTest : Bool
+
+/-- **The request's transaction** (`TxnModel`, the client's model: a put through `putTxnOp`, its
+`PrevKv` forgotten): the wire transaction's (`txnW`) model. -/
+def IRRModel.txn (rq : IRRModel) : Option TxnModel := rq.txnW.map txn.TxnModelW.toModel
+
+@[simp] theorem IRRModel.txnW_map (rq : IRRModel) :
+    rq.txnW.map txn.TxnModelW.toModel = rq.txn := rfl
+
+/-- `IRRModel.txn` of a record built field by field (`{ rq with ... }`): its `txnW`'s model. -/
+@[simp] theorem IRRModel.txn_mk {a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 a24 a25 a26 a27 a28 a29 a30 a31 a32} :
+    (IRRModel.mk a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 a24 a25 a26 a27 a28 a29 a30 a31 a32).txn = a6.map txn.TxnModelW.toModel := rfl
 
 /-- **Trust boundary (the encoding).** The request a committed normal entry's bytes decode to
 (`pbutil.MustUnmarshalMessage` into an `InternalRaftRequest`, read as `IRRModel`); `none`: they
@@ -230,7 +243,7 @@ def isKVKind : ReqKind → Bool
   | _ => false
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -459,7 +472,7 @@ def internalRaftRequestIs (p : Loc) (rq : IRRModel) : IProp GF :=
     irrField p go!"Range" (fun l => optReqIs l rq.range txn.rangeRequestIs) ∗
     irrField p go!"Put" (fun l => optReqIs l rq.put txn.putRequestIs) ∗
     irrField p go!"DeleteRange" (fun l => optReqIs l rq.deleteRange txn.deleteRangeRequestIs) ∗
-    irrField p go!"Txn" (fun l => optReqIs l rq.txn txn.txnRequestIs) ∗
+    irrField p go!"Txn" (fun l => optReqIs l rq.txnW txn.txnRequestIsW) ∗
     irrField p go!"Compaction" (fun l => optReqIs l rq.compaction compactionIs) ∗
     irrField p go!"LeaseGrant" (fun l => optReqIs l rq.leaseGrant leaseGrantIs) ∗
     irrField p go!"LeaseRevoke" (fun l => optReqIs l rq.leaseRevoke leaseRevokeIs) ∗
@@ -496,6 +509,15 @@ instance internalRaftRequestIs_persistent (p : Loc) (rq : IRRModel) :
     authRoleAddIs authUserGrantRoleIs authRoleGrantPermissionIs clusterVersionSetIs
     memberAttrSetIs downgradeInfoSetIs
   infer_instance
+
+/-- **The request's `Txn` field, in the model's terms** (E3e): the wire transaction's
+`txnRequestIsW` gives its model's `txnRequestIs`. -/
+theorem optReqIs_txnW (l : Loc) (rq : IRRModel) :
+    optReqIs (GF := GF) l rq.txnW txn.txnRequestIsW ⊢ optReqIs l rq.txn txn.txnRequestIs := by
+  unfold IRRModel.txn
+  cases rq.txnW with
+  | none => simp only [optReqIs, Option.map]; iintro H; iexact H
+  | some tw => simp only [optReqIs, Option.map]; iapply txn.txnRequestIsW_plain
 
 /-- **The `*InternalRaftRequestWrapper` `r`** (not nil; `apply.Apply` builds it): its request
 `rq` and its `SkipRangeExecution` `skip`, read-only. -/

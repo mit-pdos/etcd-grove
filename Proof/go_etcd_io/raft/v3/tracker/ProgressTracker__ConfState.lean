@@ -14,7 +14,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -108,8 +108,9 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   ihave Hln := ownIdsetC_join _ _ _ Hlnc $$ Hlnq
   ihave Hcfg := ownCfgCC_intro tv.Config' (DFrac.own 1) c vin vout Harr Hal $$ Hin Hout Hl Hln
   -- raft v3.7: `&pb.ConfState{..., AutoLeave: new(p.AutoLeave)}`; the `AutoLeave` cell is
-  -- allocated (`«$v4»`), the struct in `return:` position is allocated here
-  wp_apply wp_alloc as %csl Hcs
+  -- allocated (`«$v4»`), and so is the struct in `return:` position
+  irename «$r0» => Hcs
+  generalize «$r0_ptr» = csl at *
   rw [← Hal]
   -- the fresh struct (hidden fields zero) into its ownership predicate (InvPb, stage R1)
   ihave %Hpn := typedPointsto_not_null $$ «$v4»

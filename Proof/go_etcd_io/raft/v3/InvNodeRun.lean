@@ -19,7 +19,7 @@ pointer messages").** Ported from the old proof's file. What changed: `ownRawNod
 a message pointer, owned (`msgIn`), with the facts over its state (`wp_rn_raft_Step_net`: `NetMsgOk
 id st`; `wp_rn_raft_Step_prop`: a stamped proposal, `st.msg.From' = id`, no proposed slices'
 invariant: a conf-change entry's bytes are on the record, `propData_ccEnts` pure);
-`r.applyConfChange` takes a `*pb.ConfChangeV2` (`ownCCV2`, given back) and returns a fresh
+`r.applyConfChange` takes a `*pb.ConfChangeV2` (`ownConfChangeV2`, given back) and returns a fresh
 `*pb.ConfState` (`csPts cs 1 … true`); the run loop's states over the new `Ready` fields
 (`staleOk`/`freshOk`: `hsOpt`, `entsRO`, `readStatesPts`, `rd.Snapshot' = null`, the messages
 handed out owned).
@@ -32,12 +32,16 @@ the loan's committed log (`rsDlv`, `runCfg_extend`, `runCfg_advance`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 public import Proof.go_etcd_io.raft.v3.InvRawnodeC
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 
@@ -55,7 +59,7 @@ open RawNodeOwnAccess
 /-! ## Slices of length zero -/
 
 section slices
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -93,7 +97,7 @@ theorem ownSlice_of_shape (s : GoSlice) (dq : DFrac) (h : SliceShape s 0) :
 end slices
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -155,7 +159,7 @@ theorem ownRawNodeIdle_borrow (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hidle
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
 
-/-- The fields of the raft struct `isNode` shares, out of a node. -/
+/-- The fields of the raft struct `isNodeChan` shares, out of a node. -/
 theorem ownRawNode_shared (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNode (GF := GF) γ rn id rs -∗
       ∃ (r : Loc) (lok : GoInterfaceOk), rn.[RawNode, go!"raft"] ↦□ r ∗
@@ -374,7 +378,7 @@ end lemmas
 /-! ## `r.Step`, on the node -/
 
 section step
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -687,44 +691,40 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List EntryM) :
     icases (BigSepL.bigSepL_cons (Φ := fun _ e => propData (GF := GF) γ e)).1 $$ Hes
       with ⟨#He, #Hes'⟩
     icases ih $$ Hes' with ⟨%cs, #Hcs⟩
-    have Hone : ∀ o, (propDataIs (GF := GF) γ e o ⊢ ∃ c, ccEntOk e c) := by
+    -- (2026-10-27) either way the entry's bytes decode as its type says
+    have Hdec : ∀ o, (propDataIs (GF := GF) γ e o ⊢ ⌜CCDecodes e.Type' e.Data'⌝) := by
       intro o
       cases o with
       | some d =>
         iintro He
         iunfold propDataIs at He
         icases He with ⟨%Hd, -⟩
-        iexists none
-        unfold ccEntOk
-        ipureintro
-        unfold IsConfEnt; rw [Hd.2.2]
-        rintro (h | h) <;> revert h <;> word
+        ipureintro; exact Hd.2.2
       | none =>
         iintro He
         iunfold propDataIs at He
-        icases He with (%Hz | %Hz)
-        · iexists none
-          unfold ccEntOk
-          ipureintro
-          unfold IsConfEnt; rw [Hz.1]
-          rintro (h | h) <;> revert h <;> word
-        · obtain ⟨-, Hdec, -⟩ := Hz
-          by_cases H1 : e.Type' = W32 1
-          · obtain ⟨m, Hm⟩ := Hdec.1 H1
-            iexists some (.v1 m)
-            simp only [ccEntOk]
-            ipureintro; exact ⟨H1, Hm⟩
-          by_cases H2 : e.Type' = W32 2
-          · obtain ⟨m, Hm⟩ := Hdec.2 H2
-            iexists some (.v2 m)
-            simp only [ccEntOk]
-            ipureintro; exact ⟨H2, Hm⟩
-          iexists none
-          unfold ccEntOk
-          ipureintro
-          rintro (h | h)
-          · exact H1 h
-          · exact H2 h
+        icases He with %Hz
+        ipureintro; exact Hz.2
+    have Hone : ∀ o, (propDataIs (GF := GF) γ e o ⊢ ∃ c, ccEntOk e c) := by
+      intro o
+      iintro He
+      icases (Hdec o) $$ He with %Hdec
+      by_cases H1 : e.Type' = W32 1
+      · obtain ⟨m, Hm⟩ := Hdec.1 H1
+        iexists some (.v1 m)
+        simp only [ccEntOk]
+        ipureintro; exact ⟨H1, Hm⟩
+      by_cases H2 : e.Type' = W32 2
+      · obtain ⟨m, Hm⟩ := Hdec.2 H2
+        iexists some (.v2 m)
+        simp only [ccEntOk]
+        ipureintro; exact ⟨H2, Hm⟩
+      iexists none
+      unfold ccEntOk
+      ipureintro
+      rintro (h | h)
+      · exact H1 h
+      · exact H2 h
     iunfold propData at He
     icases He with ⟨%o, #He⟩
     icases (Hone o) $$ He with ⟨%c, #Hc⟩
@@ -863,7 +863,7 @@ end step
 /-! ## `r.applyConfChange`, on the node (2026-10-13) -/
 
 section applycc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1039,7 +1039,7 @@ theorem wp_applyConf_dyn
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (dec : CCDec) (c0 : CCState)
     (h0 : CfgOk c0) (h1 : CCGood c0) (hm : rs.mode = .dyn dec c0 h0 h1) (k : Nat)
     (e : EntryM) (cs' : CCState)
-    (cc : Loc) (ccm : CCV2M) (dq : DFrac)
+    (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac)
     (Hpre : DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccm.transition, ccm.changes) k e cs')
     (s : NState) (cf : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
@@ -1060,11 +1060,11 @@ theorem wp_applyConf_dyn
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
         lentPend rs.slent (pendList γ id steps rs.steps) ∗
         isCommitted γ rs.delivered ∗ ackInv γ rs s ∗
-        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ ownCCV2 cc dq ccm ∗ £ 1 }}
+        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 }}
       (App (Val (rnv.raft' @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
         ownRawNode γ rn id { rs with cfg := cs', capplied := k + 1 } ∗
-        ownCCV2 cc dq ccm ∗
+        ownConfChangeV2 cc dq ccm ∗
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
@@ -1286,15 +1286,15 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
 configuration unchanged (`node.run`'s `confc` arm); the ghost step inside. -/
 theorem wp_rn_raft_applyConfChange
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
-    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : CCV2M)
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : ConfChangeV2M)
     (Hst : γ.reDyn = none)
     (Hn : CCShrink γ.reCfg ccm.transition ccm.changes) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownCCV2 cc DFrac.discard ccm ∗
+        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownConfChangeV2 cc DFrac.discard ccm ∗
         £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs ls : List w64), RET #cs;
-        ownRawNode γ rn id rs ∗ ownCCV2 cc DFrac.discard ccm ∗
+        ownRawNode γ rn id rs ∗ ownConfChangeV2 cc DFrac.discard ccm ∗
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
           ⌜xs ≡ₚ elements γ.reCfg ∧ (∀ k ∈ ls, k ∉ γ.reCfg)⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hccs, Hlc⟩ HΦ
@@ -1359,18 +1359,18 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
 `node.run`'s `confc` arm): `wp_applyConf_dyn` on `ownRawNode`, the changes read-only. -/
 theorem wp_rn_raft_applyConfChange_dyn
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
-    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : CCV2M)
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : ConfChangeV2M)
     (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     (h1 : CCGood c0) (hm : rs.mode = .dyn dec c0 h0 h1) (k : Nat) (e : EntryM)
     (cs' : CCState)
     (Hpre : DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccm.transition, ccm.changes) k e cs') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownCCV2 cc DFrac.discard ccm ∗
+        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownConfChangeV2 cc DFrac.discard ccm ∗
         £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
         ownRawNode γ rn id { rs with cfg := cs', capplied := k + 1 } ∗
-        ownCCV2 cc DFrac.discard ccm ∗
+        ownConfChangeV2 cc DFrac.discard ccm ∗
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
@@ -1395,7 +1395,7 @@ end applycc
 /-! ## `run`'s states -/
 
 section states
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1468,7 +1468,7 @@ def staleOk (γ : NodeNames) (rd : Ready) (rs : RNState) : IProp GF :=
     entsRO rd.CommittedEntries' ce ∗ ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
     isCommitted γ.raft (rs.delivered ++ ce) ∗ entsRO rd.Entries' es ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
-      [∗list] st ∈ sts, readStateOk γ.raft st) ∗
+      [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
     ⌜(rd.Snapshot' ≠ null → rs.unst = true) ∧
       (es ≠ [] → rs.unst = true) ∧ SliceShape rd.Messages' k ∧ k ≤ rs.outlb ∧
       (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z rs.clb ∧
@@ -1487,7 +1487,7 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
     ([∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
-      [∗list] st ∈ sts, readStateOk γ.raft st) ∗
+      [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
     -- (D22 S-b) with its witness (`hsWit`)
     (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ hsWit γ.raft (phsNext rs.phs hrd) (rs.delivered ++ ce).length) ∗
     rdSnapOut γ.raft rs rd ce es L ∗
@@ -1912,13 +1912,13 @@ end states
 /-! ## The configuration `run` shares with the driver (2026-10-15, stage N) -/
 
 section cfgshare
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- A conf change's premises on the driver's view (a prefix `D` of the committed log handed
 out, the configuration index `ca` of the last applied conf change) carry over to `run`'s
 `RawNode`, whose committed log `D'` extends `D` and whose configuration index `ca'` is past `ca`
@@ -1944,7 +1944,7 @@ theorem dynCCPreOp_transfer {dec : CCDec} {D D' : List EntryM} {ca ca' : Nat}
     rw [List.take_append_of_le_length (by omega)]
     exact ⟨op', Hdec, Hstep'⟩
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `NoConfIn` over two adjacent ranges. -/
 theorem NoConfIn_trans {D : List EntryM} {a b c : Nat} (H1 : NoConfIn D a b)
     (H2 : NoConfIn D b c) : NoConfIn D a c := by
@@ -1953,14 +1953,14 @@ theorem NoConfIn_trans {D : List EntryM} {a b c : Nat} (H1 : NoConfIn D a b)
   · exact H1 k e hk1 h he
   · exact H2 k e (by omega) hk2 he
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `NoConfIn` over a smaller range. -/
 theorem NoConfIn_mono {D : List EntryM} {a b a' b' : Nat} (H : NoConfIn D a b)
     (ha : a ≤ a') (hb : b' ≤ b) : NoConfIn D a' b' := by
   intro k e hk1 hk2 he
   exact H k e (by omega) (by omega) he
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem NoConfIn_empty (D : List EntryM) (a : Nat) : NoConfIn D a a := by
   intro k e hk1 hk2 _
   omega

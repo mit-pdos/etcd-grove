@@ -35,7 +35,7 @@ open Iris Iris.BI Iris.ProofMode
 open k8s_io.component_helpers.scheduling.corev1.nodeaffinity
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **`extractNodeFields`' map**: `metadata.name` for a named node. -/
 def nodeFieldsM (name : GoString) : GMap GoString GoString :=
@@ -44,7 +44,7 @@ def nodeFieldsM (name : GoString) : GMap GoString GoString :=
 end model
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -98,7 +98,7 @@ instance rnaOk_persistent (r : RequiredNodeAffinity) : Persistent (rnaOk (GF := 
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

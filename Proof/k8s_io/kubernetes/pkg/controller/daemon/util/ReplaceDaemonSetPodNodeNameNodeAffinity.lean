@@ -20,7 +20,7 @@ namespace dsctl
 open Iris Iris.BI Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -68,14 +68,12 @@ theorem ReplaceDaemonSetPodNodeNameNodeAffinity.wp_proof :
     have hda : da = none := Han.mp rfl
     subst hda
     mk_sel
-    wp_alloc a as Hna
-    wp_pures
     iapply HΦ
     isplitr
     · ipureintro; intro h; exact absurd rfl h
     iunfold ownPtrD
     iexists _
-    iframe Hna
+    iframe «$r0»
     unfold kd.core.Affinity.own
     simp only [replAff, Option.getD_none, named]
     isplitl

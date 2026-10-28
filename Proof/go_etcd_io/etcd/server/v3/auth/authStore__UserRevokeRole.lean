@@ -29,7 +29,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.
 
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -57,10 +57,12 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   iunfold authWRx at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
   iunfold flagAt at Hen
+  icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_join (Q := fun v => iprop(⌜v = #(decide (en = true ∧ name = go!"root" ∧ role = go!"root"))⌝ ∗
@@ -96,8 +98,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     iexists true, sc0
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -151,8 +153,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     iexists en, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -276,8 +278,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     iexists en, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -339,8 +341,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post)
-      ({ putUser st0 name roles' with revision := rev } : AuthState))
-    $$ [HL Hca]
+      ({ putUser st0 name roles' with revision := rev } : AuthState) (hs ++ [bump (putUser st0 name roles')]))
+    $$ [HL Hca Hown]
   · iframe Hpkg Hinv
     isplitl [Hca]
     · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
@@ -350,9 +352,9 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     · iExactEq HL
       all_goals rfl
     iframe Hsnap
-    ipureintro; exact permsFit_rev _ rev Hfit'
+    iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
   inext
-  iintro ⟨HL, Hca⟩
+  iintro ⟨HL, Hca, Hown⟩
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)
@@ -376,7 +378,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   wp_apply h_Info
   · ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_alloc resp as Hresp
+  irename «$r0» => Hresp
+  generalize «$r0_ptr» = resp at *
   icases typedPointsto_split _ _ _ $$ Hresp with Hresp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
@@ -392,8 +395,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   iexists en, ({ putUser st0 name roles' with revision := rev } : AuthState)
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen Hca]
-  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen HenQ Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h

@@ -20,61 +20,65 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.selection
 
-noncomputable def Operator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Operator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/selection.Operator" [])
 
 attribute [irreducible] Operator.ty
 
-@[reducible] noncomputable def DoesNotExist [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DoesNotExist [GooseExts] [GoGlobalContext] : val :=
   #(go!"!")
 
-@[reducible] noncomputable def Equals [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Equals [GooseExts] [GoGlobalContext] : val :=
   #(go!"=")
 
-@[reducible] noncomputable def DoubleEquals [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DoubleEquals [GooseExts] [GoGlobalContext] : val :=
   #(go!"==")
 
-@[reducible] noncomputable def In [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def In [GooseExts] [GoGlobalContext] : val :=
   #(go!"in")
 
-@[reducible] noncomputable def NotEquals [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NotEquals [GooseExts] [GoGlobalContext] : val :=
   #(go!"!=")
 
-@[reducible] noncomputable def NotIn [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NotIn [GooseExts] [GoGlobalContext] : val :=
   #(go!"notin")
 
-@[reducible] noncomputable def Exists [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Exists [GooseExts] [GoGlobalContext] : val :=
   #(go!"exists")
 
-@[reducible] noncomputable def GreaterThan [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def GreaterThan [GooseExts] [GoGlobalContext] : val :=
   #(go!"gt")
 
-@[reducible] noncomputable def LessThan [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def LessThan [GooseExts] [GoGlobalContext] : val :=
   #(go!"lt")
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.selection where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.selection)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-abbrev Operator [FfiSyntax] : Type := GoString
+abbrev Operator [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def Operator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Operator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class Operator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Operator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Operator.ty Operator.underlying
+  method_set : go.MethodSetIs Operator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Operator.ty) []
 
 attribute [instance] Operator.TypeAssumptions.underlying
+  Operator.TypeAssumptions.method_set
+  Operator.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Operator_instance : Operator.TypeAssumptions
 
 attribute [instance] Assumptions.Operator_instance

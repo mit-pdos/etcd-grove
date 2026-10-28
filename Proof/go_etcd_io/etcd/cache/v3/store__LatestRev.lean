@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -26,6 +26,7 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 theorem store.LatestRev.wp_proof : store.LatestRev.spec (GF := GF) (hG := hG) := by
   intro s γ cap E R r0
   wp_start as ⟨#Hs, Hrd, #Hlb⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

@@ -4,6 +4,12 @@ module
 public import Spec.go_etcd_io.raft.v3.node__stepWithWaitOption
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.context.ErrDone
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.InvBoot
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import Spec.go_etcd_io.raft.v3.NewRawNode
 
 @[expose] public section
 
@@ -15,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

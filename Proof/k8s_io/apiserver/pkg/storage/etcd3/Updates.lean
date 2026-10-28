@@ -30,7 +30,7 @@ namespace k8s
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -53,11 +53,14 @@ theorem kvNext_commit (σ : KVState) (cs : List mvcc.Change) : KvNext σ (σ.com
     · exact Or.inr hm
     · exact Or.inl (txn.mem_applyChanges_modRev cs _ v hv hm)
 
-/-- **Any operation's step is such a step.** -/
-theorem kvNext_step (op : KVOp) (σ : KVState) : KvNext σ (kvOpStep op σ) := by
+/-- **Any key-value operation's step is such a step** (unit T3: a lease's grant changes the state
+at the same revision). -/
+theorem kvNext_step (op : KVOp) (σ : KVState) (hop : op.isKV) : KvNext σ (kvOpStep op σ) := by
   cases op with
   | put o =>
     simp only [kvOpStep]
+    split
+    · exact Or.inl rfl
     split
     · exact Or.inl rfl
     · exact kvNext_commit _ _
@@ -68,6 +71,8 @@ theorem kvNext_step (op : KVOp) (σ : KVState) : KvNext σ (kvOpStep op σ) := b
     split
     · exact kvNext_commit _ _
     · exact Or.inl rfl
+  | leaseGrant _ _ => exact hop.elim
+  | leaseRevoke _ => exact hop.elim
 
 /-- **The caller's update for a write** (see the file header). -/
 def k8sAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
@@ -84,7 +89,7 @@ def StepOk (c : StoreCfg GF Obj) (op : KVOp) (step : KSt Obj → KSt Obj) : Prop
 
 /-- **The caller's update gives the client's** for a transaction whose step is the model's. -/
 theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
-    (step : KSt Obj → KSt Obj) (Φ : KVState → IProp GF) (h : StepOk c op step) :
+    (step : KSt Obj → KSt Obj) (Φ : KVState → IProp GF) (h : StepOk c op step) (hop : op.isKV) :
     k8sAu1 γk c step Φ ⊢
       kvAu1 γk (kvOpStep op)
         (fun σ => iprop(Φ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) := by
@@ -114,7 +119,7 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     ispecialize Hcommit $$ %(kvOpStep op σ)
     imod Hcommit $$ [Hkv] with HΦ
     · iframe Hkv
-      ipureintro; exact ⟨hwf', habs, kvNext_step op σ⟩
+      ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop⟩
     imodintro
     iframe HΦ Hseen
     ipureintro; exact Hwf
@@ -174,7 +179,7 @@ caller's update as the linearization point when it succeeds, or when it fails at
 model step is the identity and the store hands `W` there (`hand σ`, a read-like answer), and as a
 plain read otherwise, keeping `W`. -/
 theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
-    (W : IProp GF) (Φ : KVState → IProp GF) (op : KVOp) (ok hand : KVState → Bool)
+    (W : IProp GF) (Φ : KVState → IProp GF) (op : KVOp) (hop : op.isKV) (ok hand : KVState → Bool)
     (A : KVState → Prop)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
@@ -241,7 +246,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
       isimp only [↓reduceIte] at Hcommit
       imod Hcommit $$ [Hkv HW] with HΦ
       · iframe Hkv HW
-        ipureintro; exact ⟨hwf', habs, kvNext_step op σ⟩
+        ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop⟩
       imodintro
       simp only [Bool.true_or, ↓reduceIte]
       iframe HΦ
@@ -252,7 +257,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
 /-- **The caller's updates at the members and its token give the client's updates** for a
 conditional transaction (`k8sAuRW_kvAu1` at each member). -/
 theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
-    (step : KSt Obj → KSt Obj) (W : IProp GF) (Φ : KVState → IProp GF) (op : KVOp)
+    (step : KSt Obj → KSt Obj) (W : IProp GF) (Φ : KVState → IProp GF) (op : KVOp) (hop : op.isKV)
     (ok hand : KVState → Bool) (A : KVState → Prop)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
@@ -264,7 +269,7 @@ theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
   intro x hx
   iintro ⟨⟨HW, #HA⟩, #Hx⟩
   unfold kvOpAu1
-  iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op ok hand A h
+  iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op hop ok hand A h
   iframe Hx HW HA
 
 end defs

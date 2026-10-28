@@ -30,7 +30,7 @@ namespace watchkv
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.watchkv
 
 section links
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -65,13 +65,13 @@ end links
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions]
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.watchkv.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.watchkv.Main.wp_proof common.wp_GenAll common.wp_Writer common.wp_MaxRev common.wp_Collect common.wp_Check zap.wp_NewNop common.wp_StartServer common.wp_Serve common.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 

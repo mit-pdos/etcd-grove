@@ -32,7 +32,7 @@ open k8s
 open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output Obj item)
 
 section go
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A store item and a driver item agree. -/
 def ItemRel (ki : KItem DObj) (it : item) : Prop :=

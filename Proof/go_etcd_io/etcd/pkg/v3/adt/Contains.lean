@@ -24,7 +24,7 @@ namespace EtcdGrove
 namespace adt
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-! ## The affine order, non-strictly -/
 

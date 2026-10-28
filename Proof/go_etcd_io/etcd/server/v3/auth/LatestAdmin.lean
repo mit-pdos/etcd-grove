@@ -24,7 +24,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth
 namespace auth
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **`IsAdminPermitted`'s verdict at the latest state** of the admin side's authority `hs` (pure):
 in `on γa`, the check passes exactly when the latest state admits the principal (`adminOk`: auth
@@ -39,17 +39,20 @@ def adminVerdictL (M : AuthMode) (hs : List AuthState) (ai : Option AuthInfoM) (
 end pure
 
 section res
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **The apply thread's latest-state resource** of the store `st` at the admin side's history
 `hs` (the auth plan's E2s): the authority, and its halves of the flag and of the cache tied to the
-latest state (`latestTie`); what the checks' `specL`s take and give back. -/
+latest state (`latestTie`); what the checks' `specL`s take and give back. Since E3f also the
+halves' recorded verdicts (`enabledVerdict`, `authSnap`, persistent), so that it is exactly the
+authority with the tie (`authOwnT`, `TieRes.lean`) and the apply thread can lend it and take it
+back (`authOwnT_lend`). -/
 def latestRes (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
-  iprop(authOwn M hs ∗ ∃ (b : Bool) (sc : AuthState), flagAt st b ∗ cacheAt st sc ∗
-    ⌜latestTie M hs b sc⌝)
+  iprop(authOwn M hs ∗ ∃ (b : Bool) (sc : AuthState), flagAt st M b ∗ cacheAt st M sc ∗
+    enabledVerdict M b ∗ authSnap M sc ∗ ⌜latestTie M hs b sc⌝)
 
 /-- **The latest state recorded** (persistent): in `on γa`, the last state of `hs` at its index;
 otherwise nothing. What turns a verdict at the latest state into S3's verdict over recorded states
@@ -126,7 +129,7 @@ end res
 end auth
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -139,15 +142,15 @@ abbrev auth.authStore.IsAdminPermitted.specL : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
     (sc : auth.AuthState) (a : Loc) (ai : Option AuthInfo) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authRd st R M ∗ authInfoAt a dq ai ∗ authOwn M hs ∗ flagAt st b ∗ ⌜latestTie M hs b sc⌝ }}
+      authRd st R M ∗ authInfoAt a dq ai ∗ authOwn M hs ∗ flagAt st M b ∗ ⌜latestTie M hs b sc⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAdminPermitted")) (Val #a))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ authInfoAt a dq ai ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st b ∗ ⌜adminVerdictL M hs (ai.map authInfoM) err⌝ }}
+      authOwn M hs ∗ flagAt st M b ∗ ⌜adminVerdictL M hs (ai.map authInfoM) err⌝ }}
 
 end spec
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -193,6 +196,7 @@ theorem auth.authStore.IsAdminPermitted.wp_latest
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, -, -, -, -, -⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (h_IsAuthEnabled st R M b) $$ [$Hinv $Hen $Hfl] as %en ⟨Hen, Hfl, #Hev, %Hen_b⟩

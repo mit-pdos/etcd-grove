@@ -20,64 +20,64 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.util.taints
 
-axiom MODIFIED [FfiSyntax] [GoGlobalContext] : val
+axiom MODIFIED [GooseExts] [GoGlobalContext] : val
 
-axiom TAINTED [FfiSyntax] [GoGlobalContext] : val
+axiom TAINTED [GooseExts] [GoGlobalContext] : val
 
-axiom UNTAINTED [FfiSyntax] [GoGlobalContext] : val
+axiom UNTAINTED [GooseExts] [GoGlobalContext] : val
 
-noncomputable def parseTaint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseTaint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.parseTaint"
 
-noncomputable def validateTaintEffect [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateTaintEffect [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.validateTaintEffect"
 
-noncomputable def ParseTaints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseTaints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.ParseTaints"
 
-noncomputable def CheckIfTaintsAlreadyExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckIfTaintsAlreadyExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.CheckIfTaintsAlreadyExists"
 
-noncomputable def DeleteTaintsByKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeleteTaintsByKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.DeleteTaintsByKey"
 
-noncomputable def DeleteTaint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeleteTaint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.DeleteTaint"
 
-noncomputable def RemoveTaint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RemoveTaint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.RemoveTaint"
 
-noncomputable def AddOrUpdateTaint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddOrUpdateTaint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.AddOrUpdateTaint"
 
-noncomputable def TaintExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TaintExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.TaintExists"
 
-noncomputable def TaintKeyExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TaintKeyExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.TaintKeyExists"
 
-noncomputable def TaintSetDiff [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TaintSetDiff [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.TaintSetDiff"
 
-noncomputable def TaintSetFilter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TaintSetFilter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.TaintSetFilter"
 
-noncomputable def CheckTaintValidation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckTaintValidation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.CheckTaintValidation"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.util.taints where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.kubernetes.pkg.util.taints)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.kubernetes.pkg.util.taints
 

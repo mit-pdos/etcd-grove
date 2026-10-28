@@ -16,7 +16,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Obj)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -28,7 +28,6 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   iapply wp_fupd
   (try wp_auto)
   ipersist reject
-  rw [recv_eq_func_mk]
   imodintro
   iapply HΦ
   iunfold validateD

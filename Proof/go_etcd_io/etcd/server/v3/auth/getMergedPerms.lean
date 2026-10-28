@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -102,7 +102,9 @@ theorem auth.getMergedPerms.wp_proof
         have h0 : sint.nat (W64 0) = 0 := rfl
         refine ⟨by word, by word, ?_, ?_⟩ <;>
           (rw [show List.take (sint.nat (W64 0)) ur.roles = [] from rfl]; simp [ivlsOf, userPerms])
+      iapply wp_fupd
       wp_for IH
+      cleanup_bool_decide
       wp_if_destruct
       · -- another role
         have hlt : sint.Z n < sint.Z rs.len := by
@@ -136,8 +138,7 @@ theorem auth.getMergedPerms.wp_proof
             dsimp only
             icases Hrole with -
             wp_for_post
-            isplitl [HΦ]
-            · iexact HΦ
+            iframe HΦ «$res0»
             iexists n + W64 1, rn', Lr, Lw
             iframe
             ipureintro
@@ -191,6 +192,7 @@ theorem auth.getMergedPerms.wp_proof
               simp only [List.filterMap_nil, List.append_nil]
               exact ⟨by word, by word, Hn.2.2.1, Hn.2.2.2⟩
             wp_for IH2
+            cleanup_bool_decide
             wp_if_destruct
             · -- a permission
               have hlt2 : sint.Z m < sint.Z kp.len := by
@@ -405,8 +407,7 @@ theorem auth.getMergedPerms.wp_proof
                     exact ⟨Hm.2.2.1, Hm.2.2.2⟩
               -- the next permission
               wp_for_post
-              isplitl [HΦ]
-              · iexact HΦ
+              iframe HΦ «$res0»
               iexists m + W64 1, pp', Lr'', Lw''
               iframe
               ipureintro
@@ -420,18 +421,20 @@ theorem auth.getMergedPerms.wp_proof
               have hmlen : sint.nat m = pps.length := by
                 have := Hm.2.1; rw [Hkl.1] at this ⊢; have := Hkl.2; word
               wp_for_post
-              isplitl [HΦ]
-              · iexact HΦ
+              iframe HΦ «$res0»
               iexists n + W64 1, rn', Lr', Lw'
               iframe
               ipureintro
               have hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by
                 have := Hrl.1; have := Hrl.2; word
-              have hall : (rr.perms.take (sint.nat m)).filterMap permOfWire = ps := by
-                rw [hmlen, Hplen, List.take_length, ← Hrrps]; rfl
-              rw [hall] at Hm
+              have hall : ((rr.perms.take (sint.nat m)).filterMap permOfWire).Perm ps := by
+                rw [hmlen, Hplen, List.take_length]; exact Hrrps
+              have hiv : ∀ op, (ivlsOf op (userPerms st (ur.roles.take (sint.nat n)) ++
+                  (rr.perms.take (sint.nat m)).filterMap permOfWire)).Perm
+                  (ivlsOf op (userPerms st (ur.roles.take (sint.nat n)) ++ ps)) := fun op =>
+                ((hall.append_left _).filter _).map _
               rw [hsucc, userPerms_take_succ st ur.roles (sint.nat n) rn' hrn, hps, Option.getD_some]
-              exact ⟨by word, by omega, Hm.2.2.1, Hm.2.2.2⟩
+              exact ⟨by word, by omega, Hm.2.2.1.trans (hiv _), Hm.2.2.2.trans (hiv _)⟩
       · have hge : ¬ sint.Z n < sint.Z rs.len := by
           first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
         ihave %Hrl := ownSlice_len _ _ _ $$ Hroles
@@ -441,14 +444,15 @@ theorem auth.getMergedPerms.wp_proof
         -- the trees are complete: read-only from now on
         imod (adt.ownIvtB_persist tr Lr) $$ Htr with #Htr
         imod (adt.ownIvtB_persist tw Lw) $$ Htw with #Htw
-        wp_alloc p as Hp
+        irename «$r0» => Hp
+        generalize «$r0_ptr» = p at *
         ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
         icases typedPointsto_split _ _ _ $$ Hp with Hp
         simp only [TypedPointsto.typedPointstoDef]
         iNamed Hp
         imod adt.tp_persist _ _ _ $$ readPerms with #readPerms
         imod adt.tp_persist _ _ _ $$ writePerms with #writePerms
-        (try wp_auto)
+        imodintro
         iapply HΦ
         iframe Htok
         iright

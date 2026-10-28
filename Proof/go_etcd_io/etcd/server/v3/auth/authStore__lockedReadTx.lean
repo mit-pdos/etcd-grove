@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -33,6 +33,7 @@ theorem auth.authStore.lockedReadTx.wp_proof :
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, -, -, -, -, -, -⟩
   iunfold beRd at Hrd
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
@@ -47,7 +48,7 @@ theorem auth.authStore.lockedReadTx.wp_proof :
   iunfold authReadTxOk at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%Hs, #HRL, -, #Hreads⟩
+  icases Htx with ⟨%Hs, #HRL, -, -, #Hreads⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
   iapply HRL $$ HR

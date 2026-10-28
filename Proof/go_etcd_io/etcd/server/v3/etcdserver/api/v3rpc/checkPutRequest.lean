@@ -31,7 +31,7 @@ local macro "v3rpc_put_fin" : tactic => `(tactic| (
     | (unfold txn.errVarIs v3rpc.CheckErr.var; iexists _; iframe #; itrivial)))
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

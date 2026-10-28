@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -86,6 +86,7 @@ theorem Server.list.wp_proof
   iNamed Hs
   iNamed Hcfg
   icases lo_sel opts dq lo $$ Ho with ⟨Ho, %Hsel⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_if_destruct
   · wp_if_destruct

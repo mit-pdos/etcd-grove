@@ -21,7 +21,7 @@ namespace mvcc
 open go_etcd_io.etcd.server.v3.storage.mvcc
 
 section maps
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 theorem revVal_inj' {a b : Rev} (h : revVal a = revVal b) : a = b := by
   have := congrArg revOf h

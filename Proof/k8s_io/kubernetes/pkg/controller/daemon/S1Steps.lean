@@ -35,7 +35,7 @@ namespace dsctl
 open apimodel informer consistency resourceversion
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **The DaemonSet S1 is about**: its owner key (`types.NamespacedName`, the consistency store's
 and the work queue's key) and its UID. -/

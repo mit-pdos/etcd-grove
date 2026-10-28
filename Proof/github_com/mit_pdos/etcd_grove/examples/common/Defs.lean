@@ -9,8 +9,9 @@ own, at its configuration, and give these (`bootPremise_of`-style conversions in
 **The configuration** (`cfgOk`): the scalar fields `newServer` sets for member `name` of a new
 cluster with token `token`: data directory `name.etcd`, raft's clock `100` ms and `10` ticks.
 
-**`bootstrap`'s contract** (`bootPremise`): at every storage registry and raft names of the cluster
-`ps` (static, no-snapshot mode, the bootstrap log, the conf-change policy `ccOk ps`), for a
+**`bootstrap`'s contract** (`bootPremise`): at every server raft names of the cluster `ps` (static,
+the bootstrap log; 2026-10-27, the server port: until then raft's names, with raft's no-snapshot and
+no-transfer modes and the conf-change policy `ccOk ps`), at the peers' contexts `ctxs`, for a
 configuration with those fields and URLs `U` meeting `Uok` (one member's `urls1`, a three-member
 cluster's `urls3`: the member's peer and client URLs, the initial cluster's map of the shape the
 caller builds, the initial URLs by name), at the bound `N` and the directory `dir`.
@@ -49,17 +50,32 @@ namespace common
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
-/-- **The server's conf-change policy for the cluster `ps`** (`srvCCPolicy`'s clauses, D19c): a v1
-conf change, a `ConfChange` encoding of id `0`, which changes nothing of the configuration. -/
-def ccOk (ps : List w64) : w32 → List w8 → Prop := fun ty d =>
-  ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk (GMap.listToSet ps) d
+/-- **The bootstrap log's conf changes, for the cluster `ps`** (2026-10-27, the server port; until
+then the conf-change policy `ccOk ps`, raft's `reCCOk`): each entry's bytes are a `ConfChange` of id
+`0` that the server's `applyConfChange` takes (`ccBootOk`: an `AddNode` of a member of `ps`, its
+context that member), what `srvClusterBoot_alloc` takes of the bootstrap log. -/
+def bootCCOk (ps : List w64) (bootLog : List EntryM) : Prop :=
+  ∀ e ∈ bootLog, ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
 
 /-- A URL `http://<host>`. -/
 def httpURL (host : GoString) : _root_.Perennial.net.url.URL :=
   { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],
     RawQuery' := [], RawPath' := [], RawFragment' := [], ForceQuery' := false, OmitHost' := false }
+
+/-- **`[http://host]` is the member's directory URLs** (D22 J-T, W8: `NewServer`'s
+`peerURLsDir` premise, from a well-formed directory holding `http://host` for the member). -/
+theorem peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoString)
+    (hd : netDirOk dir) (hm : go!"http://" ++ host ∈ dir id) :
+    peerURLsDir dir id [httpURL host] := by
+  refine ⟨by simp, fun u hu => ?_⟩
+  rw [List.mem_singleton.1 hu]
+  have hpl := (hd.2.2 id _ hm).2
+  rw [List.drop_left' (by rfl)] at hpl
+  obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape host hpl
+  have he : stringToGoString "" = [] := by simp [stringToGoString]
+  exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, hm⟩
 
 /-- **The URLs of a one-member cluster's member `name`** (`StartServer`'s): its peer URLs
 `[http://peerAddr]`, its client URLs `[http://client]`, the initial cluster's map `{name ↦ _}` and
@@ -81,7 +97,7 @@ def urls3 (n₁ n₂ n₃ : GoString) (iu : GoString → List _root_.Perennial.n
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -98,47 +114,41 @@ def cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.Server
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 
 /-- **`bootstrap`'s contract for member `name`** (id `id`) of the cluster `ps` with token `token`,
-at every storage registry and raft names of the cluster, for its configuration and URLs meeting
-`Uok`, at the bound `N`, the bootstrap log and the directory `dir` (see the file header). -/
-def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (dir : w64 → List GoString)
-    (token name : GoString) (Uok : BootURLs → Prop) (id : w64) : IProp GF :=
-  iprop(□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-        (γ : RaftNames),
-      ⌜cfgOk token name cfg ∧ Uok U ∧ γ.reCfg = GMap.listToSet ps ∧
-        γ.reDyn = none ∧ γ.reCCOk = ccOk ps ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
-        γ.reNoXfer = true⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N dir)
+at every server raft names of the cluster (its peers `ps`, static, its bootstrap log `bootLog`; at
+the storage registry they name), for its configuration and URLs meeting `Uok`, at the peers'
+contexts `ctxs`, the bound `N` and the directory `dir` (see the file header). -/
+def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
+    (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) :
+    IProp GF :=
+  iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
+      ⌜cfgOk token name cfg ∧ Uok U ∧ γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = bootLog⌝ -∗
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
 instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM)
-    (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) :
-    Persistent (bootPremise (GF := GF) N ps bootLog dir token name Uok id) := by
+    (ctxs : List (List w8)) (dir : w64 → List GoString) (token name : GoString)
+    (Uok : BootURLs → Prop) (id : w64) :
+    Persistent (bootPremise (GF := GF) N ps bootLog ctxs dir token name Uok id) := by
   unfold bootPremise; infer_instance
 
 /-- **`bootPremise` from an example's own form of it** (its `premises`' clause, at its configuration
-predicate `cfgOk'`, URLs predicate `Uok'` and conf-change policy `cc'`): this one asks less, when
-the shared start's configuration meets the example's (`Hc`), its URLs too (`Hu`), and the policies
-are one. -/
-theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM)
+predicate `cfgOk'` and URLs predicate `Uok'`): this one asks less, when the shared start's
+configuration meets the example's (`Hc`) and its URLs too (`Hu`). -/
+theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64)
     (cfgOk' : go_etcd_io.etcd.server.v3.config.ServerConfig → Prop) (Uok' : BootURLs → Prop)
-    (cc' : w32 → List w8 → Prop)
-    (Hc : ∀ cfg, cfgOk token name cfg → cfgOk' cfg) (Hu : ∀ U, Uok U → Uok' U)
-    (Hcc : cc' = ccOk ps) :
-    (□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-        (γ : RaftNames),
-      ⌜cfgOk' cfg ∧ Uok' U ∧ γ.reCfg = GMap.listToSet ps ∧
-        γ.reDyn = none ∧ γ.reCCOk = cc' ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
-        γ.reNoXfer = true⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N dir) ⊢
-      bootPremise (GF := GF) N ps bootLog dir token name Uok id := by
+    (Hc : ∀ cfg, cfgOk token name cfg → cfgOk' cfg) (Hu : ∀ U, Uok U → Uok' U) :
+    (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
+      ⌜cfgOk' cfg ∧ Uok' U ∧ γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = bootLog⌝ -∗
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir) ⊢
+      bootPremise (GF := GF) N ps bootLog ctxs dir token name Uok id := by
   iintro #H
   iunfold bootPremise
   imodintro
-  iintro %reg %cfg %U %γ %Hp
-  obtain ⟨hc, hu, h1, h2, h3, h4, h5, h6⟩ := Hp
+  iintro %cfg %U %γ %Hp
+  obtain ⟨hc, hu, h1, h2, h3⟩ := Hp
   iapply H
   ipureintro
-  exact ⟨Hc cfg hc, Hu U hu, h1, h2, by rw [Hcc]; exact h3, h4, h5, h6⟩
+  exact ⟨Hc cfg hc, Hu U hu, h1, h2, h3⟩
 
 /-- **The premises shared by the members** (see the file header). -/
 def commonPremises : IProp GF :=
@@ -162,31 +172,34 @@ def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
 /-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
 resources at its names, its share): `NewServer.spec`'s precondition but the network's and the
 premises'. -/
-def memberBoot (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM)
+def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) :
     IProp GF :=
-  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ srvCCPolicy ρ.rd.raft ∧
+  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ γ.dyn = false ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
-    ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog ∗ raftCommitInv γ ∗
-    inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
+    -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
+    -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
+    nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-    idShare ρ.ids ∗ rdCred γ (2 ^ 48) ∗ idWaitTok ρ.ids ∗
+    idShare ρ.ids ∗ readCredits γ.cl (2 ^ 48) ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
     ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
     srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv ∗
-    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names raft's
-    -- names give it (`RaftNames.reSnapLoc`, `NewServer`'s)
-    ∃ γd : GName, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
+    -- (2026-10-27, the server port) the member's storage registry, empty, at the names' (`SrvRaft.reg`;
+    -- until then `newServer` allocated it): a member's `bootstrap` joins its own
+    ghostMapAuth γ.reg 1 (∅ : GMap Loc MemStorNamesRec) ∗
+    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
+    -- cluster gives it (`SrvRaft.snapLoc`, `NewServer`'s)
+    ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
 
 /-- **A member built** (`newServer`'s success): the server `s` built by `NewServer` with the
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a
 configuration `cfg` with the logger `lg`, no tracer options and no progress-notify interval:
-`isServerBuilt` (from `NewServer`'s `srvBuilt` and `srvBuildGap`, at the bound `N` and the term
-budget `bud`), what `Start` takes besides (the storage version monitor's backend access, the
+`isServerBuilt` (from `NewServer`'s `srvBuilt` and `srvBuildGap`, at the bound `N`), what `Start` takes besides (the storage version monitor's backend access, the
 monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServer` left for serving
 (`srvServeBuilt`, the watchable store's readers) and for the member's place in the network `γn`
 (`srvNetMember`, with its transport `τ`; 2026-10-24, rafthttp stage 6d: the raft loop's key to the
@@ -194,14 +207,14 @@ transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader token
 what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer address is served:
 `served`). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) (N : Nat) (bud : BudgetNames) (served : Bool) : IProp GF :=
+    (id : w64) (N : Nat) (served : Bool) : IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
       (γk : GName) (τ : SrvTr GF),
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk))
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk))
       γrn b (W64 0)
       (W64 0) (W64 0) bootKV N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗

@@ -21,7 +21,7 @@ namespace k8s
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -33,7 +33,6 @@ theorem corruptObjErrAggregatorFactory.wp_proof : corruptObjErrAggregatorFactory
   wp_auto
   cases decide (sint.Z n ≤ sint.Z (W64 0))
   · wp_auto
-    rw [recv_eq_func_mk]
     iapply HΦ
     itrivial
   · wp_auto

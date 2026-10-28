@@ -15,7 +15,7 @@ namespace Perennial
 
 namespace google_golang_org.protobuf.reflect.protoreflect
 section code
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-! ### The type descriptors (`value_unsafe.go`)
 

@@ -68,7 +68,7 @@ structure SchedNames where
   jobs : GName
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -138,7 +138,7 @@ def schedPost (γ : SchedNames) (tr : Option (List GName × GName × GName)) : I
 end defs
 
 section jobs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -212,7 +212,7 @@ worker closes it (its close right `dc`).
 -/
 
 section fifoFields
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- Field addresses of a `*fifo`. -/
 abbrev fifoMu (l : Loc) : Loc := structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l
@@ -236,7 +236,7 @@ abbrev fifoLg (l : Loc) : Loc := structFieldRef go_etcd_io.etcd.pkg.v3.schedule.
 end fifoFields
 
 section fifo
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -416,7 +416,7 @@ instance fifoOf_persistent (f : GoInterface) (γ : SchedNames) :
 end fifo
 
 section isFifo
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -443,7 +443,7 @@ instance isFifo_persistent (f : GoInterface) (γ : SchedNames) :
 end isFifo
 
 section fifo2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -2,6 +2,15 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.errors
+public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.github_com.jonboulle.clockwork
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
+public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
@@ -16,40 +25,195 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
-namespace Compactable
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
-
-noncomputable instance Compactable_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactable :=
-  sorry -- axiomatized type
-
-noncomputable instance Compactable_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactable go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactable.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Compactable
-
 namespace Periodic
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
 
 noncomputable instance Periodic_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"lg" l) v.lg' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"clock" l) v.clock' dq ∗
+    "period" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"period" l) v.period' dq ∗
+    "rg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"rg" l) v.rg' dq ∗
+    "c" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"c" l) v.c' dq ∗
+    "revs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"revs" l) v.revs' dq ∗
+    "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"ctx" l) v.ctx' dq ∗
+    "cancel" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"cancel" l) v.cancel' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"mu" l) v.mu' dq ∗
+    "paused" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"paused" l) v.paused' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Periodic_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Periodic_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_clock (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"clock" l) v.clock' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_clock (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (clock' : github_com.jonboulle.clockwork.Clock) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"clock" l) clock' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := clock' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_period (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"period" l) v.period' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"period" l) v.period' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_period (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (period' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"period" l) v.period' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"period" l) period' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with period' := period' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_rg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"rg" l) v.rg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"rg" l) v.rg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_rg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (rg' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.RevGetter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"rg" l) v.rg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"rg" l) rg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rg' := rg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"c" l) v.c' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (c' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactable) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"c" l) v.c' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"c" l) c' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_revs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"revs" l) v.revs' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"revs" l) v.revs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_revs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (revs' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"revs" l) v.revs' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"revs" l) revs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with revs' := revs' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"ctx" l) v.ctx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (ctx' : context.Context) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"ctx" l) v.ctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"ctx" l) ctx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := ctx' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"cancel" l) v.cancel' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"cancel" l) v.cancel' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (cancel' : context.CancelFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"cancel" l) v.cancel' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"cancel" l) cancel' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancel' := cancel' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (mu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_load_paused (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"paused" l) v.paused' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"paused" l) v.paused' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Periodic_access_store_paused (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (paused' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"paused" l) v.paused' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"paused" l) paused' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with paused' := paused' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Periodic
@@ -57,18 +221,175 @@ end Periodic
 namespace Revision
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
 
 noncomputable instance Revision_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"lg" l) v.lg' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"clock" l) v.clock' dq ∗
+    "retention" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"retention" l) v.retention' dq ∗
+    "rg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"rg" l) v.rg' dq ∗
+    "c" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"c" l) v.c' dq ∗
+    "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"ctx" l) v.ctx' dq ∗
+    "cancel" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"cancel" l) v.cancel' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"mu" l) v.mu' dq ∗
+    "paused" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"paused" l) v.paused' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Revision_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Revision_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_load_clock (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"clock" l) v.clock' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_clock (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (clock' : github_com.jonboulle.clockwork.Clock) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"clock" l) clock' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := clock' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_load_retention (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"retention" l) v.retention' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"retention" l) v.retention' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_retention (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (retention' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"retention" l) v.retention' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"retention" l) retention' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with retention' := retention' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_load_rg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"rg" l) v.rg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"rg" l) v.rg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_rg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (rg' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.RevGetter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"rg" l) v.rg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"rg" l) rg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rg' := rg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_load_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"c" l) v.c' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (c' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactable) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"c" l) v.c' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"c" l) c' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"ctx" l) v.ctx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (ctx' : context.Context) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"ctx" l) v.ctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"ctx" l) ctx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := ctx' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_load_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"cancel" l) v.cancel' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"cancel" l) v.cancel' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (cancel' : context.CancelFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"cancel" l) v.cancel' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"cancel" l) cancel' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancel' := cancel' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_load_paused (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"paused" l) v.paused' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"paused" l) v.paused' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Revision_access_store_paused (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (paused' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"paused" l) v.paused' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"paused" l) paused' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with paused' := paused' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Revision

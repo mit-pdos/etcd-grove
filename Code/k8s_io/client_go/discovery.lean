@@ -20,370 +20,370 @@ end pkg_id
 
 namespace k8s_io.client_go.discovery
 
-noncomputable def StaleGroupVersionError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StaleGroupVersionError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.StaleGroupVersionError" [])
 
 attribute [irreducible] StaleGroupVersionError.ty
 
-noncomputable def DiscoveryInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.DiscoveryInterface" [])
 
 attribute [irreducible] DiscoveryInterface.ty
 
-noncomputable def DiscoveryInterfaceWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryInterfaceWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.DiscoveryInterfaceWithContext" [])
 
 attribute [irreducible] DiscoveryInterfaceWithContext.ty
 
-noncomputable def DiscoveryInterfaces.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryInterfaces.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.DiscoveryInterfaces" [])
 
 attribute [irreducible] DiscoveryInterfaces.ty
 
-noncomputable def discoveryInterfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def discoveryInterfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.discoveryInterfaceWrapper" [])
 
 attribute [irreducible] discoveryInterfaceWrapper.ty
 
-noncomputable def AggregatedDiscoveryInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AggregatedDiscoveryInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.AggregatedDiscoveryInterface" [])
 
 attribute [irreducible] AggregatedDiscoveryInterface.ty
 
-noncomputable def AggregatedDiscoveryInterfaceWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AggregatedDiscoveryInterfaceWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.AggregatedDiscoveryInterfaceWithContext" [])
 
 attribute [irreducible] AggregatedDiscoveryInterfaceWithContext.ty
 
-noncomputable def aggregatedDiscoveryInterfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aggregatedDiscoveryInterfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.aggregatedDiscoveryInterfaceWrapper" [])
 
 attribute [irreducible] aggregatedDiscoveryInterfaceWrapper.ty
 
-noncomputable def CachedDiscoveryInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CachedDiscoveryInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.CachedDiscoveryInterface" [])
 
 attribute [irreducible] CachedDiscoveryInterface.ty
 
-noncomputable def CachedDiscoveryInterfaceWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CachedDiscoveryInterfaceWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.CachedDiscoveryInterfaceWithContext" [])
 
 attribute [irreducible] CachedDiscoveryInterfaceWithContext.ty
 
-noncomputable def cachedDiscoveryInterfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cachedDiscoveryInterfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.cachedDiscoveryInterfaceWrapper" [])
 
 attribute [irreducible] cachedDiscoveryInterfaceWrapper.ty
 
-noncomputable def ServerGroupsInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerGroupsInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ServerGroupsInterface" [])
 
 attribute [irreducible] ServerGroupsInterface.ty
 
-noncomputable def ServerGroupsInterfaceWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerGroupsInterfaceWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ServerGroupsInterfaceWithContext" [])
 
 attribute [irreducible] ServerGroupsInterfaceWithContext.ty
 
-noncomputable def serverGroupsInterfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverGroupsInterfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.serverGroupsInterfaceWrapper" [])
 
 attribute [irreducible] serverGroupsInterfaceWrapper.ty
 
-noncomputable def ServerResourcesInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerResourcesInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ServerResourcesInterface" [])
 
 attribute [irreducible] ServerResourcesInterface.ty
 
-noncomputable def ServerResourcesInterfaceWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerResourcesInterfaceWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ServerResourcesInterfaceWithContext" [])
 
 attribute [irreducible] ServerResourcesInterfaceWithContext.ty
 
-noncomputable def serverResourcesInterfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverResourcesInterfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.serverResourcesInterfaceWrapper" [])
 
 attribute [irreducible] serverResourcesInterfaceWrapper.ty
 
-noncomputable def ServerVersionInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerVersionInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ServerVersionInterface" [])
 
 attribute [irreducible] ServerVersionInterface.ty
 
-noncomputable def ServerVersionInterfaceWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerVersionInterfaceWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ServerVersionInterfaceWithContext" [])
 
 attribute [irreducible] ServerVersionInterfaceWithContext.ty
 
-noncomputable def serverVersionInterfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverVersionInterfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.serverVersionInterfaceWrapper" [])
 
 attribute [irreducible] serverVersionInterfaceWrapper.ty
 
-noncomputable def OpenAPISchemaInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OpenAPISchemaInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.OpenAPISchemaInterface" [])
 
 attribute [irreducible] OpenAPISchemaInterface.ty
 
-noncomputable def OpenAPISchemaInterfaceWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OpenAPISchemaInterfaceWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.OpenAPISchemaInterfaceWithContext" [])
 
 attribute [irreducible] OpenAPISchemaInterfaceWithContext.ty
 
-noncomputable def openAPISchemaInterfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def openAPISchemaInterfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.openAPISchemaInterfaceWrapper" [])
 
 attribute [irreducible] openAPISchemaInterfaceWrapper.ty
 
-noncomputable def OpenAPIV3SchemaInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OpenAPIV3SchemaInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.OpenAPIV3SchemaInterface" [])
 
 attribute [irreducible] OpenAPIV3SchemaInterface.ty
 
-noncomputable def OpenAPIV3SchemaInterfaceWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OpenAPIV3SchemaInterfaceWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.OpenAPIV3SchemaInterfaceWithContext" [])
 
 attribute [irreducible] OpenAPIV3SchemaInterfaceWithContext.ty
 
-noncomputable def openAPIV3SchemaInterfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def openAPIV3SchemaInterfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.openAPIV3SchemaInterfaceWrapper" [])
 
 attribute [irreducible] openAPIV3SchemaInterfaceWrapper.ty
 
-noncomputable def openAPIClientWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def openAPIClientWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.openAPIClientWrapper" [])
 
 attribute [irreducible] openAPIClientWrapper.ty
 
-noncomputable def DiscoveryClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.DiscoveryClient" [])
 
 attribute [irreducible] DiscoveryClient.ty
 
-noncomputable def ErrGroupDiscoveryFailed.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ErrGroupDiscoveryFailed.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ErrGroupDiscoveryFailed" [])
 
 attribute [irreducible] ErrGroupDiscoveryFailed.ty
 
-noncomputable def ResourcePredicate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourcePredicate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ResourcePredicate" [])
 
 attribute [irreducible] ResourcePredicate.ty
 
-noncomputable def ResourcePredicateFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourcePredicateFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.ResourcePredicateFunc" [])
 
 attribute [irreducible] ResourcePredicateFunc.ty
 
-noncomputable def SupportsAllVerbs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SupportsAllVerbs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/discovery.SupportsAllVerbs" [])
 
 attribute [irreducible] SupportsAllVerbs.ty
 
-axiom StaleGroupVersionError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StaleGroupVersionError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryInterfaceWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryInterfaces.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DiscoveryInterfaces.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom discoveryInterfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom discoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AggregatedDiscoveryInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom AggregatedDiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AggregatedDiscoveryInterfaceWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom AggregatedDiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aggregatedDiscoveryInterfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom aggregatedDiscoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CachedDiscoveryInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CachedDiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CachedDiscoveryInterfaceWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CachedDiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cachedDiscoveryInterfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cachedDiscoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerGroupsInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServerGroupsInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerGroupsInterfaceWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServerGroupsInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverGroupsInterfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serverGroupsInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerResourcesInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServerResourcesInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerResourcesInterfaceWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServerResourcesInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverResourcesInterfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serverResourcesInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerVersionInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServerVersionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerVersionInterfaceWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServerVersionInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverVersionInterfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serverVersionInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpenAPISchemaInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom OpenAPISchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpenAPISchemaInterfaceWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom OpenAPISchemaInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom openAPISchemaInterfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom openAPISchemaInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpenAPIV3SchemaInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom OpenAPIV3SchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpenAPIV3SchemaInterfaceWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom OpenAPIV3SchemaInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom openAPIV3SchemaInterfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom openAPIV3SchemaInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom openAPIClientWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom openAPIClientWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DiscoveryClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ErrGroupDiscoveryFailed.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ErrGroupDiscoveryFailed.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePredicate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourcePredicate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePredicateFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourcePredicateFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SupportsAllVerbs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SupportsAllVerbs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom defaultRetries [FfiSyntax] [GoGlobalContext] : val
+axiom defaultRetries [GooseExts] [GoGlobalContext] : val
 
-axiom openAPIV2mimePb [FfiSyntax] [GoGlobalContext] : val
+axiom openAPIV2mimePb [GooseExts] [GoGlobalContext] : val
 
-axiom defaultTimeout [FfiSyntax] [GoGlobalContext] : val
+axiom defaultTimeout [GooseExts] [GoGlobalContext] : val
 
-axiom defaultBurst [FfiSyntax] [GoGlobalContext] : val
+axiom defaultBurst [GooseExts] [GoGlobalContext] : val
 
-axiom AcceptV1 [FfiSyntax] [GoGlobalContext] : val
+axiom AcceptV1 [GooseExts] [GoGlobalContext] : val
 
-axiom AcceptV2 [FfiSyntax] [GoGlobalContext] : val
+axiom AcceptV2 [GooseExts] [GoGlobalContext] : val
 
-axiom AcceptV2NoPeer [FfiSyntax] [GoGlobalContext] : val
+axiom AcceptV2NoPeer [GooseExts] [GoGlobalContext] : val
 
-axiom acceptDiscoveryFormats [FfiSyntax] [GoGlobalContext] : val
+axiom acceptDiscoveryFormats [GooseExts] [GoGlobalContext] : val
 
-noncomputable def emptyKind [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.emptyKind"
 
-axiom emptyKind.init [FfiSyntax] [GoGlobalContext] : val
+axiom emptyKind.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def v2GVK [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def v2GVK [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.v2GVK"
 
-axiom v2GVK.init [FfiSyntax] [GoGlobalContext] : val
+axiom v2GVK.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SplitGroupsAndResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SplitGroupsAndResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.SplitGroupsAndResources"
 
-noncomputable def convertAPIGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def convertAPIGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.convertAPIGroup"
 
-noncomputable def convertAPIResource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def convertAPIResource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.convertAPIResource"
 
-noncomputable def convertAPISubresource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def convertAPISubresource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.convertAPISubresource"
 
-noncomputable def ToDiscoveryInterfaceWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToDiscoveryInterfaceWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ToDiscoveryInterfaceWithContext"
 
-noncomputable def ToAggregatedDiscoveryInterfaceWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToAggregatedDiscoveryInterfaceWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ToAggregatedDiscoveryInterfaceWithContext"
 
-noncomputable def ToCachedDiscoveryInterfaceWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToCachedDiscoveryInterfaceWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ToCachedDiscoveryInterfaceWithContext"
 
-noncomputable def ToServerGroupsInterfaceWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToServerGroupsInterfaceWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ToServerGroupsInterfaceWithContext"
 
-noncomputable def ToServerResourcesInterfaceWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToServerResourcesInterfaceWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ToServerResourcesInterfaceWithContext"
 
-noncomputable def ToServerVersionInterfaceWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToServerVersionInterfaceWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ToServerVersionInterfaceWithContext"
 
-noncomputable def ToOpenAPISchemaInterfaceWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToOpenAPISchemaInterfaceWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ToOpenAPISchemaInterfaceWithContext"
 
-noncomputable def OpenAPIV3ToSchemaInterfaceWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def OpenAPIV3ToSchemaInterfaceWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.OpenAPIV3ToSchemaInterfaceWithContext"
 
-noncomputable def ToOpenAPIClientWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToOpenAPIClientWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ToOpenAPIClientWithContext"
 
-noncomputable def apiVersionsToAPIGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def apiVersionsToAPIGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.apiVersionsToAPIGroup"
 
-noncomputable def selectDiscoveryAcceptHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def selectDiscoveryAcceptHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.selectDiscoveryAcceptHeader"
 
-noncomputable def ContentTypeIsGVK [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ContentTypeIsGVK [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ContentTypeIsGVK"
 
-noncomputable def IsGroupDiscoveryFailedError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsGroupDiscoveryFailedError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.IsGroupDiscoveryFailedError"
 
-noncomputable def GroupDiscoveryFailedErrorGroups [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GroupDiscoveryFailedErrorGroups [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.GroupDiscoveryFailedErrorGroups"
 
-noncomputable def ServerGroupsAndResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerGroupsAndResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ServerGroupsAndResources"
 
-noncomputable def ServerGroupsAndResourcesWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerGroupsAndResourcesWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ServerGroupsAndResourcesWithContext"
 
-noncomputable def ServerPreferredResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerPreferredResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ServerPreferredResources"
 
-noncomputable def ServerPreferredResourcesWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerPreferredResourcesWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ServerPreferredResourcesWithContext"
 
-noncomputable def fetchGroupVersionResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fetchGroupVersionResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.fetchGroupVersionResources"
 
-noncomputable def ServerPreferredNamespacedResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerPreferredNamespacedResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ServerPreferredNamespacedResources"
 
-noncomputable def ServerPreferredNamespacedResourcesWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerPreferredNamespacedResourcesWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ServerPreferredNamespacedResourcesWithContext"
 
-noncomputable def withRetries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def withRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.withRetries"
 
-noncomputable def setDiscoveryDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setDiscoveryDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.setDiscoveryDefaults"
 
-noncomputable def NewDiscoveryClientForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDiscoveryClientForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.NewDiscoveryClientForConfig"
 
-noncomputable def NewDiscoveryClientForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDiscoveryClientForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.NewDiscoveryClientForConfigAndClient"
 
-noncomputable def NewDiscoveryClientForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDiscoveryClientForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.NewDiscoveryClientForConfigOrDie"
 
-noncomputable def NewDiscoveryClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDiscoveryClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.NewDiscoveryClient"
 
-noncomputable def IsResourceEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsResourceEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.IsResourceEnabled"
 
-noncomputable def MatchesServerVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MatchesServerVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.MatchesServerVersion"
 
-noncomputable def ServerSupportsVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerSupportsVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.ServerSupportsVersion"
 
-noncomputable def GroupVersionResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GroupVersionResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.GroupVersionResources"
 
-noncomputable def FilteredBy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FilteredBy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.FilteredBy"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.discovery where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.discovery)) (Lam BAnon
   (App (Val exceptionDo)
@@ -400,419 +400,547 @@ axiom StaleGroupVersionError : Type
 axiom StaleGroupVersionError.zero_val : ZeroVal StaleGroupVersionError
 attribute [instance] StaleGroupVersionError.zero_val
 
-class StaleGroupVersionError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StaleGroupVersionError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StaleGroupVersionError.underlying StaleGroupVersionError
   underlying : go.UnderlyingDirectedEq StaleGroupVersionError.ty StaleGroupVersionError.underlying
   isUnderlying : go.IsUnderlying StaleGroupVersionError.underlying StaleGroupVersionError.underlying
+  method_set : go.MethodSetIs StaleGroupVersionError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StaleGroupVersionError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] StaleGroupVersionError.TypeAssumptions.type_repr
   StaleGroupVersionError.TypeAssumptions.underlying
   StaleGroupVersionError.TypeAssumptions.isUnderlying
+  StaleGroupVersionError.TypeAssumptions.method_set
+  StaleGroupVersionError.TypeAssumptions.ptr_method_set
 
 axiom DiscoveryInterface : Type
 axiom DiscoveryInterface.zero_val : ZeroVal DiscoveryInterface
 attribute [instance] DiscoveryInterface.zero_val
 
-class DiscoveryInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DiscoveryInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryInterface.underlying DiscoveryInterface
   underlying : go.UnderlyingDirectedEq DiscoveryInterface.ty DiscoveryInterface.underlying
   isUnderlying : go.IsUnderlying DiscoveryInterface.underlying DiscoveryInterface.underlying
+  method_set : go.MethodSetIs DiscoveryInterface.ty [(go!"OpenAPISchema", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/openapi.Client" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroups", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerGroupsAndResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredNamespacedResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacy", (some (go.signature.Signature [] false [DiscoveryInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryInterface.ty) []
 
 attribute [instance] DiscoveryInterface.TypeAssumptions.type_repr
   DiscoveryInterface.TypeAssumptions.underlying
   DiscoveryInterface.TypeAssumptions.isUnderlying
+  DiscoveryInterface.TypeAssumptions.method_set
+  DiscoveryInterface.TypeAssumptions.ptr_method_set
 
 axiom DiscoveryInterfaceWithContext : Type
 axiom DiscoveryInterfaceWithContext.zero_val : ZeroVal DiscoveryInterfaceWithContext
 attribute [instance] DiscoveryInterfaceWithContext.zero_val
 
-class DiscoveryInterfaceWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DiscoveryInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryInterfaceWithContext.underlying DiscoveryInterfaceWithContext
   underlying : go.UnderlyingDirectedEq DiscoveryInterfaceWithContext.ty DiscoveryInterfaceWithContext.underlying
   isUnderlying : go.IsUnderlying DiscoveryInterfaceWithContext.underlying DiscoveryInterfaceWithContext.underlying
+  method_set : go.MethodSetIs DiscoveryInterfaceWithContext.ty [(go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryInterfaceWithContext.ty) []
 
 attribute [instance] DiscoveryInterfaceWithContext.TypeAssumptions.type_repr
   DiscoveryInterfaceWithContext.TypeAssumptions.underlying
   DiscoveryInterfaceWithContext.TypeAssumptions.isUnderlying
+  DiscoveryInterfaceWithContext.TypeAssumptions.method_set
+  DiscoveryInterfaceWithContext.TypeAssumptions.ptr_method_set
 
 axiom DiscoveryInterfaces : Type
 axiom DiscoveryInterfaces.zero_val : ZeroVal DiscoveryInterfaces
 attribute [instance] DiscoveryInterfaces.zero_val
 
-class DiscoveryInterfaces.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DiscoveryInterfaces.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryInterfaces.underlying DiscoveryInterfaces
   underlying : go.UnderlyingDirectedEq DiscoveryInterfaces.ty DiscoveryInterfaces.underlying
   isUnderlying : go.IsUnderlying DiscoveryInterfaces.underlying DiscoveryInterfaces.underlying
+  method_set : go.MethodSetIs DiscoveryInterfaces.ty [(go!"OpenAPISchema", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/openapi.Client" [])]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroups", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerGroupsAndResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacy", (some (go.signature.Signature [] false [DiscoveryInterface.ty]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryInterfaces.ty) []
 
 attribute [instance] DiscoveryInterfaces.TypeAssumptions.type_repr
   DiscoveryInterfaces.TypeAssumptions.underlying
   DiscoveryInterfaces.TypeAssumptions.isUnderlying
+  DiscoveryInterfaces.TypeAssumptions.method_set
+  DiscoveryInterfaces.TypeAssumptions.ptr_method_set
 
 axiom discoveryInterfaceWrapper : Type
 axiom discoveryInterfaceWrapper.zero_val : ZeroVal discoveryInterfaceWrapper
 attribute [instance] discoveryInterfaceWrapper.zero_val
 
-class discoveryInterfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class discoveryInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying discoveryInterfaceWrapper.underlying discoveryInterfaceWrapper
   underlying : go.UnderlyingDirectedEq discoveryInterfaceWrapper.ty discoveryInterfaceWrapper.underlying
   isUnderlying : go.IsUnderlying discoveryInterfaceWrapper.underlying discoveryInterfaceWrapper.underlying
+  method_set : go.MethodSetIs discoveryInterfaceWrapper.ty [(go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType discoveryInterfaceWrapper.ty) [(go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
 
 attribute [instance] discoveryInterfaceWrapper.TypeAssumptions.type_repr
   discoveryInterfaceWrapper.TypeAssumptions.underlying
   discoveryInterfaceWrapper.TypeAssumptions.isUnderlying
+  discoveryInterfaceWrapper.TypeAssumptions.method_set
+  discoveryInterfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom AggregatedDiscoveryInterface : Type
 axiom AggregatedDiscoveryInterface.zero_val : ZeroVal AggregatedDiscoveryInterface
 attribute [instance] AggregatedDiscoveryInterface.zero_val
 
-class AggregatedDiscoveryInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AggregatedDiscoveryInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AggregatedDiscoveryInterface.underlying AggregatedDiscoveryInterface
   underlying : go.UnderlyingDirectedEq AggregatedDiscoveryInterface.ty AggregatedDiscoveryInterface.underlying
   isUnderlying : go.IsUnderlying AggregatedDiscoveryInterface.underlying AggregatedDiscoveryInterface.underlying
+  method_set : go.MethodSetIs AggregatedDiscoveryInterface.ty [(go!"GroupsAndMaybeResources", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) go.error), go.error]))), (go!"OpenAPISchema", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/openapi.Client" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroups", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerGroupsAndResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredNamespacedResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacy", (some (go.signature.Signature [] false [DiscoveryInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AggregatedDiscoveryInterface.ty) []
 
 attribute [instance] AggregatedDiscoveryInterface.TypeAssumptions.type_repr
   AggregatedDiscoveryInterface.TypeAssumptions.underlying
   AggregatedDiscoveryInterface.TypeAssumptions.isUnderlying
+  AggregatedDiscoveryInterface.TypeAssumptions.method_set
+  AggregatedDiscoveryInterface.TypeAssumptions.ptr_method_set
 
 axiom AggregatedDiscoveryInterfaceWithContext : Type
 axiom AggregatedDiscoveryInterfaceWithContext.zero_val : ZeroVal AggregatedDiscoveryInterfaceWithContext
 attribute [instance] AggregatedDiscoveryInterfaceWithContext.zero_val
 
-class AggregatedDiscoveryInterfaceWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AggregatedDiscoveryInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AggregatedDiscoveryInterfaceWithContext.underlying AggregatedDiscoveryInterfaceWithContext
   underlying : go.UnderlyingDirectedEq AggregatedDiscoveryInterfaceWithContext.ty AggregatedDiscoveryInterfaceWithContext.underlying
   isUnderlying : go.IsUnderlying AggregatedDiscoveryInterfaceWithContext.underlying AggregatedDiscoveryInterfaceWithContext.underlying
+  method_set : go.MethodSetIs AggregatedDiscoveryInterfaceWithContext.ty [(go!"GroupsAndMaybeResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) go.error), go.error]))), (go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AggregatedDiscoveryInterfaceWithContext.ty) []
 
 attribute [instance] AggregatedDiscoveryInterfaceWithContext.TypeAssumptions.type_repr
   AggregatedDiscoveryInterfaceWithContext.TypeAssumptions.underlying
   AggregatedDiscoveryInterfaceWithContext.TypeAssumptions.isUnderlying
+  AggregatedDiscoveryInterfaceWithContext.TypeAssumptions.method_set
+  AggregatedDiscoveryInterfaceWithContext.TypeAssumptions.ptr_method_set
 
 axiom aggregatedDiscoveryInterfaceWrapper : Type
 axiom aggregatedDiscoveryInterfaceWrapper.zero_val : ZeroVal aggregatedDiscoveryInterfaceWrapper
 attribute [instance] aggregatedDiscoveryInterfaceWrapper.zero_val
 
-class aggregatedDiscoveryInterfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class aggregatedDiscoveryInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying aggregatedDiscoveryInterfaceWrapper.underlying aggregatedDiscoveryInterfaceWrapper
   underlying : go.UnderlyingDirectedEq aggregatedDiscoveryInterfaceWrapper.ty aggregatedDiscoveryInterfaceWrapper.underlying
   isUnderlying : go.IsUnderlying aggregatedDiscoveryInterfaceWrapper.underlying aggregatedDiscoveryInterfaceWrapper.underlying
+  method_set : go.MethodSetIs aggregatedDiscoveryInterfaceWrapper.ty [(go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType aggregatedDiscoveryInterfaceWrapper.ty) [(go!"GroupsAndMaybeResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) go.error), go.error]))), (go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
 
 attribute [instance] aggregatedDiscoveryInterfaceWrapper.TypeAssumptions.type_repr
   aggregatedDiscoveryInterfaceWrapper.TypeAssumptions.underlying
   aggregatedDiscoveryInterfaceWrapper.TypeAssumptions.isUnderlying
+  aggregatedDiscoveryInterfaceWrapper.TypeAssumptions.method_set
+  aggregatedDiscoveryInterfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom CachedDiscoveryInterface : Type
 axiom CachedDiscoveryInterface.zero_val : ZeroVal CachedDiscoveryInterface
 attribute [instance] CachedDiscoveryInterface.zero_val
 
-class CachedDiscoveryInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CachedDiscoveryInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CachedDiscoveryInterface.underlying CachedDiscoveryInterface
   underlying : go.UnderlyingDirectedEq CachedDiscoveryInterface.ty CachedDiscoveryInterface.underlying
   isUnderlying : go.IsUnderlying CachedDiscoveryInterface.underlying CachedDiscoveryInterface.underlying
+  method_set : go.MethodSetIs CachedDiscoveryInterface.ty [(go!"Fresh", (some (go.signature.Signature [] false [go.bool]))), (go!"Invalidate", (some (go.signature.Signature [] false []))), (go!"OpenAPISchema", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/openapi.Client" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroups", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerGroupsAndResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredNamespacedResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacy", (some (go.signature.Signature [] false [DiscoveryInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CachedDiscoveryInterface.ty) []
 
 attribute [instance] CachedDiscoveryInterface.TypeAssumptions.type_repr
   CachedDiscoveryInterface.TypeAssumptions.underlying
   CachedDiscoveryInterface.TypeAssumptions.isUnderlying
+  CachedDiscoveryInterface.TypeAssumptions.method_set
+  CachedDiscoveryInterface.TypeAssumptions.ptr_method_set
 
 axiom CachedDiscoveryInterfaceWithContext : Type
 axiom CachedDiscoveryInterfaceWithContext.zero_val : ZeroVal CachedDiscoveryInterfaceWithContext
 attribute [instance] CachedDiscoveryInterfaceWithContext.zero_val
 
-class CachedDiscoveryInterfaceWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CachedDiscoveryInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CachedDiscoveryInterfaceWithContext.underlying CachedDiscoveryInterfaceWithContext
   underlying : go.UnderlyingDirectedEq CachedDiscoveryInterfaceWithContext.ty CachedDiscoveryInterfaceWithContext.underlying
   isUnderlying : go.IsUnderlying CachedDiscoveryInterfaceWithContext.underlying CachedDiscoveryInterfaceWithContext.underlying
+  method_set : go.MethodSetIs CachedDiscoveryInterfaceWithContext.ty [(go!"FreshWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.bool]))), (go!"InvalidateWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CachedDiscoveryInterfaceWithContext.ty) []
 
 attribute [instance] CachedDiscoveryInterfaceWithContext.TypeAssumptions.type_repr
   CachedDiscoveryInterfaceWithContext.TypeAssumptions.underlying
   CachedDiscoveryInterfaceWithContext.TypeAssumptions.isUnderlying
+  CachedDiscoveryInterfaceWithContext.TypeAssumptions.method_set
+  CachedDiscoveryInterfaceWithContext.TypeAssumptions.ptr_method_set
 
 axiom cachedDiscoveryInterfaceWrapper : Type
 axiom cachedDiscoveryInterfaceWrapper.zero_val : ZeroVal cachedDiscoveryInterfaceWrapper
 attribute [instance] cachedDiscoveryInterfaceWrapper.zero_val
 
-class cachedDiscoveryInterfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cachedDiscoveryInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cachedDiscoveryInterfaceWrapper.underlying cachedDiscoveryInterfaceWrapper
   underlying : go.UnderlyingDirectedEq cachedDiscoveryInterfaceWrapper.ty cachedDiscoveryInterfaceWrapper.underlying
   isUnderlying : go.IsUnderlying cachedDiscoveryInterfaceWrapper.underlying cachedDiscoveryInterfaceWrapper.underlying
+  method_set : go.MethodSetIs cachedDiscoveryInterfaceWrapper.ty [(go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cachedDiscoveryInterfaceWrapper.ty) [(go!"FreshWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.bool]))), (go!"InvalidateWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty])))]
 
 attribute [instance] cachedDiscoveryInterfaceWrapper.TypeAssumptions.type_repr
   cachedDiscoveryInterfaceWrapper.TypeAssumptions.underlying
   cachedDiscoveryInterfaceWrapper.TypeAssumptions.isUnderlying
+  cachedDiscoveryInterfaceWrapper.TypeAssumptions.method_set
+  cachedDiscoveryInterfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom ServerGroupsInterface : Type
 axiom ServerGroupsInterface.zero_val : ZeroVal ServerGroupsInterface
 attribute [instance] ServerGroupsInterface.zero_val
 
-class ServerGroupsInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerGroupsInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerGroupsInterface.underlying ServerGroupsInterface
   underlying : go.UnderlyingDirectedEq ServerGroupsInterface.ty ServerGroupsInterface.underlying
   isUnderlying : go.IsUnderlying ServerGroupsInterface.underlying ServerGroupsInterface.underlying
+  method_set : go.MethodSetIs ServerGroupsInterface.ty [(go!"ServerGroups", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerGroupsInterface.ty) []
 
 attribute [instance] ServerGroupsInterface.TypeAssumptions.type_repr
   ServerGroupsInterface.TypeAssumptions.underlying
   ServerGroupsInterface.TypeAssumptions.isUnderlying
+  ServerGroupsInterface.TypeAssumptions.method_set
+  ServerGroupsInterface.TypeAssumptions.ptr_method_set
 
 axiom ServerGroupsInterfaceWithContext : Type
 axiom ServerGroupsInterfaceWithContext.zero_val : ZeroVal ServerGroupsInterfaceWithContext
 attribute [instance] ServerGroupsInterfaceWithContext.zero_val
 
-class ServerGroupsInterfaceWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerGroupsInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerGroupsInterfaceWithContext.underlying ServerGroupsInterfaceWithContext
   underlying : go.UnderlyingDirectedEq ServerGroupsInterfaceWithContext.ty ServerGroupsInterfaceWithContext.underlying
   isUnderlying : go.IsUnderlying ServerGroupsInterfaceWithContext.underlying ServerGroupsInterfaceWithContext.underlying
+  method_set : go.MethodSetIs ServerGroupsInterfaceWithContext.ty [(go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerGroupsInterfaceWithContext.ty) []
 
 attribute [instance] ServerGroupsInterfaceWithContext.TypeAssumptions.type_repr
   ServerGroupsInterfaceWithContext.TypeAssumptions.underlying
   ServerGroupsInterfaceWithContext.TypeAssumptions.isUnderlying
+  ServerGroupsInterfaceWithContext.TypeAssumptions.method_set
+  ServerGroupsInterfaceWithContext.TypeAssumptions.ptr_method_set
 
 axiom serverGroupsInterfaceWrapper : Type
 axiom serverGroupsInterfaceWrapper.zero_val : ZeroVal serverGroupsInterfaceWrapper
 attribute [instance] serverGroupsInterfaceWrapper.zero_val
 
-class serverGroupsInterfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverGroupsInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverGroupsInterfaceWrapper.underlying serverGroupsInterfaceWrapper
   underlying : go.UnderlyingDirectedEq serverGroupsInterfaceWrapper.ty serverGroupsInterfaceWrapper.underlying
   isUnderlying : go.IsUnderlying serverGroupsInterfaceWrapper.underlying serverGroupsInterfaceWrapper.underlying
+  method_set : go.MethodSetIs serverGroupsInterfaceWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverGroupsInterfaceWrapper.ty) [(go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error])))]
 
 attribute [instance] serverGroupsInterfaceWrapper.TypeAssumptions.type_repr
   serverGroupsInterfaceWrapper.TypeAssumptions.underlying
   serverGroupsInterfaceWrapper.TypeAssumptions.isUnderlying
+  serverGroupsInterfaceWrapper.TypeAssumptions.method_set
+  serverGroupsInterfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom ServerResourcesInterface : Type
 axiom ServerResourcesInterface.zero_val : ZeroVal ServerResourcesInterface
 attribute [instance] ServerResourcesInterface.zero_val
 
-class ServerResourcesInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerResourcesInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerResourcesInterface.underlying ServerResourcesInterface
   underlying : go.UnderlyingDirectedEq ServerResourcesInterface.ty ServerResourcesInterface.underlying
   isUnderlying : go.IsUnderlying ServerResourcesInterface.underlying ServerResourcesInterface.underlying
+  method_set : go.MethodSetIs ServerResourcesInterface.ty [(go!"ServerGroupsAndResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredNamespacedResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerResourcesInterface.ty) []
 
 attribute [instance] ServerResourcesInterface.TypeAssumptions.type_repr
   ServerResourcesInterface.TypeAssumptions.underlying
   ServerResourcesInterface.TypeAssumptions.isUnderlying
+  ServerResourcesInterface.TypeAssumptions.method_set
+  ServerResourcesInterface.TypeAssumptions.ptr_method_set
 
 axiom ServerResourcesInterfaceWithContext : Type
 axiom ServerResourcesInterfaceWithContext.zero_val : ZeroVal ServerResourcesInterfaceWithContext
 attribute [instance] ServerResourcesInterfaceWithContext.zero_val
 
-class ServerResourcesInterfaceWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerResourcesInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerResourcesInterfaceWithContext.underlying ServerResourcesInterfaceWithContext
   underlying : go.UnderlyingDirectedEq ServerResourcesInterfaceWithContext.ty ServerResourcesInterfaceWithContext.underlying
   isUnderlying : go.IsUnderlying ServerResourcesInterfaceWithContext.underlying ServerResourcesInterfaceWithContext.underlying
+  method_set : go.MethodSetIs ServerResourcesInterfaceWithContext.ty [(go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerResourcesInterfaceWithContext.ty) []
 
 attribute [instance] ServerResourcesInterfaceWithContext.TypeAssumptions.type_repr
   ServerResourcesInterfaceWithContext.TypeAssumptions.underlying
   ServerResourcesInterfaceWithContext.TypeAssumptions.isUnderlying
+  ServerResourcesInterfaceWithContext.TypeAssumptions.method_set
+  ServerResourcesInterfaceWithContext.TypeAssumptions.ptr_method_set
 
 axiom serverResourcesInterfaceWrapper : Type
 axiom serverResourcesInterfaceWrapper.zero_val : ZeroVal serverResourcesInterfaceWrapper
 attribute [instance] serverResourcesInterfaceWrapper.zero_val
 
-class serverResourcesInterfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverResourcesInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverResourcesInterfaceWrapper.underlying serverResourcesInterfaceWrapper
   underlying : go.UnderlyingDirectedEq serverResourcesInterfaceWrapper.ty serverResourcesInterfaceWrapper.underlying
   isUnderlying : go.IsUnderlying serverResourcesInterfaceWrapper.underlying serverResourcesInterfaceWrapper.underlying
+  method_set : go.MethodSetIs serverResourcesInterfaceWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverResourcesInterfaceWrapper.ty) [(go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error])))]
 
 attribute [instance] serverResourcesInterfaceWrapper.TypeAssumptions.type_repr
   serverResourcesInterfaceWrapper.TypeAssumptions.underlying
   serverResourcesInterfaceWrapper.TypeAssumptions.isUnderlying
+  serverResourcesInterfaceWrapper.TypeAssumptions.method_set
+  serverResourcesInterfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom ServerVersionInterface : Type
 axiom ServerVersionInterface.zero_val : ZeroVal ServerVersionInterface
 attribute [instance] ServerVersionInterface.zero_val
 
-class ServerVersionInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerVersionInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerVersionInterface.underlying ServerVersionInterface
   underlying : go.UnderlyingDirectedEq ServerVersionInterface.ty ServerVersionInterface.underlying
   isUnderlying : go.IsUnderlying ServerVersionInterface.underlying ServerVersionInterface.underlying
+  method_set : go.MethodSetIs ServerVersionInterface.ty [(go!"ServerVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerVersionInterface.ty) []
 
 attribute [instance] ServerVersionInterface.TypeAssumptions.type_repr
   ServerVersionInterface.TypeAssumptions.underlying
   ServerVersionInterface.TypeAssumptions.isUnderlying
+  ServerVersionInterface.TypeAssumptions.method_set
+  ServerVersionInterface.TypeAssumptions.ptr_method_set
 
 axiom ServerVersionInterfaceWithContext : Type
 axiom ServerVersionInterfaceWithContext.zero_val : ZeroVal ServerVersionInterfaceWithContext
 attribute [instance] ServerVersionInterfaceWithContext.zero_val
 
-class ServerVersionInterfaceWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerVersionInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerVersionInterfaceWithContext.underlying ServerVersionInterfaceWithContext
   underlying : go.UnderlyingDirectedEq ServerVersionInterfaceWithContext.ty ServerVersionInterfaceWithContext.underlying
   isUnderlying : go.IsUnderlying ServerVersionInterfaceWithContext.underlying ServerVersionInterfaceWithContext.underlying
+  method_set : go.MethodSetIs ServerVersionInterfaceWithContext.ty [(go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerVersionInterfaceWithContext.ty) []
 
 attribute [instance] ServerVersionInterfaceWithContext.TypeAssumptions.type_repr
   ServerVersionInterfaceWithContext.TypeAssumptions.underlying
   ServerVersionInterfaceWithContext.TypeAssumptions.isUnderlying
+  ServerVersionInterfaceWithContext.TypeAssumptions.method_set
+  ServerVersionInterfaceWithContext.TypeAssumptions.ptr_method_set
 
 axiom serverVersionInterfaceWrapper : Type
 axiom serverVersionInterfaceWrapper.zero_val : ZeroVal serverVersionInterfaceWrapper
 attribute [instance] serverVersionInterfaceWrapper.zero_val
 
-class serverVersionInterfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverVersionInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverVersionInterfaceWrapper.underlying serverVersionInterfaceWrapper
   underlying : go.UnderlyingDirectedEq serverVersionInterfaceWrapper.ty serverVersionInterfaceWrapper.underlying
   isUnderlying : go.IsUnderlying serverVersionInterfaceWrapper.underlying serverVersionInterfaceWrapper.underlying
+  method_set : go.MethodSetIs serverVersionInterfaceWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverVersionInterfaceWrapper.ty) [(go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error])))]
 
 attribute [instance] serverVersionInterfaceWrapper.TypeAssumptions.type_repr
   serverVersionInterfaceWrapper.TypeAssumptions.underlying
   serverVersionInterfaceWrapper.TypeAssumptions.isUnderlying
+  serverVersionInterfaceWrapper.TypeAssumptions.method_set
+  serverVersionInterfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom OpenAPISchemaInterface : Type
 axiom OpenAPISchemaInterface.zero_val : ZeroVal OpenAPISchemaInterface
 attribute [instance] OpenAPISchemaInterface.zero_val
 
-class OpenAPISchemaInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class OpenAPISchemaInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OpenAPISchemaInterface.underlying OpenAPISchemaInterface
   underlying : go.UnderlyingDirectedEq OpenAPISchemaInterface.ty OpenAPISchemaInterface.underlying
   isUnderlying : go.IsUnderlying OpenAPISchemaInterface.underlying OpenAPISchemaInterface.underlying
+  method_set : go.MethodSetIs OpenAPISchemaInterface.ty [(go!"OpenAPISchema", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpenAPISchemaInterface.ty) []
 
 attribute [instance] OpenAPISchemaInterface.TypeAssumptions.type_repr
   OpenAPISchemaInterface.TypeAssumptions.underlying
   OpenAPISchemaInterface.TypeAssumptions.isUnderlying
+  OpenAPISchemaInterface.TypeAssumptions.method_set
+  OpenAPISchemaInterface.TypeAssumptions.ptr_method_set
 
 axiom OpenAPISchemaInterfaceWithContext : Type
 axiom OpenAPISchemaInterfaceWithContext.zero_val : ZeroVal OpenAPISchemaInterfaceWithContext
 attribute [instance] OpenAPISchemaInterfaceWithContext.zero_val
 
-class OpenAPISchemaInterfaceWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class OpenAPISchemaInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OpenAPISchemaInterfaceWithContext.underlying OpenAPISchemaInterfaceWithContext
   underlying : go.UnderlyingDirectedEq OpenAPISchemaInterfaceWithContext.ty OpenAPISchemaInterfaceWithContext.underlying
   isUnderlying : go.IsUnderlying OpenAPISchemaInterfaceWithContext.underlying OpenAPISchemaInterfaceWithContext.underlying
+  method_set : go.MethodSetIs OpenAPISchemaInterfaceWithContext.ty [(go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpenAPISchemaInterfaceWithContext.ty) []
 
 attribute [instance] OpenAPISchemaInterfaceWithContext.TypeAssumptions.type_repr
   OpenAPISchemaInterfaceWithContext.TypeAssumptions.underlying
   OpenAPISchemaInterfaceWithContext.TypeAssumptions.isUnderlying
+  OpenAPISchemaInterfaceWithContext.TypeAssumptions.method_set
+  OpenAPISchemaInterfaceWithContext.TypeAssumptions.ptr_method_set
 
 axiom openAPISchemaInterfaceWrapper : Type
 axiom openAPISchemaInterfaceWrapper.zero_val : ZeroVal openAPISchemaInterfaceWrapper
 attribute [instance] openAPISchemaInterfaceWrapper.zero_val
 
-class openAPISchemaInterfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class openAPISchemaInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying openAPISchemaInterfaceWrapper.underlying openAPISchemaInterfaceWrapper
   underlying : go.UnderlyingDirectedEq openAPISchemaInterfaceWrapper.ty openAPISchemaInterfaceWrapper.underlying
   isUnderlying : go.IsUnderlying openAPISchemaInterfaceWrapper.underlying openAPISchemaInterfaceWrapper.underlying
+  method_set : go.MethodSetIs openAPISchemaInterfaceWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType openAPISchemaInterfaceWrapper.ty) [(go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error])))]
 
 attribute [instance] openAPISchemaInterfaceWrapper.TypeAssumptions.type_repr
   openAPISchemaInterfaceWrapper.TypeAssumptions.underlying
   openAPISchemaInterfaceWrapper.TypeAssumptions.isUnderlying
+  openAPISchemaInterfaceWrapper.TypeAssumptions.method_set
+  openAPISchemaInterfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom OpenAPIV3SchemaInterface : Type
 axiom OpenAPIV3SchemaInterface.zero_val : ZeroVal OpenAPIV3SchemaInterface
 attribute [instance] OpenAPIV3SchemaInterface.zero_val
 
-class OpenAPIV3SchemaInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class OpenAPIV3SchemaInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OpenAPIV3SchemaInterface.underlying OpenAPIV3SchemaInterface
   underlying : go.UnderlyingDirectedEq OpenAPIV3SchemaInterface.ty OpenAPIV3SchemaInterface.underlying
   isUnderlying : go.IsUnderlying OpenAPIV3SchemaInterface.underlying OpenAPIV3SchemaInterface.underlying
+  method_set : go.MethodSetIs OpenAPIV3SchemaInterface.ty [(go!"OpenAPIV3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/openapi.Client" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpenAPIV3SchemaInterface.ty) []
 
 attribute [instance] OpenAPIV3SchemaInterface.TypeAssumptions.type_repr
   OpenAPIV3SchemaInterface.TypeAssumptions.underlying
   OpenAPIV3SchemaInterface.TypeAssumptions.isUnderlying
+  OpenAPIV3SchemaInterface.TypeAssumptions.method_set
+  OpenAPIV3SchemaInterface.TypeAssumptions.ptr_method_set
 
 axiom OpenAPIV3SchemaInterfaceWithContext : Type
 axiom OpenAPIV3SchemaInterfaceWithContext.zero_val : ZeroVal OpenAPIV3SchemaInterfaceWithContext
 attribute [instance] OpenAPIV3SchemaInterfaceWithContext.zero_val
 
-class OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OpenAPIV3SchemaInterfaceWithContext.underlying OpenAPIV3SchemaInterfaceWithContext
   underlying : go.UnderlyingDirectedEq OpenAPIV3SchemaInterfaceWithContext.ty OpenAPIV3SchemaInterfaceWithContext.underlying
   isUnderlying : go.IsUnderlying OpenAPIV3SchemaInterfaceWithContext.underlying OpenAPIV3SchemaInterfaceWithContext.underlying
+  method_set : go.MethodSetIs OpenAPIV3SchemaInterfaceWithContext.ty [(go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpenAPIV3SchemaInterfaceWithContext.ty) []
 
 attribute [instance] OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions.type_repr
   OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions.underlying
   OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions.isUnderlying
+  OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions.method_set
+  OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions.ptr_method_set
 
 axiom openAPIV3SchemaInterfaceWrapper : Type
 axiom openAPIV3SchemaInterfaceWrapper.zero_val : ZeroVal openAPIV3SchemaInterfaceWrapper
 attribute [instance] openAPIV3SchemaInterfaceWrapper.zero_val
 
-class openAPIV3SchemaInterfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class openAPIV3SchemaInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying openAPIV3SchemaInterfaceWrapper.underlying openAPIV3SchemaInterfaceWrapper
   underlying : go.UnderlyingDirectedEq openAPIV3SchemaInterfaceWrapper.ty openAPIV3SchemaInterfaceWrapper.underlying
   isUnderlying : go.IsUnderlying openAPIV3SchemaInterfaceWrapper.underlying openAPIV3SchemaInterfaceWrapper.underlying
+  method_set : go.MethodSetIs openAPIV3SchemaInterfaceWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType openAPIV3SchemaInterfaceWrapper.ty) [(go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])])))]
 
 attribute [instance] openAPIV3SchemaInterfaceWrapper.TypeAssumptions.type_repr
   openAPIV3SchemaInterfaceWrapper.TypeAssumptions.underlying
   openAPIV3SchemaInterfaceWrapper.TypeAssumptions.isUnderlying
+  openAPIV3SchemaInterfaceWrapper.TypeAssumptions.method_set
+  openAPIV3SchemaInterfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom openAPIClientWrapper : Type
 axiom openAPIClientWrapper.zero_val : ZeroVal openAPIClientWrapper
 attribute [instance] openAPIClientWrapper.zero_val
 
-class openAPIClientWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class openAPIClientWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying openAPIClientWrapper.underlying openAPIClientWrapper
   underlying : go.UnderlyingDirectedEq openAPIClientWrapper.ty openAPIClientWrapper.underlying
   isUnderlying : go.IsUnderlying openAPIClientWrapper.underlying openAPIClientWrapper.underlying
+  method_set : go.MethodSetIs openAPIClientWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType openAPIClientWrapper.ty) [(go!"PathsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.MapType go.string (go.GoType.Named go!"k8s.io/client-go/openapi.GroupVersionWithContext" [])), go.error])))]
 
 attribute [instance] openAPIClientWrapper.TypeAssumptions.type_repr
   openAPIClientWrapper.TypeAssumptions.underlying
   openAPIClientWrapper.TypeAssumptions.isUnderlying
+  openAPIClientWrapper.TypeAssumptions.method_set
+  openAPIClientWrapper.TypeAssumptions.ptr_method_set
 
 axiom DiscoveryClient : Type
 axiom DiscoveryClient.zero_val : ZeroVal DiscoveryClient
 attribute [instance] DiscoveryClient.zero_val
 
-class DiscoveryClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DiscoveryClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryClient.underlying DiscoveryClient
   underlying : go.UnderlyingDirectedEq DiscoveryClient.ty DiscoveryClient.underlying
   isUnderlying : go.IsUnderlying DiscoveryClient.underlying DiscoveryClient.underlying
+  method_set : go.MethodSetIs DiscoveryClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryClient.ty) [(go!"GroupsAndMaybeResources", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) go.error), go.error]))), (go!"GroupsAndMaybeResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) go.error), go.error]))), (go!"OpenAPISchema", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPISchemaWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/google/gnostic-models/openapiv2.Document" [])), go.error]))), (go!"OpenAPIV3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/openapi.Client" [])]))), (go!"OpenAPIV3WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/client-go/openapi.ClientWithContext" [])]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ServerGroups", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerGroupsAndResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsAndResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerGroupsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), go.error]))), (go!"ServerPreferredNamespacedResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredNamespacedResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResources", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerPreferredResourcesWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), go.error]))), (go!"ServerResourcesForGroupVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerResourcesForGroupVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" [])), go.error]))), (go!"ServerVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"ServerVersionWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])), go.error]))), (go!"WithLegacy", (some (go.signature.Signature [] false [DiscoveryInterface.ty]))), (go!"WithLegacyWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [DiscoveryInterfaceWithContext.ty]))), (go!"k8s.io/client-go/discovery.downloadAPIs", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) go.error), go.error]))), (go!"k8s.io/client-go/discovery.downloadLegacy", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList" [])), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList" []))), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" []) go.error), go.error])))]
 
 attribute [instance] DiscoveryClient.TypeAssumptions.type_repr
   DiscoveryClient.TypeAssumptions.underlying
   DiscoveryClient.TypeAssumptions.isUnderlying
+  DiscoveryClient.TypeAssumptions.method_set
+  DiscoveryClient.TypeAssumptions.ptr_method_set
 
 axiom ErrGroupDiscoveryFailed : Type
 axiom ErrGroupDiscoveryFailed.zero_val : ZeroVal ErrGroupDiscoveryFailed
 attribute [instance] ErrGroupDiscoveryFailed.zero_val
 
-class ErrGroupDiscoveryFailed.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ErrGroupDiscoveryFailed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ErrGroupDiscoveryFailed.underlying ErrGroupDiscoveryFailed
   underlying : go.UnderlyingDirectedEq ErrGroupDiscoveryFailed.ty ErrGroupDiscoveryFailed.underlying
   isUnderlying : go.IsUnderlying ErrGroupDiscoveryFailed.underlying ErrGroupDiscoveryFailed.underlying
+  method_set : go.MethodSetIs ErrGroupDiscoveryFailed.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrGroupDiscoveryFailed.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
 
 attribute [instance] ErrGroupDiscoveryFailed.TypeAssumptions.type_repr
   ErrGroupDiscoveryFailed.TypeAssumptions.underlying
   ErrGroupDiscoveryFailed.TypeAssumptions.isUnderlying
+  ErrGroupDiscoveryFailed.TypeAssumptions.method_set
+  ErrGroupDiscoveryFailed.TypeAssumptions.ptr_method_set
 
 axiom ResourcePredicate : Type
 axiom ResourcePredicate.zero_val : ZeroVal ResourcePredicate
 attribute [instance] ResourcePredicate.zero_val
 
-class ResourcePredicate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourcePredicate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourcePredicate.underlying ResourcePredicate
   underlying : go.UnderlyingDirectedEq ResourcePredicate.ty ResourcePredicate.underlying
   isUnderlying : go.IsUnderlying ResourcePredicate.underlying ResourcePredicate.underlying
+  method_set : go.MethodSetIs ResourcePredicate.ty [(go!"Match", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResource" []))] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourcePredicate.ty) []
 
 attribute [instance] ResourcePredicate.TypeAssumptions.type_repr
   ResourcePredicate.TypeAssumptions.underlying
   ResourcePredicate.TypeAssumptions.isUnderlying
+  ResourcePredicate.TypeAssumptions.method_set
+  ResourcePredicate.TypeAssumptions.ptr_method_set
 
 axiom ResourcePredicateFunc : Type
 axiom ResourcePredicateFunc.zero_val : ZeroVal ResourcePredicateFunc
 attribute [instance] ResourcePredicateFunc.zero_val
 
-class ResourcePredicateFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourcePredicateFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourcePredicateFunc.underlying ResourcePredicateFunc
   underlying : go.UnderlyingDirectedEq ResourcePredicateFunc.ty ResourcePredicateFunc.underlying
   isUnderlying : go.IsUnderlying ResourcePredicateFunc.underlying ResourcePredicateFunc.underlying
+  method_set : go.MethodSetIs ResourcePredicateFunc.ty [(go!"Match", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResource" []))] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourcePredicateFunc.ty) [(go!"Match", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResource" []))] false [go.bool])))]
 
 attribute [instance] ResourcePredicateFunc.TypeAssumptions.type_repr
   ResourcePredicateFunc.TypeAssumptions.underlying
   ResourcePredicateFunc.TypeAssumptions.isUnderlying
+  ResourcePredicateFunc.TypeAssumptions.method_set
+  ResourcePredicateFunc.TypeAssumptions.ptr_method_set
 
 axiom SupportsAllVerbs : Type
 axiom SupportsAllVerbs.zero_val : ZeroVal SupportsAllVerbs
 attribute [instance] SupportsAllVerbs.zero_val
 
-class SupportsAllVerbs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SupportsAllVerbs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SupportsAllVerbs.underlying SupportsAllVerbs
   underlying : go.UnderlyingDirectedEq SupportsAllVerbs.ty SupportsAllVerbs.underlying
   isUnderlying : go.IsUnderlying SupportsAllVerbs.underlying SupportsAllVerbs.underlying
+  method_set : go.MethodSetIs SupportsAllVerbs.ty [(go!"Match", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResource" []))] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SupportsAllVerbs.ty) [(go!"Match", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResource" []))] false [go.bool])))]
 
 attribute [instance] SupportsAllVerbs.TypeAssumptions.type_repr
   SupportsAllVerbs.TypeAssumptions.underlying
   SupportsAllVerbs.TypeAssumptions.isUnderlying
+  SupportsAllVerbs.TypeAssumptions.method_set
+  SupportsAllVerbs.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   StaleGroupVersionError_instance : StaleGroupVersionError.TypeAssumptions
   DiscoveryInterface_instance : DiscoveryInterface.TypeAssumptions
   DiscoveryInterfaceWithContext_instance : DiscoveryInterfaceWithContext.TypeAssumptions

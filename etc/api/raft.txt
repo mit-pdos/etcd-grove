@@ -1,0 +1,124 @@
+# Raft's importable modules: what proofs outside raft's tree may import (`etc/api-check.py
+# etc/api/raft.txt --check`). Every other module of raft's tree is internal. What each importable
+# module exposes, as a client sees it, is `etc/gen-interface.py`'s output under `interface/`.
+#
+# Started 2026-10-26 from what clients imported then (and the raft modules those publicly
+# import), grouped by what it is. The last group is debt: proof internals that clients reach
+# today, to be taken out of the list (a law in an API module instead, or the client's import
+# dropped). Adding a module here is an API change: review its interface.
+
+inside Proof/go_etcd_io/raft/
+inside Spec/go_etcd_io/raft/
+exempt (^|/)(Link|MainLinked|Results|Adequacy\w*)\.lean$
+# the Go package's module path: a spec's name is the file's path below it (`__` as `.`)
+root go_etcd_io.raft.v3
+
+## The node API: its specs, the module clients import, the API modules
+importable Spec.go_etcd_io.raft.v3.Api
+# (2026-10-28) the node API: its predicates sealed in `InvNode` (over the internal `InvApi*`), with
+# their laws; its pure vocabulary `NodeApiVocab`; the specs in the per-function spec files below
+importable Proof.go_etcd_io.raft.v3.InvNode
+importable Proof.go_etcd_io.raft.v3.NodeApiVocab
+importable Spec.go_etcd_io.raft.v3.StartNode
+importable Spec.go_etcd_io.raft.v3.RestartNode
+importable Spec.go_etcd_io.raft.v3.node__Advance
+importable Spec.go_etcd_io.raft.v3.node__ApplyConfChange
+# (2026-10-28) `node__ForgetLeader` is not importable: its spec is still over raft's internals (`isNodeChan`)
+importable Spec.go_etcd_io.raft.v3.node__Propose
+importable Spec.go_etcd_io.raft.v3.node__ProposeConfChange
+importable Spec.go_etcd_io.raft.v3.node__ReadIndex
+importable Spec.go_etcd_io.raft.v3.node__Ready
+importable Spec.go_etcd_io.raft.v3.node__ReportSnapshot
+importable Spec.go_etcd_io.raft.v3.node__ReportUnreachable
+importable Spec.go_etcd_io.raft.v3.node__Step
+importable Spec.go_etcd_io.raft.v3.node__Tick
+importable Spec.go_etcd_io.raft.v3.node__TransferLeadership
+importable Spec.go_etcd_io.raft.v3.IsEmptyHardState
+importable Spec.go_etcd_io.raft.v3.IsEmptySnap
+importable Proof.go_etcd_io.raft.v3.InvNodeCtx
+importable Proof.go_etcd_io.raft.v3.ApiVocab
+importable Proof.go_etcd_io.raft.v3.ApiCtx
+# raft's linked results for proofs outside the linking files (`open RaftLink`)
+importable Proof.go_etcd_io.raft.v3.Linked
+# the package's initialization: what `isPkgInit` means, and its `wp_initialize'`
+importable Proof.go_etcd_io.raft.v3.Base
+importable Proof.go_etcd_io.raft.v3.Init
+
+## `MemoryStorage` and the `Storage` contract
+importable Spec.go_etcd_io.raft.v3.NewMemoryStorage
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__Append
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__Term
+importable Proof.go_etcd_io.raft.v3.InvStorage
+importable Proof.go_etcd_io.raft.v3.InvMemstorage
+importable Proof.go_etcd_io.raft.v3.MemstorageInstance
+importable Proof.go_etcd_io.raft.v3.MemCertLink
+importable Proof.go_etcd_io.raft.v3.LemmasMemstorage
+# the token-in-hand forms of the atomic `MemoryStorage` specs (added on lean, 2026-10-26)
+importable Proof.go_etcd_io.raft.v3.MemstorageAU
+
+## raftpb: the getters' specs, the protobuf records' models
+importable Spec.go_etcd_io.raft.v3.raftpb.*
+importable Proof.go_etcd_io.raft.v3.PbModel
+importable Proof.go_etcd_io.raft.v3.InvPb
+importable Proof.go_etcd_io.raft.v3.InvPbLog
+importable Proof.go_etcd_io.raft.v3.InvPbMsg
+importable Proof.go_etcd_io.raft.v3.InvPbSnapSet
+
+## The protocol's client vocabulary: the cluster's ghost names, the committed log, proposals, the
+## read index, snapshots, the configuration
+importable Proof.go_etcd_io.raft.v3.Protocol
+importable Proof.go_etcd_io.raft.v3.Protocol.Ghost
+importable Proof.go_etcd_io.raft.v3.Protocol.GhostState
+importable Proof.go_etcd_io.raft.v3.Protocol.CommitWit
+importable Proof.go_etcd_io.raft.v3.Protocol.Facts
+importable Proof.go_etcd_io.raft.v3.Protocol.ReadIndex
+importable Proof.go_etcd_io.raft.v3.Protocol.Refinement
+importable Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
+importable Proof.go_etcd_io.raft.v3.Protocol.SnapMint
+importable Proof.go_etcd_io.raft.v3.Protocol.Model
+importable Proof.go_etcd_io.raft.v3.Protocol.CfgOverlap
+importable Proof.go_etcd_io.raft.v3.Protocol.StepC
+importable Proof.go_etcd_io.raft.v3.Protocol.StepR
+importable Proof.go_etcd_io.raft.v3.Protocol.StepGhost
+importable Proof.go_etcd_io.raft.v3.Defs
+importable Proof.go_etcd_io.raft.v3.Plog
+importable Proof.go_etcd_io.raft.v3.CCModel
+importable Proof.go_etcd_io.raft.v3.CCApply
+importable Proof.go_etcd_io.raft.v3.CCApplyC
+importable Proof.go_etcd_io.raft.v3.SnapConf
+importable Proof.go_etcd_io.raft.v3.StepGhostMode
+
+## The models of raft's other objects that the vocabulary above is stated in
+importable Proof.go_etcd_io.raft.v3.InvConfchange
+importable Proof.go_etcd_io.raft.v3.InvConfChangeMsg
+importable Proof.go_etcd_io.raft.v3.InvTracker
+importable Proof.go_etcd_io.raft.v3.InvTrackerC
+importable Proof.go_etcd_io.raft.v3.InvLogger
+importable Proof.go_etcd_io.raft.v3.InvMisc
+importable Proof.go_etcd_io.raft.v3.InvRaftlog
+importable Proof.go_etcd_io.raft.v3.InvReadylog
+importable Proof.go_etcd_io.raft.v3.InvRestore
+importable Proof.go_etcd_io.raft.v3.InvBig
+
+## Debt: proof internals clients reach today (take them out of the list)
+# tactics and lemma files the server, the examples or other packages' specs import
+importable Proof.go_etcd_io.raft.v3.FrameH
+importable Proof.go_etcd_io.raft.v3.ProjSimps
+importable Proof.go_etcd_io.raft.v3.LemmasMiscR
+importable Proof.go_etcd_io.raft.v3.raft__Step.Dispatch
+# reached through the public imports of the modules above
+importable Proof.go_etcd_io.raft.v3.LemmasSendRD
+importable Proof.go_etcd_io.raft.v3.StepLemmas
+importable Proof.go_etcd_io.raft.v3.StepLemmasC
+importable Proof.go_etcd_io.raft.v3.StepLemmasR
+importable Proof.go_etcd_io.raft.v3.SpecResults
+importable Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
+importable Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
+importable Proof.go_etcd_io.raft.v3.Protocol.StepRInv

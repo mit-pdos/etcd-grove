@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,15 +31,15 @@ theorem progressRequest.toPB.wp_proof : progressRequest.toPB.spec (GF := GF) (hG
   wp_start
   iapply wp_fupd
   wp_auto
-  rename_i cr
-  irename «$r0» => How
+  rename_i cr ow
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
+  irename : (ow ↦ (_ : etcdserverpb.WatchRequest_ProgressRequest) : IProp GF) => How
   irename : (cr ↦ zero_val etcdserverpb.WatchProgressRequest : IProp GF) => Hcr
-  wp_alloc p as Hp
   ihave %Hcrn := typedPointsto_not_null _ _ _ $$ Hcr
   iStructNamed Hp
   iStructNamed How
   ipersist RequestUnion; ipersist ProgressRequest
-  wp_auto
   imodintro
   iapply HΦ
   unfold v3rpc.watchReqSend v3rpc.oneofProgress
@@ -48,7 +48,7 @@ theorem progressRequest.toPB.wp_proof : progressRequest.toPB.spec (GF := GF) (hG
   iexists cr
   isplitl []
   · ipureintro; exact Hcrn
-  iexists «$r0_ptr»
+  iexists ow
   iframe #
   ipureintro; rfl
 

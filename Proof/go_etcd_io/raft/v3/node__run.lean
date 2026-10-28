@@ -4,7 +4,7 @@
 the proposal from `propc` is a message pointer, owned (`propP`: `msgIn`), stamped by `run`
 (`m.From = new(r.id)`: `cellRO_alloc`, `msgPtsC_store_From`) before `r.Step(m)`; a `recvc`
 message is a pointer (`netP`: `msgIn ml □ st`) whose type and sender `run` reads through the
-getters (`GetType`, `GetFrom`); `confc` carries a `*pb.ConfChangeV2` (`ownCCV2 v □ ccm`) and
+getters (`GetType`, `GetFrom`); `confc` carries a `*pb.ConfChangeV2` (`ownConfChangeV2 v □ ccm`) and
 `applyConfChange` returns a fresh `*pb.ConfState` (`csPts cs 1 c true`), whose `Voters` and
 `VotersOutgoing` fields the removed-node check reads directly, and which goes to `confstatec`
 whole (`confstateP`); a `Ready`'s messages are handed out (`QMsg`, D8).
@@ -32,6 +32,12 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
 public import Proof.go_etcd_io.raft.v3.LemmasRunR
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.InvBoot
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import Spec.go_etcd_io.raft.v3.NewRawNode
 
 @[expose] public section
 
@@ -44,18 +50,18 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] [StorageModel GF] in
+omit [GooseInterp] [GooseSemantics] [StorageModel GF] in
 /-- A loop condition `wp_if_destruct` left as the value equation (D22 S-d3a), peeled. -/
 private theorem hif_pos {P : Prop} [Decidable P] (h : (#(decide P) : val) = #true) : P :=
   of_decide_eq_true (GoGlobalContext.intoVal_inj_bool h)
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] [StorageModel GF] in
+omit [GooseInterp] [GooseSemantics] [StorageModel GF] in
 private theorem hif_neg {P : Prop} [Decidable P] (h : ¬ ((#(decide P) : val) = #true)) : ¬ P :=
   fun hp => h (by rw [decide_eq_true hp])
 
@@ -800,7 +806,7 @@ theorem node.run.wp_proof
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
         ([∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
-          [∗list] st ∈ sts, readStateOk γ.raft st) ∗
+          [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
           hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length) ∗
         rdSnapOut γ.raft rs rdv' ce es L ∗
@@ -879,6 +885,14 @@ theorem node.run.wp_proof
         icases ownRawNodeReady_loanLoc γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
           with ⟨#Hx, -⟩
         imodintro; iintro %l %h; cases h; iexact Hx
+    -- (2026-10-26, D22 J6a; J7b's raft part) a snapshot handed out ends its committed log
+    ihave %Hllast : ⌜∀ l : SnapLoan, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ $$ [Hrn]
+    · cases L with
+      | none => ipureintro; intro l h; cases h
+      | some l0 =>
+        icases ownRawNodeReady_loanLast γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
+          with ⟨%Hx, -⟩
+        ipureintro; intro l h; cases h; exact Hx
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms L $$ Hrn
       with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
@@ -924,6 +938,8 @@ theorem node.run.wp_proof
         · iexists h; iframe Hhh; ipureintro; rfl
         isplitr
         · ipureintro; exact ⟨Hsin, Hsnp.2.1 Hsin⟩
+        isplitr
+        · ipureintro; exact Hllast l rfl
         isplitr
         · ipureintro; exact Hlo
         rw [← Hstor]

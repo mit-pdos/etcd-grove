@@ -23,16 +23,16 @@ end pkg_id
 
 namespace k8s_io.client_go.util.retry
 
-noncomputable def DefaultRetry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultRetry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/retry.DefaultRetry"
 
-noncomputable def DefaultBackoff [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultBackoff [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/retry.DefaultBackoff"
 
-noncomputable def OnError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def OnError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/retry.OnError"
 
-noncomputable def RetryOnConflict [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RetryOnConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/retry.RetryOnConflict"
 
 /-- OnError allows the caller to retry fn in case the error returned by fn is retriable
@@ -40,43 +40,75 @@ noncomputable def RetryOnConflict [FfiSyntax] [GoGlobalContext] : GoString :=
     interval between two retries.
 
     go: util.go:48:6 -/
-noncomputable def OnError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def OnError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "backoff"
   (Lam "retriable"
   (Lam "fn"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "fn" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false [go.error]))))) (Var "fn"))
   (Let "retriable" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))))) (Var "retriable"))
   (Let "backoff" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (Var "backoff"))
   (Let "lastErr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (Var "backoff"))
   (Let "$a1" (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "$r0" (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [go.error]))))) (Var "fn")) (Val #()))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$sw" (Val #true)
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #true)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #true) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))))) (Var "retriable")) (Var "$a0")))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #false) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "lastErr") (Var "$r0"))))))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #false) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))))))
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.ExponentialBackoff []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Interrupted []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "lastErr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #false))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "lastErr"))
@@ -85,7 +117,8 @@ noncomputable def OnError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- RetryOnConflict is used to make an update to a resource when you have to worry about
     conflicts caused by other code making unrelated updates to the resource at the same
@@ -124,22 +157,28 @@ noncomputable def OnError.impl [FfiSyntax] [GoGlobalContext] : val :=
     TODO: Make Backoff an interface?
 
     go: util.go:103:6 -/
-noncomputable def RetryOnConflict.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def RetryOnConflict.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "backoff"
   (Lam "fn"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "fn" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false [go.error]))))) (Var "fn"))
   (Let "backoff" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (Var "backoff"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (Var "backoff"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (Var "backoff"))
   (Let "$a1" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.IsConflict []))) (Val #()))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [go.error]))))) (Var "fn"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve OnError []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve OnError []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.retry where
   pkgImportedPkgs := [pkg_id.time, pkg_id.k8s_io.apimachinery.pkg.api.errors, pkg_id.k8s_io.apimachinery.pkg.util.wait]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.util.retry)) (Lam BAnon
   (App (Val exceptionDo)
@@ -174,7 +213,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc DefaultBackoff _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty)) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   OnError_unfold : FuncUnfold OnError [] OnError.impl
   RetryOnConflict_unfold : FuncUnfold RetryOnConflict [] RetryOnConflict.impl
   import_time_Assumption : _root_.Perennial.time.Assumptions

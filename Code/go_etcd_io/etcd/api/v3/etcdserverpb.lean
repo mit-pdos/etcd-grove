@@ -5,6 +5,7 @@ public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk0
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk1
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk2
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk3
+public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk4
 
 @[expose] public section
 
@@ -19,7 +20,7 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Metadata_instance : Metadata.TypeAssumptions
   RequestHeader_instance : RequestHeader.TypeAssumptions
   InternalRaftRequest_instance : InternalRaftRequest.TypeAssumptions
@@ -204,6 +205,11 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   RegisterMaintenanceServer_unfold : FuncUnfold RegisterMaintenanceServer [] RegisterMaintenanceServer.impl
   NewAuthClient_unfold : FuncUnfold NewAuthClient [] NewAuthClient.impl
   RegisterAuthServer_unfold : FuncUnfold RegisterAuthServer [] RegisterAuthServer.impl
+  _Auth_AuthEnable_Handler_unfold : FuncUnfold _Auth_AuthEnable_Handler [] _Auth_AuthEnable_Handler.impl
+  _Auth_UserAdd_Handler_unfold : FuncUnfold _Auth_UserAdd_Handler [] _Auth_UserAdd_Handler.impl
+  _Auth_UserGrantRole_Handler_unfold : FuncUnfold _Auth_UserGrantRole_Handler [] _Auth_UserGrantRole_Handler.impl
+  _Auth_RoleAdd_Handler_unfold : FuncUnfold _Auth_RoleAdd_Handler [] _Auth_RoleAdd_Handler.impl
+  _Auth_RoleGrantPermission_Handler_unfold : FuncUnfold _Auth_RoleGrantPermission_Handler [] _Auth_RoleGrantPermission_Handler.impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
   import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
@@ -395,6 +401,11 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions.RegisterMaintenanceServer_unfold
   Assumptions.NewAuthClient_unfold
   Assumptions.RegisterAuthServer_unfold
+  Assumptions._Auth_AuthEnable_Handler_unfold
+  Assumptions._Auth_UserAdd_Handler_unfold
+  Assumptions._Auth_UserGrantRole_Handler_unfold
+  Assumptions._Auth_RoleAdd_Handler_unfold
+  Assumptions._Auth_RoleGrantPermission_Handler_unfold
   Assumptions.import_protoimpl_Assumption
   Assumptions.import_membershippb_Assumption
   Assumptions.import_authpb_Assumption

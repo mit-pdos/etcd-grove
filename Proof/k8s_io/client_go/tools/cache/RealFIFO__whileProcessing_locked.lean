@@ -20,7 +20,7 @@ namespace cache
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -97,6 +97,7 @@ theorem RealFIFO.whileProcessing_locked.wp_proof
       wp_apply (lc := 2) sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlk, Htok⟩
       imod fifo_acquire f γ OK ch $$ Hinv Hlc1 Hlc2 Htok with HR
       imodintro
+      wp_auto
       iapply HΦ
       iframe
     · (try wp_auto)

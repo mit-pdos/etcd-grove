@@ -19,7 +19,7 @@ namespace k8s_io.client_go.applyconfigurations.autoscaling.v1
 namespace CrossVersionObjectReferenceApplyConfiguration
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
@@ -38,7 +38,7 @@ end CrossVersionObjectReferenceApplyConfiguration
 namespace HorizontalPodAutoscalerApplyConfiguration
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
@@ -57,7 +57,7 @@ end HorizontalPodAutoscalerApplyConfiguration
 namespace HorizontalPodAutoscalerSpecApplyConfiguration
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
@@ -76,7 +76,7 @@ end HorizontalPodAutoscalerSpecApplyConfiguration
 namespace HorizontalPodAutoscalerStatusApplyConfiguration
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
@@ -95,7 +95,7 @@ end HorizontalPodAutoscalerStatusApplyConfiguration
 namespace ScaleApplyConfiguration
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
@@ -114,7 +114,7 @@ end ScaleApplyConfiguration
 namespace ScaleSpecApplyConfiguration
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
@@ -133,7 +133,7 @@ end ScaleSpecApplyConfiguration
 namespace ScaleStatusApplyConfiguration
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]

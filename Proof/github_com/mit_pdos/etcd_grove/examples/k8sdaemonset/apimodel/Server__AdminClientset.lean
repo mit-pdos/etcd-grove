@@ -19,7 +19,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -28,12 +28,12 @@ variable [package_sem : apimodel.Assumptions]
 theorem Server.AdminClientset.wp_proof : Server.AdminClientset.spec (GF := GF) (hG := hG) := by
   intro _ s γ cfg
   wp_start as #Hs
+  iapply wp_fupd
   wp_auto
-  wp_apply +noauto wp_alloc as %c Hc
-  iStructNamedSuffix Hc "_f"
+  iStructNamedSuffix «$r0» "_f"
   ipersist s_f
   ipersist admin_f
-  wp_auto
+  imodintro
   iapply HΦ
   unfold clientsetAt
   iexists s

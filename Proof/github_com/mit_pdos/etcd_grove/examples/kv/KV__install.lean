@@ -4,10 +4,10 @@ Rocq counterpart).
 
 Under the lock, the maps replace `runOwn`'s, and the loop over the snapshot's table `A` answers
 each of this replica's waiters it finds: an operation `o` of `A` decoding to this replica's
-`(id, seq)` with a waiter at `seq` is the waiter's operation (`kv_deposited_minted`: `o` is in
-`D`'s data, so deposited, `ods_deposited`, and both are minted at `(id, seq)`), and its answer
-`v` is the key's value after its first occurrence in `D` (`AppliedOk`'s `AnsOk`,
-`ansOk_firstOcc`), what `waitP` asks -- the same as `apply`'s answer.
+`(id, seq)` with a waiter at `seq` is the waiter's operation (`kv_committed_minted`: `o` is in
+`D`'s data, so minted, and both are minted at `(id, seq)`), and its answer `v` is the key's value
+after its first occurrence in `D` (`AppliedOk`'s `AnsOk`, `ansOk_histOf`), what `waitP` asks --
+the same as `apply`'s answer.
 -/
 module
 
@@ -26,7 +26,7 @@ namespace kv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -35,8 +35,8 @@ variable [KVStor GF]
 
 theorem KV.install.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
     KV.install.spec (GF := GF) (hG := hG) := by
-  intro γr γp r id n st ap D odsD mK' mA' K' A' HvalD HAD
-  wp_start as ⟨#Hrep, Hrun, HK', HA', #HD, #HodsD⟩
+  intro γr γp r id n st ap D odsD mK' mA' K' A' HodsEq HvalD HAD
+  wp_start as ⟨#Hrep, Hrun, HK', HA', #HD⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
@@ -118,15 +118,12 @@ theorem KV.install.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
           icases Hw with ⟨%d0, %γh, #Hmint, #Hho, Hprod⟩
           -- `o` is in `D`'s data, so deposited; the waiter's operation is `o`: both are minted at
           -- `(id, sq)`
-          have Hmem : o ∈ firstOcc odsD :=
+          have Hmem : o ∈ histOf odsD :=
             ((HAD.1 o).1 (by show (A' !! o).isSome = true; rw [Hov]; rfl)).1
-          ihave #Hdep := ods_deposited γr.raft D odsD o ((mem_firstOcc odsD o).1 Hmem) $$ HodsD
           have Hkey : opKey o = some (rep, sq) := by simp [opKey, Hdec]
-          imod kv_deposited_minted γr o d0 (rep, sq) ⊤ CoPset.subseteq_top
-            (by rw [show (⊤ : CoPset) \ ↑rkvN = ⊤ \ ↑rkvN from rfl]; exact raftN_regN) Hkey
-            $$ Hinv [] [] [] with %Hd0
-          · rw [← Hraft]; open_node HisNode; iexact Hcinv
-          · iexact Hdep
+          imod kv_committed_minted γr D o d0 (rep, sq) ⊤ CoPset.subseteq_top
+            (by rw [← HodsEq]; exact (mem_histOf odsD o).1 Hmem) Hkey
+            $$ Hinv HD [] with %Hd0
           · rw [Hif]; iexact Hmint
           subst Hd0
           try wp_auto
@@ -134,11 +131,11 @@ theorem KV.install.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
             v $$ [$Hho $Hprod]
           · isplitl
             · -- its answer: the key's value after its first occurrence in `D`
-              obtain ⟨m, Hm, Hnm, Hvm⟩ := ansOk_firstOcc odsD d0 v (HAD.2 d0 v Hov)
+              obtain ⟨m, Hm, Hnm, Hvm⟩ := ansOk_histOf odsD d0 v (HAD.2 d0 v Hov)
               unfold waitP
               iexists D, odsD, m
-              iframe HD HodsD
-              ipureintro; exact ⟨Hm, Hnm, Hvm⟩
+              iframe HD
+              ipureintro; exact ⟨HodsEq, Hm, Hnm, Hvm⟩
             · itrivial
           iintro -
           try wp_auto
@@ -166,8 +163,8 @@ theorem KV.install.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
   iapply HΦ
   unfold runOwn
   iexists mK', K', mA', A', odsD
-  iframe HmK HK' HmA HA' HD HodsD
-  ipureintro; exact ⟨HvalD, HAD⟩
+  iframe HmK HK' HmA HA' HD
+  ipureintro; exact ⟨HodsEq, HvalD, HAD⟩
 
 end proof
 

@@ -23,7 +23,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section switch
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- What a leader does after installing the new configuration `s1` at the configuration `c`
 (`switchToConfig`'s leader branch, when it stays a voter; 2026-10-13, reconfiguration stage A2):
@@ -64,7 +64,7 @@ theorem learnerOfC_simple (cfg : GSet w64) (prs : GMap w64 Loc) (id : w64) :
 end switch
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

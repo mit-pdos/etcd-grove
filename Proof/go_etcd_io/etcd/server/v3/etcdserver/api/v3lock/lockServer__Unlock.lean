@@ -18,7 +18,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency concurren
   _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -48,7 +48,8 @@ theorem lockServer.Unlock.wp_proof : lockServer.Unlock.spec (GF := GF) (hG := hG
       exact ⟨rfl, Herr⟩
   · subst Herr
     (try wp_auto)
-    wp_alloc r as Hr
+    irename «$r0» => Hr
+    generalize «$r0_ptr» = r at *
     (try wp_auto)
     iapply HΦ
     ileft

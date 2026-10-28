@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -35,7 +35,7 @@ abbrev apply.checkTxnReqsPermission.spec : Prop :=
       reqs ↦*□ ps ∗ txn.requestOpsIs ps ops }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.opsClass on info ops) }}
 

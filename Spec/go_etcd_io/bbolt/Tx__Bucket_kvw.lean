@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.bbolt backend
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -27,12 +27,13 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.Bucket(name)` in the write transaction: its handle of the bucket, or nil. -/
 abbrev bbolt.Tx.Bucket_kvw.spec : Prop :=
-  ∀ (tx : Loc) (γ : DBNames) (D S : Data) (name : GoSlice) (n : GoString) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTx tx γ D S ∗ name ↦*{dq} n }}
+  ∀ (tx : Loc) (γ : DBNames) (D S : Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
+    (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ name ↦*{dq} n }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Bucket")) (Val #name))
-  {{ (b : Loc), RET #b; ownWTx tx γ D S ∗ name ↦*{dq} n ∗
+  {{ (b : Loc), RET #b; ownWTxG tx γ D S G ∗ name ↦*{dq} n ∗
       ((⌜S.lookup n = none ∧ b = Loc.null⌝) ∨
-       (⌜S.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ wBkt tx b n)) }}
+       (⌜S.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ wBkt tx b n (G n))) }}
 
 end spec
 

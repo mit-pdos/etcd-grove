@@ -44,7 +44,7 @@ namespace dsctl
 open apimodel informer consistency resourceversion
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-! ## The target node, the owner, S1 -/
 

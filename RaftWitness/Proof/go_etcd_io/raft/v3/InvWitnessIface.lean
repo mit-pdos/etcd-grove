@@ -28,7 +28,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section iface
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, so that the heap's invariants are an `InvGS GF` (`raft__Step.lean`)
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -81,7 +81,7 @@ def ownWitnessI (γ : RaftNames) (N : Namespace) (wi : GoInterface) : IProp GF :
     wSt γ c.ws)
 
 /-- `NewWitness`'s cache, the zero state, is W2's initial one. -/
-theorem WHS.zero_ws [FfiSyntax] : WHS.zero.ws = wInit := rfl
+theorem WHS.zero_ws [GooseExts] : WHS.zero.ws = wInit := rfl
 
 /-- `Witness.Process` (`wi.Process(m)`) on the `Witness` of the witness `γ.reWit`: a
 legitimate request answered, if at all, legitimately. -/

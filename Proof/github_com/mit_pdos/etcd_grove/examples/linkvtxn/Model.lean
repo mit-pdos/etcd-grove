@@ -30,7 +30,7 @@ open github_com.anishathalye.porcupine (initSpec stepSpec equalSpec isEqHash ste
 open github_com.mit_pdos.etcd_grove.examples.linkvtxn
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -70,6 +70,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     (wp_configEqual : configEqual.spec (GF := GF) (hG := hG)) :
     Model.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_func_lits
   wp_auto
   iapply HΦ

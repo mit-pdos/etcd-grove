@@ -72,6 +72,7 @@ jobs:
           restore-keys: |
             lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
       # etcd's go.mod (the fork pinned in etc/goose.py) asks for Go 1.27.
+      # (Any 1.27; `etc/goose.py` itself runs `go` with its pinned GOTOOLCHAIN.)
       - name: Install Go
         uses: actions/setup-go@v5
         with:
@@ -82,6 +83,14 @@ jobs:
       # etcd-raft and etcd.
       - name: Check the Goose translation
         run: ./etc/goose.py --check
+      # Each package's clients import only its importable modules (`etc/api/<pkg>.txt`;
+      # CLAUDE.md, "Package APIs"). Reads the sources only.
+      - name: Check the packages' importable modules
+        run: |
+          for c in etc/api/*.txt; do
+            case "$c" in *-layout.txt) continue ;; esac
+            ./etc/api-check.py "$c" --check
+          done
       - name: Build
         # `timed-build.py` is `lake build`, recording each module compile's
         # timing for the report below.
@@ -107,3 +116,12 @@ jobs:
           if-no-files-found: ignore
       - name: Check the trust base
         run: ./etc/tcb-report.py --check
+      # The checked-in interfaces (`interface/`) must be exactly what the build exports, as the
+      # translations must be what Goose produces; and no new layout violation. After the build:
+      # the interface is read from the built modules.
+      - name: Check the packages' interfaces
+        run: |
+          for c in etc/api/*.txt; do
+            case "$c" in *-layout.txt) continue ;; esac
+            ./etc/gen-interface.py "$c" --check --layout
+          done

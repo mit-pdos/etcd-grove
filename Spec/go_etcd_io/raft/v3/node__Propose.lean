@@ -1,37 +1,14 @@
 /- Lean-first (no Rocq counterpart).
 
-## `node.Propose(ctx, data)` (node.go:469)
+## `node.Propose`
 
-A proposal of `data` from any goroutine: `stepWait` of a one-entry `MsgProp`, which `run`
-steps as `RawNode.Propose` does. Until stage R7a specified for `context.Background()`.
-(2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`:
-`Done()` nil, or Perennial's `isContext`), and the error `propErr cd err`: `nodeErr` (`nil`,
-raft's `ErrStopped`, the context's once its `Done()` fired) or the proposal's own result from
-`run` (`ErrProposalDropped`, ...; non-`nil`).
-
-**Logically atomic (2026-10-10; stage R, 2026-10-14; D21 M6, 2026-10-19; 2026-10-21).** The
-full committed log `rLog γ L` (`Protocol/GhostState.lean`) is the client's. Before proposing
-`data` the client registers it with a result predicate `Q` (`node_prop_register`, a ghost step,
-once per data, with the fresh token `propFresh`), getting `propIs γ data Q`. Each proposal of
-`data` then hands in `propIs γ data Q` and an atomic update `propAu1 γ data Q` = `AU <{ ∃∃ L,
-rLog γ L }> @ ⊤ ∖ ↑raftN, ∅ <{ ∀∀ e, rLog γ (L ++ [e]) ∗ entDataIs γ e (some data), COMM □ Q L
-}>`, which `Propose` deposits in `data`'s slot before the proposal leaves the node
-(`node_propose_ghost`), with a ticket that travels with the proposal. It fires -- a linearization
-point -- at most once, at a committed entry holding `data` (the ticket is spent where the
-proposal is appended), on whichever node commits it; every committed occurrence of `data` gives
-`□ Q` of the log before it (`prop_collect`, from `propIs`). `data` may be proposed any number of
-times, each proposal with its own update. The error (`ErrProposalDropped`, ...) says only
-whether this proposal reached a leader; the update stays deposited either way. (Until
-2026-10-21 the fresh token went with the first proposal, which returned the handle.)
-
-raft v3.7 (2026-10-16, stage R5): the message is a fresh `*pb.Message` whose one entry holds
-`data`'s bytes (D6: `propEntryM data`, the caller's slice frozen, `data_sl ↦*□ data`), on `propc`
-(`propP`); the data must be non-empty (D6: an empty proposal would be a leader's own entry).
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.Propose.specRaw`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeCtx
-public import Perennial.Proof.context
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -43,26 +20,28 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- **`node.Propose(ctx, data)`**: hands raft the update appending `data`'s entry to the committed
+requested entries, raft choosing its term; it fires at most once, when an entry of this proposal
+commits, on whichever node commits it, and never for `data = []` (the entry is a filler, `isFiller`).
+The error is `nil` (run took the proposal; it may still be lost), `ErrStopped`, `ErrProposalDropped`
+(raft refused it; it was not appended) or the context's. -/
 abbrev node.Propose.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8)
-    (Q : List EntryM → IProp GF)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      nodeCtx ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       data_sl ↦*□ data ∗
-      -- (2026-10-16, stage R5, D6) non-empty data (`node_propose_ghost`)
-      ⌜data ≠ []⌝ ∗
-      propArg γ.raft data Q }}
+      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, W32 0, data⟩]), COMM True }> }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok ctx))) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; propErr cd err }}
+  {{ (err : GoInterface), RET #err;
+      ⌜err = interface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err }}
 
 end spec
 

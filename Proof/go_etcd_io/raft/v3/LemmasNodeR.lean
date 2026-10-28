@@ -8,14 +8,17 @@ Lemmas of the `node` API (`node.go`; raft v3.7 retarget, stage R5 phase 3, group
 * `msgPtsC_nn`: a message's pointer is not `nil`.
 * `stepP_split`: `node.Step`'s argument opened: its message (`msgIn`, at `□` from the network,
   at `1` forwarded), of a nonnegative type (for `IsLocalMsg`), and the rest to close it again.
-* `ownCCV2_persist`: a conf change frozen read-only (`node.ApplyConfChange` sends `AsV2`'s fresh
+* `ownConfChangeV2_persist`: a conf change frozen read-only (`node.ApplyConfChange` sends `AsV2`'s fresh
   one on `confc`, `confcP` holding it at `□`). A predicate lemma that belongs beside
-  `ownCCV2` (`InvPb.lean`), as its instance `ownCCV2_discard_persistent`.
+  `ownConfChangeV2` (`InvPb.lean`), as its instance `ownConfChangeV2_discard_persistent`.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 
@@ -29,7 +32,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -109,22 +112,22 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iframe Hm Hab Htk
     ipureintro; exact Hty
 
-instance ownCCV2_discard_persistent (p : Loc) (m : CCV2M) :
-    Persistent (ownCCV2 (GF := GF) p DFrac.discard m) := by
-  unfold ownCCV2; infer_instance
+instance ownConfChangeV2_discard_persistent (p : Loc) (m : ConfChangeV2M) :
+    Persistent (ownConfChangeV2 (GF := GF) p DFrac.discard m) := by
+  unfold ownConfChangeV2; infer_instance
 
 /-- A conf change frozen read-only (see the file header). -/
-theorem ownCCV2_persist (p : Loc) (dq : DFrac) (m : CCV2M) :
-    ownCCV2 (GF := GF) p dq m ⊢ |==> ownCCV2 p DFrac.discard m := by
+theorem ownConfChangeV2_persist (p : Loc) (dq : DFrac) (m : ConfChangeV2M) :
+    ownConfChangeV2 (GF := GF) p dq m ⊢ |==> ownConfChangeV2 p DFrac.discard m := by
   iintro H
-  iunfold ownCCV2 at H
+  iunfold ownConfChangeV2 at H
   iNamed H
   imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
   imod (typedPointsto_dfractional (GF := GF) _ chs).dfractional_persist _ $$ HCh with #HCh
   imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hch with #Hch
   imod (typedPointsto_dfractional (GF := GF) _ cs).dfractional_persist _ $$ HC with #HC
   imodintro
-  iunfold ownCCV2
+  iunfold ownConfChangeV2
   iexists pt, chs, ls, cs, uf
   isplitr
   · ipureintro; exact Hnn

@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -73,7 +73,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       mvcc.watchWriter γw ([[], []] ++ R) ∗
       (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
       mvcc.bkRTx d'.γB d'.P d'.be ∗
-      lease.leaseOwn E.γ.leases [] ∗ lease.lessorRdOf E.γ.leases ∗ E.RD ∗
+      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗ E.RD ∗
       srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
       dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗
       revAuth E x.log ∗ srvAuthApplyRes s E ∗
@@ -87,13 +87,13 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
   have hrb : receiptBound GF ≤ 2 ^ 48 := by
     have : backend.wbInit = 2 ^ 40 - 1 := rfl
     omega
-  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, HRD, Hbe, Hγbe, Hra, Hauar, #Hw,
+  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, Hra, Hauar, #Hw,
     #Hwok, HRD0⟩
   ihave ⟨#Hub, %ns, %cr, %hz, Huo⟩ :=
     Hube $$ %(snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) %rfl Hopts
   ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
-    hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr HRD]
-  · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr HRD
+    hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
+  · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD
   imodintro
   iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn ns cr⟩
   isplitr

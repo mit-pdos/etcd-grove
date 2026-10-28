@@ -20,7 +20,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
   go_etcd_io.etcd.server.v3.storage
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -40,7 +40,7 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   icases Hci with ⟨#Hinv, #Hmu⟩
   (try wp_auto)
   -- the fast read: the first linearization point
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown ci]
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown ci «$res0»]
   · iPkgInit
   iinv Hinv with Hi Hclose
   imod HΦ with ⟨%k, Hk, HΦ⟩
@@ -78,14 +78,14 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   iunfold metaReadTx at Hrt
   icases Hrt with ⟨-, -, #Hrd⟩
   (try wp_auto)
-  wp_apply_core (hR rt E View (fun _ => iprop(True))) $$ [] [HΦ Hown ci]
+  wp_apply_core (hR rt E View (fun _ => iprop(True))) $$ [] [HΦ Hown ci «$res0»]
   · iframe Hsch Hrd
   iapply readCIAU_A
   iapply readCIAU_wand $$ HΦ
   iintro %m Hm
   (try wp_auto)
   -- the store: the second linearization point
-  wp_apply_core (hS ci γ m.1 m.2) $$ [] [Hm Hown v]
+  wp_apply_core (hS ci γ m.1 m.2) $$ [] [Hm Hown v «$res0»]
   · iframe Hpkg; iunfold isCI; iframe Hinv Hmu
   imod Hm with ⟨%k', Hk', Hm⟩
   imodintro

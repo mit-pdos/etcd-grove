@@ -1,6 +1,9 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# The auto-compactor (compactor.go, periodic.go, revision.go), with bodies (the spec-first pilot,
+# notes/compactor-pilot-plan.md, 2026-10-27). The clock is clockwork's (names only).
+translate = ["*"]
+imports = ["!*", "context", "errors", "fmt", "sync", "time",
+  "github.com/jonboulle/clockwork", "go.uber.org/zap",
+  "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/server/v3/storage/mvcc"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -26,6 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 theorem rafthttp.newCloseNotifier.wp_proof : rafthttp.newCloseNotifier.spec (GF := GF) (hG := hG) := by
   intro P
   wp_start as -
+  iapply wp_fupd
   imod http.reqTicket_alloc with ⟨%γ, Htok⟩
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %dc %γdn ⟨#Hdcc, %-, Hdco⟩
@@ -36,11 +37,12 @@ theorem rafthttp.newCloseNotifier.wp_proof : rafthttp.newCloseNotifier.spec (GF 
     iframe #
   ihave Hdb := ownBroadcastChan_close dc γdn (cnQ γ P) .Pending γdch $$ [$Hdint $Hdown]
   (try wp_auto)
-  wp_alloc n as Hn
+  irename «$r0» => Hn
+  generalize «$r0_ptr» = n at *
   iStructNamed Hn
   irename done => Hdf
   ipersist Hdf
-  (try wp_auto)
+  imodintro
   iapply HΦ
   iexists γ
   iframe Htok

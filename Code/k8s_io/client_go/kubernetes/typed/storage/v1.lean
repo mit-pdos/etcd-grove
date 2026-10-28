@@ -20,227 +20,227 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.storage.v1
 
-noncomputable def CSIDriversGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSIDriversGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSIDriversGetter" [])
 
 attribute [irreducible] CSIDriversGetter.ty
 
-noncomputable def CSIDriverInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSIDriverInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSIDriverInterface" [])
 
 attribute [irreducible] CSIDriverInterface.ty
 
-noncomputable def cSIDrivers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cSIDrivers.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.cSIDrivers" [])
 
 attribute [irreducible] cSIDrivers.ty
 
-noncomputable def CSINodesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSINodesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSINodesGetter" [])
 
 attribute [irreducible] CSINodesGetter.ty
 
-noncomputable def CSINodeInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSINodeInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSINodeInterface" [])
 
 attribute [irreducible] CSINodeInterface.ty
 
-noncomputable def cSINodes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cSINodes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.cSINodes" [])
 
 attribute [irreducible] cSINodes.ty
 
-noncomputable def CSIStorageCapacitiesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSIStorageCapacitiesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSIStorageCapacitiesGetter" [])
 
 attribute [irreducible] CSIStorageCapacitiesGetter.ty
 
-noncomputable def CSIStorageCapacityInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSIStorageCapacityInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSIStorageCapacityInterface" [])
 
 attribute [irreducible] CSIStorageCapacityInterface.ty
 
-noncomputable def cSIStorageCapacities.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cSIStorageCapacities.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.cSIStorageCapacities" [])
 
 attribute [irreducible] cSIStorageCapacities.ty
 
-noncomputable def CSIDriverExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSIDriverExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSIDriverExpansion" [])
 
 attribute [irreducible] CSIDriverExpansion.ty
 
-noncomputable def CSINodeExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSINodeExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSINodeExpansion" [])
 
 attribute [irreducible] CSINodeExpansion.ty
 
-noncomputable def CSIStorageCapacityExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSIStorageCapacityExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.CSIStorageCapacityExpansion" [])
 
 attribute [irreducible] CSIStorageCapacityExpansion.ty
 
-noncomputable def StorageClassExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageClassExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.StorageClassExpansion" [])
 
 attribute [irreducible] StorageClassExpansion.ty
 
-noncomputable def VolumeAttachmentExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeAttachmentExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.VolumeAttachmentExpansion" [])
 
 attribute [irreducible] VolumeAttachmentExpansion.ty
 
-noncomputable def VolumeAttributesClassExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeAttributesClassExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.VolumeAttributesClassExpansion" [])
 
 attribute [irreducible] VolumeAttributesClassExpansion.ty
 
-noncomputable def StorageV1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageV1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.StorageV1Interface" [])
 
 attribute [irreducible] StorageV1Interface.ty
 
-noncomputable def StorageV1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageV1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.StorageV1Client" [])
 
 attribute [irreducible] StorageV1Client.ty
 
-noncomputable def StorageClassesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageClassesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.StorageClassesGetter" [])
 
 attribute [irreducible] StorageClassesGetter.ty
 
-noncomputable def StorageClassInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageClassInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.StorageClassInterface" [])
 
 attribute [irreducible] StorageClassInterface.ty
 
-noncomputable def storageClasses.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def storageClasses.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.storageClasses" [])
 
 attribute [irreducible] storageClasses.ty
 
-noncomputable def VolumeAttachmentsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeAttachmentsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.VolumeAttachmentsGetter" [])
 
 attribute [irreducible] VolumeAttachmentsGetter.ty
 
-noncomputable def VolumeAttachmentInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeAttachmentInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.VolumeAttachmentInterface" [])
 
 attribute [irreducible] VolumeAttachmentInterface.ty
 
-noncomputable def volumeAttachments.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def volumeAttachments.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.volumeAttachments" [])
 
 attribute [irreducible] volumeAttachments.ty
 
-noncomputable def VolumeAttributesClassesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeAttributesClassesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.VolumeAttributesClassesGetter" [])
 
 attribute [irreducible] VolumeAttributesClassesGetter.ty
 
-noncomputable def VolumeAttributesClassInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeAttributesClassInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.VolumeAttributesClassInterface" [])
 
 attribute [irreducible] VolumeAttributesClassInterface.ty
 
-noncomputable def volumeAttributesClasses.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def volumeAttributesClasses.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.volumeAttributesClasses" [])
 
 attribute [irreducible] volumeAttributesClasses.ty
 
-axiom CSIDriversGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSIDriversGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIDriverInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSIDriverInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cSIDrivers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cSIDrivers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSINodesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSINodesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSINodeInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSINodeInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cSINodes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cSINodes.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIStorageCapacitiesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSIStorageCapacitiesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIStorageCapacityInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSIStorageCapacityInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cSIStorageCapacities.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cSIStorageCapacities.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIDriverExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSIDriverExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSINodeExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSINodeExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIStorageCapacityExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CSIStorageCapacityExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageClassExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StorageClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttachmentExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom VolumeAttachmentExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttributesClassExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom VolumeAttributesClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageV1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StorageV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageV1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StorageV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageClassesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StorageClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageClassInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StorageClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom storageClasses.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom storageClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttachmentsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom VolumeAttachmentsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttachmentInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom VolumeAttachmentInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom volumeAttachments.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom volumeAttachments.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttributesClassesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom VolumeAttributesClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttributesClassInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom VolumeAttributesClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom volumeAttributesClasses.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom volumeAttributesClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def newCSIDrivers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCSIDrivers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.newCSIDrivers"
 
-noncomputable def newCSINodes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCSINodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.newCSINodes"
 
-noncomputable def newCSIStorageCapacities [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCSIStorageCapacities [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.newCSIStorageCapacities"
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.setConfigDefaults"
 
-noncomputable def newStorageClasses [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newStorageClasses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.newStorageClasses"
 
-noncomputable def newVolumeAttachments [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newVolumeAttachments [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.newVolumeAttachments"
 
-noncomputable def newVolumeAttributesClasses [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newVolumeAttributesClasses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1.newVolumeAttributesClasses"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.storage.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.storage.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -251,341 +251,445 @@ axiom CSIDriversGetter : Type
 axiom CSIDriversGetter.zero_val : ZeroVal CSIDriversGetter
 attribute [instance] CSIDriversGetter.zero_val
 
-class CSIDriversGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSIDriversGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSIDriversGetter.underlying CSIDriversGetter
   underlying : go.UnderlyingDirectedEq CSIDriversGetter.ty CSIDriversGetter.underlying
   isUnderlying : go.IsUnderlying CSIDriversGetter.underlying CSIDriversGetter.underlying
+  method_set : go.MethodSetIs CSIDriversGetter.ty [(go!"CSIDrivers", (some (go.signature.Signature [] false [CSIDriverInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSIDriversGetter.ty) []
 
 attribute [instance] CSIDriversGetter.TypeAssumptions.type_repr
   CSIDriversGetter.TypeAssumptions.underlying
   CSIDriversGetter.TypeAssumptions.isUnderlying
+  CSIDriversGetter.TypeAssumptions.method_set
+  CSIDriversGetter.TypeAssumptions.ptr_method_set
 
 axiom CSIDriverInterface : Type
 axiom CSIDriverInterface.zero_val : ZeroVal CSIDriverInterface
 attribute [instance] CSIDriverInterface.zero_val
 
-class CSIDriverInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSIDriverInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSIDriverInterface.underlying CSIDriverInterface
   underlying : go.UnderlyingDirectedEq CSIDriverInterface.ty CSIDriverInterface.underlying
   isUnderlying : go.IsUnderlying CSIDriverInterface.underlying CSIDriverInterface.underlying
+  method_set : go.MethodSetIs CSIDriverInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIDriverApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriverList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSIDriverInterface.ty) []
 
 attribute [instance] CSIDriverInterface.TypeAssumptions.type_repr
   CSIDriverInterface.TypeAssumptions.underlying
   CSIDriverInterface.TypeAssumptions.isUnderlying
+  CSIDriverInterface.TypeAssumptions.method_set
+  CSIDriverInterface.TypeAssumptions.ptr_method_set
 
 axiom cSIDrivers : Type
 axiom cSIDrivers.zero_val : ZeroVal cSIDrivers
 attribute [instance] cSIDrivers.zero_val
 
-class cSIDrivers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cSIDrivers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cSIDrivers.underlying cSIDrivers
   underlying : go.UnderlyingDirectedEq cSIDrivers.ty cSIDrivers.underlying
   isUnderlying : go.IsUnderlying cSIDrivers.underlying cSIDrivers.underlying
+  method_set : go.MethodSetIs cSIDrivers.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIDriverApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIDriverApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriverList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cSIDrivers.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIDriverApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIDriverApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriverList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIDriver" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] cSIDrivers.TypeAssumptions.type_repr
   cSIDrivers.TypeAssumptions.underlying
   cSIDrivers.TypeAssumptions.isUnderlying
+  cSIDrivers.TypeAssumptions.method_set
+  cSIDrivers.TypeAssumptions.ptr_method_set
 
 axiom CSINodesGetter : Type
 axiom CSINodesGetter.zero_val : ZeroVal CSINodesGetter
 attribute [instance] CSINodesGetter.zero_val
 
-class CSINodesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSINodesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSINodesGetter.underlying CSINodesGetter
   underlying : go.UnderlyingDirectedEq CSINodesGetter.ty CSINodesGetter.underlying
   isUnderlying : go.IsUnderlying CSINodesGetter.underlying CSINodesGetter.underlying
+  method_set : go.MethodSetIs CSINodesGetter.ty [(go!"CSINodes", (some (go.signature.Signature [] false [CSINodeInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSINodesGetter.ty) []
 
 attribute [instance] CSINodesGetter.TypeAssumptions.type_repr
   CSINodesGetter.TypeAssumptions.underlying
   CSINodesGetter.TypeAssumptions.isUnderlying
+  CSINodesGetter.TypeAssumptions.method_set
+  CSINodesGetter.TypeAssumptions.ptr_method_set
 
 axiom CSINodeInterface : Type
 axiom CSINodeInterface.zero_val : ZeroVal CSINodeInterface
 attribute [instance] CSINodeInterface.zero_val
 
-class CSINodeInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSINodeInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSINodeInterface.underlying CSINodeInterface
   underlying : go.UnderlyingDirectedEq CSINodeInterface.ty CSINodeInterface.underlying
   isUnderlying : go.IsUnderlying CSINodeInterface.underlying CSINodeInterface.underlying
+  method_set : go.MethodSetIs CSINodeInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSINodeApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSINodeApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINodeList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSINodeInterface.ty) []
 
 attribute [instance] CSINodeInterface.TypeAssumptions.type_repr
   CSINodeInterface.TypeAssumptions.underlying
   CSINodeInterface.TypeAssumptions.isUnderlying
+  CSINodeInterface.TypeAssumptions.method_set
+  CSINodeInterface.TypeAssumptions.ptr_method_set
 
 axiom cSINodes : Type
 axiom cSINodes.zero_val : ZeroVal cSINodes
 attribute [instance] cSINodes.zero_val
 
-class cSINodes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cSINodes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cSINodes.underlying cSINodes
   underlying : go.UnderlyingDirectedEq cSINodes.ty cSINodes.underlying
   isUnderlying : go.IsUnderlying cSINodes.underlying cSINodes.underlying
+  method_set : go.MethodSetIs cSINodes.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSINodeApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSINodeApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINodeList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cSINodes.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSINodeApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSINodeApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINodeList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSINode" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] cSINodes.TypeAssumptions.type_repr
   cSINodes.TypeAssumptions.underlying
   cSINodes.TypeAssumptions.isUnderlying
+  cSINodes.TypeAssumptions.method_set
+  cSINodes.TypeAssumptions.ptr_method_set
 
 axiom CSIStorageCapacitiesGetter : Type
 axiom CSIStorageCapacitiesGetter.zero_val : ZeroVal CSIStorageCapacitiesGetter
 attribute [instance] CSIStorageCapacitiesGetter.zero_val
 
-class CSIStorageCapacitiesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSIStorageCapacitiesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSIStorageCapacitiesGetter.underlying CSIStorageCapacitiesGetter
   underlying : go.UnderlyingDirectedEq CSIStorageCapacitiesGetter.ty CSIStorageCapacitiesGetter.underlying
   isUnderlying : go.IsUnderlying CSIStorageCapacitiesGetter.underlying CSIStorageCapacitiesGetter.underlying
+  method_set : go.MethodSetIs CSIStorageCapacitiesGetter.ty [(go!"CSIStorageCapacities", (some (go.signature.Signature [go.string] false [CSIStorageCapacityInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSIStorageCapacitiesGetter.ty) []
 
 attribute [instance] CSIStorageCapacitiesGetter.TypeAssumptions.type_repr
   CSIStorageCapacitiesGetter.TypeAssumptions.underlying
   CSIStorageCapacitiesGetter.TypeAssumptions.isUnderlying
+  CSIStorageCapacitiesGetter.TypeAssumptions.method_set
+  CSIStorageCapacitiesGetter.TypeAssumptions.ptr_method_set
 
 axiom CSIStorageCapacityInterface : Type
 axiom CSIStorageCapacityInterface.zero_val : ZeroVal CSIStorageCapacityInterface
 attribute [instance] CSIStorageCapacityInterface.zero_val
 
-class CSIStorageCapacityInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSIStorageCapacityInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSIStorageCapacityInterface.underlying CSIStorageCapacityInterface
   underlying : go.UnderlyingDirectedEq CSIStorageCapacityInterface.ty CSIStorageCapacityInterface.underlying
   isUnderlying : go.IsUnderlying CSIStorageCapacityInterface.underlying CSIStorageCapacityInterface.underlying
+  method_set : go.MethodSetIs CSIStorageCapacityInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIStorageCapacityApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacityList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSIStorageCapacityInterface.ty) []
 
 attribute [instance] CSIStorageCapacityInterface.TypeAssumptions.type_repr
   CSIStorageCapacityInterface.TypeAssumptions.underlying
   CSIStorageCapacityInterface.TypeAssumptions.isUnderlying
+  CSIStorageCapacityInterface.TypeAssumptions.method_set
+  CSIStorageCapacityInterface.TypeAssumptions.ptr_method_set
 
 axiom cSIStorageCapacities : Type
 axiom cSIStorageCapacities.zero_val : ZeroVal cSIStorageCapacities
 attribute [instance] cSIStorageCapacities.zero_val
 
-class cSIStorageCapacities.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cSIStorageCapacities.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cSIStorageCapacities.underlying cSIStorageCapacities
   underlying : go.UnderlyingDirectedEq cSIStorageCapacities.ty cSIStorageCapacities.underlying
   isUnderlying : go.IsUnderlying cSIStorageCapacities.underlying cSIStorageCapacities.underlying
+  method_set : go.MethodSetIs cSIStorageCapacities.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIStorageCapacityApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIStorageCapacityApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacityList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cSIStorageCapacities.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIStorageCapacityApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.CSIStorageCapacityApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacityList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.CSIStorageCapacity" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] cSIStorageCapacities.TypeAssumptions.type_repr
   cSIStorageCapacities.TypeAssumptions.underlying
   cSIStorageCapacities.TypeAssumptions.isUnderlying
+  cSIStorageCapacities.TypeAssumptions.method_set
+  cSIStorageCapacities.TypeAssumptions.ptr_method_set
 
 axiom CSIDriverExpansion : Type
 axiom CSIDriverExpansion.zero_val : ZeroVal CSIDriverExpansion
 attribute [instance] CSIDriverExpansion.zero_val
 
-class CSIDriverExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSIDriverExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSIDriverExpansion.underlying CSIDriverExpansion
   underlying : go.UnderlyingDirectedEq CSIDriverExpansion.ty CSIDriverExpansion.underlying
   isUnderlying : go.IsUnderlying CSIDriverExpansion.underlying CSIDriverExpansion.underlying
+  method_set : go.MethodSetIs CSIDriverExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSIDriverExpansion.ty) []
 
 attribute [instance] CSIDriverExpansion.TypeAssumptions.type_repr
   CSIDriverExpansion.TypeAssumptions.underlying
   CSIDriverExpansion.TypeAssumptions.isUnderlying
+  CSIDriverExpansion.TypeAssumptions.method_set
+  CSIDriverExpansion.TypeAssumptions.ptr_method_set
 
 axiom CSINodeExpansion : Type
 axiom CSINodeExpansion.zero_val : ZeroVal CSINodeExpansion
 attribute [instance] CSINodeExpansion.zero_val
 
-class CSINodeExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSINodeExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSINodeExpansion.underlying CSINodeExpansion
   underlying : go.UnderlyingDirectedEq CSINodeExpansion.ty CSINodeExpansion.underlying
   isUnderlying : go.IsUnderlying CSINodeExpansion.underlying CSINodeExpansion.underlying
+  method_set : go.MethodSetIs CSINodeExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSINodeExpansion.ty) []
 
 attribute [instance] CSINodeExpansion.TypeAssumptions.type_repr
   CSINodeExpansion.TypeAssumptions.underlying
   CSINodeExpansion.TypeAssumptions.isUnderlying
+  CSINodeExpansion.TypeAssumptions.method_set
+  CSINodeExpansion.TypeAssumptions.ptr_method_set
 
 axiom CSIStorageCapacityExpansion : Type
 axiom CSIStorageCapacityExpansion.zero_val : ZeroVal CSIStorageCapacityExpansion
 attribute [instance] CSIStorageCapacityExpansion.zero_val
 
-class CSIStorageCapacityExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CSIStorageCapacityExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CSIStorageCapacityExpansion.underlying CSIStorageCapacityExpansion
   underlying : go.UnderlyingDirectedEq CSIStorageCapacityExpansion.ty CSIStorageCapacityExpansion.underlying
   isUnderlying : go.IsUnderlying CSIStorageCapacityExpansion.underlying CSIStorageCapacityExpansion.underlying
+  method_set : go.MethodSetIs CSIStorageCapacityExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CSIStorageCapacityExpansion.ty) []
 
 attribute [instance] CSIStorageCapacityExpansion.TypeAssumptions.type_repr
   CSIStorageCapacityExpansion.TypeAssumptions.underlying
   CSIStorageCapacityExpansion.TypeAssumptions.isUnderlying
+  CSIStorageCapacityExpansion.TypeAssumptions.method_set
+  CSIStorageCapacityExpansion.TypeAssumptions.ptr_method_set
 
 axiom StorageClassExpansion : Type
 axiom StorageClassExpansion.zero_val : ZeroVal StorageClassExpansion
 attribute [instance] StorageClassExpansion.zero_val
 
-class StorageClassExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StorageClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StorageClassExpansion.underlying StorageClassExpansion
   underlying : go.UnderlyingDirectedEq StorageClassExpansion.ty StorageClassExpansion.underlying
   isUnderlying : go.IsUnderlying StorageClassExpansion.underlying StorageClassExpansion.underlying
+  method_set : go.MethodSetIs StorageClassExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageClassExpansion.ty) []
 
 attribute [instance] StorageClassExpansion.TypeAssumptions.type_repr
   StorageClassExpansion.TypeAssumptions.underlying
   StorageClassExpansion.TypeAssumptions.isUnderlying
+  StorageClassExpansion.TypeAssumptions.method_set
+  StorageClassExpansion.TypeAssumptions.ptr_method_set
 
 axiom VolumeAttachmentExpansion : Type
 axiom VolumeAttachmentExpansion.zero_val : ZeroVal VolumeAttachmentExpansion
 attribute [instance] VolumeAttachmentExpansion.zero_val
 
-class VolumeAttachmentExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VolumeAttachmentExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeAttachmentExpansion.underlying VolumeAttachmentExpansion
   underlying : go.UnderlyingDirectedEq VolumeAttachmentExpansion.ty VolumeAttachmentExpansion.underlying
   isUnderlying : go.IsUnderlying VolumeAttachmentExpansion.underlying VolumeAttachmentExpansion.underlying
+  method_set : go.MethodSetIs VolumeAttachmentExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeAttachmentExpansion.ty) []
 
 attribute [instance] VolumeAttachmentExpansion.TypeAssumptions.type_repr
   VolumeAttachmentExpansion.TypeAssumptions.underlying
   VolumeAttachmentExpansion.TypeAssumptions.isUnderlying
+  VolumeAttachmentExpansion.TypeAssumptions.method_set
+  VolumeAttachmentExpansion.TypeAssumptions.ptr_method_set
 
 axiom VolumeAttributesClassExpansion : Type
 axiom VolumeAttributesClassExpansion.zero_val : ZeroVal VolumeAttributesClassExpansion
 attribute [instance] VolumeAttributesClassExpansion.zero_val
 
-class VolumeAttributesClassExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VolumeAttributesClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeAttributesClassExpansion.underlying VolumeAttributesClassExpansion
   underlying : go.UnderlyingDirectedEq VolumeAttributesClassExpansion.ty VolumeAttributesClassExpansion.underlying
   isUnderlying : go.IsUnderlying VolumeAttributesClassExpansion.underlying VolumeAttributesClassExpansion.underlying
+  method_set : go.MethodSetIs VolumeAttributesClassExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeAttributesClassExpansion.ty) []
 
 attribute [instance] VolumeAttributesClassExpansion.TypeAssumptions.type_repr
   VolumeAttributesClassExpansion.TypeAssumptions.underlying
   VolumeAttributesClassExpansion.TypeAssumptions.isUnderlying
+  VolumeAttributesClassExpansion.TypeAssumptions.method_set
+  VolumeAttributesClassExpansion.TypeAssumptions.ptr_method_set
 
 axiom StorageV1Interface : Type
 axiom StorageV1Interface.zero_val : ZeroVal StorageV1Interface
 attribute [instance] StorageV1Interface.zero_val
 
-class StorageV1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StorageV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StorageV1Interface.underlying StorageV1Interface
   underlying : go.UnderlyingDirectedEq StorageV1Interface.ty StorageV1Interface.underlying
   isUnderlying : go.IsUnderlying StorageV1Interface.underlying StorageV1Interface.underlying
+  method_set : go.MethodSetIs StorageV1Interface.ty [(go!"CSIDrivers", (some (go.signature.Signature [] false [CSIDriverInterface.ty]))), (go!"CSINodes", (some (go.signature.Signature [] false [CSINodeInterface.ty]))), (go!"CSIStorageCapacities", (some (go.signature.Signature [go.string] false [CSIStorageCapacityInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"StorageClasses", (some (go.signature.Signature [] false [StorageClassInterface.ty]))), (go!"VolumeAttachments", (some (go.signature.Signature [] false [VolumeAttachmentInterface.ty]))), (go!"VolumeAttributesClasses", (some (go.signature.Signature [] false [VolumeAttributesClassInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageV1Interface.ty) []
 
 attribute [instance] StorageV1Interface.TypeAssumptions.type_repr
   StorageV1Interface.TypeAssumptions.underlying
   StorageV1Interface.TypeAssumptions.isUnderlying
+  StorageV1Interface.TypeAssumptions.method_set
+  StorageV1Interface.TypeAssumptions.ptr_method_set
 
 axiom StorageV1Client : Type
 axiom StorageV1Client.zero_val : ZeroVal StorageV1Client
 attribute [instance] StorageV1Client.zero_val
 
-class StorageV1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StorageV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StorageV1Client.underlying StorageV1Client
   underlying : go.UnderlyingDirectedEq StorageV1Client.ty StorageV1Client.underlying
   isUnderlying : go.IsUnderlying StorageV1Client.underlying StorageV1Client.underlying
+  method_set : go.MethodSetIs StorageV1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageV1Client.ty) [(go!"CSIDrivers", (some (go.signature.Signature [] false [CSIDriverInterface.ty]))), (go!"CSINodes", (some (go.signature.Signature [] false [CSINodeInterface.ty]))), (go!"CSIStorageCapacities", (some (go.signature.Signature [go.string] false [CSIStorageCapacityInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"StorageClasses", (some (go.signature.Signature [] false [StorageClassInterface.ty]))), (go!"VolumeAttachments", (some (go.signature.Signature [] false [VolumeAttachmentInterface.ty]))), (go!"VolumeAttributesClasses", (some (go.signature.Signature [] false [VolumeAttributesClassInterface.ty])))]
 
 attribute [instance] StorageV1Client.TypeAssumptions.type_repr
   StorageV1Client.TypeAssumptions.underlying
   StorageV1Client.TypeAssumptions.isUnderlying
+  StorageV1Client.TypeAssumptions.method_set
+  StorageV1Client.TypeAssumptions.ptr_method_set
 
 axiom StorageClassesGetter : Type
 axiom StorageClassesGetter.zero_val : ZeroVal StorageClassesGetter
 attribute [instance] StorageClassesGetter.zero_val
 
-class StorageClassesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StorageClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StorageClassesGetter.underlying StorageClassesGetter
   underlying : go.UnderlyingDirectedEq StorageClassesGetter.ty StorageClassesGetter.underlying
   isUnderlying : go.IsUnderlying StorageClassesGetter.underlying StorageClassesGetter.underlying
+  method_set : go.MethodSetIs StorageClassesGetter.ty [(go!"StorageClasses", (some (go.signature.Signature [] false [StorageClassInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageClassesGetter.ty) []
 
 attribute [instance] StorageClassesGetter.TypeAssumptions.type_repr
   StorageClassesGetter.TypeAssumptions.underlying
   StorageClassesGetter.TypeAssumptions.isUnderlying
+  StorageClassesGetter.TypeAssumptions.method_set
+  StorageClassesGetter.TypeAssumptions.ptr_method_set
 
 axiom StorageClassInterface : Type
 axiom StorageClassInterface.zero_val : ZeroVal StorageClassInterface
 attribute [instance] StorageClassInterface.zero_val
 
-class StorageClassInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StorageClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StorageClassInterface.underlying StorageClassInterface
   underlying : go.UnderlyingDirectedEq StorageClassInterface.ty StorageClassInterface.underlying
   isUnderlying : go.IsUnderlying StorageClassInterface.underlying StorageClassInterface.underlying
+  method_set : go.MethodSetIs StorageClassInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.StorageClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageClassInterface.ty) []
 
 attribute [instance] StorageClassInterface.TypeAssumptions.type_repr
   StorageClassInterface.TypeAssumptions.underlying
   StorageClassInterface.TypeAssumptions.isUnderlying
+  StorageClassInterface.TypeAssumptions.method_set
+  StorageClassInterface.TypeAssumptions.ptr_method_set
 
 axiom storageClasses : Type
 axiom storageClasses.zero_val : ZeroVal storageClasses
 attribute [instance] storageClasses.zero_val
 
-class storageClasses.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class storageClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying storageClasses.underlying storageClasses
   underlying : go.UnderlyingDirectedEq storageClasses.ty storageClasses.underlying
   isUnderlying : go.IsUnderlying storageClasses.underlying storageClasses.underlying
+  method_set : go.MethodSetIs storageClasses.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.StorageClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.StorageClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType storageClasses.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.StorageClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.StorageClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.StorageClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] storageClasses.TypeAssumptions.type_repr
   storageClasses.TypeAssumptions.underlying
   storageClasses.TypeAssumptions.isUnderlying
+  storageClasses.TypeAssumptions.method_set
+  storageClasses.TypeAssumptions.ptr_method_set
 
 axiom VolumeAttachmentsGetter : Type
 axiom VolumeAttachmentsGetter.zero_val : ZeroVal VolumeAttachmentsGetter
 attribute [instance] VolumeAttachmentsGetter.zero_val
 
-class VolumeAttachmentsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VolumeAttachmentsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeAttachmentsGetter.underlying VolumeAttachmentsGetter
   underlying : go.UnderlyingDirectedEq VolumeAttachmentsGetter.ty VolumeAttachmentsGetter.underlying
   isUnderlying : go.IsUnderlying VolumeAttachmentsGetter.underlying VolumeAttachmentsGetter.underlying
+  method_set : go.MethodSetIs VolumeAttachmentsGetter.ty [(go!"VolumeAttachments", (some (go.signature.Signature [] false [VolumeAttachmentInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeAttachmentsGetter.ty) []
 
 attribute [instance] VolumeAttachmentsGetter.TypeAssumptions.type_repr
   VolumeAttachmentsGetter.TypeAssumptions.underlying
   VolumeAttachmentsGetter.TypeAssumptions.isUnderlying
+  VolumeAttachmentsGetter.TypeAssumptions.method_set
+  VolumeAttachmentsGetter.TypeAssumptions.ptr_method_set
 
 axiom VolumeAttachmentInterface : Type
 axiom VolumeAttachmentInterface.zero_val : ZeroVal VolumeAttachmentInterface
 attribute [instance] VolumeAttachmentInterface.zero_val
 
-class VolumeAttachmentInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VolumeAttachmentInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeAttachmentInterface.underlying VolumeAttachmentInterface
   underlying : go.UnderlyingDirectedEq VolumeAttachmentInterface.ty VolumeAttachmentInterface.underlying
   isUnderlying : go.IsUnderlying VolumeAttachmentInterface.underlying VolumeAttachmentInterface.underlying
+  method_set : go.MethodSetIs VolumeAttachmentInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttachmentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttachmentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachmentList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeAttachmentInterface.ty) []
 
 attribute [instance] VolumeAttachmentInterface.TypeAssumptions.type_repr
   VolumeAttachmentInterface.TypeAssumptions.underlying
   VolumeAttachmentInterface.TypeAssumptions.isUnderlying
+  VolumeAttachmentInterface.TypeAssumptions.method_set
+  VolumeAttachmentInterface.TypeAssumptions.ptr_method_set
 
 axiom volumeAttachments : Type
 axiom volumeAttachments.zero_val : ZeroVal volumeAttachments
 attribute [instance] volumeAttachments.zero_val
 
-class volumeAttachments.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class volumeAttachments.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying volumeAttachments.underlying volumeAttachments
   underlying : go.UnderlyingDirectedEq volumeAttachments.ty volumeAttachments.underlying
   isUnderlying : go.IsUnderlying volumeAttachments.underlying volumeAttachments.underlying
+  method_set : go.MethodSetIs volumeAttachments.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttachmentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttachmentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachmentList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType volumeAttachments.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttachmentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttachmentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachmentList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttachment" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] volumeAttachments.TypeAssumptions.type_repr
   volumeAttachments.TypeAssumptions.underlying
   volumeAttachments.TypeAssumptions.isUnderlying
+  volumeAttachments.TypeAssumptions.method_set
+  volumeAttachments.TypeAssumptions.ptr_method_set
 
 axiom VolumeAttributesClassesGetter : Type
 axiom VolumeAttributesClassesGetter.zero_val : ZeroVal VolumeAttributesClassesGetter
 attribute [instance] VolumeAttributesClassesGetter.zero_val
 
-class VolumeAttributesClassesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VolumeAttributesClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeAttributesClassesGetter.underlying VolumeAttributesClassesGetter
   underlying : go.UnderlyingDirectedEq VolumeAttributesClassesGetter.ty VolumeAttributesClassesGetter.underlying
   isUnderlying : go.IsUnderlying VolumeAttributesClassesGetter.underlying VolumeAttributesClassesGetter.underlying
+  method_set : go.MethodSetIs VolumeAttributesClassesGetter.ty [(go!"VolumeAttributesClasses", (some (go.signature.Signature [] false [VolumeAttributesClassInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeAttributesClassesGetter.ty) []
 
 attribute [instance] VolumeAttributesClassesGetter.TypeAssumptions.type_repr
   VolumeAttributesClassesGetter.TypeAssumptions.underlying
   VolumeAttributesClassesGetter.TypeAssumptions.isUnderlying
+  VolumeAttributesClassesGetter.TypeAssumptions.method_set
+  VolumeAttributesClassesGetter.TypeAssumptions.ptr_method_set
 
 axiom VolumeAttributesClassInterface : Type
 axiom VolumeAttributesClassInterface.zero_val : ZeroVal VolumeAttributesClassInterface
 attribute [instance] VolumeAttributesClassInterface.zero_val
 
-class VolumeAttributesClassInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VolumeAttributesClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeAttributesClassInterface.underlying VolumeAttributesClassInterface
   underlying : go.UnderlyingDirectedEq VolumeAttributesClassInterface.ty VolumeAttributesClassInterface.underlying
   isUnderlying : go.IsUnderlying VolumeAttributesClassInterface.underlying VolumeAttributesClassInterface.underlying
+  method_set : go.MethodSetIs VolumeAttributesClassInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttributesClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeAttributesClassInterface.ty) []
 
 attribute [instance] VolumeAttributesClassInterface.TypeAssumptions.type_repr
   VolumeAttributesClassInterface.TypeAssumptions.underlying
   VolumeAttributesClassInterface.TypeAssumptions.isUnderlying
+  VolumeAttributesClassInterface.TypeAssumptions.method_set
+  VolumeAttributesClassInterface.TypeAssumptions.ptr_method_set
 
 axiom volumeAttributesClasses : Type
 axiom volumeAttributesClasses.zero_val : ZeroVal volumeAttributesClasses
 attribute [instance] volumeAttributesClasses.zero_val
 
-class volumeAttributesClasses.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class volumeAttributesClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying volumeAttributesClasses.underlying volumeAttributesClasses
   underlying : go.UnderlyingDirectedEq volumeAttributesClasses.ty volumeAttributesClasses.underlying
   isUnderlying : go.IsUnderlying volumeAttributesClasses.underlying volumeAttributesClasses.underlying
+  method_set : go.MethodSetIs volumeAttributesClasses.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttributesClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttributesClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType volumeAttributesClasses.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttributesClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/storage/v1.VolumeAttributesClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/storage/v1.VolumeAttributesClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] volumeAttributesClasses.TypeAssumptions.type_repr
   volumeAttributesClasses.TypeAssumptions.underlying
   volumeAttributesClasses.TypeAssumptions.isUnderlying
+  volumeAttributesClasses.TypeAssumptions.method_set
+  volumeAttributesClasses.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CSIDriversGetter_instance : CSIDriversGetter.TypeAssumptions
   CSIDriverInterface_instance : CSIDriverInterface.TypeAssumptions
   cSIDrivers_instance : cSIDrivers.TypeAssumptions

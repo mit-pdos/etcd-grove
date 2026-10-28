@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -34,6 +34,7 @@ theorem raftpb.Message.GetType.wp_proof :
     · subst Hp
       wp_auto
       rw [show raftpb.MessageType_MsgHup = #ms.msg.Type' by rw [Hv]; rfl]
+      wp_auto
       iapply HΦ
       iunfold msgPtsC
       iexists null, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
@@ -51,6 +52,8 @@ theorem raftpb.Message.GetType.wp_proof :
         iframe
         iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
   · wp_start
+    wp_auto
+    rw [show raftpb.MessageType_MsgHup = #(W32 0) from rfl]
     wp_auto
     iapply HΦ; ipureintro; trivial
 

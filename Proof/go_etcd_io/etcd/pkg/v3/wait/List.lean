@@ -49,7 +49,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 def waitShardN : Namespace := nroot .@ "wait_shard"
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of shard `i` (`&w.e[i]`) of the slice `sl`. -/
 abbrev waitShardAddr (sl : GoSlice) (i : Nat) : Loc :=
@@ -64,7 +64,7 @@ abbrev waitShardMap (ea : Loc) : Loc := structFieldRef wait.listElement go!"m" e
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

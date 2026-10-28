@@ -25,7 +25,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -192,6 +192,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   ihave %nRa := apply.optReqIs_null _ _ _ (apply.rangeIs_nn lRa) $$ HRa
   ihave %nPu := apply.optReqIs_null _ _ _ (apply.putIs_nn lPu) $$ HPu
   ihave %nDe := apply.optReqIs_null _ _ _ (apply.deleteIs_nn lDe) $$ HDe
+  ihave #HTx := apply.optReqIs_txnW lTx rq $$ HTx
   ihave %nTx := apply.optReqIs_null _ _ _ (apply.txnIs_nn lTx) $$ HTx
   ihave %nCo := apply.optReqIs_null _ _ _ (apply.compactionIs_nn lCo) $$ HCo
   ihave %nLG := apply.optReqIs_null _ _ _ (apply.leaseGrantIs_nn lLG) $$ HLG
@@ -241,6 +242,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   · iPkgInit
   ihave #Ptxn : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply time.wp_Now as %start -
   wp_if_destruct

@@ -22,7 +22,7 @@ namespace cache
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache apimodel informer
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,6 +48,7 @@ theorem Reflector.ListAndWatchWithContext.wp_proof
   icases Hf1 with ⟨%c, -, -, -, -, -, #Huwl, -⟩
   iunfold reflFixed2 at Hf2
   icases Hf2 with ⟨%name, %td, %ps, %md, %sr, %weh, -, #Hname, #Htd, -, -, -, -⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (wp_FromContext (GoInterface.ok ctx)) $$ [$Hklog] as %lg -

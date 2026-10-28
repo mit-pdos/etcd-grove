@@ -54,7 +54,7 @@ theorem proclaimTxn_run (key : GoString) (rev : w64) (val : GoString) (id r : w6
     simp [runTxn, proclaimTxn, TxnModel.branch, hok, runOps, applyTxnOp]
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

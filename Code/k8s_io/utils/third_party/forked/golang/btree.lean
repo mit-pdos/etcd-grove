@@ -23,139 +23,146 @@ end pkg_id
 
 namespace k8s_io.utils.third_party.forked.golang.btree
 
-noncomputable def FreeList.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def FreeList.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.FreeList" [T])
 
 attribute [irreducible] FreeList.ty
 
-noncomputable def ItemIterator.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def ItemIterator.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.ItemIterator" [T])
 
 attribute [irreducible] ItemIterator.ty
 
-noncomputable def items.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def items.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.items" [T])
 
 attribute [irreducible] items.ty
 
-noncomputable def node.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def node.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.node" [T])
 
 attribute [irreducible] node.ty
 
-noncomputable def toRemove.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def toRemove.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.toRemove" [])
 
 attribute [irreducible] toRemove.ty
 
-noncomputable def direction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def direction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.direction" [])
 
 attribute [irreducible] direction.ty
 
-noncomputable def optionalItem.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def optionalItem.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.optionalItem" [T])
 
 attribute [irreducible] optionalItem.ty
 
-noncomputable def BTree.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def BTree.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.BTree" [T])
 
 attribute [irreducible] BTree.ty
 
-noncomputable def LessFunc.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def LessFunc.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.LessFunc" [T])
 
 attribute [irreducible] LessFunc.ty
 
-noncomputable def copyOnWriteContext.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def copyOnWriteContext.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.copyOnWriteContext" [T])
 
 attribute [irreducible] copyOnWriteContext.ty
 
-noncomputable def freeType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def freeType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.freeType" [])
 
 attribute [irreducible] freeType.ty
 
-@[reducible] noncomputable def DefaultFreeListSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultFreeListSize [GooseExts] [GoGlobalContext] : val :=
   #(32 : Int)
 
 /-- removes the given item -/
-@[reducible] noncomputable def removeItem [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def removeItem [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
 /-- removes smallest item in the subtree -/
-@[reducible] noncomputable def removeMin [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def removeMin [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
 /-- removes largest item in the subtree -/
-@[reducible] noncomputable def removeMax [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def removeMax [GooseExts] [GoGlobalContext] : val :=
   #(W64 2)
 
-@[reducible] noncomputable def descend [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def descend [GooseExts] [GoGlobalContext] : val :=
   #(W64 (-1))
 
-@[reducible] noncomputable def ascend [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ascend [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
 /-- node was freed (available for GC, not stored in freelist) -/
-@[reducible] noncomputable def ftFreelistFull [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ftFreelistFull [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
 /-- node was stored in the freelist for later use -/
-@[reducible] noncomputable def ftStored [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ftStored [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
 /-- node was ignored by COW, since it's owned by another one -/
-@[reducible] noncomputable def ftNotOwned [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ftNotOwned [GooseExts] [GoGlobalContext] : val :=
   #(W64 2)
 
-noncomputable def NewFreeList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewFreeList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.NewFreeList"
 
-noncomputable def Less [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Less [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.Less"
 
-noncomputable def NewOrdered [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewOrdered [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.NewOrdered"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.New"
 
-noncomputable def NewWithFreeList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewWithFreeList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.NewWithFreeList"
 
-noncomputable def min [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def min [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.min"
 
-noncomputable def max [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def max [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.max"
 
-noncomputable def optional [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def optional [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.optional"
 
-noncomputable def empty [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def empty [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/third_party/forked/golang/btree.empty"
 
 /-- NewFreeList creates a new free list.
     size is the maximum size of the returned free list.
 
     go: btree.go:77:6 -/
-noncomputable def NewFreeList.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewFreeList.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "size"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (FreeList.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (FreeList.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (Var "size"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (FreeList.ty T)))) (Let "$v0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType (go.GoType.PointerType (node.ty T)))]))) (Val #())) (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))
+  (App (Val (GoInstruction (CompositeLiteral (FreeList.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"freelist")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType (node.ty T))) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc (FreeList.ty T)))) (Let "$v0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType (go.GoType.PointerType (node.ty T)))]))) (Val #())) (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))
-  (App (Val (GoInstruction (CompositeLiteral (FreeList.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"freelist")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType (node.ty T))) (Var "$v0")))]))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (FreeList.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "$res0")))))
 
 /-- go: btree.go:81:23 -/
-noncomputable def FreeList.newNode.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def FreeList.newNode.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "f"
   (Lam BAnon
-  (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (node.ty T))))) (Val #())))
+  (Let "$res0" (Var "n")
+  (Seq (App (Val exceptionDo)
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (FreeList.ty T))))) (Var "f"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f"))))
@@ -172,7 +179,7 @@ noncomputable def FreeList.newNode.impl [FfiSyntax] [GoGlobalContext] (T : go.Go
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))))
+  (Val #()))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f")))) (Val #()))))))
   (App (Val doExecute)
@@ -183,8 +190,12 @@ noncomputable def FreeList.newNode.impl [FfiSyntax] [GoGlobalContext] (T : go.Go
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "n") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "index")) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (node.ty T)))) (App (Val (GoInstruction (GoZeroVal (node.ty T)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc (node.ty T)))) (App (Val (GoInstruction (GoZeroVal (node.ty T)))) (Val #()))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f")))) (Val #()))))
   (App (Val doExecute)
@@ -192,21 +203,23 @@ noncomputable def FreeList.newNode.impl [FfiSyntax] [GoGlobalContext] (T : go.Go
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "index") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f")))) (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "$res0")))))))
 
 /-- go: btree.go:95:23 -/
-noncomputable def FreeList.freeNode.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def FreeList.freeNode.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "f"
   (Lam "n"
-  (App (Val exceptionDo)
   (Let "out" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res0" (Var "out")
+  (Seq (App (Val exceptionDo)
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (FreeList.ty T))))) (Var "f"))
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "out")))))
+  (Val #()))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f")))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f"))))
@@ -225,34 +238,53 @@ noncomputable def FreeList.freeNode.impl [FfiSyntax] [GoGlobalContext] (T : go.G
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (FreeList.ty T) go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f")))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
 /-- Less returns a default LessFunc that uses the '<' operator for types that support it.
 
     go: btree.go:111:6 -/
-noncomputable def Less.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Less.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Lam "a"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (LessFunc.ty T)))) (App (Val (GoInstruction (GoZeroVal (LessFunc.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Lam "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc T))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc T))) (Var "a"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "a")) (App (Val (GoInstruction (GoLoad T))) (Var "b"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoLt T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "a")) (App (Val (GoInstruction (GoLoad T))) (Var "b")))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (LessFunc.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (LessFunc.ty T)))) (Var "$res0")))))
 
 /-- NewOrdered creates a new B-Tree for ordered types.
 
     go: btree.go:116:6 -/
-noncomputable def NewOrdered.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewOrdered.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "degree"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (BTree.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "degree" (App (Val (GoInstruction (GoAlloc go.int))) (Var "degree"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "degree"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "degree"))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve Less [T]))) (Val #())) (Val #()))
-  (App (App (App (Val (GoInstruction (FuncResolve New [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve New [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (BTree.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "$res0")))))
 
 /-- New creates a new B-Tree with the given degree.
 
@@ -262,59 +294,68 @@ noncomputable def NewOrdered.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) 
     The passed-in LessFunc determines how objects of type T are ordered.
 
     go: btree.go:126:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "degree"
   (Lam "less"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (BTree.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "less" (App (Val (GoInstruction (GoAlloc (LessFunc.ty T)))) (Var "less"))
   (Let "degree" (App (Val (GoInstruction (GoAlloc go.int))) (Var "degree"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "degree"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "degree"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (LessFunc.ty T)))) (Var "less"))
   (Let "$a2" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val DefaultFreeListSize))
   (App (App (Val (GoInstruction (FuncResolve NewFreeList [T]))) (Val #())) (Var "$a0")))
-  (App (App (App (App (Val (GoInstruction (FuncResolve NewWithFreeList [T]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve NewWithFreeList [T]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (BTree.ty T))))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "$res0"))))))
 
 /-- NewWithFreeList creates a new B-Tree that uses the given node free list.
 
     go: btree.go:131:6 -/
-noncomputable def NewWithFreeList.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewWithFreeList.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "degree"
   (Lam "less"
   (Lam "f"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (BTree.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (FreeList.ty T))))) (Var "f"))
   (Let "less" (App (Val (GoInstruction (GoAlloc (LessFunc.ty T)))) (Var "less"))
   (Let "degree" (App (Val (GoInstruction (GoAlloc go.int))) (Var "degree"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc (BTree.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "degree"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (BTree.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "degree"))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc (copyOnWriteContext.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (Var "f"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (LessFunc.ty T)))) (Var "less"))
   (App (Val (GoInstruction (CompositeLiteral (copyOnWriteContext.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"freelist")) (ElementExpression (go.GoType.PointerType (FreeList.ty T)) (Var "$v0"))), (KeyedElement (some (KeyField go!"less")) (ElementExpression (LessFunc.ty T) (Var "$v1")))])))))
-  (App (Val (GoInstruction (CompositeLiteral (BTree.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"degree")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"cow")) (ElementExpression (go.GoType.PointerType (copyOnWriteContext.ty T)) (Var "$v1")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral (BTree.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"degree")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"cow")) (ElementExpression (go.GoType.PointerType (copyOnWriteContext.ty T)) (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (BTree.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "degree")) (Val #(W64 1)))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"bad degree")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "$res0")))))))
 
 /-- insertAt inserts a value into the given index, pushing all subsequent values
     forward.
 
     go: btree.go:146:20 -/
-noncomputable def items.insertAt.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def items.insertAt.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "index"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (items.ty T))))) (Var "s"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.int))) (Var "index"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "zero" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s")))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "zero"))
@@ -336,16 +377,18 @@ noncomputable def items.insertAt.impl [FfiSyntax] [GoGlobalContext] (T : go.GoTy
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s")) (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s")) (Var "$r0")))))))))))
+  (Val #())))))
 
 /-- removeAt removes a value at a given index, pulling all subsequent values
     back.
 
     go: btree.go:157:20 -/
-noncomputable def items.removeAt.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def items.removeAt.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "index"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (items.ty T))))) (Var "s"))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.int))) (Var "index"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "index")))))
@@ -359,8 +402,12 @@ noncomputable def items.removeAt.impl [FfiSyntax] [GoGlobalContext] (T : go.GoTy
   (App (Val (GoInstruction (Slice (items.ty T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad T))) (Var "item")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s")) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -373,16 +420,18 @@ noncomputable def items.removeAt.impl [FfiSyntax] [GoGlobalContext] (T : go.GoTy
   (App (Val (GoInstruction (Slice (items.ty T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "index")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$s")))))
   (App (App (App (Val (GoInstruction (FuncResolve go.copy [(items.ty T)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad T))) (Var "$res0"))))))
 
 /-- pop removes and returns the last element in the list.
 
     go: btree.go:167:20 -/
-noncomputable def items.pop.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def items.pop.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
   (Let "out" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (Var "out")
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (items.ty T))))) (Var "s"))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
@@ -397,7 +446,7 @@ noncomputable def items.pop.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (App (Val (GoInstruction (Slice (items.ty T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "index")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad T))) (Var "out")))))
+  (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s")) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -405,21 +454,19 @@ noncomputable def items.pop.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "out") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "index") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "index") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad T))) (Var "$res0")))))))
 
 /-- truncate truncates this instance at index so that it contains only the
     first index items. index must be less than or equal to length.
 
     go: btree.go:178:20 -/
-noncomputable def items.truncate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def items.truncate.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "index"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (items.ty T))))) (Var "s"))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.int))) (Var "index"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "toClear" (App (Val (GoInstruction (GoAlloc (items.ty T)))) (App (Val (GoInstruction (GoZeroVal (items.ty T)))) (Val #())))
   (Let "$l0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s"))
   (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (items.ty T))))) (Var "s")))
@@ -446,53 +493,80 @@ noncomputable def items.truncate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoTy
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (items.ty T)))) (Pair (Var "toClear") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (items.ty T)))) (Pair (Var "$l0") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (items.ty T)))) (Pair (Var "$l0") (Var "$r0"))))))))))))
+  (Val #()))))
 
 /-- find returns the index where the given item should be inserted into this
     list.  'found' is true if the item already exists in the list at the given
     index.
 
     go: btree.go:190:19 -/
-noncomputable def items.find.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def items.find.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "item"
   (Lam "less"
-  (App (Val exceptionDo)
-  (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res0" (Var "index")
+  (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (Var "found")
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (items.ty T)))) (Var "s"))
   (Let "less" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))))) (Var "less"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0")))
   (Let "$a1" (Lam "i"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))))) (Var "less")) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))))) (Var "less")) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Search []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #false)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (Var "s")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))))) (Var "less")) (Var "$a0")) (Var "$a1"))))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))) (Val #true)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))))))
 
 /-- go: btree.go:211:19 -/
-noncomputable def node.mutableFor.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.mutableFor.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "cow"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (node.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "cow" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "cow"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -503,8 +577,12 @@ noncomputable def node.mutableFor.impl [FfiSyntax] [GoGlobalContext] (T : go.GoT
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "out"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "out")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "out"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
@@ -542,16 +620,22 @@ noncomputable def node.mutableFor.impl [FfiSyntax] [GoGlobalContext] (T : go.GoT
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "out") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "cow")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "$res0"))))))
 
 /-- go: btree.go:232:19 -/
-noncomputable def node.mutableChild.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.mutableChild.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "i"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (node.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
@@ -560,22 +644,29 @@ noncomputable def node.mutableChild.impl [FfiSyntax] [GoGlobalContext] (T : go.G
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "c")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (App (Val (GoInstruction (IndexRef (items.ty (go.GoType.PointerType (node.ty T)))))) (Pair (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "c") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "c") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "$res0"))))))
 
 /-- split splits the given node at the given index.  The current node shrinks,
     and this function returns the item that existed at that index and a new node
     containing all items/children after it.
 
     go: btree.go:241:19 -/
-noncomputable def node.split.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.split.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "i"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (node.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
@@ -591,8 +682,16 @@ noncomputable def node.split.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "next"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "item")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "next"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty (go.GoType.PointerType (node.ty T)))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "next"))))
@@ -615,17 +714,19 @@ noncomputable def node.split.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "next") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "$res1"))))))))
 
 /-- maybeSplitChild checks if a child should be split, and if so splits it.
     Returns whether or not a split occurred.
 
     go: btree.go:255:19 -/
-noncomputable def node.maybeSplitChild.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.maybeSplitChild.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "i"
   (Lam "maxItems"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "maxItems" (App (Val (GoInstruction (GoAlloc go.int))) (Var "maxItems"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
@@ -646,8 +747,12 @@ noncomputable def node.maybeSplitChild.impl [FfiSyntax] [GoGlobalContext] (T : g
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "second"))
@@ -664,23 +769,28 @@ noncomputable def node.maybeSplitChild.impl [FfiSyntax] [GoGlobalContext] (T : g
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "first") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (IndexRef (items.ty (go.GoType.PointerType (node.ty T)))))) (Pair (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "maxItems")))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
 /-- insert inserts an item into the subtree rooted at this node, making sure
     no nodes in the subtree exceed maxItems items.  Should an equivalent item be
     be found/replaced by insert, it will be returned.
 
     go: btree.go:269:19 -/
-noncomputable def node.insert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.insert.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "item"
   (Lam "maxItems"
-  (App (Val exceptionDo)
-  (Let BAnon (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "maxItems" (App (Val (GoInstruction (GoAlloc go.int))) (Var "maxItems"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
@@ -704,8 +814,16 @@ noncomputable def node.insert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"mutableChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))) (Var "$a0")))) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "maxItems"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"maybeSplitChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))) (Var "$a0")) (Var "$a1"))))
@@ -728,8 +846,16 @@ noncomputable def node.insert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "out"))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "out")) (Val #true)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -742,7 +868,7 @@ noncomputable def node.insert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty (go.GoType.PointerType (node.ty T)))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #()))))))
+  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
@@ -755,8 +881,16 @@ noncomputable def node.insert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "out"))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "out")) (Val #true)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -766,17 +900,18 @@ noncomputable def node.insert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "found") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))))
 
 /-- get finds the given key in the subtree and returns it.
 
     go: btree.go:297:19 -/
-noncomputable def node.get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "key"
-  (App (Val exceptionDo)
-  (Let BAnon (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (Var "key"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
@@ -792,43 +927,69 @@ noncomputable def node.get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #()))))))
+  (Val #()))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (Val #true)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty (go.GoType.PointerType (node.ty T)))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (IndexRef (items.ty (go.GoType.PointerType (node.ty T)))))) (Pair (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Val #())))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "found") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- min returns the first item in the subtree.
 
     go: btree.go:308:6 -/
-noncomputable def min.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def min.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (Var "found")
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Val #(W64 0)))))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Val #(W64 0))))) (Val #true)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))))
+  (Val #()))
   (App (Val doExecute)
   (Val #()))))))
   (App (App (App (Val doFor) (Lam BAnon
@@ -841,29 +1002,39 @@ noncomputable def min.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (node.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (node.ty T))))) (Val UntypedNil)))))
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))))
+  (Val #()))
   (App (Val doExecute)
-  (Val #())))))))))
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- max returns the last item in the subtree.
 
     go: btree.go:322:6 -/
-noncomputable def max.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def max.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (Var "found")
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))) (Val #true)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))))
+  (Val #()))
   (App (Val doExecute)
   (Val #()))))))
   (App (App (App (Val doFor) (Lam BAnon
@@ -877,21 +1048,22 @@ noncomputable def max.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (node.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (node.ty T))))) (Val UntypedNil)))))
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))))
+  (Val #()))
   (App (Val doExecute)
-  (Val #())))))))))
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- remove removes an item from the subtree rooted at this node.
 
     go: btree.go:345:19 -/
-noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.remove.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "item"
   (Lam "minItems"
   (Lam "typ"
-  (App (Val exceptionDo)
-  (Let BAnon (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "typ" (App (Val (GoInstruction (GoAlloc toRemove.ty))) (Var "typ"))
   (Let "minItems" (App (Val (GoInstruction (GoAlloc go.int))) (Var "minItems"))
@@ -911,8 +1083,16 @@ noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"remove"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "child"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (Let "out" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
@@ -929,8 +1109,16 @@ noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (Let "$r1" (Var "$ret1")
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "out"))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "out")) (Val #true)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (Var "$r1")))))
   (App (Val doExecute)
@@ -950,8 +1138,16 @@ noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"growChildAndRemove"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$sw" (App (Val (GoInstruction (GoLoad toRemove.ty))) (Var "typ"))
@@ -963,8 +1159,16 @@ noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty (go.GoType.PointerType (node.ty T)))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (items.ty T)) go!"pop"))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Val #()))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (items.ty T)) go!"pop"))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Val #())) (Val #true)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))
   (If (App (Val (GoInstruction (GoOp GoEquals toRemove.ty))) (Pair (Var "$sw") (Val removeMin)))
@@ -974,9 +1178,17 @@ noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty (go.GoType.PointerType (node.ty T)))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (Val #(W64 0))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (items.ty T)) go!"removeAt"))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Var "$a0")))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Let "$a0" (Val #(W64 0))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (items.ty T)) go!"removeAt"))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Var "$a0"))) (Val #true)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))
   (If (App (Val (GoInstruction (GoOp GoEquals toRemove.ty))) (Pair (Var "$sw") (Val removeItem)))
@@ -993,11 +1205,19 @@ noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty (go.GoType.PointerType (node.ty T)))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #()))))))
+  (Val #()))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (items.ty T)) go!"removeAt"))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Var "$a0")))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (items.ty T)) go!"removeAt"))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Var "$a0"))) (Val #true)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
@@ -1008,7 +1228,8 @@ noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"invalid type")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))))))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
 
 /-- growChildAndRemove grows child 'i' to make sure it's possible to remove an
     item from it while keeping it at minItems, then calls remove to actually
@@ -1036,13 +1257,15 @@ noncomputable def node.remove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
     that we hit case A.
 
     go: btree.go:418:19 -/
-noncomputable def node.growChildAndRemove.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.growChildAndRemove.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "i"
   (Lam "item"
   (Lam "minItems"
   (Lam "typ"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "typ" (App (Val (GoInstruction (GoAlloc toRemove.ty))) (Var "typ"))
   (Let "minItems" (App (Val (GoInstruction (GoAlloc go.int))) (Var "minItems"))
@@ -1055,8 +1278,16 @@ noncomputable def node.growChildAndRemove.impl [FfiSyntax] [GoGlobalContext] (T 
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"remove"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (IndexRef (items.ty (go.GoType.PointerType (node.ty T)))))) (Pair (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "minItems")))) (Val #false)))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
@@ -1182,24 +1413,37 @@ noncomputable def node.growChildAndRemove.impl [FfiSyntax] [GoGlobalContext] (T 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))
   (App (Val doExecute)
-  (Val #()))))))))))))))))))
+  (Val #())))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))))))
 
 /-- go: btree.go:467:6 -/
-noncomputable def optional.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def optional.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (optionalItem.ty T)))) (App (Val (GoInstruction (GoZeroVal (optionalItem.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (Let "$v1" (Val #true)
-  (App (Val (GoInstruction (CompositeLiteral (optionalItem.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"item")) (ElementExpression T (Var "$v0"))), (KeyedElement (some (KeyField go!"valid")) (ElementExpression go.bool (Var "$v1")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral (optionalItem.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"item")) (ElementExpression T (Var "$v0"))), (KeyedElement (some (KeyField go!"valid")) (ElementExpression go.bool (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (optionalItem.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (optionalItem.ty T)))) (Var "$res0")))))
 
 /-- go: btree.go:470:6 -/
-noncomputable def empty.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def empty.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (optionalItem.ty T)))) (App (Val (GoInstruction (GoZeroVal (optionalItem.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (optionalItem.ty T)))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (CompositeLiteral (optionalItem.ty T)))) (LiteralValue [])))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (optionalItem.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (optionalItem.ty T)))) (Var "$res0")))))
 
 /-- iterate provides a simple method for iterating over elements in the tree.
 
@@ -1210,7 +1454,7 @@ noncomputable def empty.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val
     "greaterThan" or "lessThan" queries.
 
     go: btree.go:481:19 -/
-noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.iterate.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "dir"
   (Lam "start"
@@ -1218,7 +1462,9 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (Lam "includeStart"
   (Lam "hit"
   (Lam "iter"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "iter" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iter"))
   (Let "hit" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "hit"))
@@ -1230,8 +1476,16 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #true)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$sw" (App (Val (GoInstruction (GoLoad direction.ty))) (Var "dir"))
   (If (App (Val (GoInstruction (GoOp GoEquals direction.ty))) (Pair (Var "$sw") (Val ascend)))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1253,8 +1507,16 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1276,15 +1538,31 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (Val (GoInstruction (GoLoad (ItemIterator.ty T)))) (Var "iter")) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef (optionalItem.ty T) go!"valid"))) (Var "stop"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (optionalItem.ty T) go!"item"))) (Var "stop")))
   (App (App (App (Val (GoInstruction (GoLoad (LessFunc.ty T)))) (App (Val (GoInstruction (StructFieldRef (copyOnWriteContext.ty T) go!"less"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))))) (Var "$a0")) (Var "$a1"))))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1315,8 +1593,16 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1364,8 +1650,16 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1386,8 +1680,16 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (Val (GoInstruction (GoLoad (ItemIterator.ty T)))) (Var "iter")) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1395,8 +1697,16 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef (optionalItem.ty T) go!"valid"))) (Var "stop"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (optionalItem.ty T) go!"item"))) (Var "stop")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (items.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (App (Val (GoInstruction (GoLoad (LessFunc.ty T)))) (App (Val (GoInstruction (StructFieldRef (copyOnWriteContext.ty T) go!"less"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))))) (Var "$a0")) (Var "$a1"))))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
@@ -1415,8 +1725,16 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "hit")) (Val #false)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1466,7 +1784,8 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "index") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #()))))))))))))))))))))))))
+  (Val #())))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))))))))
 
 /-- Clone clones the btree, lazily.  Clone should not be called concurrently,
     but the original tree (t) and the new tree (t2) can be used concurrently
@@ -1481,11 +1800,12 @@ noncomputable def node.iterate.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
     the original performance characteristics of the original tree.
 
     go: btree.go:597:20 -/
-noncomputable def BTree.Clone.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Clone.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
-  (App (Val exceptionDo)
   (Let "t2" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (BTree.ty T))))) (Val #())))
+  (Let "$res0" (Var "t2")
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (copyOnWriteContext.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))))
   (Let "$r1" (App (Val (GoInstruction (GoLoad (copyOnWriteContext.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))))
@@ -1500,8 +1820,12 @@ noncomputable def BTree.Clone.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Var "cow2")
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Var "out")
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Var "out"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (BTree.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Pair (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"cow"))) (Var "out")) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1511,75 +1835,103 @@ noncomputable def BTree.Clone.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (copyOnWriteContext.ty T)))) (Pair (Var "cow2") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (copyOnWriteContext.ty T)))) (Pair (Var "cow1") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (copyOnWriteContext.ty T)))) (Pair (Var "cow1") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "$res0")))))))
 
 /-- maxItems returns the max number of items to allow per node.
 
     go: btree.go:611:20 -/
-noncomputable def BTree.maxItems.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.maxItems.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"degree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (Val #(W64 2)))) (Val #(W64 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"degree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (Val #(W64 2)))) (Val #(W64 1)))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- minItems returns the min number of items to allow per node (ignored for the
     root node).
 
     go: btree.go:617:20 -/
-noncomputable def BTree.minItems.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.minItems.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"degree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (Val #(W64 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"degree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (Val #(W64 1)))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: btree.go:621:33 -/
-noncomputable def copyOnWriteContext.newNode.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def copyOnWriteContext.newNode.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "c"
   (Lam BAnon
-  (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (node.ty T))))) (Val #())))
+  (Let "$res0" (Var "n")
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (FreeList.ty T)) go!"newNode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (App (Val (GoInstruction (StructFieldRef (copyOnWriteContext.ty T) go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))))
+  (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Pair (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "n") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "n") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "$res0")))))))
 
 /-- freeNode frees a node within a given COW context, if it's owned by that
     context.  It returns what happened to the node (see freeType const
     documentation).
 
     go: btree.go:638:33 -/
-noncomputable def copyOnWriteContext.freeNode.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def copyOnWriteContext.freeNode.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "c"
   (Lam "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc freeType.ty))) (App (Val (GoInstruction (GoZeroVal freeType.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val ftNotOwned)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val ftNotOwned))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore freeType.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val ftFreelistFull)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val ftFreelistFull))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore freeType.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (FreeList.ty T)) go!"freeNode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (FreeList.ty T))))) (App (Val (GoInstruction (StructFieldRef (copyOnWriteContext.ty T) go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))))) (Var "$a0")))
+  (Let "$r0" (Val ftStored)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val ftStored))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore freeType.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1591,7 +1943,8 @@ noncomputable def copyOnWriteContext.freeNode.impl [FfiSyntax] [GoGlobalContext]
   (Let "$a0" (Val #(W64 0))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (items.ty T)) go!"truncate"))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n")))) (Var "$a0")))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad freeType.ty))) (Var "$res0"))))))
 
 /-- ReplaceOrInsert adds the given item to the tree.  If an item in the tree
     already equals the given one, it is removed from the tree and returned,
@@ -1600,12 +1953,12 @@ noncomputable def copyOnWriteContext.freeNode.impl [FfiSyntax] [GoGlobalContext]
     nil cannot be added to the tree (will panic).
 
     go: btree.go:657:20 -/
-noncomputable def BTree.ReplaceOrInsert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.ReplaceOrInsert.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "item"
-  (App (Val exceptionDo)
-  (Let BAnon (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1625,8 +1978,16 @@ noncomputable def BTree.ReplaceOrInsert.impl [FfiSyntax] [GoGlobalContext] (T : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "out"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "outb"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "out")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "outb"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "outb")))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (Val #(W64 1)))))))
@@ -1689,7 +2050,7 @@ noncomputable def BTree.ReplaceOrInsert.impl [FfiSyntax] [GoGlobalContext] (T : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #()))))))
+  (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (Val #(W64 1))))))))))
   (App (Val doExecute)
@@ -1697,16 +2058,19 @@ noncomputable def BTree.ReplaceOrInsert.impl [FfiSyntax] [GoGlobalContext] (T : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))) (Var "$r0"))))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- Delete removes an item equal to the passed in item from the tree, returning
     it.  If no such item exists, returns (zeroValue, false).
 
     go: btree.go:681:20 -/
-noncomputable def BTree.Delete.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Delete.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
@@ -1714,17 +2078,28 @@ noncomputable def BTree.Delete.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (BTree.ty T)) go!"deleteItem"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1")))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- DeleteMin removes the smallest item in the tree and returns it.
     If no such item exists, returns (zeroValue, false).
 
     go: btree.go:687:20 -/
-noncomputable def BTree.DeleteMin.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.DeleteMin.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "zero" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "zero"))
@@ -1732,17 +2107,28 @@ noncomputable def BTree.DeleteMin.impl [FfiSyntax] [GoGlobalContext] (T : go.GoT
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (BTree.ty T)) go!"deleteItem"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1")))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- DeleteMax removes the largest item in the tree and returns it.
     If no such item exists, returns (zeroValue, false).
 
     go: btree.go:694:20 -/
-noncomputable def BTree.DeleteMax.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.DeleteMax.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "zero" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "zero"))
@@ -1750,17 +2136,26 @@ noncomputable def BTree.DeleteMax.impl [FfiSyntax] [GoGlobalContext] (T : go.GoT
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (BTree.ty T)) go!"deleteItem"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1")))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- go: btree.go:699:20 -/
-noncomputable def BTree.deleteItem.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.deleteItem.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "item"
   (Lam "typ"
-  (App (Val exceptionDo)
-  (Let BAnon (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "typ" (App (Val (GoInstruction (GoAlloc toRemove.ty))) (Var "typ"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
@@ -1782,8 +2177,16 @@ noncomputable def BTree.deleteItem.impl [FfiSyntax] [GoGlobalContext] (T : go.Go
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "out"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "outb"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "out")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "outb"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "outb"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (Val #(W64 1)))))))
@@ -1815,27 +2218,25 @@ noncomputable def BTree.deleteItem.impl [FfiSyntax] [GoGlobalContext] (T : go.Go
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (node.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (node.ty T))))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (items.ty T)))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(items.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #()))))
+  (Val #()))
   (App (Val doExecute)
-  (Val #())))))))))))))
+  (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))))
 
 /-- AscendRange calls the iterator for every value in the tree within the range
     [greaterOrEqual, lessThan), until iterator returns false.
 
     go: btree.go:718:20 -/
-noncomputable def BTree.AscendRange.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.AscendRange.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "greaterOrEqual"
   (Lam "lessThan"
   (Lam "iterator"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iterator"))
   (Let "lessThan" (App (Val (GoInstruction (GoAlloc T))) (Var "lessThan"))
   (Let "greaterOrEqual" (App (Val (GoInstruction (GoAlloc T))) (Var "greaterOrEqual"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val ascend)
@@ -1851,23 +2252,21 @@ noncomputable def BTree.AscendRange.impl [FfiSyntax] [GoGlobalContext] (T : go.G
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))))
+  (Val #())))))))))
+  (Val #()))))))
 
 /-- AscendLessThan calls the iterator for every value in the tree within the range
     [first, pivot), until iterator returns false.
 
     go: btree.go:727:20 -/
-noncomputable def BTree.AscendLessThan.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.AscendLessThan.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "pivot"
   (Lam "iterator"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iterator"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc T))) (Var "pivot"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val ascend)
@@ -1882,23 +2281,21 @@ noncomputable def BTree.AscendLessThan.impl [FfiSyntax] [GoGlobalContext] (T : g
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))
+  (Val #()))))))))
+  (Val #())))))
 
 /-- AscendGreaterOrEqual calls the iterator for every value in the tree within
     the range [pivot, last], until iterator returns false.
 
     go: btree.go:736:20 -/
-noncomputable def BTree.AscendGreaterOrEqual.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.AscendGreaterOrEqual.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "pivot"
   (Lam "iterator"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iterator"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc T))) (Var "pivot"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val ascend)
@@ -1913,21 +2310,19 @@ noncomputable def BTree.AscendGreaterOrEqual.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))
+  (Val #()))))))))
+  (Val #())))))
 
 /-- Ascend calls the iterator for every value in the tree within the range
     [first, last], until iterator returns false.
 
     go: btree.go:745:20 -/
-noncomputable def BTree.Ascend.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Ascend.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "iterator"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iterator"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val ascend)
@@ -1941,25 +2336,23 @@ noncomputable def BTree.Ascend.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- DescendRange calls the iterator for every value in the tree within the range
     [lessOrEqual, greaterThan), until iterator returns false.
 
     go: btree.go:754:20 -/
-noncomputable def BTree.DescendRange.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.DescendRange.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "lessOrEqual"
   (Lam "greaterThan"
   (Lam "iterator"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iterator"))
   (Let "greaterThan" (App (Val (GoInstruction (GoAlloc T))) (Var "greaterThan"))
   (Let "lessOrEqual" (App (Val (GoInstruction (GoAlloc T))) (Var "lessOrEqual"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val descend)
@@ -1975,23 +2368,21 @@ noncomputable def BTree.DescendRange.impl [FfiSyntax] [GoGlobalContext] (T : go.
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))))
+  (Val #())))))))))
+  (Val #()))))))
 
 /-- DescendLessOrEqual calls the iterator for every value in the tree within the range
     [pivot, first], until iterator returns false.
 
     go: btree.go:763:20 -/
-noncomputable def BTree.DescendLessOrEqual.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.DescendLessOrEqual.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "pivot"
   (Lam "iterator"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iterator"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc T))) (Var "pivot"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val descend)
@@ -2006,23 +2397,21 @@ noncomputable def BTree.DescendLessOrEqual.impl [FfiSyntax] [GoGlobalContext] (T
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))
+  (Val #()))))))))
+  (Val #())))))
 
 /-- DescendGreaterThan calls the iterator for every value in the tree within
     the range [last, pivot), until iterator returns false.
 
     go: btree.go:772:20 -/
-noncomputable def BTree.DescendGreaterThan.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.DescendGreaterThan.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "pivot"
   (Lam "iterator"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iterator"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc T))) (Var "pivot"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val descend)
@@ -2037,21 +2426,19 @@ noncomputable def BTree.DescendGreaterThan.impl [FfiSyntax] [GoGlobalContext] (T
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))
+  (Val #()))))))))
+  (Val #())))))
 
 /-- Descend calls the iterator for every value in the tree within the range
     [last, first], until iterator returns false.
 
     go: btree.go:781:20 -/
-noncomputable def BTree.Descend.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Descend.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "iterator"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (ItemIterator.ty T)))) (Var "iterator"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val descend)
@@ -2065,18 +2452,19 @@ noncomputable def BTree.Descend.impl [FfiSyntax] [GoGlobalContext] (T : go.GoTyp
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- Get looks for the key item in the tree, returning it.  It returns
     (zeroValue, false) if unable to find that item.
 
     go: btree.go:790:20 -/
-noncomputable def BTree.Get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "key"
-  (App (Val exceptionDo)
-  (Let BAnon (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (Var "key"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2084,55 +2472,83 @@ noncomputable def BTree.Get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (node.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (node.ty T))))) (Val UntypedNil)))))
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoZeroVal T))) (Val #())) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #()))))
+  (Val #()))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- Min returns the smallest item in the tree, or (zeroValue, false) if the tree is empty.
 
     go: btree.go:798:20 -/
-noncomputable def BTree.Min.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Min.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
-  (App (Val exceptionDo)
-  (Let BAnon (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))))
   (App (App (Val (GoInstruction (FuncResolve min [T]))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- Max returns the largest item in the tree, or (zeroValue, false) if the tree is empty.
 
     go: btree.go:803:20 -/
-noncomputable def BTree.Max.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Max.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
-  (App (Val exceptionDo)
-  (Let BAnon (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let BAnon (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))))
   (App (App (Val (GoInstruction (FuncResolve max [T]))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- Has returns true if the given key is in the tree.
 
     go: btree.go:808:20 -/
-noncomputable def BTree.Has.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Has.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "key"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (Var "key"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
@@ -2144,23 +2560,34 @@ noncomputable def BTree.Has.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))))
+  (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- Len returns the number of items currently in the tree.
 
     go: btree.go:814:20 -/
-noncomputable def BTree.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- Clear removes all items from the btree.  If addNodesToFreelist is true,
     t's nodes are added to its freelist as part of this call, until the freelist
@@ -2185,15 +2612,12 @@ noncomputable def BTree.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
     	    ownership, none are.
 
     go: btree.go:839:20 -/
-noncomputable def BTree.Clear.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def BTree.Clear.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "t"
   (Lam "addNodesToFreelist"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (BTree.ty T))))) (Var "t"))
   (Let "addNodesToFreelist" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "addNodesToFreelist"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$l0" (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))
   (Let "$l1" (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"length"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t")))
@@ -2209,23 +2633,29 @@ noncomputable def BTree.Clear.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"cow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (StructFieldRef (BTree.ty T) go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (BTree.ty T))))) (Var "t"))))) (Var "$a0"))))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- reset returns a subtree to the freelist.  It breaks out immediately if the
     freelist is full, since the only benefit of iterating is to fill that
     freelist up.  Returns true if parent reset call should continue.
 
     go: btree.go:849:19 -/
-noncomputable def node.reset.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def node.reset.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "n"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (Var "n"))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals freeType.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (copyOnWriteContext.ty T)) go!"freeNode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))) (Var "$a0"))) (Val ftFreelistFull))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals freeType.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (copyOnWriteContext.ty T)) go!"freeNode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))) (Var "$a0"))) (Val ftFreelistFull)))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (items.ty (go.GoType.PointerType (node.ty T)))))) (App (Val (GoInstruction (StructFieldRef (node.ty T) go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "n"))))
   (Let "child" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (node.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (node.ty T))))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.PointerType (node.ty T)))) (Var "$range"))
@@ -2235,19 +2665,24 @@ noncomputable def node.reset.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) 
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (copyOnWriteContext.ty T))))) (Var "c"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (node.ty T)) go!"reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (node.ty T))))) (Var "child"))) (Var "$a0"))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "child") (Var "$value"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "child") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.third_party.forked.golang.btree where
   pkgImportedPkgs := [pkg_id.cmp, pkg_id.sort, pkg_id.sync]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.utils.third_party.forked.golang.btree)) (Lam BAnon
   (App (Val exceptionDo)
@@ -2260,35 +2695,37 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))))
 
-structure FreeList [FfiSyntax] (T : Type) where
+structure FreeList [GooseExts] (T : Type) where
   mk ::
   mu' : _root_.Perennial.sync.Mutex
   freelist' : GoSlice
 
-noncomputable instance FreeList.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (FreeList T) :=
+noncomputable instance FreeList.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (FreeList T) :=
   ⟨FreeList.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def FreeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def FreeList.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"freelist" (go.GoType.SliceType (go.GoType.PointerType (node.ty T))))]
 
-@[irreducible] noncomputable def FreeList.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def FreeList.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (FreeList.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_FreeList [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_FreeList [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (FreeList.fields T) (FreeList.fieldsUnsealed T) :=
   ⟨by unfold FreeList.fields; rfl⟩
 
-@[reducible] noncomputable def FreeList.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def FreeList.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (FreeList.fields T))
 
-class FreeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FreeList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (FreeList.underlying T) (FreeList T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (FreeList.ty T) (FreeList.underlying T)
   get_mu : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')), go.IsGoStepPureDetTagged under (StructFieldGet (FreeList.underlying T) go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet (FreeList.underlying T) go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : (FreeList T'))))
   get_freelist : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')), go.IsGoStepPureDetTagged under (StructFieldGet (FreeList.underlying T) go!"freelist") #x (Val #(x.freelist'))
   set_freelist : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (FreeList.underlying T) go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : (FreeList T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (FreeList.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (FreeList.ty T)) [(go!"k8s.io/utils/third_party/forked/golang/btree.freeNode", (some (go.signature.Signature [(go.GoType.PointerType (node.ty T))] false [go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.newNode", (some (go.signature.Signature [] false [(go.GoType.PointerType (node.ty T))])))]
   ptr_freeNode_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (FreeList.ty T)) go!"freeNode" (FreeList.freeNode.impl T)
   ptr_newNode_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (FreeList.ty T)) go!"newNode" (FreeList.newNode.impl T)
 
@@ -2298,26 +2735,34 @@ attribute [instance] FreeList.TypeAssumptions.type_repr
   FreeList.TypeAssumptions.set_mu
   FreeList.TypeAssumptions.get_freelist
   FreeList.TypeAssumptions.set_freelist
+  FreeList.TypeAssumptions.method_set
+  FreeList.TypeAssumptions.ptr_method_set
   FreeList.TypeAssumptions.ptr_freeNode_unfold
   FreeList.TypeAssumptions.ptr_newNode_unfold
 
-abbrev ItemIterator [FfiSyntax] (T : Type) : Type := GoFunc
+abbrev ItemIterator [GooseExts] (T : Type) : Type := GoFunc
 
-@[reducible] noncomputable def ItemIterator.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def ItemIterator.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [T] false [go.bool]))
 
-class ItemIterator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ItemIterator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ItemIterator.ty T) (ItemIterator.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (ItemIterator.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ItemIterator.ty T)) []
 
 attribute [instance] ItemIterator.TypeAssumptions.underlying
+  ItemIterator.TypeAssumptions.method_set
+  ItemIterator.TypeAssumptions.ptr_method_set
 
-abbrev items [FfiSyntax] (T : Type) : Type := GoSlice
+abbrev items [GooseExts] (T : Type) : Type := GoSlice
 
-@[reducible] noncomputable def items.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def items.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.SliceType T)
 
-class items.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class items.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (items.ty T) (items.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (items.ty T) [(go!"k8s.io/utils/third_party/forked/golang/btree.find", (some (go.signature.Signature [T, (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))] false [go.int, go.bool])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (items.ty T)) [(go!"k8s.io/utils/third_party/forked/golang/btree.find", (some (go.signature.Signature [T, (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))] false [go.int, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.insertAt", (some (go.signature.Signature [go.int, T] false []))), (go!"k8s.io/utils/third_party/forked/golang/btree.pop", (some (go.signature.Signature [] false [T]))), (go!"k8s.io/utils/third_party/forked/golang/btree.removeAt", (some (go.signature.Signature [go.int] false [T]))), (go!"k8s.io/utils/third_party/forked/golang/btree.truncate", (some (go.signature.Signature [go.int] false [])))]
   find_unfold : ∀ (T : go.GoType), MethodUnfold (items.ty T) go!"find" (items.find.impl T)
   ptr_find_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (items.ty T)) go!"find" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (items.ty T) go!"find"))) (App (Val (GoInstruction (GoLoad (items.ty T)))) (Var "$r"))))
@@ -2327,6 +2772,8 @@ class items.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   ptr_truncate_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (items.ty T)) go!"truncate" (items.truncate.impl T)
 
 attribute [instance] items.TypeAssumptions.underlying
+  items.TypeAssumptions.method_set
+  items.TypeAssumptions.ptr_method_set
   items.TypeAssumptions.find_unfold
   items.TypeAssumptions.ptr_find_unfold
   items.TypeAssumptions.ptr_insertAt_unfold
@@ -2334,31 +2781,31 @@ attribute [instance] items.TypeAssumptions.underlying
   items.TypeAssumptions.ptr_removeAt_unfold
   items.TypeAssumptions.ptr_truncate_unfold
 
-structure node [FfiSyntax] (T : Type) where
+structure node [GooseExts] (T : Type) where
   mk ::
   items' : (items T)
   children' : (items Loc)
   cow' : Loc
 
-noncomputable instance node.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (node T) :=
+noncomputable instance node.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (node T) :=
   ⟨node.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def node.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def node.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"items" (items.ty T)),
 (go.field_decl.FieldDecl go!"children" (items.ty (go.GoType.PointerType (node.ty T)))),
 (go.field_decl.FieldDecl go!"cow" (go.GoType.PointerType (copyOnWriteContext.ty T)))]
 
-@[irreducible] noncomputable def node.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def node.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (node.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_node [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_node [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (node.fields T) (node.fieldsUnsealed T) :=
   ⟨by unfold node.fields; rfl⟩
 
-@[reducible] noncomputable def node.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def node.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (node.fields T))
 
-class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (node.underlying T) (node T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (node.ty T) (node.underlying T)
   get_items : ∀ (T : go.GoType) (T' : Type) (x : (node T')), go.IsGoStepPureDetTagged under (StructFieldGet (node.underlying T) go!"items") #x (Val #(x.items'))
@@ -2367,6 +2814,8 @@ class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_children : ∀ (T : go.GoType) (T' : Type) (x : (node T')) (y : (items Loc)), go.IsGoStepPureDetTagged under (StructFieldSet (node.underlying T) go!"children") (PairV #x #y) (Val #(({ x with children' := y } : (node T'))))
   get_cow : ∀ (T : go.GoType) (T' : Type) (x : (node T')), go.IsGoStepPureDetTagged under (StructFieldGet (node.underlying T) go!"cow") #x (Val #(x.cow'))
   set_cow : ∀ (T : go.GoType) (T' : Type) (x : (node T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (node.underlying T) go!"cow") (PairV #x #y) (Val #(({ x with cow' := y } : (node T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (node.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (node.ty T)) [(go!"k8s.io/utils/third_party/forked/golang/btree.get", (some (go.signature.Signature [T] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.growChildAndRemove", (some (go.signature.Signature [go.int, T, go.int, toRemove.ty] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.insert", (some (go.signature.Signature [T, go.int] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.iterate", (some (go.signature.Signature [direction.ty, (optionalItem.ty T), (optionalItem.ty T), go.bool, go.bool, (ItemIterator.ty T)] false [go.bool, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.maybeSplitChild", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.mutableChild", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (node.ty T))]))), (go!"k8s.io/utils/third_party/forked/golang/btree.mutableFor", (some (go.signature.Signature [(go.GoType.PointerType (copyOnWriteContext.ty T))] false [(go.GoType.PointerType (node.ty T))]))), (go!"k8s.io/utils/third_party/forked/golang/btree.remove", (some (go.signature.Signature [T, go.int, toRemove.ty] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.reset", (some (go.signature.Signature [(go.GoType.PointerType (copyOnWriteContext.ty T))] false [go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.split", (some (go.signature.Signature [go.int] false [T, (go.GoType.PointerType (node.ty T))])))]
   ptr_get_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (node.ty T)) go!"get" (node.get.impl T)
   ptr_growChildAndRemove_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (node.ty T)) go!"growChildAndRemove" (node.growChildAndRemove.impl T)
   ptr_insert_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (node.ty T)) go!"insert" (node.insert.impl T)
@@ -2386,6 +2835,8 @@ attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.set_children
   node.TypeAssumptions.get_cow
   node.TypeAssumptions.set_cow
+  node.TypeAssumptions.method_set
+  node.TypeAssumptions.ptr_method_set
   node.TypeAssumptions.ptr_get_unfold
   node.TypeAssumptions.ptr_growChildAndRemove_unfold
   node.TypeAssumptions.ptr_insert_unfold
@@ -2397,55 +2848,65 @@ attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.ptr_reset_unfold
   node.TypeAssumptions.ptr_split_unfold
 
-abbrev toRemove [FfiSyntax] : Type := w64
+abbrev toRemove [GooseExts] : Type := w64
 
-@[reducible] noncomputable def toRemove.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def toRemove.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class toRemove.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class toRemove.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq toRemove.ty toRemove.underlying
+  method_set : go.MethodSetIs toRemove.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType toRemove.ty) []
 
 attribute [instance] toRemove.TypeAssumptions.underlying
+  toRemove.TypeAssumptions.method_set
+  toRemove.TypeAssumptions.ptr_method_set
 
-abbrev direction [FfiSyntax] : Type := w64
+abbrev direction [GooseExts] : Type := w64
 
-@[reducible] noncomputable def direction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def direction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class direction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class direction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq direction.ty direction.underlying
+  method_set : go.MethodSetIs direction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType direction.ty) []
 
 attribute [instance] direction.TypeAssumptions.underlying
+  direction.TypeAssumptions.method_set
+  direction.TypeAssumptions.ptr_method_set
 
-structure optionalItem [FfiSyntax] (T : Type) where
+structure optionalItem [GooseExts] (T : Type) where
   mk ::
   item' : T
   valid' : Bool
 
-noncomputable instance optionalItem.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (optionalItem T) :=
+noncomputable instance optionalItem.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (optionalItem T) :=
   ⟨optionalItem.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def optionalItem.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def optionalItem.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"item" T),
 (go.field_decl.FieldDecl go!"valid" go.bool)]
 
-@[irreducible] noncomputable def optionalItem.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def optionalItem.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (optionalItem.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_optionalItem [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_optionalItem [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (optionalItem.fields T) (optionalItem.fieldsUnsealed T) :=
   ⟨by unfold optionalItem.fields; rfl⟩
 
-@[reducible] noncomputable def optionalItem.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def optionalItem.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (optionalItem.fields T))
 
-class optionalItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class optionalItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (optionalItem.underlying T) (optionalItem T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (optionalItem.ty T) (optionalItem.underlying T)
   get_item : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')), go.IsGoStepPureDetTagged under (StructFieldGet (optionalItem.underlying T) go!"item") #x (Val #(x.item'))
   set_item : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (optionalItem.underlying T) go!"item") (PairV #x #y) (Val #(({ x with item' := y } : (optionalItem T'))))
   get_valid : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')), go.IsGoStepPureDetTagged under (StructFieldGet (optionalItem.underlying T) go!"valid") #x (Val #(x.valid'))
   set_valid : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet (optionalItem.underlying T) go!"valid") (PairV #x #y) (Val #(({ x with valid' := y } : (optionalItem T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (optionalItem.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (optionalItem.ty T)) []
 
 attribute [instance] optionalItem.TypeAssumptions.type_repr
   optionalItem.TypeAssumptions.underlying
@@ -2453,34 +2914,36 @@ attribute [instance] optionalItem.TypeAssumptions.type_repr
   optionalItem.TypeAssumptions.set_item
   optionalItem.TypeAssumptions.get_valid
   optionalItem.TypeAssumptions.set_valid
+  optionalItem.TypeAssumptions.method_set
+  optionalItem.TypeAssumptions.ptr_method_set
 
-structure BTree [FfiSyntax] (T : Type) where
+structure BTree [GooseExts] (T : Type) where
   mk ::
   degree' : w64
   length' : w64
   root' : Loc
   cow' : Loc
 
-noncomputable instance BTree.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (BTree T) :=
+noncomputable instance BTree.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (BTree T) :=
   ⟨BTree.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def BTree.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def BTree.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"degree" go.int),
 (go.field_decl.FieldDecl go!"length" go.int),
 (go.field_decl.FieldDecl go!"root" (go.GoType.PointerType (node.ty T))),
 (go.field_decl.FieldDecl go!"cow" (go.GoType.PointerType (copyOnWriteContext.ty T)))]
 
-@[irreducible] noncomputable def BTree.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def BTree.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (BTree.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_BTree [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_BTree [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (BTree.fields T) (BTree.fieldsUnsealed T) :=
   ⟨by unfold BTree.fields; rfl⟩
 
-@[reducible] noncomputable def BTree.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def BTree.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (BTree.fields T))
 
-class BTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BTree.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (BTree.underlying T) (BTree T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (BTree.ty T) (BTree.underlying T)
   get_degree : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')), go.IsGoStepPureDetTagged under (StructFieldGet (BTree.underlying T) go!"degree") #x (Val #(x.degree'))
@@ -2491,6 +2954,8 @@ class BTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_root : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (BTree.underlying T) go!"root") (PairV #x #y) (Val #(({ x with root' := y } : (BTree T'))))
   get_cow : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')), go.IsGoStepPureDetTagged under (StructFieldGet (BTree.underlying T) go!"cow") #x (Val #(x.cow'))
   set_cow : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (BTree.underlying T) go!"cow") (PairV #x #y) (Val #(({ x with cow' := y } : (BTree T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (BTree.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (BTree.ty T)) [(go!"Ascend", (some (go.signature.Signature [(ItemIterator.ty T)] false []))), (go!"AscendGreaterOrEqual", (some (go.signature.Signature [T, (ItemIterator.ty T)] false []))), (go!"AscendLessThan", (some (go.signature.Signature [T, (ItemIterator.ty T)] false []))), (go!"AscendRange", (some (go.signature.Signature [T, T, (ItemIterator.ty T)] false []))), (go!"Clear", (some (go.signature.Signature [go.bool] false []))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType (BTree.ty T))]))), (go!"Delete", (some (go.signature.Signature [T] false [T, go.bool]))), (go!"DeleteMax", (some (go.signature.Signature [] false [T, go.bool]))), (go!"DeleteMin", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Descend", (some (go.signature.Signature [(ItemIterator.ty T)] false []))), (go!"DescendGreaterThan", (some (go.signature.Signature [T, (ItemIterator.ty T)] false []))), (go!"DescendLessOrEqual", (some (go.signature.Signature [T, (ItemIterator.ty T)] false []))), (go!"DescendRange", (some (go.signature.Signature [T, T, (ItemIterator.ty T)] false []))), (go!"Get", (some (go.signature.Signature [T] false [T, go.bool]))), (go!"Has", (some (go.signature.Signature [T] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Max", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Min", (some (go.signature.Signature [] false [T, go.bool]))), (go!"ReplaceOrInsert", (some (go.signature.Signature [T] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.deleteItem", (some (go.signature.Signature [T, toRemove.ty] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.maxItems", (some (go.signature.Signature [] false [go.int]))), (go!"k8s.io/utils/third_party/forked/golang/btree.minItems", (some (go.signature.Signature [] false [go.int])))]
   ptr_Ascend_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (BTree.ty T)) go!"Ascend" (BTree.Ascend.impl T)
   ptr_AscendGreaterOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (BTree.ty T)) go!"AscendGreaterOrEqual" (BTree.AscendGreaterOrEqual.impl T)
   ptr_AscendLessThan_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (BTree.ty T)) go!"AscendLessThan" (BTree.AscendLessThan.impl T)
@@ -2524,6 +2989,8 @@ attribute [instance] BTree.TypeAssumptions.type_repr
   BTree.TypeAssumptions.set_root
   BTree.TypeAssumptions.get_cow
   BTree.TypeAssumptions.set_cow
+  BTree.TypeAssumptions.method_set
+  BTree.TypeAssumptions.ptr_method_set
   BTree.TypeAssumptions.ptr_Ascend_unfold
   BTree.TypeAssumptions.ptr_AscendGreaterOrEqual_unfold
   BTree.TypeAssumptions.ptr_AscendLessThan_unfold
@@ -2547,45 +3014,51 @@ attribute [instance] BTree.TypeAssumptions.type_repr
   BTree.TypeAssumptions.ptr_maxItems_unfold
   BTree.TypeAssumptions.ptr_minItems_unfold
 
-abbrev LessFunc [FfiSyntax] (T : Type) : Type := GoFunc
+abbrev LessFunc [GooseExts] (T : Type) : Type := GoFunc
 
-@[reducible] noncomputable def LessFunc.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def LessFunc.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))
 
-class LessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LessFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (LessFunc.ty T) (LessFunc.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (LessFunc.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (LessFunc.ty T)) []
 
 attribute [instance] LessFunc.TypeAssumptions.underlying
+  LessFunc.TypeAssumptions.method_set
+  LessFunc.TypeAssumptions.ptr_method_set
 
-structure copyOnWriteContext [FfiSyntax] (T : Type) where
+structure copyOnWriteContext [GooseExts] (T : Type) where
   mk ::
   freelist' : Loc
   less' : (LessFunc T)
 
-noncomputable instance copyOnWriteContext.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (copyOnWriteContext T) :=
+noncomputable instance copyOnWriteContext.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (copyOnWriteContext T) :=
   ⟨copyOnWriteContext.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def copyOnWriteContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def copyOnWriteContext.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"freelist" (go.GoType.PointerType (FreeList.ty T))),
 (go.field_decl.FieldDecl go!"less" (LessFunc.ty T))]
 
-@[irreducible] noncomputable def copyOnWriteContext.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def copyOnWriteContext.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (copyOnWriteContext.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_copyOnWriteContext [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_copyOnWriteContext [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (copyOnWriteContext.fields T) (copyOnWriteContext.fieldsUnsealed T) :=
   ⟨by unfold copyOnWriteContext.fields; rfl⟩
 
-@[reducible] noncomputable def copyOnWriteContext.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def copyOnWriteContext.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (copyOnWriteContext.fields T))
 
-class copyOnWriteContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class copyOnWriteContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (copyOnWriteContext.underlying T) (copyOnWriteContext T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (copyOnWriteContext.ty T) (copyOnWriteContext.underlying T)
   get_freelist : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')), go.IsGoStepPureDetTagged under (StructFieldGet (copyOnWriteContext.underlying T) go!"freelist") #x (Val #(x.freelist'))
   set_freelist : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (copyOnWriteContext.underlying T) go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : (copyOnWriteContext T'))))
   get_less : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')), go.IsGoStepPureDetTagged under (StructFieldGet (copyOnWriteContext.underlying T) go!"less") #x (Val #(x.less'))
   set_less : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')) (y : (LessFunc T')), go.IsGoStepPureDetTagged under (StructFieldSet (copyOnWriteContext.underlying T) go!"less") (PairV #x #y) (Val #(({ x with less' := y } : (copyOnWriteContext T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (copyOnWriteContext.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (copyOnWriteContext.ty T)) [(go!"k8s.io/utils/third_party/forked/golang/btree.freeNode", (some (go.signature.Signature [(go.GoType.PointerType (node.ty T))] false [freeType.ty]))), (go!"k8s.io/utils/third_party/forked/golang/btree.newNode", (some (go.signature.Signature [] false [(go.GoType.PointerType (node.ty T))])))]
   ptr_freeNode_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (copyOnWriteContext.ty T)) go!"freeNode" (copyOnWriteContext.freeNode.impl T)
   ptr_newNode_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (copyOnWriteContext.ty T)) go!"newNode" (copyOnWriteContext.newNode.impl T)
 
@@ -2595,20 +3068,26 @@ attribute [instance] copyOnWriteContext.TypeAssumptions.type_repr
   copyOnWriteContext.TypeAssumptions.set_freelist
   copyOnWriteContext.TypeAssumptions.get_less
   copyOnWriteContext.TypeAssumptions.set_less
+  copyOnWriteContext.TypeAssumptions.method_set
+  copyOnWriteContext.TypeAssumptions.ptr_method_set
   copyOnWriteContext.TypeAssumptions.ptr_freeNode_unfold
   copyOnWriteContext.TypeAssumptions.ptr_newNode_unfold
 
-abbrev freeType [FfiSyntax] : Type := w64
+abbrev freeType [GooseExts] : Type := w64
 
-@[reducible] noncomputable def freeType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def freeType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class freeType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class freeType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq freeType.ty freeType.underlying
+  method_set : go.MethodSetIs freeType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType freeType.ty) []
 
 attribute [instance] freeType.TypeAssumptions.underlying
+  freeType.TypeAssumptions.method_set
+  freeType.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   FreeList_instance : FreeList.TypeAssumptions
   ItemIterator_instance : ItemIterator.TypeAssumptions
   items_instance : items.TypeAssumptions

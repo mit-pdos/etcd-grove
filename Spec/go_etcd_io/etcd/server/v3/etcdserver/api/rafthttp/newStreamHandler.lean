@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -36,7 +36,7 @@ abbrev rafthttp.newStreamHandler.spec : Prop :=
             ∃ pl : Loc, ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #pl⌝ ∗
               peerStreams Rh id pid pl) }}) ∗
       □ (∀ (pid : w64) (sl : GoSlice) (us : List GoString),
-        {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ id⌝ }}
+        {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ id ∧ peerURLsOk Rh pid us⌝ }}
           (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
             (Val #pid)) (Val #sl))
         {{ RET #(); True }}) ∗

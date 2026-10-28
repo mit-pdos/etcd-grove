@@ -36,7 +36,7 @@ theorem btInsert_perm_of_new {V : Type} {less : V → V → Prop} [DecidableRel 
       rw [ite_eq_left h2]
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

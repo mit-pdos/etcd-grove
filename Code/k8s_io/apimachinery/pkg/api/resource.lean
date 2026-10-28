@@ -20,357 +20,357 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.api.resource
 
-noncomputable def Scale.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Scale.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.Scale" [])
 
 attribute [irreducible] Scale.ty
 
-noncomputable def widenedScale.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def widenedScale.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.widenedScale" [])
 
 attribute [irreducible] widenedScale.ty
 
-noncomputable def int64Amount.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def int64Amount.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.int64Amount" [])
 
 attribute [irreducible] int64Amount.ty
 
-noncomputable def infDecAmount.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def infDecAmount.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.infDecAmount" [])
 
 attribute [irreducible] infDecAmount.ty
 
-noncomputable def Quantity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Quantity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.Quantity" [])
 
 attribute [irreducible] Quantity.ty
 
-noncomputable def CanonicalValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CanonicalValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.CanonicalValue" [])
 
 attribute [irreducible] CanonicalValue.ty
 
-noncomputable def Format.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Format.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.Format" [])
 
 attribute [irreducible] Format.ty
 
-noncomputable def cachedString.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cachedString.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.cachedString" [])
 
 attribute [irreducible] cachedString.ty
 
-noncomputable def formatCode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def formatCode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.formatCode" [])
 
 attribute [irreducible] formatCode.ty
 
-noncomputable def QuantityValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QuantityValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.QuantityValue" [])
 
 attribute [irreducible] QuantityValue.ty
 
-noncomputable def suffix.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def suffix.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.suffix" [])
 
 attribute [irreducible] suffix.ty
 
-noncomputable def suffixer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def suffixer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.suffixer" [])
 
 attribute [irreducible] suffixer.ty
 
-noncomputable def bePair.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bePair.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.bePair" [])
 
 attribute [irreducible] bePair.ty
 
-noncomputable def listSuffixer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listSuffixer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.listSuffixer" [])
 
 attribute [irreducible] listSuffixer.ty
 
-noncomputable def suffixHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def suffixHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.suffixHandler" [])
 
 attribute [irreducible] suffixHandler.ty
 
-noncomputable def fastLookup.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fastLookup.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/resource.fastLookup" [])
 
 attribute [irreducible] fastLookup.ty
 
-axiom infDecAmount.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom infDecAmount.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Nano [FfiSyntax] [GoGlobalContext] : val
+axiom Nano [GooseExts] [GoGlobalContext] : val
 
-axiom Micro [FfiSyntax] [GoGlobalContext] : val
+axiom Micro [GooseExts] [GoGlobalContext] : val
 
-axiom Milli [FfiSyntax] [GoGlobalContext] : val
+axiom Milli [GooseExts] [GoGlobalContext] : val
 
-axiom Kilo [FfiSyntax] [GoGlobalContext] : val
+axiom Kilo [GooseExts] [GoGlobalContext] : val
 
-axiom Mega [FfiSyntax] [GoGlobalContext] : val
+axiom Mega [GooseExts] [GoGlobalContext] : val
 
-axiom Giga [FfiSyntax] [GoGlobalContext] : val
+axiom Giga [GooseExts] [GoGlobalContext] : val
 
-axiom Tera [FfiSyntax] [GoGlobalContext] : val
+axiom Tera [GooseExts] [GoGlobalContext] : val
 
-axiom Peta [FfiSyntax] [GoGlobalContext] : val
+axiom Peta [GooseExts] [GoGlobalContext] : val
 
-axiom Exa [FfiSyntax] [GoGlobalContext] : val
+axiom Exa [GooseExts] [GoGlobalContext] : val
 
-axiom nanoInfScale [FfiSyntax] [GoGlobalContext] : val
+axiom nanoInfScale [GooseExts] [GoGlobalContext] : val
 
-axiom maxScaleGap [FfiSyntax] [GoGlobalContext] : val
+axiom maxScaleGap [GooseExts] [GoGlobalContext] : val
 
-axiom maxInt64Factors [FfiSyntax] [GoGlobalContext] : val
+axiom maxInt64Factors [GooseExts] [GoGlobalContext] : val
 
-axiom mostNegative [FfiSyntax] [GoGlobalContext] : val
+axiom mostNegative [GooseExts] [GoGlobalContext] : val
 
-axiom mostPositive [FfiSyntax] [GoGlobalContext] : val
+axiom mostPositive [GooseExts] [GoGlobalContext] : val
 
-axiom log10MaxInt64 [FfiSyntax] [GoGlobalContext] : val
+axiom log10MaxInt64 [GooseExts] [GoGlobalContext] : val
 
-axiom DecimalExponent [FfiSyntax] [GoGlobalContext] : val
+axiom DecimalExponent [GooseExts] [GoGlobalContext] : val
 
-axiom BinarySI [FfiSyntax] [GoGlobalContext] : val
+axiom BinarySI [GooseExts] [GoGlobalContext] : val
 
-axiom DecimalSI [FfiSyntax] [GoGlobalContext] : val
+axiom DecimalSI [GooseExts] [GoGlobalContext] : val
 
-axiom formatCodeUnknown [FfiSyntax] [GoGlobalContext] : val
+axiom formatCodeUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom formatCodeDecimalExponent [FfiSyntax] [GoGlobalContext] : val
+axiom formatCodeDecimalExponent [GooseExts] [GoGlobalContext] : val
 
-axiom formatCodeBinarySI [FfiSyntax] [GoGlobalContext] : val
+axiom formatCodeBinarySI [GooseExts] [GoGlobalContext] : val
 
-axiom formatCodeDecimalSI [FfiSyntax] [GoGlobalContext] : val
+axiom formatCodeDecimalSI [GooseExts] [GoGlobalContext] : val
 
-axiom splitREString [FfiSyntax] [GoGlobalContext] : val
+axiom splitREString [GooseExts] [GoGlobalContext] : val
 
-axiom int64QuantityExpectedBytes [FfiSyntax] [GoGlobalContext] : val
+axiom int64QuantityExpectedBytes [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Zero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.Zero"
 
-axiom Zero.init [FfiSyntax] [GoGlobalContext] : val
+axiom Zero.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def zeroBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def zeroBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.zeroBytes"
 
-axiom zeroBytes.init [FfiSyntax] [GoGlobalContext] : val
+axiom zeroBytes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bigTen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bigTen [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigTen"
 
-axiom bigTen.init [FfiSyntax] [GoGlobalContext] : val
+axiom bigTen.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bigZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bigZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigZero"
 
-axiom bigZero.init [FfiSyntax] [GoGlobalContext] : val
+axiom bigZero.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bigOne [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bigOne [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigOne"
 
-axiom bigOne.init [FfiSyntax] [GoGlobalContext] : val
+axiom bigOne.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bigThousand [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bigThousand [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigThousand"
 
-axiom bigThousand.init [FfiSyntax] [GoGlobalContext] : val
+axiom bigThousand.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def big1024 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def big1024 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.big1024"
 
-axiom big1024.init [FfiSyntax] [GoGlobalContext] : val
+axiom big1024.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def decZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.decZero"
 
-axiom decZero.init [FfiSyntax] [GoGlobalContext] : val
+axiom decZero.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def decOne [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decOne [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.decOne"
 
-axiom decOne.init [FfiSyntax] [GoGlobalContext] : val
+axiom decOne.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def maxAllowed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maxAllowed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.maxAllowed"
 
-axiom maxAllowed.init [FfiSyntax] [GoGlobalContext] : val
+axiom maxAllowed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MaxMilliValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxMilliValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.MaxMilliValue"
 
-axiom MaxMilliValue.init [FfiSyntax] [GoGlobalContext] : val
+axiom MaxMilliValue.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrFormatWrong [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrFormatWrong [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrFormatWrong"
 
-axiom ErrFormatWrong.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrFormatWrong.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNumeric [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNumeric [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrNumeric"
 
-axiom ErrNumeric.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNumeric.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrSuffix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrSuffix [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrSuffix"
 
-axiom ErrSuffix.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrSuffix.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrIntOverflowGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def intPool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def intPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.intPool"
 
-noncomputable def maxInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maxInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.maxInt64"
 
-axiom maxInt64.init [FfiSyntax] [GoGlobalContext] : val
+axiom maxInt64.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def minInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def minInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.minInt64"
 
-axiom minInt64.init [FfiSyntax] [GoGlobalContext] : val
+axiom minInt64.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def quantitySuffixer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def quantitySuffixer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.quantitySuffixer"
 
-axiom quantitySuffixer.init [FfiSyntax] [GoGlobalContext] : val
+axiom quantitySuffixer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def widenScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def widenScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.widenScale"
 
-noncomputable def narrowScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def narrowScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.narrowScale"
 
-noncomputable def widenInfScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def widenInfScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.widenInfScale"
 
-noncomputable def decimalExponentBounds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decimalExponentBounds [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.decimalExponentBounds"
 
-noncomputable def cmpDec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def cmpDec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.cmpDec"
 
-noncomputable def boundScaleGap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def boundScaleGap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.boundScaleGap"
 
-noncomputable def addDecBoundedScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addDecBoundedScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.addDecBoundedScale"
 
-noncomputable def subDecBoundedScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def subDecBoundedScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.subDecBoundedScale"
 
-noncomputable def floorToSIExponent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def floorToSIExponent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.floorToSIExponent"
 
-noncomputable def MaxMilliQuantity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxMilliQuantity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.MaxMilliQuantity"
 
-noncomputable def int64Add [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int64Add [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.int64Add"
 
-noncomputable def int64Multiply [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int64Multiply [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.int64Multiply"
 
-noncomputable def int64MultiplyScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int64MultiplyScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.int64MultiplyScale"
 
-noncomputable def int64MultiplyScale10 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int64MultiplyScale10 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.int64MultiplyScale10"
 
-noncomputable def int64MultiplyScale100 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int64MultiplyScale100 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.int64MultiplyScale100"
 
-noncomputable def int64MultiplyScale1000 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int64MultiplyScale1000 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.int64MultiplyScale1000"
 
-noncomputable def positiveScaleInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def positiveScaleInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.positiveScaleInt64"
 
-noncomputable def negativeScaleInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def negativeScaleInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.negativeScaleInt64"
 
-noncomputable def pow10Int64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pow10Int64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.pow10Int64"
 
-noncomputable def divideByScaleInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def divideByScaleInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.divideByScaleInt64"
 
-noncomputable def removeInt64Factors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def removeInt64Factors [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.removeInt64Factors"
 
-noncomputable def removeBigIntFactors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def removeBigIntFactors [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.removeBigIntFactors"
 
-noncomputable def formatCodeOf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def formatCodeOf [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.formatCodeOf"
 
-noncomputable def newCachedString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCachedString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.newCachedString"
 
-noncomputable def MustParse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustParse [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.MustParse"
 
-noncomputable def parseQuantityString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseQuantityString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.parseQuantityString"
 
-noncomputable def ParseQuantity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseQuantity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ParseQuantity"
 
-noncomputable def NewDecimalQuantity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDecimalQuantity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.NewDecimalQuantity"
 
-noncomputable def NewQuantity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewQuantity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.NewQuantity"
 
-noncomputable def NewMilliQuantity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMilliQuantity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.NewMilliQuantity"
 
-noncomputable def NewScaledQuantity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewScaledQuantity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.NewScaledQuantity"
 
-noncomputable def QuantityPtrEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def QuantityPtrEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.QuantityPtrEqual"
 
-noncomputable def encodeVarintGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.encodeVarintGenerated"
 
-noncomputable def sovGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sovGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.sovGenerated"
 
-noncomputable def skipGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def skipGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.skipGenerated"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.init.0"
 
-noncomputable def scaledValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def scaledValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.scaledValue"
 
-noncomputable def bigToInt64Saturated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bigToInt64Saturated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigToInt64Saturated"
 
-noncomputable def newSuffixer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newSuffixer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.newSuffixer"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.resource where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.api.resource)) (Lam BAnon
   (App (Val exceptionDo)
@@ -434,55 +434,65 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val Zero.init) (Val #()))))))))
 
-abbrev Scale [FfiSyntax] : Type := w32
+abbrev Scale [GooseExts] : Type := w32
 
-@[reducible] noncomputable def Scale.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Scale.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-class Scale.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Scale.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Scale.ty Scale.underlying
+  method_set : go.MethodSetIs Scale.ty [(go!"k8s.io/apimachinery/pkg/api/resource.canInfScale", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.infScale", (some (go.signature.Signature [] false [(go.GoType.Named go!"gopkg.in/inf.v0.Scale" []), go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Scale.ty) [(go!"k8s.io/apimachinery/pkg/api/resource.canInfScale", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.infScale", (some (go.signature.Signature [] false [(go.GoType.Named go!"gopkg.in/inf.v0.Scale" []), go.bool])))]
 
 attribute [instance] Scale.TypeAssumptions.underlying
+  Scale.TypeAssumptions.method_set
+  Scale.TypeAssumptions.ptr_method_set
 
-abbrev widenedScale [FfiSyntax] : Type := w64
+abbrev widenedScale [GooseExts] : Type := w64
 
-@[reducible] noncomputable def widenedScale.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def widenedScale.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int64
 
-class widenedScale.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class widenedScale.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq widenedScale.ty widenedScale.underlying
+  method_set : go.MethodSetIs widenedScale.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType widenedScale.ty) []
 
 attribute [instance] widenedScale.TypeAssumptions.underlying
+  widenedScale.TypeAssumptions.method_set
+  widenedScale.TypeAssumptions.ptr_method_set
 
-structure int64Amount [FfiSyntax] where
+structure int64Amount [GooseExts] where
   mk ::
   value' : w64
   scale' : Scale
 
-noncomputable instance int64Amount.zero_val [FfiSyntax] : ZeroVal int64Amount :=
+noncomputable instance int64Amount.zero_val [GooseExts] : ZeroVal int64Amount :=
   ⟨int64Amount.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def int64Amount.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def int64Amount.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"value" go.int64),
 (go.field_decl.FieldDecl go!"scale" Scale.ty)]
 
-@[irreducible] noncomputable def int64Amount.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def int64Amount.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   int64Amount.fieldsUnsealed
 
-noncomputable instance equals_unfold_int64Amount [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_int64Amount [GooseExts] [GoGlobalContext] :
     EqualsUnfold int64Amount.fields int64Amount.fieldsUnsealed :=
   ⟨by unfold int64Amount.fields; rfl⟩
 
-@[reducible] noncomputable def int64Amount.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def int64Amount.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType int64Amount.fields)
 
-class int64Amount.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class int64Amount.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying int64Amount.underlying int64Amount
   underlying : go.UnderlyingDirectedEq int64Amount.ty int64Amount.underlying
   get_value : ∀ (x : int64Amount), go.IsGoStepPureDetTagged under (StructFieldGet int64Amount.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : int64Amount) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet int64Amount.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : int64Amount)))
   get_scale : ∀ (x : int64Amount), go.IsGoStepPureDetTagged under (StructFieldGet int64Amount.underlying go!"scale") #x (Val #(x.scale'))
   set_scale : ∀ (x : int64Amount) (y : Scale), go.IsGoStepPureDetTagged under (StructFieldSet int64Amount.underlying go!"scale") (PairV #x #y) (Val #(({ x with scale' := y } : int64Amount)))
+  method_set : go.MethodSetIs int64Amount.ty [(go!"AsCanonicalBase1024Bytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsCanonicalBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsDec", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64, go.bool]))), (go!"AsScale", (some (go.signature.Signature [Scale.ty] false [int64Amount.ty, go.bool]))), (go!"AsScaledInt64", (some (go.signature.Signature [Scale.ty] false [go.int64, go.bool]))), (go!"Cmp", (some (go.signature.Signature [int64Amount.ty] false [go.int]))), (go!"Sign", (some (go.signature.Signature [] false [go.int]))), (go!"k8s.io/apimachinery/pkg/api/resource.widenedScale", (some (go.signature.Signature [] false [widenedScale.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType int64Amount.ty) [(go!"Add", (some (go.signature.Signature [int64Amount.ty] false [go.bool]))), (go!"AsCanonicalBase1024Bytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsCanonicalBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsDec", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64, go.bool]))), (go!"AsScale", (some (go.signature.Signature [Scale.ty] false [int64Amount.ty, go.bool]))), (go!"AsScaledInt64", (some (go.signature.Signature [Scale.ty] false [go.int64, go.bool]))), (go!"Cmp", (some (go.signature.Signature [int64Amount.ty] false [go.int]))), (go!"Mul", (some (go.signature.Signature [go.int64] false [go.bool]))), (go!"Sign", (some (go.signature.Signature [] false [go.int]))), (go!"Sub", (some (go.signature.Signature [int64Amount.ty] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.widenedScale", (some (go.signature.Signature [] false [widenedScale.ty])))]
 
 attribute [instance] int64Amount.TypeAssumptions.type_repr
   int64Amount.TypeAssumptions.underlying
@@ -490,59 +500,71 @@ attribute [instance] int64Amount.TypeAssumptions.type_repr
   int64Amount.TypeAssumptions.set_value
   int64Amount.TypeAssumptions.get_scale
   int64Amount.TypeAssumptions.set_scale
+  int64Amount.TypeAssumptions.method_set
+  int64Amount.TypeAssumptions.ptr_method_set
 
 axiom infDecAmount : Type
 axiom infDecAmount.zero_val : ZeroVal infDecAmount
 attribute [instance] infDecAmount.zero_val
 
-class infDecAmount.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class infDecAmount.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying infDecAmount.underlying infDecAmount
   underlying : go.UnderlyingDirectedEq infDecAmount.ty infDecAmount.underlying
   isUnderlying : go.IsUnderlying infDecAmount.underlying infDecAmount.underlying
+  method_set : go.MethodSetIs infDecAmount.ty [(go!"Abs", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Add", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"AsCanonicalBase1024Bytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsCanonicalBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsScale", (some (go.signature.Signature [Scale.ty] false [infDecAmount.ty, go.bool]))), (go!"Cmp", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [go.int]))), (go!"Format", (some (go.signature.Signature [(go.GoType.Named go!"fmt.State" []), go.rune] false []))), (go!"GobDecode", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"GobEncode", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Mul", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Neg", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"QuoExact", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"QuoRound", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.Named go!"gopkg.in/inf.v0.Scale" []), (go.GoType.Named go!"gopkg.in/inf.v0.Rounder" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Round", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.Named go!"gopkg.in/inf.v0.Scale" []), (go.GoType.Named go!"gopkg.in/inf.v0.Rounder" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Scale", (some (go.signature.Signature [] false [(go.GoType.Named go!"gopkg.in/inf.v0.Scale" [])]))), (go!"Scan", (some (go.signature.Signature [(go.GoType.Named go!"fmt.ScanState" []), go.rune] false [go.error]))), (go!"Set", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"SetScale", (some (go.signature.Signature [(go.GoType.Named go!"gopkg.in/inf.v0.Scale" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"SetString", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), go.bool]))), (go!"SetUnscaled", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"SetUnscaledBig", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"math/big.Int" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Sign", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sub", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Unscaled", (some (go.signature.Signature [] false [go.int64, go.bool]))), (go!"UnscaledBig", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"math/big.Int" []))]))), (go!"gopkg.in/inf.v0.quo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.Named go!"gopkg.in/inf.v0.scaler" []), (go.GoType.Named go!"gopkg.in/inf.v0.Rounder" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"gopkg.in/inf.v0.quoRem", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.Named go!"gopkg.in/inf.v0.Scale" []), go.bool, (go.GoType.PointerType (go.GoType.Named go!"math/big.Int" [])), (go.GoType.PointerType (go.GoType.Named go!"math/big.Int" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"math/big.Int" [])), (go.GoType.PointerType (go.GoType.Named go!"math/big.Int" []))]))), (go!"gopkg.in/inf.v0.rescale", (some (go.signature.Signature [(go.GoType.Named go!"gopkg.in/inf.v0.Scale" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"gopkg.in/inf.v0.scan", (some (go.signature.Signature [(go.GoType.Named go!"io.RuneScanner" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), go.error]))), (go!"k8s.io/apimachinery/pkg/api/resource.widenedScale", (some (go.signature.Signature [] false [widenedScale.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType infDecAmount.ty) [(go!"Abs", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Add", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"AsCanonicalBase1024Bytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsCanonicalBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsScale", (some (go.signature.Signature [Scale.ty] false [infDecAmount.ty, go.bool]))), (go!"Cmp", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [go.int]))), (go!"Format", (some (go.signature.Signature [(go.GoType.Named go!"fmt.State" []), go.rune] false []))), (go!"GobDecode", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"GobEncode", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Mul", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Neg", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"QuoExact", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"QuoRound", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.Named go!"gopkg.in/inf.v0.Scale" []), (go.GoType.Named go!"gopkg.in/inf.v0.Rounder" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Round", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.Named go!"gopkg.in/inf.v0.Scale" []), (go.GoType.Named go!"gopkg.in/inf.v0.Rounder" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Scale", (some (go.signature.Signature [] false [(go.GoType.Named go!"gopkg.in/inf.v0.Scale" [])]))), (go!"Scan", (some (go.signature.Signature [(go.GoType.Named go!"fmt.ScanState" []), go.rune] false [go.error]))), (go!"Set", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"SetScale", (some (go.signature.Signature [(go.GoType.Named go!"gopkg.in/inf.v0.Scale" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"SetString", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), go.bool]))), (go!"SetUnscaled", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"SetUnscaledBig", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"math/big.Int" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"Sign", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sub", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Unscaled", (some (go.signature.Signature [] false [go.int64, go.bool]))), (go!"UnscaledBig", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"math/big.Int" []))]))), (go!"gopkg.in/inf.v0.quo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.Named go!"gopkg.in/inf.v0.scaler" []), (go.GoType.Named go!"gopkg.in/inf.v0.Rounder" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"gopkg.in/inf.v0.quoRem", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.Named go!"gopkg.in/inf.v0.Scale" []), go.bool, (go.GoType.PointerType (go.GoType.Named go!"math/big.Int" [])), (go.GoType.PointerType (go.GoType.Named go!"math/big.Int" []))] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), (go.GoType.PointerType (go.GoType.Named go!"math/big.Int" [])), (go.GoType.PointerType (go.GoType.Named go!"math/big.Int" []))]))), (go!"gopkg.in/inf.v0.rescale", (some (go.signature.Signature [(go.GoType.Named go!"gopkg.in/inf.v0.Scale" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"gopkg.in/inf.v0.scan", (some (go.signature.Signature [(go.GoType.Named go!"io.RuneScanner" [])] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" [])), go.error]))), (go!"k8s.io/apimachinery/pkg/api/resource.widenedScale", (some (go.signature.Signature [] false [widenedScale.ty])))]
 
 attribute [instance] infDecAmount.TypeAssumptions.type_repr
   infDecAmount.TypeAssumptions.underlying
   infDecAmount.TypeAssumptions.isUnderlying
+  infDecAmount.TypeAssumptions.method_set
+  infDecAmount.TypeAssumptions.ptr_method_set
 
-abbrev formatCode [FfiSyntax] : Type := w8
+abbrev formatCode [GooseExts] : Type := w8
 
-@[reducible] noncomputable def formatCode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def formatCode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint8
 
-class formatCode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class formatCode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq formatCode.ty formatCode.underlying
+  method_set : go.MethodSetIs formatCode.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType formatCode.ty) []
 
 attribute [instance] formatCode.TypeAssumptions.underlying
+  formatCode.TypeAssumptions.method_set
+  formatCode.TypeAssumptions.ptr_method_set
 
-structure cachedString [FfiSyntax] where
+structure cachedString [GooseExts] where
   mk ::
   str' : GoString
   format' : formatCode
 
-noncomputable instance cachedString.zero_val [FfiSyntax] : ZeroVal cachedString :=
+noncomputable instance cachedString.zero_val [GooseExts] : ZeroVal cachedString :=
   ⟨cachedString.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def cachedString.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def cachedString.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"str" go.string),
 (go.field_decl.FieldDecl go!"format" formatCode.ty)]
 
-@[irreducible] noncomputable def cachedString.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def cachedString.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cachedString.fieldsUnsealed
 
-noncomputable instance equals_unfold_cachedString [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_cachedString [GooseExts] [GoGlobalContext] :
     EqualsUnfold cachedString.fields cachedString.fieldsUnsealed :=
   ⟨by unfold cachedString.fields; rfl⟩
 
-@[reducible] noncomputable def cachedString.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cachedString.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType cachedString.fields)
 
-class cachedString.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cachedString.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cachedString.underlying cachedString
   underlying : go.UnderlyingDirectedEq cachedString.ty cachedString.underlying
   get_str : ∀ (x : cachedString), go.IsGoStepPureDetTagged under (StructFieldGet cachedString.underlying go!"str") #x (Val #(x.str'))
   set_str : ∀ (x : cachedString) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet cachedString.underlying go!"str") (PairV #x #y) (Val #(({ x with str' := y } : cachedString)))
   get_format : ∀ (x : cachedString), go.IsGoStepPureDetTagged under (StructFieldGet cachedString.underlying go!"format") #x (Val #(x.format'))
   set_format : ∀ (x : cachedString) (y : formatCode), go.IsGoStepPureDetTagged under (StructFieldSet cachedString.underlying go!"format") (PairV #x #y) (Val #(({ x with format' := y } : cachedString)))
+  method_set : go.MethodSetIs cachedString.ty [(go!"k8s.io/apimachinery/pkg/api/resource.validFor", (some (go.signature.Signature [Format.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cachedString.ty) [(go!"k8s.io/apimachinery/pkg/api/resource.validFor", (some (go.signature.Signature [Format.ty] false [go.bool])))]
 
 attribute [instance] cachedString.TypeAssumptions.type_repr
   cachedString.TypeAssumptions.underlying
@@ -550,44 +572,50 @@ attribute [instance] cachedString.TypeAssumptions.type_repr
   cachedString.TypeAssumptions.set_str
   cachedString.TypeAssumptions.get_format
   cachedString.TypeAssumptions.set_format
+  cachedString.TypeAssumptions.method_set
+  cachedString.TypeAssumptions.ptr_method_set
 
-abbrev Format [FfiSyntax] : Type := GoString
+abbrev Format [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def Format.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Format.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class Format.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Format.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Format.ty Format.underlying
+  method_set : go.MethodSetIs Format.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Format.ty) []
 
 attribute [instance] Format.TypeAssumptions.underlying
+  Format.TypeAssumptions.method_set
+  Format.TypeAssumptions.ptr_method_set
 
-structure Quantity [FfiSyntax] where
+structure Quantity [GooseExts] where
   mk ::
   i' : int64Amount
   d' : infDecAmount
   s' : cachedString
   Format' : Format
 
-noncomputable instance Quantity.zero_val [FfiSyntax] : ZeroVal Quantity :=
+noncomputable instance Quantity.zero_val [GooseExts] : ZeroVal Quantity :=
   ⟨Quantity.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Quantity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Quantity.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"i" int64Amount.ty),
 (go.field_decl.FieldDecl go!"d" infDecAmount.ty),
 (go.field_decl.FieldDecl go!"s" cachedString.ty),
 (go.field_decl.EmbeddedField go!"Format" Format.ty)]
 
-@[irreducible] noncomputable def Quantity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Quantity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Quantity.fieldsUnsealed
 
-noncomputable instance equals_unfold_Quantity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Quantity [GooseExts] [GoGlobalContext] :
     EqualsUnfold Quantity.fields Quantity.fieldsUnsealed :=
   ⟨by unfold Quantity.fields; rfl⟩
 
-@[reducible] noncomputable def Quantity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Quantity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Quantity.fields)
 
-class Quantity.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Quantity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Quantity.underlying Quantity
   underlying : go.UnderlyingDirectedEq Quantity.ty Quantity.underlying
   get_i : ∀ (x : Quantity), go.IsGoStepPureDetTagged under (StructFieldGet Quantity.underlying go!"i") #x (Val #(x.i'))
@@ -598,6 +626,8 @@ class Quantity.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_s : ∀ (x : Quantity) (y : cachedString), go.IsGoStepPureDetTagged under (StructFieldSet Quantity.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Quantity)))
   get_Format : ∀ (x : Quantity), go.IsGoStepPureDetTagged under (StructFieldGet Quantity.underlying go!"Format") #x (Val #(x.Format'))
   set_Format : ∀ (x : Quantity) (y : Format), go.IsGoStepPureDetTagged under (StructFieldSet Quantity.underlying go!"Format") (PairV #x #y) (Val #(({ x with Format' := y } : Quantity)))
+  method_set : go.MethodSetIs Quantity.ty [(go!"DeepCopy", (some (go.signature.Signature [] false [Quantity.ty]))), (go!"Equal", (some (go.signature.Signature [Quantity.ty] false [go.bool]))), (go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaFormat", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaType", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OpenAPIV3OneOfTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ToUnstructured", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Quantity.ty) [(go!"Add", (some (go.signature.Signature [Quantity.ty] false []))), (go!"AsApproximateFloat64", (some (go.signature.Signature [] false [go.float64]))), (go!"AsCanonicalBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsDec", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"AsFloat64Slow", (some (go.signature.Signature [] false [go.float64]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64, go.bool]))), (go!"AsMilliInt64", (some (go.signature.Signature [] false [go.int64, go.bool]))), (go!"AsScale", (some (go.signature.Signature [Scale.ty] false [CanonicalValue.ty, go.bool]))), (go!"AsScaledInt64", (some (go.signature.Signature [Scale.ty] false [go.int64, go.bool]))), (go!"CacheString", (some (go.signature.Signature [] false [go.string]))), (go!"CanonicalizeBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)]))), (go!"Cmp", (some (go.signature.Signature [Quantity.ty] false [go.int]))), (go!"CmpInt64", (some (go.signature.Signature [go.int64] false [go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [Quantity.ty]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Quantity.ty)] false []))), (go!"Equal", (some (go.signature.Signature [Quantity.ty] false [go.bool]))), (go!"IsZero", (some (go.signature.Signature [] false [go.bool]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MilliValue", (some (go.signature.Signature [] false [go.int64]))), (go!"Mul", (some (go.signature.Signature [go.int64] false [go.bool]))), (go!"Neg", (some (go.signature.Signature [] false []))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaFormat", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaType", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OpenAPIV3OneOfTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"RoundUp", (some (go.signature.Signature [Scale.ty] false [go.bool]))), (go!"ScaledValue", (some (go.signature.Signature [Scale.ty] false [go.int64]))), (go!"Set", (some (go.signature.Signature [go.int64] false []))), (go!"SetMilli", (some (go.signature.Signature [go.int64] false []))), (go!"SetScaled", (some (go.signature.Signature [go.int64, Scale.ty] false []))), (go!"Sign", (some (go.signature.Signature [] false [go.int]))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sub", (some (go.signature.Signature [Quantity.ty] false []))), (go!"ToDec", (some (go.signature.Signature [] false [(go.GoType.PointerType Quantity.ty)]))), (go!"ToUnstructured", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalCBOR", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Value", (some (go.signature.Signature [] false [go.int64]))), (go!"k8s.io/apimachinery/pkg/api/resource.internalReadOnlyDec", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"k8s.io/apimachinery/pkg/api/resource.widenedScale", (some (go.signature.Signature [] false [widenedScale.ty])))]
 
 attribute [instance] Quantity.TypeAssumptions.type_repr
   Quantity.TypeAssumptions.underlying
@@ -609,97 +639,117 @@ attribute [instance] Quantity.TypeAssumptions.type_repr
   Quantity.TypeAssumptions.set_s
   Quantity.TypeAssumptions.get_Format
   Quantity.TypeAssumptions.set_Format
+  Quantity.TypeAssumptions.method_set
+  Quantity.TypeAssumptions.ptr_method_set
 
-abbrev CanonicalValue [FfiSyntax] : Type := GoInterface
+abbrev CanonicalValue [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def CanonicalValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CanonicalValue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AsCanonicalBase1024Bytes" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32])), (go.InterfaceElem.MethodElem go!"AsCanonicalBytes" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))])
 
-class CanonicalValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CanonicalValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CanonicalValue.ty CanonicalValue.underlying
+  method_set : go.MethodSetIs CanonicalValue.ty [(go!"AsCanonicalBase1024Bytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsCanonicalBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CanonicalValue.ty) []
 
 attribute [instance] CanonicalValue.TypeAssumptions.underlying
+  CanonicalValue.TypeAssumptions.method_set
+  CanonicalValue.TypeAssumptions.ptr_method_set
 
-structure QuantityValue [FfiSyntax] where
+structure QuantityValue [GooseExts] where
   mk ::
   Quantity' : Quantity
 
-noncomputable instance QuantityValue.zero_val [FfiSyntax] : ZeroVal QuantityValue :=
+noncomputable instance QuantityValue.zero_val [GooseExts] : ZeroVal QuantityValue :=
   ⟨QuantityValue.mk zeroValDef⟩
 
-@[reducible] noncomputable def QuantityValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def QuantityValue.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Quantity" Quantity.ty)]
 
-@[irreducible] noncomputable def QuantityValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def QuantityValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   QuantityValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_QuantityValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_QuantityValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold QuantityValue.fields QuantityValue.fieldsUnsealed :=
   ⟨by unfold QuantityValue.fields; rfl⟩
 
-@[reducible] noncomputable def QuantityValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def QuantityValue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType QuantityValue.fields)
 
-class QuantityValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class QuantityValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying QuantityValue.underlying QuantityValue
   underlying : go.UnderlyingDirectedEq QuantityValue.ty QuantityValue.underlying
   get_Quantity : ∀ (x : QuantityValue), go.IsGoStepPureDetTagged under (StructFieldGet QuantityValue.underlying go!"Quantity") #x (Val #(x.Quantity'))
   set_Quantity : ∀ (x : QuantityValue) (y : Quantity), go.IsGoStepPureDetTagged under (StructFieldSet QuantityValue.underlying go!"Quantity") (PairV #x #y) (Val #(({ x with Quantity' := y } : QuantityValue)))
+  method_set : go.MethodSetIs QuantityValue.ty [(go!"Equal", (some (go.signature.Signature [Quantity.ty] false [go.bool]))), (go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaFormat", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaType", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OpenAPIV3OneOfTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ToUnstructured", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType QuantityValue.ty) [(go!"Add", (some (go.signature.Signature [Quantity.ty] false []))), (go!"AsApproximateFloat64", (some (go.signature.Signature [] false [go.float64]))), (go!"AsCanonicalBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.int32]))), (go!"AsDec", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"AsFloat64Slow", (some (go.signature.Signature [] false [go.float64]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64, go.bool]))), (go!"AsMilliInt64", (some (go.signature.Signature [] false [go.int64, go.bool]))), (go!"AsScale", (some (go.signature.Signature [Scale.ty] false [CanonicalValue.ty, go.bool]))), (go!"AsScaledInt64", (some (go.signature.Signature [Scale.ty] false [go.int64, go.bool]))), (go!"CacheString", (some (go.signature.Signature [] false [go.string]))), (go!"CanonicalizeBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)]))), (go!"Cmp", (some (go.signature.Signature [Quantity.ty] false [go.int]))), (go!"CmpInt64", (some (go.signature.Signature [go.int64] false [go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType QuantityValue.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType QuantityValue.ty)] false []))), (go!"Equal", (some (go.signature.Signature [Quantity.ty] false [go.bool]))), (go!"IsZero", (some (go.signature.Signature [] false [go.bool]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MilliValue", (some (go.signature.Signature [] false [go.int64]))), (go!"Mul", (some (go.signature.Signature [go.int64] false [go.bool]))), (go!"Neg", (some (go.signature.Signature [] false []))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaFormat", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaType", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OpenAPIV3OneOfTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"RoundUp", (some (go.signature.Signature [Scale.ty] false [go.bool]))), (go!"ScaledValue", (some (go.signature.Signature [Scale.ty] false [go.int64]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetMilli", (some (go.signature.Signature [go.int64] false []))), (go!"SetScaled", (some (go.signature.Signature [go.int64, Scale.ty] false []))), (go!"Sign", (some (go.signature.Signature [] false [go.int]))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sub", (some (go.signature.Signature [Quantity.ty] false []))), (go!"ToDec", (some (go.signature.Signature [] false [(go.GoType.PointerType Quantity.ty)]))), (go!"ToUnstructured", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Type", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalCBOR", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Value", (some (go.signature.Signature [] false [go.int64]))), (go!"k8s.io/apimachinery/pkg/api/resource.internalReadOnlyDec", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"gopkg.in/inf.v0.Dec" []))]))), (go!"k8s.io/apimachinery/pkg/api/resource.widenedScale", (some (go.signature.Signature [] false [widenedScale.ty])))]
 
 attribute [instance] QuantityValue.TypeAssumptions.type_repr
   QuantityValue.TypeAssumptions.underlying
   QuantityValue.TypeAssumptions.get_Quantity
   QuantityValue.TypeAssumptions.set_Quantity
+  QuantityValue.TypeAssumptions.method_set
+  QuantityValue.TypeAssumptions.ptr_method_set
 
-abbrev suffix [FfiSyntax] : Type := GoString
+abbrev suffix [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def suffix.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def suffix.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class suffix.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class suffix.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq suffix.ty suffix.underlying
+  method_set : go.MethodSetIs suffix.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType suffix.ty) []
 
 attribute [instance] suffix.TypeAssumptions.underlying
+  suffix.TypeAssumptions.method_set
+  suffix.TypeAssumptions.ptr_method_set
 
-abbrev suffixer [FfiSyntax] : Type := GoInterface
+abbrev suffixer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def suffixer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"construct" (go.signature.Signature [go.int32, go.int32, Format.ty] false [suffix.ty, go.bool])), (go.InterfaceElem.MethodElem go!"constructBytes" (go.signature.Signature [go.int32, go.int32, Format.ty] false [(go.GoType.SliceType go.byte), go.bool])), (go.InterfaceElem.MethodElem go!"interpret" (go.signature.Signature [suffix.ty] false [go.int32, go.int32, Format.ty, go.bool]))])
+@[reducible] noncomputable def suffixer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"k8s.io/apimachinery/pkg/api/resource.construct" (go.signature.Signature [go.int32, go.int32, Format.ty] false [suffix.ty, go.bool])), (go.InterfaceElem.MethodElem go!"k8s.io/apimachinery/pkg/api/resource.constructBytes" (go.signature.Signature [go.int32, go.int32, Format.ty] false [(go.GoType.SliceType go.byte), go.bool])), (go.InterfaceElem.MethodElem go!"k8s.io/apimachinery/pkg/api/resource.interpret" (go.signature.Signature [suffix.ty] false [go.int32, go.int32, Format.ty, go.bool]))])
 
-class suffixer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class suffixer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq suffixer.ty suffixer.underlying
+  method_set : go.MethodSetIs suffixer.ty [(go!"k8s.io/apimachinery/pkg/api/resource.construct", (some (go.signature.Signature [go.int32, go.int32, Format.ty] false [suffix.ty, go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.constructBytes", (some (go.signature.Signature [go.int32, go.int32, Format.ty] false [(go.GoType.SliceType go.byte), go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.interpret", (some (go.signature.Signature [suffix.ty] false [go.int32, go.int32, Format.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType suffixer.ty) []
 
 attribute [instance] suffixer.TypeAssumptions.underlying
+  suffixer.TypeAssumptions.method_set
+  suffixer.TypeAssumptions.ptr_method_set
 
-structure bePair [FfiSyntax] where
+structure bePair [GooseExts] where
   mk ::
   base' : w32
   exponent' : w32
 
-noncomputable instance bePair.zero_val [FfiSyntax] : ZeroVal bePair :=
+noncomputable instance bePair.zero_val [GooseExts] : ZeroVal bePair :=
   ⟨bePair.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bePair.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bePair.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"base" go.int32),
 (go.field_decl.FieldDecl go!"exponent" go.int32)]
 
-@[irreducible] noncomputable def bePair.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bePair.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bePair.fieldsUnsealed
 
-noncomputable instance equals_unfold_bePair [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bePair [GooseExts] [GoGlobalContext] :
     EqualsUnfold bePair.fields bePair.fieldsUnsealed :=
   ⟨by unfold bePair.fields; rfl⟩
 
-@[reducible] noncomputable def bePair.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bePair.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bePair.fields)
 
-class bePair.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bePair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bePair.underlying bePair
   underlying : go.UnderlyingDirectedEq bePair.ty bePair.underlying
   get_base : ∀ (x : bePair), go.IsGoStepPureDetTagged under (StructFieldGet bePair.underlying go!"base") #x (Val #(x.base'))
   set_base : ∀ (x : bePair) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet bePair.underlying go!"base") (PairV #x #y) (Val #(({ x with base' := y } : bePair)))
   get_exponent : ∀ (x : bePair), go.IsGoStepPureDetTagged under (StructFieldGet bePair.underlying go!"exponent") #x (Val #(x.exponent'))
   set_exponent : ∀ (x : bePair) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet bePair.underlying go!"exponent") (PairV #x #y) (Val #(({ x with exponent' := y } : bePair)))
+  method_set : go.MethodSetIs bePair.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bePair.ty) []
 
 attribute [instance] bePair.TypeAssumptions.type_repr
   bePair.TypeAssumptions.underlying
@@ -707,32 +757,34 @@ attribute [instance] bePair.TypeAssumptions.type_repr
   bePair.TypeAssumptions.set_base
   bePair.TypeAssumptions.get_exponent
   bePair.TypeAssumptions.set_exponent
+  bePair.TypeAssumptions.method_set
+  bePair.TypeAssumptions.ptr_method_set
 
-structure listSuffixer [FfiSyntax] where
+structure listSuffixer [GooseExts] where
   mk ::
   suffixToBE' : GoMap
   beToSuffix' : GoMap
   beToSuffixBytes' : GoMap
 
-noncomputable instance listSuffixer.zero_val [FfiSyntax] : ZeroVal listSuffixer :=
+noncomputable instance listSuffixer.zero_val [GooseExts] : ZeroVal listSuffixer :=
   ⟨listSuffixer.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def listSuffixer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def listSuffixer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"suffixToBE" (go.GoType.MapType suffix.ty bePair.ty)),
 (go.field_decl.FieldDecl go!"beToSuffix" (go.GoType.MapType bePair.ty suffix.ty)),
 (go.field_decl.FieldDecl go!"beToSuffixBytes" (go.GoType.MapType bePair.ty (go.GoType.SliceType go.byte)))]
 
-@[irreducible] noncomputable def listSuffixer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def listSuffixer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   listSuffixer.fieldsUnsealed
 
-noncomputable instance equals_unfold_listSuffixer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_listSuffixer [GooseExts] [GoGlobalContext] :
     EqualsUnfold listSuffixer.fields listSuffixer.fieldsUnsealed :=
   ⟨by unfold listSuffixer.fields; rfl⟩
 
-@[reducible] noncomputable def listSuffixer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def listSuffixer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType listSuffixer.fields)
 
-class listSuffixer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listSuffixer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listSuffixer.underlying listSuffixer
   underlying : go.UnderlyingDirectedEq listSuffixer.ty listSuffixer.underlying
   get_suffixToBE : ∀ (x : listSuffixer), go.IsGoStepPureDetTagged under (StructFieldGet listSuffixer.underlying go!"suffixToBE") #x (Val #(x.suffixToBE'))
@@ -741,6 +793,8 @@ class listSuffixer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_beToSuffix : ∀ (x : listSuffixer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet listSuffixer.underlying go!"beToSuffix") (PairV #x #y) (Val #(({ x with beToSuffix' := y } : listSuffixer)))
   get_beToSuffixBytes : ∀ (x : listSuffixer), go.IsGoStepPureDetTagged under (StructFieldGet listSuffixer.underlying go!"beToSuffixBytes") #x (Val #(x.beToSuffixBytes'))
   set_beToSuffixBytes : ∀ (x : listSuffixer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet listSuffixer.underlying go!"beToSuffixBytes") (PairV #x #y) (Val #(({ x with beToSuffixBytes' := y } : listSuffixer)))
+  method_set : go.MethodSetIs listSuffixer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listSuffixer.ty) [(go!"k8s.io/apimachinery/pkg/api/resource.addSuffix", (some (go.signature.Signature [suffix.ty, bePair.ty] false []))), (go!"k8s.io/apimachinery/pkg/api/resource.construct", (some (go.signature.Signature [go.int32, go.int32] false [suffix.ty, go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.constructBytes", (some (go.signature.Signature [go.int32, go.int32] false [(go.GoType.SliceType go.byte), go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.lookup", (some (go.signature.Signature [suffix.ty] false [go.int32, go.int32, go.bool])))]
 
 attribute [instance] listSuffixer.TypeAssumptions.type_repr
   listSuffixer.TypeAssumptions.underlying
@@ -750,36 +804,40 @@ attribute [instance] listSuffixer.TypeAssumptions.type_repr
   listSuffixer.TypeAssumptions.set_beToSuffix
   listSuffixer.TypeAssumptions.get_beToSuffixBytes
   listSuffixer.TypeAssumptions.set_beToSuffixBytes
+  listSuffixer.TypeAssumptions.method_set
+  listSuffixer.TypeAssumptions.ptr_method_set
 
-structure suffixHandler [FfiSyntax] where
+structure suffixHandler [GooseExts] where
   mk ::
   decSuffixes' : listSuffixer
   binSuffixes' : listSuffixer
 
-noncomputable instance suffixHandler.zero_val [FfiSyntax] : ZeroVal suffixHandler :=
+noncomputable instance suffixHandler.zero_val [GooseExts] : ZeroVal suffixHandler :=
   ⟨suffixHandler.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def suffixHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def suffixHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"decSuffixes" listSuffixer.ty),
 (go.field_decl.FieldDecl go!"binSuffixes" listSuffixer.ty)]
 
-@[irreducible] noncomputable def suffixHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def suffixHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   suffixHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_suffixHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_suffixHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold suffixHandler.fields suffixHandler.fieldsUnsealed :=
   ⟨by unfold suffixHandler.fields; rfl⟩
 
-@[reducible] noncomputable def suffixHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def suffixHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType suffixHandler.fields)
 
-class suffixHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class suffixHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying suffixHandler.underlying suffixHandler
   underlying : go.UnderlyingDirectedEq suffixHandler.ty suffixHandler.underlying
   get_decSuffixes : ∀ (x : suffixHandler), go.IsGoStepPureDetTagged under (StructFieldGet suffixHandler.underlying go!"decSuffixes") #x (Val #(x.decSuffixes'))
   set_decSuffixes : ∀ (x : suffixHandler) (y : listSuffixer), go.IsGoStepPureDetTagged under (StructFieldSet suffixHandler.underlying go!"decSuffixes") (PairV #x #y) (Val #(({ x with decSuffixes' := y } : suffixHandler)))
   get_binSuffixes : ∀ (x : suffixHandler), go.IsGoStepPureDetTagged under (StructFieldGet suffixHandler.underlying go!"binSuffixes") #x (Val #(x.binSuffixes'))
   set_binSuffixes : ∀ (x : suffixHandler) (y : listSuffixer), go.IsGoStepPureDetTagged under (StructFieldSet suffixHandler.underlying go!"binSuffixes") (PairV #x #y) (Val #(({ x with binSuffixes' := y } : suffixHandler)))
+  method_set : go.MethodSetIs suffixHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType suffixHandler.ty) [(go!"k8s.io/apimachinery/pkg/api/resource.construct", (some (go.signature.Signature [go.int32, go.int32, Format.ty] false [suffix.ty, go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.constructBytes", (some (go.signature.Signature [go.int32, go.int32, Format.ty] false [(go.GoType.SliceType go.byte), go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.interpret", (some (go.signature.Signature [suffix.ty] false [go.int32, go.int32, Format.ty, go.bool])))]
 
 attribute [instance] suffixHandler.TypeAssumptions.type_repr
   suffixHandler.TypeAssumptions.underlying
@@ -787,39 +845,45 @@ attribute [instance] suffixHandler.TypeAssumptions.type_repr
   suffixHandler.TypeAssumptions.set_decSuffixes
   suffixHandler.TypeAssumptions.get_binSuffixes
   suffixHandler.TypeAssumptions.set_binSuffixes
+  suffixHandler.TypeAssumptions.method_set
+  suffixHandler.TypeAssumptions.ptr_method_set
 
-structure fastLookup [FfiSyntax] where
+structure fastLookup [GooseExts] where
   mk ::
   suffixHandler' : Loc
 
-noncomputable instance fastLookup.zero_val [FfiSyntax] : ZeroVal fastLookup :=
+noncomputable instance fastLookup.zero_val [GooseExts] : ZeroVal fastLookup :=
   ⟨fastLookup.mk zeroValDef⟩
 
-@[reducible] noncomputable def fastLookup.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def fastLookup.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"suffixHandler" (go.GoType.PointerType suffixHandler.ty))]
 
-@[irreducible] noncomputable def fastLookup.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def fastLookup.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fastLookup.fieldsUnsealed
 
-noncomputable instance equals_unfold_fastLookup [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_fastLookup [GooseExts] [GoGlobalContext] :
     EqualsUnfold fastLookup.fields fastLookup.fieldsUnsealed :=
   ⟨by unfold fastLookup.fields; rfl⟩
 
-@[reducible] noncomputable def fastLookup.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def fastLookup.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType fastLookup.fields)
 
-class fastLookup.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class fastLookup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fastLookup.underlying fastLookup
   underlying : go.UnderlyingDirectedEq fastLookup.ty fastLookup.underlying
   get_suffixHandler : ∀ (x : fastLookup), go.IsGoStepPureDetTagged under (StructFieldGet fastLookup.underlying go!"suffixHandler") #x (Val #(x.suffixHandler'))
   set_suffixHandler : ∀ (x : fastLookup) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fastLookup.underlying go!"suffixHandler") (PairV #x #y) (Val #(({ x with suffixHandler' := y } : fastLookup)))
+  method_set : go.MethodSetIs fastLookup.ty [(go!"k8s.io/apimachinery/pkg/api/resource.construct", (some (go.signature.Signature [go.int32, go.int32, Format.ty] false [suffix.ty, go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.constructBytes", (some (go.signature.Signature [go.int32, go.int32, Format.ty] false [(go.GoType.SliceType go.byte), go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.interpret", (some (go.signature.Signature [suffix.ty] false [go.int32, go.int32, Format.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fastLookup.ty) [(go!"k8s.io/apimachinery/pkg/api/resource.construct", (some (go.signature.Signature [go.int32, go.int32, Format.ty] false [suffix.ty, go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.constructBytes", (some (go.signature.Signature [go.int32, go.int32, Format.ty] false [(go.GoType.SliceType go.byte), go.bool]))), (go!"k8s.io/apimachinery/pkg/api/resource.interpret", (some (go.signature.Signature [suffix.ty] false [go.int32, go.int32, Format.ty, go.bool])))]
 
 attribute [instance] fastLookup.TypeAssumptions.type_repr
   fastLookup.TypeAssumptions.underlying
   fastLookup.TypeAssumptions.get_suffixHandler
   fastLookup.TypeAssumptions.set_suffixHandler
+  fastLookup.TypeAssumptions.method_set
+  fastLookup.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Scale_instance : Scale.TypeAssumptions
   widenedScale_instance : widenedScale.TypeAssumptions
   int64Amount_instance : int64Amount.TypeAssumptions

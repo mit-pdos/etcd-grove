@@ -24,37 +24,34 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.putget3
 
-@[reducible] noncomputable def peerAddr1 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def peerAddr1 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23801")
 
-@[reducible] noncomputable def peerAddr2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def peerAddr2 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23802")
 
-@[reducible] noncomputable def peerAddr3 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def peerAddr3 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23803")
 
-@[reducible] noncomputable def clientAddr [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23791")
 
-@[reducible] noncomputable def clientAddr2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr2 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23792")
 
-@[reducible] noncomputable def clientAddr3 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr3 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23793")
 
-noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/putget3.Main"
 
 /-- Main starts the three members of a new cluster, puts key "k" with value "v" through the first,
     gets "k" from it and panics if the value is not "v".
 
     go: putget3.go:40:6 -/
-noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -285,12 +282,13 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer1") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))
+  (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.putget3 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.putget3)) (Lam BAnon
   (App (Val exceptionDo)
@@ -306,7 +304,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.initialize') (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Main_unfold : FuncUnfold Main [] Main.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions

@@ -21,77 +21,77 @@ end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.membershippb
 
-noncomputable def RaftAttributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaftAttributes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.RaftAttributes" [])
 
 attribute [irreducible] RaftAttributes.ty
 
-noncomputable def Attributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Attributes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.Attributes" [])
 
 attribute [irreducible] Attributes.ty
 
-noncomputable def Member.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Member.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.Member" [])
 
 attribute [irreducible] Member.ty
 
-noncomputable def ClusterVersionSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterVersionSetRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.ClusterVersionSetRequest" [])
 
 attribute [irreducible] ClusterVersionSetRequest.ty
 
-noncomputable def ClusterMemberAttrSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterMemberAttrSetRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.ClusterMemberAttrSetRequest" [])
 
 attribute [irreducible] ClusterMemberAttrSetRequest.ty
 
-noncomputable def DowngradeInfoSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DowngradeInfoSetRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.DowngradeInfoSetRequest" [])
 
 attribute [irreducible] DowngradeInfoSetRequest.ty
 
-axiom file_membership_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
+axiom file_membership_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-noncomputable def File_membership_proto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def File_membership_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.File_membership_proto"
 
-noncomputable def file_membership_proto_rawDescOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_membership_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_rawDescOnce"
 
-noncomputable def file_membership_proto_rawDescData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_membership_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_rawDescData"
 
-noncomputable def file_membership_proto_msgTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_membership_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_msgTypes"
 
-axiom file_membership_proto_msgTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_membership_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_membership_proto_goTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_membership_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_goTypes"
 
-axiom file_membership_proto_goTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_membership_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_membership_proto_depIdxs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_membership_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_depIdxs"
 
-axiom file_membership_proto_depIdxs.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_membership_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_membership_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_membership_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_rawDescGZIP"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.init.0"
 
-noncomputable def file_membership_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_membership_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_init"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.membershippb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.membershippb)) (Lam BAnon
   (App (Val exceptionDo)
@@ -110,7 +110,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
 
-structure RaftAttributes [FfiSyntax] where
+structure RaftAttributes [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   PeerUrls' : GoSlice
@@ -118,27 +118,27 @@ structure RaftAttributes [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance RaftAttributes.zero_val [FfiSyntax] : ZeroVal RaftAttributes :=
+noncomputable instance RaftAttributes.zero_val [GooseExts] : ZeroVal RaftAttributes :=
   ⟨RaftAttributes.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RaftAttributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RaftAttributes.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"PeerUrls" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"IsLearner" go.bool),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def RaftAttributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RaftAttributes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RaftAttributes.fieldsUnsealed
 
-noncomputable instance equals_unfold_RaftAttributes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RaftAttributes [GooseExts] [GoGlobalContext] :
     EqualsUnfold RaftAttributes.fields RaftAttributes.fieldsUnsealed :=
   ⟨by unfold RaftAttributes.fields; rfl⟩
 
-@[reducible] noncomputable def RaftAttributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RaftAttributes.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RaftAttributes.fields)
 
-class RaftAttributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RaftAttributes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RaftAttributes.underlying RaftAttributes
   underlying : go.UnderlyingDirectedEq RaftAttributes.ty RaftAttributes.underlying
   get_state : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"state") #x (Val #(x.state'))
@@ -151,6 +151,8 @@ class RaftAttributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_unknownFields : ∀ (x : RaftAttributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RaftAttributes)))
   get_sizeCache : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : RaftAttributes) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RaftAttributes)))
+  method_set : go.MethodSetIs RaftAttributes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaftAttributes.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetIsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"GetPeerUrls", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RaftAttributes.TypeAssumptions.type_repr
   RaftAttributes.TypeAssumptions.underlying
@@ -164,8 +166,10 @@ attribute [instance] RaftAttributes.TypeAssumptions.type_repr
   RaftAttributes.TypeAssumptions.set_unknownFields
   RaftAttributes.TypeAssumptions.get_sizeCache
   RaftAttributes.TypeAssumptions.set_sizeCache
+  RaftAttributes.TypeAssumptions.method_set
+  RaftAttributes.TypeAssumptions.ptr_method_set
 
-structure Attributes [FfiSyntax] where
+structure Attributes [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Name' : GoString
@@ -173,27 +177,27 @@ structure Attributes [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance Attributes.zero_val [FfiSyntax] : ZeroVal Attributes :=
+noncomputable instance Attributes.zero_val [GooseExts] : ZeroVal Attributes :=
   ⟨Attributes.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Attributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Attributes.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"ClientUrls" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def Attributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Attributes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Attributes.fieldsUnsealed
 
-noncomputable instance equals_unfold_Attributes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Attributes [GooseExts] [GoGlobalContext] :
     EqualsUnfold Attributes.fields Attributes.fieldsUnsealed :=
   ⟨by unfold Attributes.fields; rfl⟩
 
-@[reducible] noncomputable def Attributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Attributes.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Attributes.fields)
 
-class Attributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Attributes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Attributes.underlying Attributes
   underlying : go.UnderlyingDirectedEq Attributes.ty Attributes.underlying
   get_state : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"state") #x (Val #(x.state'))
@@ -206,6 +210,8 @@ class Attributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_unknownFields : ∀ (x : Attributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Attributes)))
   get_sizeCache : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Attributes) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Attributes)))
+  method_set : go.MethodSetIs Attributes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Attributes.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClientUrls", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.underlying
@@ -219,8 +225,10 @@ attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.set_unknownFields
   Attributes.TypeAssumptions.get_sizeCache
   Attributes.TypeAssumptions.set_sizeCache
+  Attributes.TypeAssumptions.method_set
+  Attributes.TypeAssumptions.ptr_method_set
 
-structure Member [FfiSyntax] where
+structure Member [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   ID' : w64
@@ -229,10 +237,10 @@ structure Member [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance Member.zero_val [FfiSyntax] : ZeroVal Member :=
+noncomputable instance Member.zero_val [GooseExts] : ZeroVal Member :=
   ⟨Member.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Member.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Member.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"ID" go.uint64),
 (go.field_decl.FieldDecl go!"RaftAttributes" (go.GoType.PointerType RaftAttributes.ty)),
@@ -240,17 +248,17 @@ noncomputable instance Member.zero_val [FfiSyntax] : ZeroVal Member :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def Member.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Member.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Member.fieldsUnsealed
 
-noncomputable instance equals_unfold_Member [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Member [GooseExts] [GoGlobalContext] :
     EqualsUnfold Member.fields Member.fieldsUnsealed :=
   ⟨by unfold Member.fields; rfl⟩
 
-@[reducible] noncomputable def Member.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Member.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Member.fields)
 
-class Member.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Member.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Member.underlying Member
   underlying : go.UnderlyingDirectedEq Member.ty Member.underlying
   get_state : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"state") #x (Val #(x.state'))
@@ -265,6 +273,8 @@ class Member.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_unknownFields : ∀ (x : Member) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Member)))
   get_sizeCache : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Member) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Member)))
+  method_set : go.MethodSetIs Member.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Member.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberAttributes", (some (go.signature.Signature [] false [(go.GoType.PointerType Attributes.ty)]))), (go!"GetRaftAttributes", (some (go.signature.Signature [] false [(go.GoType.PointerType RaftAttributes.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Member.TypeAssumptions.type_repr
   Member.TypeAssumptions.underlying
@@ -280,34 +290,36 @@ attribute [instance] Member.TypeAssumptions.type_repr
   Member.TypeAssumptions.set_unknownFields
   Member.TypeAssumptions.get_sizeCache
   Member.TypeAssumptions.set_sizeCache
+  Member.TypeAssumptions.method_set
+  Member.TypeAssumptions.ptr_method_set
 
-structure ClusterVersionSetRequest [FfiSyntax] where
+structure ClusterVersionSetRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Ver' : GoString
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ClusterVersionSetRequest.zero_val [FfiSyntax] : ZeroVal ClusterVersionSetRequest :=
+noncomputable instance ClusterVersionSetRequest.zero_val [GooseExts] : ZeroVal ClusterVersionSetRequest :=
   ⟨ClusterVersionSetRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ClusterVersionSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClusterVersionSetRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Ver" go.string),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ClusterVersionSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClusterVersionSetRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClusterVersionSetRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClusterVersionSetRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClusterVersionSetRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClusterVersionSetRequest.fields ClusterVersionSetRequest.fieldsUnsealed :=
   ⟨by unfold ClusterVersionSetRequest.fields; rfl⟩
 
-@[reducible] noncomputable def ClusterVersionSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClusterVersionSetRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClusterVersionSetRequest.fields)
 
-class ClusterVersionSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterVersionSetRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterVersionSetRequest.underlying ClusterVersionSetRequest
   underlying : go.UnderlyingDirectedEq ClusterVersionSetRequest.ty ClusterVersionSetRequest.underlying
   get_state : ∀ (x : ClusterVersionSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet ClusterVersionSetRequest.underlying go!"state") #x (Val #(x.state'))
@@ -318,6 +330,8 @@ class ClusterVersionSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   set_unknownFields : ∀ (x : ClusterVersionSetRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClusterVersionSetRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClusterVersionSetRequest)))
   get_sizeCache : ∀ (x : ClusterVersionSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet ClusterVersionSetRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ClusterVersionSetRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClusterVersionSetRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClusterVersionSetRequest)))
+  method_set : go.MethodSetIs ClusterVersionSetRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterVersionSetRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetVer", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ClusterVersionSetRequest.TypeAssumptions.type_repr
   ClusterVersionSetRequest.TypeAssumptions.underlying
@@ -329,8 +343,10 @@ attribute [instance] ClusterVersionSetRequest.TypeAssumptions.type_repr
   ClusterVersionSetRequest.TypeAssumptions.set_unknownFields
   ClusterVersionSetRequest.TypeAssumptions.get_sizeCache
   ClusterVersionSetRequest.TypeAssumptions.set_sizeCache
+  ClusterVersionSetRequest.TypeAssumptions.method_set
+  ClusterVersionSetRequest.TypeAssumptions.ptr_method_set
 
-structure ClusterMemberAttrSetRequest [FfiSyntax] where
+structure ClusterMemberAttrSetRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Member_ID' : w64
@@ -338,27 +354,27 @@ structure ClusterMemberAttrSetRequest [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ClusterMemberAttrSetRequest.zero_val [FfiSyntax] : ZeroVal ClusterMemberAttrSetRequest :=
+noncomputable instance ClusterMemberAttrSetRequest.zero_val [GooseExts] : ZeroVal ClusterMemberAttrSetRequest :=
   ⟨ClusterMemberAttrSetRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ClusterMemberAttrSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClusterMemberAttrSetRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Member_ID" go.uint64),
 (go.field_decl.FieldDecl go!"MemberAttributes" (go.GoType.PointerType Attributes.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ClusterMemberAttrSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClusterMemberAttrSetRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClusterMemberAttrSetRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClusterMemberAttrSetRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClusterMemberAttrSetRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClusterMemberAttrSetRequest.fields ClusterMemberAttrSetRequest.fieldsUnsealed :=
   ⟨by unfold ClusterMemberAttrSetRequest.fields; rfl⟩
 
-@[reducible] noncomputable def ClusterMemberAttrSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClusterMemberAttrSetRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClusterMemberAttrSetRequest.fields)
 
-class ClusterMemberAttrSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterMemberAttrSetRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterMemberAttrSetRequest.underlying ClusterMemberAttrSetRequest
   underlying : go.UnderlyingDirectedEq ClusterMemberAttrSetRequest.ty ClusterMemberAttrSetRequest.underlying
   get_state : ∀ (x : ClusterMemberAttrSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet ClusterMemberAttrSetRequest.underlying go!"state") #x (Val #(x.state'))
@@ -371,6 +387,8 @@ class ClusterMemberAttrSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] 
   set_unknownFields : ∀ (x : ClusterMemberAttrSetRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClusterMemberAttrSetRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClusterMemberAttrSetRequest)))
   get_sizeCache : ∀ (x : ClusterMemberAttrSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet ClusterMemberAttrSetRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ClusterMemberAttrSetRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClusterMemberAttrSetRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClusterMemberAttrSetRequest)))
+  method_set : go.MethodSetIs ClusterMemberAttrSetRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterMemberAttrSetRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetMemberAttributes", (some (go.signature.Signature [] false [(go.GoType.PointerType Attributes.ty)]))), (go!"GetMember_ID", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ClusterMemberAttrSetRequest.TypeAssumptions.type_repr
   ClusterMemberAttrSetRequest.TypeAssumptions.underlying
@@ -384,8 +402,10 @@ attribute [instance] ClusterMemberAttrSetRequest.TypeAssumptions.type_repr
   ClusterMemberAttrSetRequest.TypeAssumptions.set_unknownFields
   ClusterMemberAttrSetRequest.TypeAssumptions.get_sizeCache
   ClusterMemberAttrSetRequest.TypeAssumptions.set_sizeCache
+  ClusterMemberAttrSetRequest.TypeAssumptions.method_set
+  ClusterMemberAttrSetRequest.TypeAssumptions.ptr_method_set
 
-structure DowngradeInfoSetRequest [FfiSyntax] where
+structure DowngradeInfoSetRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Enabled' : Bool
@@ -393,27 +413,27 @@ structure DowngradeInfoSetRequest [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance DowngradeInfoSetRequest.zero_val [FfiSyntax] : ZeroVal DowngradeInfoSetRequest :=
+noncomputable instance DowngradeInfoSetRequest.zero_val [GooseExts] : ZeroVal DowngradeInfoSetRequest :=
   ⟨DowngradeInfoSetRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DowngradeInfoSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DowngradeInfoSetRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Enabled" go.bool),
 (go.field_decl.FieldDecl go!"Ver" go.string),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def DowngradeInfoSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DowngradeInfoSetRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DowngradeInfoSetRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_DowngradeInfoSetRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DowngradeInfoSetRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold DowngradeInfoSetRequest.fields DowngradeInfoSetRequest.fieldsUnsealed :=
   ⟨by unfold DowngradeInfoSetRequest.fields; rfl⟩
 
-@[reducible] noncomputable def DowngradeInfoSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DowngradeInfoSetRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DowngradeInfoSetRequest.fields)
 
-class DowngradeInfoSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DowngradeInfoSetRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DowngradeInfoSetRequest.underlying DowngradeInfoSetRequest
   underlying : go.UnderlyingDirectedEq DowngradeInfoSetRequest.ty DowngradeInfoSetRequest.underlying
   get_state : ∀ (x : DowngradeInfoSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfoSetRequest.underlying go!"state") #x (Val #(x.state'))
@@ -426,6 +446,8 @@ class DowngradeInfoSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoL
   set_unknownFields : ∀ (x : DowngradeInfoSetRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfoSetRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DowngradeInfoSetRequest)))
   get_sizeCache : ∀ (x : DowngradeInfoSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfoSetRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : DowngradeInfoSetRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfoSetRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DowngradeInfoSetRequest)))
+  method_set : go.MethodSetIs DowngradeInfoSetRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeInfoSetRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"GetVer", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] DowngradeInfoSetRequest.TypeAssumptions.type_repr
   DowngradeInfoSetRequest.TypeAssumptions.underlying
@@ -439,8 +461,10 @@ attribute [instance] DowngradeInfoSetRequest.TypeAssumptions.type_repr
   DowngradeInfoSetRequest.TypeAssumptions.set_unknownFields
   DowngradeInfoSetRequest.TypeAssumptions.get_sizeCache
   DowngradeInfoSetRequest.TypeAssumptions.set_sizeCache
+  DowngradeInfoSetRequest.TypeAssumptions.method_set
+  DowngradeInfoSetRequest.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RaftAttributes_instance : RaftAttributes.TypeAssumptions
   Attributes_instance : Attributes.TypeAssumptions
   Member_instance : Member.TypeAssumptions

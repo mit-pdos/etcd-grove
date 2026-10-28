@@ -24,7 +24,7 @@ namespace backend
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 section preds
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `int64` is not an interface type (Perennial has the instance for `go.Named _ _`, which
 `go.int64` is, but instance search does not unfold it): what `MethodResolve` needs of
 `time.Duration` (underlying `int64`) for `d.Seconds()`. -/
-instance notInterface_int64 [FfiSyntax] : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
+instance notInterface_int64 [GooseExts] : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
 
 /-- The batch transaction's writer for `st`: its `tx` and `pending` fields and bbolt's write
 transaction `st.tx` (begun at `st.C`, contents `st.S`). The rest of `st` is not its. -/
@@ -254,6 +254,24 @@ theorem batchLocked_hk (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
   iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, %Hok⟩, %Hwf⟩,
     Hc⟩
   icombine Hc Hk gives %Heq
+  iframe Hc
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact ⟨Hok, Hwf⟩
+  · ipureintro; exact Heq.2
+
+/-- The client's half of the tracked buckets agrees with the batch lock's state (leases T3: `lessor.Revoke`'s
+delete from the `Lease` bucket, `BackendBridge.lean`). -/
+theorem batchLocked_rb (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
+    (r : GMap GoString BktData) :
+    batchLocked (GF := GF) γ P b st ∗ rbOwn γ r ⊢
+      batchLocked γ P b st ∗ rbOwn γ r ∗ ⌜r = rbData P st.S⌝ := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt rbOwn trkHalf
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, %Hok⟩, %Hwf⟩,
+    Hc⟩
+  icombine Hc Hb gives %Heq
   iframe Hc
   isplitl
   · iexists t, db

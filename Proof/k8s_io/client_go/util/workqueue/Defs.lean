@@ -62,14 +62,14 @@ open sets (Elem present)
 /-! ## The abstract state -/
 
 /-- The typed queue's abstract state (see the file header). -/
-structure QState [FfiSyntax] (K : Type) [DecidableEq K] where
+structure QState [GooseExts] (K : Type) [DecidableEq K] where
   queue : List K
   dirty : GMap K Elem
   processing : GMap K Elem
   shuttingDown : Bool
 
 section state
-variable [FfiSyntax] {K : Type} [DecidableEq K]
+variable [GooseExts] {K : Type} [DecidableEq K]
 
 /-- The FIFO holds each dirty item that is not being processed, once. -/
 def QState.wf (σ : QState K) : Prop :=
@@ -131,11 +131,11 @@ abbrev shutdownPool : Nat := 2 ^ 31 - 2
 /-- The namespace of the queue's invariants. -/
 def wqN : Namespace := nroot.@"workqueue"
 
-theorem val_false_ne_true [FfiSyntax] [GoGlobalContext] : (#false : val) ≠ #true :=
+theorem val_false_ne_true [GooseExts] [GoGlobalContext] : (#false : val) ≠ #true :=
   fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

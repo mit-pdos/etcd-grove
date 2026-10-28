@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std OFE Iris.ProofMode sync
 
 section wps
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -43,9 +43,7 @@ theorem Once.wp_doSlow_frame (o : Loc) (P Q R R' : IProp GF) (f : GoFunc) :
   wp_start as ⟨#HO, HR, Hf⟩
   simp only [isOnce_unseal, isOnceDef]
   iNamed HO
-  iapply wp_with_defer
-  iintro %defer Hdefer
-  wp_auto_lc 2
+  wp_apply (lc := 2) wp_with_defer as %defer Hdefer
   wp_apply Mutex.wp_Lock $$ [$Hm] with ⟨Hlocked, Hlk⟩
   unfold OnceLockInv
   icases Hlk with ⟨%done, done2, HPQ⟩

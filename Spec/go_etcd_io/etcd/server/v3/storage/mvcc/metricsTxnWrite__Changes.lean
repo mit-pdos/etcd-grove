@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -29,13 +29,13 @@ shares them with the watchers); the transaction keeps its core (`isTxnWrite_join
 transaction back). -/
 abbrev mvcc.metricsTxnWrite.Changes.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF),
+    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z }}
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Changes")) (Val #()))
   {{ (chs : GoSlice) (ps : List Loc), RET #chs;
       chs ↦* ps ∗ mvcc.changesAre ps ilog pend ∗ ⌜ps.length = pend.length⌝ ∗
-      mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z }}
+      mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld }}
 
 end spec
 

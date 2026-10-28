@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -24,11 +24,13 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 theorem newWatcher.wp_proof : newWatcher.spec (GF := GF) (hG := hG) := by
   intro bufSize f pred Pb
   wp_start as ⟨%Hbuf, #Hpred, #HP0⟩
+  iapply wp_fupd
   wp_auto
   wp_apply chan.wp_make2 (V := go_etcd_io.etcd.client.v3.WatchResponse) bufSize as
     %ch %γch ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; exact Hbuf
-  wp_alloc w as Hw
+  irename «$r0» => Hw
+  generalize «$r0_ptr» = w at *
   iStructNamed Hw
   ipersist respCh
   icases (typedPointsto_dfractional (GF := GF) (watcherKeyPredAddr w) f).dfractional
@@ -71,7 +73,7 @@ theorem newWatcher.wp_proof : newWatcher.spec (GF := GF) (hG := hG) := by
     iprop(∃ sc c, watcherClosed (GF := GF) ⟨γch, γs, γr, γc, γt⟩ sc c) ⊤ $$ [stopOnce cancelResp Htok]
     with #Honce
   · unfold watcherOnceP; iframe
-  wp_auto
+  imodintro
   ihave Hu : watcherUnique (GF := GF) w $$ [Huniq]
   · unfold watcherUnique; iexists f; iexact Huniq
   iapply HΦ $$ %w %(WatcherNames.mk γch γs γr γc γt)

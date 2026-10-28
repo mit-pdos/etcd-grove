@@ -25,7 +25,7 @@ namespace lintest
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -40,7 +40,7 @@ theorem CounterClock.wp_proof :
   ihave Hu : sync.atomic.ownInt64 (GF := GF) «$r0_ptr» (DFrac.own 1) (W64 0) $$ [Hu]
   · rw [sync.atomic.ownInt64_unseal]
     unfold sync.atomic.ownInt64Def
-    rw [show ({ _0' := zero_val _, _1' := zero_val _, v' := W64 0 } : sync.atomic.Int64) =
+    rw [show ({ «_#0'» := zero_val _, «_#1'» := zero_val _, v' := W64 0 } : sync.atomic.Int64) =
       zero_val _ from rfl]
     iexact Hu
   imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γ, Hv⟩
@@ -51,7 +51,6 @@ theorem CounterClock.wp_proof :
       ghostVar γ (1 : Qp).half (W64 (k : Int)) ∗ ⧗ k) $$ [Hu Hv1 H0] with #Hinv
   · inext; iexists 0; iframe
   ipersist t
-  rw [recv_eq_func_mk]
   imodintro
   iapply HΦ
   iexists (fun t => ghostVar γ (1 : Qp).half t)
@@ -59,6 +58,10 @@ theorem CounterClock.wp_proof :
   unfold clockSpec
   imodintro
   iintro %Φ' HAU
+  wp_pure
+  wp_pure
+  wp_alloc r as Hres
+  wp_pure
   wp_pure
   wp_pure
   wp_pure

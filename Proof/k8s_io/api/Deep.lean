@@ -26,7 +26,7 @@ open Iris Iris.BI Iris.ProofMode
 /-! ## The deep values -/
 
 section values
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The deep value of `TypeMeta` (`k8s_io.apimachinery.pkg.apis.«meta».v1`). -/
 structure kd.meta.TypeMeta where
@@ -3085,7 +3085,7 @@ end values
 /-! ## Deep ownership -/
 
 section own
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

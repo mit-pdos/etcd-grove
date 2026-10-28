@@ -462,7 +462,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
                               # axiom, net/http's errors not `errMemberRemoved`
                               "Proof.bytes.Buffer__Write",
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr",
+                              # (2026-10-27) the node API's results at the server's storage model
+                              # (`=srvApi_wp_*` callees)
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink"]}
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
@@ -727,7 +730,7 @@ namespace EtcdGrove
 open Iris Iris.BI{(' ' + opens) if opens else ''}
 """)
     out.append(f"""section links
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -868,7 +871,7 @@ variable [package_sem : {assumptions}]
         out.append(f"""/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -884,7 +887,7 @@ variable [package_sem : {assumptions}]
         out.append(f"""/-! The results that reach a function specified but not proved yet (a later unit's):
 its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

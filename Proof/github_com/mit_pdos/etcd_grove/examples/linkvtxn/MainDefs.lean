@@ -28,7 +28,7 @@ namespace linkvtxn
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23806`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
@@ -51,7 +51,7 @@ def linkvtxnDir (id : w64) : w64 → List GoString := dirOne id go!"http://127.0
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -68,20 +68,21 @@ def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
 
 /-- **`Main`'s named premises** (persistent): putget's (`putget.premises`) at `linkvtxn`'s
 configuration, URLs and peer directory. -/
-def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
+def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
+    IProp GF :=
   iprop(
-    (□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-        (γ : RaftNames),
-      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.reCfg = GMap.listToSet [id] ∧ γ.reDyn = none ∧
-        γ.reCCOk = putget.ccOk id ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N (linkvtxnDir id)) ∗
+    (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
+      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.dyn = false ∧
+        γ.boot = LogEntry.toEntries boot 0⌝ -∗
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (linkvtxnDir id)) ∗
+    bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
     rnStopOkStarted ∗
     v3rpc.runsNoRequireLeader)
 
-instance premises_persistent (N : Nat) (id : w64) (bootLog : List EntryM) :
-    Persistent (premises (GF := GF) N id bootLog) := by
+instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
+    (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
   unfold premises; infer_instance
 
 end defs

@@ -23,7 +23,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -44,21 +44,21 @@ theorem authInfoIs_ptsto (a : Loc) (user : GoString) (rev : w64) :
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-theorem EtcdServer.doSerialize.wp_proof
+theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
-    EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
+    EtcdServer.doSerialize.specM (GF := GF) (hG := hG) on := by
   intro s E ρ γr ctx cd chk get G Q C t e
   wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
-  iunfold isServerReq at Hsrv
+  iunfold isServerReqM at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
-  iunfold srvReqFieldsAt at Hv
+  iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,
     #Has, #Hras, -, -, -, -, -, -, -, -, -, -⟩
-  iunfold isServerRead at Hrd
+  iunfold isServerReadM at Hrd
   icases Hrd with ⟨%w, #Hw⟩
-  iunfold srvReadFieldsAt at Hw
+  iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, -, #Has2, #Hauth, -⟩
   ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
@@ -145,6 +145,13 @@ theorem EtcdServer.doSerialize.wp_proof
           isplitr
           · ipureintro; intro h; cases h
           iframe HaOld; iright; iexact HQ
+
+theorem EtcdServer.doSerialize.wp_proof
+    (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
+    EtcdServer.doSerialize.spec (GF := GF) (hG := hG) :=
+  EtcdServer.doSerialize.wp_proofM false hGet hAI hStep
 
 end proof
 

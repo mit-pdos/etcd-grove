@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -27,10 +27,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     (hdel : mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend key endk k e crev Z
-  wp_start as ⟨Htw, #Hkey, #Hend⟩
+  intro trace tw s γ ilog pend key endk k e L crev Z
+  wp_start as ⟨Htw, #Hkey, #Hend, Hown⟩
   (try wp_auto)
-  wp_apply (hdel trace tw s γ ilog pend key endk k e crev Z) $$ [$Htw $Hkey $Hend] as Htw
+  wp_apply (hdel trace tw s γ ilog pend key endk k e L crev Z) $$ [$Htw $Hkey $Hend $Hown]
+    as ⟨Htw, Hown⟩
   (try wp_auto)
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -92,6 +93,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
         simp at hc
       (try wp_auto)
       iapply HΦ
+      iframe Hown
       isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
@@ -111,6 +113,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
         omega
       (try wp_auto)
       iapply HΦ
+      iframe Hown
       isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
@@ -128,6 +131,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       intro h; subst h; exact Hif rfl
     (try wp_auto)
     iapply HΦ
+    iframe Hown
     isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
     iunfold mvcc.storeTxnWriteIs
     iexists ti, bt, Locked, chs, ps, ntok

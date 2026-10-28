@@ -32,18 +32,18 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 /-- `metav1.Time` is a basic deep value (a `time.Time`; its `*Location` is shared). -/
-instance metav1Time.countable [FfiSyntax] :
+instance metav1Time.countable [GooseExts] :
     Pos.Countable k8s_io.apimachinery.pkg.apis.«meta».v1.Time :=
   .ofInjective (fun t => Pos.Countable.encode t.Time')
     (by rintro ⟨a⟩ ⟨b⟩ h; have h := Pos.encode_inj h; simp_all)
 
-instance metav1MicroTime.countable [FfiSyntax] :
+instance metav1MicroTime.countable [GooseExts] :
     Pos.Countable k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime :=
   .ofInjective (fun t => Pos.Countable.encode t.Time')
     (by rintro ⟨a⟩ ⟨b⟩ h; have h := Pos.encode_inj h; simp_all)
 
 section own
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -25,22 +25,22 @@ end pkg_id
 
 namespace k8s_io.client_go.informers.internalinterfaces
 
-noncomputable def NewInformerFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NewInformerFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/informers/internalinterfaces.NewInformerFunc" [])
 
 attribute [irreducible] NewInformerFunc.ty
 
-noncomputable def SharedInformerFactory.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SharedInformerFactory.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/informers/internalinterfaces.SharedInformerFactory" [])
 
 attribute [irreducible] SharedInformerFactory.ty
 
-noncomputable def TweakListOptionsFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TweakListOptionsFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/informers/internalinterfaces.TweakListOptionsFunc" [])
 
 attribute [irreducible] TweakListOptionsFunc.ty
 
-noncomputable def InformerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InformerOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/informers/internalinterfaces.InformerOptions" [])
 
 attribute [irreducible] InformerOptions.ty
@@ -48,7 +48,7 @@ attribute [irreducible] InformerOptions.ty
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.informers.internalinterfaces where
   pkgImportedPkgs := [pkg_id.time, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.client_go.kubernetes, pkg_id.k8s_io.client_go.tools.cache]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.informers.internalinterfaces)) (Lam BAnon
   (App (Val exceptionDo)
@@ -67,63 +67,75 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.client_go.tools.cache.initialize') (Val #()))))))))
 
-abbrev NewInformerFunc [FfiSyntax] : Type := GoFunc
+abbrev NewInformerFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def NewInformerFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NewInformerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))
 
-class NewInformerFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NewInformerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NewInformerFunc.ty NewInformerFunc.underlying
+  method_set : go.MethodSetIs NewInformerFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NewInformerFunc.ty) []
 
 attribute [instance] NewInformerFunc.TypeAssumptions.underlying
+  NewInformerFunc.TypeAssumptions.method_set
+  NewInformerFunc.TypeAssumptions.ptr_method_set
 
-abbrev SharedInformerFactory [FfiSyntax] : Type := GoInterface
+abbrev SharedInformerFactory [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def SharedInformerFactory.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SharedInformerFactory.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"InformerFor" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, NewInformerFunc.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty])), (go.InterfaceElem.MethodElem go!"InformerName" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.InformerName.ty)])), (go.InterfaceElem.MethodElem go!"Start" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))])
 
-class SharedInformerFactory.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SharedInformerFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SharedInformerFactory.ty SharedInformerFactory.underlying
+  method_set : go.MethodSetIs SharedInformerFactory.ty [(go!"InformerFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, NewInformerFunc.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"InformerName", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.InformerName.ty)]))), (go!"Start", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SharedInformerFactory.ty) []
 
 attribute [instance] SharedInformerFactory.TypeAssumptions.underlying
+  SharedInformerFactory.TypeAssumptions.method_set
+  SharedInformerFactory.TypeAssumptions.ptr_method_set
 
-abbrev TweakListOptionsFunc [FfiSyntax] : Type := GoFunc
+abbrev TweakListOptionsFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def TweakListOptionsFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TweakListOptionsFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty)] false []))
 
-class TweakListOptionsFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TweakListOptionsFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TweakListOptionsFunc.ty TweakListOptionsFunc.underlying
+  method_set : go.MethodSetIs TweakListOptionsFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TweakListOptionsFunc.ty) []
 
 attribute [instance] TweakListOptionsFunc.TypeAssumptions.underlying
+  TweakListOptionsFunc.TypeAssumptions.method_set
+  TweakListOptionsFunc.TypeAssumptions.ptr_method_set
 
-structure InformerOptions [FfiSyntax] where
+structure InformerOptions [GooseExts] where
   mk ::
   ResyncPeriod' : _root_.Perennial.time.Duration
   Indexers' : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers
   InformerName' : Loc
   TweakListOptions' : TweakListOptionsFunc
 
-noncomputable instance InformerOptions.zero_val [FfiSyntax] : ZeroVal InformerOptions :=
+noncomputable instance InformerOptions.zero_val [GooseExts] : ZeroVal InformerOptions :=
   ⟨InformerOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def InformerOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InformerOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ResyncPeriod" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Indexers" _root_.Perennial.k8s_io.client_go.tools.cache.Indexers.ty),
 (go.field_decl.FieldDecl go!"InformerName" (go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.InformerName.ty)),
 (go.field_decl.FieldDecl go!"TweakListOptions" TweakListOptionsFunc.ty)]
 
-@[irreducible] noncomputable def InformerOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InformerOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InformerOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_InformerOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InformerOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold InformerOptions.fields InformerOptions.fieldsUnsealed :=
   ⟨by unfold InformerOptions.fields; rfl⟩
 
-@[reducible] noncomputable def InformerOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InformerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InformerOptions.fields)
 
-class InformerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerOptions.underlying InformerOptions
   underlying : go.UnderlyingDirectedEq InformerOptions.ty InformerOptions.underlying
   get_ResyncPeriod : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"ResyncPeriod") #x (Val #(x.ResyncPeriod'))
@@ -134,6 +146,8 @@ class InformerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_InformerName : ∀ (x : InformerOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"InformerName") (PairV #x #y) (Val #(({ x with InformerName' := y } : InformerOptions)))
   get_TweakListOptions : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"TweakListOptions") #x (Val #(x.TweakListOptions'))
   set_TweakListOptions : ∀ (x : InformerOptions) (y : TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"TweakListOptions") (PairV #x #y) (Val #(({ x with TweakListOptions' := y } : InformerOptions)))
+  method_set : go.MethodSetIs InformerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerOptions.ty) []
 
 attribute [instance] InformerOptions.TypeAssumptions.type_repr
   InformerOptions.TypeAssumptions.underlying
@@ -145,8 +159,10 @@ attribute [instance] InformerOptions.TypeAssumptions.type_repr
   InformerOptions.TypeAssumptions.set_InformerName
   InformerOptions.TypeAssumptions.get_TweakListOptions
   InformerOptions.TypeAssumptions.set_TweakListOptions
+  InformerOptions.TypeAssumptions.method_set
+  InformerOptions.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   NewInformerFunc_instance : NewInformerFunc.TypeAssumptions
   SharedInformerFactory_instance : SharedInformerFactory.TypeAssumptions
   TweakListOptionsFunc_instance : TweakListOptionsFunc.TypeAssumptions

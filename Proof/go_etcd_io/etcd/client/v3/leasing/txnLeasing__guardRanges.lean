@@ -39,7 +39,7 @@ theorem lastRevOp_facts (key e : GoString) :
   simp [opGetPanics, op_simps, lastRevGs, OpFull.isPrefixGet, hk]
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

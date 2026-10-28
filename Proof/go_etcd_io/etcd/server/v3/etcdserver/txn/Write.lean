@@ -172,7 +172,7 @@ theorem rangeAnswers_one (log : Log) (hok : LogOk log) (k e : GoString) (r : Nat
   rwa [hs] at h
 
 section iris
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -509,7 +509,7 @@ theorem wp_slice_literal_nn {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] 
 end iris
 
 section todo
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

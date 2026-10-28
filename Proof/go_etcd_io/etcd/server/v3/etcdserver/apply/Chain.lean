@@ -287,10 +287,12 @@ def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
 /-- **The admin requests admitted in the mode `on`** (the auth plan's E2m, continued): their shape
 only, the names within bbolt's key bound (the step specs' premise; the fuel bounds the rest,
 `AuthFuel.lean`). `SetUp`'s five: `UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`
-(whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds. -/
+(whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds.
+A `UserAdd`'s password choice cannot fail (`UserAddModel.pwSure`, the server's own form, which
+`EtcdServer.UserAdd` proposes: E2x), so its outcome is the step's alone (E3a). -/
 def adminKindOk (rq : IRRModel) : Prop :=
   match dispatchKind rq with
-  | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize
+  | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
   | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
   | .authUserGrantRole => ∀ u ro, rq.authUserGrantRole = some (u, ro) → u.length ≤ backend.maxKeySize
   | .authRoleGrantPermission =>
@@ -312,7 +314,7 @@ theorem rqOkM_of_rqOk (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) (h : 
     rqOkM M log rq := Or.inl h
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -364,9 +366,10 @@ theorem AEnv.authOn_eq (E : AEnv GF) : E.authOn = E.authMode.isOn := rfl
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
-which every lease of `s` is. -/
+which every lease of `s` is; (unit T3, L2b, 2026-10-25) its item map `s`'s (each key's lease, the
+lessor's `itemMap` and the leases' item sets). -/
 def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
-  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L)
+  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L (mvcc.leaseItemsOf s))
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
 the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's
@@ -553,12 +556,13 @@ theorem adminPass_wrap (M : auth.AuthMode) (c c' : Chain) (rq : IRRModel) (h : c
 /-! ## The outcomes, in the heap -/
 
 /-- The error of a rejection `k`: the corrupt applier's `ErrCorrupt`, the capped applier's
-`ErrNoSpace`, the auth store's (not nil, one `errors.Is` can take: `applyErrIs`, the contract's),
+`ErrNoSpace`, the auth store's (not nil, one `errors.Is` can take and one of the auth package's
+error variables: `authApplyErrIs`, the contract's; the auth plan's E3i, 2026-10-27),
 or the backend's (`bk`, by the request). -/
 def rejErrIs (bk : GoInterface → IProp GF) : RejectKind → GoInterface → IProp GF
   | .corrupt, err => txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err
   | .noSpace, err => txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace err
-  | .auth, err => iprop(⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)
+  | .auth, err => iprop(⌜err ≠ GoInterface.nil⌝ ∗ authApplyErrIs err)
   | .backend, err => bk err
 
 /-- The error of an applied request: `nil`, or the quota's `ErrNoSpace` (`ns`). -/

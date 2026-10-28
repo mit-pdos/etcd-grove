@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil backoffOk errorStringSpec errCellOk)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -94,7 +94,6 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_store
   ipersist intOpts
   wp_auto
-  rw [recv_eq_func_mk]
   iapply HΦ
   -- (D29) both modes: any precondition persistent, or an ordinary one for a write on a
   -- refusal-free connection

@@ -20,177 +20,177 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.apis.core.helper
 
-noncomputable def Semantic [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Semantic [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.Semantic"
 
-axiom Semantic.init [FfiSyntax] [GoGlobalContext] : val
+axiom Semantic.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def standardResourceQuotaScopes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def standardResourceQuotaScopes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardResourceQuotaScopes"
 
-axiom standardResourceQuotaScopes.init [FfiSyntax] [GoGlobalContext] : val
+axiom standardResourceQuotaScopes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def podObjectCountQuotaResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def podObjectCountQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.podObjectCountQuotaResources"
 
-axiom podObjectCountQuotaResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom podObjectCountQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def podComputeQuotaResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def podComputeQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.podComputeQuotaResources"
 
-axiom podComputeQuotaResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom podComputeQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def pvcObjectCountQuotaResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pvcObjectCountQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.pvcObjectCountQuotaResources"
 
-axiom pvcObjectCountQuotaResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom pvcObjectCountQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def pvcStorageQuotaResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pvcStorageQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.pvcStorageQuotaResources"
 
-axiom pvcStorageQuotaResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom pvcStorageQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def standardContainerResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def standardContainerResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardContainerResources"
 
-axiom standardContainerResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom standardContainerResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def standardLimitRangeTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def standardLimitRangeTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardLimitRangeTypes"
 
-axiom standardLimitRangeTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom standardLimitRangeTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def standardQuotaResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def standardQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardQuotaResources"
 
-axiom standardQuotaResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom standardQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def standardResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def standardResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardResources"
 
-axiom standardResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom standardResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def integerResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def integerResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.integerResources"
 
-axiom integerResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom integerResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def standardFinalizers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def standardFinalizers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardFinalizers"
 
-axiom standardFinalizers.init [FfiSyntax] [GoGlobalContext] : val
+axiom standardFinalizers.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def IsPodLevelResourcesSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsPodLevelResourcesSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsPodLevelResourcesSet"
 
-noncomputable def IsHugePageResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsHugePageResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsHugePageResourceName"
 
-noncomputable def IsHugePageResourceValueDivisible [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsHugePageResourceValueDivisible [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsHugePageResourceValueDivisible"
 
-noncomputable def IsQuotaHugePageResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsQuotaHugePageResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsQuotaHugePageResourceName"
 
-noncomputable def HugePageResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HugePageResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.HugePageResourceName"
 
-noncomputable def HugePageSizeFromResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HugePageSizeFromResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.HugePageSizeFromResourceName"
 
-noncomputable def NonConvertibleFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NonConvertibleFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.NonConvertibleFields"
 
-noncomputable def IsStandardResourceQuotaScope [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsStandardResourceQuotaScope [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsStandardResourceQuotaScope"
 
-noncomputable def IsResourceQuotaScopeValidForResource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsResourceQuotaScopeValidForResource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsResourceQuotaScopeValidForResource"
 
-noncomputable def IsStandardContainerResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsStandardContainerResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsStandardContainerResourceName"
 
-noncomputable def IsNodeAllocatableResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsNodeAllocatableResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsNodeAllocatableResourceName"
 
-noncomputable def IsExtendedResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsExtendedResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsExtendedResourceName"
 
-noncomputable def IsNativeResource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsNativeResource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsNativeResource"
 
-noncomputable def IsOvercommitAllowed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsOvercommitAllowed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsOvercommitAllowed"
 
-noncomputable def IsStandardLimitRangeType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsStandardLimitRangeType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsStandardLimitRangeType"
 
-noncomputable def IsStandardQuotaResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsStandardQuotaResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsStandardQuotaResourceName"
 
-noncomputable def IsStandardResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsStandardResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsStandardResourceName"
 
-noncomputable def IsIntegerResourceName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsIntegerResourceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsIntegerResourceName"
 
-noncomputable def IsServiceIPSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsServiceIPSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsServiceIPSet"
 
-noncomputable def IsStandardFinalizerName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsStandardFinalizerName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsStandardFinalizerName"
 
-noncomputable def GetAccessModesAsString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetAccessModesAsString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.GetAccessModesAsString"
 
-noncomputable def GetAccessModesFromString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetAccessModesFromString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.GetAccessModesFromString"
 
-noncomputable def removeDuplicateAccessModes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def removeDuplicateAccessModes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.removeDuplicateAccessModes"
 
-noncomputable def ContainsAccessMode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ContainsAccessMode [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.ContainsAccessMode"
 
-noncomputable def ClaimContainsAllocatedResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ClaimContainsAllocatedResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.ClaimContainsAllocatedResources"
 
-noncomputable def ClaimContainsAllocatedResourceStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ClaimContainsAllocatedResourceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.ClaimContainsAllocatedResourceStatus"
 
-noncomputable def GetTolerationsFromPodAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetTolerationsFromPodAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.GetTolerationsFromPodAnnotations"
 
-noncomputable def AddOrUpdateTolerationInPod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddOrUpdateTolerationInPod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.AddOrUpdateTolerationInPod"
 
-noncomputable def GetTaintsFromNodeAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetTaintsFromNodeAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.GetTaintsFromNodeAnnotations"
 
-noncomputable def GetPersistentVolumeClass [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetPersistentVolumeClass [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.GetPersistentVolumeClass"
 
-noncomputable def GetPersistentVolumeClaimClass [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetPersistentVolumeClaimClass [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.GetPersistentVolumeClaimClass"
 
-noncomputable def PersistentVolumeClaimHasClass [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PersistentVolumeClaimHasClass [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.PersistentVolumeClaimHasClass"
 
-noncomputable def GetDeletionCostFromPodAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetDeletionCostFromPodAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.GetDeletionCostFromPodAnnotations"
 
-noncomputable def validFirstDigit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validFirstDigit [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.validFirstDigit"
 
-noncomputable def HasInvalidLabelValueInNodeSelectorTerms [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HasInvalidLabelValueInNodeSelectorTerms [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.HasInvalidLabelValueInNodeSelectorTerms"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.apis.core.helper where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.kubernetes.pkg.apis.core.helper)) (Lam BAnon
   (App (Val exceptionDo)
@@ -230,7 +230,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val Semantic.init) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.kubernetes.pkg.apis.core.helper
 

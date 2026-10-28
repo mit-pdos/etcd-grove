@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -32,7 +32,7 @@ theorem backend.backend.Commits.wp_proof : backend.backend.Commits.spec (GF := G
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hm, -⟩
   wp_auto
-  wp_apply_core sync.atomic.wp_LoadInt64 _ (DFrac.own 1) $$ [] [HΦ]
+  wp_apply_core sync.atomic.wp_LoadInt64 _ (DFrac.own 1) $$ [] [HΦ «$res0»]
   · iexact Hat
   unfold metricsInv
   iinv Hm with >Hi Hclose

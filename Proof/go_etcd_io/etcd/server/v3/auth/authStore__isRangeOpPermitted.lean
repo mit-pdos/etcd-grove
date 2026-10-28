@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -43,11 +43,12 @@ theorem auth.authStore.isRangeOpPermitted.wp_proof
   ihave %Hle := ownSlice_len _ _ _ $$ He
   have he0 := adt.slice_len_eq_zero Hle
   iunfold cacheRd at Hrd
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold cacheP at HP
-  icases HP with ⟨%mp, %Mp, Hmp, HM, #Hall⟩
+  icases HP with ⟨%mp, %Mp, Hmp, HM, #Hall, HgM⟩
   (try wp_auto)
   wp_apply wp_map_lookup2 go.string _ mp Mp user $$ HM as HM
   cases HMu : Mp !! user with
@@ -65,8 +66,8 @@ theorem auth.authStore.isRangeOpPermitted.wp_proof
     wp_apply h_Error
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HM] as Hrd
-    · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hall
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HM HgM] as Hrd
+    · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hall HgM
     iapply HΦ
     iunfold cacheRd
     iframe Hrd Hk He
@@ -82,8 +83,8 @@ theorem auth.authStore.isRangeOpPermitted.wp_proof
       wp_apply (h_checkKeyPoint lg p Lr Lw key k dk pt) $$ [$Hp $Hk] as %b ⟨Hk, %Hb⟩
       · ipureintro; exact ⟨Hpt, Hlen⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HM] as Hrd
-      · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hall
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HM HgM] as Hrd
+      · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hall HgM
       iapply HΦ
       iunfold cacheRd
       iframe Hrd Hk He
@@ -96,8 +97,8 @@ theorem auth.authStore.isRangeOpPermitted.wp_proof
         as %b ⟨Hk, He, %Hb⟩
       · ipureintro; exact Hpt
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HM] as Hrd
-      · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hall
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HM HgM] as Hrd
+      · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hall HgM
       iapply HΦ
       iunfold cacheRd
       iframe Hrd Hk He

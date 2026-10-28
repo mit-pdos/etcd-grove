@@ -19,7 +19,7 @@ namespace EtcdGrove
 namespace apimodel
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 @[simp] theorem St.tbl_with (σ : St) (a b : w64) (r : Res) :
     ({ σ with rev := a, uids := b } : St).tbl r = σ.tbl r := by

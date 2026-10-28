@@ -20,31 +20,31 @@ end pkg_id
 
 namespace k8s_io.utils.dump
 
-noncomputable def prettyPrintConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def prettyPrintConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/dump.prettyPrintConfig"
 
-axiom prettyPrintConfig.init [FfiSyntax] [GoGlobalContext] : val
+axiom prettyPrintConfig.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def prettyPrintConfigForHash [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def prettyPrintConfigForHash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/dump.prettyPrintConfigForHash"
 
-axiom prettyPrintConfigForHash.init [FfiSyntax] [GoGlobalContext] : val
+axiom prettyPrintConfigForHash.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Pretty [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Pretty [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/dump.Pretty"
 
-noncomputable def ForHash [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ForHash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/dump.ForHash"
 
-noncomputable def OneLine [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def OneLine [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/dump.OneLine"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.dump where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.utils.dump)) (Lam BAnon
   (App (Val exceptionDo)
@@ -54,7 +54,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val prettyPrintConfig.init) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.utils.dump
 

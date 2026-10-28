@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,9 +31,9 @@ slots and the certificate. The inner `End`'s `Unlock` takes the batch lock's inv
 store's, `hookIs`) back. -/
 abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (tw s st : Loc) (γ : mvcc.WsNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (puts deletes putSize : w64) (P : IProp GF) (f : val),
+    (puts deletes putSize : w64) (P : IProp GF) (f : val) (ld : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize ∗ mvcc.hookIs γ.st P f ∗ P ∗
+      mvcc.isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize ld ∗ mvcc.hookIs γ.st P f ∗ P ∗
       mvcc.certOkNext γ.st ilog pend }}
     (App (Val (tw @!! go.GoType.PointerType watchableStoreTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗

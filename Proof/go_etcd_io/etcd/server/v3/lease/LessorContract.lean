@@ -26,7 +26,7 @@ namespace lease
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.lease
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -52,26 +52,22 @@ theorem isLessor_of_lessorInv
   · ipureintro; rfl
   iframe Hpin
   isplitr
-  · iintro !> %item %Φ !> Hrd HΦ
-    iapply (hGL lp γl item) $$ [Hrd] HΦ
-    iframe Hpkg Hinv Hrd
+  · iintro !> %item %L %I %Φ !> ⟨Hrd, Hown⟩ HΦ
+    iapply (hGL lp γl item L I) $$ [Hrd Hown] HΦ
+    iframe Hpkg Hinv Hrd Hown
   isplitr
-  · iintro !> %id %items %l %dq %L %Φ !> ⟨Hown, %Hin, Hitems⟩ HΦ
-    iunfold leaseOwn at Hown
-    iapply (hAt lp γl id items l dq _ L) $$ [Hown Hitems]
-    · iframe Hpkg Hinv Hown Hitems
-    iintro !> %err ⟨Hown, Hitems, %Herr⟩
-    rw [Herr Hin]
-    iapply HΦ
-    iunfold leaseOwn
-    iframe Hown Hitems
+  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hin, %Hl, Hitems⟩ HΦ
+    iapply (hAt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
+    iframe Hpkg Hinv Hown Hitems
+    ipureintro; exact ⟨Hin, Hl⟩
   isplitr
-  · iintro !> %id %items %l %dq %Φ !> Hitems HΦ
-    iapply (hDt lp γl id items l dq) $$ [Hitems] HΦ
-    iframe Hpkg Hinv Hitems
-  · iintro !> %f %Φ !> - HΦ
-    iapply (hSRD lp γl f) $$ [] HΦ
-    iframe Hpkg Hinv
+  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hne, %Hl, Hitems⟩ HΦ
+    iapply (hDt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
+    iframe Hpkg Hinv Hown Hitems
+    ipureintro; exact ⟨Hne, Hl⟩
+  · iintro !> %f0 %f %Φ !> Hro HΦ
+    iapply (hSRD lp γl f0 f) $$ [Hro] HΦ
+    iframe Hpkg Hinv Hro
 
 /-- **The txn package's lessor contract, of the real lessor**: mvcc's, and `Lookup(id)` by the
 lease owner (`lessorUser γl L`) returns nil or a lease of the live set `L`. -/
@@ -94,25 +90,23 @@ theorem isTxnLessor_of_lessorInv
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
   icases Hinv' with ⟨%Hlp, #Hpin, -⟩
-  iintro !> %id %L %Φ !> Hu HΦ
+  iintro !> %id %L %I %Φ !> Hu HΦ
   iunfold lessorUser at Hu
-  icases Hu with ⟨Hown, Hrdo⟩
+  icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   iunfold lessorRdOf at Hrdo
   icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
   ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
   subst Heq
   iunfold leaseOwn at Hown
+  icases Hown with ⟨Hown, Hcls⟩
   iapply (hLk lp γl id _ L) $$ [Hrd Hown]
   · iframe Hpkg Hinv Hrd Hown
   iintro !> %l ⟨Hrd, Hown, %Hl, -⟩
   iapply HΦ
-  isplitl [Hrd Hown]
-  · iunfold lessorUser; iunfold leaseOwn; iframe Hown
+  isplitl [Hrd Hown Hcls Hrvk]
+  · iunfold lessorUser; iunfold leaseOwn; iframe Hown Hcls Hrvk
     iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
-  by_cases hn : l = null
-  · ileft; ipureintro; exact hn
-  · iright; ipureintro
-    exact Classical.byContradiction (fun hni => hn (Hl.2 hni))
+  ipureintro; exact Hl
 
 end proof
 

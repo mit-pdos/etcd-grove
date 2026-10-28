@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import GeneratedProof.iter
+public import Perennial.GeneratedProof.iter
 public import GeneratedProof.k8s_io.api.core.v1
 public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
 public import GeneratedProof.k8s_io.apiserver.pkg.util.feature

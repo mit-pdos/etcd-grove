@@ -26,18 +26,17 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
-instance responseAndError_countable [FfiSyntax] :
+instance responseAndError_countable [GooseExts] :
     Pos.Countable go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError :=
   .ofInjective (fun x => Pos.Countable.encode (x.resp', x.body', x.err'))
     (by intro a b h; have h := Pos.encode_inj h; cases a; cases b; simp_all)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 /-- **What the round trip's goroutine sends** for the request `R` to `req` of ticket `γk`: an error
 of net/http's (`RoundTrip`'s or the body read's), or no error, a response whose status the
@@ -67,7 +66,7 @@ theorem rafthttp.snapshotSender.post.wp_proof
   iunfold snapSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %ps, %r, %ec, %sc, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, %γd, %Rr,
     #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hrtf,
-    #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem⟩
+    #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem, %Hturls⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, #HES, #HMR, -, -, -, -, -, -, -, -, -, -, -,
@@ -83,6 +82,7 @@ theorem rafthttp.snapshotSender.post.wp_proof
   have e1 : xES = cES := by injection h1 with h1; injection h1 with _ h1; exact go.intoVal_inj (V := Loc) h1
   have e3 : xMR = cMR := by injection h3 with h3; injection h3 with _ h3; exact go.intoVal_inj (V := Loc) h3
   subst e1 e3
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply hBackground
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

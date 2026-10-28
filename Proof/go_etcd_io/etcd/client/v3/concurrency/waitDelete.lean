@@ -20,7 +20,7 @@ namespace concurrency
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -35,6 +35,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
   icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, -, #Hwf, -, -, -, -, -, #HW⟩
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

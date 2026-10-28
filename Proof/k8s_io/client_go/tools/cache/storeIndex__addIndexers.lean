@@ -48,7 +48,7 @@ theorem restrictF_snoc {V : Type} (m fv : GMap GoString V) (ks : List GoString) 
     cases m !! k' <;> simp [Option.filter, Ne.symm hk]
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

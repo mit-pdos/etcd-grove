@@ -20,83 +20,83 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.conversion
 
-noncomputable def typePair.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def typePair.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.typePair" [])
 
 attribute [irreducible] typePair.ty
 
-noncomputable def NameFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NameFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.NameFunc" [])
 
 attribute [irreducible] NameFunc.ty
 
-noncomputable def ConversionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConversionFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.ConversionFunc" [])
 
 attribute [irreducible] ConversionFunc.ty
 
-noncomputable def Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Converter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.Converter" [])
 
 attribute [irreducible] Converter.ty
 
-noncomputable def Scope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Scope.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.Scope" [])
 
 attribute [irreducible] Scope.ty
 
-noncomputable def ConversionFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConversionFuncs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.ConversionFuncs" [])
 
 attribute [irreducible] ConversionFuncs.ty
 
-noncomputable def Meta.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Meta.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.Meta" [])
 
 attribute [irreducible] Meta.ty
 
-noncomputable def scope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def scope.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.scope" [])
 
 attribute [irreducible] scope.ty
 
-noncomputable def Equalities.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Equalities.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.Equalities" [])
 
 attribute [irreducible] Equalities.ty
 
-axiom typePair.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom typePair.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NameFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom NameFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Equalities.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Equalities.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def DefaultNameFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultNameFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.DefaultNameFunc"
 
-axiom DefaultNameFunc.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultNameFunc.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewConverter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.NewConverter"
 
-noncomputable def Convert_Slice_byte_To_Slice_byte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Convert_Slice_byte_To_Slice_byte [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.Convert_Slice_byte_To_Slice_byte"
 
-noncomputable def NewConversionFuncs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConversionFuncs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.NewConversionFuncs"
 
-noncomputable def EqualitiesOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EqualitiesOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.EqualitiesOrDie"
 
-noncomputable def EnforcePtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnforcePtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.EnforcePtr"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.conversion where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.conversion)) (Lam BAnon
   (App (Val exceptionDo)
@@ -107,94 +107,110 @@ axiom typePair : Type
 axiom typePair.zero_val : ZeroVal typePair
 attribute [instance] typePair.zero_val
 
-class typePair.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class typePair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying typePair.underlying typePair
   underlying : go.UnderlyingDirectedEq typePair.ty typePair.underlying
   isUnderlying : go.IsUnderlying typePair.underlying typePair.underlying
+  method_set : go.MethodSetIs typePair.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType typePair.ty) []
 
 attribute [instance] typePair.TypeAssumptions.type_repr
   typePair.TypeAssumptions.underlying
   typePair.TypeAssumptions.isUnderlying
+  typePair.TypeAssumptions.method_set
+  typePair.TypeAssumptions.ptr_method_set
 
 axiom NameFunc : Type
 axiom NameFunc.zero_val : ZeroVal NameFunc
 attribute [instance] NameFunc.zero_val
 
-class NameFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NameFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NameFunc.underlying NameFunc
   underlying : go.UnderlyingDirectedEq NameFunc.ty NameFunc.underlying
   isUnderlying : go.IsUnderlying NameFunc.underlying NameFunc.underlying
+  method_set : go.MethodSetIs NameFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NameFunc.ty) []
 
 attribute [instance] NameFunc.TypeAssumptions.type_repr
   NameFunc.TypeAssumptions.underlying
   NameFunc.TypeAssumptions.isUnderlying
+  NameFunc.TypeAssumptions.method_set
+  NameFunc.TypeAssumptions.ptr_method_set
 
-abbrev ConversionFunc [FfiSyntax] : Type := GoFunc
+abbrev ConversionFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def ConversionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConversionFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), Scope.ty] false [go.error]))
 
-class ConversionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConversionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConversionFunc.ty ConversionFunc.underlying
+  method_set : go.MethodSetIs ConversionFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConversionFunc.ty) []
 
 attribute [instance] ConversionFunc.TypeAssumptions.underlying
+  ConversionFunc.TypeAssumptions.method_set
+  ConversionFunc.TypeAssumptions.ptr_method_set
 
-structure ConversionFuncs [FfiSyntax] where
+structure ConversionFuncs [GooseExts] where
   mk ::
   untyped' : GoMap
 
-noncomputable instance ConversionFuncs.zero_val [FfiSyntax] : ZeroVal ConversionFuncs :=
+noncomputable instance ConversionFuncs.zero_val [GooseExts] : ZeroVal ConversionFuncs :=
   ⟨ConversionFuncs.mk zeroValDef⟩
 
-@[reducible] noncomputable def ConversionFuncs.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConversionFuncs.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"untyped" (go.GoType.MapType typePair.ty ConversionFunc.ty))]
 
-@[irreducible] noncomputable def ConversionFuncs.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConversionFuncs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConversionFuncs.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConversionFuncs [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConversionFuncs [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConversionFuncs.fields ConversionFuncs.fieldsUnsealed :=
   ⟨by unfold ConversionFuncs.fields; rfl⟩
 
-@[reducible] noncomputable def ConversionFuncs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConversionFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConversionFuncs.fields)
 
-class ConversionFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConversionFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConversionFuncs.underlying ConversionFuncs
   underlying : go.UnderlyingDirectedEq ConversionFuncs.ty ConversionFuncs.underlying
   get_untyped : ∀ (x : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldGet ConversionFuncs.underlying go!"untyped") #x (Val #(x.untyped'))
   set_untyped : ∀ (x : ConversionFuncs) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ConversionFuncs.underlying go!"untyped") (PairV #x #y) (Val #(({ x with untyped' := y } : ConversionFuncs)))
+  method_set : go.MethodSetIs ConversionFuncs.ty [(go!"AddUntyped", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"Merge", (some (go.signature.Signature [ConversionFuncs.ty] false [ConversionFuncs.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConversionFuncs.ty) [(go!"AddUntyped", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"Merge", (some (go.signature.Signature [ConversionFuncs.ty] false [ConversionFuncs.ty])))]
 
 attribute [instance] ConversionFuncs.TypeAssumptions.type_repr
   ConversionFuncs.TypeAssumptions.underlying
   ConversionFuncs.TypeAssumptions.get_untyped
   ConversionFuncs.TypeAssumptions.set_untyped
+  ConversionFuncs.TypeAssumptions.method_set
+  ConversionFuncs.TypeAssumptions.ptr_method_set
 
-structure Converter [FfiSyntax] where
+structure Converter [GooseExts] where
   mk ::
   conversionFuncs' : ConversionFuncs
   generatedConversionFuncs' : ConversionFuncs
   ignoredUntypedConversions' : GoMap
 
-noncomputable instance Converter.zero_val [FfiSyntax] : ZeroVal Converter :=
+noncomputable instance Converter.zero_val [GooseExts] : ZeroVal Converter :=
   ⟨Converter.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Converter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Converter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"conversionFuncs" ConversionFuncs.ty),
 (go.field_decl.FieldDecl go!"generatedConversionFuncs" ConversionFuncs.ty),
 (go.field_decl.FieldDecl go!"ignoredUntypedConversions" (go.GoType.MapType typePair.ty (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def Converter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Converter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Converter.fieldsUnsealed
 
-noncomputable instance equals_unfold_Converter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Converter [GooseExts] [GoGlobalContext] :
     EqualsUnfold Converter.fields Converter.fieldsUnsealed :=
   ⟨by unfold Converter.fields; rfl⟩
 
-@[reducible] noncomputable def Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Converter.fields)
 
-class Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Converter.underlying Converter
   underlying : go.UnderlyingDirectedEq Converter.ty Converter.underlying
   get_conversionFuncs : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"conversionFuncs") #x (Val #(x.conversionFuncs'))
@@ -203,6 +219,8 @@ class Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_generatedConversionFuncs : ∀ (x : Converter) (y : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"generatedConversionFuncs") (PairV #x #y) (Val #(({ x with generatedConversionFuncs' := y } : Converter)))
   get_ignoredUntypedConversions : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"ignoredUntypedConversions") #x (Val #(x.ignoredUntypedConversions'))
   set_ignoredUntypedConversions : ∀ (x : Converter) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"ignoredUntypedConversions") (PairV #x #y) (Val #(({ x with ignoredUntypedConversions' := y } : Converter)))
+  method_set : go.MethodSetIs Converter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Converter.ty) [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.PointerType Meta.ty)] false [go.error]))), (go!"DefaultMeta", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Type" [])] false [(go.GoType.PointerType Meta.ty)]))), (go!"RegisterGeneratedUntypedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"RegisterIgnoredConversion", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"RegisterUntypedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"WithConversions", (some (go.signature.Signature [ConversionFuncs.ty] false [(go.GoType.PointerType Converter.ty)])))]
 
 attribute [instance] Converter.TypeAssumptions.type_repr
   Converter.TypeAssumptions.underlying
@@ -212,77 +230,89 @@ attribute [instance] Converter.TypeAssumptions.type_repr
   Converter.TypeAssumptions.set_generatedConversionFuncs
   Converter.TypeAssumptions.get_ignoredUntypedConversions
   Converter.TypeAssumptions.set_ignoredUntypedConversions
+  Converter.TypeAssumptions.method_set
+  Converter.TypeAssumptions.ptr_method_set
 
-abbrev Scope [FfiSyntax] : Type := GoInterface
+abbrev Scope [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Scope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Scope.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Convert" (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"Meta" (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)]))])
 
-class Scope.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Scope.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Scope.ty Scope.underlying
+  method_set : go.MethodSetIs Scope.ty [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"Meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Scope.ty) []
 
 attribute [instance] Scope.TypeAssumptions.underlying
+  Scope.TypeAssumptions.method_set
+  Scope.TypeAssumptions.ptr_method_set
 
-structure Meta [FfiSyntax] where
+structure Meta [GooseExts] where
   mk ::
   Context' : GoInterface
 
-noncomputable instance Meta.zero_val [FfiSyntax] : ZeroVal Meta :=
+noncomputable instance Meta.zero_val [GooseExts] : ZeroVal Meta :=
   ⟨Meta.mk zeroValDef⟩
 
-@[reducible] noncomputable def Meta.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Meta.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Context" (go.GoType.InterfaceType []))]
 
-@[irreducible] noncomputable def Meta.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Meta.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Meta.fieldsUnsealed
 
-noncomputable instance equals_unfold_Meta [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Meta [GooseExts] [GoGlobalContext] :
     EqualsUnfold Meta.fields Meta.fieldsUnsealed :=
   ⟨by unfold Meta.fields; rfl⟩
 
-@[reducible] noncomputable def Meta.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Meta.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Meta.fields)
 
-class Meta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Meta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Meta.underlying Meta
   underlying : go.UnderlyingDirectedEq Meta.ty Meta.underlying
   get_Context : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"Context") #x (Val #(x.Context'))
   set_Context : ∀ (x : Meta) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : Meta)))
+  method_set : go.MethodSetIs Meta.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Meta.ty) []
 
 attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.underlying
   Meta.TypeAssumptions.get_Context
   Meta.TypeAssumptions.set_Context
+  Meta.TypeAssumptions.method_set
+  Meta.TypeAssumptions.ptr_method_set
 
-structure scope [FfiSyntax] where
+structure scope [GooseExts] where
   mk ::
   converter' : Loc
   meta' : Loc
 
-noncomputable instance scope.zero_val [FfiSyntax] : ZeroVal scope :=
+noncomputable instance scope.zero_val [GooseExts] : ZeroVal scope :=
   ⟨scope.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def scope.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def scope.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"converter" (go.GoType.PointerType Converter.ty)),
 (go.field_decl.FieldDecl go!"meta" (go.GoType.PointerType Meta.ty))]
 
-@[irreducible] noncomputable def scope.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def scope.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   scope.fieldsUnsealed
 
-noncomputable instance equals_unfold_scope [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_scope [GooseExts] [GoGlobalContext] :
     EqualsUnfold scope.fields scope.fieldsUnsealed :=
   ⟨by unfold scope.fields; rfl⟩
 
-@[reducible] noncomputable def scope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def scope.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType scope.fields)
 
-class scope.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class scope.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying scope.underlying scope
   underlying : go.UnderlyingDirectedEq scope.ty scope.underlying
   get_converter : ∀ (x : scope), go.IsGoStepPureDetTagged under (StructFieldGet scope.underlying go!"converter") #x (Val #(x.converter'))
   set_converter : ∀ (x : scope) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet scope.underlying go!"converter") (PairV #x #y) (Val #(({ x with converter' := y } : scope)))
   get_meta : ∀ (x : scope), go.IsGoStepPureDetTagged under (StructFieldGet scope.underlying go!"meta") #x (Val #(x.meta'))
   set_meta : ∀ (x : scope) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet scope.underlying go!"meta") (PairV #x #y) (Val #(({ x with meta' := y } : scope)))
+  method_set : go.MethodSetIs scope.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType scope.ty) [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"Meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)])))]
 
 attribute [instance] scope.TypeAssumptions.type_repr
   scope.TypeAssumptions.underlying
@@ -290,21 +320,27 @@ attribute [instance] scope.TypeAssumptions.type_repr
   scope.TypeAssumptions.set_converter
   scope.TypeAssumptions.get_meta
   scope.TypeAssumptions.set_meta
+  scope.TypeAssumptions.method_set
+  scope.TypeAssumptions.ptr_method_set
 
 axiom Equalities : Type
 axiom Equalities.zero_val : ZeroVal Equalities
 attribute [instance] Equalities.zero_val
 
-class Equalities.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Equalities.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Equalities.underlying Equalities
   underlying : go.UnderlyingDirectedEq Equalities.ty Equalities.underlying
   isUnderlying : go.IsUnderlying Equalities.underlying Equalities.underlying
+  method_set : go.MethodSetIs Equalities.ty [(go!"AddFunc", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddFuncs", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [go.error]))), (go!"Copy", (some (go.signature.Signature [] false [Equalities.ty]))), (go!"DeepDerivative", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"DeepEqual", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"DeepEqualWithNilDifferentFromEmpty", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepEqual", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), go.bool] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepValueDerive", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Value" []), (go.GoType.Named go!"reflect.Value" []), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/third_party/forked/golang/reflect.visit" []) go.bool), go.int] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepValueEqual", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Value" []), (go.GoType.Named go!"reflect.Value" []), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/third_party/forked/golang/reflect.visit" []) go.bool), go.bool, go.int] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Equalities.ty) [(go!"AddFunc", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddFuncs", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [go.error]))), (go!"Copy", (some (go.signature.Signature [] false [Equalities.ty]))), (go!"DeepDerivative", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"DeepEqual", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"DeepEqualWithNilDifferentFromEmpty", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepEqual", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), go.bool] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepValueDerive", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Value" []), (go.GoType.Named go!"reflect.Value" []), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/third_party/forked/golang/reflect.visit" []) go.bool), go.int] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepValueEqual", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Value" []), (go.GoType.Named go!"reflect.Value" []), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/third_party/forked/golang/reflect.visit" []) go.bool), go.bool, go.int] false [go.bool])))]
 
 attribute [instance] Equalities.TypeAssumptions.type_repr
   Equalities.TypeAssumptions.underlying
   Equalities.TypeAssumptions.isUnderlying
+  Equalities.TypeAssumptions.method_set
+  Equalities.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   typePair_instance : typePair.TypeAssumptions
   NameFunc_instance : NameFunc.TypeAssumptions
   ConversionFunc_instance : ConversionFunc.TypeAssumptions

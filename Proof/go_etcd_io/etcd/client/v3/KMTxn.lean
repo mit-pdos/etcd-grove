@@ -76,6 +76,23 @@ theorem pathsIgnOk_wire (s : List EtcdKv) :
     | putIgnVal k l => exact hf.elim
     | txn _ _ _ => exact hp.elim
 
+/-- (unit T3) A covered path names no lease, so every lease check passes. -/
+theorem pathsLeaseOk_wire (s : List EtcdKv) (L : List w64) :
+    ∀ ops : List TxnOp, (∀ op ∈ ops, TxnOp.plain op ∧ TxnOp.kmFree op) →
+      txn.PathsLeaseOk s L (ops.map opWire)
+  | [], _ => by simp [txn.PathsLeaseOk]
+  | op :: ops, h => by
+    simp only [List.map_cons, txn.PathsLeaseOk]
+    refine ⟨?_, pathsLeaseOk_wire s L ops (fun o ho => h o (List.mem_cons_of_mem _ ho))⟩
+    obtain ⟨hp, hf⟩ := h op List.mem_cons_self
+    cases op with
+    | get o => simp [opWire, txn.PathLeaseOk]
+    | delete o => simp [opWire, txn.PathLeaseOk]
+    | put k v l => simp only [opWire, txn.PathLeaseOk]; exact Or.inl hf
+    | putKeep k v => exact hf.elim
+    | putIgnVal k l => exact hf.elim
+    | txn _ _ _ => exact hp.elim
+
 /-- **A covered writing transaction's step is the commit of its run.** -/
 theorem kvOpStep_txn_km (σ : KVState) (t : TxnModel) (hp : TxnModel.plain t) (hf : TxnModel.kmFree t) :
     kvOpStep (.txn (txnWireOf t)) σ =
@@ -83,8 +100,10 @@ theorem kvOpStep_txn_km (σ : KVState) (t : TxnModel) (hp : TxnModel.plain t) (h
   simp only [kvOpStep]
   rw [if_pos]
   rw [txnWireOf_branch]
-  exact pathsIgnOk_wire _ _ (fun op ho =>
-    ⟨plain_branch t hp _ op ho, hf op (branch_mem t _ op ho)⟩)
+  exact ⟨pathsIgnOk_wire _ _ (fun op ho =>
+    ⟨plain_branch t hp _ op ho, hf op (branch_mem t _ op ho)⟩),
+    pathsLeaseOk_wire _ _ _ (fun op ho =>
+    ⟨plain_branch t hp _ op ho, hf op (branch_mem t _ op ho)⟩)⟩
 
 /-- A read-only transaction changes nothing. -/
 theorem srvRunTxn_ro_nil (r : w64) (s : List EtcdKv) (t : TxnModel) (hp : TxnModel.plain t)
@@ -104,7 +123,7 @@ theorem prefix_longer {α : Type _} {a b : List α} (h : a <+: b ∨ b <+: a) :
   · exact ⟨a, List.prefix_refl _, h, Or.inl rfl⟩
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

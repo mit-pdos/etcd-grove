@@ -91,7 +91,7 @@ theorem maj_symdiff_overlap (l r q1 q2 : GSet w64) (hd : symdiffN l r ≤ 1)
 /-! ### One configuration change -/
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A configuration a node can be in (see the file header). -/
 def CfgOk (s : CCState) : Prop :=
@@ -395,7 +395,7 @@ theorem ccApplyM_single_simple (c : ConfChangeSingleM) (s : CCState) :
   rw [He]
 
 /-- A `ConfChange` removing the voter `m.nodeId` from `cfgState V ∅` (a voter left). -/
-theorem ccStepB_removeVoter (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
+theorem ccStepB_removeVoter (V : GSet w64) (m : ConfChangeM) (Hty : m.type = W32 1)
     (h0 : m.nodeId ≠ W64 0) (hV : m.nodeId ∈ V) (hne : (GMap.delete m.nodeId V : GSet w64) ≠ ∅)
     (Hsz : GMap.size V < 2 ^ 62) :
     ccStepB (ccV2Of (.v1 m)) (cfgState V ∅) = some (cfgState (GMap.delete m.nodeId V) ∅) := by
@@ -416,7 +416,7 @@ theorem ccStepB_removeVoter (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
   rw [ite_eq_left (by omega)]
 
 /-- The same change at a configuration it is no voter of: nothing changes. -/
-theorem ccStepB_removeAbsent (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
+theorem ccStepB_removeAbsent (V : GSet w64) (m : ConfChangeM) (Hty : m.type = W32 1)
     (h0 : m.nodeId ≠ W64 0) (hV : m.nodeId ∉ V) (hne : V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) :
     ccStepB (ccV2Of (.v1 m)) (cfgState V ∅) = some (cfgState V ∅) := by
   unfold ccStepB ccV2Of

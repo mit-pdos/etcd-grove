@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -45,7 +45,11 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   write-back: the token), the heap's `Init`, and `b.ForceCommit()`, which commits first so its
   `Unlock` finds nothing pending and does not write back (the backend's `ForceCommit.spec` charges
   a token: the spec is coarser than the code). Its commit runs the backend's hooks (`isBackend`).
-  So the live set is empty (`leaseOwn γl []`).
+  So the live set is empty (`leaseOwn γl [] ∅`), and so is the item map (`le.itemMap`, made
+  by `newLessor`: the lock holds half of it, the caller the other half, unit T3, L2b), with no
+  lease to revoke (`leaseRevokers γl []`).
+  The range deleter `rd` is unset (`nil`): `newLessor` does not set it, and the caller owns the
+  half of the field that the lock does not hold (`rdOwn γl func.nil`, unit T3).
 * `go l.runLoop()`: until the lessor is promoted it only takes its lock, finds no expired lease
   and no due checkpoint; once promoted it sends expired leases on `expiredC` (the server's `run`
   receives them) and calls the checkpointer the server installed (`ckptEffectsOk`). **The grant
@@ -64,15 +68,16 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   hook `f` under `Pk` (`csContract Pk f`); `UnsafePut` into the `Lease` bucket (created by
   `initAndRecover`; a hook bucket, `bridgeParams`, so the readers' view is unchanged) of an
   8-byte key never fails; `Unlock` writes back at most once (`wbTok`). The `Lease` bucket is a
-  tracked bucket (D22, 2026-10-23: `KBReal.P`'s `RB`): each write takes, with its write-back
-  token, the tracked buckets' client half (`srvRestRW d.γB`), which its put needs; the server's
-  apply thread holds that half at its model and never lends it (the workload has no lease
-  request), so no lease is written.
+  tracked bucket (D22, 2026-10-23: `KBReal.P`'s `RB`): the put takes the tracked buckets' client
+  half (`backend.rbOwn d.γB r`, the backend's `UnsafePut` of a tracked bucket: `rbPut`) and gives
+  it back with the entry put (`mvcc.rbSet r "lease" k v`; leases T3, L3c, 2026-10-27: until then
+  each write took the half, `srvRestRW d.γB`, in its write right, and the put's effect was not
+  stated); the lock and `Unlock` do not need it.
   (D22 receiver epochs, S7c, 2026-10-23) The lessor's lock holds half of `le.b`
   (`lessorExtra`), the caller gets the other (`lease.lessorBeOn lp d.be`); `persistTo(le.b)`
   reads it under the lock, so the writes go to the backend the caller's half names: the contract
   (`lessorApplyOk`) is for whichever backend that is (its contract at some `W`, `Pk`, its frozen
-  hook), given a write right lending the tracked buckets' half and that half (`rwLens`); `Recover`
+  hook), given a write right lending that half of `le.b` (`rwLens`); `Recover`
   (names-only) replaces both halves under the lock. Until S7c `le.b` was `↦□` and the contract for
   `d` only, which `Recover` refutes.
 * `Lookup(id)` (unit N4, D14h, 2026-10-17: `isApplyLessor`'s `Lookup` clause, a premise of
@@ -100,7 +105,7 @@ abbrev lease.NewLessor.spec : Prop :=
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
-      lease.leaseOwn γl [] ∗ lessorCkptOk l ∗ lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
+      lease.leaseOwn γl [] ∅ ∗ lease.leaseRevokers γl [] ∗ lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗ lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))

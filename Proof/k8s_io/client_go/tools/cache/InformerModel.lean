@@ -48,7 +48,7 @@ namespace informer
 open apimodel
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **The table at version `v`**: the replay of the log's changes at or below `v`. -/
 def tableAt (l : List Change) (v : Nat) : GMap Key Obj :=

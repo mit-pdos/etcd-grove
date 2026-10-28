@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftWitness"]
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "24bef275ea91746aef1ed7fff9ddf4baf04aba0f"
+rev = "edcadb1e57010cc7a0b6f91d078f293f106f9769"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's

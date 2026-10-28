@@ -5,8 +5,8 @@ some network addresses (`netAddrFree`, item 4). Both are abstract exclusive reso
 program's specs consume (`MustRegister.spec`, `Listen.spec`) and that nothing in the logic
 produces: in Go they hold because the program starts with an empty registry (but for what its
 unverified code registers) and owns its addresses, a fact of the initial world. Perennial's
-adequacy theorem gives a proof only the FFI's start resources, the package-state map and the main
-thread's token, and no FFI here models the registry or the network, so the rights cannot be
+adequacy theorem gives a proof only the extensions' start resources, the package-state map and the main
+thread's token, and no extension here models the registry or the network, so the rights cannot be
 allocated in the logic. A hypothesis `⊢ |==> nameFree n` of a closed theorem could be used twice
 (and two registrations of one name would then not panic: false of Go, the theorem vacuous,
 D19a).
@@ -39,8 +39,8 @@ the premise is `goose_adequacy`'s premise and the conclusion its conclusion.
 its environment that the model cannot state, hypotheses of a closed theorem: pure, D19a); the
 adequacy example's are checked from the Go source (`notes/decisions.md`, D19d).
 
-A design choice D19d leaves to the user: the alternative is an FFI whose initial world holds the
-free addresses and the empty registry (`ffiGlobalStart` the rights, `nameFree`/`netAddrFree` its
+A design choice D19d leaves to the user: the alternative is an extension whose initial world holds
+the free addresses and the empty registry (`extsGlobalStart` the rights, `nameFree`/`netAddrFree` its
 ghost state, `MustRegister`/`Listen` its operations), a Perennial change proposed in
 `notes/decisions.md`, D19d; with it this axiom goes.
 -/
@@ -65,43 +65,43 @@ translates, checked from its source): no collector the default registry holds at
 repository does not verify (an untranslated initializer, a names-only function, the runtime),
 registers with prometheus's default registry a collector with a descriptor named `n ∈ Ns`, or
 with `n`'s label-free descriptor's ID, or with that collector ID. -/
-axiom prometheus.namesUnclaimed [FfiSyntax] (e : Expr) (Ns : List GoString) : Prop
+axiom prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop
 
 /-- **The addresses `As` are the program's** (a fact of the environment a run of `e` is in, and
 of `e`'s unverified code): while `e` runs, no other process binds an address of `As`, and no code
 of `e` whose behaviour this repository does not verify binds one. -/
-axiom addrsUnclaimed [FfiSyntax] (e : Expr) (As : List GoString) : Prop
+axiom addrsUnclaimed [GooseExts] (e : Expr) (As : List GoString) : Prop
 
 /-- The rights program start gives: the right to register each name of `Ns` and to listen on
 each address of `As`, and (D39a, 2026-10-23) to fix each address's HTTP protocol
 (`httpProtoFree`). -/
-def startRights {GF : BundledGFunctors} [FfiSyntax] (Ns As : List GoString) : IProp GF :=
+def startRights {GF : BundledGFunctors} [GooseExts] (Ns As : List GoString) : IProp GF :=
   iprop(([∗list] n ∈ Ns, prometheus.nameFree n) ∗ ([∗list] a ∈ As, netAddrFree a) ∗
     ([∗list] a ∈ As, httpProtoFree a))
 
 section adequacy
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiInterpAdequacy ffi]
-variable [FfiSemantics ext ffi] [GoGlobalContext]
+variable [GooseExts] [GooseInterp]
+variable [GooseSemantics] [GoGlobalContext]
 variable {GF : BundledGFunctors}
 
 /-- **The trust boundary: program start owns the free names and addresses, once** (see the file
 header). `goose_adequacy`, with the WP proof also given `startRights Ns As`. -/
-axiom goose_adequacy_start [hPre : GooseGpreS ffi GF] (N T : Nat)
+axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
-    (Hinitg : ffi_initgP g.globalWorld) (Hinit : ffi_initP σ.world g.globalWorld)
+    (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
     (Ns As : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup)
     (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
       threadBound GF = T →
       hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
-      ⊢ ffiGlobalStart (gooseFfiGlobalGS (ffi := ffi) (GF := GF)) g.globalWorld -∗
-        ffiLocalStart (gooseFfiLocalGS (ffi := ffi) (GF := GF)) σ.world -∗
+      ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
+        extsLocalStart (GF := GF) σ.world -∗
         ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hbound : n < N) (Hthreads : g.threads = 1)
+    (Hbound : n < N) (Hthreads : σ.threads = 1)
     (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState))) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)

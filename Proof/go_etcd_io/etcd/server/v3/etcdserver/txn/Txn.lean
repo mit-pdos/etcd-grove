@@ -36,7 +36,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -172,9 +172,10 @@ theorem txn.Txn_sole
     · iexists te4; iexact Htrc
     try wp_join_done
   ipersist Hsl
-  ihave Hu : (⌜true = false⌝ ∨ EtcdGrove.lease.lessorUser γ.leases L) $$ [Hu]
+  ihave Hu : (⌜true = false⌝ ∨ EtcdGrove.lease.lessorUser γ.leases L
+      (mvcc.leaseItemsOf (mvcc.stateAfter log))) $$ [Hu]
   · iright; iexact Hu
-  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] L true (fun h => by cases h))
+  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] L _ true (fun h => by cases h))
     $$ [$Htx $Hrt $Hle $Hu] as %n %err ⟨Htx, Hu, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
@@ -196,9 +197,9 @@ theorem txn.Txn_sole
       · simp only [mvcc.txnEndPre]; itrivial
       wp_apply (hEndF trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te9, Htrc⟩
       iapply HΦ
-      iframe Hrd Hu
+      iframe Hrd
       ileft
-      iframe Hce HPre
+      iframe Hce HPre Hu
       isplitr
       · ipureintro; exact ⟨rfl, rfl, Hne, Hnp⟩
       isplitl [Hsw Hwl Hfrag]
@@ -207,6 +208,7 @@ theorem txn.Txn_sole
       iframe Htrc
       ipureintro; exact Hteq
   obtain ⟨rfl, -, Hign⟩ := Hok
+  ihave %Hlok := txn.leasesOk_paths L _ _ $$ Hleases
   wp_auto
   icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te4, Htrc⟩, Hback⟩
   wp_apply (hStep trace te4 _ _) $$ [$Htrc] as Htrc
@@ -261,12 +263,15 @@ theorem txn.Txn_sole
       exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
         (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
     iapply HΦ
-    iframe Hrd Hu
+    iframe Hrd
     iright
     simp only [srvRunTxn]
     rw [hch]
+    rw [stateAfter_commitLog]
+    simp only [mvcc.applyChanges, List.foldl_nil]
+    iframe Hu
     isplitl []
-    · ipureintro; simp [Htr, HFl]; exact Hign
+    · ipureintro; simp [Htr, HFl]; exact ⟨Hign, Hlok⟩
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr
@@ -316,7 +321,7 @@ theorem txn.Txn_sole
       (interface.mkOk tyX vX) false log rt t sl skip L
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true] at htxn'
     iunfold EtcdGrove.lease.lessorUser at Hu
-    icases Hu with ⟨Hown, Hrdo⟩
+    icases Hu with ⟨Hown, Hrdo, Hrvk⟩
     wp_apply htxn'
       $$ [$Htw $Hctx' $Hct' $Hnd' $Hrt $Hsl $Hleases $Hknown Hown] as %resp %err Hres
     · isplitl [Hown]
@@ -364,11 +369,9 @@ theorem txn.Txn_sole
     · iexfalso; iexact Hf
     iapply HΦ
     iframe Hrd
-    isplitl [Hown Hrdo]
-    · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
     iright
     isplitl []
-    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => (by rw [hro] at h; cases h), Hign⟩
+    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => (by rw [hro] at h; cases h), Hign, Hlok⟩
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr
@@ -376,6 +379,8 @@ theorem txn.Txn_sole
     rw [stateAfter_commitLog]
     simp only [srvRunTxn]
     iframe Hresp Hsw Hk2 Hhdr
+    isplitl [Hown Hrdo Hrvk]
+    · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo Hrvk
     simp only [hro, Bool.false_eq_true, ↓reduceIte]
     iexact HPost
 
@@ -446,7 +451,7 @@ theorem txn.Txn_read
   ihave Htx := Hback $$ [Htrc]
   · iexists te2; iexact Htrc
   ipersist Hsl
-  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] [] false (fun _ => hro))
+  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] [] ∅ false (fun _ => hro))
     $$ [$Htx $Hrt $Hle] as %n %err ⟨Htx, -, Hres⟩
   · isplitl []
     · ipureintro; exact Htr

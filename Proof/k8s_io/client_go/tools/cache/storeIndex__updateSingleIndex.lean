@@ -20,20 +20,20 @@ namespace cache
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
-omit [FfiSemantics ext ffi] in
+omit [GooseSemantics] in
 theorem delVals_step (V Vj : GoString → KSet) (vs : List GoString) (j : Nat) (x key : GoString)
     (hx : vs[j]? = some x) (hVj : Vj = delVals V (vs.take j) key) :
     (fun w => if w = x then GMap.delete key (Vj w) else Vj w) =
       delVals V (vs.take (j + 1)) key := by
   rw [List.take_add_one, hx, Option.toList_some, delVals_snoc, hVj]
 
-omit [FfiSemantics ext ffi] in
+omit [GooseSemantics] in
 theorem addVals_step (V Vj : GoString → KSet) (vs : List GoString) (j : Nat) (x key : GoString)
     (hx : vs[j]? = some x) (hVj : Vj = addVals V (vs.take j) key) :
     (fun w => if w = x then <[key := sets.present]> (Vj w) else Vj w) =

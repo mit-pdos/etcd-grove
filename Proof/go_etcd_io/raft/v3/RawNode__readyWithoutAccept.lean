@@ -12,7 +12,7 @@ their terms are bounded by the outbox's `OutTermOk` (2026-10-17: within the term
 then, with pre-vote off, by the node's term).
 
 Since 2026-10-13 the `ReadState`s are handed out (`rd.ReadStates = r.readStates` when not
-empty): the slice read-only, and each one's `readStateOk`, copied out of the ghost state
+empty): the slice read-only, and each one's `readStateRaw`, copied out of the ghost state
 (`ownRaftGhost_readStates`; `InvRawnodeReady.lean`'s header).
 
 Lean notes: `readyWithoutAccept`'s `rd` is tracked as `readyVal` (one field per argument).
@@ -50,7 +50,7 @@ open RawNodeOwnAccess
 set_option linter.unusedSectionVars false
 
 section helpers
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The `Ready` `readyWithoutAccept` builds, field by field (D22 S-d3a: `Snapshot` `sn`, `nil`
 unless a snapshot is pending and not in progress). -/
@@ -60,7 +60,7 @@ abbrev readyVal (sp hp : Loc) (rs ents : GoSlice) (sn : Loc) (ce msgs : GoSlice)
 end helpers
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -202,7 +202,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   imod cellRO_alloc $$ «$v0» with #cT
   imod cellRO_alloc $$ «$v1» with #cV
   imod cellRO_alloc $$ «$v2» with #cC
-  wp_alloc hp as Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = hp at *
   imod hsRO_of_struct hp (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0)
     (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp] with #Hhp
   · iframe Hp
@@ -210,7 +211,6 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [hardstateVal, nodeHardstate]
     iframe cT cV cC
   clear Hlv
-  wp_auto
   ihave #Hhp' := hsOpt_of_hsRO _ _ $$ Hhp
   -- (D22l) `prevHardSt`: its record `rs.phs` and its witness
   ihave %Hphs := prevHS_eq γ _ _ _ $$ Hhard
@@ -367,7 +367,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   imod cellRO_alloc $$ «$v0» with #cT2
   imod cellRO_alloc $$ «$v1» with #cV2
   imod cellRO_alloc $$ «$v2» with #cC2
-  wp_alloc hp2 as Hp2
+  irename «$r0» => Hp2
+  generalize «$r0_ptr» = hp2 at *
   imod hsRO_of_struct hp2 (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0)
     (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp2] with #Hhp2
   · iframe Hp2
@@ -375,7 +376,6 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [hardstateVal, nodeHardstate]
     iframe cT2 cV2 cC2
   clear Hlv
-  wp_auto
   ihave #Hhp2' := hsOpt_of_hsRO _ _ $$ Hhp2
   wp_apply (wp_MustSync hp2 rnv.prevHardSt' (hardstateVal (nodeHardstate s)) hprev _)
     $$ [$Hhp2' $Hhard']

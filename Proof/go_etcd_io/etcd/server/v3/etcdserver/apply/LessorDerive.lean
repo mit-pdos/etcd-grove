@@ -31,7 +31,7 @@ namespace apply
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -60,7 +60,10 @@ theorem lessorErrIs_applyErrIs (err : GoInterface) :
 
 /-- **The apply package's lessor contract, of the real lessor** at `lp`, for a store whose lessor
 ghost map is the lessor's: its `isTxnLessor`, `Grant` and `Checkpoint` from the proofs, its
-`Revoke` and `Lookup` clauses (not yet proved of the real lessor) given. -/
+`Revoke` and `Lookup` clauses (not yet proved of the real lessor) given. The lessor's backend
+contract takes, per write, the write token `storeWT γ ∗ RW₀` and, for its put, the right `Rb r` to
+the tracked buckets, both of which the write right `RW` holds (leases T3, L3c, 2026-10-27); the
+contract's clauses do not state the put's effect yet (the apply layer's step, L3b). -/
 theorem isApplyLessor_of_lessorInv
     (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
     (hAt : lease.lessor.Attach.spec (GF := GF) (hG := hG))
@@ -70,16 +73,18 @@ theorem isApplyLessor_of_lessorInv
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
-    (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RW : IProp GF) :
+    (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RW RW₀ : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) ∗
+      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
+      □ (RW -∗ RW₀ ∗ ∃ r, Rb r) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Lookup"))
           (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}) ⊢
       isApplyLessor (lease.lessorIface lp) s γ P f RW := by
-  iintro ⟨#Hpkg, #Hinv, #Hcfg, #Hbe, #HLookup⟩
+  iintro ⟨#Hpkg, #Hinv, #Hcfg, #Hbe, #HRW, #HLookup⟩
   iunfold isApplyLessor
   isplitl []
   · iapply lease.isTxnLessor_of_lessorInv hGL hAt hDt hSRD hLk lp γ.leases $$ [$Hpkg $Hinv]
@@ -87,29 +92,31 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %id %ttl %L %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hwt, Hrt, #Hgr, HRW⟩ HΦ
-    iapply (hGrant lp γ.leases id ttl L P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) Pre Q Post)
-      $$ [Hcs Hown Hwt Hrt HRW]
+  · iintro !> %id %ttl %L %I %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, #Hgr, Hrw⟩ HΦ
+    icases HRW $$ Hrw with ⟨Hrw, %r, HRb⟩
+    iapply (hGrant lp γ.leases id ttl L I P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb r
+      Pre Q Post) $$ [Hcs Hown Hrvk Hwt Hrt Hrw HRb]
     · iframe; iframe #
-    iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, HPre⟩ | ⟨%Hok, Hown, HPost, #HID, ⟨%t, #Ht⟩⟩)⟩
+    iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, Hrvk, HPre, -⟩ |
+      ⟨%Hok, Hown, Hrvk, HPost, #HID, ⟨%mt, -, #Ht, -⟩⟩)⟩
     · iapply HΦ
       iframe Hrt
       isplitl [HPre]
       · iright; iexact HPre
-      isplitl [Hown]
-      · iexists L; iframe Hown
+      isplitl [Hown Hrvk]
+      · iexists L; iframe Hown Hrvk
         isplitr
         · ipureintro; intro x hx; exact hx
-        ileft; ipureintro; exact Hne
+        ileft; ipureintro; exact Hne.1
       iapply lessorErrIs_applyErrIs err $$ [$Hpkg $Herr]
-    · obtain ⟨Herr, Hln, Hnin⟩ := Hok
+    · obtain ⟨Herr, Hln, -, -, Hnin⟩ := Hok
       subst Herr
       iapply HΦ
       iframe Hrt
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hown]
-      · iexists (L ++ [id]); iframe Hown
+      isplitl [Hown Hrvk]
+      · iexists (L ++ [id]); iframe Hown Hrvk
         isplitr
         · ipureintro; intro x hx; exact List.mem_append_left _ hx
         iright
@@ -122,7 +129,7 @@ theorem isApplyLessor_of_lessorInv
           isplitr
           · ipureintro; exact Hln
           iintro !> %Φ' !> - HΦ'
-          iapply (hTTL l t DFrac.discard) $$ [$Hpkg $Ht]
+          iapply (hTTL l _ DFrac.discard) $$ [$Hpkg $Ht]
           iintro !> -
           iapply HΦ'; itrivial
         ipureintro; exact List.mem_append_right _ (List.mem_singleton.mpr rfl)
@@ -132,14 +139,19 @@ theorem isApplyLessor_of_lessorInv
     iintro !> %id %log %L %Pre %Q %Post %Φ !> ⟨%hF, -⟩ -
     exact hF.elim
   isplitr
-  · iintro !> %id %rem %Pre %Q %Post %Φ !> ⟨Hcs, Hwt, Hrt, HRW⟩ HΦ
-    iapply (hCk lp γ.leases id rem P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) Pre Q Post)
-      $$ [Hcs Hwt Hrt HRW]
+  · iintro !> %id %rem %Pre %Q %Post %Φ !> ⟨Hcs, Hwt, Hrt, Hrw⟩ HΦ
+    icases HRW $$ Hrw with ⟨Hrw, %r, HRb⟩
+    iapply (hCk lp γ.leases id rem P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb r
+      Pre Q Post) $$ [Hcs Hwt Hrt Hrw HRb]
     · iframe; iframe #
     iintro !> %err ⟨Hrt, %He, HPP⟩
     subst He
     iapply HΦ
-    iframe HPP Hrt
+    iframe Hrt
+    isplitl [HPP]
+    · icases HPP with (⟨HPost, -⟩ | ⟨HPre, -⟩)
+      · ileft; iexact HPost
+      · iright; iexact HPre
     iapply applyErrIs_nil
   · iexact HLookup
 

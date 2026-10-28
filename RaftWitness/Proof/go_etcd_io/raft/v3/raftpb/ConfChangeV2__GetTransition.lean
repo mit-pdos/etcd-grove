@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -34,6 +34,7 @@ theorem raftpb.ConfChangeV2.GetTransition.wp_proof :
     · subst Hp
       wp_auto
       rw [show raftpb.ConfChangeTransition_ConfChangeTransitionAuto = #m.transition by rw [Hv]; rfl]
+      wp_auto
       iapply HΦ
       iunfold ownCCV2
       iframe
@@ -51,6 +52,8 @@ theorem raftpb.ConfChangeV2.GetTransition.wp_proof :
         · ipureintro; exact Hnn
         iframe cT Hccs Hcs Hpb
   · wp_start
+    wp_auto
+    rw [show raftpb.ConfChangeTransition_ConfChangeTransitionAuto = #(W32 0) from rfl]
     wp_auto
     iapply HΦ; ipureintro; trivial
 

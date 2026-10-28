@@ -20,62 +20,62 @@ end pkg_id
 
 namespace k8s_io.client_go.util.consistencydetector
 
-noncomputable def RetrieveItemsFunc.ty [FfiSyntax] [GoGlobalContext] (U : go.GoType) : go.GoType :=
+noncomputable def RetrieveItemsFunc.ty [GooseExts] [GoGlobalContext] (U : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistencydetector.RetrieveItemsFunc" [U])
 
 attribute [irreducible] RetrieveItemsFunc.ty
 
-noncomputable def ListFunc.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def ListFunc.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistencydetector.ListFunc" [T])
 
 attribute [irreducible] ListFunc.ty
 
-noncomputable def TransformFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TransformFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistencydetector.TransformFunc" [])
 
 attribute [irreducible] TransformFunc.ty
 
-noncomputable def byUID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def byUID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/consistencydetector.byUID" [])
 
 attribute [irreducible] byUID.ty
 
-axiom ListFunc.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom ListFunc.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom byUID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom byUID.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def dataConsistencyDetectionForWatchListEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dataConsistencyDetectionForWatchListEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.dataConsistencyDetectionForWatchListEnabled"
 
-axiom dataConsistencyDetectionForWatchListEnabled.init [FfiSyntax] [GoGlobalContext] : val
+axiom dataConsistencyDetectionForWatchListEnabled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.init.0"
 
-noncomputable def IsDataConsistencyDetectionForWatchListEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsDataConsistencyDetectionForWatchListEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.IsDataConsistencyDetectionForWatchListEnabled"
 
-noncomputable def SetDataConsistencyDetectionForWatchListEnabledForTest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetDataConsistencyDetectionForWatchListEnabledForTest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.SetDataConsistencyDetectionForWatchListEnabledForTest"
 
-noncomputable def CheckDataConsistency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckDataConsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.CheckDataConsistency"
 
-noncomputable def canFormAdditionalListCall [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def canFormAdditionalListCall [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.canFormAdditionalListCall"
 
-noncomputable def prepareListCallOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def prepareListCallOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.prepareListCallOptions"
 
-noncomputable def toMetaObjectSliceOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def toMetaObjectSliceOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.toMetaObjectSliceOrDie"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.consistencydetector where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.util.consistencydetector)) (Lam BAnon
   (App (Val exceptionDo)
@@ -85,53 +85,69 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val dataConsistencyDetectionForWatchListEnabled.init) (Val #()))))))))
 
-abbrev RetrieveItemsFunc [FfiSyntax] (U : Type) : Type := GoFunc
+abbrev RetrieveItemsFunc [GooseExts] (U : Type) : Type := GoFunc
 
-@[reducible] noncomputable def RetrieveItemsFunc.underlying [FfiSyntax] [GoGlobalContext] (U : go.GoType) : go.GoType :=
+@[reducible] noncomputable def RetrieveItemsFunc.underlying [GooseExts] [GoGlobalContext] (U : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType U)]))
 
-class RetrieveItemsFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RetrieveItemsFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (U : go.GoType), go.UnderlyingDirectedEq (RetrieveItemsFunc.ty U) (RetrieveItemsFunc.underlying U)
+  method_set : ∀ (U : go.GoType), go.MethodSetIs (RetrieveItemsFunc.ty U) []
+  ptr_method_set : ∀ (U : go.GoType), go.MethodSetIs (go.GoType.PointerType (RetrieveItemsFunc.ty U)) []
 
 attribute [instance] RetrieveItemsFunc.TypeAssumptions.underlying
+  RetrieveItemsFunc.TypeAssumptions.method_set
+  RetrieveItemsFunc.TypeAssumptions.ptr_method_set
 
 axiom ListFunc : ∀ (T : Type), Type
 axiom ListFunc.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (ListFunc T)
 attribute [instance] ListFunc.zero_val
 
-class ListFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (ListFunc.underlying T) (ListFunc T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ListFunc.ty T) (ListFunc.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (ListFunc.underlying T) (ListFunc.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (ListFunc.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ListFunc.ty T)) []
 
 attribute [instance] ListFunc.TypeAssumptions.type_repr
   ListFunc.TypeAssumptions.underlying
   ListFunc.TypeAssumptions.isUnderlying
+  ListFunc.TypeAssumptions.method_set
+  ListFunc.TypeAssumptions.ptr_method_set
 
-abbrev TransformFunc [FfiSyntax] : Type := GoFunc
+abbrev TransformFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def TransformFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TransformFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))
 
-class TransformFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransformFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TransformFunc.ty TransformFunc.underlying
+  method_set : go.MethodSetIs TransformFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransformFunc.ty) []
 
 attribute [instance] TransformFunc.TypeAssumptions.underlying
+  TransformFunc.TypeAssumptions.method_set
+  TransformFunc.TypeAssumptions.ptr_method_set
 
 axiom byUID : Type
 axiom byUID.zero_val : ZeroVal byUID
 attribute [instance] byUID.zero_val
 
-class byUID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class byUID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying byUID.underlying byUID
   underlying : go.UnderlyingDirectedEq byUID.ty byUID.underlying
   isUnderlying : go.IsUnderlying byUID.underlying byUID.underlying
+  method_set : go.MethodSetIs byUID.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType byUID.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] byUID.TypeAssumptions.type_repr
   byUID.TypeAssumptions.underlying
   byUID.TypeAssumptions.isUnderlying
+  byUID.TypeAssumptions.method_set
+  byUID.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RetrieveItemsFunc_instance : RetrieveItemsFunc.TypeAssumptions
   ListFunc_instance : ListFunc.TypeAssumptions
   TransformFunc_instance : TransformFunc.TypeAssumptions

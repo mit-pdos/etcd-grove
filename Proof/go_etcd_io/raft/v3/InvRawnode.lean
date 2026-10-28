@@ -83,6 +83,7 @@ DecidableEq`. (`hs_empty_abs`'s port `hsEmptyAbs` had no user and is gone, 2026-
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvReadylog
 -- (2026-10-14, reconfiguration stage B7 part 2) the ghost modes
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
@@ -108,121 +109,18 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 -- (2026-10-16, stage R5) `HardSt`, `SoftSt` are `InvRaftPhys.lean`'s (stage R4)
 
-/-- A local message `acceptReady` queued for `Advance` to step:
+-- (2026-10-26, raft's signature, stage 1) `Pending` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-- `self pv t`: a self-addressed response from `msgsAfterAppend` (a candidate's own vote,
-  a pre-candidate's own pre-vote -- `pv` -- or a leader's own `MsgAppResp`) of term `t`
-  (2026-10-10; until then `self a`, with the message's abstraction `a`);
-- `appendAck t b last sn`: `MsgStorageAppendResp` at term `t` acknowledging the log up to
-  `last` (queued when there were unstable entries; D22 S-d3a, 2026-10-21: `none`, with `Index`
-  `0`, when there were none) and the snapshot `sn` the `Ready` handed out (D22 S-d3a: queued for a
-  snapshot too, `needStorageAppendRespMsg`); (D22 S-d3b, 2026-10-21) `b` is the log's boundary at
-  the `Ready`, which what the storage will hold follows (`LogState.stored`) -- a restore between
-  the `Ready` and the `Advance` moves the boundary, not `stored`;
-- `applyAck ents`: `MsgStorageApplyResp` carrying the committed entries handed out for
-  applying. -/
-inductive Pending [FfiSyntax] where
-  | self (pv : Bool) (t : w64)
-  | appendAck (term : w64) (base : entryID) (last : Option entryID) (sn : Option SnapshotM)
-  | applyAck (ents : List EntryM)
+-- (2026-10-26, raft's signature, stage 1) `RNMode` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- The mode of a `RawNode`'s ghost state (2026-10-14, reconfiguration stage B7 part 2): static
-(the voters fixed at `γ.reCfg`, conf-change entries data) or dynamic (the configuration changes
-by applied conf entries: a decoder `dec` and an initial configuration `c0`; B5's
-`ownRaftGhostR`). -/
-inductive RNMode [FfiSyntax] where
-  | static
-  | dyn (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0)
+-- (2026-10-26, raft's signature, stage 1) `SnapLoan` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s loan**: the `Ready` handed out the snapshot `snap`
-at `ptr` (`rd.Snapshot`, half of it: the queued acknowledgement shares the pointer,
-`newStorageAppendRespMsg`) and the node's storage itself (`ownRaftLog_lend`, at the floor `fl`), and
-the committed log up to the snapshot (`dlv`, `isCommitted`); the application gives both back with
-`Advance` (`snapReceipt`), which steps the acknowledgement and hands the committed log over
-(`RNState.delivered := dlv`). -/
-structure SnapLoan [FfiSyntax] where
-  ptr : Loc
-  snap : SnapshotM
-  fl : w64
-  dlv : List EntryM
-
-/-- What the application sees of a `RawNode` (2026-10-09). -/
-structure RNState [FfiSyntax] where
-  /-- The committed log handed out so far, from the start (as `isCommitted` takes it):
-  every `Ready`'s `CommittedEntries`, in order, after the entries applied before the
-  node was built. -/
-  delivered : List EntryM
-  /-- The entries `Ready` handed out (`Ready.Entries`) that the application must still
-  append to the `Storage` (and give the receipt back: `ownRawNode_appended`). -/
-  unpersisted : List EntryM
-  /-- `rn.stepsOnAdvance`: what `Advance` will step. Opaque to clients, which only
-  learn that it is empty (after `Advance`), as `Ready` requires. (Until 2026-10-10 a
-  flag `advanceable` said whether `Advance` was proved for it: not for a queue with a
-  self-addressed response, which no client could rule out.) -/
-  steps : List Pending
-  /-- The node's current term (2026-10-09). A client sees it (`Status`, `Ready`'s
-  `HardState`); the specs need it because Go panics when a campaign wraps it
-  (`Campaign`, `Tick`, `Advance`), and say how a step moves it. -/
-  term : w64
-  /-- The `Storage` the node reads (`Config.Storage`), constant (2026-10-10): the right
-  to append `Ready` hands out (`appendRight`) and the receipt `ownRawNode_appended` takes
-  back are for this storage. -/
-  storage : Storage
-  /-- Lower bounds for `node.go` (2026-10-10): at most this many messages are queued
-  (`NGhost.outlb`), ... -/
-  outlb : Nat := 0
-  /-- ... some unstable entry is still to be handed out (`NGhost.unst`), ... -/
-  unst : Bool := false
-  /-- ... and the commit index is at least this. A step keeps all three; `acceptReady`
-  resets the first two. `node.go`'s `run` raises them when it abandons a computed `Ready`
-  (`ownRawNodeReady_abandon`), so that, should `HasReady` later report nothing new, the
-  abandoned `Ready` is known to hold nothing (`ownRawNodeIdle`). -/
-  clb : w64 := W64 0
-  /-- (2026-10-17, pre-vote on) the term ceiling (`NGhost.tc`): every message the node queues,
-  and its term, are at most this. The node's budget covers it (`termLB`); the client raises it
-  (`ownRawNode_raise_tc`) before a step that may send at a later term. -/
-  tc : w64 := W64 0
-  /-- The ghost state's mode (2026-10-14, reconfiguration stage B7 part 2), constant. -/
-  mode : RNMode := .static
-  /-- In the dynamic mode, the configuration in use (with the learner flags; `confchange`'s
-  state) and its *configuration index*: the configuration is that of the committed log's
-  first `capplied` entries -- every conf entry below has been applied with `ApplyConfChange`.
-  Only `ApplyConfChange` (to the entry it applies, plus one) and `Advance` (to at most the
-  committed log handed out, `delivered`, past no conf entry: A1) move them. Unconstrained in
-  the static mode. -/
-  cfg : CCState := ⟨CfgM.simple ∅ ∅, ∅⟩
-  capplied : Nat := 0
-  /-- (D19i part 1) The floor is raised past `applied` (`ownRawNode_raise_floor`): `node.go`
-  raises it to `applying` when the application's `Advance` is handed over, and `Advance`, which
-  follows at once, moves `applied` up to it and clears the flag. While it is set the node is not
-  to campaign (`Campaign`, `Tick`, `Step` take it clear: `hasUnappliedConfChanges` reads from
-  `applied + 1`). -/
-  flw : Bool := false
-  /-- (2026-10-20, D22 S-c) A snapshot may be pending: a `MsgSnap` was stepped (`RawNode.Step`),
-  whose restore leaves the snapshot in the log (`unstable.snapshot`, `LogState.snap`) for a later
-  `Ready` to hand out. Only `RawNode.Step` sets it; (D22 S-d3a, 2026-10-21) the next `Ready` clears
-  it (`acceptReady`: it hands the snapshot out, `slent`). So: "a `MsgSnap` stepped since the last
-  `Ready`" (a stale one sets it too). (Until S-d3a, `HasReady`, `readyWithoutAccept`, `Ready`,
-  `Advance` and the floor's raise took it `false`, and nothing cleared it; S-d3a to S-d3b it gated
-  the records of what the storage will hold, now `ackInv`'s.) -/
-  psnap : Bool := false
-  /-- (D22 S-d3a, 2026-10-21) The loan of the last `Ready`, if it handed out a snapshot
-  (`SnapLoan`): from `acceptReady` to the `Advance` that takes the application's receipt back. -/
-  slent : Option SnapLoan := none
-  /-- (D22l, 2026-10-20) `prevHardSt`'s record: the hard state of the last accepted `Ready` that
-  had a non-empty one (`phsNext`), the zero record until then (`NewRawNode` on an empty storage,
-  whose `hardState()` is zero). Only `acceptReady` moves it. A `Ready` with a `nil` `HardState`
-  is one at which the node's hard state is this one, so its witness (`readyWithoutAccept`'s
-  `hsWit` of `phsNext rs.phs h`) is this one's: what `node.go`'s driver needs to read every
-  batch's commit witness off the hard state it last recorded. -/
-  phs : HardStateM := HardStateM.mk (W64 0) (W64 0) (W64 0)
+-- (2026-10-26, raft's signature, stage 1) `RNState` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 section defs
-variable [FfiSyntax]
+variable [GooseExts]
 
-def RNMode.isDyn : RNMode → Bool
-  | .static => false
-  | .dyn .. => true
+-- (2026-10-26, raft's signature, stage 1) `RNMode.isDyn` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- The ghost mode `raft.Step` keeps for a `RawNode` in mode `md`, with the ghost part `g`. -/
 def RNMode.toG : RNMode → RGh → GMode
@@ -232,14 +130,7 @@ def RNMode.toG : RNMode → RGh → GMode
 theorem RNMode.toG_isDyn (md : RNMode) (g : RGh) : (md.toG g).isDyn = md.isDyn := by
   cases md <;> rfl
 
-/-- No conf entry in a range of a prefix is none in the longer log. -/
-theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F)
-    (hhi : hi ≤ D.length) (h : NoConfIn D lo hi) : NoConfIn F lo hi := by
-  intro k e hk1 hk2 he
-  apply h k e hk1 hk2
-  obtain ⟨t, rfl⟩ := hp
-  rw [List.getElem?_append_left (by omega)] at he
-  exact he
+-- (2026-10-26, raft's signature, stage 1) `NoConfIn_prefix` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- A step in the mode of a `RawNode` (`RNMode.toG`), with the configuration index `ca`: the
 mode afterwards is the node's at some `ca'`, moved only by a `MsgStorageApplyResp`, to at
@@ -564,54 +455,20 @@ theorem ack_term_back {t : w64} {s s' : NState} (h1 : uint.Z t ≤ uint.Z s.term
 Moved here from the old specs (`RawNode__Step.lean`, `RawNode__ApplyConfChange.lean`,
 `RawNode__Propose.lean`, `node`'s): `InvNode.lean` and the specs share them. -/
 
-/-- The message types `RawNode.Step` is specified for: replication, leader election,
-(2026-10-13) read-index, leader transfer and the local reports, (2026-10-17) pre-vote and
-(2026-10-20, D22 S-c) a leader's snapshot. -/
-def netStepTypes : List w32 :=
-  [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
-   MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader,
-   MsgUnreachable, MsgSnapStatus,
-   -- (2026-10-17) pre-vote
-   MsgPreVote, MsgPreVoteResp,
-   -- (2026-10-20, D22 S-c) a snapshot
-   MsgSnap]
+-- (2026-10-26, raft's signature, stage 1) `netStepTypes` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (2026-10-13) The types of `netStepTypes` that come unstamped (`Term = 0`): a read-index
-request (forwarded or local), `TransferLeadership`'s request, and the local reports. -/
-def UnstampedType (t : w32) : Prop :=
-  t = MsgReadIndex ∨ t = MsgTransferLeader ∨ t = MsgForgetLeader ∨ t = MsgUnreachable ∨
-    t = MsgSnapStatus
+-- (2026-10-26, raft's signature, stage 1) `UnstampedType` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- A message from the network, as the transport and the peers deliver it to node `id`
-(see `RawNode__Step.lean`'s header): but for the unstamped types (`Term = 0`, 2026-10-13),
-addressed to `id`, of a nonzero term, from a nonzero sender; a transfer request with no
-entries and no context. (2026-10-16, stage R5: on the message's state, the last clause over its
-entries and context, `st.ents = [] ∧ st.ctx = []`; until then over the Goose value, `Entries' =
-slice.nil ∧ Context' = slice.nil`.) (2026-10-20, D22 S-c) A `MsgSnap`, a leader's, from another
-node, like its `MsgApp`. -/
-def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
-  st.msg.Type' ∈ netStepTypes ∧
-  (¬ UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
-  (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
-  (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
-     st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
-  (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
-  (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
-  -- (2026-10-17) a pre-vote request from another node
-  (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧
-  -- (2026-10-22, D38a) no responses (what raft forwards must have none, `raft.Step`'s `Hnors`)
-  st.resps = []
+-- (2026-10-26, raft's signature, stage 1) `NetMsgOk` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (2026-10-22, D38a) A network message has no responses. -/
-theorem NetMsgOk.resps {id : w64} {st : MsgSt} (h : NetMsgOk id st) : st.resps = [] := by
-  unfold NetMsgOk at h; exact h.2.2.2.2.2.2.2
+-- (2026-10-26, raft's signature, stage 1) `NetMsgOk.resps` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem netStepTypes_nonneg {t : w32} (h : t ∈ netStepTypes) : 0 ≤ sint.Z t := by
   simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
   rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] <;> decide
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem netStepTypes_ne_prop {t : w32} (h : t ∈ netStepTypes) : t ≠ MsgProp := by
   intro he
   rw [he] at h
@@ -632,34 +489,11 @@ clause, `InvRaftPhys.lean`): at the node it is addressed to, every clause of `Ne
 forwarded proposal, which `node.Step` takes as `fwdP` (D21g (A)). -/
 
 
-theorem SentMsgOk.ne_timeoutNow {st : MsgSt} (H : SentMsgOk st) :
-    st.msg.Type' ≠ MsgTimeoutNow := by
-  intro h; have := H.1; rw [h] at this
-  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-    MsgTransferLeader] at this
+-- (2026-10-26, raft's signature, stage 1) `SentMsgOk.ne_timeoutNow` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-theorem SentMsgOk.ne_transferLeader {st : MsgSt} (H : SentMsgOk st) :
-    st.msg.Type' ≠ MsgTransferLeader := by
-  intro h; have := H.1; rw [h] at this
-  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-    MsgTransferLeader] at this
+-- (2026-10-26, raft's signature, stage 1) `SentMsgOk.ne_transferLeader` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- **`NetMsgOk` of a sent message at its destination** (D21g (A)): what `node.Step`'s `netP`
-takes of a message from the network, from the sender's `SentMsgOk` and the transport's delivery to
-the node it is addressed to; but for a forwarded proposal (`fwdP`). -/
-theorem NetMsgOk.of_sent {dst : w64} {st : MsgSt} (H : SentMsgOk st) (Hto : st.msg.To' = dst)
-    (Hnp : st.msg.Type' ≠ MsgProp) : NetMsgOk dst st := by
-  obtain ⟨Hty, Hf0, Ht0, Ht1, Hft, -, Hrs⟩ := H
-  subst Hto
-  unfold NetMsgOk UnstampedType
-  simp only [sentTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-  rcases Hty with h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] at Ht0 Ht1 Hft Hnp ⊢ <;>
-    simp only [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-      MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-      MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgSnap] at Ht0 Ht1 Hft Hnp ⊢ <;>
-    simp_all
+-- (2026-10-26, raft's signature, stage 1) `NetMsgOk.of_sent` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- What `raft.Step` takes of the types it was extended to last (`RestMsgOk`), from
 `NetMsgOk` and the bound on the terms of a `MsgTimeoutNow`. -/
@@ -684,18 +518,7 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
 def DynNoSnap (rs : RNState) (m : MessageM) : Prop :=
   rs.mode.isDyn = true → m.Type' ≠ MsgSnap
 
-/-- `DynCCPre` (below) on its components (2026-10-15, stage N): the committed log handed out
-`D`, the configuration index `ca` and configuration `cfg`, and the change as `AsV2` makes it
-(`op`); what `node.go`'s `confc` arm checks against the run loop's `RawNode` from what the
-driver knows. (D43 M3, 2026-10-25) The change `op` applied need not be the decoder's `op'`, only
-have its effect on `cfg` (`ccStepB`): the ghost step folds `op'`, the code applies `op`, both
-giving `cs'` (etcd hands raft a failed validation's change with `NodeId` `0`, a no-op, in place
-of the entry's `AddNode` of a member, also a no-op). -/
-def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : CCOp)
-    (k : Nat) (e : EntryM) (cs' : CCState) : Prop :=
-  ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
-  NoConfIn D ca k ∧ (∃ op', dec (D.take k) e = some op' ∧ ccStepB op' cfg = some cs') ∧
-  ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
+-- (2026-10-26, raft's signature, stage 1) `DynCCPreOp` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- The dynamic mode's premises of `ApplyConfChange` (2026-10-14, stage B7 part 2), at the change
 `o` the application passes: it is the decoded change (`dec`, from the entry and the log before
@@ -704,13 +527,11 @@ it) of the next conf-change entry `e` of the committed log handed out, at positi
 the configuration in use (`ccStepB`: no `confchange` error, fewer than `2^62` tracked ids -- Go
 panics otherwise); and its result is no auto-leave joint configuration (`appliedTo`'s auto-leave
 proposal is out of `raft.Step`'s scope). -/
-def DynCCPre (dec : CCDec) (rs : RNState) (o : CCMsg) (k : Nat) (e : EntryM)
+def DynCCPre (dec : CCDec) (rs : RNState) (o : ConfChangeIM) (k : Nat) (e : EntryM)
     (cs' : CCState) : Prop :=
   DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccV2Of o) k e cs'
 
-/-- The entry `Propose` builds, `&pb.Entry{Data: data}`, as the model reads it (2026-10-16,
-stage R5; D6: the data is its bytes; until then `propEntry data_sl`, the Goose value). -/
-def propEntryM (d : List w8) : EntryM := ⟨W64 0, W64 0, W32 0, d⟩
+-- (2026-10-26, raft's signature, stage 1) `propEntryM` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- The scalars of the message `Propose`, `confChangeToMsg` and `node.Propose` build,
 `pb.Message{Type: MsgProp, ...}` (2026-10-16, stage R5; until then `propMsg esl`, the Goose
@@ -720,12 +541,12 @@ def propMsgM : MessageM := { (zero_val MessageM) with Type' := MsgProp }
 /-- The entry `confChangeToMsg` builds for the conf change `o` marshalled as `bs`:
 `pb.Entry{Type: typ, Data: data}` (2026-10-16, stage R5; R4 dropped the value builder
 `ccEntry`). -/
-def ccEntryM (o : Option CCMsg) (bs : List w8) : EntryM := ⟨W64 0, W64 0, ccEntryType o, bs⟩
+def ccEntryM (o : Option ConfChangeIM) (bs : List w8) : EntryM := ⟨W64 0, W64 0, confChangeEntryType o, bs⟩
 
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1202,7 +1023,7 @@ theorem ownRaftPhysC_preFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
 end proof
 
 section rawnode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`: the predicate holds the ghost state (`ownRaftGhost`), as in
 -- `Spec/raft__Step.lean`
@@ -1229,49 +1050,15 @@ instance pendingRel_pers (γ : RaftNames) (id : w64) (st : MsgSt) (p : Pending) 
     Persistent (pendingRel (GF := GF) γ id st p) := by
   cases p <;> unfold pendingRel <;> infer_instance
 
-/-- (2026-10-21, D22 S-r) **A `MsgSnap`'s data certificate**: the snapshot it carries has the data
-the cluster admits at its index (`snapDataOk`). Vacuous for every other message. What a `Ready`
-says of the messages it hands out (`isRaftMsg`), and what `node.Step` takes of one from the
-network (`netP`). -/
-def msgDat (γ : RaftNames) (st : MsgSt) : IProp GF :=
-  iprop(□ (∀ sv : SnapshotM, ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sv⌝ -∗
-    snapDataOk γ sv.Metadata'.Index' sv.Data'))
+-- (2026-10-26, raft's signature, stage 1) `msgDat` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-instance msgDat_pers (γ : RaftNames) (st : MsgSt) : Persistent (msgDat (GF := GF) γ st) := by
-  unfold msgDat; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `msgDat_pers` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- A message `Ready` hands to the application to send: what it contributes to the
-protocol's messages (`msgAbs`: nothing, for a type the protocol does not describe) was
-legitimately sent (`isMessage`). (2026-10-16, stage R5: on the message's state; `msgAbs` is
-pure.) (2026-10-19, D21 M3) In the cluster's no-snapshot mode no `MsgSnap`; (D21 M2r, D21g (A))
-and what the receiver's `NetMsgOk` needs of it (`SentMsgOk`, `NetMsgOk.of_sent`): its type, a
-nonzero sender other than its destination, its term stamped (no `MsgTimeoutNow`, no
-`MsgTransferLeader`: leader transfer is off). (2026-10-19, D22 S-a) The latter in the no-transfer
-mode (`RaftNames.reNoXfer`) and the no-snapshot one, which until then were one; (2026-10-20, D22
-S-c) in the no-transfer mode alone: its types exclude the transfer messages (admitting a leader's
-`MsgSnap`), and its stamped terms are past `0`, which the mode's bootstrap log gives
-(`NGhost.bt`, `XfOk`; until S-c the no-snapshot mode's). (2026-10-20, D22 S-b′3) Certified
-(`isMessageC`): a `MsgSnap` carries its snapshot's configuration certificate (`raftSnapCert`),
-which the `Ready` took from the storage's registry (`qSrc`, `certLink`). (2026-10-21, D22 S-r)
-And its snapshot's data certificate (`msgDat`), from the same registry. (2026-10-22, D38a) In every
-mode, no responses, and a `MsgApp` from the node `id` that sent it (`AppFrom`; `XfOk`), so that a
-transport can marshal it (`MsgMarshals`) and the msgappv2 codec carry it. -/
-def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
-  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
-    ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
-    (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
-    msgDat γ st ∗ ⌜st.resps = [] ∧ AppFrom id st⌝)
+-- (2026-10-26, raft's signature, stage 1) `isRaftMsg` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
-    Persistent (isRaftMsg (GF := GF) γ id st) := by
-  unfold isRaftMsg; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `isRaftMsg_pers` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (D22 S-r) A message's data certificate, out of `isRaftMsg`. -/
-theorem isRaftMsg_dat (γ : RaftNames) (id : w64) (st : MsgSt) :
-    isRaftMsg (GF := GF) γ id st ⊢ msgDat γ st := by
-  unfold isRaftMsg
-  iintro ⟨-, -, -, #H, -⟩
-  iexact H
+-- (2026-10-26, raft's signature, stage 1) `isRaftMsg_dat` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- The records of what the storage holds (2026-10-10): `L` (after `b`) is a log with
 records (`logRecs`), as `ownLogGhost` keeps of the node's log; `ownRawNode` keeps it of
@@ -1411,7 +1198,7 @@ theorem isEntryR_term_nz (γ : RaftNames) (e : EntryM) (pt : w64) :
     obtain ⟨-, -, Ht, -⟩ := Hb
     rw [Ht]; word
 
-omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+omit [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 /-- (Lean helper, as `StepGhost.lean`'s.) -/
 private theorem ite_pos_elim' {PROP : Type _} [BI PROP] {c : Prop} [Decidable c] (P Q : PROP)
     (h : c) : (if c then P else Q) ⊢ P := by

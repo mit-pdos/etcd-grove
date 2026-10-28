@@ -57,6 +57,8 @@ public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
 public import Proof.container.heap.Pop
 public import Proof.container.heap.Push
+public import Proof.container.heap.down
+public import Proof.container.heap.up
 public import Proof.k8s_io.client_go.util.workqueue.insert
 public import Proof.math.Pow
 public import Proof.k8s_io.client_go.util.workqueue.newDelayingQueue
@@ -71,7 +73,6 @@ public import Proof.k8s_io.client_go.util.workqueue.noMetrics__updateUnfinishedW
 public import Proof.k8s_io.client_go.util.workqueue.noopMetric__Inc
 public import Proof.k8s_io.client_go.util.workqueue.noopMetricsProvider__NewRetriesMetric
 public import Proof.k8s_io.client_go.util.workqueue.queue__Len
-public import Proof.k8s_io.client_go.util.workqueue.queue__Pop
 public import Proof.k8s_io.client_go.util.workqueue.queue__Push
 public import Proof.k8s_io.client_go.util.workqueue.queue__Touch
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__AddRateLimited
@@ -94,6 +95,7 @@ public import Spec.k8s_io.client_go.util.workqueue.delayingType__Get
 public import Spec.k8s_io.client_go.util.workqueue.delayingType__Len
 public import Spec.k8s_io.client_go.util.workqueue.delayingType__ShutDownWithDrain
 public import Spec.k8s_io.client_go.util.workqueue.delayingType__ShuttingDown
+public import Spec.k8s_io.client_go.util.workqueue.queue__Pop
 public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__Add
 public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__AddAfter
 public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__Done
@@ -114,7 +116,7 @@ namespace workqueue
 open Iris Iris.BI k8s_io.client_go.util.workqueue k8s_io.apimachinery.pkg.util.sets
 
 section links
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -128,20 +130,28 @@ theorem math.wp_Pow :
     EtcdGrove.math.Pow.spec (GF := GF) (hG := hG) :=
   EtcdGrove.math.Pow.wp_proof
 
+theorem heap.wp_down :
+    EtcdGrove.heap.down.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.heap.down.wp_proof
+
+theorem heap.wp_up :
+    EtcdGrove.heap.up.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.heap.up.wp_proof
+
 theorem heap.wp_Fix :
     EtcdGrove.heap.Fix.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.Fix.wp_proof
+  EtcdGrove.heap.Fix.wp_proof heap.wp_down heap.wp_up
 
 theorem heap.wp_Push :
     EtcdGrove.heap.Push.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.Push.wp_proof
+  EtcdGrove.heap.Push.wp_proof heap.wp_up
 
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -387,17 +397,9 @@ theorem queue.wp_Len :
     EtcdGrove.workqueue.queue.Len.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.queue.Len.wp_proof
 
-theorem queue.wp_Pop :
-    EtcdGrove.workqueue.queue.Pop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.queue.Pop.wp_proof
-
 theorem noMetrics.wp_get :
     EtcdGrove.workqueue.noMetrics.get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.noMetrics.get.wp_proof
-
-theorem Typed.wp_Get :
-    EtcdGrove.workqueue.Typed.Get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.Typed.Get.wp_proof sets.Set.wp_Insert sets.Set.wp_Delete queue.wp_Len queue.wp_Pop noMetrics.wp_get
 
 theorem Typed.wp_Len :
     EtcdGrove.workqueue.Typed.Len.spec (GF := GF) (hG := hG) :=
@@ -432,7 +434,7 @@ end links_hasLC
 /-! The results that reach a function specified but not proved yet (a later unit's):
 its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -443,6 +445,7 @@ variable (h_delayingType__Get : EtcdGrove.workqueue.delayingType.Get.spec (GF :=
 variable (h_delayingType__Len : EtcdGrove.workqueue.delayingType.Len.spec (GF := GF) (hG := hG))
 variable (h_delayingType__ShutDownWithDrain : EtcdGrove.workqueue.delayingType.ShutDownWithDrain.spec (GF := GF) (hG := hG))
 variable (h_delayingType__ShuttingDown : EtcdGrove.workqueue.delayingType.ShuttingDown.spec (GF := GF) (hG := hG))
+variable (h_queue__Pop : EtcdGrove.workqueue.queue.Pop.spec (GF := GF) (hG := hG))
 variable (h_rateLimitingType__Add : EtcdGrove.workqueue.rateLimitingType.Add.spec (GF := GF) (hG := hG))
 variable (h_rateLimitingType__AddAfter : EtcdGrove.workqueue.rateLimitingType.AddAfter.spec (GF := GF) (hG := hG))
 variable (h_rateLimitingType__Done : EtcdGrove.workqueue.rateLimitingType.Done.spec (GF := GF) (hG := hG))
@@ -451,7 +454,7 @@ variable (h_rateLimitingType__Len : EtcdGrove.workqueue.rateLimitingType.Len.spe
 variable (h_rateLimitingType__ShutDown : EtcdGrove.workqueue.rateLimitingType.ShutDown.spec (GF := GF) (hG := hG))
 variable (h_rateLimitingType__ShutDownWithDrain : EtcdGrove.workqueue.rateLimitingType.ShutDownWithDrain.spec (GF := GF) (hG := hG))
 variable (h_rateLimitingType__ShuttingDown : EtcdGrove.workqueue.rateLimitingType.ShuttingDown.spec (GF := GF) (hG := hG))
-include h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown
+include h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown
 
 theorem delayingType.wp_waitingLoop :
     EtcdGrove.workqueue.delayingType.waitingLoop.spec (GF := GF) (hG := hG) :=
@@ -459,15 +462,19 @@ theorem delayingType.wp_waitingLoop :
 
 theorem wp_newDelayingQueue :
     EtcdGrove.workqueue.newDelayingQueue.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.newDelayingQueue.wp_proof wp_newRetryMetrics (delayingType.wp_waitingLoop h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
+  EtcdGrove.workqueue.newDelayingQueue.wp_proof wp_newRetryMetrics (delayingType.wp_waitingLoop h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
 
 theorem wp_NewTypedDelayingQueueWithConfig [EtcdGrove.MutexLitSemantics] :
     EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.wp_proof klog.wp_Background wp_NewTypedWithConfig (wp_newDelayingQueue h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown) clock.RealClock.wp_Now clock.RealClock.wp_NewTimer clock.RealClock.wp_NewTicker clock.realTimer.wp_C clock.realTimer.wp_Stop clock.realTicker.wp_C clock.realTicker.wp_Stop
+  EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.wp_proof klog.wp_Background wp_NewTypedWithConfig (wp_newDelayingQueue h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown) clock.RealClock.wp_Now clock.RealClock.wp_NewTimer clock.RealClock.wp_NewTicker clock.realTimer.wp_C clock.realTimer.wp_Stop clock.realTicker.wp_C clock.realTicker.wp_Stop
 
 theorem wp_NewTypedRateLimitingQueueWithConfig [EtcdGrove.MutexLitSemantics] :
     EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.wp_proof (wp_NewTypedDelayingQueueWithConfig h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
+  EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.wp_proof (wp_NewTypedDelayingQueueWithConfig h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
+
+theorem Typed.wp_Get :
+    EtcdGrove.workqueue.Typed.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.Typed.Get.wp_proof sets.Set.wp_Insert sets.Set.wp_Delete queue.wp_Len h_queue__Pop noMetrics.wp_get
 
 theorem delayingType.wp_AddAfter :
     EtcdGrove.workqueue.delayingType.AddAfter.spec (GF := GF) (hG := hG) :=
@@ -475,7 +482,7 @@ theorem delayingType.wp_AddAfter :
 
 theorem rateLimitingType.wp_AddRateLimited :
     EtcdGrove.workqueue.rateLimitingType.AddRateLimited.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.rateLimitingType.AddRateLimited.wp_proof (delayingType.wp_AddAfter h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
+  EtcdGrove.workqueue.rateLimitingType.AddRateLimited.wp_proof (delayingType.wp_AddAfter h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
 
 end links_pending
 

@@ -18,23 +18,25 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`t.CutPeer(id)`** on a frozen transport with one of its lock's reader tokens, `id` no
-remote: it returns the token. It pauses the peer of `id` (`peer.Pause`, if one is added): the transport
+/-- **`t.CutPeer(id)`** on a started transport with one of its lock's reader tokens, `id` never a
+remote (`trNoRemOr`: D43 M5c, not among the ids `c.L` the pool has `R`s for, the only ids a
+remote is started for; or, D22 J-T, 2026-10-27, `id`'s no-remote token, which `NewServer` gives
+out; until M5c, not among the frozen ids `AddRemote` was called for): it returns the token and
+the no-remote fact. It pauses the peer of `id` (`peer.Pause`, if one is added): the transport
 drops every message to and from member `id` (etcd's partition injection, its integration tests' `InjectPartition`), until `MendPeer`; a dropped message is one the network may lose. `id` is no remote: a remote's `Pause` stops
 its pipeline, a second one panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
 method set's premise `PeerPausable` (`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.CutPeer.spec : Prop :=
-  PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64),
-  id ∉ rs.1 →
+  PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trFrozen γn t c rs ∗ trTok γn t c }}
+      trState γn t c ∗ trTok γn t c ∗ trNoRemOr c id }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"CutPeer")) (Val #id))
-  {{ RET #(); trTok γn t c }}
+  {{ RET #(); trTok γn t c ∗ trNoRemOr c id }}
 
 end spec
 

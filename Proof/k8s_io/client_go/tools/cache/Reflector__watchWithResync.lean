@@ -22,7 +22,7 @@ namespace cache
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache apimodel informer
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -39,6 +39,7 @@ theorem Reflector.watchWithResync.wp_proof
   · iPkgInit
   ihave #Hwait : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (chan.wp_make2 (V := GoInterface) (W64 1)) as %ech %γe ⟨#Hech, -, Heown⟩

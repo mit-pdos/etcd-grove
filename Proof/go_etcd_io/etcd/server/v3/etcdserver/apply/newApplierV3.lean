@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -39,7 +39,7 @@ theorem apply.newApplierV3.wp_proof
   wp_apply (hB opts) $$ [] as %b ⟨⟨%pb, %Hpb, #Hpbo⟩, #Hb⟩
   wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ []
     as %q ⟨⟨%pq, %Hpq, #Hpqf⟩, #Hq⟩
-  wp_apply (hA opts.AuthStore' q opts.Lessor' RD) $$ [Hard] as %p ⟨#Hpaf, #Hp⟩
+  wp_apply (hA opts.AuthStore' q opts.Lessor' RD) $$ [Hard] as %p ⟨#Hpaf, #Hpas, #Hple, #HpA, #Hp⟩
   · iframe
   iapply HΦ
   isplitr
@@ -48,14 +48,27 @@ theorem apply.newApplierV3.wp_proof
     subst Hpb Hpq
     iframe Hpaf Hpqf Hpbo
     ipureintro; rfl
+  isplitr
+  · iintro !> %E %hRD #Hopts
+    ihave #Hok := Hopts
+    iunfold apply.backendOptsOk at Hok
+    icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
+    ihave #Hb' := Hb $$ %E Hopts
+    ihave #Hq' := Hq $$ %E %.backend Hb'
+    simp only [apply.baseChain]
+    iapply Hp $$ %E %(.quota .backend) %hRD Has Hle Hq'
+  -- (E3k) the auth layer
   iintro !> %E %hRD #Hopts
   ihave #Hok := Hopts
   iunfold apply.backendOptsOk at Hok
   icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
   ihave #Hb' := Hb $$ %E Hopts
   ihave #Hq' := Hq $$ %E %.backend Hb'
-  simp only [apply.baseChain]
-  iapply Hp $$ %E %(.quota .backend) %hRD Has Hle Hq'
+  ihave #HA := HpA $$ %E %hRD Has Hle
+  iunfold apply.baseAuth
+  iexists p, q
+  iframe HA Hq' Hpas Hple
+  ipureintro; rfl
 
 end proof
 

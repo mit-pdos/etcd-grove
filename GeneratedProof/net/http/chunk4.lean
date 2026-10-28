@@ -20,7 +20,7 @@ namespace net.http
 namespace fileHandler
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -60,7 +60,7 @@ end fileHandler
 namespace PushOptions
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -117,7 +117,7 @@ end PushOptions
 namespace http2Handler
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -157,7 +157,7 @@ end http2Handler
 namespace ResponseController
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -197,7 +197,7 @@ end ResponseController
 namespace routingNode
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -305,7 +305,7 @@ end routingNode
 namespace muxEntry
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -362,7 +362,7 @@ end muxEntry
 namespace chunkWriter
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -453,7 +453,7 @@ end chunkWriter
 namespace readResult
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -461,7 +461,7 @@ variable [package_sem' : net.http.Assumptions]
 noncomputable instance readResult_typed_pointsto :
     TypedPointsto (GF := GF) net.http.readResult where
   typedPointstoDef l v dq := iprop(
-    "_0" ∷ typedPointsto (structFieldRef net.http.readResult go!"_0" l) v._0' dq ∗
+    "«_#0»" ∷ typedPointsto (structFieldRef net.http.readResult go!"_#0" l) v.«_#0'» dq ∗
     "n" ∷ typedPointsto (structFieldRef net.http.readResult go!"n" l) v.n' dq ∗
     "err" ∷ typedPointsto (structFieldRef net.http.readResult go!"err" l) v.err' dq ∗
     "b" ∷ typedPointsto (structFieldRef net.http.readResult go!"b" l) v.b' dq ∗
@@ -474,19 +474,19 @@ noncomputable instance readResult_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.http.readResult net.http.readResult.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance readResult_access_load__0 (l : Loc) (v : net.http.readResult) (dq : DFrac) :
+noncomputable instance «readResult_access_load__#0» (l : Loc) (v : net.http.readResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.readResult go!"_0" l) v._0' dq)
-      (typedPointsto (structFieldRef net.http.readResult go!"_0" l) v._0' dq)
+      (typedPointsto (structFieldRef net.http.readResult go!"_#0" l) v.«_#0'» dq)
+      (typedPointsto (structFieldRef net.http.readResult go!"_#0" l) v.«_#0'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance readResult_access_store__0 (l : Loc) (v : net.http.readResult) (_0' : net.http.incomparable) :
+noncomputable instance «readResult_access_store__#0» (l : Loc) (v : net.http.readResult) («_#0'» : net.http.incomparable) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.readResult go!"_0" l) v._0' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.readResult go!"_0" l) _0' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _0' := _0' } : net.http.readResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.readResult go!"_#0" l) v.«_#0'» (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.readResult go!"_#0" l) «_#0'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#0'» := «_#0'» } : net.http.readResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -544,7 +544,7 @@ end readResult
 namespace responseAndError
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -552,7 +552,7 @@ variable [package_sem' : net.http.Assumptions]
 noncomputable instance responseAndError_typed_pointsto :
     TypedPointsto (GF := GF) net.http.responseAndError where
   typedPointstoDef l v dq := iprop(
-    "_0" ∷ typedPointsto (structFieldRef net.http.responseAndError go!"_0" l) v._0' dq ∗
+    "«_#0»" ∷ typedPointsto (structFieldRef net.http.responseAndError go!"_#0" l) v.«_#0'» dq ∗
     "res" ∷ typedPointsto (structFieldRef net.http.responseAndError go!"res" l) v.res' dq ∗
     "err" ∷ typedPointsto (structFieldRef net.http.responseAndError go!"err" l) v.err' dq ∗
     "_" ∷ True)
@@ -564,19 +564,19 @@ noncomputable instance responseAndError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.http.responseAndError net.http.responseAndError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance responseAndError_access_load__0 (l : Loc) (v : net.http.responseAndError) (dq : DFrac) :
+noncomputable instance «responseAndError_access_load__#0» (l : Loc) (v : net.http.responseAndError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.responseAndError go!"_0" l) v._0' dq)
-      (typedPointsto (structFieldRef net.http.responseAndError go!"_0" l) v._0' dq)
+      (typedPointsto (structFieldRef net.http.responseAndError go!"_#0" l) v.«_#0'» dq)
+      (typedPointsto (structFieldRef net.http.responseAndError go!"_#0" l) v.«_#0'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance responseAndError_access_store__0 (l : Loc) (v : net.http.responseAndError) (_0' : net.http.incomparable) :
+noncomputable instance «responseAndError_access_store__#0» (l : Loc) (v : net.http.responseAndError) («_#0'» : net.http.incomparable) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.responseAndError go!"_0" l) v._0' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.responseAndError go!"_0" l) _0' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _0' := _0' } : net.http.responseAndError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.responseAndError go!"_#0" l) v.«_#0'» (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.responseAndError go!"_#0" l) «_#0'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#0'» := «_#0'» } : net.http.responseAndError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -618,7 +618,7 @@ end responseAndError
 namespace requestAndChan
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
@@ -626,7 +626,7 @@ variable [package_sem' : net.http.Assumptions]
 noncomputable instance requestAndChan_typed_pointsto :
     TypedPointsto (GF := GF) net.http.requestAndChan where
   typedPointstoDef l v dq := iprop(
-    "_0" ∷ typedPointsto (structFieldRef net.http.requestAndChan go!"_0" l) v._0' dq ∗
+    "«_#0»" ∷ typedPointsto (structFieldRef net.http.requestAndChan go!"_#0" l) v.«_#0'» dq ∗
     "treq" ∷ typedPointsto (structFieldRef net.http.requestAndChan go!"treq" l) v.treq' dq ∗
     "ch" ∷ typedPointsto (structFieldRef net.http.requestAndChan go!"ch" l) v.ch' dq ∗
     "addedGzip" ∷ typedPointsto (structFieldRef net.http.requestAndChan go!"addedGzip" l) v.addedGzip' dq ∗
@@ -641,19 +641,19 @@ noncomputable instance requestAndChan_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.http.requestAndChan net.http.requestAndChan.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance requestAndChan_access_load__0 (l : Loc) (v : net.http.requestAndChan) (dq : DFrac) :
+noncomputable instance «requestAndChan_access_load__#0» (l : Loc) (v : net.http.requestAndChan) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.requestAndChan go!"_0" l) v._0' dq)
-      (typedPointsto (structFieldRef net.http.requestAndChan go!"_0" l) v._0' dq)
+      (typedPointsto (structFieldRef net.http.requestAndChan go!"_#0" l) v.«_#0'» dq)
+      (typedPointsto (structFieldRef net.http.requestAndChan go!"_#0" l) v.«_#0'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance requestAndChan_access_store__0 (l : Loc) (v : net.http.requestAndChan) (_0' : net.http.incomparable) :
+noncomputable instance «requestAndChan_access_store__#0» (l : Loc) (v : net.http.requestAndChan) («_#0'» : net.http.incomparable) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.requestAndChan go!"_0" l) v._0' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.requestAndChan go!"_0" l) _0' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _0' := _0' } : net.http.requestAndChan) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.requestAndChan go!"_#0" l) v.«_#0'» (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.requestAndChan go!"_#0" l) «_#0'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#0'» := «_#0'» } : net.http.requestAndChan) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

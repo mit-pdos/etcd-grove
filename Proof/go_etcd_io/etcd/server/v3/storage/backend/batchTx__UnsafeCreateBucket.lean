@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend go_uber_org
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -41,17 +41,19 @@ theorem backend.batchTx.UnsafeCreateBucket.wp_proof
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW
-  icases Hw with ⟨Htx, Hpend, Hwtx⟩
+  icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩
   unfold isBucket
   icases Hbk with ⟨%bo, %Hbo, #-, #HName, #-⟩
   subst Hbo
   wp_auto
   wp_apply HName as %ns #Hns
-  wp_apply (hCreate st.tx γ.db st.C st.S ns bi.name DFrac.discard Hn0 Hn1) $$ [$Hwtx $Hns]
+  wp_apply (hCreate st.tx γ.db st.C st.S G ns bi.name DFrac.discard Hn0 Hn1) $$ [$Hwtx $Hns]
     as %bkt %err ⟨%Herr, Hwtx, -, -⟩
   subst Herr
   wp_auto
   iapply HΦ
+  iframe
+  iexists G
   iframe
 
 end proof

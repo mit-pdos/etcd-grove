@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart), 2026-10-13: reconfiguration stage D.
 
-raft v3.7 (stage R4): `cc` is a `*pb.ConfChangeV2` (`ownCCV2`), read by `LeaveJoint`/`EnterJoint`
+raft v3.7 (stage R4): `cc` is a `*pb.ConfChangeV2` (`ownConfChangeV2`), read by `LeaveJoint`/`EnterJoint`
 (pointer methods with specs, no longer unfolded); `cc.Changes...` opens it for the field load and
 folds it back after the changer. -/
 module
@@ -23,7 +23,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -130,7 +130,7 @@ theorem raft.applyConfChange.wp_proof
       cases ok
       · -- `changer.Simple(cc.Changes...)`
         simp only at Happ
-        iunfold ownCCV2 at Hcc
+        iunfold ownConfChangeV2 at Hcc
         icases Hcc with ⟨%pt, %chs, %ls, %cs, %uf, %Hnn, HT0, #cT, HCh, Hch, #Hccs, HC0, #Hcs, #Hpb⟩
         wp_auto
         wp_apply wp_Changer_Simple _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
@@ -138,8 +138,8 @@ theorem raft.applyConfChange.wp_proof
           $$ [$Hch $Htc $changer]
           as %cfgv %trk %err ⟨-, Hch, -, Hres⟩
         · iexact Hccs
-        ihave Hcc : ownCCV2 cc dq ccm $$ [HT0 HCh Hch HC0]
-        · iunfold ownCCV2
+        ihave Hcc : ownConfChangeV2 cc dq ccm $$ [HT0 HCh Hch HC0]
+        · iunfold ownConfChangeV2
           iexists pt, chs, ls, cs, uf
           iframe
           iframe cT Hccs Hcs Hpb
@@ -178,7 +178,7 @@ theorem raft.applyConfChange.wp_proof
         exact ⟨Hcs0, prs', pvs', Hpd, Hmk, Hsw⟩
       · -- `changer.EnterJoint(autoLeave, cc.Changes...)`
         simp only at Happ
-        iunfold ownCCV2 at Hcc
+        iunfold ownConfChangeV2 at Hcc
         icases Hcc with ⟨%pt, %chs, %ls, %cs, %uf, %Hnn, HT0, #cT, HCh, Hch, #Hccs, HC0, #Hcs, #Hpb⟩
         wp_auto
         wp_apply wp_Changer_EnterJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs al
@@ -186,8 +186,8 @@ theorem raft.applyConfChange.wp_proof
           $$ [$Hch $Htc $changer]
           as %cfgv %trk %err ⟨-, Hch, -, Hres⟩
         · iexact Hccs
-        ihave Hcc : ownCCV2 cc dq ccm $$ [HT0 HCh Hch HC0]
-        · iunfold ownCCV2
+        ihave Hcc : ownConfChangeV2 cc dq ccm $$ [HT0 HCh Hch HC0]
+        · iunfold ownConfChangeV2
           iexists pt, chs, ls, cs, uf
           iframe
           iframe cT Hccs Hcs Hpb

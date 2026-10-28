@@ -15,7 +15,7 @@ namespace btree
 open Iris Iris.BI Iris.ProofMode k8s_io.utils.third_party.forked.golang.btree
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -45,7 +45,7 @@ theorem copyOnWriteContext.freeNode.wp_proof
       iexists isl', csl', null
       iframe
       ipureintro; exact Hnn
-    wp_if_destruct <;> wp_end
+    wp_if_destruct <;> (simp only [ftStored, ftFreelistFull, ftNotOwned]; wp_auto; wp_end)
   · cases t with
     | node is cs =>
       rw [frozen_node]
@@ -55,7 +55,7 @@ theorem copyOnWriteContext.freeNode.wp_proof
       wp_auto
       wp_if_destruct
       · exact absurd Hif Hne
-      · wp_end
+      · simp only [ftNotOwned]; wp_auto; wp_end
 
 end proof
 

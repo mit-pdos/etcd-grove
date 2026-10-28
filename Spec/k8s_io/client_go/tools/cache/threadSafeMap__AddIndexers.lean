@@ -20,11 +20,11 @@ open Iris Iris.BI k8s_io.client_go.tools.cache
 open Classical in
 /-- `AddIndexers` of the indexers `nids` (named by index into the client's family, as `fnIds`):
 unchanged if a name is taken, otherwise the new indexers added. -/
-def St.addIx [FfiSyntax] (σ : St) (nids : GMap GoString Nat) : St :=
+def St.addIx [GooseExts] (σ : St) (nids : GMap GoString Nat) : St :=
   if nameClash σ.fnIds nids then σ else { σ with fnIds := nids ∪ σ.fnIds }
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

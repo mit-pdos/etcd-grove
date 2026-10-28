@@ -35,7 +35,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -122,7 +122,7 @@ local macro "stream_rest" : tactic => `(tactic| (
         iapply HA1 $$ [Hsl]
         · iframe Hsl
           ipureintro
-          refine ⟨Hrmem, ?_⟩
+          refine ⟨Hrmem, ?_, Hrurls⟩
           rw [← Hhvok.2.1, ← Hhost]; exact Hrne
         inext
         iintro -
@@ -271,8 +271,8 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
   iunfold streamReq at Hsr
   icases Hsr with ⟨%c, #Hreg, %Hsq⟩
   obtain ⟨γw, ty, rid⟩ := c
-  obtain ⟨Hpath, Hrmem, Hrne⟩ := Hsq
-  simp only at Hpath Hrmem Hrne
+  obtain ⟨Hpath, Hrmem, Hrne, Hrurls⟩ := Hsq
+  simp only at Hpath Hrmem Hrne Hrurls
   ihave #Hpver : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version $$ []
   · iPkgInit
   ihave #Hvi : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗

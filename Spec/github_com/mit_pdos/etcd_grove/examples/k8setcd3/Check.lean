@@ -24,7 +24,7 @@ open Iris Iris.BI
 open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output Obj item mstore mcfg state)
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -38,7 +38,8 @@ abbrev Check.spec : Prop :=
     (γ : KNames) (sp : Loc) (c : k8s.StoreCfg GF DObj) (g0 : GSt) (s0 : mstore)
     (clients ops dur : w64),
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → c.ms ≠ [] →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
+  c.ms ≠ [] →
   receiptBound GF ≤ 2 ^ 63 →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 → g0.items.length < 2 ^ 60 →

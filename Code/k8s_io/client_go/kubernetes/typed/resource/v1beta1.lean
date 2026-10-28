@@ -20,165 +20,165 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.resource.v1beta1
 
-noncomputable def DeviceClassesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeviceClassesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.DeviceClassesGetter" [])
 
 attribute [irreducible] DeviceClassesGetter.ty
 
-noncomputable def DeviceClassInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeviceClassInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.DeviceClassInterface" [])
 
 attribute [irreducible] DeviceClassInterface.ty
 
-noncomputable def deviceClasses.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def deviceClasses.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.deviceClasses" [])
 
 attribute [irreducible] deviceClasses.ty
 
-noncomputable def DeviceClassExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeviceClassExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.DeviceClassExpansion" [])
 
 attribute [irreducible] DeviceClassExpansion.ty
 
-noncomputable def ResourceClaimExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceClaimExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceClaimExpansion" [])
 
 attribute [irreducible] ResourceClaimExpansion.ty
 
-noncomputable def ResourceClaimTemplateExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceClaimTemplateExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceClaimTemplateExpansion" [])
 
 attribute [irreducible] ResourceClaimTemplateExpansion.ty
 
-noncomputable def ResourceSliceExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceSliceExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceSliceExpansion" [])
 
 attribute [irreducible] ResourceSliceExpansion.ty
 
-noncomputable def ResourceV1beta1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceV1beta1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceV1beta1Interface" [])
 
 attribute [irreducible] ResourceV1beta1Interface.ty
 
-noncomputable def ResourceV1beta1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceV1beta1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceV1beta1Client" [])
 
 attribute [irreducible] ResourceV1beta1Client.ty
 
-noncomputable def ResourceClaimsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceClaimsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceClaimsGetter" [])
 
 attribute [irreducible] ResourceClaimsGetter.ty
 
-noncomputable def ResourceClaimInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceClaimInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceClaimInterface" [])
 
 attribute [irreducible] ResourceClaimInterface.ty
 
-noncomputable def resourceClaims.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resourceClaims.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.resourceClaims" [])
 
 attribute [irreducible] resourceClaims.ty
 
-noncomputable def ResourceClaimTemplatesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceClaimTemplatesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceClaimTemplatesGetter" [])
 
 attribute [irreducible] ResourceClaimTemplatesGetter.ty
 
-noncomputable def ResourceClaimTemplateInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceClaimTemplateInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceClaimTemplateInterface" [])
 
 attribute [irreducible] ResourceClaimTemplateInterface.ty
 
-noncomputable def resourceClaimTemplates.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resourceClaimTemplates.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.resourceClaimTemplates" [])
 
 attribute [irreducible] resourceClaimTemplates.ty
 
-noncomputable def ResourceSlicesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceSlicesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceSlicesGetter" [])
 
 attribute [irreducible] ResourceSlicesGetter.ty
 
-noncomputable def ResourceSliceInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceSliceInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceSliceInterface" [])
 
 attribute [irreducible] ResourceSliceInterface.ty
 
-noncomputable def resourceSlices.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resourceSlices.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.resourceSlices" [])
 
 attribute [irreducible] resourceSlices.ty
 
-axiom DeviceClassesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeviceClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeviceClassInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeviceClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deviceClasses.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom deviceClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeviceClassExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeviceClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceClaimExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimTemplateExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceClaimTemplateExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceSliceExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceSliceExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceV1beta1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceV1beta1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceClaimsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceClaimInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceClaims.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom resourceClaims.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimTemplatesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceClaimTemplatesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimTemplateInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceClaimTemplateInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceClaimTemplates.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom resourceClaimTemplates.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceSlicesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceSlicesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceSliceInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceSliceInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceSlices.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom resourceSlices.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def newDeviceClasses [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newDeviceClasses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.newDeviceClasses"
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.setConfigDefaults"
 
-noncomputable def newResourceClaims [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newResourceClaims [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.newResourceClaims"
 
-noncomputable def newResourceClaimTemplates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newResourceClaimTemplates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.newResourceClaimTemplates"
 
-noncomputable def newResourceSlices [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newResourceSlices [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.newResourceSlices"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1beta1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -189,237 +189,309 @@ axiom DeviceClassesGetter : Type
 axiom DeviceClassesGetter.zero_val : ZeroVal DeviceClassesGetter
 attribute [instance] DeviceClassesGetter.zero_val
 
-class DeviceClassesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeviceClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeviceClassesGetter.underlying DeviceClassesGetter
   underlying : go.UnderlyingDirectedEq DeviceClassesGetter.ty DeviceClassesGetter.underlying
   isUnderlying : go.IsUnderlying DeviceClassesGetter.underlying DeviceClassesGetter.underlying
+  method_set : go.MethodSetIs DeviceClassesGetter.ty [(go!"DeviceClasses", (some (go.signature.Signature [] false [DeviceClassInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeviceClassesGetter.ty) []
 
 attribute [instance] DeviceClassesGetter.TypeAssumptions.type_repr
   DeviceClassesGetter.TypeAssumptions.underlying
   DeviceClassesGetter.TypeAssumptions.isUnderlying
+  DeviceClassesGetter.TypeAssumptions.method_set
+  DeviceClassesGetter.TypeAssumptions.ptr_method_set
 
 axiom DeviceClassInterface : Type
 axiom DeviceClassInterface.zero_val : ZeroVal DeviceClassInterface
 attribute [instance] DeviceClassInterface.zero_val
 
-class DeviceClassInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeviceClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeviceClassInterface.underlying DeviceClassInterface
   underlying : go.UnderlyingDirectedEq DeviceClassInterface.ty DeviceClassInterface.underlying
   isUnderlying : go.IsUnderlying DeviceClassInterface.underlying DeviceClassInterface.underlying
+  method_set : go.MethodSetIs DeviceClassInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.DeviceClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeviceClassInterface.ty) []
 
 attribute [instance] DeviceClassInterface.TypeAssumptions.type_repr
   DeviceClassInterface.TypeAssumptions.underlying
   DeviceClassInterface.TypeAssumptions.isUnderlying
+  DeviceClassInterface.TypeAssumptions.method_set
+  DeviceClassInterface.TypeAssumptions.ptr_method_set
 
 axiom deviceClasses : Type
 axiom deviceClasses.zero_val : ZeroVal deviceClasses
 attribute [instance] deviceClasses.zero_val
 
-class deviceClasses.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class deviceClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deviceClasses.underlying deviceClasses
   underlying : go.UnderlyingDirectedEq deviceClasses.ty deviceClasses.underlying
   isUnderlying : go.IsUnderlying deviceClasses.underlying deviceClasses.underlying
+  method_set : go.MethodSetIs deviceClasses.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.DeviceClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.DeviceClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType deviceClasses.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.DeviceClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.DeviceClassApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClassList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.DeviceClass" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] deviceClasses.TypeAssumptions.type_repr
   deviceClasses.TypeAssumptions.underlying
   deviceClasses.TypeAssumptions.isUnderlying
+  deviceClasses.TypeAssumptions.method_set
+  deviceClasses.TypeAssumptions.ptr_method_set
 
 axiom DeviceClassExpansion : Type
 axiom DeviceClassExpansion.zero_val : ZeroVal DeviceClassExpansion
 attribute [instance] DeviceClassExpansion.zero_val
 
-class DeviceClassExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeviceClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeviceClassExpansion.underlying DeviceClassExpansion
   underlying : go.UnderlyingDirectedEq DeviceClassExpansion.ty DeviceClassExpansion.underlying
   isUnderlying : go.IsUnderlying DeviceClassExpansion.underlying DeviceClassExpansion.underlying
+  method_set : go.MethodSetIs DeviceClassExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeviceClassExpansion.ty) []
 
 attribute [instance] DeviceClassExpansion.TypeAssumptions.type_repr
   DeviceClassExpansion.TypeAssumptions.underlying
   DeviceClassExpansion.TypeAssumptions.isUnderlying
+  DeviceClassExpansion.TypeAssumptions.method_set
+  DeviceClassExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourceClaimExpansion : Type
 axiom ResourceClaimExpansion.zero_val : ZeroVal ResourceClaimExpansion
 attribute [instance] ResourceClaimExpansion.zero_val
 
-class ResourceClaimExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceClaimExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceClaimExpansion.underlying ResourceClaimExpansion
   underlying : go.UnderlyingDirectedEq ResourceClaimExpansion.ty ResourceClaimExpansion.underlying
   isUnderlying : go.IsUnderlying ResourceClaimExpansion.underlying ResourceClaimExpansion.underlying
+  method_set : go.MethodSetIs ResourceClaimExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceClaimExpansion.ty) []
 
 attribute [instance] ResourceClaimExpansion.TypeAssumptions.type_repr
   ResourceClaimExpansion.TypeAssumptions.underlying
   ResourceClaimExpansion.TypeAssumptions.isUnderlying
+  ResourceClaimExpansion.TypeAssumptions.method_set
+  ResourceClaimExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourceClaimTemplateExpansion : Type
 axiom ResourceClaimTemplateExpansion.zero_val : ZeroVal ResourceClaimTemplateExpansion
 attribute [instance] ResourceClaimTemplateExpansion.zero_val
 
-class ResourceClaimTemplateExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceClaimTemplateExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceClaimTemplateExpansion.underlying ResourceClaimTemplateExpansion
   underlying : go.UnderlyingDirectedEq ResourceClaimTemplateExpansion.ty ResourceClaimTemplateExpansion.underlying
   isUnderlying : go.IsUnderlying ResourceClaimTemplateExpansion.underlying ResourceClaimTemplateExpansion.underlying
+  method_set : go.MethodSetIs ResourceClaimTemplateExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceClaimTemplateExpansion.ty) []
 
 attribute [instance] ResourceClaimTemplateExpansion.TypeAssumptions.type_repr
   ResourceClaimTemplateExpansion.TypeAssumptions.underlying
   ResourceClaimTemplateExpansion.TypeAssumptions.isUnderlying
+  ResourceClaimTemplateExpansion.TypeAssumptions.method_set
+  ResourceClaimTemplateExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourceSliceExpansion : Type
 axiom ResourceSliceExpansion.zero_val : ZeroVal ResourceSliceExpansion
 attribute [instance] ResourceSliceExpansion.zero_val
 
-class ResourceSliceExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceSliceExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceSliceExpansion.underlying ResourceSliceExpansion
   underlying : go.UnderlyingDirectedEq ResourceSliceExpansion.ty ResourceSliceExpansion.underlying
   isUnderlying : go.IsUnderlying ResourceSliceExpansion.underlying ResourceSliceExpansion.underlying
+  method_set : go.MethodSetIs ResourceSliceExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceSliceExpansion.ty) []
 
 attribute [instance] ResourceSliceExpansion.TypeAssumptions.type_repr
   ResourceSliceExpansion.TypeAssumptions.underlying
   ResourceSliceExpansion.TypeAssumptions.isUnderlying
+  ResourceSliceExpansion.TypeAssumptions.method_set
+  ResourceSliceExpansion.TypeAssumptions.ptr_method_set
 
 axiom ResourceV1beta1Interface : Type
 axiom ResourceV1beta1Interface.zero_val : ZeroVal ResourceV1beta1Interface
 attribute [instance] ResourceV1beta1Interface.zero_val
 
-class ResourceV1beta1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceV1beta1Interface.underlying ResourceV1beta1Interface
   underlying : go.UnderlyingDirectedEq ResourceV1beta1Interface.ty ResourceV1beta1Interface.underlying
   isUnderlying : go.IsUnderlying ResourceV1beta1Interface.underlying ResourceV1beta1Interface.underlying
+  method_set : go.MethodSetIs ResourceV1beta1Interface.ty [(go!"DeviceClasses", (some (go.signature.Signature [] false [DeviceClassInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ResourceClaimTemplates", (some (go.signature.Signature [go.string] false [ResourceClaimTemplateInterface.ty]))), (go!"ResourceClaims", (some (go.signature.Signature [go.string] false [ResourceClaimInterface.ty]))), (go!"ResourceSlices", (some (go.signature.Signature [] false [ResourceSliceInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceV1beta1Interface.ty) []
 
 attribute [instance] ResourceV1beta1Interface.TypeAssumptions.type_repr
   ResourceV1beta1Interface.TypeAssumptions.underlying
   ResourceV1beta1Interface.TypeAssumptions.isUnderlying
+  ResourceV1beta1Interface.TypeAssumptions.method_set
+  ResourceV1beta1Interface.TypeAssumptions.ptr_method_set
 
 axiom ResourceV1beta1Client : Type
 axiom ResourceV1beta1Client.zero_val : ZeroVal ResourceV1beta1Client
 attribute [instance] ResourceV1beta1Client.zero_val
 
-class ResourceV1beta1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceV1beta1Client.underlying ResourceV1beta1Client
   underlying : go.UnderlyingDirectedEq ResourceV1beta1Client.ty ResourceV1beta1Client.underlying
   isUnderlying : go.IsUnderlying ResourceV1beta1Client.underlying ResourceV1beta1Client.underlying
+  method_set : go.MethodSetIs ResourceV1beta1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceV1beta1Client.ty) [(go!"DeviceClasses", (some (go.signature.Signature [] false [DeviceClassInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ResourceClaimTemplates", (some (go.signature.Signature [go.string] false [ResourceClaimTemplateInterface.ty]))), (go!"ResourceClaims", (some (go.signature.Signature [go.string] false [ResourceClaimInterface.ty]))), (go!"ResourceSlices", (some (go.signature.Signature [] false [ResourceSliceInterface.ty])))]
 
 attribute [instance] ResourceV1beta1Client.TypeAssumptions.type_repr
   ResourceV1beta1Client.TypeAssumptions.underlying
   ResourceV1beta1Client.TypeAssumptions.isUnderlying
+  ResourceV1beta1Client.TypeAssumptions.method_set
+  ResourceV1beta1Client.TypeAssumptions.ptr_method_set
 
 axiom ResourceClaimsGetter : Type
 axiom ResourceClaimsGetter.zero_val : ZeroVal ResourceClaimsGetter
 attribute [instance] ResourceClaimsGetter.zero_val
 
-class ResourceClaimsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceClaimsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceClaimsGetter.underlying ResourceClaimsGetter
   underlying : go.UnderlyingDirectedEq ResourceClaimsGetter.ty ResourceClaimsGetter.underlying
   isUnderlying : go.IsUnderlying ResourceClaimsGetter.underlying ResourceClaimsGetter.underlying
+  method_set : go.MethodSetIs ResourceClaimsGetter.ty [(go!"ResourceClaims", (some (go.signature.Signature [go.string] false [ResourceClaimInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceClaimsGetter.ty) []
 
 attribute [instance] ResourceClaimsGetter.TypeAssumptions.type_repr
   ResourceClaimsGetter.TypeAssumptions.underlying
   ResourceClaimsGetter.TypeAssumptions.isUnderlying
+  ResourceClaimsGetter.TypeAssumptions.method_set
+  ResourceClaimsGetter.TypeAssumptions.ptr_method_set
 
 axiom ResourceClaimInterface : Type
 axiom ResourceClaimInterface.zero_val : ZeroVal ResourceClaimInterface
 attribute [instance] ResourceClaimInterface.zero_val
 
-class ResourceClaimInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceClaimInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceClaimInterface.underlying ResourceClaimInterface
   underlying : go.UnderlyingDirectedEq ResourceClaimInterface.ty ResourceClaimInterface.underlying
   isUnderlying : go.IsUnderlying ResourceClaimInterface.underlying ResourceClaimInterface.underlying
+  method_set : go.MethodSetIs ResourceClaimInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceClaimInterface.ty) []
 
 attribute [instance] ResourceClaimInterface.TypeAssumptions.type_repr
   ResourceClaimInterface.TypeAssumptions.underlying
   ResourceClaimInterface.TypeAssumptions.isUnderlying
+  ResourceClaimInterface.TypeAssumptions.method_set
+  ResourceClaimInterface.TypeAssumptions.ptr_method_set
 
 axiom resourceClaims : Type
 axiom resourceClaims.zero_val : ZeroVal resourceClaims
 attribute [instance] resourceClaims.zero_val
 
-class resourceClaims.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class resourceClaims.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resourceClaims.underlying resourceClaims
   underlying : go.UnderlyingDirectedEq resourceClaims.ty resourceClaims.underlying
   isUnderlying : go.IsUnderlying resourceClaims.underlying resourceClaims.underlying
+  method_set : go.MethodSetIs resourceClaims.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resourceClaims.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaim" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] resourceClaims.TypeAssumptions.type_repr
   resourceClaims.TypeAssumptions.underlying
   resourceClaims.TypeAssumptions.isUnderlying
+  resourceClaims.TypeAssumptions.method_set
+  resourceClaims.TypeAssumptions.ptr_method_set
 
 axiom ResourceClaimTemplatesGetter : Type
 axiom ResourceClaimTemplatesGetter.zero_val : ZeroVal ResourceClaimTemplatesGetter
 attribute [instance] ResourceClaimTemplatesGetter.zero_val
 
-class ResourceClaimTemplatesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceClaimTemplatesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceClaimTemplatesGetter.underlying ResourceClaimTemplatesGetter
   underlying : go.UnderlyingDirectedEq ResourceClaimTemplatesGetter.ty ResourceClaimTemplatesGetter.underlying
   isUnderlying : go.IsUnderlying ResourceClaimTemplatesGetter.underlying ResourceClaimTemplatesGetter.underlying
+  method_set : go.MethodSetIs ResourceClaimTemplatesGetter.ty [(go!"ResourceClaimTemplates", (some (go.signature.Signature [go.string] false [ResourceClaimTemplateInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceClaimTemplatesGetter.ty) []
 
 attribute [instance] ResourceClaimTemplatesGetter.TypeAssumptions.type_repr
   ResourceClaimTemplatesGetter.TypeAssumptions.underlying
   ResourceClaimTemplatesGetter.TypeAssumptions.isUnderlying
+  ResourceClaimTemplatesGetter.TypeAssumptions.method_set
+  ResourceClaimTemplatesGetter.TypeAssumptions.ptr_method_set
 
 axiom ResourceClaimTemplateInterface : Type
 axiom ResourceClaimTemplateInterface.zero_val : ZeroVal ResourceClaimTemplateInterface
 attribute [instance] ResourceClaimTemplateInterface.zero_val
 
-class ResourceClaimTemplateInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceClaimTemplateInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceClaimTemplateInterface.underlying ResourceClaimTemplateInterface
   underlying : go.UnderlyingDirectedEq ResourceClaimTemplateInterface.ty ResourceClaimTemplateInterface.underlying
   isUnderlying : go.IsUnderlying ResourceClaimTemplateInterface.underlying ResourceClaimTemplateInterface.underlying
+  method_set : go.MethodSetIs ResourceClaimTemplateInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimTemplateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplateList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceClaimTemplateInterface.ty) []
 
 attribute [instance] ResourceClaimTemplateInterface.TypeAssumptions.type_repr
   ResourceClaimTemplateInterface.TypeAssumptions.underlying
   ResourceClaimTemplateInterface.TypeAssumptions.isUnderlying
+  ResourceClaimTemplateInterface.TypeAssumptions.method_set
+  ResourceClaimTemplateInterface.TypeAssumptions.ptr_method_set
 
 axiom resourceClaimTemplates : Type
 axiom resourceClaimTemplates.zero_val : ZeroVal resourceClaimTemplates
 attribute [instance] resourceClaimTemplates.zero_val
 
-class resourceClaimTemplates.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class resourceClaimTemplates.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resourceClaimTemplates.underlying resourceClaimTemplates
   underlying : go.UnderlyingDirectedEq resourceClaimTemplates.ty resourceClaimTemplates.underlying
   isUnderlying : go.IsUnderlying resourceClaimTemplates.underlying resourceClaimTemplates.underlying
+  method_set : go.MethodSetIs resourceClaimTemplates.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimTemplateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimTemplateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplateList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resourceClaimTemplates.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimTemplateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceClaimTemplateApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplateList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceClaimTemplate" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] resourceClaimTemplates.TypeAssumptions.type_repr
   resourceClaimTemplates.TypeAssumptions.underlying
   resourceClaimTemplates.TypeAssumptions.isUnderlying
+  resourceClaimTemplates.TypeAssumptions.method_set
+  resourceClaimTemplates.TypeAssumptions.ptr_method_set
 
 axiom ResourceSlicesGetter : Type
 axiom ResourceSlicesGetter.zero_val : ZeroVal ResourceSlicesGetter
 attribute [instance] ResourceSlicesGetter.zero_val
 
-class ResourceSlicesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceSlicesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceSlicesGetter.underlying ResourceSlicesGetter
   underlying : go.UnderlyingDirectedEq ResourceSlicesGetter.ty ResourceSlicesGetter.underlying
   isUnderlying : go.IsUnderlying ResourceSlicesGetter.underlying ResourceSlicesGetter.underlying
+  method_set : go.MethodSetIs ResourceSlicesGetter.ty [(go!"ResourceSlices", (some (go.signature.Signature [] false [ResourceSliceInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceSlicesGetter.ty) []
 
 attribute [instance] ResourceSlicesGetter.TypeAssumptions.type_repr
   ResourceSlicesGetter.TypeAssumptions.underlying
   ResourceSlicesGetter.TypeAssumptions.isUnderlying
+  ResourceSlicesGetter.TypeAssumptions.method_set
+  ResourceSlicesGetter.TypeAssumptions.ptr_method_set
 
 axiom ResourceSliceInterface : Type
 axiom ResourceSliceInterface.zero_val : ZeroVal ResourceSliceInterface
 attribute [instance] ResourceSliceInterface.zero_val
 
-class ResourceSliceInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceSliceInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceSliceInterface.underlying ResourceSliceInterface
   underlying : go.UnderlyingDirectedEq ResourceSliceInterface.ty ResourceSliceInterface.underlying
   isUnderlying : go.IsUnderlying ResourceSliceInterface.underlying ResourceSliceInterface.underlying
+  method_set : go.MethodSetIs ResourceSliceInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSliceList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceSliceInterface.ty) []
 
 attribute [instance] ResourceSliceInterface.TypeAssumptions.type_repr
   ResourceSliceInterface.TypeAssumptions.underlying
   ResourceSliceInterface.TypeAssumptions.isUnderlying
+  ResourceSliceInterface.TypeAssumptions.method_set
+  ResourceSliceInterface.TypeAssumptions.ptr_method_set
 
 axiom resourceSlices : Type
 axiom resourceSlices.zero_val : ZeroVal resourceSlices
 attribute [instance] resourceSlices.zero_val
 
-class resourceSlices.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class resourceSlices.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resourceSlices.underlying resourceSlices
   underlying : go.UnderlyingDirectedEq resourceSlices.ty resourceSlices.underlying
   isUnderlying : go.IsUnderlying resourceSlices.underlying resourceSlices.underlying
+  method_set : go.MethodSetIs resourceSlices.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSliceList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resourceSlices.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/resource/v1beta1.ResourceSliceApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSliceList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/resource/v1beta1.ResourceSlice" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] resourceSlices.TypeAssumptions.type_repr
   resourceSlices.TypeAssumptions.underlying
   resourceSlices.TypeAssumptions.isUnderlying
+  resourceSlices.TypeAssumptions.method_set
+  resourceSlices.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DeviceClassesGetter_instance : DeviceClassesGetter.TypeAssumptions
   DeviceClassInterface_instance : DeviceClassInterface.TypeAssumptions
   deviceClasses_instance : deviceClasses.TypeAssumptions

@@ -20,354 +20,354 @@ end pkg_id
 
 namespace k8s_io.api.autoscaling.v1
 
-noncomputable def CrossVersionObjectReference.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CrossVersionObjectReference.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.CrossVersionObjectReference" [])
 
 attribute [irreducible] CrossVersionObjectReference.ty
 
-noncomputable def HorizontalPodAutoscalerSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.HorizontalPodAutoscalerSpec" [])
 
 attribute [irreducible] HorizontalPodAutoscalerSpec.ty
 
-noncomputable def HorizontalPodAutoscalerStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.HorizontalPodAutoscalerStatus" [])
 
 attribute [irreducible] HorizontalPodAutoscalerStatus.ty
 
-noncomputable def HorizontalPodAutoscaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.HorizontalPodAutoscaler" [])
 
 attribute [irreducible] HorizontalPodAutoscaler.ty
 
-noncomputable def HorizontalPodAutoscalerList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.HorizontalPodAutoscalerList" [])
 
 attribute [irreducible] HorizontalPodAutoscalerList.ty
 
-noncomputable def Scale.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Scale.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.Scale" [])
 
 attribute [irreducible] Scale.ty
 
-noncomputable def ScaleSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScaleSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ScaleSpec" [])
 
 attribute [irreducible] ScaleSpec.ty
 
-noncomputable def ScaleStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScaleStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ScaleStatus" [])
 
 attribute [irreducible] ScaleStatus.ty
 
-noncomputable def MetricSourceType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MetricSourceType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.MetricSourceType" [])
 
 attribute [irreducible] MetricSourceType.ty
 
-noncomputable def MetricSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MetricSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.MetricSpec" [])
 
 attribute [irreducible] MetricSpec.ty
 
-noncomputable def ObjectMetricSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectMetricSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ObjectMetricSource" [])
 
 attribute [irreducible] ObjectMetricSource.ty
 
-noncomputable def PodsMetricSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodsMetricSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.PodsMetricSource" [])
 
 attribute [irreducible] PodsMetricSource.ty
 
-noncomputable def ResourceMetricSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceMetricSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ResourceMetricSource" [])
 
 attribute [irreducible] ResourceMetricSource.ty
 
-noncomputable def ContainerResourceMetricSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerResourceMetricSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ContainerResourceMetricSource" [])
 
 attribute [irreducible] ContainerResourceMetricSource.ty
 
-noncomputable def ExternalMetricSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExternalMetricSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ExternalMetricSource" [])
 
 attribute [irreducible] ExternalMetricSource.ty
 
-noncomputable def MetricStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MetricStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.MetricStatus" [])
 
 attribute [irreducible] MetricStatus.ty
 
-noncomputable def HorizontalPodAutoscalerConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.HorizontalPodAutoscalerConditionType" [])
 
 attribute [irreducible] HorizontalPodAutoscalerConditionType.ty
 
-noncomputable def HorizontalPodAutoscalerCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HorizontalPodAutoscalerCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.HorizontalPodAutoscalerCondition" [])
 
 attribute [irreducible] HorizontalPodAutoscalerCondition.ty
 
-noncomputable def ObjectMetricStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectMetricStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ObjectMetricStatus" [])
 
 attribute [irreducible] ObjectMetricStatus.ty
 
-noncomputable def PodsMetricStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodsMetricStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.PodsMetricStatus" [])
 
 attribute [irreducible] PodsMetricStatus.ty
 
-noncomputable def ResourceMetricStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceMetricStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ResourceMetricStatus" [])
 
 attribute [irreducible] ResourceMetricStatus.ty
 
-noncomputable def ContainerResourceMetricStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerResourceMetricStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ContainerResourceMetricStatus" [])
 
 attribute [irreducible] ContainerResourceMetricStatus.ty
 
-noncomputable def ExternalMetricStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExternalMetricStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/autoscaling/v1.ExternalMetricStatus" [])
 
 attribute [irreducible] ExternalMetricStatus.ty
 
-axiom CrossVersionObjectReference.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CrossVersionObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Scale.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Scale.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ScaleSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ScaleStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricSourceType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MetricSourceType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MetricSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObjectMetricSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ObjectMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodsMetricSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodsMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceMetricSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerResourceMetricSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ContainerResourceMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExternalMetricSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExternalMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HorizontalPodAutoscalerCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObjectMetricStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ObjectMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodsMetricStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodsMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceMetricStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerResourceMetricStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ContainerResourceMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExternalMetricStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExternalMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [FfiSyntax] [GoGlobalContext] : val
+axiom GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom ObjectMetricSourceType [FfiSyntax] [GoGlobalContext] : val
+axiom ObjectMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom PodsMetricSourceType [FfiSyntax] [GoGlobalContext] : val
+axiom PodsMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceMetricSourceType [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerResourceMetricSourceType [FfiSyntax] [GoGlobalContext] : val
+axiom ContainerResourceMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom ExternalMetricSourceType [FfiSyntax] [GoGlobalContext] : val
+axiom ExternalMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom ScalingActive [FfiSyntax] [GoGlobalContext] : val
+axiom ScalingActive [GooseExts] [GoGlobalContext] : val
 
-axiom AbleToScale [FfiSyntax] [GoGlobalContext] : val
+axiom AbleToScale [GooseExts] [GoGlobalContext] : val
 
-axiom ScalingLimited [FfiSyntax] [GoGlobalContext] : val
+axiom ScalingLimited [GooseExts] [GoGlobalContext] : val
 
-axiom ScaledToZero [FfiSyntax] [GoGlobalContext] : val
+axiom ScaledToZero [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrIntOverflowGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUnexpectedEndOfGroupGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeGroupVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeBuilder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def localSchemeBuilder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [FfiSyntax] [GoGlobalContext] : val
+axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AddToScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.AddToScheme"
 
-axiom AddToScheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerResourceMetricSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerResourceMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ContainerResourceMetricSource"
 
-axiom map_ContainerResourceMetricSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerResourceMetricSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerResourceMetricStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerResourceMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ContainerResourceMetricStatus"
 
-axiom map_ContainerResourceMetricStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerResourceMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_CrossVersionObjectReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_CrossVersionObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_CrossVersionObjectReference"
 
-axiom map_CrossVersionObjectReference.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_CrossVersionObjectReference.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ExternalMetricSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ExternalMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ExternalMetricSource"
 
-axiom map_ExternalMetricSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ExternalMetricSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ExternalMetricStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ExternalMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ExternalMetricStatus"
 
-axiom map_ExternalMetricStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ExternalMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HorizontalPodAutoscaler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HorizontalPodAutoscaler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscaler"
 
-axiom map_HorizontalPodAutoscaler.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HorizontalPodAutoscaler.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HorizontalPodAutoscalerCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HorizontalPodAutoscalerCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscalerCondition"
 
-axiom map_HorizontalPodAutoscalerCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HorizontalPodAutoscalerCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HorizontalPodAutoscalerList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HorizontalPodAutoscalerList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscalerList"
 
-axiom map_HorizontalPodAutoscalerList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HorizontalPodAutoscalerList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HorizontalPodAutoscalerSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HorizontalPodAutoscalerSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscalerSpec"
 
-axiom map_HorizontalPodAutoscalerSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HorizontalPodAutoscalerSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HorizontalPodAutoscalerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HorizontalPodAutoscalerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscalerStatus"
 
-axiom map_HorizontalPodAutoscalerStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HorizontalPodAutoscalerStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_MetricSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_MetricSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_MetricSpec"
 
-axiom map_MetricSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_MetricSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_MetricStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_MetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_MetricStatus"
 
-axiom map_MetricStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_MetricStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ObjectMetricSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ObjectMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ObjectMetricSource"
 
-axiom map_ObjectMetricSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ObjectMetricSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ObjectMetricStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ObjectMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ObjectMetricStatus"
 
-axiom map_ObjectMetricStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ObjectMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodsMetricSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodsMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_PodsMetricSource"
 
-axiom map_PodsMetricSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodsMetricSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodsMetricStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodsMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_PodsMetricStatus"
 
-axiom map_PodsMetricStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodsMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceMetricSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ResourceMetricSource"
 
-axiom map_ResourceMetricSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceMetricSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceMetricStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ResourceMetricStatus"
 
-axiom map_ResourceMetricStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Scale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Scale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_Scale"
 
-axiom map_Scale.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Scale.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ScaleSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ScaleSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ScaleSpec"
 
-axiom map_ScaleSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ScaleSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ScaleStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ScaleStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ScaleStatus"
 
-axiom map_ScaleStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ScaleStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def encodeVarintGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.encodeVarintGenerated"
 
-noncomputable def sovGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sovGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.sovGenerated"
 
-noncomputable def sozGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sozGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.sozGenerated"
 
-noncomputable def valueToStringGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def valueToStringGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.valueToStringGenerated"
 
-noncomputable def skipGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def skipGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.skipGenerated"
 
-noncomputable def Resource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Resource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.Resource"
 
-noncomputable def addKnownTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.addKnownTypes"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.autoscaling.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.api.autoscaling.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -459,302 +459,394 @@ axiom CrossVersionObjectReference : Type
 axiom CrossVersionObjectReference.zero_val : ZeroVal CrossVersionObjectReference
 attribute [instance] CrossVersionObjectReference.zero_val
 
-class CrossVersionObjectReference.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CrossVersionObjectReference.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CrossVersionObjectReference.underlying CrossVersionObjectReference
   underlying : go.UnderlyingDirectedEq CrossVersionObjectReference.ty CrossVersionObjectReference.underlying
   isUnderlying : go.IsUnderlying CrossVersionObjectReference.underlying CrossVersionObjectReference.underlying
+  method_set : go.MethodSetIs CrossVersionObjectReference.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CrossVersionObjectReference.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType CrossVersionObjectReference.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType CrossVersionObjectReference.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] CrossVersionObjectReference.TypeAssumptions.type_repr
   CrossVersionObjectReference.TypeAssumptions.underlying
   CrossVersionObjectReference.TypeAssumptions.isUnderlying
+  CrossVersionObjectReference.TypeAssumptions.method_set
+  CrossVersionObjectReference.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerSpec : Type
 axiom HorizontalPodAutoscalerSpec.zero_val : ZeroVal HorizontalPodAutoscalerSpec
 attribute [instance] HorizontalPodAutoscalerSpec.zero_val
 
-class HorizontalPodAutoscalerSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerSpec.underlying HorizontalPodAutoscalerSpec
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerSpec.ty HorizontalPodAutoscalerSpec.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerSpec.underlying HorizontalPodAutoscalerSpec.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HorizontalPodAutoscalerSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HorizontalPodAutoscalerSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HorizontalPodAutoscalerSpec.TypeAssumptions.type_repr
   HorizontalPodAutoscalerSpec.TypeAssumptions.underlying
   HorizontalPodAutoscalerSpec.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerSpec.TypeAssumptions.method_set
+  HorizontalPodAutoscalerSpec.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerStatus : Type
 axiom HorizontalPodAutoscalerStatus.zero_val : ZeroVal HorizontalPodAutoscalerStatus
 attribute [instance] HorizontalPodAutoscalerStatus.zero_val
 
-class HorizontalPodAutoscalerStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerStatus.underlying HorizontalPodAutoscalerStatus
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerStatus.ty HorizontalPodAutoscalerStatus.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerStatus.underlying HorizontalPodAutoscalerStatus.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HorizontalPodAutoscalerStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HorizontalPodAutoscalerStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HorizontalPodAutoscalerStatus.TypeAssumptions.type_repr
   HorizontalPodAutoscalerStatus.TypeAssumptions.underlying
   HorizontalPodAutoscalerStatus.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerStatus.TypeAssumptions.method_set
+  HorizontalPodAutoscalerStatus.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscaler : Type
 axiom HorizontalPodAutoscaler.zero_val : ZeroVal HorizontalPodAutoscaler
 attribute [instance] HorizontalPodAutoscaler.zero_val
 
-class HorizontalPodAutoscaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscaler.underlying HorizontalPodAutoscaler
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscaler.ty HorizontalPodAutoscaler.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscaler.underlying HorizontalPodAutoscaler.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscaler.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscaler.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HorizontalPodAutoscaler.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HorizontalPodAutoscaler.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Object" [])]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HorizontalPodAutoscaler.TypeAssumptions.type_repr
   HorizontalPodAutoscaler.TypeAssumptions.underlying
   HorizontalPodAutoscaler.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscaler.TypeAssumptions.method_set
+  HorizontalPodAutoscaler.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerList : Type
 axiom HorizontalPodAutoscalerList.zero_val : ZeroVal HorizontalPodAutoscalerList
 attribute [instance] HorizontalPodAutoscalerList.zero_val
 
-class HorizontalPodAutoscalerList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerList.underlying HorizontalPodAutoscalerList
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerList.ty HorizontalPodAutoscalerList.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerList.underlying HorizontalPodAutoscalerList.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HorizontalPodAutoscalerList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HorizontalPodAutoscalerList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListInterface" [])]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ShardInfo" []))]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ShardInfo" []))] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HorizontalPodAutoscalerList.TypeAssumptions.type_repr
   HorizontalPodAutoscalerList.TypeAssumptions.underlying
   HorizontalPodAutoscalerList.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerList.TypeAssumptions.method_set
+  HorizontalPodAutoscalerList.TypeAssumptions.ptr_method_set
 
 axiom Scale : Type
 axiom Scale.zero_val : ZeroVal Scale
 attribute [instance] Scale.zero_val
 
-class Scale.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Scale.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Scale.underlying Scale
   underlying : go.UnderlyingDirectedEq Scale.ty Scale.underlying
   isUnderlying : go.IsUnderlying Scale.underlying Scale.underlying
+  method_set : go.MethodSetIs Scale.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Scale.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Scale.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Scale.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Object" [])]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] Scale.TypeAssumptions.type_repr
   Scale.TypeAssumptions.underlying
   Scale.TypeAssumptions.isUnderlying
+  Scale.TypeAssumptions.method_set
+  Scale.TypeAssumptions.ptr_method_set
 
 axiom ScaleSpec : Type
 axiom ScaleSpec.zero_val : ZeroVal ScaleSpec
 attribute [instance] ScaleSpec.zero_val
 
-class ScaleSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ScaleSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ScaleSpec.underlying ScaleSpec
   underlying : go.UnderlyingDirectedEq ScaleSpec.ty ScaleSpec.underlying
   isUnderlying : go.IsUnderlying ScaleSpec.underlying ScaleSpec.underlying
+  method_set : go.MethodSetIs ScaleSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScaleSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ScaleSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ScaleSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ScaleSpec.TypeAssumptions.type_repr
   ScaleSpec.TypeAssumptions.underlying
   ScaleSpec.TypeAssumptions.isUnderlying
+  ScaleSpec.TypeAssumptions.method_set
+  ScaleSpec.TypeAssumptions.ptr_method_set
 
 axiom ScaleStatus : Type
 axiom ScaleStatus.zero_val : ZeroVal ScaleStatus
 attribute [instance] ScaleStatus.zero_val
 
-class ScaleStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ScaleStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ScaleStatus.underlying ScaleStatus
   underlying : go.UnderlyingDirectedEq ScaleStatus.ty ScaleStatus.underlying
   isUnderlying : go.IsUnderlying ScaleStatus.underlying ScaleStatus.underlying
+  method_set : go.MethodSetIs ScaleStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScaleStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ScaleStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ScaleStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ScaleStatus.TypeAssumptions.type_repr
   ScaleStatus.TypeAssumptions.underlying
   ScaleStatus.TypeAssumptions.isUnderlying
+  ScaleStatus.TypeAssumptions.method_set
+  ScaleStatus.TypeAssumptions.ptr_method_set
 
 axiom MetricSourceType : Type
 axiom MetricSourceType.zero_val : ZeroVal MetricSourceType
 attribute [instance] MetricSourceType.zero_val
 
-class MetricSourceType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MetricSourceType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MetricSourceType.underlying MetricSourceType
   underlying : go.UnderlyingDirectedEq MetricSourceType.ty MetricSourceType.underlying
   isUnderlying : go.IsUnderlying MetricSourceType.underlying MetricSourceType.underlying
+  method_set : go.MethodSetIs MetricSourceType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricSourceType.ty) []
 
 attribute [instance] MetricSourceType.TypeAssumptions.type_repr
   MetricSourceType.TypeAssumptions.underlying
   MetricSourceType.TypeAssumptions.isUnderlying
+  MetricSourceType.TypeAssumptions.method_set
+  MetricSourceType.TypeAssumptions.ptr_method_set
 
 axiom MetricSpec : Type
 axiom MetricSpec.zero_val : ZeroVal MetricSpec
 attribute [instance] MetricSpec.zero_val
 
-class MetricSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MetricSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MetricSpec.underlying MetricSpec
   underlying : go.UnderlyingDirectedEq MetricSpec.ty MetricSpec.underlying
   isUnderlying : go.IsUnderlying MetricSpec.underlying MetricSpec.underlying
+  method_set : go.MethodSetIs MetricSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType MetricSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType MetricSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] MetricSpec.TypeAssumptions.type_repr
   MetricSpec.TypeAssumptions.underlying
   MetricSpec.TypeAssumptions.isUnderlying
+  MetricSpec.TypeAssumptions.method_set
+  MetricSpec.TypeAssumptions.ptr_method_set
 
 axiom ObjectMetricSource : Type
 axiom ObjectMetricSource.zero_val : ZeroVal ObjectMetricSource
 attribute [instance] ObjectMetricSource.zero_val
 
-class ObjectMetricSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ObjectMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ObjectMetricSource.underlying ObjectMetricSource
   underlying : go.UnderlyingDirectedEq ObjectMetricSource.ty ObjectMetricSource.underlying
   isUnderlying : go.IsUnderlying ObjectMetricSource.underlying ObjectMetricSource.underlying
+  method_set : go.MethodSetIs ObjectMetricSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectMetricSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ObjectMetricSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ObjectMetricSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ObjectMetricSource.TypeAssumptions.type_repr
   ObjectMetricSource.TypeAssumptions.underlying
   ObjectMetricSource.TypeAssumptions.isUnderlying
+  ObjectMetricSource.TypeAssumptions.method_set
+  ObjectMetricSource.TypeAssumptions.ptr_method_set
 
 axiom PodsMetricSource : Type
 axiom PodsMetricSource.zero_val : ZeroVal PodsMetricSource
 attribute [instance] PodsMetricSource.zero_val
 
-class PodsMetricSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodsMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodsMetricSource.underlying PodsMetricSource
   underlying : go.UnderlyingDirectedEq PodsMetricSource.ty PodsMetricSource.underlying
   isUnderlying : go.IsUnderlying PodsMetricSource.underlying PodsMetricSource.underlying
+  method_set : go.MethodSetIs PodsMetricSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodsMetricSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodsMetricSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodsMetricSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodsMetricSource.TypeAssumptions.type_repr
   PodsMetricSource.TypeAssumptions.underlying
   PodsMetricSource.TypeAssumptions.isUnderlying
+  PodsMetricSource.TypeAssumptions.method_set
+  PodsMetricSource.TypeAssumptions.ptr_method_set
 
 axiom ResourceMetricSource : Type
 axiom ResourceMetricSource.zero_val : ZeroVal ResourceMetricSource
 attribute [instance] ResourceMetricSource.zero_val
 
-class ResourceMetricSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceMetricSource.underlying ResourceMetricSource
   underlying : go.UnderlyingDirectedEq ResourceMetricSource.ty ResourceMetricSource.underlying
   isUnderlying : go.IsUnderlying ResourceMetricSource.underlying ResourceMetricSource.underlying
+  method_set : go.MethodSetIs ResourceMetricSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceMetricSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ResourceMetricSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ResourceMetricSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ResourceMetricSource.TypeAssumptions.type_repr
   ResourceMetricSource.TypeAssumptions.underlying
   ResourceMetricSource.TypeAssumptions.isUnderlying
+  ResourceMetricSource.TypeAssumptions.method_set
+  ResourceMetricSource.TypeAssumptions.ptr_method_set
 
 axiom ContainerResourceMetricSource : Type
 axiom ContainerResourceMetricSource.zero_val : ZeroVal ContainerResourceMetricSource
 attribute [instance] ContainerResourceMetricSource.zero_val
 
-class ContainerResourceMetricSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ContainerResourceMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ContainerResourceMetricSource.underlying ContainerResourceMetricSource
   underlying : go.UnderlyingDirectedEq ContainerResourceMetricSource.ty ContainerResourceMetricSource.underlying
   isUnderlying : go.IsUnderlying ContainerResourceMetricSource.underlying ContainerResourceMetricSource.underlying
+  method_set : go.MethodSetIs ContainerResourceMetricSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerResourceMetricSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ContainerResourceMetricSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ContainerResourceMetricSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ContainerResourceMetricSource.TypeAssumptions.type_repr
   ContainerResourceMetricSource.TypeAssumptions.underlying
   ContainerResourceMetricSource.TypeAssumptions.isUnderlying
+  ContainerResourceMetricSource.TypeAssumptions.method_set
+  ContainerResourceMetricSource.TypeAssumptions.ptr_method_set
 
 axiom ExternalMetricSource : Type
 axiom ExternalMetricSource.zero_val : ZeroVal ExternalMetricSource
 attribute [instance] ExternalMetricSource.zero_val
 
-class ExternalMetricSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExternalMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExternalMetricSource.underlying ExternalMetricSource
   underlying : go.UnderlyingDirectedEq ExternalMetricSource.ty ExternalMetricSource.underlying
   isUnderlying : go.IsUnderlying ExternalMetricSource.underlying ExternalMetricSource.underlying
+  method_set : go.MethodSetIs ExternalMetricSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExternalMetricSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ExternalMetricSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ExternalMetricSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ExternalMetricSource.TypeAssumptions.type_repr
   ExternalMetricSource.TypeAssumptions.underlying
   ExternalMetricSource.TypeAssumptions.isUnderlying
+  ExternalMetricSource.TypeAssumptions.method_set
+  ExternalMetricSource.TypeAssumptions.ptr_method_set
 
 axiom MetricStatus : Type
 axiom MetricStatus.zero_val : ZeroVal MetricStatus
 attribute [instance] MetricStatus.zero_val
 
-class MetricStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MetricStatus.underlying MetricStatus
   underlying : go.UnderlyingDirectedEq MetricStatus.ty MetricStatus.underlying
   isUnderlying : go.IsUnderlying MetricStatus.underlying MetricStatus.underlying
+  method_set : go.MethodSetIs MetricStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType MetricStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType MetricStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] MetricStatus.TypeAssumptions.type_repr
   MetricStatus.TypeAssumptions.underlying
   MetricStatus.TypeAssumptions.isUnderlying
+  MetricStatus.TypeAssumptions.method_set
+  MetricStatus.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerConditionType : Type
 axiom HorizontalPodAutoscalerConditionType.zero_val : ZeroVal HorizontalPodAutoscalerConditionType
 attribute [instance] HorizontalPodAutoscalerConditionType.zero_val
 
-class HorizontalPodAutoscalerConditionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerConditionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerConditionType.underlying HorizontalPodAutoscalerConditionType
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerConditionType.ty HorizontalPodAutoscalerConditionType.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerConditionType.underlying HorizontalPodAutoscalerConditionType.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerConditionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerConditionType.ty) []
 
 attribute [instance] HorizontalPodAutoscalerConditionType.TypeAssumptions.type_repr
   HorizontalPodAutoscalerConditionType.TypeAssumptions.underlying
   HorizontalPodAutoscalerConditionType.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerConditionType.TypeAssumptions.method_set
+  HorizontalPodAutoscalerConditionType.TypeAssumptions.ptr_method_set
 
 axiom HorizontalPodAutoscalerCondition : Type
 axiom HorizontalPodAutoscalerCondition.zero_val : ZeroVal HorizontalPodAutoscalerCondition
 attribute [instance] HorizontalPodAutoscalerCondition.zero_val
 
-class HorizontalPodAutoscalerCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HorizontalPodAutoscalerCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HorizontalPodAutoscalerCondition.underlying HorizontalPodAutoscalerCondition
   underlying : go.UnderlyingDirectedEq HorizontalPodAutoscalerCondition.ty HorizontalPodAutoscalerCondition.underlying
   isUnderlying : go.IsUnderlying HorizontalPodAutoscalerCondition.underlying HorizontalPodAutoscalerCondition.underlying
+  method_set : go.MethodSetIs HorizontalPodAutoscalerCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HorizontalPodAutoscalerCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HorizontalPodAutoscalerCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HorizontalPodAutoscalerCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HorizontalPodAutoscalerCondition.TypeAssumptions.type_repr
   HorizontalPodAutoscalerCondition.TypeAssumptions.underlying
   HorizontalPodAutoscalerCondition.TypeAssumptions.isUnderlying
+  HorizontalPodAutoscalerCondition.TypeAssumptions.method_set
+  HorizontalPodAutoscalerCondition.TypeAssumptions.ptr_method_set
 
 axiom ObjectMetricStatus : Type
 axiom ObjectMetricStatus.zero_val : ZeroVal ObjectMetricStatus
 attribute [instance] ObjectMetricStatus.zero_val
 
-class ObjectMetricStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ObjectMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ObjectMetricStatus.underlying ObjectMetricStatus
   underlying : go.UnderlyingDirectedEq ObjectMetricStatus.ty ObjectMetricStatus.underlying
   isUnderlying : go.IsUnderlying ObjectMetricStatus.underlying ObjectMetricStatus.underlying
+  method_set : go.MethodSetIs ObjectMetricStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectMetricStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ObjectMetricStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ObjectMetricStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ObjectMetricStatus.TypeAssumptions.type_repr
   ObjectMetricStatus.TypeAssumptions.underlying
   ObjectMetricStatus.TypeAssumptions.isUnderlying
+  ObjectMetricStatus.TypeAssumptions.method_set
+  ObjectMetricStatus.TypeAssumptions.ptr_method_set
 
 axiom PodsMetricStatus : Type
 axiom PodsMetricStatus.zero_val : ZeroVal PodsMetricStatus
 attribute [instance] PodsMetricStatus.zero_val
 
-class PodsMetricStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodsMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodsMetricStatus.underlying PodsMetricStatus
   underlying : go.UnderlyingDirectedEq PodsMetricStatus.ty PodsMetricStatus.underlying
   isUnderlying : go.IsUnderlying PodsMetricStatus.underlying PodsMetricStatus.underlying
+  method_set : go.MethodSetIs PodsMetricStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodsMetricStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodsMetricStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodsMetricStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodsMetricStatus.TypeAssumptions.type_repr
   PodsMetricStatus.TypeAssumptions.underlying
   PodsMetricStatus.TypeAssumptions.isUnderlying
+  PodsMetricStatus.TypeAssumptions.method_set
+  PodsMetricStatus.TypeAssumptions.ptr_method_set
 
 axiom ResourceMetricStatus : Type
 axiom ResourceMetricStatus.zero_val : ZeroVal ResourceMetricStatus
 attribute [instance] ResourceMetricStatus.zero_val
 
-class ResourceMetricStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceMetricStatus.underlying ResourceMetricStatus
   underlying : go.UnderlyingDirectedEq ResourceMetricStatus.ty ResourceMetricStatus.underlying
   isUnderlying : go.IsUnderlying ResourceMetricStatus.underlying ResourceMetricStatus.underlying
+  method_set : go.MethodSetIs ResourceMetricStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceMetricStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ResourceMetricStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ResourceMetricStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ResourceMetricStatus.TypeAssumptions.type_repr
   ResourceMetricStatus.TypeAssumptions.underlying
   ResourceMetricStatus.TypeAssumptions.isUnderlying
+  ResourceMetricStatus.TypeAssumptions.method_set
+  ResourceMetricStatus.TypeAssumptions.ptr_method_set
 
 axiom ContainerResourceMetricStatus : Type
 axiom ContainerResourceMetricStatus.zero_val : ZeroVal ContainerResourceMetricStatus
 attribute [instance] ContainerResourceMetricStatus.zero_val
 
-class ContainerResourceMetricStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ContainerResourceMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ContainerResourceMetricStatus.underlying ContainerResourceMetricStatus
   underlying : go.UnderlyingDirectedEq ContainerResourceMetricStatus.ty ContainerResourceMetricStatus.underlying
   isUnderlying : go.IsUnderlying ContainerResourceMetricStatus.underlying ContainerResourceMetricStatus.underlying
+  method_set : go.MethodSetIs ContainerResourceMetricStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerResourceMetricStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ContainerResourceMetricStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ContainerResourceMetricStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ContainerResourceMetricStatus.TypeAssumptions.type_repr
   ContainerResourceMetricStatus.TypeAssumptions.underlying
   ContainerResourceMetricStatus.TypeAssumptions.isUnderlying
+  ContainerResourceMetricStatus.TypeAssumptions.method_set
+  ContainerResourceMetricStatus.TypeAssumptions.ptr_method_set
 
 axiom ExternalMetricStatus : Type
 axiom ExternalMetricStatus.zero_val : ZeroVal ExternalMetricStatus
 attribute [instance] ExternalMetricStatus.zero_val
 
-class ExternalMetricStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExternalMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExternalMetricStatus.underlying ExternalMetricStatus
   underlying : go.UnderlyingDirectedEq ExternalMetricStatus.ty ExternalMetricStatus.underlying
   isUnderlying : go.IsUnderlying ExternalMetricStatus.underlying ExternalMetricStatus.underlying
+  method_set : go.MethodSetIs ExternalMetricStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExternalMetricStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ExternalMetricStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ExternalMetricStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ExternalMetricStatus.TypeAssumptions.type_repr
   ExternalMetricStatus.TypeAssumptions.underlying
   ExternalMetricStatus.TypeAssumptions.isUnderlying
+  ExternalMetricStatus.TypeAssumptions.method_set
+  ExternalMetricStatus.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CrossVersionObjectReference_instance : CrossVersionObjectReference.TypeAssumptions
   HorizontalPodAutoscalerSpec_instance : HorizontalPodAutoscalerSpec.TypeAssumptions
   HorizontalPodAutoscalerStatus_instance : HorizontalPodAutoscalerStatus.TypeAssumptions

@@ -21,75 +21,82 @@ end pkg_id
 
 namespace path
 
-noncomputable def lazybuf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazybuf.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"path.lazybuf" [])
 
 attribute [irreducible] lazybuf.ty
 
-noncomputable def ErrBadPattern [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrBadPattern [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.ErrBadPattern"
 
-axiom ErrBadPattern.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrBadPattern.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Match [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Match [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Match"
 
-noncomputable def scanChunk [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def scanChunk [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.scanChunk"
 
-noncomputable def matchChunk [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def matchChunk [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.matchChunk"
 
-noncomputable def getEsc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getEsc [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.getEsc"
 
-noncomputable def Clean [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Clean [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Clean"
 
-noncomputable def Split [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Split [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Split"
 
-noncomputable def Join [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Join [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Join"
 
-noncomputable def Ext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Ext [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Ext"
 
-noncomputable def Base [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Base [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Base"
 
-noncomputable def IsAbs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsAbs [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.IsAbs"
 
-noncomputable def Dir [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Dir [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Dir"
 
 /-- go: path.go:26:19 -/
-noncomputable def lazybuf.index.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lazybuf.index.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lazybuf.ty)))) (Var "b"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
-  (App (Val doExecute)
-  (Val #())))))))))
-
-/-- go: path.go:33:19 -/
-noncomputable def lazybuf.append.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "b"
-  (Lam "c"
-  (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lazybuf.ty)))) (Var "b"))
-  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.byte))) (Var "$res0"))))))
+
+/-- go: path.go:33:19 -/
+noncomputable def lazybuf.append.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "c"
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lazybuf.ty)))) (Var "b"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -119,24 +126,35 @@ noncomputable def lazybuf.append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- go: path.go:46:19 -/
-noncomputable def lazybuf.string.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lazybuf.string.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lazybuf.ty)))) (Var "b"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b"))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil)))))
-  (App (Val doReturn)
-  (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b"))))
-  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b"))))))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil)))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b"))))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lazybuf.ty)))) (Var "b")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- Clean returns the shortest path name equivalent to path
     by purely lexical processing. It applies the following rules
@@ -159,9 +177,10 @@ noncomputable def lazybuf.string.impl [FfiSyntax] [GoGlobalContext] : val :=
     https://9p.io/sys/doc/lexnames.html
 
     go: path.go:72:6 -/
-noncomputable def Clean.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Clean.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(W64 0)))) (Val #(W8 47))))
@@ -184,11 +203,19 @@ noncomputable def Clean.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType lazybuf.ty) go!"string"))) (Var "out")) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType lazybuf.ty) go!"string"))) (Var "out")) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef lazybuf.ty go!"w"))) (Var "out"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(go!"."))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(go!".")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (App (App (Val doFor) (Lam BAnon
@@ -279,10 +306,15 @@ noncomputable def Clean.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "rooted") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(go!"")))))
+  (Let "$r0" (Val #(go!"."))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(go!".")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 /-- Split splits path immediately following the final slash,
     separating it into a directory and file name component.
@@ -291,23 +323,34 @@ noncomputable def Clean.impl [FfiSyntax] [GoGlobalContext] : val :=
     The returned values have the property that path = dir+file.
 
     go: path.go:145:6 -/
-noncomputable def Split.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Split.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
-  (App (Val exceptionDo)
-  (Let "file" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Let "dir" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res0" (Var "dir")
+  (Let "file" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (Var "file")
+  (Seq (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
   (Let "$a1" (Val #(W8 47))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.bytealg.LastIndexByteString []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))
+  (Let "$r1" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
-  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))))) (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
-  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))))))
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1")))))))))
 
 /-- Join joins any number of path elements into a single path,
     separating them with slashes. Empty elements are ignored.
@@ -316,9 +359,10 @@ noncomputable def Split.impl [FfiSyntax] [GoGlobalContext] : val :=
     an empty string.
 
     go: path.go:155:6 -/
-noncomputable def Join.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Join.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "elem"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "elem" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "elem"))
   (Let "$r0" (Val #(W64 0))
   (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -330,9 +374,13 @@ noncomputable def Join.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")))
+  (App (App (Val (GoInstruction (FuncResolve Clean []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")))
-  (App (App (Val (GoInstruction (FuncResolve Clean []))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "elem"))
   (Let "e" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (slice.forRange go.string)) (Var "$range"))
@@ -367,8 +415,12 @@ noncomputable def Join.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "size")) (Val #(W64 0)))))
+  (Let "$r0" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(go!"")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "elem"))
@@ -386,7 +438,8 @@ noncomputable def Join.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "e") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "size") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "size") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 /-- Base returns the last element of path.
     Trailing slashes are removed before extracting the last element.
@@ -394,19 +447,28 @@ noncomputable def Join.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the path consists entirely of slashes, Base returns "/".
 
     go: path.go:192:6 -/
-noncomputable def Base.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Base.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.string))) (Var "path")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(go!"")))))
+  (Let "$r0" (Val #(go!"/"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(go!"/")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
@@ -435,10 +497,15 @@ noncomputable def Base.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam BAnon
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(go!"")))))
+  (Let "$r0" (Val #(go!"."))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(go!".")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 /-- Dir returns all but the last element of path, typically the path's directory.
     After dropping the final element using [Split], the path is Cleaned and trailing
@@ -449,9 +516,10 @@ noncomputable def Base.impl [FfiSyntax] [GoGlobalContext] : val :=
     slash.
 
     go: path.go:223:6 -/
-noncomputable def Dir.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Dir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
   (App (App (Val (GoInstruction (FuncResolve Split []))) (Val #())) (Var "$a0")))
@@ -462,20 +530,25 @@ noncomputable def Dir.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "dir" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dir"))
+  (App (App (Val (GoInstruction (FuncResolve Clean []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dir"))
-  (App (App (Val (GoInstruction (FuncResolve Clean []))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Var "$r1")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "dir") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "dir") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.path where
   pkgImportedPkgs := [pkg_id.internal.bytealg]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.path)) (Lam BAnon
   (App (Val exceptionDo)
@@ -485,31 +558,31 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.internal.bytealg.initialize') (Val #()))))))))
 
-structure lazybuf [FfiSyntax] where
+structure lazybuf [GooseExts] where
   mk ::
   s' : GoString
   buf' : GoSlice
   w' : w64
 
-noncomputable instance lazybuf.zero_val [FfiSyntax] : ZeroVal lazybuf :=
+noncomputable instance lazybuf.zero_val [GooseExts] : ZeroVal lazybuf :=
   ⟨lazybuf.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def lazybuf.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def lazybuf.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" go.string),
 (go.field_decl.FieldDecl go!"buf" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"w" go.int)]
 
-@[irreducible] noncomputable def lazybuf.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def lazybuf.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lazybuf.fieldsUnsealed
 
-noncomputable instance equals_unfold_lazybuf [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_lazybuf [GooseExts] [GoGlobalContext] :
     EqualsUnfold lazybuf.fields lazybuf.fieldsUnsealed :=
   ⟨by unfold lazybuf.fields; rfl⟩
 
-@[reducible] noncomputable def lazybuf.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def lazybuf.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType lazybuf.fields)
 
-class lazybuf.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lazybuf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazybuf.underlying lazybuf
   underlying : go.UnderlyingDirectedEq lazybuf.ty lazybuf.underlying
   get_s : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"s") #x (Val #(x.s'))
@@ -518,6 +591,8 @@ class lazybuf.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_buf : ∀ (x : lazybuf) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : lazybuf)))
   get_w : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"w") #x (Val #(x.w'))
   set_w : ∀ (x : lazybuf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : lazybuf)))
+  method_set : go.MethodSetIs lazybuf.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazybuf.ty) [(go!"path.append", (some (go.signature.Signature [go.byte] false []))), (go!"path.index", (some (go.signature.Signature [go.int] false [go.byte]))), (go!"path.string", (some (go.signature.Signature [] false [go.string])))]
   ptr_append_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"append" lazybuf.append.impl
   ptr_index_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"index" lazybuf.index.impl
   ptr_string_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"string" lazybuf.string.impl
@@ -530,11 +605,13 @@ attribute [instance] lazybuf.TypeAssumptions.type_repr
   lazybuf.TypeAssumptions.set_buf
   lazybuf.TypeAssumptions.get_w
   lazybuf.TypeAssumptions.set_w
+  lazybuf.TypeAssumptions.method_set
+  lazybuf.TypeAssumptions.ptr_method_set
   lazybuf.TypeAssumptions.ptr_append_unfold
   lazybuf.TypeAssumptions.ptr_index_unfold
   lazybuf.TypeAssumptions.ptr_string_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   lazybuf_instance : lazybuf.TypeAssumptions
   Clean_unfold : FuncUnfold Clean [] Clean.impl
   Split_unfold : FuncUnfold Split [] Split.impl

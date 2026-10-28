@@ -356,7 +356,7 @@ def TxnModel.Under (pfx : GoString) (t : TxnModel) : Prop :=
 /-! ## History laws: the fields of `EtcdModel` (`EtcdModel.lean`) -/
 
 section client
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1231,7 +1231,7 @@ theorem pointwise_snoc {A B : Type} (P : A → B → IProp GF) [∀ a b, Persist
 end pointwise
 
 section heap
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

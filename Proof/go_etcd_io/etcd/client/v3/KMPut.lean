@@ -44,12 +44,13 @@ theorem commit_log (σ : KVState) (cs : List Change) (h : cs ≠ []) :
   simp [KVState.commit, KVState.log, h]
 
 /-- A put that needs no previous key-value commits its change. -/
-theorem kvOpStep_put (w : OpFull) (σ : KVState) (h : txn.needsPrev w = false) :
+theorem kvOpStep_put (w : OpFull) (σ : KVState) (h : txn.needsPrev w = false)
+    (hlz : w.leaseID = W64 0) :
     kvOpStep (.put w) σ = σ.commit [putChangeOf w (findKey w.key σ.kvs)] := by
-  simp [kvOpStep, h]
+  simp [kvOpStep, h, hlz, KVState.leaseMissing]
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -60,12 +61,13 @@ after the changes `l0` (at least `lo` of them), `σ` and the state after the put
 `putResult`, its revision `σ`'s next, with its token. -/
 theorem putResult_of_km (γ : KMNames) [KMWritable γ] (pfx : GoString) (lo : w64) (w : OpFull) (op : TxnOp)
     (hw : putTxnOp w = op) (hu : op.Under pfx) (hnp : txn.needsPrev w = false)
+    (hlz : w.leaseID = W64 0)
     (l0 : List (List Change)) (hlo : sint.Z lo ≤ l0.length) (σ : KVState) (hok : kvLogOk σ)
     (h63 : σ.rev + 4 < 2 ^ 63) (hpost : kvLogOk (kvOpStep (.put w) σ)) :
     kmWriteQ (GF := GF) γ l0 (.put w) σ ⊢
       putResult (EM := etcdModelOfKV γ) pfx lo op GoInterface.nil := by
   subst hw
-  have hst := kvOpStep_put w σ hnp
+  have hst := kvOpStep_put w σ hnp hlz
   have hkvs := kvLogOk_kvs σ hok
   have hrc := kvLogOk_rev σ hok
   have hll := (kvLogOk_log hok).2.2.2
@@ -219,7 +221,7 @@ end proofs
 /-! ## The bridges -/
 
 section bridges
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -290,7 +292,7 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
   icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨-, -, h63, hok, hpost⟩ := Hs
-    iapply (putResult_of_km γ pfx lo _ op hw hu hl.2 l0 Hll σ hok h63 hpost) $$ HQ
+    iapply (putResult_of_km γ pfx lo _ op hw hu hl.2 hl.1 l0 Hll σ hok h63 hpost) $$ HQ
   · unfold putResult
     ileft
     ipureintro; exact Herr.1

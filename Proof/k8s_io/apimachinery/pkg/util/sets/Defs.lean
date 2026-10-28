@@ -18,17 +18,17 @@ namespace EtcdGrove
 namespace sets
 
 /-- The sets' element value, `Empty` (`struct{}`). -/
-abbrev Elem [FfiSyntax] : Type := k8s_io.apimachinery.pkg.util.sets.Empty
+abbrev Elem [GooseExts] : Type := k8s_io.apimachinery.pkg.util.sets.Empty
 
 /-- The element. -/
-abbrev present [FfiSyntax] : Elem := ⟨⟩
+abbrev present [GooseExts] : Elem := ⟨⟩
 
 /-- `Elem` is countable (for ghost maps with its values, the work queue's). -/
-instance elem_countable [FfiSyntax] : Pos.Countable Elem :=
+instance elem_countable [GooseExts] : Pos.Countable Elem :=
   .ofInjective (fun _ => Pos.Countable.encode ()) (by rintro ⟨⟩ ⟨⟩ _; rfl)
 
 section defs
-variable [FfiSyntax] {K : Type} [DecidableEq K]
+variable [GooseExts] {K : Type} [DecidableEq K]
 
 /-- `s.Insert(ks...)`: each of `ks` in the set. -/
 def insertAll (s : GMap K Elem) (ks : List K) : GMap K Elem :=

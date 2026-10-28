@@ -18,7 +18,7 @@ open Iris Iris.BI Iris.ProofMode k8s_io.utils.third_party.forked.golang.btree
 open RemoveLemmas
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -34,9 +34,6 @@ theorem BTree.deleteItem.wp_proof
   wp_start as ⟨Ht, #Hitem⟩
   unfold ownBTree
   icases Ht with ⟨%tv, %f, %less, %d, Ht, #Hcow, %Hdeg, %Hlen, %Hsorted, #Hitems, Hroot⟩
-  wp_alloc_anon
-  wp_pures
-  wp_alloc_anon
   wp_auto
   unfold ownRoot
   icases Hroot with (%Hnil | ⟨%h, %tr, ⟨%Hsh, %Hrb, %Hel⟩, Hn⟩)
@@ -114,7 +111,7 @@ theorem BTree.deleteItem.wp_proof
             BTree V) ∗
           ownNode o tv.cow' f less (DFrac.own 1) r'' tr'' ∗
           ⌜tr''.Shape d h'' ∧ tr''.RootBounds d h'' ∧ tr''.elems = (removeOp tgt s).1⌝)
-        at next with [-HΦ out outb]
+        at next with [-HΦ out outb «$res0» «$res1»]
         as ⟨%r'', %h'', %tr'', t, Ht, Hn, %Hpure⟩
       · wp_auto
         wp_if_destruct

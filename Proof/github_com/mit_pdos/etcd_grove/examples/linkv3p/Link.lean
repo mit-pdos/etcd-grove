@@ -52,7 +52,7 @@ namespace linkv3p
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.linkv3p github_com.mit_pdos.etcd_grove.examples.linkvtxn github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine
 
 section links
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -88,7 +88,7 @@ end links
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -135,7 +135,7 @@ theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.net.Listen.wp_proof
 
-theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.linkv3p.startMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.startMember.wp_proof common.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
 
@@ -143,7 +143,7 @@ theorem wp_startBridge :
     EtcdGrove.linkv3p.startBridge.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.startBridge.wp_proof net.wp_Listen bridge.wp_New
 
-theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.startCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.startCluster.wp_proof wp_startMember wp_startBridge common.wp_NewClients
 
@@ -159,7 +159,7 @@ theorem wp_partitioner :
     EtcdGrove.linkv3p.partitioner.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.partitioner.wp_proof wp_peerStep wp_clientStep
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.Main.wp_proof zap.wp_NewNop wp_startCluster wp_partitioner wp_Check
 
@@ -167,7 +167,7 @@ theorem wp_writer :
     EtcdGrove.linkv3p.writer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.writer.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
 
-theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.MainWatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.MainWatch.wp_proof common.wp_GenAll zap.wp_NewNop wp_startCluster wp_partitioner wp_writer common.wp_MaxRev common.wp_Collect common.wp_Check context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 

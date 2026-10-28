@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -36,10 +36,6 @@ theorem tracker.ProgressTracker.TallyVotesWithDifference.wp_proof
   iunfold ownTrackerC at Hown
   iNamed Hown
   simp only at Hinv Hdom Hflags Hsize
-  -- the `var _ quorum.VoteResult` declaration Go emits for the named return
-  -- is an *anonymous* `GoAlloc`, which `wp_auto` will not step past.
-  wp_auto
-  wp_alloc res0 as Hres0
   wp_auto
   -- `pr` and `id` are the range's own loop variables: the body assigns them
   -- on every iteration, so they must be existentially quantified *inside*

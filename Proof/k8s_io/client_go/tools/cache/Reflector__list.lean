@@ -39,7 +39,7 @@ namespace cache
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache apimodel informer
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -88,6 +88,7 @@ theorem Reflector.list.wp_proof
   icases Hf1 with ⟨%c, #Hstore, #Hlwf, #Het, #Hgvk, #Hrp, #Huwl, #Hclock⟩
   iunfold reflFixed2 at Hf2
   icases Hf2 with ⟨%name, %td, %ps, %md, %sr, %weh, #Hdhf, #Hname, #Htd, #Hps, #Hmd, #Hsr, #Hweh⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (wp_relistResourceVersion r v u) $$ [$Hpkg $Hown] as Hown
@@ -120,8 +121,7 @@ theorem Reflector.list.wp_proof
   ipersist panicCh
   wp_apply wp_fork $$ [Hprod Hown Hmisc list paginatedResult err options]
   · wp_pures
-    iapply wp_with_defer_recover
-    iintro %gdefer %gpnc gdefer gpnc
+    wp_apply wp_with_defer_recover as %gdefer %gpnc gdefer gpnc
     (try wp_auto)
     simp only [recv_eq_func_mk]
     wp_apply (wp_SimplePageFunc _ res (listS γa σ0 res)) $$ [] as %pfn #Hpfn
@@ -173,7 +173,7 @@ theorem Reflector.list.wp_proof
               (try wp_auto)
               wp_apply wp_recoverPanic $$ gpnc as gpnc
               (try wp_auto)
-              ipureintro; exact isPanic_intoVal _
+              itrivial
           · subst he hobj
             (try wp_auto)
             wp_apply (wp_isUnsupported res q) $$ [$Hpkg] as %gvk -
@@ -193,7 +193,7 @@ theorem Reflector.list.wp_proof
             (try wp_auto)
             wp_apply wp_recoverPanic $$ gpnc as gpnc
             (try wp_auto)
-            ipureintro; exact isPanic_intoVal _
+            itrivial
         · (try wp_auto)
           wp_apply (wp_setUnavailable r v u true) $$ [$Hpkg $Hown] as Hown
           (try wp_auto)
@@ -222,7 +222,7 @@ theorem Reflector.list.wp_proof
               (try wp_auto)
               wp_apply wp_recoverPanic $$ gpnc as gpnc
               (try wp_auto)
-              ipureintro; exact isPanic_intoVal _
+              itrivial
           · subst he hobj
             (try wp_auto)
             wp_apply (wp_isUnsupported res q) $$ [$Hpkg] as %gvk -
@@ -242,7 +242,7 @@ theorem Reflector.list.wp_proof
             (try wp_auto)
             wp_apply wp_recoverPanic $$ gpnc as gpnc
             (try wp_auto)
-            ipureintro; exact isPanic_intoVal _
+            itrivial
       · (try wp_auto)
         wp_apply (wp_setUnavailable r v u true) $$ [$Hpkg $Hown] as Hown
         (try wp_auto)
@@ -271,7 +271,7 @@ theorem Reflector.list.wp_proof
             (try wp_auto)
             wp_apply wp_recoverPanic $$ gpnc as gpnc
             (try wp_auto)
-            ipureintro; exact isPanic_intoVal _
+            itrivial
         · subst he hobj
           (try wp_auto)
           wp_apply (wp_isUnsupported res q) $$ [$Hpkg] as %gvk -
@@ -291,7 +291,7 @@ theorem Reflector.list.wp_proof
           (try wp_auto)
           wp_apply wp_recoverPanic $$ gpnc as gpnc
           (try wp_auto)
-          ipureintro; exact isPanic_intoVal _
+          itrivial
   (try wp_auto)
   wp_apply (lc := 2) HDone
   (try wp_auto)

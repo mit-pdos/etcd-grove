@@ -18,18 +18,18 @@ namespace apimodel
 
 open Iris Iris.BI Iris.ProofMode
 
-@[simp] theorem pm_insert_key {V : Type} [FfiSyntax] (m : GMap Key V) (k : Key) (v : V) :
+@[simp] theorem pm_insert_key {V : Type} [GooseExts] (m : GMap Key V) (k : Key) (v : V) :
     Iris.Std.PartialMap.insert m k v = <[k := v]> m := rfl
 
-@[simp] theorem pm_delete_key {V : Type} [FfiSyntax] (m : GMap Key V) (k : Key) :
+@[simp] theorem pm_delete_key {V : Type} [GooseExts] (m : GMap Key V) (k : Key) :
     Iris.Std.PartialMap.delete m k = GMap.delete k m := rfl
 
-theorem pm_get_key {V : Type} [FfiSyntax] (m : GMap Key V) (k : Key) :
+theorem pm_get_key {V : Type} [GooseExts] (m : GMap Key V) (k : Key) :
     Iris.Std.PartialMap.get? m k = m !! k := rfl
 
 /-- What a map's range in key order `keys` collects (`filterMap`) is a list of the map's values
 of the selected keys, in some order. -/
-theorem perm_keys_filterMap [FfiSyntax] {V : Type} (O : GMap Key V) (keys : List Key)
+theorem perm_keys_filterMap [GooseExts] {V : Type} (O : GMap Key V) (keys : List Key)
     (hnd : keys.Nodup) (hmem : ∀ k, k ∈ keys ↔ (O !! k).isSome) (p : Key → Bool) :
     List.Perm (keys.filterMap (fun k => if p k then O !! k else none))
       ((O.toList.filter (fun kv => p kv.1)).map Prod.snd) := by
@@ -63,19 +63,29 @@ theorem perm_keys_filterMap [FfiSyntax] {V : Type} (O : GMap Key V) (keys : List
   rw [key O.toList (fun kv h => (GMap.mem_toList O kv.1 kv.2).mp h)]
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- A key is a safe map key: comparing it with itself (field by field) does not panic (as the
-consistency store's `owner_safeMapKey`, a `Prop` instance of the same class). -/
+/-- A key is a safe map key: comparing it with another (field by field) does not panic and is
+equality of values (as the consistency store's `owner_safeMapKey`, a `Prop` instance of the same
+class). -/
 instance key_safeMapKey [ApiDeps] (k : Key) :
     SafeMapKey (GF := GF) k8s_io.apimachinery.pkg.types.NamespacedName.ty k where
-  wp_go_eq_safe_map_key s E Φ := by
+  key_ok := trivial
+  wp_go_eq_map_key k' _ s E Φ := by
     iintro HΦ
     wp_pures
-    iapply HΦ
+    by_cases h1 : k.Namespace' = k'.Namespace'
+    · rw [decide_eq_true h1]
+      wp_pures
+      rw [show decide (k.Name' = k'.Name') = decide (k = k') by cases k; cases k'; simp_all]
+      iapply HΦ
+    · rw [decide_eq_false h1]
+      wp_pures
+      rw [show (false : Bool) = decide (k = k') by cases k; cases k'; simp_all]
+      iapply HΦ
 
 /-- A deep pointer to a basic value, read: `nil`, or the value. -/
 theorem ownPtrD_base_some {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (dq : DFrac)

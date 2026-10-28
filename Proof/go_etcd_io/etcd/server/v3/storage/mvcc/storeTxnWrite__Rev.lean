@@ -17,14 +17,14 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.Rev.wp_proof : mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend chs ps sealed crev Z
+  intro trace tw s γ ilog pend chs ps sealed crev Z ld
   wp_start as Htw
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw

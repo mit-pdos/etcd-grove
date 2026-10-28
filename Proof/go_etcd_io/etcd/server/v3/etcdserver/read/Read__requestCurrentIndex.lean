@@ -23,7 +23,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.read
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -75,7 +75,7 @@ local macro "rci_resend" fcN:term:max : tactic => `(tactic| (
   (try wp_auto)
   wp_apply HNR $$ HN1 as %rid' ⟨Hfr', Hcr'⟩
   wp_apply wp_mapInsert go.uint64 mref _ rid' () $$ Hm as Hm
-  wp_apply hSRI r γr RQ LR NR rid' n Qr $$ [HLR Hfr' Hcr'] as %err' ⟨HLR, #HaE', HRQ'⟩
+  wp_apply hSRI r γr RQ LR NR rid' n Qr F $$ [HLR Hfr' Hcr'] as %err' ⟨HLR, #HaE', HRQ'⟩
   · iframe #; iframe HLR Hfr' Hcr'
   cases err' with
   | ok ei' =>
@@ -105,7 +105,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hI : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     read.Read.requestCurrentIndex.spec (GF := GF) (hG := hG) := by
-  intro r γr RQ LR NR lcn n Qr
+  intro r γr RQ LR NR lcn n Qr F
   wp_start as ⟨#Hpre, HLR, #HNRu, #Hlcn, #Hc, #HRA⟩
   ihave #Hpre' := Hpre
   iunfold isReadLoopPre at Hpre'
@@ -128,13 +128,14 @@ theorem read.Read.requestCurrentIndex.wp_proof
   ihave ⟨%eTO, #HeTO, #HaTO⟩ := errVarLeaf_get _ $$ HTO
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply wp_map_make1 (K := w64) (V := Unit) as %mref Hm
   ihave HN0 := HNRu
   imod HN0
   wp_apply HNR $$ [$HN0] as %rid0 ⟨Hfr0, Hcr0⟩
   wp_apply wp_mapInsert go.uint64 mref _ rid0 () $$ [$Hm] as Hm
-  wp_apply hSRI r γr RQ LR NR rid0 n Qr $$ [HLR Hfr0 Hcr0] as %err0 ⟨HLR, #HaE0, HRQ0⟩
+  wp_apply hSRI r γr RQ LR NR rid0 n Qr F $$ [HLR Hfr0 Hcr0] as %err0 ⟨HLR, #HaE0, HRQ0⟩
   · iframe #; iframe HLR Hfr0 Hcr0
   cases err0 with
   | ok ei0 =>

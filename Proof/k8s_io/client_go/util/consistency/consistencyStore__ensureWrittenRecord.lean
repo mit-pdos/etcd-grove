@@ -22,7 +22,7 @@ namespace consistency
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.util.consistency
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -85,8 +85,9 @@ theorem consistencyStore.ensureWrittenRecord.wp_proof
         · ipureintro; exact ho
         · iframe
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ auWrote γ o uid gr rv K ∗ T o q ∗
-      consReader c γ ∗ ownerUID_ptr ↦ uid) ∨ (∃ r : Loc, ⌜v = returnVal #r⌝ ∗ Φ #r))) at next
-    with [HQ Hrd record ownerUID]
+      consReader c γ ∗ ownerUID_ptr ↦ uid ∗ «$res0_ptr» ↦ zero_val Loc) ∨
+      (∃ r : Loc, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ r ∗ Φ #r))) at next
+    with [HQ Hrd record ownerUID «$res0»]
   · unfold fastQ
     cases hw : W !! o with
     | none =>
@@ -115,6 +116,7 @@ theorem consistencyStore.ensureWrittenRecord.wp_proof
         iexists r0
         isplitr
         · ipureintro; rfl
+        iframe «$res0»
         iapply HK
         iframe
         iframe #
@@ -123,7 +125,7 @@ theorem consistencyStore.ensureWrittenRecord.wp_proof
         icases HQ with ⟨HAU, HT⟩
         wp_auto
         ileft; iframe; ipureintro; rfl
-  iintro (⟨%Hv, HAU, HT, Hrd, ownerUID⟩ | ⟨%r, %Hv, HΦ⟩)
+  iintro (⟨%Hv, HAU, HT, Hrd, ownerUID, «$res0»⟩ | ⟨%r, %Hv, «$res0», HΦ⟩)
   · subst Hv
     wp_auto
     wp_apply (lc := 3) sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hwl, HP⟩
@@ -134,10 +136,11 @@ theorem consistencyStore.ensureWrittenRecord.wp_proof
     · iunfold auWrote; inext; iexact HAU
     wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ auWrote γ o uid gr rv K ∗ T o q ∗
         consReader c γ ∗ £ 1 ∗ £ 1 ∗ γ.wm ↦$ W1 ∗ ghostVar γ.W (1 : Qp).half W1 ∗
-        ownerUID_ptr ↦ uid ∗
+        ownerUID_ptr ↦ uid ∗ «$res0_ptr» ↦ zero_val Loc ∗
         □ (∀ r1, ⌜W1 !! o = some r1⌝ -∗ ∃ s1, isRec γ r1 s1 ∗ ⌜s1.uid ≠ uid⌝)) ∨
-        (∃ r : Loc, ⌜v = returnVal #r⌝ ∗ Φ #r ∗ γ.wm ↦$ W1 ∗ ghostVar γ.W (1 : Qp).half W1)))
-      at next with [HAU HT Hrd Hlc1 Hlc2 Hlc3 Hm Hg record ownerUID]
+        (∃ r : Loc, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ r ∗ Φ #r ∗ γ.wm ↦$ W1 ∗
+          ghostVar γ.W (1 : Qp).half W1)))
+      at next with [HAU HT Hrd Hlc1 Hlc2 Hlc3 Hm Hg record ownerUID «$res0»]
     · cases hw1 : W1 !! o with
       | none =>
         simp only [Option.getD_none]
@@ -165,7 +168,7 @@ theorem consistencyStore.ensureWrittenRecord.wp_proof
           iexists r1
           isplitr
           · ipureintro; rfl
-          iframe Hm Hg
+          iframe Hm Hg «$res0»
           iapply HK
           iframe
           iframe #
@@ -178,7 +181,8 @@ theorem consistencyStore.ensureWrittenRecord.wp_proof
           iintro !> %r2 %h
           cases h
           iexists s1; iframe #; ipureintro; exact hu
-    iintro (⟨%Hv, HAU, HT, Hrd, Hlc2, Hlc3, Hm, Hg, ownerUID, #Hold⟩ | ⟨%r, %Hv, HΦ, Hm, Hg⟩)
+    iintro (⟨%Hv, HAU, HT, Hrd, Hlc2, Hlc3, Hm, Hg, ownerUID, «$res0», #Hold⟩ |
+      ⟨%r, %Hv, «$res0», HΦ, Hm, Hg⟩)
     · subst Hv
       wp_auto
       wp_apply wp_newOwnerRecord as %r' ⟨%vm, %Hnn', Huid', Hlk', Hvf', Hvm'⟩

@@ -18,7 +18,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -36,24 +36,25 @@ find it (not `PathsIgnOk`). Nothing is written. -/
 abbrev txn.checkTxn.spec : Prop :=
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (rt : Loc)
     (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool)
-    (L : List w64) (lu : Bool),
+    (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (lu : Bool),
   (lu = false → txn.txnReadonly t = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxnRead mw s γ trace log rev ∗ txn.txnRequestIs rt t ∗
-      txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L) ∗
+      txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
       pl ↦*□ (txn.txnPath (mvcc.stateAfter log) t ++ rest) }}
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
       (Val #rt)) (Val #le)) (Val #pl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ trace log rev ∗
-      (⌜lu = false⌝ ∨ lease.lessorUser γl L) ∗
+      (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter log)
             (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
         txn.leasesOk L (txn.opsLeases (mvcc.stateAfter log)
           (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
        (⌜err ≠ GoInterface.nil ∧ n = W64 0 ∧
-          (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
-            (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err)) }}
+          (txn.txnLeased t → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter log) L
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t))))⌝ ∗ txn.checkErrIs err)) }}
 
 end spec
 

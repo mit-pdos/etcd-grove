@@ -25,7 +25,7 @@ namespace Perennial
 
 namespace google_golang_org.protobuf.internal.impl
 section code
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-! ### The codec tables
 

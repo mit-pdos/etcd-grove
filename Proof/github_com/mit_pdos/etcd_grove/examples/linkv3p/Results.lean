@@ -75,7 +75,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -84,21 +84,21 @@ variable [NaInvG GF]
 
 /-- **`Main` does not panic, for every schedule** (`Link.lean`'s `linkv3p.wp_Main`). -/
 theorem linkv3p_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf] [ErrorStringNotWriter] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     linkv3p.Main.spec (GF := GF) (hG := hG) :=
   linkv3p.wp_Main
 
 /-- **`MainWatch` does not panic, for every schedule** (`Link.lean`'s `linkv3p.wp_MainWatch`; W4
 of `notes/watch-cut-plan.md`). -/
 theorem linkv3p_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf] [ErrorStringNotWriter] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     linkv3p.MainWatch.spec (GF := GF) (hG := hG) :=
   linkv3p.wp_MainWatch
 
 end results
 
 section adequacy
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 variable [go_gctx : GoGlobalContext]
 
 /-- **The partitioned three-member instance is safe, in the operational semantics**
@@ -107,15 +107,12 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [ErrorStringNotWriter] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
-    [context.DeadlineExceededIsError] [log.NewModel]
+    [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
-    [PeerPausable]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (Hms : v3rpc.ServerMethodSets)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : linkv3p.BootFacts id₁ id₂ id₃ bootLog)
+    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
@@ -127,16 +124,16 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
-      ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ bootLog)
+      ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  linkv3p_adequate Hctx Hcec Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
+  linkv3p_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
     Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn Hwb
 
 /-- **The watch run over the partitioned cluster is safe, in the operational semantics**
@@ -147,16 +144,13 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [ErrorStringNotWriter] [ErrorStringNoGRPCStatus] [RpctypesEtcdErrorMethods]
-    [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
+    [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
-    [PeerPausable]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (Hms : v3rpc.ServerMethodSets)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : linkv3p.BootFacts id₁ id₂ id₃ bootLog)
+    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (nw nops : w64)
@@ -168,16 +162,16 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
-      ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ bootLog)
+      ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pWatchProgram nw nops steps], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  linkv3p_watch_adequate Hctx Hcec Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hdbo nw nops H0 H31
+  linkv3p_watch_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hdbo nw nops H0 H31
     Hops Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn Hwb
 
 end adequacy

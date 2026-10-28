@@ -41,7 +41,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode GMap go_etcd_io.raft.v3
 
 section mode
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The mode of the ghost state `raft.Step` keeps (see the file header). -/
 inductive GMode where
@@ -230,16 +230,16 @@ snapshot it sends (the storage's, `HSnapshot`), and registers the one a received
 (S-d's lent storage). -/
 
 section certLink
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
 
-/-- The namespace of the registry's invariant. -/
-def raftCertN : Namespace := nroot .@ "raft_snapcert"
+/-- The namespace of the registry's invariant (2026-10-27: the cluster's, `RaftNames.reCertNs`). -/
+def raftCertN (γ : RaftNames) : Namespace := γ.reCertNs
 
 /-- See above. -/
 def storCertOk (γ : RaftNames) (st : Storage) : IProp GF :=
-  iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ storCert st k ={E}=∗
+  iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑(raftCertN γ) ⊆ E⌝ -∗ storCert st k ={E}=∗
       raftSnapCertD γ k) ∗
-    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ raftSnapCertD γ k ={E}=∗
+    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑(raftCertN γ) ⊆ E⌝ -∗ raftSnapCertD γ k ={E}=∗
       storCert st k))
 
 instance storCertOk_persistent (γ : RaftNames) (st : Storage) :
@@ -249,7 +249,7 @@ instance storCertOk_persistent (γ : RaftNames) (st : Storage) :
 end certLink
 
 section ghost
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
 
 /-- What the mode keeps beyond `ownRaftGhost`: statically, the configuration's voters are the

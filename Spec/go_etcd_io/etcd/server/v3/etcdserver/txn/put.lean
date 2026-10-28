@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -29,7 +29,8 @@ changes `pend`), `prevKV` being `getPrevKV`'s answer there, the previous key-val
 put needs it, and the lease it writes one it may attach: the put's change (`putChangeOf`: the
 request's value and lease, or the previous ones) pending, and the response at the pending
 revision with the previous key-value if requested (`PrevKv`: the answer's own `*KeyValue`, made
-read-only). -/
+read-only). (Unit T3, L2b, 2026-10-25) The lease owner's item map is the pending state's,
+before and after. -/
 abbrev txn.put.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
@@ -42,7 +43,7 @@ abbrev txn.put.spec : Prop :=
         else ⌜prev = null⌝) ∗
       ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.pendState ilog pend)).isSome⌝ ∗
       txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState ilog pend))) ∗
-      lease.leaseOwn γ.leases L }}
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
     (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #p))
       (Val #prev))
   {{ (resp : Loc), RET #resp;
@@ -52,7 +53,8 @@ abbrev txn.put.spec : Prop :=
       txn.putResponseIs resp (W64 (ilog.length : Int))
         (if o.base.prevKV then mvcc.findKey o.key (txn.pendState ilog pend) else none) ∗
       txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
-      lease.leaseOwn γ.leases L }}
+      lease.leaseOwn γ.leases L
+        (mvcc.pendItems ilog (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState ilog pend))])) }}
 
 end spec
 

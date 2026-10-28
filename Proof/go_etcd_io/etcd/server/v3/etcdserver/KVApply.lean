@@ -28,8 +28,8 @@ open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 /-! ## Pure facts of the model -/
 
 /-- A request the backend does not write changes no log through any chain. -/
-theorem chainLog_of_backendLog (rq : apply.IRRModel) (log : mvcc.Log)
-    (h : backendLog rq log = log) : ∀ c : apply.Chain, chainLog c rq log = log := by
+theorem chainLog_of_backendLog (lt : LeaseTable) (rq : apply.IRRModel) (log : mvcc.Log)
+    (h : backendLog lt rq log = log) : ∀ c : apply.Chain, chainLog c rq lt log = log := by
   intro c
   induction c with
   | backend => simpa only [chainLog] using h
@@ -39,9 +39,9 @@ theorem chainLog_of_backendLog (rq : apply.IRRModel) (log : mvcc.Log)
   | quota c ih => simp only [chainLog]; exact ih
 
 /-- An entry whose request changes no log through any chain keeps the model. -/
-theorem kvEntry_of_chainLog (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (m : EntryModel)
-    (rq : apply.IRRModel) (hdec : apply.irrDecode m.data = some rq)
-    (h : ∀ c : apply.Chain, chainLog c rq log = log) : kvEntry c₀ ch log m = log := by
+theorem kvEntry_of_chainLog (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log)
+    (m : EntryModel) (rq : apply.IRRModel) (hdec : apply.irrDecode m.data = some rq)
+    (h : ∀ c : apply.Chain, chainLog c rq lt log = log) : kvEntry c₀ ch lt log m = log := by
   unfold kvEntry
   split
   · split
@@ -58,16 +58,16 @@ theorem kvEntry_of_chainLog (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (m 
 
 /-- **An entry's model log is within the revision budget** when its request's premises hold
 (`entryOk`: a put's or a delete's room for one more revision). -/
-theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (x : apply.ApplyKV) (m : EntryModel)
-    (hok : entryOk x m) (hl : x.log.length < 2 ^ 63) :
-    (kvEntry c₀ ch x.log m).length < 2 ^ 63 := by
-  rcases kvEntry_grow c₀ ch x.log m with h | ⟨cs, h⟩
+theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (x : apply.ApplyKV)
+    (m : EntryModel) (hok : entryOk x m) (hl : x.log.length < 2 ^ 63) :
+    (kvEntry c₀ ch lt x.log m).length < 2 ^ 63 := by
+  rcases kvEntry_grow c₀ ch lt x.log m with h | ⟨cs, h⟩
   · rw [h]; exact hl
   · rcases hok with hd | ⟨rq, hdec, -, hrq, -⟩
-    · rw [kvEntry_nonwrite c₀ ch x.log m (Or.inl hd)] at h; simp at h
+    · rw [kvEntry_nonwrite c₀ ch lt x.log m (Or.inl hd)] at h; simp at h
     · by_cases hk : writeKind (apply.dispatchKind rq)
       · rw [h, List.length_append, List.length_singleton]
-        rcases hk with hk | hk | hk
+        rcases hk with hk | hk | hk | hk | hk
         · have := hrq; simp only [apply.rqOk, hk, apply.putOk] at this; omega
         · cases ho : rq.deleteRange with
           | some o =>
@@ -75,30 +75,35 @@ theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (x : apply.ApplyKV) (m : Ent
             have : apply.delOk x.log o := this o ho
             unfold apply.delOk at this; omega
           | none =>
-            have hb : backendLog rq x.log = x.log := by
+            have hb : backendLog lt rq x.log = x.log := by
               unfold backendLog; rw [hk]; simp only [ho]
-            rw [kvEntry_of_chainLog c₀ ch x.log m rq hdec (chainLog_of_backendLog rq x.log hb)] at h
+            rw [kvEntry_of_chainLog c₀ ch lt x.log m rq hdec
+              (chainLog_of_backendLog lt rq x.log hb)] at h
             simp at h
         · cases ho : rq.txn with
           | some t =>
             have := hrq; simp only [apply.rqOk, hk] at this
             have := (this t ho).1; omega
           | none =>
-            have hb : backendLog rq x.log = x.log := by
+            have hb : backendLog lt rq x.log = x.log := by
               unfold backendLog; rw [hk]; simp only [ho]
-            rw [kvEntry_of_chainLog c₀ ch x.log m rq hdec (chainLog_of_backendLog rq x.log hb)] at h
+            rw [kvEntry_of_chainLog c₀ ch lt x.log m rq hdec
+              (chainLog_of_backendLog lt rq x.log hb)] at h
             simp at h
+        · have := hrq; simp only [apply.rqOk, hk] at this
+        · have := hrq; simp only [apply.rqOk, hk] at this
       · have hnw : ∀ rq', apply.irrDecode m.data = some rq' →
             ¬ writeKind (apply.dispatchKind rq') := by
           intro rq' h'; rw [hdec] at h'; cases h'
           exact hk
-        rw [kvEntry_nonwrite c₀ ch x.log m (Or.inr (Or.inr hnw))] at h; simp at h
+        rw [kvEntry_nonwrite c₀ ch lt x.log m (Or.inr (Or.inr hnw))] at h; simp at h
 
 /-- **A dispatched request's chain log is the entry's model log** (`v3`: above `c₀`). -/
-theorem kvEntry_chainLog (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (m : EntryModel)
-    (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
-    (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index) :
-    chainLog ch rq log = kvEntry c₀ ch log m := by
+theorem kvEntry_chainLog (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log)
+    (m : EntryModel) (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
+    (hg : apply.dispatchKind rq ≠ .leaseGrant) :
+    chainLog ch rq lt log = kvEntry c₀ ch lt log m := by
   unfold kvEntry
   rw [if_pos ht, if_neg hd, hdec]
   simp only
@@ -106,11 +111,11 @@ theorem kvEntry_chainLog (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (m : E
   rw [decide_eq_true hv]
   by_cases hk : writeKind (apply.dispatchKind rq)
   · have h1 : apply.preV3Kind (apply.dispatchKind rq) = false := by
-      rcases hk with hk | hk | hk <;> rw [hk] <;> rfl
+      rcases hk with hk | hk | hk | hk | hk <;> rw [hk] <;> rfl
     have h2 : apply.storeKind (apply.dispatchKind rq) = true := by
-      rcases hk with hk | hk | hk <;> rw [hk] <;> rfl
+      rcases hk with hk | hk | hk | hk | hk <;> rw [hk] <;> first | rfl | exact absurd hk hg
     simp [h1, h2]
-  · have hn := chainLog_nonwrite rq log hk ch
+  · have hn := chainLog_nonwrite rq lt log hk ch
     rw [hn]
     split <;> (try split) <;> simp [hn]
 
@@ -121,7 +126,7 @@ theorem batchStep_of_entryStep (c₀ : w64) (m : EntryModel) (v3 : Bool) (x x' :
   unfold batchStep; rw [if_pos ht]; subst hv; exact ⟨out, h⟩
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -136,12 +141,19 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-    L B $$ Hr HL HB with ⟨HL, -, %Hp⟩
+    L B $$ Hr HL HB with ⟨HL, %Hp⟩
+  ihave %HBi := srvRLogLb_idx γ B $$ HB
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  exact ⟨fun m hm => Hok.1 m (Hp.subset hm), Hok.2.2.2.1⟩
+  refine ⟨srv_entry_transfer γ.ai0 B L plainEntry ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
+  · intro m m' he h ht hd rq hdec
+    have h1 := congrArg LogEntry.type he
+    have h2 := congrArg LogEntry.data he
+    simp only [EntryModel.toLE] at h1 h2
+    exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
+  · intro m _ hd _ h; exact absurd hd h
 
 /-- A KV certificate is the store's (at the server's names). -/
 theorem kvCert_certOk (γk : KVNames) (γs : mvcc.StoreNames) (hγ : γs.cok = γk.cok)
@@ -155,10 +167,10 @@ theorem kvCert_certOk (γk : KVNames) (γs : mvcc.StoreNames) (hγ : γs.cok = �
 /-- **The certificates `apply.Apply` asks of a plain entry's request** (`certPreV`): with `v3`,
 every outcome's log is the entry's model log (auth disabled), which is certified. -/
 theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
-    (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 : Bool)
+    (lt : LeaseTable) (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 : Bool)
     (hp : plainCover rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : v3 = decide (uint.Z c₀ < uint.Z m.index)) :
-    kvCert (GF := GF) γk (kvEntry c₀ x.chain x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
+    kvCert (GF := GF) γk (kvEntry c₀ x.chain lt x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
   iintro #Hc
   cases v3
   · simp only [apply.certPreV, Bool.false_eq_true, ↓reduceIte]; itrivial
@@ -167,8 +179,9 @@ theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok
     unfold apply.certPre
     imodintro
     iintro %oc %hs
-    rcases chainStep_plain x.chain rq x.log oc hp hs with h | ⟨-, h⟩
-    · rw [h, kvEntry_chainLog c₀ x.chain x.log m rq ht hd hdec hv']
+    rcases chainStep_plain lt x.chain rq x.log oc hp hs with h | ⟨-, h⟩
+    · rw [h, kvEntry_chainLog c₀ x.chain lt x.log m rq ht hd hdec hv'
+        (fun hk => by unfold plainCover at hp; rw [hk] at hp; exact hp)]
       iapply kvCert_certOk γk E.γ hγ $$ Hc
     · rw [hoff] at h; cases h
 
@@ -176,10 +189,10 @@ theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok
 (auth disabled), the log after `m` the model's, certified (`kv_cert_step`). -/
 theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel)
     (m : EntryModel) (x : apply.ApplyKV)
-    (hlen : (kvEntry γr.kv.c0 x.chain x.log m).length < 2 ^ 63) :
+    (hlen : (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m).length < 2 ^ 63) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
       ⌜plainEntry m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
-      kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain x.log m) := by
+      kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
   icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
@@ -189,10 +202,10 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   obtain ⟨Hpl, Hch0⟩ := Hpc
   ihave %Hl : iprop(⌜x.log = kvModel γr.kv A⌝) $$ [Ha]
   · iunfold kvAppliedL at Ha; icases Ha with ⟨-, -, -, %h⟩; ipureintro; exact h
-  have hl' : kvEntry γr.kv.c0 x.chain x.log m = kvModel γr.kv (A ++ [m]) := by
-    unfold kvModel; rw [kvRaftOf_snoc, Hch, Hl]; rfl
+  have hl' : kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m = kvModel γr.kv (A ++ [m]) := by
+    unfold kvModel kvLeases; rw [kvRaftOf_snoc, Hch, Hl]; rfl
   imod kv_cert_step γr.raft γr.kv ⊤ (fun _ _ => CoPset.mem_full) A m x.log _ hl'
-    (kvEntry_grow γr.kv.c0 x.chain x.log m) hlen $$ HcI Ha Hlb with Ha
+    (kvEntry_grow γr.kv.c0 x.chain _ x.log m) hlen $$ HcI Ha Hlb with Ha
   imodintro
   iframe Ha
   ipureintro
@@ -257,10 +270,13 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
       ⌜l.length ≤ (kvModel γk L).length⌝) $$ [HL Hcase]
   · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
     · imodintro; iframe HL; ipureintro; unfold kvModel; omega
-    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, -, %Hp⟩
+    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, %Hp⟩
+      ihave %HAi := srvRLogLb_idx γ A $$ HA
+      obtain ⟨A', HA'L, HAA'⟩ := srv_eqv_prefix γ A L HAi Hp.1 Hp.2.1 Hp.2.2
       imodintro; iframe HL; ipureintro
-      have := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 A L Hp).length_le
-      unfold kvModel at hA ⊢; rw [← hA]; exact this
+      have := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 A' L HA'L).length_le
+      have he := (kvModel_eqv γ γk A A' HAA' Hok'.2.2.1).1
+      unfold kvModel at hA he ⊢; rw [← hA, he]; exact this
   imod Hp with ⟨HL, %Hle⟩
   imod Hclose $$ [HL Hσ'] with -
   · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'
@@ -269,7 +285,7 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
   iframe Hσ
   ipureintro
   rw [← Hag]
-  simp only [kvStateOf_rev, kvStateOf_kvs]
+  simp only [kvModelSt, kvStateOf_rev, kvStateOf_kvs]
   unfold kvModel at *
   omega
 
@@ -290,8 +306,8 @@ model's, the chain the start's), and the applied log's raft log for the read sid
 theorem kvApplied_next (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (x x' : apply.ApplyKV) (i : w64)
     (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length + 1)
-    (hl : x'.log = kvEntry γr.kv.c0 x.chain x.log m) (hc : x'.chain = γr.kv.ch0) :
-    kvAppliedL (GF := GF) γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain x.log m) ⊢
+    (hl : x'.log = kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) (hc : x'.chain = γr.kv.ch0) :
+    kvAppliedL (GF := GF) γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) ⊢
       kvApplied γr.raft γr.kv (A ++ [m]) x' ∗ kvLogAt γr i x'.log := by
   rw [← hl]
   iintro H

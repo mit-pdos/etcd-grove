@@ -22,687 +22,700 @@ end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 
-noncomputable def EtcdError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EtcdError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.EtcdError" [])
 
 attribute [irreducible] EtcdError.ty
 
-noncomputable def TokenFieldNameGRPCKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TokenFieldNameGRPCKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameGRPCKey" [])
 
 attribute [irreducible] TokenFieldNameGRPCKey.ty
 
-noncomputable def ErrGRPCEmptyKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCEmptyKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCEmptyKey"
 
-axiom ErrGRPCEmptyKey.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCEmptyKey.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCKeyNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCKeyNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCKeyNotFound"
 
-axiom ErrGRPCKeyNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCKeyNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCValueProvided [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCValueProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCValueProvided"
 
-axiom ErrGRPCValueProvided.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCValueProvided.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCLeaseProvided [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCLeaseProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseProvided"
 
-axiom ErrGRPCLeaseProvided.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCLeaseProvided.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCTooManyOps [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCTooManyOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTooManyOps"
 
-axiom ErrGRPCTooManyOps.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCTooManyOps.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCDuplicateKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCDuplicateKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDuplicateKey"
 
-axiom ErrGRPCDuplicateKey.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCDuplicateKey.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCInvalidClientAPIVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCInvalidClientAPIVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidClientAPIVersion"
 
-axiom ErrGRPCInvalidClientAPIVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCInvalidClientAPIVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCInvalidSortOption [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCInvalidSortOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidSortOption"
 
-axiom ErrGRPCInvalidSortOption.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCInvalidSortOption.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCCompacted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCCompacted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCompacted"
 
-axiom ErrGRPCCompacted.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCCompacted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCFutureRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCFutureRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCFutureRev"
 
-axiom ErrGRPCFutureRev.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCFutureRev.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCNoSpace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCNoSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoSpace"
 
-axiom ErrGRPCNoSpace.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCNoSpace.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCLeaseNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCLeaseNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseNotFound"
 
-axiom ErrGRPCLeaseNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCLeaseNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCLeaseExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCLeaseExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseExist"
 
-axiom ErrGRPCLeaseExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCLeaseExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCLeaseTTLTooLarge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCLeaseTTLTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseTTLTooLarge"
 
-axiom ErrGRPCLeaseTTLTooLarge.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCWatchCanceled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCWatchCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCWatchCanceled"
 
-axiom ErrGRPCWatchCanceled.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCWatchCanceled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCMemberExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCMemberExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberExist"
 
-axiom ErrGRPCMemberExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCMemberExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCPeerURLExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCPeerURLExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPeerURLExist"
 
-axiom ErrGRPCPeerURLExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCPeerURLExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCMemberNotEnoughStarted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCMemberNotEnoughStarted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotEnoughStarted"
 
-axiom ErrGRPCMemberNotEnoughStarted.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCMemberNotEnoughStarted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCMemberBadURLs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCMemberBadURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberBadURLs"
 
-axiom ErrGRPCMemberBadURLs.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCMemberBadURLs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCMemberNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotFound"
 
-axiom ErrGRPCMemberNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCMemberNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCMemberNotLearner [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCMemberNotLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotLearner"
 
-axiom ErrGRPCMemberNotLearner.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCLearnerNotReady [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCLearnerNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLearnerNotReady"
 
-axiom ErrGRPCLearnerNotReady.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCTooManyLearners [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCTooManyLearners [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTooManyLearners"
 
-axiom ErrGRPCTooManyLearners.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCTooManyLearners.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCClusterIDMismatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterIDMismatch"
 
-axiom ErrGRPCClusterIDMismatch.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCClusterIdMismatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCClusterIdMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterIdMismatch"
 
-axiom ErrGRPCClusterIdMismatch.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCClusterIdMismatch.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCRequestTooLarge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCRequestTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRequestTooLarge"
 
-axiom ErrGRPCRequestTooLarge.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCRequestTooManyRequests [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCRequestTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRequestTooManyRequests"
 
-axiom ErrGRPCRequestTooManyRequests.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCRequestTooManyRequests.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCRootUserNotExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCRootUserNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRootUserNotExist"
 
-axiom ErrGRPCRootUserNotExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCRootUserNotExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCRootRoleNotExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCRootRoleNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRootRoleNotExist"
 
-axiom ErrGRPCRootRoleNotExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCRootRoleNotExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCUserAlreadyExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCUserAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserAlreadyExist"
 
-axiom ErrGRPCUserAlreadyExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCUserEmpty [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCUserEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserEmpty"
 
-axiom ErrGRPCUserEmpty.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCUserEmpty.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCUserNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCUserNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserNotFound"
 
-axiom ErrGRPCUserNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCUserNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCRoleAlreadyExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCRoleAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleAlreadyExist"
 
-axiom ErrGRPCRoleAlreadyExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCRoleAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCRoleNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCRoleNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleNotFound"
 
-axiom ErrGRPCRoleNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCRoleNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCRoleEmpty [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCRoleEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleEmpty"
 
-axiom ErrGRPCRoleEmpty.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCRoleEmpty.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCAuthFailed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCAuthFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthFailed"
 
-axiom ErrGRPCAuthFailed.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCAuthFailed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCPermissionNotGiven [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCPermissionNotGiven [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionNotGiven"
 
-axiom ErrGRPCPermissionNotGiven.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCPermissionNotGiven.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCPermissionDenied [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCPermissionDenied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionDenied"
 
-axiom ErrGRPCPermissionDenied.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCPermissionDenied.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCRoleNotGranted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCRoleNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleNotGranted"
 
-axiom ErrGRPCRoleNotGranted.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCRoleNotGranted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCPermissionNotGranted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCPermissionNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionNotGranted"
 
-axiom ErrGRPCPermissionNotGranted.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCPermissionNotGranted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCAuthNotEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCAuthNotEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthNotEnabled"
 
-axiom ErrGRPCAuthNotEnabled.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCInvalidAuthToken [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCInvalidAuthToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidAuthToken"
 
-axiom ErrGRPCInvalidAuthToken.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCInvalidAuthToken.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCInvalidAuthMgmt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidAuthMgmt"
 
-axiom ErrGRPCInvalidAuthMgmt.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCAuthOldRevision [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCAuthOldRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthOldRevision"
 
-axiom ErrGRPCAuthOldRevision.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCAuthOldRevision.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCNoLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoLeader"
 
-axiom ErrGRPCNoLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCNoLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCNotLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotLeader"
 
-axiom ErrGRPCNotLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCNotLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCLeaderChanged [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCLeaderChanged [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaderChanged"
 
-axiom ErrGRPCLeaderChanged.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCLeaderChanged.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCNotCapable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCNotCapable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotCapable"
 
-axiom ErrGRPCNotCapable.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCNotCapable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCStopped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCStopped"
 
-axiom ErrGRPCStopped.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCStopped.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeout"
 
-axiom ErrGRPCTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCTimeoutDueToLeaderFail [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCTimeoutDueToLeaderFail [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutDueToLeaderFail"
 
-axiom ErrGRPCTimeoutDueToLeaderFail.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCTimeoutDueToConnectionLost [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCTimeoutDueToConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutDueToConnectionLost"
 
-axiom ErrGRPCTimeoutDueToConnectionLost.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCTimeoutWaitAppliedIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCTimeoutWaitAppliedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutWaitAppliedIndex"
 
-axiom ErrGRPCTimeoutWaitAppliedIndex.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCUnhealthy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCUnhealthy [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUnhealthy"
 
-axiom ErrGRPCUnhealthy.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCUnhealthy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCCorrupt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCCorrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCorrupt"
 
-axiom ErrGRPCCorrupt.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCCorrupt.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCNotSupportedForLearner [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCNotSupportedForLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotSupportedForLearner"
 
-axiom ErrGRPCNotSupportedForLearner.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCNotSupportedForLearner.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCBadLeaderTransferee [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCBadLeaderTransferee"
 
-axiom ErrGRPCBadLeaderTransferee.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCWrongDowngradeVersionFormat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCWrongDowngradeVersionFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCWrongDowngradeVersionFormat"
 
-axiom ErrGRPCWrongDowngradeVersionFormat.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCInvalidDowngradeTargetVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCInvalidDowngradeTargetVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidDowngradeTargetVersion"
 
-axiom ErrGRPCInvalidDowngradeTargetVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCClusterVersionUnavailable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCClusterVersionUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterVersionUnavailable"
 
-axiom ErrGRPCClusterVersionUnavailable.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCDowngradeInProcess [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCDowngradeInProcess [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDowngradeInProcess"
 
-axiom ErrGRPCDowngradeInProcess.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCNoInflightDowngrade [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCNoInflightDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoInflightDowngrade"
 
-axiom ErrGRPCNoInflightDowngrade.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCCanceled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCanceled"
 
-axiom ErrGRPCCanceled.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCCanceled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrGRPCDeadlineExceeded [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGRPCDeadlineExceeded [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDeadlineExceeded"
 
-axiom ErrGRPCDeadlineExceeded.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrGRPCDeadlineExceeded.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errStringToError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errStringToError [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.errStringToError"
 
-axiom errStringToError.init [FfiSyntax] [GoGlobalContext] : val
+axiom errStringToError.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrEmptyKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrEmptyKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrEmptyKey"
 
-axiom ErrEmptyKey.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrEmptyKey.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrKeyNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrKeyNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrKeyNotFound"
 
-axiom ErrKeyNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrKeyNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrValueProvided [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrValueProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrValueProvided"
 
-axiom ErrValueProvided.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrValueProvided.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrLeaseProvided [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLeaseProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseProvided"
 
-axiom ErrLeaseProvided.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrLeaseProvided.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTooManyOps [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTooManyOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyOps"
 
-axiom ErrTooManyOps.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTooManyOps.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrDuplicateKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrDuplicateKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrDuplicateKey"
 
-axiom ErrDuplicateKey.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrDuplicateKey.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidSortOption [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidSortOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidSortOption"
 
-axiom ErrInvalidSortOption.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidSortOption.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrCompacted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrCompacted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrCompacted"
 
-axiom ErrCompacted.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrCompacted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrFutureRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrFutureRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrFutureRev"
 
-axiom ErrFutureRev.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrFutureRev.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNoSpace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNoSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoSpace"
 
-axiom ErrNoSpace.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNoSpace.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrLeaseNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLeaseNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseNotFound"
 
-axiom ErrLeaseNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrLeaseNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrLeaseExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLeaseExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseExist"
 
-axiom ErrLeaseExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrLeaseExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrLeaseTTLTooLarge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLeaseTTLTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseTTLTooLarge"
 
-axiom ErrLeaseTTLTooLarge.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMemberExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMemberExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberExist"
 
-axiom ErrMemberExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMemberExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrPeerURLExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrPeerURLExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPeerURLExist"
 
-axiom ErrPeerURLExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrPeerURLExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMemberNotEnoughStarted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMemberNotEnoughStarted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotEnoughStarted"
 
-axiom ErrMemberNotEnoughStarted.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMemberNotEnoughStarted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMemberBadURLs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMemberBadURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberBadURLs"
 
-axiom ErrMemberBadURLs.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMemberBadURLs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMemberNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotFound"
 
-axiom ErrMemberNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMemberNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMemberNotLearner [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMemberNotLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotLearner"
 
-axiom ErrMemberNotLearner.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMemberLearnerNotReady [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMemberLearnerNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberLearnerNotReady"
 
-axiom ErrMemberLearnerNotReady.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMemberLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTooManyLearners [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTooManyLearners [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyLearners"
 
-axiom ErrTooManyLearners.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTooManyLearners.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrRequestTooLarge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRequestTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRequestTooLarge"
 
-axiom ErrRequestTooLarge.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTooManyRequests [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyRequests"
 
-axiom ErrTooManyRequests.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTooManyRequests.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrRootUserNotExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRootUserNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRootUserNotExist"
 
-axiom ErrRootUserNotExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrRootUserNotExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrRootRoleNotExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRootRoleNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRootRoleNotExist"
 
-axiom ErrRootRoleNotExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrRootRoleNotExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUserAlreadyExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUserAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserAlreadyExist"
 
-axiom ErrUserAlreadyExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUserEmpty [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUserEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserEmpty"
 
-axiom ErrUserEmpty.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUserEmpty.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUserNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUserNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserNotFound"
 
-axiom ErrUserNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUserNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrRoleAlreadyExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRoleAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleAlreadyExist"
 
-axiom ErrRoleAlreadyExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrRoleAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrRoleNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRoleNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleNotFound"
 
-axiom ErrRoleNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrRoleNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrRoleEmpty [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRoleEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleEmpty"
 
-axiom ErrRoleEmpty.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrRoleEmpty.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrAuthFailed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrAuthFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthFailed"
 
-axiom ErrAuthFailed.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrAuthFailed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrPermissionDenied [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrPermissionDenied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPermissionDenied"
 
-axiom ErrPermissionDenied.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrPermissionDenied.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrRoleNotGranted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRoleNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleNotGranted"
 
-axiom ErrRoleNotGranted.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrRoleNotGranted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrPermissionNotGranted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrPermissionNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPermissionNotGranted"
 
-axiom ErrPermissionNotGranted.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrPermissionNotGranted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrAuthNotEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrAuthNotEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthNotEnabled"
 
-axiom ErrAuthNotEnabled.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidAuthToken [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidAuthToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidAuthToken"
 
-axiom ErrInvalidAuthToken.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidAuthToken.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrAuthOldRevision [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrAuthOldRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthOldRevision"
 
-axiom ErrAuthOldRevision.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrAuthOldRevision.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidAuthMgmt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidAuthMgmt"
 
-axiom ErrInvalidAuthMgmt.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrClusterIDMismatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterIDMismatch"
 
-axiom ErrClusterIDMismatch.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrClusterIdMismatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrClusterIdMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterIdMismatch"
 
-axiom ErrClusterIdMismatch.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrClusterIdMismatch.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNoLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoLeader"
 
-axiom ErrNoLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNoLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNotLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNotLeader"
 
-axiom ErrNotLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNotLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrLeaderChanged [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLeaderChanged [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaderChanged"
 
-axiom ErrLeaderChanged.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrLeaderChanged.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNotCapable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNotCapable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNotCapable"
 
-axiom ErrNotCapable.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNotCapable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrStopped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrStopped"
 
-axiom ErrStopped.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrStopped.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeout"
 
-axiom ErrTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeoutDueToLeaderFail [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeoutDueToLeaderFail [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutDueToLeaderFail"
 
-axiom ErrTimeoutDueToLeaderFail.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeoutDueToConnectionLost [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeoutDueToConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutDueToConnectionLost"
 
-axiom ErrTimeoutDueToConnectionLost.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeoutWaitAppliedIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeoutWaitAppliedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutWaitAppliedIndex"
 
-axiom ErrTimeoutWaitAppliedIndex.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUnhealthy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnhealthy [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUnhealthy"
 
-axiom ErrUnhealthy.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnhealthy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrCorrupt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrCorrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrCorrupt"
 
-axiom ErrCorrupt.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrCorrupt.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrBadLeaderTransferee [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrBadLeaderTransferee"
 
-axiom ErrBadLeaderTransferee.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrClusterVersionUnavailable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrClusterVersionUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterVersionUnavailable"
 
-axiom ErrClusterVersionUnavailable.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrWrongDowngradeVersionFormat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrWrongDowngradeVersionFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrWrongDowngradeVersionFormat"
 
-axiom ErrWrongDowngradeVersionFormat.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidDowngradeTargetVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidDowngradeTargetVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidDowngradeTargetVersion"
 
-axiom ErrInvalidDowngradeTargetVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrDowngradeInProcess [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrDowngradeInProcess [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrDowngradeInProcess"
 
-axiom ErrDowngradeInProcess.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNoInflightDowngrade [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNoInflightDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoInflightDowngrade"
 
-axiom ErrNoInflightDowngrade.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MetadataRequireLeaderKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetadataRequireLeaderKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataRequireLeaderKey"
 
-axiom MetadataRequireLeaderKey.init [FfiSyntax] [GoGlobalContext] : val
+axiom MetadataRequireLeaderKey.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MetadataHasLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetadataHasLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataHasLeader"
 
-axiom MetadataHasLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom MetadataHasLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MetadataClientAPIVersionKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetadataClientAPIVersionKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataClientAPIVersionKey"
 
-axiom MetadataClientAPIVersionKey.init [FfiSyntax] [GoGlobalContext] : val
+axiom MetadataClientAPIVersionKey.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def TokenFieldNameGRPC [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TokenFieldNameGRPC [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameGRPC"
 
-axiom TokenFieldNameGRPC.init [FfiSyntax] [GoGlobalContext] : val
+axiom TokenFieldNameGRPC.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def TokenFieldNameSwagger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TokenFieldNameSwagger [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameSwagger"
 
-axiom TokenFieldNameSwagger.init [FfiSyntax] [GoGlobalContext] : val
+axiom TokenFieldNameSwagger.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Error [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Error [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.Error"
 
-noncomputable def ErrorDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrorDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrorDesc"
 
 /-- Code returns grpc/codes.Code.
     TODO: define clientv3/codes.Code.
 
     go: error.go:248:20 -/
-noncomputable def EtcdError.Code.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdError.Code.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc EtcdError.ty))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (App (Val (GoInstruction (StructFieldRef EtcdError.ty go!"code"))) (Var "e")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (App (Val (GoInstruction (StructFieldRef EtcdError.ty go!"code"))) (Var "e"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Var "$res0"))))))
 
 /-- go: error.go:252:20 -/
-noncomputable def EtcdError.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdError.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc EtcdError.ty))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef EtcdError.ty go!"desc"))) (Var "e")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef EtcdError.ty go!"desc"))) (Var "e"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- go: error.go:256:6 -/
-noncomputable def Error.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (App (App (Val (map.lookup2 go.string go.error)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.error)))) (App (Val (GoInstruction (GlobalVarAddr errStringToError))) (Val #())))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -727,10 +740,14 @@ noncomputable def Error.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "desc" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert EtcdError.ty go.error))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "ev"))) (Val #()))
+  (Let "$r0" (App (Val (GoInstruction (Convert EtcdError.ty go.error))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "ev"))) (Val #()))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "desc"))
-  (App (Val (GoInstruction (CompositeLiteral EtcdError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"code")) (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"desc")) (ElementExpression go.string (Var "$v1")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral EtcdError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"code")) (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"desc")) (ElementExpression go.string (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Message"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "ev"))) (Val #()))
   (App (Val doExecute)
@@ -743,8 +760,12 @@ noncomputable def Error.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "ev") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -752,19 +773,29 @@ noncomputable def Error.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "verr") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
-  (App (Val doExecute)
-  (Val #())))))))
-
-/-- go: error.go:274:6 -/
-noncomputable def ErrorDesc.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "err"
-  (App (Val exceptionDo)
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+
+/-- go: error.go:274:6 -/
+noncomputable def ErrorDesc.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.FromError []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -776,21 +807,26 @@ noncomputable def ErrorDesc.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Message"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "s"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Message"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "s"))) (Val #())))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1184,35 +1220,37 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))))
 
-structure EtcdError [FfiSyntax] where
+structure EtcdError [GooseExts] where
   mk ::
   code' : _root_.Perennial.google_golang_org.grpc.codes.Code
   desc' : GoString
 
-noncomputable instance EtcdError.zero_val [FfiSyntax] : ZeroVal EtcdError :=
+noncomputable instance EtcdError.zero_val [GooseExts] : ZeroVal EtcdError :=
   ⟨EtcdError.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EtcdError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EtcdError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"code" _root_.Perennial.google_golang_org.grpc.codes.Code.ty),
 (go.field_decl.FieldDecl go!"desc" go.string)]
 
-@[irreducible] noncomputable def EtcdError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EtcdError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EtcdError.fieldsUnsealed
 
-noncomputable instance equals_unfold_EtcdError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EtcdError [GooseExts] [GoGlobalContext] :
     EqualsUnfold EtcdError.fields EtcdError.fieldsUnsealed :=
   ⟨by unfold EtcdError.fields; rfl⟩
 
-@[reducible] noncomputable def EtcdError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EtcdError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EtcdError.fields)
 
-class EtcdError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EtcdError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdError.underlying EtcdError
   underlying : go.UnderlyingDirectedEq EtcdError.ty EtcdError.underlying
   get_code : ∀ (x : EtcdError), go.IsGoStepPureDetTagged under (StructFieldGet EtcdError.underlying go!"code") #x (Val #(x.code'))
   set_code : ∀ (x : EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : EtcdError)))
   get_desc : ∀ (x : EtcdError), go.IsGoStepPureDetTagged under (StructFieldGet EtcdError.underlying go!"desc") #x (Val #(x.desc'))
   set_desc : ∀ (x : EtcdError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : EtcdError)))
+  method_set : go.MethodSetIs EtcdError.ty [(go!"Code", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.codes.Code.ty]))), (go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdError.ty) [(go!"Code", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.codes.Code.ty]))), (go!"Error", (some (go.signature.Signature [] false [go.string])))]
   Code_unfold : MethodUnfold EtcdError.ty go!"Code" EtcdError.Code.impl
   Error_unfold : MethodUnfold EtcdError.ty go!"Error" EtcdError.Error.impl
   ptr_Code_unfold : MethodUnfold (go.GoType.PointerType EtcdError.ty) go!"Code" (LamV "$r"
@@ -1226,38 +1264,44 @@ attribute [instance] EtcdError.TypeAssumptions.type_repr
   EtcdError.TypeAssumptions.set_code
   EtcdError.TypeAssumptions.get_desc
   EtcdError.TypeAssumptions.set_desc
+  EtcdError.TypeAssumptions.method_set
+  EtcdError.TypeAssumptions.ptr_method_set
   EtcdError.TypeAssumptions.Code_unfold
   EtcdError.TypeAssumptions.Error_unfold
   EtcdError.TypeAssumptions.ptr_Code_unfold
   EtcdError.TypeAssumptions.ptr_Error_unfold
 
-structure TokenFieldNameGRPCKey [FfiSyntax] where
+structure TokenFieldNameGRPCKey [GooseExts] where
   mk ::
 
-noncomputable instance TokenFieldNameGRPCKey.zero_val [FfiSyntax] : ZeroVal TokenFieldNameGRPCKey :=
+noncomputable instance TokenFieldNameGRPCKey.zero_val [GooseExts] : ZeroVal TokenFieldNameGRPCKey :=
   ⟨TokenFieldNameGRPCKey.mk⟩
 
-@[reducible] noncomputable def TokenFieldNameGRPCKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TokenFieldNameGRPCKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def TokenFieldNameGRPCKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TokenFieldNameGRPCKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TokenFieldNameGRPCKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_TokenFieldNameGRPCKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TokenFieldNameGRPCKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold TokenFieldNameGRPCKey.fields TokenFieldNameGRPCKey.fieldsUnsealed :=
   ⟨by unfold TokenFieldNameGRPCKey.fields; rfl⟩
 
-@[reducible] noncomputable def TokenFieldNameGRPCKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TokenFieldNameGRPCKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TokenFieldNameGRPCKey.fields)
 
-class TokenFieldNameGRPCKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TokenFieldNameGRPCKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TokenFieldNameGRPCKey.underlying TokenFieldNameGRPCKey
   underlying : go.UnderlyingDirectedEq TokenFieldNameGRPCKey.ty TokenFieldNameGRPCKey.underlying
+  method_set : go.MethodSetIs TokenFieldNameGRPCKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TokenFieldNameGRPCKey.ty) []
 
 attribute [instance] TokenFieldNameGRPCKey.TypeAssumptions.type_repr
   TokenFieldNameGRPCKey.TypeAssumptions.underlying
+  TokenFieldNameGRPCKey.TypeAssumptions.method_set
+  TokenFieldNameGRPCKey.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EtcdError_instance : EtcdError.TypeAssumptions
   TokenFieldNameGRPCKey_instance : TokenFieldNameGRPCKey.TypeAssumptions
   Error_unfold : FuncUnfold Error [] Error.impl

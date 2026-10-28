@@ -20,36 +20,36 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.naming
 
-noncomputable def stackCreator [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def stackCreator [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.stackCreator"
 
-axiom stackCreator.init [FfiSyntax] [GoGlobalContext] : val
+axiom stackCreator.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def GetNameFromCallsite [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetNameFromCallsite [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.GetNameFromCallsite"
 
-noncomputable def hasPackage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hasPackage [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.hasPackage"
 
-noncomputable def trimPackagePrefix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def trimPackagePrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.trimPackagePrefix"
 
-noncomputable def extractStackCreator [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def extractStackCreator [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.extractStackCreator"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.naming where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.naming)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val stackCreator.init) (Val #())))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.apimachinery.pkg.util.naming
 

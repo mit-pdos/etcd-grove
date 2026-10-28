@@ -19,7 +19,7 @@ namespace consistency
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.util.consistency
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -28,13 +28,13 @@ variable [package_sem : k8s_io.client_go.util.consistency.Assumptions]
 theorem newConsistencyStore.wp_proof : newConsistencyStore.spec (GF := GF) (hG := hG) := by
   intro sm dq S G T
   wp_start as ⟨Hsm, #Hget, #Hexcl⟩
+  iapply wp_fupd
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
   wp_apply wp_map_make1 (K := Owner) (V := Loc) k8s_io.apimachinery.pkg.types.NamespacedName.ty
     (go.GoType.PointerType ownerRecord.ty) as %wm Hwm
-  wp_alloc c as Hcs
-  iStructNamed Hcs
+  iStructNamed «$r0»
   ipersist writes
   ipersist stores
   ipersist Hsm
@@ -66,7 +66,7 @@ theorem newConsistencyStore.wp_proof : newConsistencyStore.spec (GF := GF) (hG :
   imod sync.init_RWMutex (writesP γ) (E := ⊤) _ $$ [Hwm HW2] writesLock with Hrds
   · inext; iunfold writesP; iexists ∅; simp only [γ]; iframe
   ihave ⟨Hrds, #Hguard⟩ := sync.ownRWMutex_slots_guard _ _ $$ Hrds
-  wp_auto
+  imodintro
   iapply HΦ
   iexists γ
   isplitr

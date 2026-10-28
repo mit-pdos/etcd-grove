@@ -15,13 +15,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- `(i + 1) % n` (Go's signed `%`) stays an index for `0 ≤ i < n`. -/
 theorem srem_succ_bounds (a n : w64) (ha : 0 ≤ sint.Z a) (ha' : sint.Z a < sint.Z n) :
     0 ≤ sint.Z (BitVec.srem (a + W64 1) n) ∧ sint.Z (BitVec.srem (a + W64 1) n) < sint.Z n := by

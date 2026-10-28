@@ -28,7 +28,7 @@ open Iris Iris.BI k8s_io.kubernetes.pkg.controller
 
 section body
 /-- go: controller_utils.go:1317:6 -/
-noncomputable def RemoveTaintOffNode.body [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def RemoveTaintOffNode.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "c"
   (Lam "nodeName"
@@ -211,7 +211,7 @@ noncomputable def RemoveTaintOffNode.body [FfiSyntax] [GoGlobalContext] : val :=
 end body
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

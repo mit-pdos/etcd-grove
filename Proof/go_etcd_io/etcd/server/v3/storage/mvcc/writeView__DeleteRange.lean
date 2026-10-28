@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -36,14 +36,15 @@ theorem mvcc.writeView.DeleteRange.wp_proof
     mvcc.writeView.DeleteRange.spec (GF := GF) (hG := hG) := by
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
-  intro wv s γ P Pre Q Post f key endk k e
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hend, %Hwq⟩
+  intro wv s γ P Pre Q Post f key endk k e L I
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hend, Hown, #HI, %Hwq⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply hTODO as %t ⟨%Ht, Htrc⟩
@@ -57,8 +58,11 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   · iapply (mvcc.hookIs_split γ P f).2; iframe HhookOk Hfrag
   (try wp_auto)
   -- `tw.DeleteRange(key, end)`
-  wp_apply (hDel t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e)
-    $$ [$Htx $Hkey $Hend] as %n %rev ⟨Htx, %Hnr⟩
+  icases mvcc.isTxnWrite_cert _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx with ⟨Htx, #Hc0⟩
+  ihave %HIeq := HI $$ %ilog Hc0
+  ihave Hown := lease.leaseOwn_eq HIeq.symm $$ Hown
+  wp_apply (hDel t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e L)
+    $$ [$Htx $Hkey $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr⟩
   (try wp_auto)
   -- the deferred `tw.End()`
   rw [List.nil_append]
@@ -79,7 +83,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   iapply HΦ
   iframe Hrd HPost
   iexists ilog
-  iframe Hcert
+  iframe Hcert Hown
   try (ipureintro; exact Hnr)
 
 end proof

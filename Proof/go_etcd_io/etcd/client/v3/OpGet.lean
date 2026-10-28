@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -30,13 +30,12 @@ theorem OpGet.wp_proof (wp_IsOptsWithPrefix : IsOptsWithPrefix.spec (GF := GF) (
     OpGet.spec (GF := GF) (hG := hG) := by
   intro key sl gs
   wp_start as ⟨#Hopts, %Hnp⟩
-  wp_alloc o_ptr as Ho
   wp_auto
   wp_apply wp_IsOptsWithPrefix $$ [$Hopts]
   have Hrest : ∀ Φ' : val → IProp GF,
-      (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ o_ptr ↦ sl ∗
-        optsAt sl gs ∗ (∀ op, opFullAt op (opGetModel key gs) -∗ Φ' #op)) ⊢
-      WP (exceptionDo
+      (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opts_ptr ↦ sl ∗
+        optsAt sl gs ∗ «$res0_ptr» ↦ zero_val go_etcd_io.etcd.client.v3.Op ∗ (∀ op, opFullAt op (opGetModel key gs) -∗ Φ' #op)) ⊢
+      WP ((exceptionDo
         (let: "$r0" :=
           let: "$v1" := (Convert go.string go.byte.SliceType) #key in
             (CompositeLiteral go_etcd_io.etcd.client.v3.Op.ty)
@@ -47,11 +46,13 @@ theorem OpGet.wp_proof (wp_IsOptsWithPrefix : IsOptsWithPrefix.spec (GF := GF) (
           let: "ret" := (GoAlloc go_etcd_io.etcd.client.v3.Op.ty) ((GoZeroVal go_etcd_io.etcd.client.v3.Op.ty) #()) in
             do: "ret" <-[go_etcd_io.etcd.client.v3.Op.ty] "$r0" ;;;
               do:
-                  (let: "$a0" := ![go_etcd_io.etcd.client.v3.OpOption.ty.SliceType] #o_ptr in
+                  (let: "$a0" := ![go_etcd_io.etcd.client.v3.OpOption.ty.SliceType] #opts_ptr in
                     ((MethodResolve go_etcd_io.etcd.client.v3.Op.ty.PointerType go!"applyOpts") "ret") "$a0") ;;;
-                return: ![go_etcd_io.etcd.client.v3.Op.ty] "ret")) {{ Φ' }}) := by
+                let: "$r0" := ![go_etcd_io.etcd.client.v3.Op.ty] "ret" in
+                  do: #«$res0_ptr» <-[go_etcd_io.etcd.client.v3.Op.ty] "$r0" ;;; return: #())) ;;
+        ![go_etcd_io.etcd.client.v3.Op.ty] #«$res0_ptr») {{ Φ' }}) := by
     intro Φ'
-    iintro ⟨#Hpkg, Ho, #Hopts, HΦ'⟩
+    iintro ⟨#Hpkg, Ho, #Hopts, «$res0», HΦ'⟩
     iapply wp_fupd
     wp_apply wp_string_to_bytes key as %ksl ⟨Hks, -⟩
     ipersist Hks

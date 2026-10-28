@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -97,7 +97,8 @@ theorem witness.handleAppend.wp_proof
     imod cellRO_alloc $$ «$v2» with #cFr
     imod cellRO_alloc $$ «$v3» with #cTe
     imod cellRO_alloc $$ «$v4» with #cIx
-    wp_alloc ml' as Hml'
+    irename «$r0» => Hml'
+    generalize «$r0_ptr» = ml' at *
     imod msgOwn_lit ml' _ (respM MsgAppResp μ.frm id st.term μ.li false) [] ⊤ $$ [Hml'] with Hmsg
     · simp only [respM, show MsgAppResp = W32 4 from rfl, ← Hfr, ← Hli]
       ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
@@ -105,7 +106,6 @@ theorem witness.handleAppend.wp_proof
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
       msg_nulls
-    wp_auto
     imodintro
     iapply HΦ
     iframe Hst Hmsg

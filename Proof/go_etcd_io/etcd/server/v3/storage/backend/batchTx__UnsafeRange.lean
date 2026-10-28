@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend go_uber_org
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -45,13 +45,13 @@ theorem backend.batchTx.UnsafeRange.wp_proof
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW
-  icases Hw with ⟨Htx, Hpend, Hwtx⟩
+  icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩
   unfold isBucket
   icases Hbk with ⟨%bo, %Hbo, #-, #HName, #-⟩
   subst Hbo
   wp_auto
   wp_apply HName as %ns #Hns
-  wp_apply (hBucket st.tx γ.db st.C st.S ns bi.name DFrac.discard) $$ [$Hwtx $Hns] as %bkt ⟨Hwtx, -, Hbr⟩
+  wp_apply (hBucket st.tx γ.db st.C st.S G ns bi.name DFrac.discard) $$ [$Hwtx $Hns] as %bkt ⟨Hwtx, -, Hbr⟩
   icases Hbr with (%Hn | ⟨%Hn, #Hwb⟩)
   · obtain ⟨Hn, Hnil⟩ := Hn
     subst Hnil
@@ -70,7 +70,7 @@ theorem backend.batchTx.UnsafeRange.wp_proof
   obtain ⟨m, Hm⟩ : ∃ m, st.S.lookup bi.name = some m := Option.ne_none_iff_exists'.mp Hn
   wp_if_destruct
   · exact absurd rfl Hnn
-  wp_apply (hCursor st.tx γ.db st.C st.S bkt bi.name m Hm) $$ [$Hwtx $Hwb]
+  wp_apply (hCursor st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m rfl Hm) $$ [$Hwtx $Hwb]
     as %c ⟨Hcur, Hlive, Hback⟩
   wp_apply (hRange st.tx c (bktEnts m) none 1 key endKey kb eb dk de limit)
     $$ [$Hcur $Hlive $Hkey $HendKey] as %keys %vals ⟨⟨%pos', Hcur⟩, Hlive, Hkey, HendKey, Hout⟩
@@ -79,6 +79,8 @@ theorem backend.batchTx.UnsafeRange.wp_proof
   rw [Hm]
   ispecialize Hback $$ %pos' Hcur Hlive
   iframe
+  iexists G
+  iexact Hback
 
 end proof
 

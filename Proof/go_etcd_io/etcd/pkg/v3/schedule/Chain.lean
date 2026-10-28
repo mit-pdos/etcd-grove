@@ -16,7 +16,7 @@ namespace schedule
 
 open Iris
 
-variable [FfiSyntax] {GF : BundledGFunctors}
+variable [GooseExts] {GF : BundledGFunctors}
 
 /-- An untracked job scheduled. -/
 theorem chainOk_append_untracked {L : List GName} {b : Nat} {items : List (JobItem (IProp GF))}

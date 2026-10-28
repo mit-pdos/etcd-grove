@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
   go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -36,10 +36,11 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   wp_start as ⟨#Hlg, %Hlgn, #Hwd⟩
   wp_pures
   wp_alloc_auto
+  wp_pures
+  wp_alloc_auto
   irename : (s_ptr ↦ s : IProp GF) => Hs
   ipersist Hs
   wp_auto
-  rw [recv_eq_func_mk]
   iapply HΦ
   iintro !> %Q
   unfold srvInterceptorOk

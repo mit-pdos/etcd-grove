@@ -34,7 +34,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -72,12 +72,13 @@ theorem mvcc.NewStore_backend
     (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
     (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal)
     (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
-    (hf : f ≠ func.nil) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -88,14 +89,14 @@ theorem mvcc.NewStore_backend
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
-        lease.lessorRdOf γl ∗ mvcc.isLessor le γl }}
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
         (Val #le)) (Val #cfg))
     {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
         ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d ∧ γ.watchQ = false⌝ ∗
-        mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
+        mvcc.isStore s γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
         (∃ rv wv : Loc,
           s.[store, go!"ReadView"] ↦
             (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
@@ -107,15 +108,15 @@ theorem mvcc.NewStore_backend
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hncmp, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hncmp, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
+    hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f false γi γok hcfg hrb)
-    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hifresh Hok0]
-  · iframe Hpkg Hbk Hle Hifresh Hok0
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok hcfg hrb)
+    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hro Hifresh Hok0]
+  · iframe Hpkg Hbk Hle Hro Hifresh Hok0
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
       show mvcc.kbNoCmp (GF := GF) (some d) γb = mvcc.bkNoCmp d.γB from rfl,
       show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
@@ -123,11 +124,11 @@ theorem mvcc.NewStore_backend
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hcr, -⟩
+  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hcr, -⟩
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ
-  iframe Hs Hok Hh Hv Hr Ht Hc Hcl Hst Hcr
+  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr
   ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real

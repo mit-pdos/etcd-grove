@@ -26,7 +26,7 @@ namespace appslisters
 open Iris Iris.BI Iris.ProofMode cache listers labels k8s_io.client_go.listers.apps.v1
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -115,7 +115,7 @@ theorem daemonSetLister.GetPodDaemonSets.wp_proof
       "#Hbs" ∷ □ ([∗list] k ↦ d ∈ ls.take bs.length, ∃ (dns : GoString) (S : Option SelV),
         dsView d dns S ∗ ⌜bs[k]? = some (decide (selPicks (some pns) L S dns))⌝) ∗
       "Hsl" ∷ sl ↦* ls ∗ "list" ∷ list_ptr ↦ sl ∗ "pod" ∷ pod_ptr ↦ pod : IProp GF)
-    $$ [-HK Hri Hrd Hqm]
+    $$ [-HK Hri Hrd Hqm «$res0» «$res1»]
   · iexists W64 0, [], slice.nil, _, _, _, _
     iframe
     simp only [flagged_nil]

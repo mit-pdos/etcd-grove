@@ -28,7 +28,7 @@ namespace adt
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3.adt
 
 section entries
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The entries a node's subtree stabs: its left subtree's, its own, its right subtree's. -/
 theorem stab_node (qv : IvlS) (c : RbColor) (l : RbT Entry) (e : Entry) (r : RbT Entry) :
@@ -67,7 +67,7 @@ theorem visitL_sublist (q : IvlS) : ∀ T : RbT Entry, List.Sublist (T.visitL q)
 end entries
 
 section holes
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

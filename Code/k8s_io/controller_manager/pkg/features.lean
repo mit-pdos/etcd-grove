@@ -20,35 +20,35 @@ end pkg_id
 
 namespace k8s_io.controller_manager.pkg.features
 
-axiom CloudControllerManagerWatchBasedRoutesReconciliation [FfiSyntax] [GoGlobalContext] : val
+axiom CloudControllerManagerWatchBasedRoutesReconciliation [GooseExts] [GoGlobalContext] : val
 
-axiom CloudControllerManagerWebhook [FfiSyntax] [GoGlobalContext] : val
+axiom CloudControllerManagerWebhook [GooseExts] [GoGlobalContext] : val
 
-axiom CloudNodeAdditionalLabelsReconciliation [FfiSyntax] [GoGlobalContext] : val
+axiom CloudNodeAdditionalLabelsReconciliation [GooseExts] [GoGlobalContext] : val
 
-axiom ControllerManagerReleaseLeaderElectionLockOnExit [FfiSyntax] [GoGlobalContext] : val
+axiom ControllerManagerReleaseLeaderElectionLockOnExit [GooseExts] [GoGlobalContext] : val
 
-noncomputable def versionedCloudPublicFeatureGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def versionedCloudPublicFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/controller-manager/pkg/features.versionedCloudPublicFeatureGates"
 
-axiom versionedCloudPublicFeatureGates.init [FfiSyntax] [GoGlobalContext] : val
+axiom versionedCloudPublicFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SetupCurrentKubernetesSpecificFeatureGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetupCurrentKubernetesSpecificFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/controller-manager/pkg/features.SetupCurrentKubernetesSpecificFeatureGates"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.controller_manager.pkg.features where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.controller_manager.pkg.features)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val versionedCloudPublicFeatureGates.init) (Val #())))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.controller_manager.pkg.features
 

@@ -20,28 +20,28 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.diff
 
-noncomputable def Diff [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Diff [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/diff.Diff"
 
-noncomputable def toPrettyJSON [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def toPrettyJSON [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/diff.toPrettyJSON"
 
-noncomputable def ObjectGoPrintSideBySide [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ObjectGoPrintSideBySide [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/diff.ObjectGoPrintSideBySide"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.diff where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.diff)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.apimachinery.pkg.util.diff
 

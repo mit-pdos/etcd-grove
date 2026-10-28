@@ -30,364 +30,364 @@ end pkg_id
 
 namespace k8s_io.client_go.util.workqueue
 
-noncomputable def RateLimiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RateLimiter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.RateLimiter" [])
 
 attribute [irreducible] RateLimiter.ty
 
-noncomputable def TypedRateLimiter.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedRateLimiter.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedRateLimiter" [T])
 
 attribute [irreducible] TypedRateLimiter.ty
 
-noncomputable def TypedBucketRateLimiter.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedBucketRateLimiter.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedBucketRateLimiter" [T])
 
 attribute [irreducible] TypedBucketRateLimiter.ty
 
-noncomputable def TypedItemExponentialFailureRateLimiter.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedItemExponentialFailureRateLimiter.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedItemExponentialFailureRateLimiter" [T])
 
 attribute [irreducible] TypedItemExponentialFailureRateLimiter.ty
 
-noncomputable def TypedItemFastSlowRateLimiter.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedItemFastSlowRateLimiter.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedItemFastSlowRateLimiter" [T])
 
 attribute [irreducible] TypedItemFastSlowRateLimiter.ty
 
-noncomputable def TypedMaxOfRateLimiter.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedMaxOfRateLimiter.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedMaxOfRateLimiter" [T])
 
 attribute [irreducible] TypedMaxOfRateLimiter.ty
 
-noncomputable def TypedWithMaxWaitRateLimiter.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedWithMaxWaitRateLimiter.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedWithMaxWaitRateLimiter" [T])
 
 attribute [irreducible] TypedWithMaxWaitRateLimiter.ty
 
-noncomputable def DelayingInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DelayingInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.DelayingInterface" [])
 
 attribute [irreducible] DelayingInterface.ty
 
-noncomputable def TypedDelayingInterface.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedDelayingInterface.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedDelayingInterface" [T])
 
 attribute [irreducible] TypedDelayingInterface.ty
 
-noncomputable def TypedDelayingQueueConfig.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedDelayingQueueConfig.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedDelayingQueueConfig" [T])
 
 attribute [irreducible] TypedDelayingQueueConfig.ty
 
-noncomputable def delayingType.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def delayingType.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.delayingType" [T])
 
 attribute [irreducible] delayingType.ty
 
-noncomputable def waitFor.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def waitFor.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.waitFor" [T])
 
 attribute [irreducible] waitFor.ty
 
-noncomputable def waitForPriorityQueue.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def waitForPriorityQueue.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.waitForPriorityQueue" [T])
 
 attribute [irreducible] waitForPriorityQueue.ty
 
-noncomputable def queueMetrics.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def queueMetrics.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.queueMetrics" [T])
 
 attribute [irreducible] queueMetrics.ty
 
-noncomputable def GaugeMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GaugeMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.GaugeMetric" [])
 
 attribute [irreducible] GaugeMetric.ty
 
-noncomputable def SettableGaugeMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SettableGaugeMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.SettableGaugeMetric" [])
 
 attribute [irreducible] SettableGaugeMetric.ty
 
-noncomputable def CounterMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CounterMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.CounterMetric" [])
 
 attribute [irreducible] CounterMetric.ty
 
-noncomputable def SummaryMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SummaryMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.SummaryMetric" [])
 
 attribute [irreducible] SummaryMetric.ty
 
-noncomputable def HistogramMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HistogramMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.HistogramMetric" [])
 
 attribute [irreducible] HistogramMetric.ty
 
-noncomputable def noopMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.noopMetric" [])
 
 attribute [irreducible] noopMetric.ty
 
-noncomputable def defaultQueueMetrics.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def defaultQueueMetrics.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.defaultQueueMetrics" [T])
 
 attribute [irreducible] defaultQueueMetrics.ty
 
-noncomputable def noMetrics.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def noMetrics.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.noMetrics" [T])
 
 attribute [irreducible] noMetrics.ty
 
-noncomputable def retryMetrics.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def retryMetrics.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.retryMetrics" [])
 
 attribute [irreducible] retryMetrics.ty
 
-noncomputable def defaultRetryMetrics.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def defaultRetryMetrics.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.defaultRetryMetrics" [])
 
 attribute [irreducible] defaultRetryMetrics.ty
 
-noncomputable def MetricsProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MetricsProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.MetricsProvider" [])
 
 attribute [irreducible] MetricsProvider.ty
 
-noncomputable def noopMetricsProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopMetricsProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.noopMetricsProvider" [])
 
 attribute [irreducible] noopMetricsProvider.ty
 
-noncomputable def DoWorkPieceFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoWorkPieceFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.DoWorkPieceFunc" [])
 
 attribute [irreducible] DoWorkPieceFunc.ty
 
-noncomputable def options.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def options.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.options" [])
 
 attribute [irreducible] options.ty
 
-noncomputable def Options.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Options.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.Options" [])
 
 attribute [irreducible] Options.ty
 
-noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-noncomputable def TypedInterface.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedInterface.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedInterface" [T])
 
 attribute [irreducible] TypedInterface.ty
 
-noncomputable def Queue.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def Queue.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.Queue" [T])
 
 attribute [irreducible] Queue.ty
 
-noncomputable def queue.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def queue.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.queue" [T])
 
 attribute [irreducible] queue.ty
 
-noncomputable def TypedQueueConfig.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedQueueConfig.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedQueueConfig" [T])
 
 attribute [irreducible] TypedQueueConfig.ty
 
-noncomputable def Typed.ty [FfiSyntax] [GoGlobalContext] (t : go.GoType) : go.GoType :=
+noncomputable def Typed.ty [GooseExts] [GoGlobalContext] (t : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.Typed" [t])
 
 attribute [irreducible] Typed.ty
 
-noncomputable def RateLimitingInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RateLimitingInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.RateLimitingInterface" [])
 
 attribute [irreducible] RateLimitingInterface.ty
 
-noncomputable def TypedRateLimitingInterface.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedRateLimitingInterface.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedRateLimitingInterface" [T])
 
 attribute [irreducible] TypedRateLimitingInterface.ty
 
-noncomputable def TypedRateLimitingQueueConfig.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedRateLimitingQueueConfig.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.TypedRateLimitingQueueConfig" [T])
 
 attribute [irreducible] TypedRateLimitingQueueConfig.ty
 
-noncomputable def rateLimitingType.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def rateLimitingType.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/workqueue.rateLimitingType" [T])
 
 attribute [irreducible] rateLimitingType.ty
 
-@[reducible] noncomputable def BucketRateLimiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BucketRateLimiter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedBucketRateLimiter.ty go.any)
 
-@[reducible] noncomputable def ItemExponentialFailureRateLimiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ItemExponentialFailureRateLimiter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedItemExponentialFailureRateLimiter.ty go.any)
 
-@[reducible] noncomputable def ItemFastSlowRateLimiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ItemFastSlowRateLimiter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedItemFastSlowRateLimiter.ty go.any)
 
-@[reducible] noncomputable def MaxOfRateLimiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MaxOfRateLimiter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedMaxOfRateLimiter.ty go.any)
 
-@[reducible] noncomputable def WithMaxWaitRateLimiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WithMaxWaitRateLimiter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedWithMaxWaitRateLimiter.ty go.any)
 
-@[reducible] noncomputable def DelayingQueueConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DelayingQueueConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedDelayingQueueConfig.ty go.any)
 
-@[reducible] noncomputable def QueueConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def QueueConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedQueueConfig.ty go.any)
 
-@[reducible] noncomputable def Type'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Type'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (Typed.ty go.any)
 
-@[reducible] noncomputable def RateLimitingQueueConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RateLimitingQueueConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedRateLimitingQueueConfig.ty go.any)
 
-@[reducible] noncomputable def maxWait [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def maxWait [GooseExts] [GoGlobalContext] : val :=
   #(W64 10000000000)
 
-@[reducible] noncomputable def defaultUnfinishedWorkUpdatePeriod [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def defaultUnfinishedWorkUpdatePeriod [GooseExts] [GoGlobalContext] : val :=
   #(W64 500000000)
 
-noncomputable def globalMetricsProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def globalMetricsProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.globalMetricsProvider"
 
-noncomputable def setGlobalMetricsProviderOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setGlobalMetricsProviderOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.setGlobalMetricsProviderOnce"
 
-noncomputable def DefaultControllerRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultControllerRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.DefaultControllerRateLimiter"
 
-noncomputable def DefaultTypedControllerRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultTypedControllerRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.DefaultTypedControllerRateLimiter"
 
-noncomputable def NewItemExponentialFailureRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewItemExponentialFailureRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewItemExponentialFailureRateLimiter"
 
-noncomputable def NewTypedItemExponentialFailureRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedItemExponentialFailureRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedItemExponentialFailureRateLimiter"
 
-noncomputable def DefaultItemBasedRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultItemBasedRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.DefaultItemBasedRateLimiter"
 
-noncomputable def DefaultTypedItemBasedRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultTypedItemBasedRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.DefaultTypedItemBasedRateLimiter"
 
-noncomputable def NewItemFastSlowRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewItemFastSlowRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewItemFastSlowRateLimiter"
 
-noncomputable def NewTypedItemFastSlowRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedItemFastSlowRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedItemFastSlowRateLimiter"
 
-noncomputable def NewMaxOfRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMaxOfRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewMaxOfRateLimiter"
 
-noncomputable def NewTypedMaxOfRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedMaxOfRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedMaxOfRateLimiter"
 
-noncomputable def NewWithMaxWaitRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewWithMaxWaitRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewWithMaxWaitRateLimiter"
 
-noncomputable def NewTypedWithMaxWaitRateLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedWithMaxWaitRateLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedWithMaxWaitRateLimiter"
 
-noncomputable def NewDelayingQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDelayingQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewDelayingQueue"
 
-noncomputable def NewTypedDelayingQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedDelayingQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedDelayingQueue"
 
-noncomputable def NewDelayingQueueWithConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDelayingQueueWithConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewDelayingQueueWithConfig"
 
-noncomputable def TypedNewDelayingQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TypedNewDelayingQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.TypedNewDelayingQueue"
 
-noncomputable def NewTypedDelayingQueueWithConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedDelayingQueueWithConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedDelayingQueueWithConfig"
 
-noncomputable def NewDelayingQueueWithCustomQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDelayingQueueWithCustomQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewDelayingQueueWithCustomQueue"
 
-noncomputable def NewNamedDelayingQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNamedDelayingQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewNamedDelayingQueue"
 
-noncomputable def NewDelayingQueueWithCustomClock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDelayingQueueWithCustomClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewDelayingQueueWithCustomClock"
 
-noncomputable def newDelayingQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newDelayingQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.newDelayingQueue"
 
-noncomputable def insert [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def insert [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.insert"
 
-noncomputable def newQueueMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newQueueMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.newQueueMetrics"
 
-noncomputable def newRetryMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newRetryMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.newRetryMetrics"
 
-noncomputable def SetProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.SetProvider"
 
-noncomputable def WithChunkSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithChunkSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.WithChunkSize"
 
-noncomputable def ParallelizeUntil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParallelizeUntil [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.ParallelizeUntil"
 
-noncomputable def ceilDiv [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ceilDiv [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.ceilDiv"
 
-noncomputable def DefaultQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.DefaultQueue"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.New"
 
-noncomputable def NewTyped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTyped [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTyped"
 
-noncomputable def NewWithConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewWithConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewWithConfig"
 
-noncomputable def NewTypedWithConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedWithConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedWithConfig"
 
-noncomputable def NewNamed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNamed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewNamed"
 
-noncomputable def newQueueWithConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newQueueWithConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.newQueueWithConfig"
 
-noncomputable def newQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.newQueue"
 
-noncomputable def NewRateLimitingQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRateLimitingQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewRateLimitingQueue"
 
-noncomputable def NewTypedRateLimitingQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedRateLimitingQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedRateLimitingQueue"
 
-noncomputable def NewRateLimitingQueueWithConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRateLimitingQueueWithConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewRateLimitingQueueWithConfig"
 
-noncomputable def NewTypedRateLimitingQueueWithConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedRateLimitingQueueWithConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewTypedRateLimitingQueueWithConfig"
 
-noncomputable def NewNamedRateLimitingQueue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNamedRateLimitingQueue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewNamedRateLimitingQueue"
 
-noncomputable def NewRateLimitingQueueWithDelayingInterface [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRateLimitingQueueWithDelayingInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/workqueue.NewRateLimitingQueueWithDelayingInterface"
 
 /-- DefaultControllerRateLimiter is a no-arg constructor for a default rate limiter for a workqueue.  It has
@@ -396,21 +396,27 @@ noncomputable def NewRateLimitingQueueWithDelayingInterface [FfiSyntax] [GoGloba
     Deprecated: Use DefaultTypedControllerRateLimiter instead.
 
     go: default_rate_limiters.go:44:6 -/
-noncomputable def DefaultControllerRateLimiter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DefaultControllerRateLimiter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (App (Val (GoInstruction (GoZeroVal RateLimiter.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve DefaultTypedControllerRateLimiter [go.any]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (FuncResolve DefaultTypedControllerRateLimiter [go.any]))) (Val #())) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimiter.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "$res0")))))
 
 /-- DefaultTypedControllerRateLimiter is a no-arg constructor for a default rate limiter for a workqueue.  It has
     both overall and per-item rate limiting.  The overall is a token bucket and the per-item is exponential
 
     go: default_rate_limiters.go:50:6 -/
-noncomputable def DefaultTypedControllerRateLimiter.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def DefaultTypedControllerRateLimiter.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$a0" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Millisecond)))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1000)) (Val _root_.Perennial.time.Second)))
   (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemExponentialFailureRateLimiter [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedBucketRateLimiter.ty T)))) (Let "$v0" (Let "$a0" (Val #(W64 4621819117588971520))
@@ -418,88 +424,132 @@ noncomputable def DefaultTypedControllerRateLimiter.impl [FfiSyntax] [GoGlobalCo
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.golang_org.x.time.rate.NewLimiter []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral (TypedBucketRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"Limiter")) (ElementExpression (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) (Var "$v0")))])))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (TypedRateLimiter.ty T))))) (LiteralValue [(KeyedElement none (ElementExpression (TypedRateLimiter.ty T) (Var "$sl0"))), (KeyedElement none (ElementExpression (TypedRateLimiter.ty T) (Var "$sl1")))]))))
-  (App (App (Val (GoInstruction (FuncResolve NewTypedMaxOfRateLimiter [T]))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve NewTypedMaxOfRateLimiter [T]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "$res0")))))
 
 /-- go: default_rate_limiters.go:68:37 -/
-noncomputable def TypedBucketRateLimiter.When.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedBucketRateLimiter.When.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedBucketRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty) go!"Delay"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Reserve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedBucketRateLimiter.ty T))))) (Var "r"))))) (Val #()))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty) go!"Delay"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Reserve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedBucketRateLimiter.ty T))))) (Var "r"))))) (Val #()))) (Val #()))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:72:37 -/
-noncomputable def TypedBucketRateLimiter.NumRequeues.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedBucketRateLimiter.NumRequeues.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedBucketRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:76:37 -/
-noncomputable def TypedBucketRateLimiter.Forget.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedBucketRateLimiter.Forget.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedBucketRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (Val doReturn)
-  (Val #())))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Val #()))))
 
 /-- Deprecated: NewItemExponentialFailureRateLimiter is deprecated, use NewTypedItemExponentialFailureRateLimiter instead.
 
     go: default_rate_limiters.go:95:6 -/
-noncomputable def NewItemExponentialFailureRateLimiter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewItemExponentialFailureRateLimiter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "baseDelay"
   (Lam "maxDelay"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (App (Val (GoInstruction (GoZeroVal RateLimiter.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "maxDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
   (Let "baseDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "baseDelay"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "baseDelay"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "baseDelay"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
-  (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemExponentialFailureRateLimiter [go.any]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemExponentialFailureRateLimiter [go.any]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimiter.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:99:6 -/
-noncomputable def NewTypedItemExponentialFailureRateLimiter.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedItemExponentialFailureRateLimiter.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "baseDelay"
   (Lam "maxDelay"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "maxDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
   (Let "baseDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "baseDelay"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedItemExponentialFailureRateLimiter.ty T)))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType T go.int)))) (LiteralValue []))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedItemExponentialFailureRateLimiter.ty T)))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType T go.int)))) (LiteralValue []))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "baseDelay"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
-  (App (Val (GoInstruction (CompositeLiteral (TypedItemExponentialFailureRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"failures")) (ElementExpression (go.GoType.MapType T go.int) (Var "$v0"))), (KeyedElement (some (KeyField go!"baseDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"maxDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2")))])))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral (TypedItemExponentialFailureRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"failures")) (ElementExpression (go.GoType.MapType T go.int) (Var "$v0"))), (KeyedElement (some (KeyField go!"baseDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"maxDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "$res0"))))))
 
 /-- Deprecated: DefaultItemBasedRateLimiter is deprecated, use DefaultTypedItemBasedRateLimiter instead.
 
     go: default_rate_limiters.go:108:6 -/
-noncomputable def DefaultItemBasedRateLimiter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DefaultItemBasedRateLimiter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (App (Val (GoInstruction (GoZeroVal RateLimiter.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve DefaultTypedItemBasedRateLimiter [go.any]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (FuncResolve DefaultTypedItemBasedRateLimiter [go.any]))) (Val #())) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimiter.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "$res0")))))
 
 /-- go: default_rate_limiters.go:112:6 -/
-noncomputable def DefaultTypedItemBasedRateLimiter.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def DefaultTypedItemBasedRateLimiter.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$a0" (Val _root_.Perennial.time.Millisecond)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (Val _root_.Perennial.time.Millisecond)
   (Let "$a1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1000)) (Val _root_.Perennial.time.Second)))
-  (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemExponentialFailureRateLimiter [T]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemExponentialFailureRateLimiter [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "$res0")))))
 
 /-- go: default_rate_limiters.go:116:53 -/
-noncomputable def TypedItemExponentialFailureRateLimiter.When.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedItemExponentialFailureRateLimiter.When.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
@@ -520,18 +570,30 @@ noncomputable def TypedItemExponentialFailureRateLimiter.When.impl [FfiSyntax] [
   (Let "calculated" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "calculated"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "calculated")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "calculated")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"maxDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"maxDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"maxDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "calculated") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "backoff")) (App (Val (GoInstruction (Convert go.untypedInt go.float64))) (Val _root_.Perennial.math.MaxInt64)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"maxDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"maxDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -547,20 +609,26 @@ noncomputable def TypedItemExponentialFailureRateLimiter.When.impl [FfiSyntax] [
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:137:53 -/
-noncomputable def TypedItemExponentialFailureRateLimiter.NumRequeues.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedItemExponentialFailureRateLimiter.NumRequeues.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 T go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType T go.int)))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failures"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad T))) (Var "item")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (map.lookup1 T go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType T go.int)))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failures"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad T))) (Var "item"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -568,19 +636,17 @@ noncomputable def TypedItemExponentialFailureRateLimiter.NumRequeues.impl [FfiSy
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:144:53 -/
-noncomputable def TypedItemExponentialFailureRateLimiter.Forget.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedItemExponentialFailureRateLimiter.Forget.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -594,46 +660,60 @@ noncomputable def TypedItemExponentialFailureRateLimiter.Forget.impl [FfiSyntax]
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))) (Val #())))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))
+  (Val #()))))
 
 /-- Deprecated: NewItemFastSlowRateLimiter is deprecated, use NewTypedItemFastSlowRateLimiter instead.
 
     go: default_rate_limiters.go:169:6 -/
-noncomputable def NewItemFastSlowRateLimiter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewItemFastSlowRateLimiter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fastDelay"
   (Lam "slowDelay"
   (Lam "maxFastAttempts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (App (Val (GoInstruction (GoZeroVal RateLimiter.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "maxFastAttempts" (App (Val (GoInstruction (GoAlloc go.int))) (Var "maxFastAttempts"))
   (Let "slowDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "slowDelay"))
   (Let "fastDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "fastDelay"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "fastDelay"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "fastDelay"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "slowDelay"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "maxFastAttempts"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemFastSlowRateLimiter [go.any]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemFastSlowRateLimiter [go.any]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimiter.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "$res0")))))))
 
 /-- go: default_rate_limiters.go:173:6 -/
-noncomputable def NewTypedItemFastSlowRateLimiter.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedItemFastSlowRateLimiter.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "fastDelay"
   (Lam "slowDelay"
   (Lam "maxFastAttempts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "maxFastAttempts" (App (Val (GoInstruction (GoAlloc go.int))) (Var "maxFastAttempts"))
   (Let "slowDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "slowDelay"))
   (Let "fastDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "fastDelay"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedItemFastSlowRateLimiter.ty T)))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType T go.int)))) (LiteralValue []))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedItemFastSlowRateLimiter.ty T)))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType T go.int)))) (LiteralValue []))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "fastDelay"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "slowDelay"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.int))) (Var "maxFastAttempts"))
-  (App (Val (GoInstruction (CompositeLiteral (TypedItemFastSlowRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"failures")) (ElementExpression (go.GoType.MapType T go.int) (Var "$v0"))), (KeyedElement (some (KeyField go!"fastDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"slowDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"maxFastAttempts")) (ElementExpression go.int (Var "$v3")))]))))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral (TypedItemFastSlowRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"failures")) (ElementExpression (go.GoType.MapType T go.int) (Var "$v0"))), (KeyedElement (some (KeyField go!"fastDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"slowDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"maxFastAttempts")) (ElementExpression go.int (Var "$v3")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "$res0")))))))
 
 /-- go: default_rate_limiters.go:182:43 -/
-noncomputable def TypedItemFastSlowRateLimiter.When.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedItemFastSlowRateLimiter.When.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
@@ -642,11 +722,19 @@ noncomputable def TypedItemFastSlowRateLimiter.When.impl [FfiSyntax] [GoGlobalCo
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (App (Val (map.lookup1 T go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType T go.int)))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failures"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad T))) (Var "item"))) (Val #(W64 1))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"slowDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"slowDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (App (Val (map.lookup1 T go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType T go.int)))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failures"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad T))) (Var "item"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"maxFastAttempts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"fastDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"fastDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -658,20 +746,26 @@ noncomputable def TypedItemFastSlowRateLimiter.When.impl [FfiSyntax] [GoGlobalCo
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:195:43 -/
-noncomputable def TypedItemFastSlowRateLimiter.NumRequeues.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedItemFastSlowRateLimiter.NumRequeues.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 T go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType T go.int)))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failures"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad T))) (Var "item")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (map.lookup1 T go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType T go.int)))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failures"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad T))) (Var "item"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -679,19 +773,17 @@ noncomputable def TypedItemFastSlowRateLimiter.NumRequeues.impl [FfiSyntax] [GoG
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:202:43 -/
-noncomputable def TypedItemFastSlowRateLimiter.Forget.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedItemFastSlowRateLimiter.Forget.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -705,21 +797,27 @@ noncomputable def TypedItemFastSlowRateLimiter.Forget.impl [FfiSyntax] [GoGlobal
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))) (Val #())))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (TypedItemFastSlowRateLimiter.ty T) go!"failuresLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T))))) (Var "r")))) (Val #()))))))))
+  (Val #()))))
 
 /-- go: default_rate_limiters.go:223:36 -/
-noncomputable def TypedMaxOfRateLimiter.When.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedMaxOfRateLimiter.When.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (Let "$r0" (Val #(W64 0))
   (Let "ret" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "ret"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "ret")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (TypedRateLimiter.ty T))))) (App (Val (GoInstruction (StructFieldRef (TypedMaxOfRateLimiter.ty T) go!"limiters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T))))) (Var "r"))))
   (Let "limiter" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
   (App (App (Val (slice.forRange (TypedRateLimiter.ty T))) (Var "$range"))
@@ -744,41 +842,59 @@ noncomputable def TypedMaxOfRateLimiter.When.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "limiter") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "ret") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "ret") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- Deprecated: NewMaxOfRateLimiter is deprecated, use NewTypedMaxOfRateLimiter instead.
 
     go: default_rate_limiters.go:236:6 -/
-noncomputable def NewMaxOfRateLimiter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewMaxOfRateLimiter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "limiters"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (App (Val (GoInstruction (GoZeroVal RateLimiter.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "limiters" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (TypedRateLimiter.ty go.any))))) (Var "limiters"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (TypedRateLimiter.ty go.any))))) (Var "limiters"))
+  (App (App (Val (GoInstruction (FuncResolve NewTypedMaxOfRateLimiter [go.any]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (TypedRateLimiter.ty go.any))))) (Var "limiters"))
-  (App (App (Val (GoInstruction (FuncResolve NewTypedMaxOfRateLimiter [go.any]))) (Val #())) (Var "$a0")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimiter.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "$res0")))))
 
 /-- go: default_rate_limiters.go:240:6 -/
-noncomputable def NewTypedMaxOfRateLimiter.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedMaxOfRateLimiter.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "limiters"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "limiters" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (TypedRateLimiter.ty T))))) (Var "limiters"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedMaxOfRateLimiter.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (TypedRateLimiter.ty T))))) (Var "limiters"))
+  (App (Val (GoInstruction (CompositeLiteral (TypedMaxOfRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"limiters")) (ElementExpression (go.GoType.SliceType (TypedRateLimiter.ty T)) (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedMaxOfRateLimiter.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (TypedRateLimiter.ty T))))) (Var "limiters"))
-  (App (Val (GoInstruction (CompositeLiteral (TypedMaxOfRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"limiters")) (ElementExpression (go.GoType.SliceType (TypedRateLimiter.ty T)) (Var "$v0")))])))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "$res0")))))
 
 /-- go: default_rate_limiters.go:244:36 -/
-noncomputable def TypedMaxOfRateLimiter.NumRequeues.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedMaxOfRateLimiter.NumRequeues.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (Let "$r0" (Val #(W64 0))
   (Let "ret" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "ret"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int))) (Var "ret")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (TypedRateLimiter.ty T))))) (App (Val (GoInstruction (StructFieldRef (TypedMaxOfRateLimiter.ty T) go!"limiters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T))))) (Var "r"))))
   (Let "limiter" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
   (App (App (Val (slice.forRange (TypedRateLimiter.ty T))) (Var "$range"))
@@ -803,18 +919,16 @@ noncomputable def TypedMaxOfRateLimiter.NumRequeues.impl [FfiSyntax] [GoGlobalCo
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "limiter") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "ret") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "ret") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:256:36 -/
-noncomputable def TypedMaxOfRateLimiter.Forget.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedMaxOfRateLimiter.Forget.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T))))) (Var "r"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (TypedRateLimiter.ty T))))) (App (Val (GoInstruction (StructFieldRef (TypedMaxOfRateLimiter.ty T) go!"limiters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T))))) (Var "r"))))
   (Let "limiter" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
   (App (App (Val (slice.forRange (TypedRateLimiter.ty T))) (Var "$range"))
@@ -828,39 +942,53 @@ noncomputable def TypedMaxOfRateLimiter.Forget.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "limiter") (Var "$value"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "limiter") (Var "$value")))))))))))))
+  (Val #()))))
 
 /-- Deprecated: NewWithMaxWaitRateLimiter is deprecated, use NewTypedWithMaxWaitRateLimiter instead.
 
     go: default_rate_limiters.go:274:6 -/
-noncomputable def NewWithMaxWaitRateLimiter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewWithMaxWaitRateLimiter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "limiter"
   (Lam "maxDelay"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (App (Val (GoInstruction (GoZeroVal RateLimiter.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "maxDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
   (Let "limiter" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (Var "limiter"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "limiter"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "limiter"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
-  (App (App (App (Val (GoInstruction (FuncResolve NewTypedWithMaxWaitRateLimiter [go.any]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewTypedWithMaxWaitRateLimiter [go.any]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimiter.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:278:6 -/
-noncomputable def NewTypedWithMaxWaitRateLimiter.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedWithMaxWaitRateLimiter.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "limiter"
   (Lam "maxDelay"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "maxDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
   (Let "limiter" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (Var "limiter"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedWithMaxWaitRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedWithMaxWaitRateLimiter.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "limiter"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedWithMaxWaitRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedWithMaxWaitRateLimiter.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "limiter"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
-  (App (Val (GoInstruction (CompositeLiteral (TypedWithMaxWaitRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"limiter")) (ElementExpression (TypedRateLimiter.ty T) (Var "$v0"))), (KeyedElement (some (KeyField go!"maxDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1")))]))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral (TypedWithMaxWaitRateLimiter.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"limiter")) (ElementExpression (TypedRateLimiter.ty T) (Var "$v0"))), (KeyedElement (some (KeyField go!"maxDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedRateLimiter.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "$res0"))))))
 
 /-- go: default_rate_limiters.go:282:41 -/
-noncomputable def TypedWithMaxWaitRateLimiter.When.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedWithMaxWaitRateLimiter.When.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "w"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "w" (App (Val (GoInstruction (GoAlloc (TypedWithMaxWaitRateLimiter.ty T)))) (Var "w"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
@@ -868,40 +996,53 @@ noncomputable def TypedWithMaxWaitRateLimiter.When.impl [FfiSyntax] [GoGlobalCon
   (Let "delay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay")))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedWithMaxWaitRateLimiter.ty T) go!"maxDelay"))) (Var "w"))))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedWithMaxWaitRateLimiter.ty T) go!"maxDelay"))) (Var "w"))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "delay") (Var "$r0"))))))))))))
-
-/-- go: default_rate_limiters.go:291:41 -/
-noncomputable def TypedWithMaxWaitRateLimiter.Forget.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
-  (LamV "w"
-  (Lam "item"
-  (App (Val exceptionDo)
-  (Let "w" (App (Val (GoInstruction (GoAlloc (TypedWithMaxWaitRateLimiter.ty T)))) (Var "w"))
-  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"Forget"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedWithMaxWaitRateLimiter.ty T) go!"limiter"))) (Var "w")))) (Var "$a0"))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedWithMaxWaitRateLimiter.ty T) go!"maxDelay"))) (Var "w"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedWithMaxWaitRateLimiter.ty T) go!"maxDelay"))) (Var "w")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "delay") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
-/-- go: default_rate_limiters.go:295:41 -/
-noncomputable def TypedWithMaxWaitRateLimiter.NumRequeues.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+/-- go: default_rate_limiters.go:291:41 -/
+noncomputable def TypedWithMaxWaitRateLimiter.Forget.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "w"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "w" (App (Val (GoInstruction (GoAlloc (TypedWithMaxWaitRateLimiter.ty T)))) (Var "w"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (Val doReturn)
+  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"NumRequeues"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedWithMaxWaitRateLimiter.ty T) go!"limiter"))) (Var "w")))) (Var "$a0")))))))))
+  (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"Forget"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedWithMaxWaitRateLimiter.ty T) go!"limiter"))) (Var "w")))) (Var "$a0")))))))
+  (Val #()))))
+
+/-- go: default_rate_limiters.go:295:41 -/
+noncomputable def TypedWithMaxWaitRateLimiter.NumRequeues.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "w"
+  (Lam "item"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (TypedWithMaxWaitRateLimiter.ty T)))) (Var "w"))
+  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"NumRequeues"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedWithMaxWaitRateLimiter.ty T) go!"limiter"))) (Var "w")))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- NewDelayingQueue constructs a new workqueue with delayed queuing ability.
     NewDelayingQueue does not emit metrics. For use with a MetricsProvider, please use
@@ -910,24 +1051,36 @@ noncomputable def TypedWithMaxWaitRateLimiter.NumRequeues.impl [FfiSyntax] [GoGl
     Deprecated: use NewTypedDelayingQueue instead.
 
     go: delaying_queue.go:73:6 -/
-noncomputable def NewDelayingQueue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewDelayingQueue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DelayingInterface.ty))) (App (Val (GoInstruction (GoZeroVal DelayingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (CompositeLiteral DelayingQueueConfig.ty))) (LiteralValue []))
+  (App (App (Val (GoInstruction (FuncResolve NewDelayingQueueWithConfig []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (CompositeLiteral DelayingQueueConfig.ty))) (LiteralValue []))
-  (App (App (Val (GoInstruction (FuncResolve NewDelayingQueueWithConfig []))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DelayingInterface.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad DelayingInterface.ty))) (Var "$res0")))))
 
 /-- NewTypedDelayingQueue constructs a new workqueue with delayed queuing ability.
     NewTypedDelayingQueue does not emit metrics. For use with a MetricsProvider, please use
     NewTypedDelayingQueueWithConfig instead and specify a name.
 
     go: delaying_queue.go:80:6 -/
-noncomputable def NewTypedDelayingQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedDelayingQueue.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedDelayingInterface.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (CompositeLiteral (TypedDelayingQueueConfig.ty T)))) (LiteralValue []))
+  (App (App (Val (GoInstruction (FuncResolve NewTypedDelayingQueueWithConfig [T]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (CompositeLiteral (TypedDelayingQueueConfig.ty T)))) (LiteralValue []))
-  (App (App (Val (GoInstruction (FuncResolve NewTypedDelayingQueueWithConfig [T]))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedDelayingInterface.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (Var "$res0")))))
 
 /-- NewDelayingQueueWithConfig constructs a new workqueue with options to
     customize different properties.
@@ -935,32 +1088,45 @@ noncomputable def NewTypedDelayingQueue.impl [FfiSyntax] [GoGlobalContext] (T : 
     Deprecated: use NewTypedDelayingQueueWithConfig instead.
 
     go: delaying_queue.go:88:6 -/
-noncomputable def NewDelayingQueueWithConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewDelayingQueueWithConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "config"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DelayingInterface.ty))) (App (Val (GoInstruction (GoZeroVal DelayingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "config" (App (Val (GoInstruction (GoAlloc DelayingQueueConfig.ty))) (Var "config"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad DelayingQueueConfig.ty))) (Var "config"))
+  (App (App (Val (GoInstruction (FuncResolve NewTypedDelayingQueueWithConfig [go.any]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad DelayingQueueConfig.ty))) (Var "config"))
-  (App (App (Val (GoInstruction (FuncResolve NewTypedDelayingQueueWithConfig [go.any]))) (Val #())) (Var "$a0")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DelayingInterface.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad DelayingInterface.ty))) (Var "$res0")))))
 
 /-- TypedNewDelayingQueue exists for backwards compatibility only.
 
     Deprecated: use NewTypedDelayingQueueWithConfig instead.
 
     go: delaying_queue.go:95:6 -/
-noncomputable def TypedNewDelayingQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedNewDelayingQueue.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedDelayingInterface.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NewTypedDelayingQueue [T]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (FuncResolve NewTypedDelayingQueue [T]))) (Val #())) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedDelayingInterface.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (Var "$res0")))))
 
 /-- NewTypedDelayingQueueWithConfig constructs a new workqueue with options to
     customize different properties.
 
     go: delaying_queue.go:101:6 -/
-noncomputable def NewTypedDelayingQueueWithConfig.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedDelayingQueueWithConfig.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "config"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedDelayingInterface.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "config" (App (Val (GoInstruction (GoAlloc (TypedDelayingQueueConfig.ty T)))) (Var "config"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.klog.v2.Background []))) (Val #())) (Val #()))
   (Let "logger" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Val #())))
@@ -968,13 +1134,17 @@ noncomputable def NewTypedDelayingQueueWithConfig.impl [FfiSyntax] [GoGlobalCont
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (delayingType.ty T)) (TypedDelayingInterface.ty T)))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Var "logger"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (delayingType.ty T)) (TypedDelayingInterface.ty T)))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Var "logger"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (App (Val (GoInstruction (StructFieldRef (TypedDelayingQueueConfig.ty T) go!"Clock"))) (Var "config")))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedDelayingQueueConfig.ty T) go!"Queue"))) (Var "config")))
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef (TypedDelayingQueueConfig.ty T) go!"Name"))) (Var "config")))
   (Let "$a4" (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (App (Val (GoInstruction (StructFieldRef (TypedDelayingQueueConfig.ty T) go!"MetricsProvider"))) (Var "config")))
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newDelayingQueue [T]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newDelayingQueue [T]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedDelayingInterface.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (TypedInterface.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedDelayingQueueConfig.ty T) go!"Queue"))) (Var "config"))) (App (Val (GoInstruction (Convert go.untypedNil (TypedInterface.ty T)))) (Val UntypedNil)))))
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (Typed.ty T)) (TypedInterface.ty T)))) (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef (TypedDelayingQueueConfig.ty T) go!"Name"))) (Var "config")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (App (Val (GoInstruction (StructFieldRef (TypedDelayingQueueConfig.ty T) go!"MetricsProvider"))) (Var "config")))
@@ -998,7 +1168,8 @@ noncomputable def NewTypedDelayingQueueWithConfig.impl [FfiSyntax] [GoGlobalCont
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Pair (Var "logger") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Pair (Var "logger") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (Var "$res0")))))
 
 /-- NewDelayingQueueWithCustomQueue constructs a new workqueue with ability to
     inject custom queue Interface instead of the default one
@@ -1006,31 +1177,43 @@ noncomputable def NewTypedDelayingQueueWithConfig.impl [FfiSyntax] [GoGlobalCont
     Deprecated: Use NewDelayingQueueWithConfig instead.
 
     go: delaying_queue.go:125:6 -/
-noncomputable def NewDelayingQueueWithCustomQueue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewDelayingQueueWithCustomQueue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "q"
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DelayingInterface.ty))) (App (Val (GoInstruction (GoZeroVal DelayingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "q" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "q"))
-  (App (Val doReturn)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "q"))
   (App (Val (GoInstruction (CompositeLiteral DelayingQueueConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Queue")) (ElementExpression Interface.ty (Var "$v1")))]))))
-  (App (App (Val (GoInstruction (FuncResolve NewDelayingQueueWithConfig []))) (Val #())) (Var "$a0")))))))))
+  (App (App (Val (GoInstruction (FuncResolve NewDelayingQueueWithConfig []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DelayingInterface.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad DelayingInterface.ty))) (Var "$res0"))))))
 
 /-- NewNamedDelayingQueue constructs a new named workqueue with delayed queuing ability.
 
     Deprecated: Use NewDelayingQueueWithConfig instead.
 
     go: delaying_queue.go:135:6 -/
-noncomputable def NewNamedDelayingQueue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewNamedDelayingQueue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DelayingInterface.ty))) (App (Val (GoInstruction (GoZeroVal DelayingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
-  (App (Val doReturn)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (App (Val (GoInstruction (CompositeLiteral DelayingQueueConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve NewDelayingQueueWithConfig []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve NewDelayingQueueWithConfig []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DelayingInterface.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad DelayingInterface.ty))) (Var "$res0")))))
 
 /-- NewDelayingQueueWithCustomClock constructs a new named workqueue
     with ability to inject real or fake clock for testing purposes.
@@ -1038,26 +1221,33 @@ noncomputable def NewNamedDelayingQueue.impl [FfiSyntax] [GoGlobalContext] : val
     Deprecated: Use NewDelayingQueueWithConfig instead.
 
     go: delaying_queue.go:143:6 -/
-noncomputable def NewDelayingQueueWithCustomClock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewDelayingQueueWithCustomClock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clock"
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DelayingInterface.ty))) (App (Val (GoInstruction (GoZeroVal DelayingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "clock" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (Var "clock"))
-  (App (Val doReturn)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (Var "clock"))
   (App (Val (GoInstruction (CompositeLiteral DelayingQueueConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.WithTicker.ty (Var "$v1")))]))))
-  (App (App (Val (GoInstruction (FuncResolve NewDelayingQueueWithConfig []))) (Val #())) (Var "$a0")))))))))
+  (App (App (Val (GoInstruction (FuncResolve NewDelayingQueueWithConfig []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DelayingInterface.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad DelayingInterface.ty))) (Var "$res0"))))))
 
 /-- go: delaying_queue.go:150:6 -/
-noncomputable def newDelayingQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def newDelayingQueue.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "logger"
   (Lam "clock"
   (Lam "q"
   (Lam "name"
   (Lam "provider"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (delayingType.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (delayingType.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "provider" (App (Val (GoInstruction (GoAlloc MetricsProvider.ty))) (Var "provider"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "q" (App (Val (GoInstruction (GoAlloc (TypedInterface.ty T)))) (Var "q"))
@@ -1078,49 +1268,63 @@ noncomputable def newDelayingQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.Go
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Var "logger"))
   (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (delayingType.ty T)) go!"waitingLoop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "ret")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "ret"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "ret")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (delayingType.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Var "$a0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (delayingType.ty T))))) (Pair (Var "ret") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (delayingType.ty T))))) (Pair (Var "ret") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "$res0")))))))))
 
 /-- go: delaying_queue.go:204:35 -/
-noncomputable def waitForPriorityQueue.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def waitForPriorityQueue.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "pq"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc (waitForPriorityQueue.ty T)))) (Var "pq"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(waitForPriorityQueue.ty T)]))) (Val #())) (Var "$a0"))))))))
-
-/-- go: delaying_queue.go:207:35 -/
-noncomputable def waitForPriorityQueue.Less.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
-  (LamV "pq"
-  (Lam "i"
-  (Lam "j"
-  (App (Val exceptionDo)
-  (Let "pq" (App (Val (GoInstruction (GoAlloc (waitForPriorityQueue.ty T)))) (Var "pq"))
-  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef (waitFor.ty T) go!"readyAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (App (Val (GoInstruction (StructFieldRef (waitFor.ty T) go!"readyAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (Var "$a0")))))))))))
-
-/-- go: delaying_queue.go:210:35 -/
-noncomputable def waitForPriorityQueue.Swap.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
-  (LamV "pq"
-  (Lam "i"
-  (Lam "j"
-  (App (Val exceptionDo)
-  (Let "pq" (App (Val (GoInstruction (GoAlloc (waitForPriorityQueue.ty T)))) (Var "pq"))
-  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(waitForPriorityQueue.ty T)]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
+
+/-- go: delaying_queue.go:207:35 -/
+noncomputable def waitForPriorityQueue.Less.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "pq"
+  (Lam "i"
+  (Lam "j"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "pq" (App (Val (GoInstruction (GoAlloc (waitForPriorityQueue.ty T)))) (Var "pq"))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef (waitFor.ty T) go!"readyAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (App (Val (GoInstruction (StructFieldRef (waitFor.ty T) go!"readyAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
+
+/-- go: delaying_queue.go:210:35 -/
+noncomputable def waitForPriorityQueue.Swap.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "pq"
+  (Lam "i"
+  (Lam "j"
+  (Seq (App (Val exceptionDo)
+  (Let "pq" (App (Val (GoInstruction (GoAlloc (waitForPriorityQueue.ty T)))) (Var "pq"))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
   (Let "$l0" (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
   (Let "$l1" (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
@@ -1137,21 +1341,19 @@ noncomputable def waitForPriorityQueue.Swap.impl [FfiSyntax] [GoGlobalContext] (
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (waitFor.ty T))))) (Pair (Var "$l1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (waitFor.ty T))))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (waitFor.ty T))))) (Pair (Var "$l0") (Var "$r0")))))))))))))
+  (Val #())))))
 
 /-- Push adds an item to the queue. Push should not be called directly; instead,
     use `heap.Push`.
 
     go: delaying_queue.go:218:36 -/
-noncomputable def waitForPriorityQueue.Push.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def waitForPriorityQueue.Push.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "pq"
   (Lam "x"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (waitForPriorityQueue.ty T))))) (Var "pq"))
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "x"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitForPriorityQueue.ty T))))) (Var "pq")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(waitForPriorityQueue.ty T)]))) (Val #())) (Var "$a0")))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1172,16 +1374,18 @@ noncomputable def waitForPriorityQueue.Push.impl [FfiSyntax] [GoGlobalContext] (
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (waitFor.ty T))))) (Pair (Var "item") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
+  (Val #()))))
 
 /-- Pop removes an item from the queue. Pop should not be called directly;
     instead, use `heap.Pop`.
 
     go: delaying_queue.go:227:36 -/
-noncomputable def waitForPriorityQueue.Pop.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def waitForPriorityQueue.Pop.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "pq"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (waitForPriorityQueue.ty T))))) (Var "pq"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitForPriorityQueue.ty T))))) (Var "pq")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(waitForPriorityQueue.ty T)]))) (Val #())) (Var "$a0")))
@@ -1195,8 +1399,12 @@ noncomputable def waitForPriorityQueue.Pop.impl [FfiSyntax] [GoGlobalContext] (T
   (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitForPriorityQueue.ty T))))) (Var "pq")))
   (App (Val (GoInstruction (Slice (waitForPriorityQueue.ty T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1)))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (waitFor.ty T)) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (Var "item")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (waitFor.ty T)) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (Var "item"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitForPriorityQueue.ty T))))) (Var "pq")) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1204,38 +1412,39 @@ noncomputable def waitForPriorityQueue.Pop.impl [FfiSyntax] [GoGlobalContext] (T
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (waitFor.ty T))))) (Pair (Var "item") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0"))))))
 
 /-- Peek returns the item at the beginning of the queue, without removing the
     item or otherwise mutating the queue. It is safe to call directly.
 
     go: delaying_queue.go:237:35 -/
-noncomputable def waitForPriorityQueue.Peek.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def waitForPriorityQueue.Peek.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "pq"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc (waitForPriorityQueue.ty T)))) (Var "pq"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (waitFor.ty T)) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (Val #(W64 0))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (waitFor.ty T)) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (App (Val (GoInstruction (IndexRef (waitForPriorityQueue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "pq")) (Val #(W64 0)))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0"))))))
 
 /-- ShutDown stops the queue. After the queue drains, the returned shutdown bool
     on Get() will be true. This method may be invoked more than once.
 
     go: delaying_queue.go:243:27 -/
-noncomputable def delayingType.ShutDown.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def delayingType.ShutDown.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (delayingType.ty T))))) (Var "q"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -1244,23 +1453,22 @@ noncomputable def delayingType.ShutDown.impl [FfiSyntax] [GoGlobalContext] (T : 
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"stopCh"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "q"))))
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"ShutDown"))) (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"TypedInterface"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "q"))))) (Val #())))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"stopOnce"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "q")))) (Var "$a0")))))))))
+  (App (App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"ShutDown"))) (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"TypedInterface"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "q"))))) (Val #())))))
+  (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"stopOnce"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (delayingType.ty T))))) (Var "q")))) (Var "$a0"))))))
+  (Val #()))))
 
 /-- AddAfter adds the given item to the work queue after the given delay
 
     go: delaying_queue.go:252:27 -/
-noncomputable def delayingType.AddAfter.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def delayingType.AddAfter.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam "item"
   (Lam "duration"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (delayingType.ty T))))) (Var "q"))
   (Let "duration" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "duration"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1290,21 +1498,19 @@ noncomputable def delayingType.AddAfter.impl [FfiSyntax] [GoGlobalContext] (T : 
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))
+  (Val #()))))))))
+  (Val #())))))
 
 /-- waitingLoop runs until the workqueue is shutdown and keeps a check on the list of items to be added.
 
     go: delaying_queue.go:279:27 -/
-noncomputable def delayingType.waitingLoop.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def delayingType.waitingLoop.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam "logger"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (delayingType.ty T))))) (Var "q"))
   (Let "logger" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Var "logger"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))) (Val #())) (Val #()))
   (Let "never" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Val #())))
@@ -1464,22 +1670,20 @@ noncomputable def delayingType.waitingLoop.impl [FfiSyntax] [GoGlobalContext] (T
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Var "$a0"))
-  (App (Var "$oldf") (Val #())))))))))))))))))))
+  (App (Var "$oldf") (Val #()))))))))))))))))
+  (Val #()))))
 
 /-- insert adds the entry to the priority queue, or updates the readyAt if it already exists in the queue
 
     go: delaying_queue.go:358:6 -/
-noncomputable def insert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def insert.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam "knownEntries"
   (Lam "entry"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "entry" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (waitFor.ty T))))) (Var "entry"))
   (Let "knownEntries" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType T (go.GoType.PointerType (waitFor.ty T)))))) (Var "knownEntries"))
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (waitForPriorityQueue.ty T))))) (Var "q"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "__p" (App (App (Val (map.lookup2 T (go.GoType.PointerType (waitFor.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType T (go.GoType.PointerType (waitFor.ty T)))))) (Var "knownEntries"))) (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (waitFor.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (waitFor.ty T))))) (Var "entry")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1519,50 +1723,52 @@ noncomputable def insert.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (waitFor.ty T))))) (Pair (Var "existing") (Var "$r0"))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (waitFor.ty T))))) (Pair (Var "existing") (Var "$r0"))))))))))))))))
+  (Val #())))))
 
 /-- go: metrics.go:67:19 -/
-noncomputable def noopMetric.Inc.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetric.Inc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Val #())))))
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #()))))
 
 /-- go: metrics.go:68:19 -/
-noncomputable def noopMetric.Dec.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetric.Dec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Val #())))))
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #()))))
 
 /-- go: metrics.go:69:19 -/
-noncomputable def noopMetric.Set.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetric.Set.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Val #())))))
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #()))))
 
 /-- go: metrics.go:70:19 -/
-noncomputable def noopMetric.Observe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetric.Observe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Val #())))))
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #()))))
 
 /-- go: metrics.go:92:34 -/
-noncomputable def defaultQueueMetrics.add.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def defaultQueueMetrics.add.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "m"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1592,18 +1798,16 @@ noncomputable def defaultQueueMetrics.add.impl [FfiSyntax] [GoGlobalContext] (T 
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- go: metrics.go:104:34 -/
-noncomputable def defaultQueueMetrics.get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def defaultQueueMetrics.get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "m"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.Clock.ty go!"Now"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.Clock.ty))) (App (Val (GoInstruction (StructFieldRef (defaultQueueMetrics.ty T) go!"clock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))))) (Val #()))
@@ -1641,18 +1845,16 @@ noncomputable def defaultQueueMetrics.get.impl [FfiSyntax] [GoGlobalContext] (T 
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- go: metrics.go:117:34 -/
-noncomputable def defaultQueueMetrics.done.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def defaultQueueMetrics.done.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "m"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (App (App (Val (map.lookup2 T _root_.Perennial.time.Time.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType T _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef (defaultQueueMetrics.ty T) go!"processingStartTimes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))))) (App (Val (GoInstruction (GoLoad T))) (Var "item")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -1683,17 +1885,15 @@ noncomputable def defaultQueueMetrics.done.impl [FfiSyntax] [GoGlobalContext] (T
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- go: metrics.go:128:34 -/
-noncomputable def defaultQueueMetrics.updateUnfinishedWork.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def defaultQueueMetrics.updateUnfinishedWork.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "m"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "total" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
   (Let "oldest" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1729,65 +1929,73 @@ noncomputable def defaultQueueMetrics.updateUnfinishedWork.impl [FfiSyntax] [GoG
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "t") (Var "$value"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "t") (Var "$value")))))))))))))))
+  (Val #()))))
 
 /-- go: metrics.go:146:21 -/
-noncomputable def noMetrics.add.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def noMetrics.add.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (Val doReturn)
-  (Val #()))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #()))))
 
 /-- go: metrics.go:147:21 -/
-noncomputable def noMetrics.get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def noMetrics.get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (Val doReturn)
-  (Val #()))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #()))))
 
 /-- go: metrics.go:148:21 -/
-noncomputable def noMetrics.done.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def noMetrics.done.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (Val doReturn)
-  (Val #()))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #()))))
 
 /-- go: metrics.go:149:21 -/
-noncomputable def noMetrics.updateUnfinishedWork.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def noMetrics.updateUnfinishedWork.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
   (Lam BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Val #())))))
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #()))))
 
 /-- Gets the time since the specified start in seconds.
 
     go: metrics.go:152:34 -/
-noncomputable def defaultQueueMetrics.sinceInSeconds.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def defaultQueueMetrics.sinceInSeconds.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "m"
   (Lam "start"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))
   (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "start"))
-  (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Duration.ty go!"Seconds"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.Clock.ty go!"Since"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.Clock.ty))) (App (Val (GoInstruction (StructFieldRef (defaultQueueMetrics.ty T) go!"clock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))))) (Var "$a0")))) (Val #()))))))))
-
-/-- go: metrics.go:164:31 -/
-noncomputable def defaultRetryMetrics.retry.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "m"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType defaultRetryMetrics.ty)))) (Var "m"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Duration.ty go!"Seconds"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.Clock.ty go!"Since"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.Clock.ty))) (App (Val (GoInstruction (StructFieldRef (defaultQueueMetrics.ty T) go!"clock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (defaultQueueMetrics.ty T))))) (Var "m"))))) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.float64))) (Var "$res0"))))))
+
+/-- go: metrics.go:164:31 -/
+noncomputable def defaultRetryMetrics.retry.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType defaultRetryMetrics.ty)))) (Var "m"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve CounterMetric.ty go!"Inc"))) (App (Val (GoInstruction (GoLoad CounterMetric.ty))) (App (Val (GoInstruction (StructFieldRef defaultRetryMetrics.ty go!"retries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType defaultRetryMetrics.ty)))) (Var "m"))))) (Val #())))))
@@ -1795,83 +2003,126 @@ noncomputable def defaultRetryMetrics.retry.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #())))))))))
+  (Val #()))))))
+  (Val #()))))
 
 /-- go: metrics.go:185:30 -/
-noncomputable def noopMetricsProvider.NewDepthMetric.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetricsProvider.NewDepthMetric.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc GaugeMetric.ty))) (App (Val (GoInstruction (GoZeroVal GaugeMetric.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert noopMetric.ty GaugeMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert noopMetric.ty GaugeMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue []))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore GaugeMetric.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad GaugeMetric.ty))) (Var "$res0"))))))
 
 /-- go: metrics.go:189:30 -/
-noncomputable def noopMetricsProvider.NewAddsMetric.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetricsProvider.NewAddsMetric.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CounterMetric.ty))) (App (Val (GoInstruction (GoZeroVal CounterMetric.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert noopMetric.ty CounterMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert noopMetric.ty CounterMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue []))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CounterMetric.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CounterMetric.ty))) (Var "$res0"))))))
 
 /-- go: metrics.go:193:30 -/
-noncomputable def noopMetricsProvider.NewLatencyMetric.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetricsProvider.NewLatencyMetric.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc HistogramMetric.ty))) (App (Val (GoInstruction (GoZeroVal HistogramMetric.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert noopMetric.ty HistogramMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert noopMetric.ty HistogramMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue []))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore HistogramMetric.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad HistogramMetric.ty))) (Var "$res0"))))))
 
 /-- go: metrics.go:197:30 -/
-noncomputable def noopMetricsProvider.NewWorkDurationMetric.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetricsProvider.NewWorkDurationMetric.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc HistogramMetric.ty))) (App (Val (GoInstruction (GoZeroVal HistogramMetric.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert noopMetric.ty HistogramMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert noopMetric.ty HistogramMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue []))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore HistogramMetric.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad HistogramMetric.ty))) (Var "$res0"))))))
 
 /-- go: metrics.go:201:30 -/
-noncomputable def noopMetricsProvider.NewUnfinishedWorkSecondsMetric.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetricsProvider.NewUnfinishedWorkSecondsMetric.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc SettableGaugeMetric.ty))) (App (Val (GoInstruction (GoZeroVal SettableGaugeMetric.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert noopMetric.ty SettableGaugeMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert noopMetric.ty SettableGaugeMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue []))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore SettableGaugeMetric.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad SettableGaugeMetric.ty))) (Var "$res0"))))))
 
 /-- go: metrics.go:205:30 -/
-noncomputable def noopMetricsProvider.NewLongestRunningProcessorSecondsMetric.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetricsProvider.NewLongestRunningProcessorSecondsMetric.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc SettableGaugeMetric.ty))) (App (Val (GoInstruction (GoZeroVal SettableGaugeMetric.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert noopMetric.ty SettableGaugeMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert noopMetric.ty SettableGaugeMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue []))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore SettableGaugeMetric.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad SettableGaugeMetric.ty))) (Var "$res0"))))))
 
 /-- go: metrics.go:209:30 -/
-noncomputable def noopMetricsProvider.NewRetriesMetric.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noopMetricsProvider.NewRetriesMetric.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CounterMetric.ty))) (App (Val (GoInstruction (GoZeroVal CounterMetric.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert noopMetric.ty CounterMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert noopMetric.ty CounterMetric.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetric.ty))) (LiteralValue []))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CounterMetric.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CounterMetric.ty))) (Var "$res0"))))))
 
 /-- go: metrics.go:217:6 -/
-noncomputable def newQueueMetrics.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def newQueueMetrics.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "mp"
   (Lam "name"
   (Lam "clock"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (queueMetrics.ty T)))) (App (Val (GoInstruction (GoZeroVal (queueMetrics.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "clock" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.utils.clock.Clock.ty))) (Var "clock"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "mp" (App (Val (GoInstruction (GoAlloc MetricsProvider.ty))) (Var "mp"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (defaultQueueMetrics.ty T)) (queueMetrics.ty T)))) (App (Val (GoInstruction (GoAlloc (defaultQueueMetrics.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.Clock.ty))) (Var "clock"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (defaultQueueMetrics.ty T)) (queueMetrics.ty T)))) (App (Val (GoInstruction (GoAlloc (defaultQueueMetrics.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.Clock.ty))) (Var "clock"))
   (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (App (App (Val (GoInstruction (MethodResolve MetricsProvider.ty go!"NewDepthMetric"))) (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (Var "mp"))) (Var "$a0")))
   (Let "$v2" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
@@ -1886,28 +2137,43 @@ noncomputable def newQueueMetrics.impl [FfiSyntax] [GoGlobalContext] (T : go.GoT
   (App (App (Val (GoInstruction (MethodResolve MetricsProvider.ty go!"NewLongestRunningProcessorSecondsMetric"))) (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (Var "mp"))) (Var "$a0")))
   (Let "$v7" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType T _root_.Perennial.time.Time.ty)))) (LiteralValue []))
   (Let "$v8" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType T _root_.Perennial.time.Time.ty)))) (LiteralValue []))
-  (App (Val (GoInstruction (CompositeLiteral (defaultQueueMetrics.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.Clock.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"depth")) (ElementExpression GaugeMetric.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"adds")) (ElementExpression CounterMetric.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"latency")) (ElementExpression HistogramMetric.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"workDuration")) (ElementExpression HistogramMetric.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"unfinishedWorkSeconds")) (ElementExpression SettableGaugeMetric.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"longestRunningProcessor")) (ElementExpression SettableGaugeMetric.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"addTimes")) (ElementExpression (go.GoType.MapType T _root_.Perennial.time.Time.ty) (Var "$v7"))), (KeyedElement (some (KeyField go!"processingStartTimes")) (ElementExpression (go.GoType.MapType T _root_.Perennial.time.Time.ty) (Var "$v8")))]))))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral (defaultQueueMetrics.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.Clock.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"depth")) (ElementExpression GaugeMetric.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"adds")) (ElementExpression CounterMetric.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"latency")) (ElementExpression HistogramMetric.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"workDuration")) (ElementExpression HistogramMetric.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"unfinishedWorkSeconds")) (ElementExpression SettableGaugeMetric.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"longestRunningProcessor")) (ElementExpression SettableGaugeMetric.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"addTimes")) (ElementExpression (go.GoType.MapType T _root_.Perennial.time.Time.ty) (Var "$v7"))), (KeyedElement (some (KeyField go!"processingStartTimes")) (ElementExpression (go.GoType.MapType T _root_.Perennial.time.Time.ty) (Var "$v8")))])))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (queueMetrics.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals MetricsProvider.ty))) (Pair (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (Var "mp")) (App (Val (GoInstruction (Convert noopMetricsProvider.ty MetricsProvider.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetricsProvider.ty))) (LiteralValue [])))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (noMetrics.ty T) (queueMetrics.ty T)))) (App (Val (GoInstruction (CompositeLiteral (noMetrics.ty T)))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (noMetrics.ty T) (queueMetrics.ty T)))) (App (Val (GoInstruction (CompositeLiteral (noMetrics.ty T)))) (LiteralValue []))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (App (Val (GoInstruction (GoStore (queueMetrics.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (queueMetrics.ty T)))) (Var "$res0")))))))
 
 /-- go: metrics.go:234:6 -/
-noncomputable def newRetryMetrics.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newRetryMetrics.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "provider"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc retryMetrics.ty))) (App (Val (GoInstruction (GoZeroVal retryMetrics.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "provider" (App (Val (GoInstruction (GoAlloc MetricsProvider.ty))) (Var "provider"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType defaultRetryMetrics.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType defaultRetryMetrics.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType defaultRetryMetrics.ty) retryMetrics.ty))) (App (Val (GoInstruction (GoAlloc defaultRetryMetrics.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType defaultRetryMetrics.ty) retryMetrics.ty))) (App (Val (GoInstruction (GoAlloc defaultRetryMetrics.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (App (App (Val (GoInstruction (MethodResolve MetricsProvider.ty go!"NewRetriesMetric"))) (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (Var "provider"))) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral defaultRetryMetrics.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"retries")) (ElementExpression CounterMetric.ty (Var "$v0")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral defaultRetryMetrics.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"retries")) (ElementExpression CounterMetric.ty (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore retryMetrics.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals MetricsProvider.ty))) (Pair (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (Var "provider")) (App (Val (GoInstruction (Convert go.untypedNil MetricsProvider.ty))) (Val UntypedNil)))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (App (Val (GoInstruction (GlobalVarAddr globalMetricsProvider))) (Val #())))
   (App (Val doExecute)
@@ -1916,32 +2182,33 @@ noncomputable def newRetryMetrics.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType defaultRetryMetrics.ty) retryMetrics.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType defaultRetryMetrics.ty)))) (Var "ret")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType defaultRetryMetrics.ty) retryMetrics.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType defaultRetryMetrics.ty)))) (Var "ret"))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (App (Val (GoInstruction (GoStore retryMetrics.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad retryMetrics.ty))) (Var "$res0"))))))
 
 /-- SetProvider sets the metrics provider for all subsequently created work
     queues. Only the first call has an effect.
 
     go: metrics.go:251:6 -/
-noncomputable def SetProvider.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SetProvider.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "metricsProvider"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "metricsProvider" (App (Val (GoInstruction (GoAlloc MetricsProvider.ty))) (Var "metricsProvider"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (Let "$r0" (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (Var "metricsProvider"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore MetricsProvider.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalMetricsProvider))) (Val #())) (Var "$r0"))))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (GlobalVarAddr setGlobalMetricsProviderOnce))) (Val #()))) (Var "$a0"))))))))
+  (App (Val (GoInstruction (GoStore MetricsProvider.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalMetricsProvider))) (Val #())) (Var "$r0"))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (GlobalVarAddr setGlobalMetricsProviderOnce))) (Val #()))) (Var "$a0"))))))
+  (Val #())))
 
 /-- WithChunkSize allows to set chunks of work items to the workers, rather than
     processing one by one.
@@ -1949,40 +2216,41 @@ noncomputable def SetProvider.impl [FfiSyntax] [GoGlobalContext] : val :=
     higher than the number of workers and the work done for each item is small.
 
     go: parallelizer.go:38:6 -/
-noncomputable def WithChunkSize.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithChunkSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType options.ty)] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType options.ty)] false []))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc go.int))) (Var "c"))
-  (App (Val doReturn)
-  (Lam "o"
-  (App (Val exceptionDo)
+  (Let "$r0" (Lam "o"
+  (Seq (App (Val exceptionDo)
   (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType options.ty)))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "c"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef options.ty go!"chunkSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType options.ty)))) (Var "o"))) (Var "$r0")))))))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "c"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef options.ty go!"chunkSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType options.ty)))) (Var "o"))) (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType options.ty)] false []))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType options.ty)] false []))))) (Var "$res0")))))
 
 /-- ParallelizeUntil is a framework that allows for parallelizing N
     independent pieces of work until done or the context is canceled.
 
     go: parallelizer.go:46:6 -/
-noncomputable def ParallelizeUntil.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ParallelizeUntil.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "workers"
   (Lam "pieces"
   (Lam "doWorkPiece"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Options.ty)))) (Var "opts"))
   (Let "doWorkPiece" (App (Val (GoInstruction (GoAlloc DoWorkPieceFunc.ty))) (Var "doWorkPiece"))
   (Let "pieces" (App (Val (GoInstruction (GoAlloc go.int))) (Var "pieces"))
   (Let "workers" (App (Val (GoInstruction (GoAlloc go.int))) (Var "workers"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral options.ty))) (LiteralValue []))
   (Let "o" (App (Val (GoInstruction (GoAlloc options.ty))) (App (Val (GoInstruction (GoZeroVal options.ty))) (Val #())))
@@ -2018,11 +2286,8 @@ noncomputable def ParallelizeUntil.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "workers")))))) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.int)))) (Var "toProcess"))
@@ -2078,7 +2343,8 @@ noncomputable def ParallelizeUntil.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Var "$a0"))
-  (App (Var "$oldf") (Val #()))))))))))))))))
+  (App (Var "$oldf") (Val #()))))))))))))))
+  (Val #())))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #())))))))
@@ -2153,110 +2419,120 @@ noncomputable def ParallelizeUntil.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))))))
+  (Val #()))))))))))
+  (Val #())))))))
 
 /-- go: parallelizer.go:99:6 -/
-noncomputable def ceilDiv.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ceilDiv.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.int))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc go.int))) (Var "a"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "b")))) (Val #(W64 1)))) (App (Val (GoInstruction (GoLoad go.int))) (Var "b"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "b")))) (Val #(W64 1)))) (App (Val (GoInstruction (GoLoad go.int))) (Var "b"))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- DefaultQueue is a slice based FIFO queue.
 
     go: queue.go:55:6 -/
-noncomputable def DefaultQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def DefaultQueue.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (queue.ty T)) (Queue.ty T)))) (App (Val (GoInstruction (GoAlloc (queue.ty T)))) (App (Val (GoInstruction (GoZeroVal (queue.ty T)))) (Val #())))))))
-
-/-- go: queue.go:62:20 -/
-noncomputable def queue.Touch.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
-  (LamV "q"
-  (Lam "item"
-  (App (Val exceptionDo)
-  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (queue.ty T))))) (Var "q"))
-  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (Val doReturn)
-  (Val #())))))))
-
-/-- go: queue.go:64:20 -/
-noncomputable def queue.Push.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
-  (LamV "q"
-  (Lam "item"
-  (App (Val exceptionDo)
-  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (queue.ty T))))) (Var "q"))
-  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Queue.ty T)))) (App (Val (GoInstruction (GoZeroVal (Queue.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (queue.ty T)) (Queue.ty T)))) (App (Val (GoInstruction (GoAlloc (queue.ty T)))) (App (Val (GoInstruction (GoZeroVal (queue.ty T)))) (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (Queue.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (Var "$res0")))))
+
+/-- go: queue.go:62:20 -/
+noncomputable def queue.Touch.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "q"
+  (Lam "item"
+  (Seq (App (Val exceptionDo)
+  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (queue.ty T))))) (Var "q"))
+  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (App (Val doExecute)
+  (Val #())))))
+  (Val #()))))
+
+/-- go: queue.go:64:20 -/
+noncomputable def queue.Push.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "q"
+  (Lam "item"
+  (Seq (App (Val exceptionDo)
+  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (queue.ty T))))) (Var "q"))
+  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(queue.ty T)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")) (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")) (Var "$r0"))))))))
+  (Val #()))))
 
 /-- go: queue.go:68:20 -/
-noncomputable def queue.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
-  (LamV "q"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (queue.ty T))))) (Var "q"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(queue.ty T)]))) (Val #())) (Var "$a0"))))))))
+-- LOCAL PATCH (not Goose output): names-only `queue[T].Pop`
+axiom queue.Pop.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val
 
-/-- go: queue.go:72:20 -/
-noncomputable def queue.Pop.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def queue.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (queue.ty T))))) (Var "q"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q"))) (Val #(W64 0)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #()))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")))
-  (App (Val (GoInstruction (Slice (queue.ty T)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(queue.ty T)]))) (Val #())) (Var "$s")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(queue.ty T)]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad T))) (Var "item")))))
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (App (Val (GoInstruction (IndexRef (queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q"))) (Val #(W64 0)))) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- New constructs a new work queue (see the package comment).
 
     Deprecated: use NewTyped instead.
 
     go: queue.go:105:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$a0" (Let "$v0" (Val #(go!""))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Type'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Type'.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!""))
   (App (Val (GoInstruction (CompositeLiteral QueueConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve NewWithConfig []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve NewWithConfig []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Type'.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Type'.ty)))) (Var "$res0")))))
 
 /-- NewTyped constructs a new work queue (see the package comment).
 
     go: queue.go:112:6 -/
-noncomputable def NewTyped.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTyped.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$a0" (Let "$v0" (Val #(go!""))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Typed.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!""))
   (App (Val (GoInstruction (CompositeLiteral (TypedQueueConfig.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve NewTypedWithConfig [T]))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve NewTypedWithConfig [T]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Typed.ty T))))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "$res0")))))
 
 /-- NewWithConfig constructs a new workqueue with ability to
     customize different properties.
@@ -2264,49 +2540,68 @@ noncomputable def NewTyped.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : 
     Deprecated: use NewTypedWithConfig instead.
 
     go: queue.go:122:6 -/
-noncomputable def NewWithConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewWithConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "config"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Type'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Type'.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "config" (App (Val (GoInstruction (GoAlloc QueueConfig.ty))) (Var "config"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad QueueConfig.ty))) (Var "config"))
+  (App (App (Val (GoInstruction (FuncResolve NewTypedWithConfig [go.any]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad QueueConfig.ty))) (Var "config"))
-  (App (App (Val (GoInstruction (FuncResolve NewTypedWithConfig [go.any]))) (Val #())) (Var "$a0")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Type'.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Type'.ty)))) (Var "$res0")))))
 
 /-- NewTypedWithConfig constructs a new workqueue with ability to
     customize different properties.
 
     go: queue.go:128:6 -/
-noncomputable def NewTypedWithConfig.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedWithConfig.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "config"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Typed.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "config" (App (Val (GoInstruction (GoAlloc (TypedQueueConfig.ty T)))) (Var "config"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedQueueConfig.ty T)))) (Var "config"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedQueueConfig.ty T)))) (Var "config"))
   (Let "$a1" (Val defaultUnfinishedWorkUpdatePeriod)
-  (App (App (App (Val (GoInstruction (FuncResolve newQueueWithConfig [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve newQueueWithConfig [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Typed.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "$res0")))))
 
 /-- NewNamed creates a new named queue.
 
     Deprecated: Use NewWithConfig instead.
 
     go: queue.go:135:6 -/
-noncomputable def NewNamed.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewNamed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Type'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Type'.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
-  (App (Val doReturn)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (App (Val (GoInstruction (CompositeLiteral QueueConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve NewWithConfig []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve NewWithConfig []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Type'.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Type'.ty)))) (Var "$res0")))))
 
 /-- newQueueWithConfig constructs a new named workqueue
     with the ability to customize different properties for testing purposes
 
     go: queue.go:143:6 -/
-noncomputable def newQueueWithConfig.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def newQueueWithConfig.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "config"
   (Lam "updatePeriod"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Typed.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "updatePeriod" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "updatePeriod"))
   (Let "config" (App (Val (GoInstruction (GoAlloc (TypedQueueConfig.ty T)))) (Var "config"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (App (Val (GoInstruction (GlobalVarAddr globalMetricsProvider))) (Val #())))
@@ -2315,15 +2610,19 @@ noncomputable def newQueueWithConfig.impl [FfiSyntax] [GoGlobalContext] (T : go.
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (App (Val (GoInstruction (StructFieldRef (TypedQueueConfig.ty T) go!"Clock"))) (Var "config")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (App (Val (GoInstruction (StructFieldRef (TypedQueueConfig.ty T) go!"Clock"))) (Var "config")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedQueueConfig.ty T) go!"Queue"))) (Var "config")))
   (Let "$a2" (Let "$a0" (App (Val (GoInstruction (GoLoad MetricsProvider.ty))) (Var "metricsProvider"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef (TypedQueueConfig.ty T) go!"Name"))) (Var "config")))
   (Let "$a2" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.utils.clock.WithTicker.ty _root_.Perennial.k8s_io.utils.clock.Clock.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (App (Val (GoInstruction (StructFieldRef (TypedQueueConfig.ty T) go!"Clock"))) (Var "config"))))
   (App (App (App (App (Val (GoInstruction (FuncResolve newQueueMetrics [T]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "updatePeriod"))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve newQueue [T]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve newQueue [T]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Typed.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (Queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedQueueConfig.ty T) go!"Queue"))) (Var "config"))) (App (Val (GoInstruction (Convert go.untypedNil (Queue.ty T)))) (Val UntypedNil)))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve DefaultQueue [T]))) (Val #())) (Val #()))
   (App (Val doExecute)
@@ -2343,15 +2642,17 @@ noncomputable def newQueueWithConfig.impl [FfiSyntax] [GoGlobalContext] (T : go.
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore MetricsProvider.ty))) (Pair (Var "metricsProvider") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore MetricsProvider.ty))) (Pair (Var "metricsProvider") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "$res0"))))))
 
 /-- go: queue.go:165:6 -/
-noncomputable def newQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def newQueue.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "c"
   (Lam "queue"
   (Lam "metrics"
   (Lam "updatePeriod"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Typed.ty T))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "updatePeriod" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "updatePeriod"))
   (Let "metrics" (App (Val (GoInstruction (GoAlloc (queueMetrics.ty T)))) (Var "metrics"))
   (Let "queue" (App (Val (GoInstruction (GoAlloc (Queue.ty T)))) (Var "queue"))
@@ -2369,8 +2670,12 @@ noncomputable def newQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : 
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Typed.ty T))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "t")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Typed.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (noMetrics.ty T)))) (App (Val (GoInstruction (GoLoad (queueMetrics.ty T)))) (Var "metrics")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -2390,23 +2695,21 @@ noncomputable def newQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : 
   (App (Val doExecute)
   (Var "$r0"))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Typed.ty T))))) (Pair (Var "t") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Typed.ty T))))) (Pair (Var "t") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "$res0"))))))))
 
 /-- Add marks item as needing processing. When the queue is shutdown new
     items will silently be ignored and not queued or marked as dirty for
     reprocessing.
 
     go: queue.go:230:20 -/
-noncomputable def Typed.Add.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.Add.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam "item"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2459,23 +2762,29 @@ noncomputable def Typed.Add.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #()))))))))
+  (Val #()))))
 
 /-- Len returns the current queue length, for informational purposes only. You
     shouldn't e.g. gate a call to Add() or Get() on Len() being a particular
     value, that can't be synchronized properly.
 
     go: queue.go:259:20 -/
-noncomputable def Typed.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Queue.ty T) go!"Len"))) (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (Queue.ty T) go!"Len"))) (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -2483,20 +2792,23 @@ noncomputable def Typed.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- Get blocks until it can return an item to be processed. If shutdown = true,
     the caller should end their goroutine. You must call Done with item when you
     have finished processing it.
 
     go: queue.go:268:20 -/
-noncomputable def Typed.Get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.Get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val wrapDefer)
-  (Lam "$defer"
-  (Let "shutdown" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (Var "item")
+  (Let "shutdown" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (Var "shutdown")
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2507,8 +2819,16 @@ noncomputable def Typed.Get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "item")) (Val #false)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
@@ -2523,8 +2843,16 @@ noncomputable def Typed.Get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (Queue.ty T) go!"Len"))) (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Val #())) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #()))))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))) (Val #true)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (App (App (Val doFor) (Lam BAnon
@@ -2540,23 +2868,21 @@ noncomputable def Typed.Get.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
 
 /-- Done marks item as done processing, and if it has been marked as dirty again
     while it was being processed, it will be re-added to the queue for
     re-processing.
 
     go: queue.go:292:20 -/
-noncomputable def Typed.Done.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.Done.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam "item"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2588,22 +2914,20 @@ noncomputable def Typed.Done.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) 
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #()))))))))
+  (Val #()))))
 
 /-- ShutDown will cause q to ignore all new items added to it. Worker
     goroutines will continue processing items in the queue until it is
     empty and then receive the shutdown signal.
 
     go: queue.go:310:20 -/
-noncomputable def Typed.ShutDown.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.ShutDown.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2628,25 +2952,24 @@ noncomputable def Typed.ShutDown.impl [FfiSyntax] [GoGlobalContext] (T : go.GoTy
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"stopCh"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))
   (Let "$f" (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Var "$a0"))
-  (App (Var "$oldf") (Val #()))))))))))))))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (Val #())))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"stopOnce"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"wg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #()))))))))))))))))
+  (App (Var "$oldf") (Val #())))))))))))))
+  (Val #()))))
 
 /-- ShutDownWithDrain is equivalent to ShutDown but waits until all items
     in the queue have been processed.
@@ -2656,15 +2979,12 @@ noncomputable def Typed.ShutDown.impl [FfiSyntax] [GoGlobalContext] (T : go.GoTy
     ShutDownWithDrain will block indefinitely.
 
     go: queue.go:330:20 -/
-noncomputable def Typed.ShutDownWithDrain.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.ShutDownWithDrain.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2696,37 +3016,41 @@ noncomputable def Typed.ShutDownWithDrain.impl [FfiSyntax] [GoGlobalContext] (T 
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"stopCh"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))
   (Let "$f" (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Var "$a0"))
-  (App (Var "$oldf") (Val #()))))))))))))))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (Val #())))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"stopOnce"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"wg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #()))))))))))))))))
+  (App (Var "$oldf") (Val #())))))))))))))
+  (Val #()))))
 
 /-- go: queue.go:347:20 -/
-noncomputable def Typed.ShuttingDown.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.ShuttingDown.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"shuttingDown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"shuttingDown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -2734,18 +3058,16 @@ noncomputable def Typed.ShuttingDown.impl [FfiSyntax] [GoGlobalContext] (T : go.
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: queue.go:354:20 -/
-noncomputable def Typed.updateUnfinishedWork.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.updateUnfinishedWork.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"shuttingDown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))))
@@ -2760,18 +3082,16 @@ noncomputable def Typed.updateUnfinishedWork.impl [FfiSyntax] [GoGlobalContext] 
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))))) (Val #())))))))
+  (Val #()))))
 
 /-- go: queue.go:362:20 -/
-noncomputable def Typed.updateUnfinishedWorkLoop.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Typed.updateUnfinishedWorkLoop.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (Var "q"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"unfinishedWorkUpdatePeriod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.WithTicker.ty go!"NewTicker"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"clock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Var "$a0")))
   (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.utils.clock.Ticker.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.utils.clock.Ticker.ty))) (Val #())))
@@ -2796,7 +3116,8 @@ noncomputable def Typed.updateUnfinishedWorkLoop.impl [FfiSyntax] [GoGlobalConte
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.utils.clock.Ticker.ty))) (Pair (Var "t") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.utils.clock.Ticker.ty))) (Pair (Var "t") (Var "$r0"))))))))))
+  (Val #()))))
 
 /-- NewRateLimitingQueue constructs a new workqueue with rateLimited queuing ability
     Remember to call Forget!  If you don't, you may end up tracking failures forever.
@@ -2806,14 +3127,20 @@ noncomputable def Typed.updateUnfinishedWorkLoop.impl [FfiSyntax] [GoGlobalConte
     Deprecated: Use NewTypedRateLimitingQueue instead.
 
     go: rate_limiting_queue.go:76:6 -/
-noncomputable def NewRateLimitingQueue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewRateLimitingQueue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rateLimiter"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimitingInterface.ty))) (App (Val (GoInstruction (GoZeroVal RateLimitingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "rateLimiter" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (Var "rateLimiter"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "rateLimiter"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "rateLimiter"))
   (Let "$a1" (App (Val (GoInstruction (CompositeLiteral RateLimitingQueueConfig.ty))) (LiteralValue []))
-  (App (App (App (Val (GoInstruction (FuncResolve NewRateLimitingQueueWithConfig []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewRateLimitingQueueWithConfig []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimitingInterface.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad RateLimitingInterface.ty))) (Var "$res0")))))
 
 /-- NewTypedRateLimitingQueue constructs a new workqueue with rateLimited queuing ability
     Remember to call Forget!  If you don't, you may end up tracking failures forever.
@@ -2821,14 +3148,20 @@ noncomputable def NewRateLimitingQueue.impl [FfiSyntax] [GoGlobalContext] : val 
     NewTypedRateLimitingQueueWithConfig instead and specify a name.
 
     go: rate_limiting_queue.go:84:6 -/
-noncomputable def NewTypedRateLimitingQueue.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedRateLimitingQueue.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "rateLimiter"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimitingInterface.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimitingInterface.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "rateLimiter" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (Var "rateLimiter"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "rateLimiter"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "rateLimiter"))
   (Let "$a1" (App (Val (GoInstruction (CompositeLiteral (TypedRateLimitingQueueConfig.ty T)))) (LiteralValue []))
-  (App (App (App (Val (GoInstruction (FuncResolve NewTypedRateLimitingQueueWithConfig [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewTypedRateLimitingQueueWithConfig [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedRateLimitingInterface.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (TypedRateLimitingInterface.ty T)))) (Var "$res0")))))
 
 /-- NewRateLimitingQueueWithConfig constructs a new workqueue with rateLimited queuing ability
     with options to customize different properties.
@@ -2837,34 +3170,45 @@ noncomputable def NewTypedRateLimitingQueue.impl [FfiSyntax] [GoGlobalContext] (
     Deprecated: Use NewTypedRateLimitingQueueWithConfig instead.
 
     go: rate_limiting_queue.go:93:6 -/
-noncomputable def NewRateLimitingQueueWithConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewRateLimitingQueueWithConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rateLimiter"
   (Lam "config"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimitingInterface.ty))) (App (Val (GoInstruction (GoZeroVal RateLimitingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "config" (App (Val (GoInstruction (GoAlloc RateLimitingQueueConfig.ty))) (Var "config"))
   (Let "rateLimiter" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (Var "rateLimiter"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "rateLimiter"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "rateLimiter"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad RateLimitingQueueConfig.ty))) (Var "config"))
-  (App (App (App (Val (GoInstruction (FuncResolve NewTypedRateLimitingQueueWithConfig [go.any]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewTypedRateLimitingQueueWithConfig [go.any]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimitingInterface.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad RateLimitingInterface.ty))) (Var "$res0"))))))
 
 /-- NewTypedRateLimitingQueueWithConfig constructs a new workqueue with rateLimited queuing ability
     with options to customize different properties.
     Remember to call Forget!  If you don't, you may end up tracking failures forever.
 
     go: rate_limiting_queue.go:100:6 -/
-noncomputable def NewTypedRateLimitingQueueWithConfig.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedRateLimitingQueueWithConfig.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "rateLimiter"
   (Lam "config"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimitingInterface.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimitingInterface.ty T)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "config" (App (Val (GoInstruction (GoAlloc (TypedRateLimitingQueueConfig.ty T)))) (Var "config"))
   (Let "rateLimiter" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (Var "rateLimiter"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType (rateLimitingType.ty T)) (TypedRateLimitingInterface.ty T)))) (App (Val (GoInstruction (GoAlloc (rateLimitingType.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedRateLimitingQueueConfig.ty T) go!"DelayingQueue"))) (Var "config")))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (rateLimitingType.ty T)) (TypedRateLimitingInterface.ty T)))) (App (Val (GoInstruction (GoAlloc (rateLimitingType.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedRateLimitingQueueConfig.ty T) go!"DelayingQueue"))) (Var "config")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (Var "rateLimiter"))
-  (App (Val (GoInstruction (CompositeLiteral (rateLimitingType.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"TypedDelayingInterface")) (ElementExpression (TypedDelayingInterface.ty T) (Var "$v0"))), (KeyedElement (some (KeyField go!"rateLimiter")) (ElementExpression (TypedRateLimiter.ty T) (Var "$v1")))])))))))))
+  (App (Val (GoInstruction (CompositeLiteral (rateLimitingType.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"TypedDelayingInterface")) (ElementExpression (TypedDelayingInterface.ty T) (Var "$v0"))), (KeyedElement (some (KeyField go!"rateLimiter")) (ElementExpression (TypedRateLimiter.ty T) (Var "$v1")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (TypedRateLimitingInterface.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (TypedDelayingInterface.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedRateLimitingQueueConfig.ty T) go!"DelayingQueue"))) (Var "config"))) (App (Val (GoInstruction (Convert go.untypedNil (TypedDelayingInterface.ty T)))) (Val UntypedNil)))))
   (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedRateLimitingQueueConfig.ty T) go!"Logger"))) (Var "config")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef (TypedRateLimitingQueueConfig.ty T) go!"Name"))) (Var "config")))
@@ -2881,24 +3225,31 @@ noncomputable def NewTypedRateLimitingQueueWithConfig.impl [FfiSyntax] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRateLimitingQueueConfig.ty T) go!"Clock"))) (Var "config")) (Var "$r0")))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (TypedRateLimitingInterface.ty T)))) (Var "$res0"))))))
 
 /-- NewNamedRateLimitingQueue constructs a new named workqueue with rateLimited queuing ability.
 
     Deprecated: Use NewRateLimitingQueueWithConfig instead.
 
     go: rate_limiting_queue.go:123:6 -/
-noncomputable def NewNamedRateLimitingQueue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewNamedRateLimitingQueue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rateLimiter"
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimitingInterface.ty))) (App (Val (GoInstruction (GoZeroVal RateLimitingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "rateLimiter" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (Var "rateLimiter"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "rateLimiter"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "rateLimiter"))
   (Let "$a1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (App (Val (GoInstruction (CompositeLiteral RateLimitingQueueConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve NewRateLimitingQueueWithConfig []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewRateLimitingQueueWithConfig []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimitingInterface.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad RateLimitingInterface.ty))) (Var "$res0"))))))
 
 /-- NewRateLimitingQueueWithDelayingInterface constructs a new named workqueue with rateLimited queuing ability
     with the option to inject a custom delaying queue instead of the default one.
@@ -2906,67 +3257,75 @@ noncomputable def NewNamedRateLimitingQueue.impl [FfiSyntax] [GoGlobalContext] :
     Deprecated: Use NewRateLimitingQueueWithConfig instead.
 
     go: rate_limiting_queue.go:133:6 -/
-noncomputable def NewRateLimitingQueueWithDelayingInterface.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewRateLimitingQueueWithDelayingInterface.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "di"
   (Lam "rateLimiter"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RateLimitingInterface.ty))) (App (Val (GoInstruction (GoZeroVal RateLimitingInterface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "rateLimiter" (App (Val (GoInstruction (GoAlloc RateLimiter.ty))) (Var "rateLimiter"))
   (Let "di" (App (Val (GoInstruction (GoAlloc DelayingInterface.ty))) (Var "di"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "rateLimiter"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad RateLimiter.ty))) (Var "rateLimiter"))
   (Let "$a1" (Let "$v0" (App (Val (GoInstruction (GoLoad DelayingInterface.ty))) (Var "di"))
   (App (Val (GoInstruction (CompositeLiteral RateLimitingQueueConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"DelayingQueue")) (ElementExpression DelayingInterface.ty (Var "$v0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve NewRateLimitingQueueWithConfig []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewRateLimitingQueueWithConfig []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RateLimitingInterface.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad RateLimitingInterface.ty))) (Var "$res0"))))))
 
 /-- AddRateLimited AddAfter's the item based on the time when the rate limiter says it's ok
 
     go: rate_limiting_queue.go:147:31 -/
-noncomputable def rateLimitingType.AddRateLimited.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def rateLimitingType.AddRateLimited.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"When"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"rateLimiter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))))) (Var "$a0")))
-  (App (App (App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"AddAfter"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))))) (Var "$a0")) (Var "$a1")))))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"AddAfter"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))))) (Var "$a0")) (Var "$a1"))))))))
+  (Val #()))))
 
 /-- go: rate_limiting_queue.go:151:31 -/
-noncomputable def rateLimitingType.NumRequeues.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def rateLimitingType.NumRequeues.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"NumRequeues"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"rateLimiter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))))) (Var "$a0")))))))))
-
-/-- go: rate_limiting_queue.go:155:31 -/
-noncomputable def rateLimitingType.Forget.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
-  (LamV "q"
-  (Lam "item"
-  (App (Val exceptionDo)
-  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))
-  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"NumRequeues"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"rateLimiter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
+
+/-- go: rate_limiting_queue.go:155:31 -/
+noncomputable def rateLimitingType.Forget.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "q"
+  (Lam "item"
+  (Seq (App (Val exceptionDo)
+  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))
+  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"Forget"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"rateLimiter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))))) (Var "$a0"))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"Forget"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"rateLimiter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))))) (Var "$a0")))))))
+  (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.workqueue where
   pkgImportedPkgs := [pkg_id.math, pkg_id.sync, pkg_id.time, pkg_id.golang_org.x.time.rate, pkg_id.container.heap, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.klog.v2, pkg_id.k8s_io.utils.clock, pkg_id.context, pkg_id.k8s_io.apimachinery.pkg.util.sets]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.util.workqueue)) (Lam BAnon
   (App (Val exceptionDo)
@@ -3019,51 +3378,61 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc setGlobalMetricsProviderOnce _root_.Perennial.sync.Once.ty)) (Val #()))))))))
 
-abbrev TypedRateLimiter [FfiSyntax] (T : Type) : Type := GoInterface
+abbrev TypedRateLimiter [GooseExts] (T : Type) : Type := GoInterface
 
-@[reducible] noncomputable def TypedRateLimiter.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedRateLimiter.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Forget" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"NumRequeues" (go.signature.Signature [T] false [go.int])), (go.InterfaceElem.MethodElem go!"When" (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty]))])
 
-class TypedRateLimiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedRateLimiter.ty T) (TypedRateLimiter.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedRateLimiter.ty T) [(go!"Forget", (some (go.signature.Signature [T] false []))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"When", (some (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRateLimiter.ty T)) []
 
 attribute [instance] TypedRateLimiter.TypeAssumptions.underlying
+  TypedRateLimiter.TypeAssumptions.method_set
+  TypedRateLimiter.TypeAssumptions.ptr_method_set
 
-abbrev RateLimiter [FfiSyntax] : Type := (TypedRateLimiter GoInterface)
+abbrev RateLimiter [GooseExts] : Type := (TypedRateLimiter GoInterface)
 
-@[reducible] noncomputable def RateLimiter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RateLimiter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedRateLimiter.ty go.any)
 
-class RateLimiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RateLimiter.ty RateLimiter.underlying
+  method_set : go.MethodSetIs RateLimiter.ty [(go!"Forget", (some (go.signature.Signature [go.any] false []))), (go!"NumRequeues", (some (go.signature.Signature [go.any] false [go.int]))), (go!"When", (some (go.signature.Signature [go.any] false [_root_.Perennial.time.Duration.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RateLimiter.ty) []
 
 attribute [instance] RateLimiter.TypeAssumptions.underlying
+  RateLimiter.TypeAssumptions.method_set
+  RateLimiter.TypeAssumptions.ptr_method_set
 
-structure TypedBucketRateLimiter [FfiSyntax] (T : Type) where
+structure TypedBucketRateLimiter [GooseExts] (T : Type) where
   mk ::
   Limiter' : Loc
 
-noncomputable instance TypedBucketRateLimiter.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedBucketRateLimiter T) :=
+noncomputable instance TypedBucketRateLimiter.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedBucketRateLimiter T) :=
   ⟨TypedBucketRateLimiter.mk zeroValDef⟩
 
-@[reducible] noncomputable def TypedBucketRateLimiter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedBucketRateLimiter.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Limiter" (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty))]
 
-@[irreducible] noncomputable def TypedBucketRateLimiter.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedBucketRateLimiter.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedBucketRateLimiter.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedBucketRateLimiter [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedBucketRateLimiter [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedBucketRateLimiter.fields T) (TypedBucketRateLimiter.fieldsUnsealed T) :=
   ⟨by unfold TypedBucketRateLimiter.fields; rfl⟩
 
-@[reducible] noncomputable def TypedBucketRateLimiter.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedBucketRateLimiter.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedBucketRateLimiter.fields T))
 
-class TypedBucketRateLimiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedBucketRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedBucketRateLimiter.underlying T) (TypedBucketRateLimiter T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedBucketRateLimiter.ty T) (TypedBucketRateLimiter.underlying T)
   get_Limiter : ∀ (T : go.GoType) (T' : Type) (x : (TypedBucketRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedBucketRateLimiter.underlying T) go!"Limiter") #x (Val #(x.Limiter'))
   set_Limiter : ∀ (T : go.GoType) (T' : Type) (x : (TypedBucketRateLimiter T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (TypedBucketRateLimiter.underlying T) go!"Limiter") (PairV #x #y) (Val #(({ x with Limiter' := y } : (TypedBucketRateLimiter T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedBucketRateLimiter.ty T) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Limit", (some (go.signature.Signature [] false [_root_.Perennial.golang_org.x.time.rate.Limit.ty]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [_root_.Perennial.golang_org.x.time.rate.Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.golang_org.x.time.rate.Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int] false [go.error]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.golang_org.x.time.rate.Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int, _root_.Perennial.time.Time.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Forget", (some (go.signature.Signature [T] false []))), (go!"Limit", (some (go.signature.Signature [] false [_root_.Perennial.golang_org.x.time.rate.Limit.ty]))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [_root_.Perennial.golang_org.x.time.rate.Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.golang_org.x.time.rate.Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int] false [go.error]))), (go!"When", (some (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.golang_org.x.time.rate.Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int, _root_.Perennial.time.Time.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
   ptr_Forget_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"Forget" (TypedBucketRateLimiter.Forget.impl T)
   ptr_NumRequeues_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"NumRequeues" (TypedBucketRateLimiter.NumRequeues.impl T)
   ptr_When_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"When" (TypedBucketRateLimiter.When.impl T)
@@ -3072,37 +3441,39 @@ attribute [instance] TypedBucketRateLimiter.TypeAssumptions.type_repr
   TypedBucketRateLimiter.TypeAssumptions.underlying
   TypedBucketRateLimiter.TypeAssumptions.get_Limiter
   TypedBucketRateLimiter.TypeAssumptions.set_Limiter
+  TypedBucketRateLimiter.TypeAssumptions.method_set
+  TypedBucketRateLimiter.TypeAssumptions.ptr_method_set
   TypedBucketRateLimiter.TypeAssumptions.ptr_Forget_unfold
   TypedBucketRateLimiter.TypeAssumptions.ptr_NumRequeues_unfold
   TypedBucketRateLimiter.TypeAssumptions.ptr_When_unfold
 
-structure TypedItemExponentialFailureRateLimiter [FfiSyntax] (T : Type) where
+structure TypedItemExponentialFailureRateLimiter [GooseExts] (T : Type) where
   mk ::
   failuresLock' : _root_.Perennial.sync.Mutex
   failures' : GoMap
   baseDelay' : _root_.Perennial.time.Duration
   maxDelay' : _root_.Perennial.time.Duration
 
-noncomputable instance TypedItemExponentialFailureRateLimiter.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedItemExponentialFailureRateLimiter T) :=
+noncomputable instance TypedItemExponentialFailureRateLimiter.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedItemExponentialFailureRateLimiter T) :=
   ⟨TypedItemExponentialFailureRateLimiter.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedItemExponentialFailureRateLimiter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedItemExponentialFailureRateLimiter.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"failuresLock" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"failures" (go.GoType.MapType T go.int)),
 (go.field_decl.FieldDecl go!"baseDelay" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"maxDelay" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def TypedItemExponentialFailureRateLimiter.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedItemExponentialFailureRateLimiter.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedItemExponentialFailureRateLimiter.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedItemExponentialFailureRateLimiter [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedItemExponentialFailureRateLimiter [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedItemExponentialFailureRateLimiter.fields T) (TypedItemExponentialFailureRateLimiter.fieldsUnsealed T) :=
   ⟨by unfold TypedItemExponentialFailureRateLimiter.fields; rfl⟩
 
-@[reducible] noncomputable def TypedItemExponentialFailureRateLimiter.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedItemExponentialFailureRateLimiter.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedItemExponentialFailureRateLimiter.fields T))
 
-class TypedItemExponentialFailureRateLimiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedItemExponentialFailureRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedItemExponentialFailureRateLimiter.underlying T) (TypedItemExponentialFailureRateLimiter T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedItemExponentialFailureRateLimiter.ty T) (TypedItemExponentialFailureRateLimiter.underlying T)
   get_failuresLock : ∀ (T : go.GoType) (T' : Type) (x : (TypedItemExponentialFailureRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedItemExponentialFailureRateLimiter.underlying T) go!"failuresLock") #x (Val #(x.failuresLock'))
@@ -3113,6 +3484,8 @@ class TypedItemExponentialFailureRateLimiter.TypeAssumptions [FfiSyntax] [GoGlob
   set_baseDelay : ∀ (T : go.GoType) (T' : Type) (x : (TypedItemExponentialFailureRateLimiter T')) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet (TypedItemExponentialFailureRateLimiter.underlying T) go!"baseDelay") (PairV #x #y) (Val #(({ x with baseDelay' := y } : (TypedItemExponentialFailureRateLimiter T'))))
   get_maxDelay : ∀ (T : go.GoType) (T' : Type) (x : (TypedItemExponentialFailureRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedItemExponentialFailureRateLimiter.underlying T) go!"maxDelay") #x (Val #(x.maxDelay'))
   set_maxDelay : ∀ (T : go.GoType) (T' : Type) (x : (TypedItemExponentialFailureRateLimiter T')) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet (TypedItemExponentialFailureRateLimiter.underlying T) go!"maxDelay") (PairV #x #y) (Val #(({ x with maxDelay' := y } : (TypedItemExponentialFailureRateLimiter T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedItemExponentialFailureRateLimiter.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T)) [(go!"Forget", (some (go.signature.Signature [T] false []))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"When", (some (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty])))]
   ptr_Forget_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T)) go!"Forget" (TypedItemExponentialFailureRateLimiter.Forget.impl T)
   ptr_NumRequeues_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T)) go!"NumRequeues" (TypedItemExponentialFailureRateLimiter.NumRequeues.impl T)
   ptr_When_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T)) go!"When" (TypedItemExponentialFailureRateLimiter.When.impl T)
@@ -3127,11 +3500,13 @@ attribute [instance] TypedItemExponentialFailureRateLimiter.TypeAssumptions.type
   TypedItemExponentialFailureRateLimiter.TypeAssumptions.set_baseDelay
   TypedItemExponentialFailureRateLimiter.TypeAssumptions.get_maxDelay
   TypedItemExponentialFailureRateLimiter.TypeAssumptions.set_maxDelay
+  TypedItemExponentialFailureRateLimiter.TypeAssumptions.method_set
+  TypedItemExponentialFailureRateLimiter.TypeAssumptions.ptr_method_set
   TypedItemExponentialFailureRateLimiter.TypeAssumptions.ptr_Forget_unfold
   TypedItemExponentialFailureRateLimiter.TypeAssumptions.ptr_NumRequeues_unfold
   TypedItemExponentialFailureRateLimiter.TypeAssumptions.ptr_When_unfold
 
-structure TypedItemFastSlowRateLimiter [FfiSyntax] (T : Type) where
+structure TypedItemFastSlowRateLimiter [GooseExts] (T : Type) where
   mk ::
   failuresLock' : _root_.Perennial.sync.Mutex
   failures' : GoMap
@@ -3139,27 +3514,27 @@ structure TypedItemFastSlowRateLimiter [FfiSyntax] (T : Type) where
   fastDelay' : _root_.Perennial.time.Duration
   slowDelay' : _root_.Perennial.time.Duration
 
-noncomputable instance TypedItemFastSlowRateLimiter.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedItemFastSlowRateLimiter T) :=
+noncomputable instance TypedItemFastSlowRateLimiter.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedItemFastSlowRateLimiter T) :=
   ⟨TypedItemFastSlowRateLimiter.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedItemFastSlowRateLimiter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedItemFastSlowRateLimiter.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"failuresLock" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"failures" (go.GoType.MapType T go.int)),
 (go.field_decl.FieldDecl go!"maxFastAttempts" go.int),
 (go.field_decl.FieldDecl go!"fastDelay" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"slowDelay" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def TypedItemFastSlowRateLimiter.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedItemFastSlowRateLimiter.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedItemFastSlowRateLimiter.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedItemFastSlowRateLimiter [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedItemFastSlowRateLimiter [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedItemFastSlowRateLimiter.fields T) (TypedItemFastSlowRateLimiter.fieldsUnsealed T) :=
   ⟨by unfold TypedItemFastSlowRateLimiter.fields; rfl⟩
 
-@[reducible] noncomputable def TypedItemFastSlowRateLimiter.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedItemFastSlowRateLimiter.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedItemFastSlowRateLimiter.fields T))
 
-class TypedItemFastSlowRateLimiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedItemFastSlowRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedItemFastSlowRateLimiter.underlying T) (TypedItemFastSlowRateLimiter T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedItemFastSlowRateLimiter.ty T) (TypedItemFastSlowRateLimiter.underlying T)
   get_failuresLock : ∀ (T : go.GoType) (T' : Type) (x : (TypedItemFastSlowRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedItemFastSlowRateLimiter.underlying T) go!"failuresLock") #x (Val #(x.failuresLock'))
@@ -3172,6 +3547,8 @@ class TypedItemFastSlowRateLimiter.TypeAssumptions [FfiSyntax] [GoGlobalContext]
   set_fastDelay : ∀ (T : go.GoType) (T' : Type) (x : (TypedItemFastSlowRateLimiter T')) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet (TypedItemFastSlowRateLimiter.underlying T) go!"fastDelay") (PairV #x #y) (Val #(({ x with fastDelay' := y } : (TypedItemFastSlowRateLimiter T'))))
   get_slowDelay : ∀ (T : go.GoType) (T' : Type) (x : (TypedItemFastSlowRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedItemFastSlowRateLimiter.underlying T) go!"slowDelay") #x (Val #(x.slowDelay'))
   set_slowDelay : ∀ (T : go.GoType) (T' : Type) (x : (TypedItemFastSlowRateLimiter T')) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet (TypedItemFastSlowRateLimiter.underlying T) go!"slowDelay") (PairV #x #y) (Val #(({ x with slowDelay' := y } : (TypedItemFastSlowRateLimiter T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedItemFastSlowRateLimiter.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T)) [(go!"Forget", (some (go.signature.Signature [T] false []))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"When", (some (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty])))]
   ptr_Forget_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T)) go!"Forget" (TypedItemFastSlowRateLimiter.Forget.impl T)
   ptr_NumRequeues_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T)) go!"NumRequeues" (TypedItemFastSlowRateLimiter.NumRequeues.impl T)
   ptr_When_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedItemFastSlowRateLimiter.ty T)) go!"When" (TypedItemFastSlowRateLimiter.When.impl T)
@@ -3188,35 +3565,39 @@ attribute [instance] TypedItemFastSlowRateLimiter.TypeAssumptions.type_repr
   TypedItemFastSlowRateLimiter.TypeAssumptions.set_fastDelay
   TypedItemFastSlowRateLimiter.TypeAssumptions.get_slowDelay
   TypedItemFastSlowRateLimiter.TypeAssumptions.set_slowDelay
+  TypedItemFastSlowRateLimiter.TypeAssumptions.method_set
+  TypedItemFastSlowRateLimiter.TypeAssumptions.ptr_method_set
   TypedItemFastSlowRateLimiter.TypeAssumptions.ptr_Forget_unfold
   TypedItemFastSlowRateLimiter.TypeAssumptions.ptr_NumRequeues_unfold
   TypedItemFastSlowRateLimiter.TypeAssumptions.ptr_When_unfold
 
-structure TypedMaxOfRateLimiter [FfiSyntax] (T : Type) where
+structure TypedMaxOfRateLimiter [GooseExts] (T : Type) where
   mk ::
   limiters' : GoSlice
 
-noncomputable instance TypedMaxOfRateLimiter.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedMaxOfRateLimiter T) :=
+noncomputable instance TypedMaxOfRateLimiter.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedMaxOfRateLimiter T) :=
   ⟨TypedMaxOfRateLimiter.mk zeroValDef⟩
 
-@[reducible] noncomputable def TypedMaxOfRateLimiter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedMaxOfRateLimiter.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"limiters" (go.GoType.SliceType (TypedRateLimiter.ty T)))]
 
-@[irreducible] noncomputable def TypedMaxOfRateLimiter.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedMaxOfRateLimiter.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedMaxOfRateLimiter.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedMaxOfRateLimiter [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedMaxOfRateLimiter [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedMaxOfRateLimiter.fields T) (TypedMaxOfRateLimiter.fieldsUnsealed T) :=
   ⟨by unfold TypedMaxOfRateLimiter.fields; rfl⟩
 
-@[reducible] noncomputable def TypedMaxOfRateLimiter.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedMaxOfRateLimiter.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedMaxOfRateLimiter.fields T))
 
-class TypedMaxOfRateLimiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedMaxOfRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedMaxOfRateLimiter.underlying T) (TypedMaxOfRateLimiter T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedMaxOfRateLimiter.ty T) (TypedMaxOfRateLimiter.underlying T)
   get_limiters : ∀ (T : go.GoType) (T' : Type) (x : (TypedMaxOfRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedMaxOfRateLimiter.underlying T) go!"limiters") #x (Val #(x.limiters'))
   set_limiters : ∀ (T : go.GoType) (T' : Type) (x : (TypedMaxOfRateLimiter T')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (TypedMaxOfRateLimiter.underlying T) go!"limiters") (PairV #x #y) (Val #(({ x with limiters' := y } : (TypedMaxOfRateLimiter T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedMaxOfRateLimiter.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T)) [(go!"Forget", (some (go.signature.Signature [T] false []))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"When", (some (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty])))]
   ptr_Forget_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T)) go!"Forget" (TypedMaxOfRateLimiter.Forget.impl T)
   ptr_NumRequeues_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T)) go!"NumRequeues" (TypedMaxOfRateLimiter.NumRequeues.impl T)
   ptr_When_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedMaxOfRateLimiter.ty T)) go!"When" (TypedMaxOfRateLimiter.When.impl T)
@@ -3225,39 +3606,43 @@ attribute [instance] TypedMaxOfRateLimiter.TypeAssumptions.type_repr
   TypedMaxOfRateLimiter.TypeAssumptions.underlying
   TypedMaxOfRateLimiter.TypeAssumptions.get_limiters
   TypedMaxOfRateLimiter.TypeAssumptions.set_limiters
+  TypedMaxOfRateLimiter.TypeAssumptions.method_set
+  TypedMaxOfRateLimiter.TypeAssumptions.ptr_method_set
   TypedMaxOfRateLimiter.TypeAssumptions.ptr_Forget_unfold
   TypedMaxOfRateLimiter.TypeAssumptions.ptr_NumRequeues_unfold
   TypedMaxOfRateLimiter.TypeAssumptions.ptr_When_unfold
 
-structure TypedWithMaxWaitRateLimiter [FfiSyntax] (T : Type) where
+structure TypedWithMaxWaitRateLimiter [GooseExts] (T : Type) where
   mk ::
   limiter' : (TypedRateLimiter T)
   maxDelay' : _root_.Perennial.time.Duration
 
-noncomputable instance TypedWithMaxWaitRateLimiter.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedWithMaxWaitRateLimiter T) :=
+noncomputable instance TypedWithMaxWaitRateLimiter.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedWithMaxWaitRateLimiter T) :=
   ⟨TypedWithMaxWaitRateLimiter.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedWithMaxWaitRateLimiter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedWithMaxWaitRateLimiter.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"limiter" (TypedRateLimiter.ty T)),
 (go.field_decl.FieldDecl go!"maxDelay" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def TypedWithMaxWaitRateLimiter.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedWithMaxWaitRateLimiter.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedWithMaxWaitRateLimiter.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedWithMaxWaitRateLimiter [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedWithMaxWaitRateLimiter [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedWithMaxWaitRateLimiter.fields T) (TypedWithMaxWaitRateLimiter.fieldsUnsealed T) :=
   ⟨by unfold TypedWithMaxWaitRateLimiter.fields; rfl⟩
 
-@[reducible] noncomputable def TypedWithMaxWaitRateLimiter.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedWithMaxWaitRateLimiter.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedWithMaxWaitRateLimiter.fields T))
 
-class TypedWithMaxWaitRateLimiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedWithMaxWaitRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedWithMaxWaitRateLimiter.underlying T) (TypedWithMaxWaitRateLimiter T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedWithMaxWaitRateLimiter.ty T) (TypedWithMaxWaitRateLimiter.underlying T)
   get_limiter : ∀ (T : go.GoType) (T' : Type) (x : (TypedWithMaxWaitRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedWithMaxWaitRateLimiter.underlying T) go!"limiter") #x (Val #(x.limiter'))
   set_limiter : ∀ (T : go.GoType) (T' : Type) (x : (TypedWithMaxWaitRateLimiter T')) (y : (TypedRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldSet (TypedWithMaxWaitRateLimiter.underlying T) go!"limiter") (PairV #x #y) (Val #(({ x with limiter' := y } : (TypedWithMaxWaitRateLimiter T'))))
   get_maxDelay : ∀ (T : go.GoType) (T' : Type) (x : (TypedWithMaxWaitRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedWithMaxWaitRateLimiter.underlying T) go!"maxDelay") #x (Val #(x.maxDelay'))
   set_maxDelay : ∀ (T : go.GoType) (T' : Type) (x : (TypedWithMaxWaitRateLimiter T')) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet (TypedWithMaxWaitRateLimiter.underlying T) go!"maxDelay") (PairV #x #y) (Val #(({ x with maxDelay' := y } : (TypedWithMaxWaitRateLimiter T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedWithMaxWaitRateLimiter.ty T) [(go!"Forget", (some (go.signature.Signature [T] false []))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"When", (some (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedWithMaxWaitRateLimiter.ty T)) [(go!"Forget", (some (go.signature.Signature [T] false []))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"When", (some (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty])))]
   Forget_unfold : ∀ (T : go.GoType), MethodUnfold (TypedWithMaxWaitRateLimiter.ty T) go!"Forget" (TypedWithMaxWaitRateLimiter.Forget.impl T)
   NumRequeues_unfold : ∀ (T : go.GoType), MethodUnfold (TypedWithMaxWaitRateLimiter.ty T) go!"NumRequeues" (TypedWithMaxWaitRateLimiter.NumRequeues.impl T)
   When_unfold : ∀ (T : go.GoType), MethodUnfold (TypedWithMaxWaitRateLimiter.ty T) go!"When" (TypedWithMaxWaitRateLimiter.When.impl T)
@@ -3274,6 +3659,8 @@ attribute [instance] TypedWithMaxWaitRateLimiter.TypeAssumptions.type_repr
   TypedWithMaxWaitRateLimiter.TypeAssumptions.set_limiter
   TypedWithMaxWaitRateLimiter.TypeAssumptions.get_maxDelay
   TypedWithMaxWaitRateLimiter.TypeAssumptions.set_maxDelay
+  TypedWithMaxWaitRateLimiter.TypeAssumptions.method_set
+  TypedWithMaxWaitRateLimiter.TypeAssumptions.ptr_method_set
   TypedWithMaxWaitRateLimiter.TypeAssumptions.Forget_unfold
   TypedWithMaxWaitRateLimiter.TypeAssumptions.NumRequeues_unfold
   TypedWithMaxWaitRateLimiter.TypeAssumptions.When_unfold
@@ -3281,47 +3668,63 @@ attribute [instance] TypedWithMaxWaitRateLimiter.TypeAssumptions.type_repr
   TypedWithMaxWaitRateLimiter.TypeAssumptions.ptr_NumRequeues_unfold
   TypedWithMaxWaitRateLimiter.TypeAssumptions.ptr_When_unfold
 
-abbrev TypedDelayingInterface [FfiSyntax] (T : Type) : Type := GoInterface
+abbrev TypedDelayingInterface [GooseExts] (T : Type) : Type := GoInterface
 
-@[reducible] noncomputable def TypedDelayingInterface.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddAfter" (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm (TypedInterface.ty T))])])
+@[reducible] noncomputable def TypedDelayingInterface.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"AddAfter" (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"Done" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [] false [T, go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"ShutDown" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ShutDownWithDrain" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ShuttingDown" (go.signature.Signature [] false [go.bool]))])
 
-class TypedDelayingInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedDelayingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedDelayingInterface.ty T) (TypedDelayingInterface.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedDelayingInterface.ty T) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedDelayingInterface.ty T)) []
 
 attribute [instance] TypedDelayingInterface.TypeAssumptions.underlying
+  TypedDelayingInterface.TypeAssumptions.method_set
+  TypedDelayingInterface.TypeAssumptions.ptr_method_set
 
-abbrev DelayingInterface [FfiSyntax] : Type := (TypedDelayingInterface GoInterface)
+abbrev DelayingInterface [GooseExts] : Type := (TypedDelayingInterface GoInterface)
 
-@[reducible] noncomputable def DelayingInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DelayingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedDelayingInterface.ty go.any)
 
-class DelayingInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DelayingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DelayingInterface.ty DelayingInterface.underlying
+  method_set : go.MethodSetIs DelayingInterface.ty [(go!"Add", (some (go.signature.Signature [go.any] false []))), (go!"AddAfter", (some (go.signature.Signature [go.any, _root_.Perennial.time.Duration.ty] false []))), (go!"Done", (some (go.signature.Signature [go.any] false []))), (go!"Get", (some (go.signature.Signature [] false [go.any, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DelayingInterface.ty) []
 
 attribute [instance] DelayingInterface.TypeAssumptions.underlying
+  DelayingInterface.TypeAssumptions.method_set
+  DelayingInterface.TypeAssumptions.ptr_method_set
 
-abbrev MetricsProvider [FfiSyntax] : Type := GoInterface
+abbrev MetricsProvider [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def MetricsProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MetricsProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NewAddsMetric" (go.signature.Signature [go.string] false [CounterMetric.ty])), (go.InterfaceElem.MethodElem go!"NewDepthMetric" (go.signature.Signature [go.string] false [GaugeMetric.ty])), (go.InterfaceElem.MethodElem go!"NewLatencyMetric" (go.signature.Signature [go.string] false [HistogramMetric.ty])), (go.InterfaceElem.MethodElem go!"NewLongestRunningProcessorSecondsMetric" (go.signature.Signature [go.string] false [SettableGaugeMetric.ty])), (go.InterfaceElem.MethodElem go!"NewRetriesMetric" (go.signature.Signature [go.string] false [CounterMetric.ty])), (go.InterfaceElem.MethodElem go!"NewUnfinishedWorkSecondsMetric" (go.signature.Signature [go.string] false [SettableGaugeMetric.ty])), (go.InterfaceElem.MethodElem go!"NewWorkDurationMetric" (go.signature.Signature [go.string] false [HistogramMetric.ty]))])
 
-class MetricsProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MetricsProvider.ty MetricsProvider.underlying
+  method_set : go.MethodSetIs MetricsProvider.ty [(go!"NewAddsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewDepthMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewLatencyMetric", (some (go.signature.Signature [go.string] false [HistogramMetric.ty]))), (go!"NewLongestRunningProcessorSecondsMetric", (some (go.signature.Signature [go.string] false [SettableGaugeMetric.ty]))), (go!"NewRetriesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewUnfinishedWorkSecondsMetric", (some (go.signature.Signature [go.string] false [SettableGaugeMetric.ty]))), (go!"NewWorkDurationMetric", (some (go.signature.Signature [go.string] false [HistogramMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricsProvider.ty) []
 
 attribute [instance] MetricsProvider.TypeAssumptions.underlying
+  MetricsProvider.TypeAssumptions.method_set
+  MetricsProvider.TypeAssumptions.ptr_method_set
 
-abbrev TypedInterface [FfiSyntax] (T : Type) : Type := GoInterface
+abbrev TypedInterface [GooseExts] (T : Type) : Type := GoInterface
 
-@[reducible] noncomputable def TypedInterface.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedInterface.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"Done" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [] false [T, go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"ShutDown" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ShutDownWithDrain" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ShuttingDown" (go.signature.Signature [] false [go.bool]))])
 
-class TypedInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedInterface.ty T) (TypedInterface.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedInterface.ty T) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedInterface.ty T)) []
 
 attribute [instance] TypedInterface.TypeAssumptions.underlying
+  TypedInterface.TypeAssumptions.method_set
+  TypedInterface.TypeAssumptions.ptr_method_set
 
-structure TypedDelayingQueueConfig [FfiSyntax] (T : Type) where
+structure TypedDelayingQueueConfig [GooseExts] (T : Type) where
   mk ::
   Logger' : Loc
   Name' : GoString
@@ -3329,27 +3732,27 @@ structure TypedDelayingQueueConfig [FfiSyntax] (T : Type) where
   Clock' : _root_.Perennial.k8s_io.utils.clock.WithTicker
   Queue' : (TypedInterface T)
 
-noncomputable instance TypedDelayingQueueConfig.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedDelayingQueueConfig T) :=
+noncomputable instance TypedDelayingQueueConfig.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedDelayingQueueConfig T) :=
   ⟨TypedDelayingQueueConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedDelayingQueueConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedDelayingQueueConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Logger" (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.Logger.ty)),
 (go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"MetricsProvider" MetricsProvider.ty),
 (go.field_decl.FieldDecl go!"Clock" _root_.Perennial.k8s_io.utils.clock.WithTicker.ty),
 (go.field_decl.FieldDecl go!"Queue" (TypedInterface.ty T))]
 
-@[irreducible] noncomputable def TypedDelayingQueueConfig.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedDelayingQueueConfig.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedDelayingQueueConfig.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedDelayingQueueConfig [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedDelayingQueueConfig [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedDelayingQueueConfig.fields T) (TypedDelayingQueueConfig.fieldsUnsealed T) :=
   ⟨by unfold TypedDelayingQueueConfig.fields; rfl⟩
 
-@[reducible] noncomputable def TypedDelayingQueueConfig.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedDelayingQueueConfig.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedDelayingQueueConfig.fields T))
 
-class TypedDelayingQueueConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedDelayingQueueConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedDelayingQueueConfig.underlying T) (TypedDelayingQueueConfig T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedDelayingQueueConfig.ty T) (TypedDelayingQueueConfig.underlying T)
   get_Logger : ∀ (T : go.GoType) (T' : Type) (x : (TypedDelayingQueueConfig T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedDelayingQueueConfig.underlying T) go!"Logger") #x (Val #(x.Logger'))
@@ -3362,6 +3765,8 @@ class TypedDelayingQueueConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   set_Clock : ∀ (T : go.GoType) (T' : Type) (x : (TypedDelayingQueueConfig T')) (y : _root_.Perennial.k8s_io.utils.clock.WithTicker), go.IsGoStepPureDetTagged under (StructFieldSet (TypedDelayingQueueConfig.underlying T) go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : (TypedDelayingQueueConfig T'))))
   get_Queue : ∀ (T : go.GoType) (T' : Type) (x : (TypedDelayingQueueConfig T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedDelayingQueueConfig.underlying T) go!"Queue") #x (Val #(x.Queue'))
   set_Queue : ∀ (T : go.GoType) (T' : Type) (x : (TypedDelayingQueueConfig T')) (y : (TypedInterface T')), go.IsGoStepPureDetTagged under (StructFieldSet (TypedDelayingQueueConfig.underlying T) go!"Queue") (PairV #x #y) (Val #(({ x with Queue' := y } : (TypedDelayingQueueConfig T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedDelayingQueueConfig.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedDelayingQueueConfig.ty T)) []
 
 attribute [instance] TypedDelayingQueueConfig.TypeAssumptions.type_repr
   TypedDelayingQueueConfig.TypeAssumptions.underlying
@@ -3375,18 +3780,24 @@ attribute [instance] TypedDelayingQueueConfig.TypeAssumptions.type_repr
   TypedDelayingQueueConfig.TypeAssumptions.set_Clock
   TypedDelayingQueueConfig.TypeAssumptions.get_Queue
   TypedDelayingQueueConfig.TypeAssumptions.set_Queue
+  TypedDelayingQueueConfig.TypeAssumptions.method_set
+  TypedDelayingQueueConfig.TypeAssumptions.ptr_method_set
 
-abbrev retryMetrics [FfiSyntax] : Type := GoInterface
+abbrev retryMetrics [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def retryMetrics.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"retry" (go.signature.Signature [] false []))])
+@[reducible] noncomputable def retryMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"k8s.io/client-go/util/workqueue.retry" (go.signature.Signature [] false []))])
 
-class retryMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class retryMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq retryMetrics.ty retryMetrics.underlying
+  method_set : go.MethodSetIs retryMetrics.ty [(go!"k8s.io/client-go/util/workqueue.retry", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryMetrics.ty) []
 
 attribute [instance] retryMetrics.TypeAssumptions.underlying
+  retryMetrics.TypeAssumptions.method_set
+  retryMetrics.TypeAssumptions.ptr_method_set
 
-structure delayingType [FfiSyntax] (T : Type) where
+structure delayingType [GooseExts] (T : Type) where
   mk ::
   TypedInterface' : (TypedInterface T)
   clock' : _root_.Perennial.k8s_io.utils.clock.Clock
@@ -3396,10 +3807,10 @@ structure delayingType [FfiSyntax] (T : Type) where
   waitingForAddCh' : GoChan
   metrics' : retryMetrics
 
-noncomputable instance delayingType.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (delayingType T) :=
+noncomputable instance delayingType.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (delayingType T) :=
   ⟨delayingType.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def delayingType.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def delayingType.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypedInterface" (TypedInterface.ty T)),
 (go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty),
 (go.field_decl.FieldDecl go!"stopCh" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
@@ -3408,17 +3819,17 @@ noncomputable instance delayingType.zero_val [FfiSyntax] {T : Type} [ZeroVal T] 
 (go.field_decl.FieldDecl go!"waitingForAddCh" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType (waitFor.ty T)))),
 (go.field_decl.FieldDecl go!"metrics" retryMetrics.ty)]
 
-@[irreducible] noncomputable def delayingType.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def delayingType.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (delayingType.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_delayingType [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_delayingType [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (delayingType.fields T) (delayingType.fieldsUnsealed T) :=
   ⟨by unfold delayingType.fields; rfl⟩
 
-@[reducible] noncomputable def delayingType.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def delayingType.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (delayingType.fields T))
 
-class delayingType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class delayingType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (delayingType.underlying T) (delayingType T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (delayingType.ty T) (delayingType.underlying T)
   get_TypedInterface : ∀ (T : go.GoType) (T' : Type) (x : (delayingType T')), go.IsGoStepPureDetTagged under (StructFieldGet (delayingType.underlying T) go!"TypedInterface") #x (Val #(x.TypedInterface'))
@@ -3435,6 +3846,8 @@ class delayingType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_waitingForAddCh : ∀ (T : go.GoType) (T' : Type) (x : (delayingType T')) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet (delayingType.underlying T) go!"waitingForAddCh") (PairV #x #y) (Val #(({ x with waitingForAddCh' := y } : (delayingType T'))))
   get_metrics : ∀ (T : go.GoType) (T' : Type) (x : (delayingType T')), go.IsGoStepPureDetTagged under (StructFieldGet (delayingType.underlying T) go!"metrics") #x (Val #(x.metrics'))
   set_metrics : ∀ (T : go.GoType) (T' : Type) (x : (delayingType T')) (y : retryMetrics), go.IsGoStepPureDetTagged under (StructFieldSet (delayingType.underlying T) go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : (delayingType T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (delayingType.ty T) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (delayingType.ty T)) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/util/workqueue.waitingLoop", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" [])] false [])))]
   ptr_AddAfter_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"AddAfter" (delayingType.AddAfter.impl T)
   ptr_ShutDown_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"ShutDown" (delayingType.ShutDown.impl T)
   ptr_waitingLoop_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"waitingLoop" (delayingType.waitingLoop.impl T)
@@ -3455,35 +3868,37 @@ attribute [instance] delayingType.TypeAssumptions.type_repr
   delayingType.TypeAssumptions.set_waitingForAddCh
   delayingType.TypeAssumptions.get_metrics
   delayingType.TypeAssumptions.set_metrics
+  delayingType.TypeAssumptions.method_set
+  delayingType.TypeAssumptions.ptr_method_set
   delayingType.TypeAssumptions.ptr_AddAfter_unfold
   delayingType.TypeAssumptions.ptr_ShutDown_unfold
   delayingType.TypeAssumptions.ptr_waitingLoop_unfold
 
-structure waitFor [FfiSyntax] (T : Type) where
+structure waitFor [GooseExts] (T : Type) where
   mk ::
   data' : T
   readyAt' : _root_.Perennial.time.Time
   index' : w64
 
-noncomputable instance waitFor.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (waitFor T) :=
+noncomputable instance waitFor.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (waitFor T) :=
   ⟨waitFor.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def waitFor.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def waitFor.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"data" T),
 (go.field_decl.FieldDecl go!"readyAt" _root_.Perennial.time.Time.ty),
 (go.field_decl.FieldDecl go!"index" go.int)]
 
-@[irreducible] noncomputable def waitFor.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def waitFor.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (waitFor.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_waitFor [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_waitFor [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (waitFor.fields T) (waitFor.fieldsUnsealed T) :=
   ⟨by unfold waitFor.fields; rfl⟩
 
-@[reducible] noncomputable def waitFor.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def waitFor.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (waitFor.fields T))
 
-class waitFor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class waitFor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (waitFor.underlying T) (waitFor T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (waitFor.ty T) (waitFor.underlying T)
   get_data : ∀ (T : go.GoType) (T' : Type) (x : (waitFor T')), go.IsGoStepPureDetTagged under (StructFieldGet (waitFor.underlying T) go!"data") #x (Val #(x.data'))
@@ -3492,6 +3907,8 @@ class waitFor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_readyAt : ∀ (T : go.GoType) (T' : Type) (x : (waitFor T')) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet (waitFor.underlying T) go!"readyAt") (PairV #x #y) (Val #(({ x with readyAt' := y } : (waitFor T'))))
   get_index : ∀ (T : go.GoType) (T' : Type) (x : (waitFor T')), go.IsGoStepPureDetTagged under (StructFieldGet (waitFor.underlying T) go!"index") #x (Val #(x.index'))
   set_index : ∀ (T : go.GoType) (T' : Type) (x : (waitFor T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (waitFor.underlying T) go!"index") (PairV #x #y) (Val #(({ x with index' := y } : (waitFor T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (waitFor.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (waitFor.ty T)) []
 
 attribute [instance] waitFor.TypeAssumptions.type_repr
   waitFor.TypeAssumptions.underlying
@@ -3501,14 +3918,18 @@ attribute [instance] waitFor.TypeAssumptions.type_repr
   waitFor.TypeAssumptions.set_readyAt
   waitFor.TypeAssumptions.get_index
   waitFor.TypeAssumptions.set_index
+  waitFor.TypeAssumptions.method_set
+  waitFor.TypeAssumptions.ptr_method_set
 
-abbrev waitForPriorityQueue [FfiSyntax] (T : Type) : Type := GoSlice
+abbrev waitForPriorityQueue [GooseExts] (T : Type) : Type := GoSlice
 
-@[reducible] noncomputable def waitForPriorityQueue.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def waitForPriorityQueue.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType (waitFor.ty T)))
 
-class waitForPriorityQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class waitForPriorityQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (waitForPriorityQueue.ty T) (waitForPriorityQueue.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (waitForPriorityQueue.ty T) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Peek", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (waitForPriorityQueue.ty T)) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Peek", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Pop", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Push", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : ∀ (T : go.GoType), MethodUnfold (waitForPriorityQueue.ty T) go!"Len" (waitForPriorityQueue.Len.impl T)
   Less_unfold : ∀ (T : go.GoType), MethodUnfold (waitForPriorityQueue.ty T) go!"Less" (waitForPriorityQueue.Less.impl T)
   Peek_unfold : ∀ (T : go.GoType), MethodUnfold (waitForPriorityQueue.ty T) go!"Peek" (waitForPriorityQueue.Peek.impl T)
@@ -3525,6 +3946,8 @@ class waitForPriorityQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
 (App (Val (GoInstruction (MethodResolve (waitForPriorityQueue.ty T) go!"Swap"))) (App (Val (GoInstruction (GoLoad (waitForPriorityQueue.ty T)))) (Var "$r"))))
 
 attribute [instance] waitForPriorityQueue.TypeAssumptions.underlying
+  waitForPriorityQueue.TypeAssumptions.method_set
+  waitForPriorityQueue.TypeAssumptions.ptr_method_set
   waitForPriorityQueue.TypeAssumptions.Len_unfold
   waitForPriorityQueue.TypeAssumptions.Less_unfold
   waitForPriorityQueue.TypeAssumptions.Peek_unfold
@@ -3536,88 +3959,114 @@ attribute [instance] waitForPriorityQueue.TypeAssumptions.underlying
   waitForPriorityQueue.TypeAssumptions.ptr_Push_unfold
   waitForPriorityQueue.TypeAssumptions.ptr_Swap_unfold
 
-abbrev queueMetrics [FfiSyntax] (T : Type) : Type := GoInterface
+abbrev queueMetrics [GooseExts] (T : Type) : Type := GoInterface
 
-@[reducible] noncomputable def queueMetrics.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"add" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"done" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"get" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"updateUnfinishedWork" (go.signature.Signature [] false []))])
+@[reducible] noncomputable def queueMetrics.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"k8s.io/client-go/util/workqueue.add" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"k8s.io/client-go/util/workqueue.done" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"k8s.io/client-go/util/workqueue.get" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"k8s.io/client-go/util/workqueue.updateUnfinishedWork" (go.signature.Signature [] false []))])
 
-class queueMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class queueMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (queueMetrics.ty T) (queueMetrics.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (queueMetrics.ty T) [(go!"k8s.io/client-go/util/workqueue.add", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.done", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.get", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.updateUnfinishedWork", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (queueMetrics.ty T)) []
 
 attribute [instance] queueMetrics.TypeAssumptions.underlying
+  queueMetrics.TypeAssumptions.method_set
+  queueMetrics.TypeAssumptions.ptr_method_set
 
-abbrev GaugeMetric [FfiSyntax] : Type := GoInterface
+abbrev GaugeMetric [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def GaugeMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GaugeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Dec" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Inc" (go.signature.Signature [] false []))])
 
-class GaugeMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GaugeMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq GaugeMetric.ty GaugeMetric.underlying
+  method_set : go.MethodSetIs GaugeMetric.ty [(go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeMetric.ty) []
 
 attribute [instance] GaugeMetric.TypeAssumptions.underlying
+  GaugeMetric.TypeAssumptions.method_set
+  GaugeMetric.TypeAssumptions.ptr_method_set
 
-abbrev SettableGaugeMetric [FfiSyntax] : Type := GoInterface
+abbrev SettableGaugeMetric [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def SettableGaugeMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SettableGaugeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Set" (go.signature.Signature [go.float64] false []))])
 
-class SettableGaugeMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SettableGaugeMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SettableGaugeMetric.ty SettableGaugeMetric.underlying
+  method_set : go.MethodSetIs SettableGaugeMetric.ty [(go!"Set", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SettableGaugeMetric.ty) []
 
 attribute [instance] SettableGaugeMetric.TypeAssumptions.underlying
+  SettableGaugeMetric.TypeAssumptions.method_set
+  SettableGaugeMetric.TypeAssumptions.ptr_method_set
 
-abbrev CounterMetric [FfiSyntax] : Type := GoInterface
+abbrev CounterMetric [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def CounterMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Inc" (go.signature.Signature [] false []))])
 
-class CounterMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CounterMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CounterMetric.ty CounterMetric.underlying
+  method_set : go.MethodSetIs CounterMetric.ty [(go!"Inc", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterMetric.ty) []
 
 attribute [instance] CounterMetric.TypeAssumptions.underlying
+  CounterMetric.TypeAssumptions.method_set
+  CounterMetric.TypeAssumptions.ptr_method_set
 
-abbrev SummaryMetric [FfiSyntax] : Type := GoInterface
+abbrev SummaryMetric [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def SummaryMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SummaryMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [go.float64] false []))])
 
-class SummaryMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SummaryMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SummaryMetric.ty SummaryMetric.underlying
+  method_set : go.MethodSetIs SummaryMetric.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryMetric.ty) []
 
 attribute [instance] SummaryMetric.TypeAssumptions.underlying
+  SummaryMetric.TypeAssumptions.method_set
+  SummaryMetric.TypeAssumptions.ptr_method_set
 
-abbrev HistogramMetric [FfiSyntax] : Type := GoInterface
+abbrev HistogramMetric [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def HistogramMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HistogramMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [go.float64] false []))])
 
-class HistogramMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HistogramMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HistogramMetric.ty HistogramMetric.underlying
+  method_set : go.MethodSetIs HistogramMetric.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramMetric.ty) []
 
 attribute [instance] HistogramMetric.TypeAssumptions.underlying
+  HistogramMetric.TypeAssumptions.method_set
+  HistogramMetric.TypeAssumptions.ptr_method_set
 
-structure noopMetric [FfiSyntax] where
+structure noopMetric [GooseExts] where
   mk ::
 
-noncomputable instance noopMetric.zero_val [FfiSyntax] : ZeroVal noopMetric :=
+noncomputable instance noopMetric.zero_val [GooseExts] : ZeroVal noopMetric :=
   ⟨noopMetric.mk⟩
 
-@[reducible] noncomputable def noopMetric.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noopMetric.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def noopMetric.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noopMetric.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopMetric.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopMetric [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noopMetric [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopMetric.fields noopMetric.fieldsUnsealed :=
   ⟨by unfold noopMetric.fields; rfl⟩
 
-@[reducible] noncomputable def noopMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noopMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noopMetric.fields)
 
-class noopMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopMetric.underlying noopMetric
   underlying : go.UnderlyingDirectedEq noopMetric.ty noopMetric.underlying
+  method_set : go.MethodSetIs noopMetric.ty [(go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopMetric.ty) [(go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false [])))]
   Dec_unfold : MethodUnfold noopMetric.ty go!"Dec" noopMetric.Dec.impl
   Inc_unfold : MethodUnfold noopMetric.ty go!"Inc" noopMetric.Inc.impl
   Observe_unfold : MethodUnfold noopMetric.ty go!"Observe" noopMetric.Observe.impl
@@ -3633,6 +4082,8 @@ class noopMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 
 attribute [instance] noopMetric.TypeAssumptions.type_repr
   noopMetric.TypeAssumptions.underlying
+  noopMetric.TypeAssumptions.method_set
+  noopMetric.TypeAssumptions.ptr_method_set
   noopMetric.TypeAssumptions.Dec_unfold
   noopMetric.TypeAssumptions.Inc_unfold
   noopMetric.TypeAssumptions.Observe_unfold
@@ -3642,7 +4093,7 @@ attribute [instance] noopMetric.TypeAssumptions.type_repr
   noopMetric.TypeAssumptions.ptr_Observe_unfold
   noopMetric.TypeAssumptions.ptr_Set_unfold
 
-structure defaultQueueMetrics [FfiSyntax] (T : Type) where
+structure defaultQueueMetrics [GooseExts] (T : Type) where
   mk ::
   clock' : _root_.Perennial.k8s_io.utils.clock.Clock
   depth' : GaugeMetric
@@ -3654,10 +4105,10 @@ structure defaultQueueMetrics [FfiSyntax] (T : Type) where
   unfinishedWorkSeconds' : SettableGaugeMetric
   longestRunningProcessor' : SettableGaugeMetric
 
-noncomputable instance defaultQueueMetrics.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (defaultQueueMetrics T) :=
+noncomputable instance defaultQueueMetrics.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (defaultQueueMetrics T) :=
   ⟨defaultQueueMetrics.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def defaultQueueMetrics.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def defaultQueueMetrics.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty),
 (go.field_decl.FieldDecl go!"depth" GaugeMetric.ty),
 (go.field_decl.FieldDecl go!"adds" CounterMetric.ty),
@@ -3668,17 +4119,17 @@ noncomputable instance defaultQueueMetrics.zero_val [FfiSyntax] {T : Type} [Zero
 (go.field_decl.FieldDecl go!"unfinishedWorkSeconds" SettableGaugeMetric.ty),
 (go.field_decl.FieldDecl go!"longestRunningProcessor" SettableGaugeMetric.ty)]
 
-@[irreducible] noncomputable def defaultQueueMetrics.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def defaultQueueMetrics.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (defaultQueueMetrics.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_defaultQueueMetrics [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_defaultQueueMetrics [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (defaultQueueMetrics.fields T) (defaultQueueMetrics.fieldsUnsealed T) :=
   ⟨by unfold defaultQueueMetrics.fields; rfl⟩
 
-@[reducible] noncomputable def defaultQueueMetrics.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def defaultQueueMetrics.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (defaultQueueMetrics.fields T))
 
-class defaultQueueMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class defaultQueueMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (defaultQueueMetrics.underlying T) (defaultQueueMetrics T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (defaultQueueMetrics.ty T) (defaultQueueMetrics.underlying T)
   get_clock : ∀ (T : go.GoType) (T' : Type) (x : (defaultQueueMetrics T')), go.IsGoStepPureDetTagged under (StructFieldGet (defaultQueueMetrics.underlying T) go!"clock") #x (Val #(x.clock'))
@@ -3699,6 +4150,8 @@ class defaultQueueMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   set_unfinishedWorkSeconds : ∀ (T : go.GoType) (T' : Type) (x : (defaultQueueMetrics T')) (y : SettableGaugeMetric), go.IsGoStepPureDetTagged under (StructFieldSet (defaultQueueMetrics.underlying T) go!"unfinishedWorkSeconds") (PairV #x #y) (Val #(({ x with unfinishedWorkSeconds' := y } : (defaultQueueMetrics T'))))
   get_longestRunningProcessor : ∀ (T : go.GoType) (T' : Type) (x : (defaultQueueMetrics T')), go.IsGoStepPureDetTagged under (StructFieldGet (defaultQueueMetrics.underlying T) go!"longestRunningProcessor") #x (Val #(x.longestRunningProcessor'))
   set_longestRunningProcessor : ∀ (T : go.GoType) (T' : Type) (x : (defaultQueueMetrics T')) (y : SettableGaugeMetric), go.IsGoStepPureDetTagged under (StructFieldSet (defaultQueueMetrics.underlying T) go!"longestRunningProcessor") (PairV #x #y) (Val #(({ x with longestRunningProcessor' := y } : (defaultQueueMetrics T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (defaultQueueMetrics.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (defaultQueueMetrics.ty T)) [(go!"k8s.io/client-go/util/workqueue.add", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.done", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.get", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.sinceInSeconds", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"k8s.io/client-go/util/workqueue.updateUnfinishedWork", (some (go.signature.Signature [] false [])))]
   ptr_add_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (defaultQueueMetrics.ty T)) go!"add" (defaultQueueMetrics.add.impl T)
   ptr_done_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (defaultQueueMetrics.ty T)) go!"done" (defaultQueueMetrics.done.impl T)
   ptr_get_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (defaultQueueMetrics.ty T)) go!"get" (defaultQueueMetrics.get.impl T)
@@ -3725,34 +4178,38 @@ attribute [instance] defaultQueueMetrics.TypeAssumptions.type_repr
   defaultQueueMetrics.TypeAssumptions.set_unfinishedWorkSeconds
   defaultQueueMetrics.TypeAssumptions.get_longestRunningProcessor
   defaultQueueMetrics.TypeAssumptions.set_longestRunningProcessor
+  defaultQueueMetrics.TypeAssumptions.method_set
+  defaultQueueMetrics.TypeAssumptions.ptr_method_set
   defaultQueueMetrics.TypeAssumptions.ptr_add_unfold
   defaultQueueMetrics.TypeAssumptions.ptr_done_unfold
   defaultQueueMetrics.TypeAssumptions.ptr_get_unfold
   defaultQueueMetrics.TypeAssumptions.ptr_sinceInSeconds_unfold
   defaultQueueMetrics.TypeAssumptions.ptr_updateUnfinishedWork_unfold
 
-structure noMetrics [FfiSyntax] (T : Type) where
+structure noMetrics [GooseExts] (T : Type) where
   mk ::
 
-noncomputable instance noMetrics.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (noMetrics T) :=
+noncomputable instance noMetrics.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (noMetrics T) :=
   ⟨noMetrics.mk⟩
 
-@[reducible] noncomputable def noMetrics.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def noMetrics.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def noMetrics.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def noMetrics.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (noMetrics.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_noMetrics [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_noMetrics [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (noMetrics.fields T) (noMetrics.fieldsUnsealed T) :=
   ⟨by unfold noMetrics.fields; rfl⟩
 
-@[reducible] noncomputable def noMetrics.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def noMetrics.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (noMetrics.fields T))
 
-class noMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (noMetrics.underlying T) (noMetrics T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (noMetrics.ty T) (noMetrics.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (noMetrics.ty T) [(go!"k8s.io/client-go/util/workqueue.add", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.done", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.get", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.updateUnfinishedWork", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (noMetrics.ty T)) [(go!"k8s.io/client-go/util/workqueue.add", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.done", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.get", (some (go.signature.Signature [T] false []))), (go!"k8s.io/client-go/util/workqueue.updateUnfinishedWork", (some (go.signature.Signature [] false [])))]
   add_unfold : ∀ (T : go.GoType), MethodUnfold (noMetrics.ty T) go!"add" (noMetrics.add.impl T)
   done_unfold : ∀ (T : go.GoType), MethodUnfold (noMetrics.ty T) go!"done" (noMetrics.done.impl T)
   get_unfold : ∀ (T : go.GoType), MethodUnfold (noMetrics.ty T) go!"get" (noMetrics.get.impl T)
@@ -3768,6 +4225,8 @@ class noMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] noMetrics.TypeAssumptions.type_repr
   noMetrics.TypeAssumptions.underlying
+  noMetrics.TypeAssumptions.method_set
+  noMetrics.TypeAssumptions.ptr_method_set
   noMetrics.TypeAssumptions.add_unfold
   noMetrics.TypeAssumptions.done_unfold
   noMetrics.TypeAssumptions.get_unfold
@@ -3777,61 +4236,67 @@ attribute [instance] noMetrics.TypeAssumptions.type_repr
   noMetrics.TypeAssumptions.ptr_get_unfold
   noMetrics.TypeAssumptions.ptr_updateUnfinishedWork_unfold
 
-structure defaultRetryMetrics [FfiSyntax] where
+structure defaultRetryMetrics [GooseExts] where
   mk ::
   retries' : CounterMetric
 
-noncomputable instance defaultRetryMetrics.zero_val [FfiSyntax] : ZeroVal defaultRetryMetrics :=
+noncomputable instance defaultRetryMetrics.zero_val [GooseExts] : ZeroVal defaultRetryMetrics :=
   ⟨defaultRetryMetrics.mk zeroValDef⟩
 
-@[reducible] noncomputable def defaultRetryMetrics.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def defaultRetryMetrics.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"retries" CounterMetric.ty)]
 
-@[irreducible] noncomputable def defaultRetryMetrics.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def defaultRetryMetrics.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   defaultRetryMetrics.fieldsUnsealed
 
-noncomputable instance equals_unfold_defaultRetryMetrics [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_defaultRetryMetrics [GooseExts] [GoGlobalContext] :
     EqualsUnfold defaultRetryMetrics.fields defaultRetryMetrics.fieldsUnsealed :=
   ⟨by unfold defaultRetryMetrics.fields; rfl⟩
 
-@[reducible] noncomputable def defaultRetryMetrics.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def defaultRetryMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType defaultRetryMetrics.fields)
 
-class defaultRetryMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class defaultRetryMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying defaultRetryMetrics.underlying defaultRetryMetrics
   underlying : go.UnderlyingDirectedEq defaultRetryMetrics.ty defaultRetryMetrics.underlying
   get_retries : ∀ (x : defaultRetryMetrics), go.IsGoStepPureDetTagged under (StructFieldGet defaultRetryMetrics.underlying go!"retries") #x (Val #(x.retries'))
   set_retries : ∀ (x : defaultRetryMetrics) (y : CounterMetric), go.IsGoStepPureDetTagged under (StructFieldSet defaultRetryMetrics.underlying go!"retries") (PairV #x #y) (Val #(({ x with retries' := y } : defaultRetryMetrics)))
+  method_set : go.MethodSetIs defaultRetryMetrics.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultRetryMetrics.ty) [(go!"k8s.io/client-go/util/workqueue.retry", (some (go.signature.Signature [] false [])))]
   ptr_retry_unfold : MethodUnfold (go.GoType.PointerType defaultRetryMetrics.ty) go!"retry" defaultRetryMetrics.retry.impl
 
 attribute [instance] defaultRetryMetrics.TypeAssumptions.type_repr
   defaultRetryMetrics.TypeAssumptions.underlying
   defaultRetryMetrics.TypeAssumptions.get_retries
   defaultRetryMetrics.TypeAssumptions.set_retries
+  defaultRetryMetrics.TypeAssumptions.method_set
+  defaultRetryMetrics.TypeAssumptions.ptr_method_set
   defaultRetryMetrics.TypeAssumptions.ptr_retry_unfold
 
-structure noopMetricsProvider [FfiSyntax] where
+structure noopMetricsProvider [GooseExts] where
   mk ::
 
-noncomputable instance noopMetricsProvider.zero_val [FfiSyntax] : ZeroVal noopMetricsProvider :=
+noncomputable instance noopMetricsProvider.zero_val [GooseExts] : ZeroVal noopMetricsProvider :=
   ⟨noopMetricsProvider.mk⟩
 
-@[reducible] noncomputable def noopMetricsProvider.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noopMetricsProvider.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def noopMetricsProvider.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noopMetricsProvider.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopMetricsProvider.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopMetricsProvider [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noopMetricsProvider [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopMetricsProvider.fields noopMetricsProvider.fieldsUnsealed :=
   ⟨by unfold noopMetricsProvider.fields; rfl⟩
 
-@[reducible] noncomputable def noopMetricsProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noopMetricsProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noopMetricsProvider.fields)
 
-class noopMetricsProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopMetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopMetricsProvider.underlying noopMetricsProvider
   underlying : go.UnderlyingDirectedEq noopMetricsProvider.ty noopMetricsProvider.underlying
+  method_set : go.MethodSetIs noopMetricsProvider.ty [(go!"NewAddsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewDepthMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewLatencyMetric", (some (go.signature.Signature [go.string] false [HistogramMetric.ty]))), (go!"NewLongestRunningProcessorSecondsMetric", (some (go.signature.Signature [go.string] false [SettableGaugeMetric.ty]))), (go!"NewRetriesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewUnfinishedWorkSecondsMetric", (some (go.signature.Signature [go.string] false [SettableGaugeMetric.ty]))), (go!"NewWorkDurationMetric", (some (go.signature.Signature [go.string] false [HistogramMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopMetricsProvider.ty) [(go!"NewAddsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewDepthMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewLatencyMetric", (some (go.signature.Signature [go.string] false [HistogramMetric.ty]))), (go!"NewLongestRunningProcessorSecondsMetric", (some (go.signature.Signature [go.string] false [SettableGaugeMetric.ty]))), (go!"NewRetriesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewUnfinishedWorkSecondsMetric", (some (go.signature.Signature [go.string] false [SettableGaugeMetric.ty]))), (go!"NewWorkDurationMetric", (some (go.signature.Signature [go.string] false [HistogramMetric.ty])))]
   NewAddsMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewAddsMetric" noopMetricsProvider.NewAddsMetric.impl
   NewDepthMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewDepthMetric" noopMetricsProvider.NewDepthMetric.impl
   NewLatencyMetric_unfold : MethodUnfold noopMetricsProvider.ty go!"NewLatencyMetric" noopMetricsProvider.NewLatencyMetric.impl
@@ -3856,6 +4321,8 @@ class noopMetricsProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
 
 attribute [instance] noopMetricsProvider.TypeAssumptions.type_repr
   noopMetricsProvider.TypeAssumptions.underlying
+  noopMetricsProvider.TypeAssumptions.method_set
+  noopMetricsProvider.TypeAssumptions.ptr_method_set
   noopMetricsProvider.TypeAssumptions.NewAddsMetric_unfold
   noopMetricsProvider.TypeAssumptions.NewDepthMetric_unfold
   noopMetricsProvider.TypeAssumptions.NewLatencyMetric_unfold
@@ -3871,122 +4338,146 @@ attribute [instance] noopMetricsProvider.TypeAssumptions.type_repr
   noopMetricsProvider.TypeAssumptions.ptr_NewUnfinishedWorkSecondsMetric_unfold
   noopMetricsProvider.TypeAssumptions.ptr_NewWorkDurationMetric_unfold
 
-abbrev DoWorkPieceFunc [FfiSyntax] : Type := GoFunc
+abbrev DoWorkPieceFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def DoWorkPieceFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DoWorkPieceFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.int] false []))
 
-class DoWorkPieceFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DoWorkPieceFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DoWorkPieceFunc.ty DoWorkPieceFunc.underlying
+  method_set : go.MethodSetIs DoWorkPieceFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DoWorkPieceFunc.ty) []
 
 attribute [instance] DoWorkPieceFunc.TypeAssumptions.underlying
+  DoWorkPieceFunc.TypeAssumptions.method_set
+  DoWorkPieceFunc.TypeAssumptions.ptr_method_set
 
-structure options [FfiSyntax] where
+structure options [GooseExts] where
   mk ::
   chunkSize' : w64
 
-noncomputable instance options.zero_val [FfiSyntax] : ZeroVal options :=
+noncomputable instance options.zero_val [GooseExts] : ZeroVal options :=
   ⟨options.mk zeroValDef⟩
 
-@[reducible] noncomputable def options.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def options.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"chunkSize" go.int)]
 
-@[irreducible] noncomputable def options.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def options.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   options.fieldsUnsealed
 
-noncomputable instance equals_unfold_options [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_options [GooseExts] [GoGlobalContext] :
     EqualsUnfold options.fields options.fieldsUnsealed :=
   ⟨by unfold options.fields; rfl⟩
 
-@[reducible] noncomputable def options.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def options.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType options.fields)
 
-class options.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying options.underlying options
   underlying : go.UnderlyingDirectedEq options.ty options.underlying
   get_chunkSize : ∀ (x : options), go.IsGoStepPureDetTagged under (StructFieldGet options.underlying go!"chunkSize") #x (Val #(x.chunkSize'))
   set_chunkSize : ∀ (x : options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet options.underlying go!"chunkSize") (PairV #x #y) (Val #(({ x with chunkSize' := y } : options)))
+  method_set : go.MethodSetIs options.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType options.ty) []
 
 attribute [instance] options.TypeAssumptions.type_repr
   options.TypeAssumptions.underlying
   options.TypeAssumptions.get_chunkSize
   options.TypeAssumptions.set_chunkSize
+  options.TypeAssumptions.method_set
+  options.TypeAssumptions.ptr_method_set
 
-abbrev Options [FfiSyntax] : Type := GoFunc
+abbrev Options [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def Options.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Options.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType options.ty)] false []))
 
-class Options.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Options.ty Options.underlying
+  method_set : go.MethodSetIs Options.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Options.ty) []
 
 attribute [instance] Options.TypeAssumptions.underlying
+  Options.TypeAssumptions.method_set
+  Options.TypeAssumptions.ptr_method_set
 
-abbrev Interface [FfiSyntax] : Type := (TypedInterface GoInterface)
+abbrev Interface [GooseExts] : Type := (TypedInterface GoInterface)
 
-@[reducible] noncomputable def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedInterface.ty go.any)
 
-class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
+  method_set : go.MethodSetIs Interface.ty [(go!"Add", (some (go.signature.Signature [go.any] false []))), (go!"Done", (some (go.signature.Signature [go.any] false []))), (go!"Get", (some (go.signature.Signature [] false [go.any, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.underlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
-abbrev Queue [FfiSyntax] (T : Type) : Type := GoInterface
+abbrev Queue [GooseExts] (T : Type) : Type := GoInterface
 
-@[reducible] noncomputable def Queue.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def Queue.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Pop" (go.signature.Signature [] false [T])), (go.InterfaceElem.MethodElem go!"Push" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"Touch" (go.signature.Signature [T] false []))])
 
-class Queue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Queue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (Queue.ty T) (Queue.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (Queue.ty T) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Pop", (some (go.signature.Signature [] false [T]))), (go!"Push", (some (go.signature.Signature [T] false []))), (go!"Touch", (some (go.signature.Signature [T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (Queue.ty T)) []
 
 attribute [instance] Queue.TypeAssumptions.underlying
+  Queue.TypeAssumptions.method_set
+  Queue.TypeAssumptions.ptr_method_set
 
-abbrev queue [FfiSyntax] (T : Type) : Type := GoSlice
+abbrev queue [GooseExts] (T : Type) : Type := GoSlice
 
-@[reducible] noncomputable def queue.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def queue.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.SliceType T)
 
-class queue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class queue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (queue.ty T) (queue.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (queue.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (queue.ty T)) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Pop", (some (go.signature.Signature [] false [T]))), (go!"Push", (some (go.signature.Signature [T] false []))), (go!"Touch", (some (go.signature.Signature [T] false [])))]
   ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (queue.ty T)) go!"Len" (queue.Len.impl T)
   ptr_Pop_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (queue.ty T)) go!"Pop" (queue.Pop.impl T)
   ptr_Push_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (queue.ty T)) go!"Push" (queue.Push.impl T)
   ptr_Touch_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (queue.ty T)) go!"Touch" (queue.Touch.impl T)
 
 attribute [instance] queue.TypeAssumptions.underlying
+  queue.TypeAssumptions.method_set
+  queue.TypeAssumptions.ptr_method_set
   queue.TypeAssumptions.ptr_Len_unfold
   queue.TypeAssumptions.ptr_Pop_unfold
   queue.TypeAssumptions.ptr_Push_unfold
   queue.TypeAssumptions.ptr_Touch_unfold
 
-structure TypedQueueConfig [FfiSyntax] (T : Type) where
+structure TypedQueueConfig [GooseExts] (T : Type) where
   mk ::
   Name' : GoString
   MetricsProvider' : MetricsProvider
   Clock' : _root_.Perennial.k8s_io.utils.clock.WithTicker
   Queue' : (Queue T)
 
-noncomputable instance TypedQueueConfig.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedQueueConfig T) :=
+noncomputable instance TypedQueueConfig.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedQueueConfig T) :=
   ⟨TypedQueueConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedQueueConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedQueueConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"MetricsProvider" MetricsProvider.ty),
 (go.field_decl.FieldDecl go!"Clock" _root_.Perennial.k8s_io.utils.clock.WithTicker.ty),
 (go.field_decl.FieldDecl go!"Queue" (Queue.ty T))]
 
-@[irreducible] noncomputable def TypedQueueConfig.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedQueueConfig.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedQueueConfig.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedQueueConfig [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedQueueConfig [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedQueueConfig.fields T) (TypedQueueConfig.fieldsUnsealed T) :=
   ⟨by unfold TypedQueueConfig.fields; rfl⟩
 
-@[reducible] noncomputable def TypedQueueConfig.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedQueueConfig.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedQueueConfig.fields T))
 
-class TypedQueueConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedQueueConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedQueueConfig.underlying T) (TypedQueueConfig T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedQueueConfig.ty T) (TypedQueueConfig.underlying T)
   get_Name : ∀ (T : go.GoType) (T' : Type) (x : (TypedQueueConfig T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedQueueConfig.underlying T) go!"Name") #x (Val #(x.Name'))
@@ -3997,6 +4488,8 @@ class TypedQueueConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_Clock : ∀ (T : go.GoType) (T' : Type) (x : (TypedQueueConfig T')) (y : _root_.Perennial.k8s_io.utils.clock.WithTicker), go.IsGoStepPureDetTagged under (StructFieldSet (TypedQueueConfig.underlying T) go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : (TypedQueueConfig T'))))
   get_Queue : ∀ (T : go.GoType) (T' : Type) (x : (TypedQueueConfig T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedQueueConfig.underlying T) go!"Queue") #x (Val #(x.Queue'))
   set_Queue : ∀ (T : go.GoType) (T' : Type) (x : (TypedQueueConfig T')) (y : (Queue T')), go.IsGoStepPureDetTagged under (StructFieldSet (TypedQueueConfig.underlying T) go!"Queue") (PairV #x #y) (Val #(({ x with Queue' := y } : (TypedQueueConfig T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedQueueConfig.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedQueueConfig.ty T)) []
 
 attribute [instance] TypedQueueConfig.TypeAssumptions.type_repr
   TypedQueueConfig.TypeAssumptions.underlying
@@ -4008,8 +4501,10 @@ attribute [instance] TypedQueueConfig.TypeAssumptions.type_repr
   TypedQueueConfig.TypeAssumptions.set_Clock
   TypedQueueConfig.TypeAssumptions.get_Queue
   TypedQueueConfig.TypeAssumptions.set_Queue
+  TypedQueueConfig.TypeAssumptions.method_set
+  TypedQueueConfig.TypeAssumptions.ptr_method_set
 
-structure Typed [FfiSyntax] (t : Type) where
+structure Typed [GooseExts] (t : Type) where
   mk ::
   queue' : (Queue t)
   dirty' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' t)
@@ -4024,10 +4519,10 @@ structure Typed [FfiSyntax] (t : Type) where
   stopCh' : GoChan
   stopOnce' : _root_.Perennial.sync.Once
 
-noncomputable instance Typed.zero_val [FfiSyntax] {t : Type} [ZeroVal t] : ZeroVal (Typed t) :=
+noncomputable instance Typed.zero_val [GooseExts] {t : Type} [ZeroVal t] : ZeroVal (Typed t) :=
   ⟨Typed.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Typed.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (t : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def Typed.fieldsUnsealed [GooseExts] [GoGlobalContext] (t : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"queue" (Queue.ty t)),
 (go.field_decl.FieldDecl go!"dirty" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty t)),
 (go.field_decl.FieldDecl go!"processing" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty t)),
@@ -4041,17 +4536,17 @@ noncomputable instance Typed.zero_val [FfiSyntax] {t : Type} [ZeroVal t] : ZeroV
 (go.field_decl.FieldDecl go!"stopCh" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"stopOnce" _root_.Perennial.sync.Once.ty)]
 
-@[irreducible] noncomputable def Typed.fields [FfiSyntax] [GoGlobalContext] (t : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def Typed.fields [GooseExts] [GoGlobalContext] (t : go.GoType) : List go.field_decl :=
   (Typed.fieldsUnsealed t)
 
-noncomputable instance equals_unfold_Typed [FfiSyntax] [GoGlobalContext] (t : go.GoType) :
+noncomputable instance equals_unfold_Typed [GooseExts] [GoGlobalContext] (t : go.GoType) :
     EqualsUnfold (Typed.fields t) (Typed.fieldsUnsealed t) :=
   ⟨by unfold Typed.fields; rfl⟩
 
-@[reducible] noncomputable def Typed.underlying [FfiSyntax] [GoGlobalContext] (t : go.GoType) : go.GoType :=
+@[reducible] noncomputable def Typed.underlying [GooseExts] [GoGlobalContext] (t : go.GoType) : go.GoType :=
   (go.GoType.StructType (Typed.fields t))
 
-class Typed.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Typed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (t : go.GoType) (t' : Type) [ZeroVal t'] [TypeRepr t t'], go.TypeReprUnderlying (Typed.underlying t) (Typed t')
   underlying : ∀ (t : go.GoType), go.UnderlyingDirectedEq (Typed.ty t) (Typed.underlying t)
   get_queue : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')), go.IsGoStepPureDetTagged under (StructFieldGet (Typed.underlying t) go!"queue") #x (Val #(x.queue'))
@@ -4078,6 +4573,8 @@ class Typed.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_stopCh : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet (Typed.underlying t) go!"stopCh") (PairV #x #y) (Val #(({ x with stopCh' := y } : (Typed t'))))
   get_stopOnce : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')), go.IsGoStepPureDetTagged under (StructFieldGet (Typed.underlying t) go!"stopOnce") #x (Val #(x.stopOnce'))
   set_stopOnce : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet (Typed.underlying t) go!"stopOnce") (PairV #x #y) (Val #(({ x with stopOnce' := y } : (Typed t'))))
+  method_set : ∀ (t : go.GoType), go.MethodSetIs (Typed.ty t) []
+  ptr_method_set : ∀ (t : go.GoType), go.MethodSetIs (go.GoType.PointerType (Typed.ty t)) [(go!"Add", (some (go.signature.Signature [t] false []))), (go!"Done", (some (go.signature.Signature [t] false []))), (go!"Get", (some (go.signature.Signature [] false [t, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/util/workqueue.updateUnfinishedWork", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/util/workqueue.updateUnfinishedWorkLoop", (some (go.signature.Signature [] false [])))]
   ptr_Add_unfold : ∀ (t : go.GoType), MethodUnfold (go.GoType.PointerType (Typed.ty t)) go!"Add" (Typed.Add.impl t)
   ptr_Done_unfold : ∀ (t : go.GoType), MethodUnfold (go.GoType.PointerType (Typed.ty t)) go!"Done" (Typed.Done.impl t)
   ptr_Get_unfold : ∀ (t : go.GoType), MethodUnfold (go.GoType.PointerType (Typed.ty t)) go!"Get" (Typed.Get.impl t)
@@ -4114,6 +4611,8 @@ attribute [instance] Typed.TypeAssumptions.type_repr
   Typed.TypeAssumptions.set_stopCh
   Typed.TypeAssumptions.get_stopOnce
   Typed.TypeAssumptions.set_stopOnce
+  Typed.TypeAssumptions.method_set
+  Typed.TypeAssumptions.ptr_method_set
   Typed.TypeAssumptions.ptr_Add_unfold
   Typed.TypeAssumptions.ptr_Done_unfold
   Typed.TypeAssumptions.ptr_Get_unfold
@@ -4124,27 +4623,35 @@ attribute [instance] Typed.TypeAssumptions.type_repr
   Typed.TypeAssumptions.ptr_updateUnfinishedWork_unfold
   Typed.TypeAssumptions.ptr_updateUnfinishedWorkLoop_unfold
 
-abbrev TypedRateLimitingInterface [FfiSyntax] (T : Type) : Type := GoInterface
+abbrev TypedRateLimitingInterface [GooseExts] (T : Type) : Type := GoInterface
 
-@[reducible] noncomputable def TypedRateLimitingInterface.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddRateLimited" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"Forget" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"NumRequeues" (go.signature.Signature [T] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm (TypedDelayingInterface.ty T))])])
+@[reducible] noncomputable def TypedRateLimitingInterface.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"AddAfter" (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"AddRateLimited" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"Done" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"Forget" (go.signature.Signature [T] false [])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [] false [T, go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"NumRequeues" (go.signature.Signature [T] false [go.int])), (go.InterfaceElem.MethodElem go!"ShutDown" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ShutDownWithDrain" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ShuttingDown" (go.signature.Signature [] false [go.bool]))])
 
-class TypedRateLimitingInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedRateLimitingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedRateLimitingInterface.ty T) (TypedRateLimitingInterface.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedRateLimitingInterface.ty T) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"AddRateLimited", (some (go.signature.Signature [T] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Forget", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRateLimitingInterface.ty T)) []
 
 attribute [instance] TypedRateLimitingInterface.TypeAssumptions.underlying
+  TypedRateLimitingInterface.TypeAssumptions.method_set
+  TypedRateLimitingInterface.TypeAssumptions.ptr_method_set
 
-abbrev RateLimitingInterface [FfiSyntax] : Type := (TypedRateLimitingInterface GoInterface)
+abbrev RateLimitingInterface [GooseExts] : Type := (TypedRateLimitingInterface GoInterface)
 
-@[reducible] noncomputable def RateLimitingInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RateLimitingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedRateLimitingInterface.ty go.any)
 
-class RateLimitingInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RateLimitingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RateLimitingInterface.ty RateLimitingInterface.underlying
+  method_set : go.MethodSetIs RateLimitingInterface.ty [(go!"Add", (some (go.signature.Signature [go.any] false []))), (go!"AddAfter", (some (go.signature.Signature [go.any, _root_.Perennial.time.Duration.ty] false []))), (go!"AddRateLimited", (some (go.signature.Signature [go.any] false []))), (go!"Done", (some (go.signature.Signature [go.any] false []))), (go!"Forget", (some (go.signature.Signature [go.any] false []))), (go!"Get", (some (go.signature.Signature [] false [go.any, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NumRequeues", (some (go.signature.Signature [go.any] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RateLimitingInterface.ty) []
 
 attribute [instance] RateLimitingInterface.TypeAssumptions.underlying
+  RateLimitingInterface.TypeAssumptions.method_set
+  RateLimitingInterface.TypeAssumptions.ptr_method_set
 
-structure TypedRateLimitingQueueConfig [FfiSyntax] (T : Type) where
+structure TypedRateLimitingQueueConfig [GooseExts] (T : Type) where
   mk ::
   Logger' : Loc
   Name' : GoString
@@ -4152,27 +4659,27 @@ structure TypedRateLimitingQueueConfig [FfiSyntax] (T : Type) where
   Clock' : _root_.Perennial.k8s_io.utils.clock.WithTicker
   DelayingQueue' : (TypedDelayingInterface T)
 
-noncomputable instance TypedRateLimitingQueueConfig.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (TypedRateLimitingQueueConfig T) :=
+noncomputable instance TypedRateLimitingQueueConfig.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedRateLimitingQueueConfig T) :=
   ⟨TypedRateLimitingQueueConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedRateLimitingQueueConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def TypedRateLimitingQueueConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Logger" (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.Logger.ty)),
 (go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"MetricsProvider" MetricsProvider.ty),
 (go.field_decl.FieldDecl go!"Clock" _root_.Perennial.k8s_io.utils.clock.WithTicker.ty),
 (go.field_decl.FieldDecl go!"DelayingQueue" (TypedDelayingInterface.ty T))]
 
-@[irreducible] noncomputable def TypedRateLimitingQueueConfig.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def TypedRateLimitingQueueConfig.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (TypedRateLimitingQueueConfig.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_TypedRateLimitingQueueConfig [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_TypedRateLimitingQueueConfig [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (TypedRateLimitingQueueConfig.fields T) (TypedRateLimitingQueueConfig.fieldsUnsealed T) :=
   ⟨by unfold TypedRateLimitingQueueConfig.fields; rfl⟩
 
-@[reducible] noncomputable def TypedRateLimitingQueueConfig.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def TypedRateLimitingQueueConfig.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (TypedRateLimitingQueueConfig.fields T))
 
-class TypedRateLimitingQueueConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedRateLimitingQueueConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedRateLimitingQueueConfig.underlying T) (TypedRateLimitingQueueConfig T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedRateLimitingQueueConfig.ty T) (TypedRateLimitingQueueConfig.underlying T)
   get_Logger : ∀ (T : go.GoType) (T' : Type) (x : (TypedRateLimitingQueueConfig T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRateLimitingQueueConfig.underlying T) go!"Logger") #x (Val #(x.Logger'))
@@ -4185,6 +4692,8 @@ class TypedRateLimitingQueueConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext]
   set_Clock : ∀ (T : go.GoType) (T' : Type) (x : (TypedRateLimitingQueueConfig T')) (y : _root_.Perennial.k8s_io.utils.clock.WithTicker), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRateLimitingQueueConfig.underlying T) go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : (TypedRateLimitingQueueConfig T'))))
   get_DelayingQueue : ∀ (T : go.GoType) (T' : Type) (x : (TypedRateLimitingQueueConfig T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRateLimitingQueueConfig.underlying T) go!"DelayingQueue") #x (Val #(x.DelayingQueue'))
   set_DelayingQueue : ∀ (T : go.GoType) (T' : Type) (x : (TypedRateLimitingQueueConfig T')) (y : (TypedDelayingInterface T')), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRateLimitingQueueConfig.underlying T) go!"DelayingQueue") (PairV #x #y) (Val #(({ x with DelayingQueue' := y } : (TypedRateLimitingQueueConfig T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedRateLimitingQueueConfig.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRateLimitingQueueConfig.ty T)) []
 
 attribute [instance] TypedRateLimitingQueueConfig.TypeAssumptions.type_repr
   TypedRateLimitingQueueConfig.TypeAssumptions.underlying
@@ -4198,36 +4707,40 @@ attribute [instance] TypedRateLimitingQueueConfig.TypeAssumptions.type_repr
   TypedRateLimitingQueueConfig.TypeAssumptions.set_Clock
   TypedRateLimitingQueueConfig.TypeAssumptions.get_DelayingQueue
   TypedRateLimitingQueueConfig.TypeAssumptions.set_DelayingQueue
+  TypedRateLimitingQueueConfig.TypeAssumptions.method_set
+  TypedRateLimitingQueueConfig.TypeAssumptions.ptr_method_set
 
-structure rateLimitingType [FfiSyntax] (T : Type) where
+structure rateLimitingType [GooseExts] (T : Type) where
   mk ::
   TypedDelayingInterface' : (TypedDelayingInterface T)
   rateLimiter' : (TypedRateLimiter T)
 
-noncomputable instance rateLimitingType.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (rateLimitingType T) :=
+noncomputable instance rateLimitingType.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (rateLimitingType T) :=
   ⟨rateLimitingType.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def rateLimitingType.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def rateLimitingType.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypedDelayingInterface" (TypedDelayingInterface.ty T)),
 (go.field_decl.FieldDecl go!"rateLimiter" (TypedRateLimiter.ty T))]
 
-@[irreducible] noncomputable def rateLimitingType.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def rateLimitingType.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (rateLimitingType.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_rateLimitingType [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_rateLimitingType [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (rateLimitingType.fields T) (rateLimitingType.fieldsUnsealed T) :=
   ⟨by unfold rateLimitingType.fields; rfl⟩
 
-@[reducible] noncomputable def rateLimitingType.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def rateLimitingType.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (rateLimitingType.fields T))
 
-class rateLimitingType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class rateLimitingType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (rateLimitingType.underlying T) (rateLimitingType T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (rateLimitingType.ty T) (rateLimitingType.underlying T)
   get_TypedDelayingInterface : ∀ (T : go.GoType) (T' : Type) (x : (rateLimitingType T')), go.IsGoStepPureDetTagged under (StructFieldGet (rateLimitingType.underlying T) go!"TypedDelayingInterface") #x (Val #(x.TypedDelayingInterface'))
   set_TypedDelayingInterface : ∀ (T : go.GoType) (T' : Type) (x : (rateLimitingType T')) (y : (TypedDelayingInterface T')), go.IsGoStepPureDetTagged under (StructFieldSet (rateLimitingType.underlying T) go!"TypedDelayingInterface") (PairV #x #y) (Val #(({ x with TypedDelayingInterface' := y } : (rateLimitingType T'))))
   get_rateLimiter : ∀ (T : go.GoType) (T' : Type) (x : (rateLimitingType T')), go.IsGoStepPureDetTagged under (StructFieldGet (rateLimitingType.underlying T) go!"rateLimiter") #x (Val #(x.rateLimiter'))
   set_rateLimiter : ∀ (T : go.GoType) (T' : Type) (x : (rateLimitingType T')) (y : (TypedRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldSet (rateLimitingType.underlying T) go!"rateLimiter") (PairV #x #y) (Val #(({ x with rateLimiter' := y } : (rateLimitingType T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (rateLimitingType.ty T) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (rateLimitingType.ty T)) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"AddRateLimited", (some (go.signature.Signature [T] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Forget", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
   ptr_AddRateLimited_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"AddRateLimited" (rateLimitingType.AddRateLimited.impl T)
   ptr_Forget_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"Forget" (rateLimitingType.Forget.impl T)
   ptr_NumRequeues_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"NumRequeues" (rateLimitingType.NumRequeues.impl T)
@@ -4238,11 +4751,13 @@ attribute [instance] rateLimitingType.TypeAssumptions.type_repr
   rateLimitingType.TypeAssumptions.set_TypedDelayingInterface
   rateLimitingType.TypeAssumptions.get_rateLimiter
   rateLimitingType.TypeAssumptions.set_rateLimiter
+  rateLimitingType.TypeAssumptions.method_set
+  rateLimitingType.TypeAssumptions.ptr_method_set
   rateLimitingType.TypeAssumptions.ptr_AddRateLimited_unfold
   rateLimitingType.TypeAssumptions.ptr_Forget_unfold
   rateLimitingType.TypeAssumptions.ptr_NumRequeues_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RateLimiter_instance : RateLimiter.TypeAssumptions
   TypedRateLimiter_instance : TypedRateLimiter.TypeAssumptions
   TypedBucketRateLimiter_instance : TypedBucketRateLimiter.TypeAssumptions

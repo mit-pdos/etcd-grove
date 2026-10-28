@@ -45,7 +45,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 /-! ## Codecs and chains (pure) -/
 
 section pure
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 
 /-- **A stream's codec** (pure): its state, initial state, and frames (`F s w bs s'`: from `s`, the
@@ -222,7 +222,7 @@ end pure
 /-! ## The registry, the deposits, the protocol -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -347,10 +347,12 @@ instance streamSent_persistent (C : StreamCodec) (N : NetPayload GF) (γw : GNam
   unfold streamSent; infer_instance
 
 /-- **A stream request of ticket `γk`** (persistent): its connection registered, its path the
-stream's, (stage 6d) its reader a member other than the one owning the request's host. -/
+stream's, (stage 6d) its reader a member other than the one owning the request's host, (D22
+J-T, W8) its `X-PeerURLs` header the reader's peer URLs (the stream handler passes them to
+`AddRemote` when the reader is no peer). -/
 def streamReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) : IProp GF :=
   iprop(∃ c : StreamKey, streamReg Rh γk c ∗ ⌜R.path = streamPath c.2.1 c.2.2 ∧
-    Rh.member c.2.2 ∧ c.2.2 ≠ Rh.owner R.host⌝)
+    Rh.member c.2.2 ∧ c.2.2 ≠ Rh.owner R.host ∧ peerURLsHdrOk Rh c.2.2 R.hdr⌝)
 
 instance streamReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     Persistent (streamReq Rh R γk) := by
@@ -462,7 +464,7 @@ end defs
 /-! ## Lemmas -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

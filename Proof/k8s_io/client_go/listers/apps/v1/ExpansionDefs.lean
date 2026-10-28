@@ -29,7 +29,7 @@ namespace appslisters
 open Iris Iris.BI labels listers
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The DaemonSets the expansion picks: same namespace (if any), a valid, non-empty selector
 selecting the labels. -/
@@ -68,7 +68,7 @@ theorem flagged_snoc {A : Type} (ls : List A) (bs : List Bool) (b : Bool) (d : A
 end model
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

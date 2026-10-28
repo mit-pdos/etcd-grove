@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -30,7 +30,7 @@ theorem EtcdServer.ReportSnapshot.wp_proof :
   wp_start as #Hok
   iunfold srvProcOk at Hok
   icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hst, %Hstnn, #Hn,
-    #Hsi, %HN⟩
+    #Hsi, #Hcok, %HN⟩
   iunfold rnStepIfc at Hsi
   icases Hsi with ⟨%ni, %Hni, -, -, #HRU⟩
   have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=

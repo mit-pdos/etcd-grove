@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -53,7 +53,7 @@ theorem confchange.chain.wp_proof : confchange.chain.spec (GF := GF) (hG := hG) 
     wp_apply Hop $$ %cfg %prs [$HI] as %cfg' %prs' HI
     -- no error: `chg.Tracker.Config`/`.Progress` take the op's result
     wp_for_post
-    iframe Hops HΦ
+    iframe Hops HΦ «$res0» «$res1» «$res2»
     iexists n + W64 1, cfg', prs', f
     rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word]
     simp only [named]

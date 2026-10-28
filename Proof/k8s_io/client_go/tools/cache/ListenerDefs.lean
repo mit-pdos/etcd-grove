@@ -39,7 +39,7 @@ namespace cache
 open Iris Iris.BI k8s_io.client_go.tools.cache
 
 section model
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- **The notification of an event** (`shared_informer.go:805-818`), as `distribute` sends it. -/
 def notifOf : Ev → GoInterface
@@ -70,7 +70,7 @@ structure LNames where
   tr : GName
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

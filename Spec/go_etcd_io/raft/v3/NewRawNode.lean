@@ -30,6 +30,7 @@ Lean notes: like `RawNode.Propose.spec`, the section fixes `hlc := HasLC.hasLC` 
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Proof.go_etcd_io.raft.v3.InvBoot
 public import Spec.go_etcd_io.raft.v3.newRaft
@@ -47,7 +48,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section newRaft_post
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `newRaft`'s postcondition, on a storage with no persisted `HardState` and an empty
 log, is the protocol's initial state. (Since 2026-10-01 the protocol state has the log,
@@ -76,22 +77,14 @@ theorem newRaft_post_init (hs : HardStateM) (s : NState) :
 end newRaft_post
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, as in `Spec/raft__Step.lean`
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The ghost state a fresh node starts from, in the mode `md` (2026-10-14, reconfiguration stage
-B7 part 2): statically the protocol's initial state (`ownRaftGhost_alloc`); dynamically the
-dynamic model's (`raft_dyn_alloc`, at `rinit c0`), the initial configuration `c0` the voters `V`
-of the persisted `ConfState`, with no learner. -/
-def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :=
-  match md with
-  | .static => ownRaftGhost γ id initPState
-  | .dyn dec c0 h0 _ => iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ c0 = cfgState V ∅⌝ ∗
-      ownRaftGhostR γ dec c0 id (rinit c0))
+-- (2026-10-26, raft's signature, stage 1) `rnInit` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- See the file header. -/
 abbrev NewRawNode.spec : Prop :=

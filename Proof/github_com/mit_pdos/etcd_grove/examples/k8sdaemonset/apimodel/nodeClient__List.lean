@@ -29,7 +29,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -51,7 +51,9 @@ theorem nodeClient.List.wp_proof
   simp only [resField]
   wp_auto
   wp_apply (wp_list s γ cfg Res.nodes L.tn.t go!"" opts dq lo admin) $$ [$Hpkg $Hsrv $Htn $Ho]
-  iapply (au_mono_read γ _ _) $$ [$HΦ]
+  iapply (au_mono_read γ _ _)
+  isplitl [HΦ]
+  · iexact HΦ
   iintro %σ %hwf HK %sl %rv %err ⟨Ho, Hret⟩
   iunfold listRet at Hret
   by_cases hsel : lo.LabelSelector' ≠ go!"" ∨ lo.FieldSelector' ≠ go!""

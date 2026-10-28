@@ -28,7 +28,7 @@ open Iris Iris.BI k8s_io.component_helpers.scheduling.corev1.nodeaffinity
 
 section body
 /-- go: nodeaffinity.go:139:36 -/
-noncomputable def PreferredSchedulingTerms.Score.body [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def PreferredSchedulingTerms.Score.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "node"
   (App (Val exceptionDo)
@@ -80,7 +80,7 @@ noncomputable def PreferredSchedulingTerms.Score.body [FfiSyntax] [GoGlobalConte
 end body
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

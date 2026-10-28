@@ -23,7 +23,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -35,8 +35,9 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
     (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h_getMergedPerms : auth.getMergedPerms.spec (GF := GF) (hG := hG)) :
     auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG) := by
-  intro st R M ti Hs sta
-  wp_start as ⟨#Hinv, Hca, #Hrd, Htok, #Hsnap, %Hfit⟩
+  intro st R M ti Hs sta hs
+  wp_start as ⟨#Hinv, Hca, #Hrd, Htok, #Hsnap, %Hfit, Hown, %Hl⟩
+  ihave #Hinv0 := Hinv
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -51,12 +52,12 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlk, HP⟩
   iunfold cacheP at HP
-  icases HP with ⟨%mp, %Mp, Hmp, -, -⟩
+  icases HP with ⟨%mp, %Mp, Hmp, -, -, HgM⟩
   -- the admin side's half of the field joins the guard's
   iunfold cacheHalf at Hca
   icases Hca with ⟨%sta0, Hca, -⟩
   iunfold cacheAt at Hca
-  icases Hca with ⟨%mp0, %Mp0, Hmp0, -, -⟩
+  icases Hca with ⟨%mp0, %Mp0, Hmp0, -, -, Hq⟩
   icombine Hmp Hmp0 gives %Heq0
   subst Heq0
   ihave Hmp := (typedPointsto_half_split _ _ (1 : Qp)).2 $$ [Hmp Hmp0]
@@ -151,7 +152,7 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
         have hsucc : sint.nat (k + W64 1) = sint.nat k + 1 := by
           have := Hul.1; have := Hul.2; word
         wp_for_post
-        iframe Has tx Hlk defer Hmp Htok HΦ
+        iframe Has tx Hlk defer Hmp Htok HΦ Hown HgM Hq
         iexists k + W64 1, ux', <[ur.name := p]> Mp'
         rw [hsucc]
         iframe
@@ -190,17 +191,20 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
       isplitl []
       · iexact Hsnap
       ipureintro; exact hdom
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hmp]
+    -- (E3h) the cache's ghost variable set to the latest state
+    imod (caG_update st R M hs mp mp' Mp Mp' sta0 sta Hl) $$ Hinv0 Hown HgM Hq Hof
+      with ⟨Hown, Hg, Hq⟩
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hmp Hg]
     · inext
       iunfold cacheP
       iexists mp', Mp'
-      iframe Hmp HM' Hok
+      iframe Hmp HM' Hok Hg
     (try wp_auto)
     iapply HΦ
-    iframe Htok
+    iframe Htok Hown
     iunfold cacheAt
     iexists mp', Mp'
-    iframe Hmp2 HM' Hof
+    iframe Hmp2 HM' Hof Hq
 
 end proof
 

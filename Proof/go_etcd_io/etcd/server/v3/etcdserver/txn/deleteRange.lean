@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
   go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -34,8 +34,8 @@ theorem txn.deleteRange.wp_proof
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     txn.deleteRange.spec (GF := GF) (hG := hG) := by
   have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
-  intro trace ctx cd nd mw s γ ilog pend puts deletes putSize dr o tyX vX
-  wp_start as ⟨#Hctx, #Hnd, Htx, #Hwrap, #Hdr⟩
+  intro trace ctx cd nd mw s γ ilog pend puts deletes putSize dr o L tyX vX
+  wp_start as ⟨#Hctx, #Hnd, Htx, #Hwrap, #Hdr, Hown⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.deleteRangeRequestIs at Hdr
@@ -90,8 +90,8 @@ theorem txn.deleteRange.wp_proof
     wp_bind (App (App (Val #(methods tyX _ vX)) _) _)
     iapply mvcc.tw_wp2 tyX vX mw go!"DeleteRange" (by unfold mvcc.twMethod; simp)
     iframe Hwrap
-    wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k (txn.srvEnd o.base.rangeEnd).2)
-      $$ [$Htx $Hks $Hend] as %n %rev ⟨Htx, %Hnr⟩
+    wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k (txn.srvEnd o.base.rangeEnd).2 L)
+      $$ [$Htx $Hks $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr⟩
     rw [hD, hDlen] at Hnr
     rw [hD]
     obtain ⟨rfl, rfl⟩ := Hnr
@@ -103,6 +103,7 @@ theorem txn.deleteRange.wp_proof
     imodintro
     iapply HΦ
     ileft
+    iframe Hown
     isplitl []
     · ipureintro; rfl
     isplitl [Htx]
@@ -143,6 +144,7 @@ theorem txn.deleteRange.wp_proof
         (try wp_auto)
         iapply HΦ
         iright
+        iframe Hown
         isplitl []
         · ipureintro
           refine ⟨Hne, rfl, rfl, ?_⟩
@@ -176,7 +178,7 @@ theorem txn.deleteRange.wp_proof
       iapply mvcc.tw_wp2 tyX vX mw go!"DeleteRange" (by unfold mvcc.twMethod; simp)
       iframe Hwrap
       wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k
-          (txn.srvEnd o.base.rangeEnd).2) $$ [$Htx $Hks $Hend] as %n %rev ⟨Htx, %Hnr⟩
+          (txn.srvEnd o.base.rangeEnd).2 L) $$ [$Htx $Hks $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr⟩
       rw [hD, hDlen] at Hnr
       rw [hD]
       obtain ⟨rfl, rfl⟩ := Hnr
@@ -188,6 +190,7 @@ theorem txn.deleteRange.wp_proof
       imodintro
       iapply HΦ
       ileft
+      iframe Hown
       isplitl []
       · ipureintro; rfl
       isplitl [Htx]

@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -24,10 +24,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem NewOp.wp_proof : NewOp.spec (GF := GF) (hG := hG) := by
   wp_start
   iapply wp_fupd
+  wp_auto
   wp_apply wp_string_to_bytes _ as %ksl ⟨Hks, -⟩
   ipersist Hks
-  wp_alloc opp as Hop
-  wp_auto
+  irename «$r0» => Hop
   imodintro
   iapply HΦ
   iframe Hop

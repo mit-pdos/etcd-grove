@@ -49,7 +49,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -140,12 +140,11 @@ theorem raftProto_req_snap (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
 end lemmas
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringNotWriter] [ErrorStringLeaf]
 
 set_option hygiene false in
 /-- `http.Error(w, msg, code)` or `w.WriteHeader(code)` of a status other than `403`, `200` and
@@ -476,6 +475,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
               wp_apply Hmet
               run_dec
               imodintro
+              wp_pures
               iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
             · -- `ErrStopped`: not a `writerToResponse`; `500`
               ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
@@ -503,6 +503,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
               cnt_inc
               run_dec
               imodintro
+              wp_pures
               iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
             · -- a context error: none, `TODO()`'s context is never done
               iunfold ctxErr at Hpc

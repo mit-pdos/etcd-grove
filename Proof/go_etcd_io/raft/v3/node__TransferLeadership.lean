@@ -4,18 +4,74 @@ module
 public import Spec.go_etcd_io.raft.v3.node__TransferLeadership
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasNodeR
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.InvBoot
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import Spec.go_etcd_io.raft.v3.NewRawNode
+public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Perennial.Proof.context
+import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.InvApiDyn
 
 @[expose] public section
 
 noncomputable section
+
 
 namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+/-! ## The raw triple (internal: private to this file)
+
+What the proof over raft's internals shows, from which the wrapper (below) derives the spec. Its documentation, as when it was the spec (until 2026-10-28):
+-/
+
+/-! Lean-first (no Rocq counterpart).
+
+## `node.TransferLeadership(ctx, lead, transferee)` (node.go:595), 2026-10-13
+
+From any goroutine: `pb.Message{Type: MsgTransferLeader, From: transferee, To: lead}` onto
+`recvc` (`netP`: unstamped, no entries, no context; `netP_local`), which `run` steps as
+`RawNode.TransferLeader` does: at a follower forwarded to its leader, at a leader recorded
+with a `MsgTimeoutNow` or an append to the transferee. Until stage R7a specified for
+`context.Background()`; `n.done` never fires. Nothing is promised of the transfer.
+(2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`); the
+`case <-ctx.Done()` returns nothing.
+-/
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- See the file header. -/
+private abbrev node.TransferLeadership.specRaw : Prop :=
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (lead transferee : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  -- (2026-10-19, D21 M2r) outside the cluster's no-transfer mode, where leader transfer is off
+  -- (`NGhost.xf`; etcd's server, in that mode, never transfers leadership; D22 S-a:
+  -- `RaftNames.reNoXfer`, until then the no-snapshot mode's flag)
+  γ.raft.reNoXfer = false →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
+    (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
+      (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
+  {{ RET #(); True }}
+
+end spec
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -26,9 +82,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 once the context is done (`nodeDone_recv_clause`), and the call returns. (Raft v3.7, stage R5: the message is
 `&pb.Message{Type: pb.MsgTransferLeader.Enum(), From: new(transferee), To: new(lead)}`, built
 into `msgIn` by `msgIn_of_scalar_struct`; `MsgTransferLeader.Enum()` is a new callee.) -/
-theorem node.TransferLeadership.wp_proof
+private theorem node.TransferLeadership.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
-    node.TransferLeadership.spec (GF := GF) (hG := hG) := by
+    node.TransferLeadership.specRaw (GF := GF) (hG := hG) := by
   intro γ id n lead transferee ctx cd Hns
   wp_start as ⟨#Hnode, #Hctx⟩
   ihave #Hnode' := Hnode
@@ -93,6 +149,51 @@ theorem node.TransferLeadership.wp_proof
     itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
+
+end proof
+
+/-! ## The spec, from the raw triple -/
+
+namespace ApiImpl
+
+section wrap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `node.TransferLeadership.spec` from the raw triple (`node`'s names hidden behind the API's). -/
+private theorem node.wp_TransferLeadership_impl
+    (hT : EtcdGrove.node.TransferLeadership.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.node.TransferLeadership.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.node.TransferLeadership.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.leaderTransferOn
+  intro n γ N id lead transferee ctx cd
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hx⟩ HΦ
+  iunfold leaderTransferOn at Hx
+  icases Hx with %Hx
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, %Hf, #Hrn, -⟩
+  obtain ⟨Hγr, -⟩ := Hf
+  iapply (hT γn id n lead transferee ctx cd (by rw [Hγr]; exact Hx)) $$ []
+  · iframe Hinit Hrn Hctx
+  iexact HΦ
+
+end wrap
+
+end ApiImpl
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem node.TransferLeadership.wp_proof
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
+    node.TransferLeadership.spec (GF := GF) (hG := hG) :=
+  ApiImpl.node.wp_TransferLeadership_impl (node.TransferLeadership.wp_raw wp_MessageType_Enum)
 
 end proof
 

@@ -20,151 +20,151 @@ end pkg_id
 
 namespace k8s_io.api.policy.v1
 
-noncomputable def PodDisruptionBudgetSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDisruptionBudgetSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudgetSpec" [])
 
 attribute [irreducible] PodDisruptionBudgetSpec.ty
 
-noncomputable def UnhealthyPodEvictionPolicyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnhealthyPodEvictionPolicyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/policy/v1.UnhealthyPodEvictionPolicyType" [])
 
 attribute [irreducible] UnhealthyPodEvictionPolicyType.ty
 
-noncomputable def PodDisruptionBudgetStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDisruptionBudgetStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudgetStatus" [])
 
 attribute [irreducible] PodDisruptionBudgetStatus.ty
 
-noncomputable def PodDisruptionBudget.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDisruptionBudget.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])
 
 attribute [irreducible] PodDisruptionBudget.ty
 
-noncomputable def PodDisruptionBudgetList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDisruptionBudgetList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudgetList" [])
 
 attribute [irreducible] PodDisruptionBudgetList.ty
 
-noncomputable def Eviction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Eviction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])
 
 attribute [irreducible] Eviction.ty
 
-axiom PodDisruptionBudgetSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodDisruptionBudgetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnhealthyPodEvictionPolicyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UnhealthyPodEvictionPolicyType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodDisruptionBudgetStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudget.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodDisruptionBudget.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodDisruptionBudgetList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Eviction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Eviction.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [FfiSyntax] [GoGlobalContext] : val
+axiom GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom DisruptionBudgetCause [FfiSyntax] [GoGlobalContext] : val
+axiom DisruptionBudgetCause [GooseExts] [GoGlobalContext] : val
 
-axiom IfHealthyBudget [FfiSyntax] [GoGlobalContext] : val
+axiom IfHealthyBudget [GooseExts] [GoGlobalContext] : val
 
-axiom AlwaysAllow [FfiSyntax] [GoGlobalContext] : val
+axiom AlwaysAllow [GooseExts] [GoGlobalContext] : val
 
-axiom DisruptionAllowedCondition [FfiSyntax] [GoGlobalContext] : val
+axiom DisruptionAllowedCondition [GooseExts] [GoGlobalContext] : val
 
-axiom SyncFailedReason [FfiSyntax] [GoGlobalContext] : val
+axiom SyncFailedReason [GooseExts] [GoGlobalContext] : val
 
-axiom SufficientPodsReason [FfiSyntax] [GoGlobalContext] : val
+axiom SufficientPodsReason [GooseExts] [GoGlobalContext] : val
 
-axiom InsufficientPodsReason [FfiSyntax] [GoGlobalContext] : val
+axiom InsufficientPodsReason [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrIntOverflowGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUnexpectedEndOfGroupGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeGroupVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeBuilder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def localSchemeBuilder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [FfiSyntax] [GoGlobalContext] : val
+axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AddToScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.AddToScheme"
 
-axiom AddToScheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Eviction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Eviction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_Eviction"
 
-axiom map_Eviction.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Eviction.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodDisruptionBudget [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodDisruptionBudget [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_PodDisruptionBudget"
 
-axiom map_PodDisruptionBudget.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodDisruptionBudget.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodDisruptionBudgetList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodDisruptionBudgetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_PodDisruptionBudgetList"
 
-axiom map_PodDisruptionBudgetList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodDisruptionBudgetList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodDisruptionBudgetSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodDisruptionBudgetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_PodDisruptionBudgetSpec"
 
-axiom map_PodDisruptionBudgetSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodDisruptionBudgetSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodDisruptionBudgetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodDisruptionBudgetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_PodDisruptionBudgetStatus"
 
-axiom map_PodDisruptionBudgetStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodDisruptionBudgetStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def encodeVarintGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.encodeVarintGenerated"
 
-noncomputable def sovGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sovGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.sovGenerated"
 
-noncomputable def sozGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sozGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.sozGenerated"
 
-noncomputable def valueToStringGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def valueToStringGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.valueToStringGenerated"
 
-noncomputable def skipGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def skipGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.skipGenerated"
 
-noncomputable def Resource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Resource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.Resource"
 
-noncomputable def addKnownTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.addKnownTypes"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.policy.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.api.policy.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -208,81 +208,105 @@ axiom PodDisruptionBudgetSpec : Type
 axiom PodDisruptionBudgetSpec.zero_val : ZeroVal PodDisruptionBudgetSpec
 attribute [instance] PodDisruptionBudgetSpec.zero_val
 
-class PodDisruptionBudgetSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDisruptionBudgetSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDisruptionBudgetSpec.underlying PodDisruptionBudgetSpec
   underlying : go.UnderlyingDirectedEq PodDisruptionBudgetSpec.ty PodDisruptionBudgetSpec.underlying
   isUnderlying : go.IsUnderlying PodDisruptionBudgetSpec.underlying PodDisruptionBudgetSpec.underlying
+  method_set : go.MethodSetIs PodDisruptionBudgetSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDisruptionBudgetSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodDisruptionBudgetSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodDisruptionBudgetSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodDisruptionBudgetSpec.TypeAssumptions.type_repr
   PodDisruptionBudgetSpec.TypeAssumptions.underlying
   PodDisruptionBudgetSpec.TypeAssumptions.isUnderlying
+  PodDisruptionBudgetSpec.TypeAssumptions.method_set
+  PodDisruptionBudgetSpec.TypeAssumptions.ptr_method_set
 
 axiom UnhealthyPodEvictionPolicyType : Type
 axiom UnhealthyPodEvictionPolicyType.zero_val : ZeroVal UnhealthyPodEvictionPolicyType
 attribute [instance] UnhealthyPodEvictionPolicyType.zero_val
 
-class UnhealthyPodEvictionPolicyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnhealthyPodEvictionPolicyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnhealthyPodEvictionPolicyType.underlying UnhealthyPodEvictionPolicyType
   underlying : go.UnderlyingDirectedEq UnhealthyPodEvictionPolicyType.ty UnhealthyPodEvictionPolicyType.underlying
   isUnderlying : go.IsUnderlying UnhealthyPodEvictionPolicyType.underlying UnhealthyPodEvictionPolicyType.underlying
+  method_set : go.MethodSetIs UnhealthyPodEvictionPolicyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnhealthyPodEvictionPolicyType.ty) []
 
 attribute [instance] UnhealthyPodEvictionPolicyType.TypeAssumptions.type_repr
   UnhealthyPodEvictionPolicyType.TypeAssumptions.underlying
   UnhealthyPodEvictionPolicyType.TypeAssumptions.isUnderlying
+  UnhealthyPodEvictionPolicyType.TypeAssumptions.method_set
+  UnhealthyPodEvictionPolicyType.TypeAssumptions.ptr_method_set
 
 axiom PodDisruptionBudgetStatus : Type
 axiom PodDisruptionBudgetStatus.zero_val : ZeroVal PodDisruptionBudgetStatus
 attribute [instance] PodDisruptionBudgetStatus.zero_val
 
-class PodDisruptionBudgetStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDisruptionBudgetStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDisruptionBudgetStatus.underlying PodDisruptionBudgetStatus
   underlying : go.UnderlyingDirectedEq PodDisruptionBudgetStatus.ty PodDisruptionBudgetStatus.underlying
   isUnderlying : go.IsUnderlying PodDisruptionBudgetStatus.underlying PodDisruptionBudgetStatus.underlying
+  method_set : go.MethodSetIs PodDisruptionBudgetStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDisruptionBudgetStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodDisruptionBudgetStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodDisruptionBudgetStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodDisruptionBudgetStatus.TypeAssumptions.type_repr
   PodDisruptionBudgetStatus.TypeAssumptions.underlying
   PodDisruptionBudgetStatus.TypeAssumptions.isUnderlying
+  PodDisruptionBudgetStatus.TypeAssumptions.method_set
+  PodDisruptionBudgetStatus.TypeAssumptions.ptr_method_set
 
 axiom PodDisruptionBudget : Type
 axiom PodDisruptionBudget.zero_val : ZeroVal PodDisruptionBudget
 attribute [instance] PodDisruptionBudget.zero_val
 
-class PodDisruptionBudget.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDisruptionBudget.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDisruptionBudget.underlying PodDisruptionBudget
   underlying : go.UnderlyingDirectedEq PodDisruptionBudget.ty PodDisruptionBudget.underlying
   isUnderlying : go.IsUnderlying PodDisruptionBudget.underlying PodDisruptionBudget.underlying
+  method_set : go.MethodSetIs PodDisruptionBudget.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDisruptionBudget.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodDisruptionBudget.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodDisruptionBudget.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Object" [])]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodDisruptionBudget.TypeAssumptions.type_repr
   PodDisruptionBudget.TypeAssumptions.underlying
   PodDisruptionBudget.TypeAssumptions.isUnderlying
+  PodDisruptionBudget.TypeAssumptions.method_set
+  PodDisruptionBudget.TypeAssumptions.ptr_method_set
 
 axiom PodDisruptionBudgetList : Type
 axiom PodDisruptionBudgetList.zero_val : ZeroVal PodDisruptionBudgetList
 attribute [instance] PodDisruptionBudgetList.zero_val
 
-class PodDisruptionBudgetList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDisruptionBudgetList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDisruptionBudgetList.underlying PodDisruptionBudgetList
   underlying : go.UnderlyingDirectedEq PodDisruptionBudgetList.ty PodDisruptionBudgetList.underlying
   isUnderlying : go.IsUnderlying PodDisruptionBudgetList.underlying PodDisruptionBudgetList.underlying
+  method_set : go.MethodSetIs PodDisruptionBudgetList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDisruptionBudgetList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodDisruptionBudgetList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodDisruptionBudgetList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListInterface" [])]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ShardInfo" []))]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ShardInfo" []))] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodDisruptionBudgetList.TypeAssumptions.type_repr
   PodDisruptionBudgetList.TypeAssumptions.underlying
   PodDisruptionBudgetList.TypeAssumptions.isUnderlying
+  PodDisruptionBudgetList.TypeAssumptions.method_set
+  PodDisruptionBudgetList.TypeAssumptions.ptr_method_set
 
 axiom Eviction : Type
 axiom Eviction.zero_val : ZeroVal Eviction
 attribute [instance] Eviction.zero_val
 
-class Eviction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Eviction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Eviction.underlying Eviction
   underlying : go.UnderlyingDirectedEq Eviction.ty Eviction.underlying
   isUnderlying : go.IsUnderlying Eviction.underlying Eviction.underlying
+  method_set : go.MethodSetIs Eviction.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Eviction.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Eviction.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Eviction.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Object" [])]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] Eviction.TypeAssumptions.type_repr
   Eviction.TypeAssumptions.underlying
   Eviction.TypeAssumptions.isUnderlying
+  Eviction.TypeAssumptions.method_set
+  Eviction.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PodDisruptionBudgetSpec_instance : PodDisruptionBudgetSpec.TypeAssumptions
   UnhealthyPodEvictionPolicyType_instance : UnhealthyPodEvictionPolicyType.TypeAssumptions
   PodDisruptionBudgetStatus_instance : PodDisruptionBudgetStatus.TypeAssumptions

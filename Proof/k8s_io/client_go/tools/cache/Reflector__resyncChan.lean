@@ -18,7 +18,7 @@ namespace cache
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache apimodel informer
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -28,7 +28,6 @@ theorem Reflector.resyncChan.wp_proof : Reflector.resyncChan.spec (GF := GF) (hG
   intro r
   wp_start as #Hrp
   wp_auto
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold cleanupOk
   imodintro

@@ -35,7 +35,7 @@ namespace EtcdGrove
 namespace apimodel
 
 section state
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The resources the model serves. -/
 inductive Res where
@@ -336,7 +336,7 @@ inductive ApiErr where
 deriving DecidableEq
 
 /-- The `metav1.StatusReason` and HTTP code of an error. -/
-def ApiErr.reason [FfiSyntax] : ApiErr → GoString × w32
+def ApiErr.reason [GooseExts] : ApiErr → GoString × w32
   | .internal => (go!"InternalError", W32 500)
   | .badRequest => (go!"BadRequest", W32 400)
   | .alreadyExists => (go!"AlreadyExists", W32 409)
@@ -346,7 +346,7 @@ def ApiErr.reason [FfiSyntax] : ApiErr → GoString × w32
   | .expired => (go!"Expired", W32 410)
 
 section ops
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **A flagged nondeterministic choice may happen** (`chance(flag, admin)`): the flag is on and
 the client is not an admin client. -/

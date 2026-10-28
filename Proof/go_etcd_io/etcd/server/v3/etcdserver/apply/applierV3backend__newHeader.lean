@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -69,8 +69,8 @@ theorem apply.applierV3backend.newHeader.wp_proof
   · iframe #
   wp_apply HTerm as %tm -
   wp_apply HLead as %ld -
-  wp_alloc h as Hh
-  wp_auto
+  irename «$r0» => Hh
+  generalize «$r0_ptr» = h at *
   iapply HΦ
   iframe Hrd
   isplitl [Htoks Hwl]

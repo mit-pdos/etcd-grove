@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -37,8 +37,8 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
     (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (d' : mvcc.KBReal) (γr : ReadNames)
     (al ast lp cl : Loc) (bk : GMap GoString backend.BktData) (memI : GMap w64 apply.MemberM)
     (A' : List EntryModel) (hγB : d'.γB = γB)
-    (hA' : (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).bk = bk ∧
-      (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI) :
+    (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk = bk ∧
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI) :
     backend.rbOwn d'.γB bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ⊢
     srvRest (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) γr A' := by

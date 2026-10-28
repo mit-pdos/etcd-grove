@@ -26,7 +26,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -259,8 +259,8 @@ theorem Cache.Get.wp_proof
           subst Hgn
           icases Hres with ⟨%Hlrev, #HE, Hkvs, Hcap, #HkvsAt⟩
           wp_auto
-          wp_alloc rp as Hrp
-          wp_auto
+          irename «$r0» => Hrp
+          generalize «$r0_ptr» = rp at *
           ihave %Hkl := ownSlice_len _ _ _ $$ Hkvs
           have hcnt : kvs.len = W64 (kvRange key of.base.rangeEnd m).length := by
             simp only [List.length_map] at Hkl

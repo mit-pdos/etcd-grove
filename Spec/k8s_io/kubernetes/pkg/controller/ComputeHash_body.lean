@@ -28,7 +28,7 @@ open Iris Iris.BI k8s_io.kubernetes.pkg.controller
 
 section body
 /-- go: controller_utils.go:1402:6 -/
-noncomputable def ComputeHash.body [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ComputeHash.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "template"
   (Lam "collisionCount"
   (App (Val exceptionDo)
@@ -70,7 +70,7 @@ noncomputable def ComputeHash.body [FfiSyntax] [GoGlobalContext] : val :=
 end body
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

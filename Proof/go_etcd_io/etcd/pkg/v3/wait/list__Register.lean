@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -65,6 +65,7 @@ theorem wait.list.Register.wp_proof : wait.list.Register.spec (GF := GF) (hG := 
   ihave #Hs := Hsh $$ %n %hn64
   iunfold waitShard at Hs
   icases Hs with ⟨%mref, %γs, %γr, #Hnm, #Hm, #Hg, #Hinv⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide

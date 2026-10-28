@@ -23,7 +23,7 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.util.hash
 
-noncomputable def DeepHashObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeepHashObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/hash.DeepHashObject"
 
 /-- DeepHashObject writes specified object to hash using the spew library
@@ -31,15 +31,12 @@ noncomputable def DeepHashObject [FfiSyntax] [GoGlobalContext] : GoString :=
     ensuring the hash does not change when a pointer changes.
 
     go: hash.go:29:6 -/
-noncomputable def DeepHashObject.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DeepHashObject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hasher"
   (Lam "objectToWrite"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "objectToWrite" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "objectToWrite"))
   (Let "hasher" (App (Val (GoInstruction (GoAlloc _root_.Perennial.hash.Hash.ty))) (Var "hasher"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.hash.Hash.ty _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash.ty))) (Var "hasher")))
@@ -49,12 +46,13 @@ noncomputable def DeepHashObject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.hash.Hash.ty go!"Reset"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash.ty))) (Var "hasher"))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.hash.Hash.ty go!"Reset"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash.ty))) (Var "hasher"))) (Val #())))))))
+  (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.util.hash where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.hash, pkg_id.k8s_io.utils.dump]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.kubernetes.pkg.util.hash)) (Lam BAnon
   (App (Val exceptionDo)
@@ -67,7 +65,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.utils.dump.initialize') (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DeepHashObject_unfold : FuncUnfold DeepHashObject [] DeepHashObject.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_hash_Assumption : _root_.Perennial.hash.Assumptions

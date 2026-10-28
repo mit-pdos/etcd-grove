@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -37,7 +37,8 @@ abbrev rafthttp.Transport.AddPeer.spec : Prop :=
       trLive γn t c rs ∗ us ↦*{dq} ss ∗ [∗list] _x ∈ List.replicate 8 (), c.R }}
     (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
       (Val #us))
-  {{ RET #(); trLive γn t c (rs.1, rs.2 ++ [id]) ∗ us ↦*{dq} ss }}
+  {{ RET #(); trLive γn t c (rs ++ [id]) ∗ us ↦*{dq} ss ∗
+      (⌜id ∈ rs ∨ id ∉ c.L⌝ ∨ trNoRem c id ∨ trOpened c) }}
 
 end spec
 

@@ -20,7 +20,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
   go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -30,10 +30,10 @@ theorem txn.checkPut.wp_proof
     (hLease : txn.checkLease.spec (GF := GF) (hG := hG))
     (hCheck : txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG)) :
     txn.checkPut.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind le γl p o L
+  intro trace mw s γ kind le γl p o L I
   wp_start as ⟨%Htr, Htx, #Hp, #Hle, Hu⟩
   (try wp_auto)
-  wp_apply (hLease le γl p o L) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
+  wp_apply (hLease le γl p o L I) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
   (try wp_auto)
   icases Herr with (⟨%Herr, #Hlok⟩ | ⟨%Hne, #He⟩)
   · subst Herr

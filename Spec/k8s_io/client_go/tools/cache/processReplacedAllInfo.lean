@@ -19,13 +19,13 @@ open Iris Iris.BI k8s_io.client_go.tools.cache
 
 /-- A relist's events at the items `it`: a deletion of each key of `dks` (its tombstone), then an
 update or add of each new object (`putEvR`). -/
-def replacedEvs [FfiSyntax] [GoGlobalContext] (KF : GoInterface → GoString) (b : Bool) (it : Items)
+def replacedEvs [GooseExts] [GoGlobalContext] (KF : GoInterface → GoString) (b : Bool) (it : Items)
     (dks : List GoString) (objs : List GoInterface) : List Ev :=
   dks.map (fun k => Ev.delete (tombstone k (objAt it k))) ++
     objs.map (fun x => putEvR it (KF x) x b)
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

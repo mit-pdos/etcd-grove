@@ -41,7 +41,7 @@ open Iris Iris.BI apimodel informer consistency cache workqueue
 open k8s_io.kubernetes.pkg.controller.daemon
 
 section comps
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- An informer's fixed locations and ghost names. -/
 structure InfLoc where
@@ -80,7 +80,7 @@ structure DscComp where
 end comps
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

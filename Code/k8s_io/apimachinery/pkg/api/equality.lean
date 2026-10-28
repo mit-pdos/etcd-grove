@@ -20,24 +20,24 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.api.equality
 
-noncomputable def Semantic [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Semantic [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/equality.Semantic"
 
-axiom Semantic.init [FfiSyntax] [GoGlobalContext] : val
+axiom Semantic.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.equality where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.api.equality)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val Semantic.init) (Val #())))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.apimachinery.pkg.api.equality
 

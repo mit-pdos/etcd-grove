@@ -43,7 +43,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The three exits; see the file header. -/
 def HandleSnapResult (id : w64) (s : NState) (m : MessageM)
@@ -90,7 +90,7 @@ def SnapCfgOk (c : CfgM) (s : NState) (sv : SnapshotM) (cl : CSLists) (c' : CfgM
 end results
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

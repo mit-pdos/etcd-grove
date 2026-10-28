@@ -20,31 +20,31 @@ end pkg_id
 
 namespace k8s_io.utils.ptr
 
-noncomputable def AllPtrFieldsNil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AllPtrFieldsNil [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/ptr.AllPtrFieldsNil"
 
-noncomputable def To [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def To [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/ptr.To"
 
-noncomputable def Deref [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Deref [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/ptr.Deref"
 
-noncomputable def Equal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Equal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/ptr.Equal"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.ptr where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.utils.ptr)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.utils.ptr
 

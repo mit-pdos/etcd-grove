@@ -13,6 +13,8 @@ translate = ["!*", "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly", "RaftCluste
   "RaftCluster.IsLocalMemberLearner", "RaftCluster.IsMemberExist",
   # (D43 M4) the membership writer of a removal (its metric update names only)
   "RaftCluster.RemoveMember",
+  # (D43 M5b) the membership writer of an addition (its metric updates names only)
+  "RaftCluster.AddMember",
   # (D43 M4) the validation of a conf change (`json.Unmarshal` of its context names only)
   "RaftCluster.ValidateConfigurationChange"]
 imports = ["!*", "sort", "sync", "go.uber.org/zap", "go.etcd.io/raft/v3/raftpb", "encoding/json", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version"]

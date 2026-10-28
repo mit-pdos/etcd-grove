@@ -20,87 +20,89 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.types
 
-noncomputable def NamespacedName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespacedName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.NamespacedName" [])
 
 attribute [irreducible] NamespacedName.ty
 
-noncomputable def NodeName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.NodeName" [])
 
 attribute [irreducible] NodeName.ty
 
-noncomputable def PatchType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PatchType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" [])
 
 attribute [irreducible] PatchType.ty
 
-noncomputable def UID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])
 
 attribute [irreducible] UID.ty
 
-axiom Separator [FfiSyntax] [GoGlobalContext] : val
+axiom Separator [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def JSONPatchType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def JSONPatchType [GooseExts] [GoGlobalContext] : val :=
   #(go!"application/json-patch+json")
 
-@[reducible] noncomputable def MergePatchType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MergePatchType [GooseExts] [GoGlobalContext] : val :=
   #(go!"application/merge-patch+json")
 
-@[reducible] noncomputable def StrategicMergePatchType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StrategicMergePatchType [GooseExts] [GoGlobalContext] : val :=
   #(go!"application/strategic-merge-patch+json")
 
-@[reducible] noncomputable def ApplyPatchType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ApplyPatchType [GooseExts] [GoGlobalContext] : val :=
   #(go!"application/apply-patch+yaml")
 
-@[reducible] noncomputable def ApplyYAMLPatchType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ApplyYAMLPatchType [GooseExts] [GoGlobalContext] : val :=
   #(go!"application/apply-patch+yaml")
 
-@[reducible] noncomputable def ApplyCBORPatchType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ApplyCBORPatchType [GooseExts] [GoGlobalContext] : val :=
   #(go!"application/apply-patch+cbor")
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.types where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.types)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-structure NamespacedName [FfiSyntax] where
+structure NamespacedName [GooseExts] where
   mk ::
   Namespace' : GoString
   Name' : GoString
 
-noncomputable instance NamespacedName.zero_val [FfiSyntax] : ZeroVal NamespacedName :=
+noncomputable instance NamespacedName.zero_val [GooseExts] : ZeroVal NamespacedName :=
   ⟨NamespacedName.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NamespacedName.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NamespacedName.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Namespace" go.string),
 (go.field_decl.FieldDecl go!"Name" go.string)]
 
-@[irreducible] noncomputable def NamespacedName.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NamespacedName.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NamespacedName.fieldsUnsealed
 
-noncomputable instance equals_unfold_NamespacedName [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NamespacedName [GooseExts] [GoGlobalContext] :
     EqualsUnfold NamespacedName.fields NamespacedName.fieldsUnsealed :=
   ⟨by unfold NamespacedName.fields; rfl⟩
 
-@[reducible] noncomputable def NamespacedName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NamespacedName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NamespacedName.fields)
 
-class NamespacedName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NamespacedName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NamespacedName.underlying NamespacedName
   underlying : go.UnderlyingDirectedEq NamespacedName.ty NamespacedName.underlying
   get_Namespace : ∀ (x : NamespacedName), go.IsGoStepPureDetTagged under (StructFieldGet NamespacedName.underlying go!"Namespace") #x (Val #(x.Namespace'))
   set_Namespace : ∀ (x : NamespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamespacedName.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : NamespacedName)))
   get_Name : ∀ (x : NamespacedName), go.IsGoStepPureDetTagged under (StructFieldGet NamespacedName.underlying go!"Name") #x (Val #(x.Name'))
   set_Name : ∀ (x : NamespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamespacedName.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : NamespacedName)))
+  method_set : go.MethodSetIs NamespacedName.ty [(go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NamespacedName.ty) [(go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] NamespacedName.TypeAssumptions.type_repr
   NamespacedName.TypeAssumptions.underlying
@@ -108,38 +110,52 @@ attribute [instance] NamespacedName.TypeAssumptions.type_repr
   NamespacedName.TypeAssumptions.set_Namespace
   NamespacedName.TypeAssumptions.get_Name
   NamespacedName.TypeAssumptions.set_Name
+  NamespacedName.TypeAssumptions.method_set
+  NamespacedName.TypeAssumptions.ptr_method_set
 
-abbrev NodeName [FfiSyntax] : Type := GoString
+abbrev NodeName [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def NodeName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class NodeName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NodeName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NodeName.ty NodeName.underlying
+  method_set : go.MethodSetIs NodeName.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeName.ty) []
 
 attribute [instance] NodeName.TypeAssumptions.underlying
+  NodeName.TypeAssumptions.method_set
+  NodeName.TypeAssumptions.ptr_method_set
 
-abbrev PatchType [FfiSyntax] : Type := GoString
+abbrev PatchType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PatchType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PatchType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class PatchType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PatchType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PatchType.ty PatchType.underlying
+  method_set : go.MethodSetIs PatchType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PatchType.ty) []
 
 attribute [instance] PatchType.TypeAssumptions.underlying
+  PatchType.TypeAssumptions.method_set
+  PatchType.TypeAssumptions.ptr_method_set
 
-abbrev UID [FfiSyntax] : Type := GoString
+abbrev UID [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def UID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UID.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class UID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UID.ty UID.underlying
+  method_set : go.MethodSetIs UID.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UID.ty) []
 
 attribute [instance] UID.TypeAssumptions.underlying
+  UID.TypeAssumptions.method_set
+  UID.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   NamespacedName_instance : NamespacedName.TypeAssumptions
   NodeName_instance : NodeName.TypeAssumptions
   PatchType_instance : PatchType.TypeAssumptions

@@ -1,11 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-## `node.Tick()` (node.go:458)
+## `node.Tick`
 
-A tick, for one credit of the term budget (`tickCred`, `InvNode.lean`): the credit goes
-into the buffered `tickc` with the tick, or is dropped with it when the channel is full
-(the `default` branch, which warns through the raft struct's logger). Callable from any
-goroutine.
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.Tick.specRaw`.)
 -/
 module
 
@@ -21,17 +20,16 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- (open) **`node.Tick()`**: a tick, for one tick credit, from any goroutine. -/
 abbrev node.Tick.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      tickCred γ.bud 1 }}
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ tickCredit γ 1 }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Tick")) (Val #()))
   {{ RET #(); True }}
 

@@ -26,7 +26,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section helpers
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What `reset`'s `Visit` has done after visiting the ids in `D`: the `Progress`
 values range over the same peers as before, and every visited peer's `Match` is
@@ -118,7 +118,7 @@ private theorem resetInv_prvalsOk (id : w64) (s : NState) (term : w64) (pvs : GM
 end helpers
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

@@ -5,6 +5,7 @@ public import Code.k8s_io.client_go.tools.cache.chunk0
 public import Code.k8s_io.client_go.tools.cache.chunk1
 public import Code.k8s_io.client_go.tools.cache.chunk2
 public import Code.k8s_io.client_go.tools.cache.chunk3
+public import Code.k8s_io.client_go.tools.cache.chunk4
 
 @[expose] public section
 
@@ -19,7 +20,7 @@ noncomputable section
 
 namespace k8s_io.client_go.tools.cache
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Config_instance : Config.TypeAssumptions
   ShouldResyncFunc_instance : ShouldResyncFunc.TypeAssumptions
   ProcessFunc_instance : ProcessFunc.TypeAssumptions

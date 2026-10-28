@@ -14,7 +14,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3.adt
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -30,6 +30,7 @@ theorem adt.intervalNode.color.wp_proof : adt.intervalNode.color.spec (GF := GF)
     rw [_root_.decide_eq_true rfl]
     wp_auto
     rw [show black = #(adt.colorW .black) from rfl]
+    wp_auto
     iapply HΦ
     ileft; ipureintro; exact ⟨rfl, rfl⟩
   · rw [_root_.decide_eq_false Hx]

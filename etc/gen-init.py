@@ -145,8 +145,8 @@ which the trust-boundary axiom `errorsNewVarsInit` states.''',
 
 SPECIAL['go_etcd_io.bbolt.errors'] = dict(
     doc='''Its fact (`bboltErrorsInit`, `storage/backend/Base.lean`): `ErrBucketNotFound` holds an
-`errors.New` error, a leaf pointer error without an `Is` method (`EtcdGrove.ErrorStringLeaf`, a
-premise on the method sets). Its initializer runs its variables' initializers, all untranslated
+`errors.New` error, a leaf pointer error without an `Is` method (`EtcdGrove.ErrorStringLeaf`, of
+the method set goose emits). Its initializer runs its variables' initializers, all untranslated
 `errors.New` calls (`errors/errors.go`), which the trust-boundary axiom `errorsNewVarsInit`
 states.''',
     newvars=dict(ErrDatabaseNotOpen="database not open",
@@ -169,7 +169,7 @@ states.''',
         ErrIncompatibleValue="incompatible value",
         ErrSameBuckets="the source and target are the same bucket",
         ErrDifferentDB="the source and target buckets are in different database files"),
-    vars=['[EtcdGrove.ErrorStringLeaf]'],
+    vars=['[_root_.Perennial.errors.Assumptions]'],
     finish=['ipersist HErrBucketNotFound', 'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'iexists _',
             'iframe HErrBucketNotFound', 'ipureintro',
@@ -253,6 +253,21 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# (2026-10-26) `ValidString` with its body: the tables it reads are translated
+SPECIAL['unicode.utf8'] = dict(
+    doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
+their values (`firstTable`, `acceptTable`), read-only for good. Its initializer allocates them and
+stores their translated array literals.''',
+    alloc_types={'first': 'GoArray w8 256',
+                 'acceptRanges': 'GoArray _root_.Perennial.unicode.utf8.acceptRange 16'},
+    # `first`'s literal is 256 `let`s
+    pre=['set_option maxRecDepth 20000', ''],
+    heavy=True,
+    finish=['ipersist Hfirst', 'ipersist HacceptRanges'] + FIN_PRE + [
+        'unfold EtcdGrove.utf8.utf8Init', 'isplit',
+        '· iExactEq Hfirst', '  rfl', '· iExactEq HacceptRanges', '  rfl'],
+)
 
 # (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
 # package into the closure) its five error variables, translated `errors.New` calls
@@ -404,6 +419,22 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     finish=FIN_PRE[:6],
 )
 
+SPECIAL['encoding.base64'] = dict(
+    doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26):
+`StdEncoding` holds a fixed `*Encoding` whose `EncodeToString` returns the standard encoding
+(`stdEnc`) of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
+Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
+axiom `StdEncoding_init` states the one the fact reads (`NewEncoding(encodeStd)`, a fresh
+`*Encoding` with the standard alphabet and padding, whose `EncodeToString` allocates its output
+buffer, `Encode`s into it and returns it as a string: no panic, no write to its argument),
+`opaqueInitsOk` the others.''',
+    custom={'StdEncoding': dict(
+        doc='/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument\'s bytes, reading and keeping the slice. -/',
+        post='_root_.Perennial.encoding.base64.base64Init (GF := GF)',
+        pat='#H@')},
+    finish=FIN_PRE[:6],
+)
+
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
     doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
 `tooLargeResourceVersionCauseMsg` hold strings.
@@ -484,20 +515,22 @@ _K8E = [('errNotObj', 'NO'), ('errBadData', 'BD'), ('errBadRV', 'BR'), ('errNoLi
         ('errDeleteRejected', 'DR'), ('errUpdateRejected', 'UR')]
 
 def _errVarOk(x, t):
-    """`errVarOk x` (the driver's `Base.lean`) of the `errors.New` result `x<t>` (`#M<t>`)."""
-    return [f'iexists x{t}', f'iframe H{x}',
+    """`errVarOk x msg` (the driver's `Base.lean`) of the `errors.New` result `x<t>` (`#M<t>`,
+    its cell `#C<t>`)."""
+    return [f'iexists x{t}', f'iframe H{x} C{t}',
             'unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec',
             'iintro !> %Φ HΦ', f'iapply M{t}', 'inext', 'iapply HΦ']
 
 SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8setcd3'] = dict(
     doc='''Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
 `errBadData`, `errBadRV`, `errNoList`, `errDeleteRejected`, `errUpdateRejected`, translated
-`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns. Its initializer
-allocates them, initializes its imports and runs their translated initializers.''',
-    imports=['Perennial.Proof.context.NewErrorString'],
+`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
+its message (`wp_New_errorString_cell`). Its initializer allocates them, initializes its imports
+and runs their translated initializers.''',
+    imports=['Proof.errors.NewVarCell'],
     alloc_types={x: 'GoInterface' for x, _ in _K8E},
     before={'$end': ['try wp_auto'] + [l for _, t in _K8E for l in [
-        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+        f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩', 'try wp_auto']]},
     finish=[f'ipersist H{x}' for x, _ in _K8E] + FIN_PRE[:6] + ['imodintro', 'unfold drvInit'] +
            [l for x, t in _K8E[:-1] for l in ['isplitr'] + ['· ' + m if j == 0 else '  ' + m
                                                      for j, m in enumerate(_errVarOk(x, t))]] +
@@ -514,7 +547,7 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
 `strconv.ParseBool.wp_proof`).''',
     pre=['section toLoggerV2',
-         'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+         'variable [GooseExts] [GooseSemantics] [GooseInterp]',
          'variable [go_gctx : GoGlobalContext]',
          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
          'variable [sem : go.Semantics]',
@@ -558,7 +591,7 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
                      '· rw [_root_.Perennial.sync.atomic.ownBool_unseal]',
                      '  unfold _root_.Perennial.sync.atomic.ownBoolDef',
                      "  have e : (zero_val _root_.Perennial.sync.atomic.Bool') =",
-                     "      ({ _0' := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :",
+                     "      ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :",
                      "        _root_.Perennial.sync.atomic.Bool') := rfl",
                      '  rw [← e]; iexact HfatalOnDecodeError',
                      'wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]',
@@ -681,23 +714,26 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
     doc='''Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
-(`auth.go`; the auth plan's S1, 2026-10-23). Its initializer allocates and sets those translated
-variables (with the buckets' names), initializes its imports and runs its other variables'
-untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says run.''',
+(`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
+2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
+names), initializes its imports and runs its other variables' untranslated initializers, which
+the trust-boundary axiom `opaqueInitsOk` says run.''',
     alloc_types={'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
                  'Meta': 'GoInterface', 'Key': 'GoInterface', 'metaBucketName': 'GoSlice',
                  'keyBucketName': 'GoSlice', 'authEnabled': 'GoSlice', 'authDisabled': 'GoSlice',
                  'authBucketName': 'GoSlice', 'authUsersBucketName': 'GoSlice',
                  'authRolesBucketName': 'GoSlice', 'Auth': 'GoInterface', 'AuthUsers': 'GoInterface',
                  'AuthRoles': 'GoInterface', 'AuthEnabledKeyName': 'GoSlice',
-                 'AuthRevisionKeyName': 'GoSlice'},
+                 'AuthRevisionKeyName': 'GoSlice', 'Lease': 'GoInterface',
+                 'leaseBucketName': 'GoSlice'},
     before={
         '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
                 'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
-                            'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto'],
+                            'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto',
+                            'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto'],
         'testBucketName': ['wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩', 'try wp_auto',
                            'wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩', 'try wp_auto',
                            'wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩', 'try wp_auto'],
@@ -715,8 +751,8 @@ untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says r
             'ipersist HKey', 'ipersist HMeta', 'ipersist HMetaConsistentIndexKeyName',
             'ipersist HMetaTermKeyName', 'ipersist HAuth', 'ipersist HAuthUsers', 'ipersist HAuthRoles',
             'ipersist HAuthEnabledKeyName', 'ipersist HAuthRevisionKeyName', 'ipersist HauthEnabled',
-            'ipersist HauthDisabled'] + FIN_PRE[:6] + ['imodintro',
-            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName',
+            'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease'] + FIN_PRE[:6] + ['imodintro',
+            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',
             'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )
 
@@ -733,7 +769,6 @@ without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever
 (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
 other untranslated initializers run.''',
     imports=['Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString'],
-    vars=['[EtcdGrove.ErrorStringLeaf]'],
     custom={'leaseGranted': counter_inc('leaseGranted'), 'leaseRevoked': counter_inc('leaseRevoked'),
             'leaseTotalTTLs': dict(
                 doc='/-- `leaseTotalTTLs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/',
@@ -781,20 +816,35 @@ CV3 = 'go_etcd_io.etcd.cache.v3'
 SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes'] = dict(
     doc='''Its fact (`rpctypesInit`, `cache/v3/Base.lean`): the errors `ErrFutureRev`, `ErrCompacted`
 (`EtcdError`s, whose `Error()` returns), the map `errStringToError` (its values `status.Error`
-errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, a
-premise on the method sets), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
+errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, of
+the method set goose emits), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
 `ErrAuthOldRevision`, `ErrNoLeader` and the pointer error `ErrGRPCNotSupportedForLearner`. Its variables'
 initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
 `<X>_init` state the ones the fact reads, `opaqueInitsOk` the others.''',
     pre=['/-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,',
-         '`Unwrap`, `GRPCStatus` or `Is` method. A fact about the method sets, which the semantics leaves',
-         'uninterpreted: a premise, as `EtcdGrove.ErrorStringLeaf`. -/',
-         'class EtcdGrove.RpctypesEtcdErrorMethods [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where',
+         '`Unwrap`, `GRPCStatus` or `Is` method: a theorem of the method set goose emits',
+         '(`EtcdError.TypeAssumptions.method_set`), as `EtcdGrove.ErrorStringLeaf`. -/',
+         'class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where',
          '  leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩',
          '  noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none',
          '  noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none',
+         '',
+         'instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]',
+         '    [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :',
+         '    EtcdGrove.RpctypesEtcdErrorMethods := by',
+         '  have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m',
+         '  have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"',
+         '  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs',
+         '  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs⟩',
+         '',
+         '/-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target',
+         '`errors.As` accepts. -/',
+         'theorem EtcdGrove.rpctypesEtcdError_asTarget [GooseExts] [GoGlobalContext] [GoLocalContext]',
+         '    [sem : go.Semantics] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :',
+         '    errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty :=',
+         '  Or.inr (by go_type_set)',
          ''],
-    vars=['[EtcdGrove.RpctypesEtcdErrorMethods]'],
+    imports=['Perennial.Golang.Theory.TypeSet'],
     custom={
         'ErrFutureRev': dict(doc='/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/',
                              post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e',
@@ -924,7 +974,9 @@ _AUTH_ERRS = ['ErrRootUserNotExist', 'ErrRootRoleNotExist', 'ErrUserAlreadyExist
               'ErrRoleNotGranted', 'ErrPermissionNotGranted', 'ErrAuthNotEnabled', 'ErrAuthOldRevision',
               'ErrInvalidAuthToken', 'ErrInvalidAuthOpts', 'ErrInvalidAuthMgmt']
 def _auth_news(names):
-    return [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{n} #M{n}' for n in names]
+    # with the message cells (the auth plan's E3i, 2026-10-27: `authErrMsgs`, what tells them apart
+    # from `etcdserver/errors.ErrNoSpace`)
+    return [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{n} ⟨#M{n}, #C{n}⟩' for n in names]
 SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
     doc='''Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
 `ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`, and the admin side's eleven
@@ -933,9 +985,8 @@ SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).''',
-    imports=['Proof.errors.NewVar', 'Perennial.Proof.context.NewErrorString',
+    imports=['Proof.errors.NewVar', 'Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString',
              'Perennial.Proof.sync.RWMutexGuard'],
-    vars=['[EtcdGrove.ErrorStringLeaf]'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
                  # the simple provider's TTL default (the auth plan's S5b, 2026-10-24), a `time.Duration`
                  'simpleTokenTTLDefault': 'w64',
@@ -951,6 +1002,13 @@ initializers are untranslated (`opaqueInitsOk`).''',
     },
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] + ['ipersist HsimpleTokenTTLResolution'] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
+            # the message cells (E3i): `errVarCells authErrMsgs`
+            'ihave #VCells : (EtcdGrove.errVarCells go_etcd_io.etcd.server.v3.auth.authErrMsgs : IProp GF) $$ []',
+            '· unfold go_etcd_io.etcd.server.v3.auth.authErrMsgs',
+            '  simp only [EtcdGrove.errVarCells, EtcdGrove.errVarCell]',
+            '  iframe #',
+            '  repeat (first | (isplitl []; · (iexists _; iframe #)) | (iexists _; iframe #))',
+            '  try itrivial'] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
             '· iapply isPkgInit_access $$ Hd17',
             'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩',
@@ -1195,13 +1253,13 @@ initializers run.""",
 
 _ERRLEAF_PRE = [
     'section errVarLeafOfNew',
-    'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+    'variable [GooseExts] [GooseSemantics] [GooseInterp]',
     'variable [go_gctx : GoGlobalContext]',
     'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
-    'variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions] [EtcdGrove.ErrorStringLeaf]',
+    'variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]',
     '',
     '/-- An `errors.New` variable (`errorsNewVar`) holds a leaf pointer error without `Is` whose',
-    '`Error()` returns (`errVarLeaf`), by the premise `ErrorStringLeaf`. -/',
+    '`Error()` returns (`errVarLeaf`), by `ErrorStringLeaf`. -/',
     'theorem EtcdGrove.errVarLeaf_of_newVar (X msg : GoString) :',
     '    EtcdGrove.errorsNewVar (GF := GF) X msg ⊢ EtcdGrove.errVarLeaf X := by',
     '  unfold EtcdGrove.errorsNewVar EtcdGrove.errVarLeaf',
@@ -1249,7 +1307,7 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.apply'] = dict(
     doc="""Its fact (`applyInit`, `Base.lean`): its gauge vector `alarms` with its label names
 (`metrics.go`, untranslated: the trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
 (`applyErrVars`), from their packages' facts (`etcdserver/errors`', `lease`'s, `mvcc`'s), leaf
-errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
+errors by `EtcdGrove.ErrorStringLeaf`.""",
     custom={'alarms': promvec('alarms', 'Gauge', ['server_id', 'alarm_type'])},
     pre=_ERRLEAF_PRE,
     finish=(['ipersist Halarms'] +
@@ -1269,7 +1327,15 @@ errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
              'ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC',
              'ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF'] +
             _noSpaceApart() +
-            FIN_PRE[:6] + ['imodintro', 'unfold applyInit applyErrVars', 'iframe #']),
+            # (the auth plan's E3i, 2026-10-27) `ErrNoSpace` apart from the auth package's error
+            # variables, from their message cells (`authInit`'s last conjunct)
+            ['ihave Hau : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.auth}',
+             'icases Hau with ⟨' + '-, ' * 23 + '#AUC⟩',
+             'ihave #AAU := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace'
+             ' go!"etcdserver: no space" go_etcd_io.etcd.server.v3.auth.authErrMsgs'
+             ' (go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _ (by decide)) $$ CNSP AUC'] +
+            FIN_PRE[:6] + ['imodintro', 'unfold applyInit applyErrVars authErrsApart', 'iframe #']),
 )
 
 _SRV_ERRS = [('ErrTooManyRequests', 'etcdserver: too many requests', 'TMR'),
@@ -1293,7 +1359,7 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver'] = dict(
     doc="""Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`, untranslated: the
 trust-boundary axioms `<X>_init`; the vectors with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
-errors by the premise `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
+errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
 package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
@@ -1453,7 +1519,7 @@ names) and the four
 _RD = 'go_etcd_io.etcd.server.v3.etcdserver.read'
 _RD_CTX_PRE = [
     'section ctxFacts',
-    'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+    'variable [GooseExts] [GooseSemantics] [GooseInterp]',
     'variable [go_gctx : GoGlobalContext]',
     'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
     'variable [sem : go.Semantics]',
@@ -1485,7 +1551,7 @@ SPECIAL[_RD] = dict(
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
 axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), `readIndexRetryTime`,
 the error variables it returns or compares with, from their packages' facts (`etcdserver/errors`'
-and raft's, leaf errors by the premise `EtcdGrove.ErrorStringLeaf`), and `context`'s
+and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
 (`EtcdGrove.ContextReadErrs`, a premise: Perennial's `context` fact lacks them). Its translated
 `init()` registers the two counters (`prometheus.MustRegister`, the trust-boundary axiom
 `MustRegister.wp_proof`), which takes the right to register each name: the precondition
@@ -1495,7 +1561,7 @@ and raft's, leaf errors by the premise `EtcdGrove.ErrorStringLeaf`), and `contex
              'Proof.github_com.prometheus.client_golang.prometheus.MustRegister',
              'Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init'],
     pre=_RD_CTX_PRE,
-    vars=['[EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]', '[EtcdGrove.ErrorStringLeaf]'],
+    vars=['[EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]'],
     alloc_types={'slowReadIndex': 'GoInterface', 'readIndexFailed': 'GoInterface',
                  'readIndexRetryTime': '_root_.Perennial.time.Duration'},
     before={'$inits': [
@@ -1716,7 +1782,7 @@ def gen(p, cfg=None):
     if opq or opqf or newvars or custom:
         A('section opaqueInits')
         A(f'namespace {p}')
-        A('variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]')
+        A('variable [GooseExts] [GooseSemantics] [GooseInterp]')
         A('variable [go_gctx : GoGlobalContext]')
         A('variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]')
         A('variable [sem : go.Semantics]')
@@ -1761,7 +1827,7 @@ def gen(p, cfg=None):
     for l in cfg.get('pre', []):
         A(l)
     A('section init')
-    A('variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]')
+    A('variable [GooseExts] [GooseSemantics] [GooseInterp]')
     A('variable [go_gctx : GoGlobalContext]')
     A('variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]')
     A('variable [sem : go.Semantics]')
@@ -1773,9 +1839,6 @@ def gen(p, cfg=None):
             if v not in vs: vs.append(v)
     for v in vs:
         A(f'variable {v}')
-    if needs_ctx:
-        A('variable [_root_.Perennial.context.ErrorStringIsError]')
-        A('  [_root_.Perennial.context.DeadlineExceededIsError]')
     if needs_raft:
         A('variable [_root_.Perennial.log.NewModel]')
     A('')
@@ -1960,12 +2023,12 @@ def gen_ext():
           'noncomputable section', '', 'namespace Perennial', 'namespace EtcdGrove', '',
           'open Iris Iris.BI Iris.ProgramLogic Iris.Std', '',
           '/-- The initializers of the packages whose `wp_initialize\'` is not generated here. -/',
-          'inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop where']
+          'inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop where']
     for q in exts:
         L.append(f'  | {ext_ctor(q)} : ExternalInit pkg_id.{q} _root_.Perennial.{q}.initialize\'')
     L += ['',
           'section ax',
-          'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+          'variable [GooseExts] [GooseSemantics] [GooseInterp]',
           'variable [go_gctx : GoGlobalContext]',
           'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]',
           'variable [sem : go.Semantics]',
@@ -2042,7 +2105,7 @@ def gen_table(p, path):
          'noncomputable section', '', 'namespace Perennial', f'namespace {p}', '',
          'open Iris Iris.BI Iris.ProgramLogic Iris.Std', '',
          'section table',
-         'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+         'variable [GooseExts] [GooseSemantics] [GooseInterp]',
          'variable [go_gctx : GoGlobalContext]',
          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
          'variable [sem : go.Semantics]',

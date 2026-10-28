@@ -13,7 +13,7 @@ namespace btree
 open Iris Iris.BI Iris.ProofMode k8s_io.utils.third_party.forked.golang.btree
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -32,10 +32,10 @@ theorem FreeList.newNode.wp_proof : FreeList.newNode.spec (GF := GF) (hG := hG) 
   wp_if_destruct
   · wp_apply sync.Mutex.wp_Unlock $$ [$Hfl $Hlocked Hfield Hsl Hcap Hns]
     · inext; iexists sl, ns; iframe
-    wp_alloc n as Hn
+    irename «$r0» => Hn
+    generalize «$r0_ptr» = n at *
     ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hn
     iStructNamed Hn
-    wp_auto
     iapply HΦ
     unfold freeNode nodeFields
     iexists _, _, _

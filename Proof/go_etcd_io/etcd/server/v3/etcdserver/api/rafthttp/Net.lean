@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvPb
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat
@@ -52,13 +53,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **What a message carries over the network** (see the file header). -/
-structure NetPayload (GF : BundledGFunctors) [FfiSyntax] where
+structure NetPayload (GF : BundledGFunctors) [GooseExts] where
   P : MsgSt → IProp GF
   O : MsgSt → IProp GF
   once : MsgSt → Prop
@@ -87,7 +88,7 @@ abbrev StreamKey := GName × StreamTy × w64
 /-- **A network's names** (see the file header). (2026-10-23, rafthttp stage 6a, D39) `reg`: the
 streams' registry (`Stream.lean`'s `streamRegInv`), one for the network, so that a member's
 stream reader and its peer's stream handler agree on a connection. -/
-structure NetNames (GF : BundledGFunctors) [FfiSyntax] where
+structure NetNames (GF : BundledGFunctors) [GooseExts] where
   N : NetPayload GF
   slots : GName
   dir : w64 → List GoString
@@ -211,21 +212,24 @@ with its bundle (`netSnapBundle`), which the transport streams to the slot holde
 `closeC`) when done, or at once with `errMemberNotFound` if no peer is added for `To`.
 (2026-10-24, rafthttp stage 6d, the user's choice) `Send` borrows `T`, its caller's resource: the
 transport's read lock needs one of the mutex's reader tokens (the server's raft loop holds one).
-(2026-10-24) Of the member `lid`: its messages are `lid`'s (`netBundle`). -/
-def netTransport (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T : IProp GF) : IProp GF :=
+(2026-10-24) Of the member `lid`: its messages are `lid`'s (`netBundle`). (2026-10-26, D43 M5c,
+the user's (A)) `Stop` consumes `TS`, its caller's right to stop the transport: a transport whose
+owner may still add peers is stopped only by that owner (Go's `AddPeer` panics on a stopped
+transport); a frozen one's `TS` is `True`. -/
+def netTransport (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T TS : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
       {{ sl ↦* msL ∗ ([∗list] m ∈ msL, netBundle γn.N lid m) ∗ T }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
       {{ RET #(); T }}) ∗
-    □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ ({{ TS }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}) ∗
     □ (∀ (m ml : Loc) (rc : GoInterface),
       {{ snap.msgIs m ml rc ∗ netSnapBundle γn.N ml rc }}
         (App (Val #(methods ti.ty go!"SendSnapshot" ti.v)) (Val #m))
       {{ RET #(); True }}))
 
-instance netTransport_persistent (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T : IProp GF) :
-    Persistent (netTransport γn lid tr T) := by
+instance netTransport_persistent (γn : NetNames GF) (lid : w64) (tr : GoInterface)
+    (T TS : IProp GF) : Persistent (netTransport γn lid tr T TS) := by
   unfold netTransport; infer_instance
 
 /-- **The transport's concurrency bound** (D21 M2, the user's (A)): at most `2 ^ 29` calls
@@ -241,7 +245,7 @@ instance netRaftOk_persistent (γn : NetNames GF) (id : w64) (γd : GName) (R : 
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
@@ -287,11 +291,8 @@ theorem snapDir_init (ss : Loc) (γd : GName) (img : w64 → backend.Data → IP
   imodintro
   iexact Hi
 
-/-- (2026-10-26, D22 J2, R-loc) **A saved index is local to the receiver** whose raft names name
-its directory: `snapSaved` is `snapLocal`'s body (`RaftNames.reSnapLoc`). -/
-theorem snapLocal_of_saved {γ : RaftNames} {id : w64} {γd : GName} (h : γ.reSnapLoc id = some γd)
-    (i : w64) : snapSaved (GF := GF) γd i ⊢ snapLocal γ id i :=
-  snapLocal_of_elem h i
+-- (2026-10-27) `snapLocal_of_saved` (`snapSaved` as raft's `snapLocal`, by `RaftNames.reSnapLoc`)
+-- deleted with the server's port onto raft's node API: the server's clusters send no snapshot.
 
 /-- **A member's snapshot directory, allocated empty** (D22 S-i): what the receiver gives
 `Transport.Start` for its snapshotter `ss`, at the payload's certificate and its removal fact

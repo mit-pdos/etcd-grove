@@ -21,67 +21,67 @@ end pkg_id
 
 namespace google_golang_org.grpc.reflection
 
-noncomputable def v1AlphaServerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def v1AlphaServerImpl.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.v1AlphaServerImpl" [])
 
 attribute [irreducible] v1AlphaServerImpl.ty
 
-noncomputable def v1AlphaServerStreamAdapter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def v1AlphaServerStreamAdapter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.v1AlphaServerStreamAdapter" [])
 
 attribute [irreducible] v1AlphaServerStreamAdapter.ty
 
-noncomputable def GRPCServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GRPCServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.GRPCServer" [])
 
 attribute [irreducible] GRPCServer.ty
 
-noncomputable def ServiceInfoProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceInfoProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.ServiceInfoProvider" [])
 
 attribute [irreducible] ServiceInfoProvider.ty
 
-noncomputable def ExtensionResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionResolver.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.ExtensionResolver" [])
 
 attribute [irreducible] ExtensionResolver.ty
 
-noncomputable def ServerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.ServerOptions" [])
 
 attribute [irreducible] ServerOptions.ty
 
-axiom v1AlphaServerImpl.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom v1AlphaServerImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom v1AlphaServerStreamAdapter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom v1AlphaServerStreamAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GRPCServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GRPCServer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionResolver.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def asV1Alpha [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def asV1Alpha [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/reflection.asV1Alpha"
 
-noncomputable def Register [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/reflection.Register"
 
-noncomputable def RegisterV1 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterV1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/reflection.RegisterV1"
 
-noncomputable def NewServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/reflection.NewServer"
 
-noncomputable def NewServerV1 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServerV1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/reflection.NewServerV1"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.reflection where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.reflection)) (Lam BAnon
   (App (Val exceptionDo)
@@ -95,78 +95,102 @@ axiom v1AlphaServerImpl : Type
 axiom v1AlphaServerImpl.zero_val : ZeroVal v1AlphaServerImpl
 attribute [instance] v1AlphaServerImpl.zero_val
 
-class v1AlphaServerImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class v1AlphaServerImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying v1AlphaServerImpl.underlying v1AlphaServerImpl
   underlying : go.UnderlyingDirectedEq v1AlphaServerImpl.ty v1AlphaServerImpl.underlying
   isUnderlying : go.IsUnderlying v1AlphaServerImpl.underlying v1AlphaServerImpl.underlying
+  method_set : go.MethodSetIs v1AlphaServerImpl.ty [(go!"ServerReflectionInfo", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1alpha.ServerReflectionRequest" []) (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1alpha.ServerReflectionResponse" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType v1AlphaServerImpl.ty) [(go!"ServerReflectionInfo", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1alpha.ServerReflectionRequest" []) (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1alpha.ServerReflectionResponse" []))] false [go.error])))]
 
 attribute [instance] v1AlphaServerImpl.TypeAssumptions.type_repr
   v1AlphaServerImpl.TypeAssumptions.underlying
   v1AlphaServerImpl.TypeAssumptions.isUnderlying
+  v1AlphaServerImpl.TypeAssumptions.method_set
+  v1AlphaServerImpl.TypeAssumptions.ptr_method_set
 
 axiom v1AlphaServerStreamAdapter : Type
 axiom v1AlphaServerStreamAdapter.zero_val : ZeroVal v1AlphaServerStreamAdapter
 attribute [instance] v1AlphaServerStreamAdapter.zero_val
 
-class v1AlphaServerStreamAdapter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class v1AlphaServerStreamAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying v1AlphaServerStreamAdapter.underlying v1AlphaServerStreamAdapter
   underlying : go.UnderlyingDirectedEq v1AlphaServerStreamAdapter.ty v1AlphaServerStreamAdapter.underlying
   isUnderlying : go.IsUnderlying v1AlphaServerStreamAdapter.underlying v1AlphaServerStreamAdapter.underlying
+  method_set : go.MethodSetIs v1AlphaServerStreamAdapter.ty [(go!"Context", (some (go.signature.Signature [] false [(go.GoType.Named go!"context.Context" [])]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1.ServerReflectionRequest" [])), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1.ServerReflectionResponse" []))] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType v1AlphaServerStreamAdapter.ty) [(go!"Context", (some (go.signature.Signature [] false [(go.GoType.Named go!"context.Context" [])]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1.ServerReflectionRequest" [])), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1.ServerReflectionResponse" []))] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [])))]
 
 attribute [instance] v1AlphaServerStreamAdapter.TypeAssumptions.type_repr
   v1AlphaServerStreamAdapter.TypeAssumptions.underlying
   v1AlphaServerStreamAdapter.TypeAssumptions.isUnderlying
+  v1AlphaServerStreamAdapter.TypeAssumptions.method_set
+  v1AlphaServerStreamAdapter.TypeAssumptions.ptr_method_set
 
 axiom GRPCServer : Type
 axiom GRPCServer.zero_val : ZeroVal GRPCServer
 attribute [instance] GRPCServer.zero_val
 
-class GRPCServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GRPCServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GRPCServer.underlying GRPCServer
   underlying : go.UnderlyingDirectedEq GRPCServer.ty GRPCServer.underlying
   isUnderlying : go.IsUnderlying GRPCServer.underlying GRPCServer.underlying
+  method_set : go.MethodSetIs GRPCServer.ty [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.ServiceInfo.ty)]))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty), go.any] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GRPCServer.ty) []
 
 attribute [instance] GRPCServer.TypeAssumptions.type_repr
   GRPCServer.TypeAssumptions.underlying
   GRPCServer.TypeAssumptions.isUnderlying
+  GRPCServer.TypeAssumptions.method_set
+  GRPCServer.TypeAssumptions.ptr_method_set
 
-abbrev ServiceInfoProvider [FfiSyntax] : Type := GoInterface
+abbrev ServiceInfoProvider [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServiceInfoProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceInfoProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetServiceInfo" (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.ServiceInfo.ty)]))])
 
-class ServiceInfoProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceInfoProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServiceInfoProvider.ty ServiceInfoProvider.underlying
+  method_set : go.MethodSetIs ServiceInfoProvider.ty [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.ServiceInfo.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceInfoProvider.ty) []
 
 attribute [instance] ServiceInfoProvider.TypeAssumptions.underlying
+  ServiceInfoProvider.TypeAssumptions.method_set
+  ServiceInfoProvider.TypeAssumptions.ptr_method_set
 
 axiom ExtensionResolver : Type
 axiom ExtensionResolver.zero_val : ZeroVal ExtensionResolver
 attribute [instance] ExtensionResolver.zero_val
 
-class ExtensionResolver.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExtensionResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExtensionResolver.underlying ExtensionResolver
   underlying : go.UnderlyingDirectedEq ExtensionResolver.ty ExtensionResolver.underlying
   isUnderlying : go.IsUnderlying ExtensionResolver.underlying ExtensionResolver.underlying
+  method_set : go.MethodSetIs ExtensionResolver.ty [(go!"FindExtensionByName", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FullName" [])] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionType" []), go.error]))), (go!"FindExtensionByNumber", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FullName" []), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionType" []), go.error]))), (go!"RangeExtensionsByMessage", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FullName" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionType" [])] false [go.bool]))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExtensionResolver.ty) []
 
 attribute [instance] ExtensionResolver.TypeAssumptions.type_repr
   ExtensionResolver.TypeAssumptions.underlying
   ExtensionResolver.TypeAssumptions.isUnderlying
+  ExtensionResolver.TypeAssumptions.method_set
+  ExtensionResolver.TypeAssumptions.ptr_method_set
 
 axiom ServerOptions : Type
 axiom ServerOptions.zero_val : ZeroVal ServerOptions
 attribute [instance] ServerOptions.zero_val
 
-class ServerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerOptions.underlying ServerOptions
   underlying : go.UnderlyingDirectedEq ServerOptions.ty ServerOptions.underlying
   isUnderlying : go.IsUnderlying ServerOptions.underlying ServerOptions.underlying
+  method_set : go.MethodSetIs ServerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerOptions.ty) []
 
 attribute [instance] ServerOptions.TypeAssumptions.type_repr
   ServerOptions.TypeAssumptions.underlying
   ServerOptions.TypeAssumptions.isUnderlying
+  ServerOptions.TypeAssumptions.method_set
+  ServerOptions.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   v1AlphaServerImpl_instance : v1AlphaServerImpl.TypeAssumptions
   v1AlphaServerStreamAdapter_instance : v1AlphaServerStreamAdapter.TypeAssumptions
   GRPCServer_instance : GRPCServer.TypeAssumptions

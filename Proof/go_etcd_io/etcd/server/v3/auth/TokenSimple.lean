@@ -50,7 +50,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth
 namespace auth
 
 section defs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `&t.<f>` (a `*tokenSimple`) -/
 abbrev tsF (f : GoString) (p : Loc) : Loc :=
@@ -63,7 +63,7 @@ abbrev kpF (f : GoString) (k : Loc) : Loc :=
 end defs
 
 section pred
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -106,7 +106,7 @@ instance simpleOk_persistent (p : Loc) (γt γf : GName) :
 end pred
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -272,12 +272,14 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
         (Val #ctx)) (Val #token)) (Val #rev)) {{ Φ }} := by
   iintro ⟨#Hpkg, #Hok, #HP, HΦ⟩
   wp_method_call; wp_call
+  iapply wp_fupd
   (try wp_auto)
   wp_apply hValid $$ [] as %b -
   · iframe #
   (try wp_auto)
   cases b
   · (try wp_auto)
+    imodintro
     iapply HΦ
     isplitr
     · iunfold authInfoRO; ileft; ipureintro; rfl
@@ -316,14 +318,15 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     iframe Hmp Hm Hbig Hauth Hk HKa Hks Httl
     ipureintro; exact ⟨Hkks, Httlpos⟩
   (try wp_auto)
-  wp_alloc a as Ha
+  irename «$r0» => Ha
+  generalize «$r0_ptr» = a at *
   ihave %Hann := typedPointsto_not_null _ _ _ $$ Ha
   ihave Haf := typedPointsto_split _ _ _ $$ Ha
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Haf
   ipersist Username
   ipersist Revision
-  (try wp_auto)
+  imodintro
   iapply HΦ
   isplitr
   · iunfold authInfoRO; iright
@@ -475,7 +478,7 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
 end proof
 
 section proof_lc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -114,7 +114,7 @@ theorem exists_mem_zip_of_mem_snd {α β : Type} (xs : List α) (bs : List β) (
 end auth
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -144,6 +144,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply HBatch as %tx Htx
@@ -365,7 +366,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
         rw [← hsnd, List.length_map, hlen, Hplen]
       exact List.length_filter_eq_length_iff.mp hl2
     have hnone : ∀ p ∈ ps, ¬ permAt key rangeEnd p := by
-      rw [← Hrrps]; exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk
+      intro p hp
+      exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk p (Hrrps.symm.subset hp)
     wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
@@ -394,12 +396,12 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     iexists ePNG; iframe HePNG; ipureintro; rfl
   -- some permission revoked: the role put
   let rr' : RoleRec := { name := rr.name, perms := kept.map Prod.snd }
-  have hps' : rr'.toRole = ps.filter (fun p => ¬ permAt key rangeEnd p) := by
-    show (kept.map Prod.snd).filterMap permOfWire = _
-    rw [hsnd, auth.filterMap_filter_keepW, ← Hrrps]; rfl
+  have hps' : rr'.toRole.Perm (ps.filter (fun p => ¬ permAt key rangeEnd p)) := by
+    show ((kept.map Prod.snd).filterMap permOfWire).Perm _
+    rw [hsnd, auth.filterMap_filter_keepW]; exact Hrrps.filter _
   imod (ownSlice_persist _ _ _) $$ Hsl with #Hsl'
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #uu))
-  iapply HPutR $$ %st0 %Post %uu %rr' [HL Huu]
+  iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) [HL Huu]
   · iframe HL
     isplitl [Huu]
     · iunfold ownRole
@@ -411,13 +413,13 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
         show (kept.map Prod.fst).zip (kept.map Prod.snd) = kept
         rw [← List.unzip_fst, ← List.unzip_snd, List.zip_unzip]
       rw [hz]; iexact Hkept
-    ipureintro; show rr.name.length ≤ _; rw [Hrrn]; exact Hrolelen
+    ipureintro; exact ⟨show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps'⟩
   inext
   iintro ⟨HL, Huu⟩
   (try wp_auto)
   obtain ⟨ps', hps'eq⟩ : ∃ l, l = ps.filter (fun p => ¬ permAt key rangeEnd p) := ⟨_, rfl⟩
   ihave HL : Lk (putRole st0 role ps') Post $$ [HL]
-  · iExactEq HL; show Lk (putRole st0 rr.name rr'.toRole) Post = _; rw [Hrrn, hps', hps'eq]
+  · iExactEq HL; show Lk (putRole st0 rr.name _) Post = _; rw [Hrrn, hps'eq]
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have hstep : roleRevokePermissionR role key rangeEnd st0 (.next (bump (putRole st0 role ps'))) := by
     simp only [roleRevokePermissionR, Hlook]
@@ -436,8 +438,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post)
-      ({ putRole st0 role ps' with revision := rev } : AuthState))
-    $$ [HL Hca]
+      ({ putRole st0 role ps' with revision := rev } : AuthState) (hs ++ [bump (putRole st0 role ps')]))
+    $$ [HL Hca Hown]
   · iframe Hpkg Hinv
     isplitl [Hca]
     · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
@@ -447,9 +449,9 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     · iExactEq HL
       all_goals rfl
     iframe Hsnap
-    ipureintro; exact permsFit_rev _ rev Hfit'
+    iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
   inext
-  iintro ⟨HL, Hca⟩
+  iintro ⟨HL, Hca, Hown⟩
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)
@@ -469,7 +471,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   wp_apply h_Info
   · ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_alloc resp as Hresp
+  irename «$r0» => Hresp
+  generalize «$r0_ptr» = resp at *
   icases typedPointsto_split _ _ _ $$ Hresp with Hresp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp

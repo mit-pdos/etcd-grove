@@ -19,7 +19,6 @@ public import Spec.go_uber_org.zap.ByteString
 public import Spec.go_uber_org.zap.Logger__Info
 public import Proof.go_etcd_io.etcd.server.v3.auth.AdminLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermSorter
-public import Proof.go_etcd_io.etcd.server.v3.auth.SearchAny
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.bytes.Link
 
@@ -35,7 +34,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -55,7 +54,7 @@ theorem auth.roleOutX_null (st : AuthState) (name : GoString) :
 
 theorem auth.roleOutX_some (r : Loc) (st : AuthState) (name : GoString) (hnn : r ≠ null) :
     roleOutX (GF := GF) r st name ⊢ ∃ (ps : Role) (rr : RoleRec),
-      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole = ps⌝ ∗ ownRoleX r rr := by
+      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRoleX r rr := by
   unfold roleOutX
   cases h : st.roles !! name with
   | none => iintro %Hn; exact absurd Hn hnn
@@ -113,6 +112,38 @@ theorem auth.wp_permX_rangeEnd (p : Loc) (w : PermW) :
   simp only [TypedPointsto.typedPointstoDef]
   iframe
 
+/-- The `Key` of a read-only permission message. -/
+theorem auth.wp_permW_key (p : Loc) (w : PermW) :
+    {{ ownPermW (GF := GF) p w }}
+      (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte))))
+        (Val #(structFieldRef authpb.Permission go!"Key" p)))
+    {{ (k : GoSlice), RET #k; k ↦*□ w.key }} := by
+  wp_start as #Hp
+  iunfold ownPermW at Hp
+  icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, #Hm, #Hk, #Hre⟩
+  icases typedPointsto_split _ _ _ $$ Hm with #Hm
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hm
+  wp_apply (IntoValTyped.wp_load (t := go.GoType.SliceType go.byte) _ _ _) $$ Key as -
+  iapply HΦ
+  iexact Hk
+
+/-- The `RangeEnd` of a read-only permission message. -/
+theorem auth.wp_permW_rangeEnd (p : Loc) (w : PermW) :
+    {{ ownPermW (GF := GF) p w }}
+      (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte))))
+        (Val #(structFieldRef authpb.Permission go!"RangeEnd" p)))
+    {{ (k : GoSlice), RET #k; k ↦*□ w.rangeEnd }} := by
+  wp_start as #Hp
+  iunfold ownPermW at Hp
+  icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, #Hm, #Hk, #Hre⟩
+  icases typedPointsto_split _ _ _ $$ Hm with #Hm
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hm
+  wp_apply (IntoValTyped.wp_load (t := go.GoType.SliceType go.byte) _ _ _) $$ RangeEnd as -
+  iapply HΦ
+  iexact Hre
+
 /-- The `PermType` of an owned permission message set. -/
 theorem auth.wp_permX_setTy (p : Loc) (w : PermW) (ty : w32) :
     {{ ownPermX (GF := GF) p w }}
@@ -137,15 +168,15 @@ theorem auth.wp_permX_setTy (p : Loc) (w : PermW) (ty : w32) :
   simp only [TypedPointsto.typedPointstoDef]
   iframe
 
-theorem auth.authStore.RoleGrantPermission.wp_tie
+theorem auth.authStore.RoleGrantPermission.wp_tieB
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_valid : auth.isValidPermissionRange.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_ByteString : zap.ByteString.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.RoleGrantPermission.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name w b0 sc0
+    auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name w b0 sc0 be
   wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hok⟩
   ihave #Htn : auth.typeNamesOk (GF := GF) $$ []
   · iapply auth.typeNamesOk_of_init
@@ -164,8 +195,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
   iunfold roleGrantPermissionReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN, %pp, #HP, Hw⟩
   (try wp_auto)
-  iunfold authWRx at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
+  iunfold authWRxB at HWR
+  icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -183,7 +214,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -223,7 +254,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
       isplitl [Hcs]
       · iapply csContract_noWrite $$ Hcs
       isplitl [Hbe HT Hfl Hca]
-      · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
         · ipureintro; intro _; rfl
@@ -276,7 +307,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
       isplitl [HPost]
       · ileft; iexact HPost
       isplitl [Hbe HT Hfl Hca]
-      · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
         · ipureintro; intro _; rfl
@@ -301,267 +332,144 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
     icases typedPointsto_split _ _ _ $$ Hrp with Hrp
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hrp
-    (try wp_auto)
     ihave %Hkpl := ownSlice_len _ _ _ $$ Hkp
-    have hzl : (locs.zip rr.perms).length = locs.length := by
-      rw [List.length_zip, Hlocs.1, Nat.min_self]
-    let fs : Int → Bool := fun i => match rr.perms[i.toNat]? with
-      | some q => decide (¬ go.GoStringLt q.key w.key)
-      | none => false
-    wp_apply (auth.wp_Search_any kp.len _ fs
-        iprop(role_ptr ↦ rl ∗ structFieldRef authpb.Role go!"KeyPermission" rl ↦ kp ∗ kp ↦* locs ∗
-          r_ptr ↦ r ∗ [∗list] x ∈ locs.zip rr.perms, ownPermX x.1 x.2))
-      $$ [role KeyPermission Hkp r Hperms] as %idx ⟨⟨role, KeyPermission, Hkp, r, Hperms⟩, %Hidx⟩
-    · iframe role KeyPermission Hkp r Hperms
-      isplitr
-      · ipureintro; exact Hkpl.2
-      iunfold _root_.Perennial.sort.predImplements
-      iintro %i %Φc !> ⟨⟨role, KeyPermission, Hkp, r, Hperms⟩, %Hi⟩ HΦc
-      wp_auto
-      have hlt : (sint.Z i).toNat < locs.length := by
-        have := Hkpl.1; word
-      obtain ⟨lc, hlc⟩ : ∃ x, locs[(sint.Z i).toNat]? = some x :=
-        ⟨_, List.getElem?_eq_getElem hlt⟩
-      obtain ⟨q, hq⟩ : ∃ x, rr.perms[(sint.Z i).toNat]? = some x :=
-        ⟨_, List.getElem?_eq_getElem (by rw [← Hlocs.1]; exact hlt)⟩
-      have hz : (locs.zip rr.perms)[(sint.Z i).toNat]? = some (lc, q) := by
-        simp [List.getElem?_zip_eq_some, hlc, hq]
-      simp only [Hi, _root_.and_self, ↓reduceIte]
-      wp_apply wp_load_slice_index kp (sint.Z i) locs (DFrac.own 1) lc Hi.1 $$ [$Hkp] as Hkp
-      · ipureintro; exact hlc
-      ihave ⟨Hx, Hc⟩ := (BigSepL.bigSepL_lookup_acc
-        (Φ := fun _ x => iprop(ownPermX (GF := GF) x.1 x.2)) hz).1 $$ Hperms
-      wp_apply auth.wp_permX_key lc q $$ [$Hx] as %k ⟨Hx, #Hk⟩
-      have hset : (locs.zip rr.perms).set (sint.Z i).toNat (lc, q) = locs.zip rr.perms := by
-        obtain ⟨hlt', hget⟩ := List.getElem?_eq_some_iff.mp hz
-        rw [← hget]; exact List.set_getElem_self hlt'
-      ihave Hperms := Hc $$ %(lc, q) Hx
-      rw [hset]
-      (try wp_auto)
-      wp_apply (_root_.Perennial.bytes.wp_Compare k wk DFrac.discard DFrac.discard q.key w.key)
-        $$ [$Hk $Hwk] as ⟨-, -⟩
-      (try wp_auto)
-      iapply HΦc
-      iframe role KeyPermission Hkp r Hperms
-      ipureintro
-      simp only [fs, hq]
-      unfold bytes.compareResult
-      by_cases h1 : go.GoStringLt q.key w.key
-      · rw [if_pos h1]; simp only [h1, not_true_eq_false, decide_false]; decide
-      · rw [if_neg h1]; simp only [h1, not_false_eq_true, decide_true]
-        by_cases h2 : q.key = w.key
-        · rw [if_pos h2]; decide
-        · rw [if_neg h2]; decide
-    (try wp_auto)
     have hzl' : locs.length = rr.perms.length := Hlocs.1
-    let fb : Bool := match rr.perms[(sint.Z idx).toNat]? with
-      | some q => decide (q.key = w.key) && decide (q.rangeEnd = w.rangeEnd)
-      | none => false
-    wp_join (Q := fun v => iprop(⌜v = #fb⌝ ∗ role_ptr ↦ rl ∗
-        structFieldRef authpb.Role go!"KeyPermission" rl ↦ kp ∗ kp ↦* locs ∗ r_ptr ↦ r ∗
-        idx_ptr ↦ idx ∗ [∗list] x ∈ locs.zip rr.perms, ownPermX x.1 x.2))
-      at (if: _ then _ else #false) with [role KeyPermission Hkp r idx Hperms]
-      as ⟨%Hv, role, KeyPermission, Hkp, r, idx, Hperms⟩
-    · wp_if_destruct
-      · -- the index is in range
-        have hlt : (sint.Z idx).toNat < locs.length := by have := Hkpl.1; word
-        obtain ⟨lc, hlc⟩ : ∃ x, locs[(sint.Z idx).toNat]? = some x :=
-          ⟨_, List.getElem?_eq_getElem hlt⟩
-        obtain ⟨q, hq⟩ : ∃ x, rr.perms[(sint.Z idx).toNat]? = some x :=
-          ⟨_, List.getElem?_eq_getElem (by rw [← hzl']; exact hlt)⟩
-        have hz : (locs.zip rr.perms)[(sint.Z idx).toNat]? = some (lc, q) := by
-          simp [List.getElem?_zip_eq_some, hlc, hq]
-        have hset : (locs.zip rr.perms).set (sint.Z idx).toNat (lc, q) = locs.zip rr.perms := by
-          obtain ⟨hlt', hget⟩ := List.getElem?_eq_some_iff.mp hz
-          rw [← hget]; exact List.set_getElem_self hlt'
-        have hb : 0 ≤ sint.Z idx ∧ sint.Z idx < sint.Z kp.len := ⟨Hidx.1, Hif⟩
-        (try wp_auto)
-        simp only [hb, _root_.and_self, ↓reduceIte]
-        wp_apply wp_load_slice_index kp (sint.Z idx) locs (DFrac.own 1) lc Hidx.1 $$ [$Hkp] as Hkp
-        · ipureintro; exact hlc
-        ihave ⟨Hx, Hc⟩ := (BigSepL.bigSepL_lookup_acc
-          (Φ := fun _ x => iprop(ownPermX (GF := GF) x.1 x.2)) hz).1 $$ Hperms
-        wp_apply auth.wp_permX_key lc q $$ [$Hx] as %k ⟨Hx, #Hk⟩
-        (try wp_auto)
-        wp_apply (_root_.Perennial.bytes.wp_Equal k wk DFrac.discard DFrac.discard q.key w.key)
-          $$ [$Hk $Hwk] as ⟨-, -⟩
-        wp_if_destruct
-        · -- the same key: compare the range ends
-          (try wp_auto)
-          simp only [hb, _root_.and_self, ↓reduceIte]
-          wp_apply wp_load_slice_index kp (sint.Z idx) locs (DFrac.own 1) lc Hidx.1 $$ [$Hkp] as Hkp
-          · ipureintro; exact hlc
-          wp_apply auth.wp_permX_rangeEnd lc q $$ [$Hx] as %re ⟨Hx, #Hre⟩
-          (try wp_auto)
-          wp_apply (_root_.Perennial.bytes.wp_Equal re wre DFrac.discard DFrac.discard q.rangeEnd
-            w.rangeEnd) $$ [$Hre $Hwre] as ⟨-, -⟩
-          ihave Hperms := Hc $$ %(lc, q) Hx
-          rw [hset]
-          iframe
-          ipureintro
-          simp only [fb, hq, Hif, decide_true, Bool.true_and]
-        · (try wp_auto)
-          ihave Hperms := Hc $$ %(lc, q) Hx
-          rw [hset]
-          iframe
-          ipureintro
-          simp only [fb, hq, Hif, decide_false, Bool.false_and]
-      · (try wp_auto)
-        iframe
-        ipureintro
-        have hnone : rr.perms[(sint.Z idx).toNat]? = none := by
-          apply List.getElem?_eq_none
-          have := Hkpl.1; rw [← hzl']; word
-        simp only [fb, hnone]
-    subst Hv
-    cases hfb : fb
-    rotate_left
-    · -- the entry of the same key and range end: its type set in place
-      obtain ⟨q, hq, hqk, hqre⟩ : ∃ q, rr.perms[(sint.Z idx).toNat]? = some q ∧ q.key = w.key ∧
-          q.rangeEnd = w.rangeEnd := by
-        cases h : rr.perms[(sint.Z idx).toNat]? with
-        | none => simp [fb, h] at hfb
-        | some q =>
-          simp only [fb, h, Bool.and_eq_true, decide_eq_true_eq] at hfb
-          exact ⟨q, rfl, hfb.1, hfb.2⟩
-      have hlt : (sint.Z idx).toNat < locs.length := by
-        rw [hzl']; exact (List.getElem?_eq_some_iff.mp hq).1
-      obtain ⟨lc, hlc⟩ : ∃ x, locs[(sint.Z idx).toNat]? = some x :=
-        ⟨_, List.getElem?_eq_getElem hlt⟩
-      have hz : (locs.zip rr.perms)[(sint.Z idx).toNat]? = some (lc, q) := by
+    -- the permission messages are only read from here on (the fork's code writes none)
+    ihave Hperms' : |==> [∗list] x ∈ locs.zip rr.perms, ownPermW x.1 x.2 $$ [Hperms]
+    · iapply BigSepL.bigSepL_bupd
+      iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist x.1 x.2)) $$ Hperms
+    imod Hperms' with #Hperms'
+    ihave #Hpw : □ (∀ x : Loc × PermW, ⌜x ∈ locs.zip rr.perms⌝ → ownPermW x.1 x.2) $$ []
+    · iintro !> %x %Hx
+      obtain ⟨i, hi⟩ := List.mem_iff_getElem?.mp Hx
+      iapply (BigSepL.bigSepL_lookup (Φ := fun _ x => iprop(ownPermW (GF := GF) x.1 x.2)) hi)
+      iexact Hperms'
+    (try wp_auto)
+    -- the loop: the pairs kept so far are those of the first `n` off `w`'s range
+    let offW : Loc × PermW → Bool := fun x => !permWAt w.key w.rangeEnd x.2
+    ihave IH : iprop(∃ (n : w64) (ks : GoSlice) (kl : List (Loc × PermW)) (pv : Loc),
+        "i" ∷ i_ptr ↦ n ∗ "kept" ∷ kept_ptr ↦ ks ∗ "perm" ∷ perm_ptr ↦ pv ∗
+        "Hkp" ∷ kp ↦* locs ∗
+        "Hks" ∷ ks ↦* kl.map Prod.fst ∗ "Hksc" ∷ ownSliceCap Loc ks (DFrac.own 1) ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ locs.length ∧
+          kl = ((locs.zip rr.perms).take (sint.nat n)).filter offW⌝) $$ [i kept perm Hkp]
+    · iexists W64 0, slice.nil, [], _
+      iframe i kept perm Hkp
+      simp only [List.map_nil]
+      isplitr
+      · iapply (ownSlice_nil (V := Loc) (DFrac.own 1))
+      isplitr
+      · iapply ownSliceCap_nil
+      ipureintro
+      refine ⟨by word, by word, ?_⟩
+      rw [show sint.nat (W64 0) = 0 by rfl]; simp
+    irename «as» => Has
+    irename : (iprop("_" ∷ True) : IProp GF) => Hjunk
+    iclear Hjunk
+    wp_for IH
+    wp_if_destruct
+    · -- an iteration: the permission at `n`
+      have Hlt : sint.nat n < locs.length := by have := Hkpl.1; word
+      have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z kp.len := ⟨Hn.1, Hif⟩
+      simp only [Hbnd, _root_.and_self, ↓reduceIte]
+      obtain ⟨lc, hlc⟩ : ∃ x, locs[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
+      obtain ⟨q, hq⟩ : ∃ x, rr.perms[sint.nat n]? = some x :=
+        ⟨_, List.getElem?_eq_getElem (by rw [← hzl']; exact Hlt)⟩
+      have hz : (locs.zip rr.perms)[sint.nat n]? = some (lc, q) := by
         simp [List.getElem?_zip_eq_some, hlc, hq]
-      have hb : 0 ≤ sint.Z idx ∧ sint.Z idx < sint.Z kp.len := by
-        refine ⟨Hidx.1, ?_⟩; have := Hkpl.1; word
+      wp_apply wp_load_slice_index kp (sint.Z n) locs (DFrac.own 1) lc Hn.1 $$ [Hkp] as Hkp
+      · iframe; ipureintro; exact hlc
+      ihave #Hq := Hpw $$ %(lc, q) %(List.mem_of_getElem? hz)
       (try wp_auto)
-      (try simp only [hb, _root_.and_self, ↓reduceIte])
+      wp_apply auth.wp_permW_key lc q $$ [$Hq] as %qk #Hqk
       (try wp_auto)
-      (try simp only [hb, _root_.and_self, ↓reduceIte])
-      wp_apply wp_load_slice_index kp (sint.Z idx) locs (DFrac.own 1) lc Hidx.1 $$ [$Hkp] as Hkp
-      · ipureintro; exact hlc
-      ihave ⟨Hx, Hc⟩ := (BigSepL.bigSepL_lookup_acc
-        (Φ := fun _ x => iprop(ownPermX (GF := GF) x.1 x.2)) hz).1 $$ Hperms
-      (try wp_auto)
-      wp_apply auth.wp_permX_setTy lc q w.ty $$ [$Hx] as Hx
-      have hqw : ({ q with ty := w.ty } : PermW) = w := by
-        cases q; cases w; simp_all
-      rw [hqw]
-      ihave Hperms := Hc $$ %(lc, w) Hx
-      rw [auth.zip_set_left locs rr.perms _ lc w hlc]
-      (try wp_auto)
-      ihave Hrm : ownRoleX rl ({ rr with perms := rr.perms.set (sint.Z idx).toNat w } : RoleRec)
-        $$ [state Name KeyPermission unknownFields sizeCache Hkp Hkpc Hperms]
-      · iunfold ownRoleX
-        iexists rst, rnm, kp, locs, ruf, rsc
-        iframe Hrnm Hkp Hkpc Hperms
-        isplitl [state Name KeyPermission unknownFields sizeCache]
-        · iapply typedPointsto_combine rl _ _ Hif
-          simp only [TypedPointsto.typedPointstoDef]
+      wp_apply (_root_.Perennial.bytes.wp_Equal qk wk DFrac.discard DFrac.discard q.key w.key)
+        $$ [$Hqk $Hwk] as ⟨-, -⟩
+      have htake : (locs.zip rr.perms).take (sint.nat (n + W64 1)) =
+          (locs.zip rr.perms).take (sint.nat n) ++ [(lc, q)] := by
+        rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, hz]; rfl
+      by_cases hk : q.key = w.key
+      · rw [decide_eq_true hk]
+        (try wp_auto)
+        wp_apply auth.wp_permW_rangeEnd lc q $$ [$Hq] as %qre #Hqre
+        (try wp_auto)
+        wp_apply (_root_.Perennial.bytes.wp_Equal qre wre DFrac.discard DFrac.discard q.rangeEnd
+          w.rangeEnd) $$ [$Hqre $Hwre] as ⟨-, -⟩
+        by_cases hre : q.rangeEnd = w.rangeEnd
+        · -- on `w`'s range: dropped
+          have hoff : permWAt w.key w.rangeEnd q = true := by simp [permWAt, hk, hre]
+          rw [decide_eq_true hre]
+          (try wp_auto)
+          wp_for_post
           iframe
-        ipureintro; simp only [List.length_set]; exact Hlocs
-      imod auth.ownRoleX_persist rl _ $$ Hrm with Hrm
-      ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
-      have hstep := auth.grant_update name st0 rr ps _ q w Hlook Hrrp hq hqk hqre hvalid
-      have hkeys : M.isOn = true → M ≠ .any →
-          ∀ p ∈ ({ rr with perms := rr.perms.set (sint.Z idx).toNat w } : RoleRec).toRole,
-            p.key ≠ [] := fun h1 h2 =>
-        auth.grant_keys_update rr _ w hvalid.1 (fun p hp => Hpk st0 Hl0 h1 h2 name ps Hlook p
-          (Hrrp ▸ hp))
-      have hrn : ({ rr with perms := rr.perms.set (sint.Z idx).toNat w } : RoleRec).name = name := Hrrn
-      generalize ({ rr with perms := rr.perms.set (sint.Z idx).toNat w } : RoleRec) = rr' at hstep hkeys hrn ⊢
-      wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #rl))
-      iapply HPutR $$ %st0 %Post %rl %rr' [HL Hrm]
-      · iframe HL Hrm; ipureintro; rw [hrn]; exact Hnamelen
-      inext
-      iintro ⟨HL, Hrr⟩
-      (try wp_auto)
-      ihave HL : Lk (putRole st0 name rr'.toRole) Post $$ [HL]
-      · iExactEq HL; rw [hrn]
-      obtain ⟨Hrevfit, Hfit⟩ := Hok st0 Hl0
-      have Hfit' := Hfit _ _ hstep rfl
-      wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 name rr'.toRole) Post hs st0)
-        $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
-      · ipureintro
-        refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 =>
-          permKeysOk_putRole _ _ _ (Hpk st0 Hl0 h1 h2) (hkeys h1 h2), ?_⟩
-        intro hM; subst hM; exact Hl0
-      have Hl1 := histLast_after M hs (putRole st0 name rr'.toRole) rev
-        (fun h => by subst h; exact Hl0) Hrev
-      imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
-      (try wp_auto)
-      wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
-        (Val #(GoInterface.ok ti)))
-      iapply (h_refresh st R M ti (fun x => Lk x Post)
-          ({ putRole st0 name rr'.toRole with revision := rev } : AuthState))
-        $$ [HL Hca]
-      · iframe Hpkg Hinv
-        isplitl [Hca]
-        · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
+          iexists n + W64 1, ks, kl, lc
+          iframe
+          ipureintro
+          refine ⟨by word, by word, ?_⟩
+          rw [htake, List.filter_append, Hn.2.2]
+          simp [offW, hoff]
+        · -- the same key, another range end: kept
+          have hoff : permWAt w.key w.rangeEnd q = false := by simp [permWAt, hre]
+          rw [decide_eq_false hre]
+          (try wp_auto)
+          wp_apply wp_slice_literal (V := Loc) [lc]
+          isplitr
+          · ipureintro; rfl
+          iintro %sl1 ⟨Hsl1, -⟩
+          (try wp_auto)
+          wp_apply (wp_slice_append ks (kl.map Prod.fst) _ [lc] (DFrac.own 1)) $$ [$Hks $Hksc $Hsl1]
+            as %s2 ⟨Hs2, Hs2c, -⟩
+          (try wp_auto)
+          wp_for_post
+          iframe
+          iexists n + W64 1, s2, kl ++ [(lc, q)], lc
+          iframe
+          isplitl [Hs2]
+          · iExactEq Hs2; simp
+          ipureintro
+          refine ⟨by word, by word, ?_⟩
+          rw [htake, List.filter_append, Hn.2.2]
+          congr 1
+          simp [offW, hoff]
+      · -- another key: kept
+        have hoff : permWAt w.key w.rangeEnd q = false := by simp [permWAt, hk]
+        rw [decide_eq_false hk]
+        (try wp_auto)
+        wp_apply wp_slice_literal (V := Loc) [lc]
         isplitr
-        · iapply HRd
-        isplitl [HL]
-        · iExactEq HL
-          all_goals rfl
-        iframe Hsnap
-        ipureintro; exact permsFit_rev _ rev Hfit'
-      inext
-      iintro ⟨HL, Hca⟩
-      (try wp_auto)
-      ihave #Htn' := Htn
-      iunfold auth.typeNamesOk at Htn'
-      icases Htn' with ⟨%mp, %Mn, #Hgm, #Hmn⟩
-      wp_apply h_String _ _ as %f1 -
-      (try wp_auto)
-      wp_apply (wp_map_lookup1 go.int32 go.string mp Mn w.ty DFrac.discard) $$ [$Hmn] as -
-      (try wp_auto)
-      wp_apply h_String _ _ as %f2 -
-      (try wp_auto)
-      wp_apply h_ByteString _ _ as %f3 -
-      (try wp_auto)
-      wp_apply h_ByteString _ _ as %f4 -
-      (try wp_auto)
-      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3, f4]
-      isplitr
-      · ipureintro; rfl
-      iintro %fsl ⟨-, -⟩
-      (try wp_auto)
-      wp_apply h_Info
-      · ipureintro; exact Hlgnn
-      (try wp_auto)
-      wp_alloc resp as Hresp
-      icases typedPointsto_split _ _ _ $$ Hresp with Hresp
-      simp only [TypedPointsto.typedPointstoDef]
-      iNamed Hresp
-      (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 name rr'.toRole)]) [HL $Hown]
-        as ⟨HPost, HT, Hown⟩
-      · isplitl [HL]
-        · iExactEq HL
-          all_goals rfl
-        ipureintro; exact Hl1
-      (try wp_auto)
-      iapply HΦ
-      iexists b0, ({ putRole st0 name rr'.toRole with revision := rev } : AuthState)
-      isplitl [HPost]
-      · ileft; iexact HPost
-      isplitl [Hbe HT Hfl Hca]
-      · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      isplitl [Header]
-      · iunfold respOk; isplitr
-        · ipureintro; intro h; exact absurd rfl h
-        · iright; iexists _; iexact Header
-      iunfold adminOutP
-      iright
-      iexists st0, (.next (bump (putRole st0 name rr'.toRole)))
-      isplitr
-      · ipureintro; exact tieStep_refresh M hs _ b0 sc0 _ st0 Hl0 Hl1 rfl
-      isplitr
-      · ipureintro; exact ⟨Hl0, hstep⟩
-      simp only [outRes]
-      isplitl [Hown]
-      · iExactEq Hown
-        all_goals rfl
-      · ipureintro; trivial
-    · -- no such entry: the permission appended, the permissions sorted by key
+        · ipureintro; rfl
+        iintro %sl1 ⟨Hsl1, -⟩
+        (try wp_auto)
+        wp_apply (wp_slice_append ks (kl.map Prod.fst) _ [lc] (DFrac.own 1)) $$ [$Hks $Hksc $Hsl1]
+          as %s2 ⟨Hs2, Hs2c, -⟩
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists n + W64 1, s2, kl ++ [(lc, q)], lc
+        iframe
+        isplitl [Hs2]
+        · iExactEq Hs2; simp
+        ipureintro
+        refine ⟨by word, by word, ?_⟩
+        rw [htake, List.filter_append, Hn.2.2]
+        congr 1
+        simp [offW, hoff]
+    · -- the loop done: `kept` holds the permissions off `w`'s range
+      have Hrl : rl ≠ null := by assumption
+      have hnl : sint.nat n = locs.length := by have := Hkpl; word
+      have hzlen : (locs.zip rr.perms).length = locs.length := by
+        rw [List.length_zip, hzl', Nat.min_self]
+      have hkept : kl.map Prod.snd = rr.perms.filter (fun q => !permWAt w.key w.rangeEnd q) := by
+        rw [Hn.2.2, hnl, List.take_of_length_le (by omega)]
+        have h2 : (List.filter offW (locs.zip rr.perms)).map Prod.snd =
+            ((locs.zip rr.perms).map Prod.snd).filter (fun q => !permWAt w.key w.rangeEnd q) := by
+          rw [List.filter_map]; rfl
+        rw [h2, List.map_snd_zip (by omega)]
+      have hklm : ∀ x, x ∈ kl → x ∈ locs.zip rr.perms := fun x h => by
+        rw [Hn.2.2] at h; exact List.mem_of_mem_take (List.mem_filter.mp h).1
+      have hkll : kl.length ≤ rr.perms.length := by
+        rw [Hn.2.2]
+        exact Nat.le_trans (List.length_filter_le _ _) (Nat.le_trans (List.length_take_le _ _) (by omega))
       (try wp_auto)
       ihave %Hnpn := typedPointsto_not_null $$ «$r0»
       ipersist «$r0»
@@ -572,28 +480,19 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
         iexists _, wk, wre, _, _
         iframe Hwk Hwre
         iexact «$r0»
-      ihave Hperms' : |==> [∗list] x ∈ locs.zip rr.perms, ownPermW x.1 x.2 $$ [Hperms]
-      · iapply BigSepL.bigSepL_bupd
-        iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist x.1 x.2)) $$ Hperms
-      imod Hperms' with #Hperms'
-      ihave #Hpw : □ (∀ x : Loc × PermW, ⌜x ∈ locs.zip rr.perms⌝ → ownPermW x.1 x.2) $$ []
-      · iintro !> %x %Hx
-        obtain ⟨i, hi⟩ := List.mem_iff_getElem?.mp Hx
-        iapply (BigSepL.bigSepL_lookup (Φ := fun _ x => iprop(ownPermW (GF := GF) x.1 x.2)) hi)
-        iexact Hperms'
       wp_apply wp_slice_literal (V := Loc) [«$r0_ptr»]
       isplitr
       · ipureintro; rfl
       iintro %sl1 ⟨Hsl1, -⟩
       (try wp_auto)
-      wp_apply (wp_slice_append kp locs _ [«$r0_ptr»] (DFrac.own 1)) $$ [$Hkp $Hkpc $Hsl1]
+      wp_apply (wp_slice_append ks (kl.map Prod.fst) _ [«$r0_ptr»] (DFrac.own 1)) $$ [$Hks $Hksc $Hsl1]
         as %s2 ⟨Hs2, Hs2c, -⟩
       (try wp_auto)
       ihave #Hsrt := auth.permSlice_isSorter s2 $$ Hpkg
-      have hfst : (locs.zip rr.perms ++ [(«$r0_ptr», w)]).map Prod.fst = locs ++ [«$r0_ptr»] := by
-        rw [List.map_append, List.map_fst_zip (by omega)]; rfl
+      have hfst : (kl ++ [(«$r0_ptr», w)]).map Prod.fst = kl.map Prod.fst ++ [«$r0_ptr»] := by
+        simp
       wp_apply (_root_.Perennial.sort.wp_Sort (interface.mk permSlice.ty #s2) (auth.permsOwn s2) keyLt
-          StrictWeakOrder_keyLt (locs.zip rr.perms ++ [(«$r0_ptr», w)])) $$ [Hs2]
+          StrictWeakOrder_keyLt (kl ++ [(«$r0_ptr», w)])) $$ [Hs2]
         as %xs' ⟨Hxs, %Hperm, %Hsorted⟩
       · iframe Hsrt
         isplitl [Hs2]
@@ -602,10 +501,10 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
           · iExactEq Hs2; rw [hfst]
           iintro !> %x %Hx
           rcases List.mem_append.mp Hx with h | h
-          · iapply Hpw; ipureintro; exact h
+          · iapply Hpw; ipureintro; exact hklm _ h
           · simp only [List.mem_singleton] at h; subst h; iexact Hnpw
         ipureintro
-        rw [List.length_append, List.length_zip, Hlocs.1, Nat.min_self]
+        rw [List.length_append]
         have := Hlocs.2; simp only [List.length_singleton]; omega
       (try wp_auto)
       iunfold auth.permsOwn at Hxs
@@ -619,7 +518,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
         iexists rst, rnm, s2, xs'.map Prod.fst, ruf, rsc
         iframe Hrnm Hxs
         isplitl [state Name KeyPermission unknownFields sizeCache]
-        · iapply typedPointsto_combine rl _ _ Hif
+        · iapply typedPointsto_combine rl _ _ Hrl
           simp only [TypedPointsto.typedPointstoDef]
           iframe
         isplitr
@@ -635,38 +534,39 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
         iapply hintro
         iexact Hxw
       ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
-      have hstep := auth.grant_insert name st0 rr ps w locs «$r0_ptr» xs' Hlook Hrrp hzl' Hperm hvalid
-      have hkeys : M.isOn = true → M ≠ .any →
-          ∀ p ∈ ({ rr with perms := xs'.map Prod.snd } : RoleRec).toRole, p.key ≠ [] := fun h1 h2 =>
-        auth.grant_keys_insert rr w locs «$r0_ptr» xs' hzl' Hperm hvalid.1
-          (fun p hp => Hpk st0 Hl0 h1 h2 name ps Hlook p (Hrrp ▸ hp))
+      have hstep : roleGrantPermissionR name (some w) st0
+          (.next (bump (putRole st0 name (grantPerms ps w)))) := by
+        simp [roleGrantPermissionR, hvalid, Hlook]
+      have hkeys : M.isOn = true → M ≠ .any → ∀ p ∈ grantPerms ps w, p.key ≠ [] := fun h1 h2 =>
+        auth.grant_keys ps w hvalid.1 (fun p hp => Hpk st0 Hl0 h1 h2 name ps Hlook p hp)
+      have hgp := auth.grant_kept_perm rr ps w kl xs' «$r0_ptr» Hrrp hkept Hperm
       have hrn : ({ rr with perms := xs'.map Prod.snd } : RoleRec).name = name := Hrrn
-      generalize ({ rr with perms := xs'.map Prod.snd } : RoleRec) = rr' at hstep hkeys hrn ⊢
+      generalize ({ rr with perms := xs'.map Prod.snd } : RoleRec) = rr' at hgp hrn ⊢
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #rl))
-      iapply HPutR $$ %st0 %Post %rl %rr' [HL Hrm]
-      · iframe HL Hrm; ipureintro; rw [hrn]; exact Hnamelen
+      iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) [HL Hrm]
+      · iframe HL Hrm; ipureintro; rw [hrn]; exact ⟨Hnamelen, hgp⟩
       inext
       iintro ⟨HL, Hrr⟩
       (try wp_auto)
-      ihave HL : Lk (putRole st0 name rr'.toRole) Post $$ [HL]
+      ihave HL : Lk (putRole st0 name (grantPerms ps w)) Post $$ [HL]
       · iExactEq HL; rw [hrn]
       obtain ⟨Hrevfit, Hfit⟩ := Hok st0 Hl0
       have Hfit' := Hfit _ _ hstep rfl
-      wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 name rr'.toRole) Post hs st0)
+      wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 name (grantPerms ps w)) Post hs st0)
         $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 =>
           permKeysOk_putRole _ _ _ (Hpk st0 Hl0 h1 h2) (hkeys h1 h2), ?_⟩
         intro hM; subst hM; exact Hl0
-      have Hl1 := histLast_after M hs (putRole st0 name rr'.toRole) rev
+      have Hl1 := histLast_after M hs (putRole st0 name (grantPerms ps w)) rev
         (fun h => by subst h; exact Hl0) Hrev
       imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
       iapply (h_refresh st R M ti (fun x => Lk x Post)
-          ({ putRole st0 name rr'.toRole with revision := rev } : AuthState))
-        $$ [HL Hca]
+          ({ putRole st0 name (grantPerms ps w) with revision := rev } : AuthState) (hs ++ [bump (putRole st0 name (grantPerms ps w))]))
+        $$ [HL Hca Hown]
       · iframe Hpkg Hinv
         isplitl [Hca]
         · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
@@ -676,9 +576,9 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
         · iExactEq HL
           all_goals rfl
         iframe Hsnap
-        ipureintro; exact permsFit_rev _ rev Hfit'
+        iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
       inext
-      iintro ⟨HL, Hca⟩
+      iintro ⟨HL, Hca, Hown⟩
       (try wp_auto)
       ihave #Htn' := Htn
       iunfold auth.typeNamesOk at Htn'
@@ -701,12 +601,13 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
       wp_apply h_Info
       · ipureintro; exact Hlgnn
       (try wp_auto)
-      wp_alloc resp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
       (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 name rr'.toRole)]) [HL $Hown]
+      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 name (grantPerms ps w))]) [HL $Hown]
         as ⟨HPost, HT, Hown⟩
       · isplitl [HL]
         · iExactEq HL
@@ -714,18 +615,18 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
         ipureintro; exact Hl1
       (try wp_auto)
       iapply HΦ
-      iexists b0, ({ putRole st0 name rr'.toRole with revision := rev } : AuthState)
+      iexists b0, ({ putRole st0 name (grantPerms ps w) with revision := rev } : AuthState)
       isplitl [HPost]
       · ileft; iexact HPost
       isplitl [Hbe HT Hfl Hca]
-      · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
         · ipureintro; intro h; exact absurd rfl h
         · iright; iexists _; iexact Header
       iunfold adminOutP
       iright
-      iexists st0, (.next (bump (putRole st0 name rr'.toRole)))
+      iexists st0, (.next (bump (putRole st0 name (grantPerms ps w))))
       isplitr
       · ipureintro; exact tieStep_refresh M hs _ b0 sc0 _ st0 Hl0 Hl1 rfl
       isplitr
@@ -736,6 +637,15 @@ theorem auth.authStore.RoleGrantPermission.wp_tie
         all_goals rfl
       · ipureintro; trivial
 
+theorem auth.authStore.RoleGrantPermission.wp_tie
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_valid : auth.isValidPermissionRange.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_ByteString : zap.ByteString.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.RoleGrantPermission.specT (GF := GF) (hG := hG) :=
+  auth.authStore.RoleGrantPermission.specT_of_TB (auth.authStore.RoleGrantPermission.wp_tieB h_commitRevision h_refresh h_valid h_String h_ByteString h_Info)
 
 theorem auth.authStore.RoleGrantPermission.wp_proof
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))

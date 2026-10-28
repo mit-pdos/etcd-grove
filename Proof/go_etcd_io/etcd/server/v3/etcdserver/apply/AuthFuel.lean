@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3 go_etcd_io.etcd.serve
   go_etcd_io.etcd.api.v3
 
 section fuelSpecs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -46,13 +46,13 @@ abbrev applierV3backend.UserAdd.fuelSpec : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userAddReqIs r name ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.userAddSure r ∗ auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutFu γa hs (auth.stepOf (auth.userAddF name)) (fun e => e = .noPasswordUser) err }}
+      auth.adminOutFu γa hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}
 
 /-- **`a.RoleAdd(r)` in the mode `on γa`, from the fuel**. -/
 abbrev applierV3backend.RoleAdd.fuelSpec : Prop :=
@@ -122,7 +122,7 @@ abbrev applierV3backend.AuthEnable.fuelSpec : Prop :=
 end fuelSpecs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -131,7 +131,7 @@ theorem applierV3backend.UserAdd.wp_fuel
     (h : applierV3backend.UserAdd.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.UserAdd.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs name hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, Hsure, HOF, Hrc, HW, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -140,7 +140,7 @@ theorem applierV3backend.UserAdd.wp_fuel
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.stepOf (auth.userAddF name)) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userAdd name hn) Hfk Hlt
-  iapply (h E W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HW Hpre]
+  iapply (h E W p r log Pre Q Post info hs name hn hok) $$ [Hr Hsure Ho HW Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Hpost, #He, HW, Hout⟩
   rw [hM]
@@ -251,7 +251,7 @@ end proof
 /-! ## The other six admin requests -/
 
 section fuelSpecs2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -361,7 +361,7 @@ abbrev applierV3backend.AuthDisable.fuelSpec : Prop :=
 end fuelSpecs2
 
 section proof2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

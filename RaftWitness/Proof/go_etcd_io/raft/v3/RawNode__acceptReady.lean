@@ -57,7 +57,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
 section helpers
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The node after `Ready`: the outbox handed to the application, the unstable entries
 in progress and the handed-out ones the application's to persist (`logAcceptUnstable`),
@@ -88,7 +88,7 @@ theorem toPState_ready (s : NState) (ce : List EntryM) (sz : w64) :
   unfold readyNstate logAcceptApplying logAcceptUnstable toPState
   by_cases h : s.role = .leader <;> cases ce.getLast? <;> simp [h, rdNL]
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 private theorem prefix_getElem? {α : Type _} {l1 l2 : List α} {i : Nat} {x : α}
     (h : l1 <+: l2) (hx : l1[i]? = some x) : l2[i]? = some x := by
   obtain ⟨t, rfl⟩ := h
@@ -157,7 +157,7 @@ theorem stepsOk_selfs (s : NState) (selfs rest : List Pending)
 end helpers
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

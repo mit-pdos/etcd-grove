@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -33,12 +33,15 @@ theorem rafthttp.newSnapshotSender.wp_proof :
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %Hmem⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
+  iapply wp_fupd
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %sc %γs ⟨#Hscc, %-, Hsco⟩
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γs sc $$ Hscc Hsco with Hbc
   (try wp_auto)
-  wp_alloc s as Hs
+  irename «$r0» => Hs
+  generalize «$r0_ptr» = s at *
   iStructNamed Hs
   ipersist from'; ipersist to; ipersist cid; ipersist tr; ipersist picker; ipersist status
   ipersist r; ipersist errorc; ipersist stopc
@@ -49,7 +52,7 @@ theorem rafthttp.newSnapshotSender.wp_proof :
     · iexact Hint
     · itrivial
   ihave Hbc := ownBroadcastChan_close sc γs iprop(True) .Pending γch $$ [$Hint $Hown]
-  (try wp_auto)
+  imodintro
   iapply HΦ
   isplitr
   · iunfold snapSenderOk
@@ -60,7 +63,9 @@ theorem rafthttp.newSnapshotSender.wp_proof :
     isplitr
     · iapply Hpreg
       ipureintro; exact ⟨Hpm, Hne⟩
-    ipureintro; exact ⟨Hmem, fun h => Hne h.symm⟩
+    isplitr
+    · ipureintro; exact ⟨Hmem, fun h => Hne h.symm⟩
+    ipureintro; exact Hturls
   iunfold snapSenderStop
   iexists sc, γs
   iframe #; iframe

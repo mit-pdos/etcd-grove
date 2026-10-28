@@ -33,14 +33,14 @@ namespace consistency
 open resourceversion
 
 /-- An owner: the namespace and name of the object whose writes are recorded. -/
-abbrev Owner [FfiSyntax] : Type := k8s_io.apimachinery.pkg.types.NamespacedName
+abbrev Owner [GooseExts] : Type := k8s_io.apimachinery.pkg.types.NamespacedName
 /-- A group resource. -/
-abbrev GR [FfiSyntax] : Type := k8s_io.apimachinery.pkg.runtime.schema.GroupResource
+abbrev GR [GooseExts] : Type := k8s_io.apimachinery.pkg.runtime.schema.GroupResource
 /-- A record's versions, per group resource. -/
-abbrev Vs [FfiSyntax] : Type := GMap GR GoString
+abbrev Vs [GooseExts] : Type := GMap GR GoString
 
 section keys
-variable [FfiSyntax]
+variable [GooseExts]
 
 instance owner_decEq : DecidableEq Owner := fun a b =>
   if h : a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' then
@@ -69,12 +69,12 @@ end keys
 /-! ## The abstract state -/
 
 /-- An owner's record: the owner's UID and the newest version written per group resource. -/
-structure Rec [FfiSyntax] where
+structure Rec [GooseExts] where
   uid : GoString
   vs : Vs
 
 section ops
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- `ownerRecord.WroteAt(gr, rv)`: `rv` becomes the version of `gr` if it is well formed and
 newer (by value) than the one there, or there is none. -/
@@ -109,7 +109,7 @@ end ops
 /-! ## Versions: the newest of the physical and the pending ones -/
 
 section abs
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- All the versions are well formed. -/
 def vsWf (V : Vs) : Prop := ∀ gr x, V !! gr = some x → wellFormed x = true

@@ -46,7 +46,7 @@ open client (srvStart srvStart_both kvRegs_range kvRegs_txn)
 /-! ## Pure part -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **A list selects the state's key-values of its range** (pure): no `More`. -/
 theorem srvRangeOk_list (s kvs : List EtcdKv) (more : Bool)
@@ -93,11 +93,13 @@ theorem txnNoZeroEnd_txnOf (cs : List (linkv.MCmp GoString GoString))
   cases c' <;> simp [linkv.cmpOf]
 
 theorem irrNoZeroEnd_txnOf (cs : List (linkv.MCmp GoString GoString))
-    (t e : List (linkv.MOp GoString GoString)) : irrNoZeroEnd (irrTxn (linkv.txnOf cs t e)) := by
+    (t e : List (linkv.MOp GoString GoString)) (tw : txn.TxnModelW)
+    (htw : tw.toModel = linkv.txnOf cs t e) : irrNoZeroEnd (irrTxn tw) := by
   refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
     fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
-  simp only [irrTxn, Option.some.injEq] at h
+  simp only [irrTxn_txn, Option.some.injEq] at h
   subst h
+  rw [htw]
   exact txnNoZeroEnd_txnOf cs t e
 
 theorem txnReadonly_txnOf (cs : List (linkv.MCmp GoString GoString))
@@ -159,7 +161,8 @@ theorem kvOpStep_txnOf_eq (cs : List (linkv.MCmp GoString GoString))
     kvOpStep (opIn (.txn cs t e)) σ =
       σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).2.1 := by
   simp only [opIn, linkv.opOf, kvOpStep]
-  rw [if_pos (by rw [linkv.txnOf_branch]; exact linkv.pathsIgnOk_tOpOf σ.kvs _)]
+  rw [if_pos ⟨by rw [linkv.txnOf_branch]; exact linkv.pathsIgnOk_tOpOf σ.kvs _,
+    by rw [linkv.txnOf_branch]; exact txn.pathsLeaseOk_plain _ _ _ (linkv.opsPlain_tOpOf _)⟩]
 
 /-- What a transaction's input decodes. -/
 theorem decIn_txn (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input)
@@ -188,7 +191,7 @@ end pure
 /-! ## The updates -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -212,7 +215,7 @@ end defs
 /-! ## The calls -/
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -399,9 +402,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
-      obtain ⟨-, -, Hz, -, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
-      have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e)
+      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+      obtain ⟨Htw, -, -, Hz, -, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
+      have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e tw Htw)
       subst ht hsk
       have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
       have hs : (kvStateOf y.log).kvs = mvcc.stateAfter y.log := kvStateOf_kvs _

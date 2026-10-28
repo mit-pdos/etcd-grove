@@ -26,7 +26,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -42,11 +42,13 @@ theorem apply.newApplierV3Corrupt.wp_proof
     apply.newApplierV3Corrupt.spec (GF := GF) (hG := hG) := by
   intro base
   wp_start
+  iapply wp_fupd
   wp_auto
-  wp_alloc p as Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
   iStructNamed Hp
   ipersist applierV3
-  wp_auto
+  imodintro
   iapply HΦ
   isplitr
   · iunfold apply.corruptIs; iexact applierV3

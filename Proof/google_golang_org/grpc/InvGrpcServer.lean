@@ -62,71 +62,71 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 /-- **What `grpc.NewServer` does with an option** (see the file header). -/
-inductive SrvOptKind [FfiSyntax] : Type where
+inductive SrvOptKind [GooseExts] : Type where
   | chainUnary (ics : List GoFunc)
   | chainStream (ics : List GoFunc)
   | neutral
 
 /-- The unary interceptors an option adds to the chain. -/
-def SrvOptKind.unary [FfiSyntax] : SrvOptKind → List GoFunc
+def SrvOptKind.unary [GooseExts] : SrvOptKind → List GoFunc
   | .chainUnary ics => ics
   | _ => []
 
 /-- The stream interceptors an option adds to the chain. -/
-def SrvOptKind.stream [FfiSyntax] : SrvOptKind → List GoFunc
+def SrvOptKind.stream [GooseExts] : SrvOptKind → List GoFunc
   | .chainStream ics => ics
   | _ => []
 
 /-- The unary chain of a server built with options of the kinds `ks`. -/
-def srvOptsUnary [FfiSyntax] (ks : List SrvOptKind) : List GoFunc := ks.flatMap SrvOptKind.unary
+def srvOptsUnary [GooseExts] (ks : List SrvOptKind) : List GoFunc := ks.flatMap SrvOptKind.unary
 
 /-- The stream chain of a server built with options of the kinds `ks`. -/
-def srvOptsStream [FfiSyntax] (ks : List SrvOptKind) : List GoFunc := ks.flatMap SrvOptKind.stream
+def srvOptsStream [GooseExts] (ks : List SrvOptKind) : List GoFunc := ks.flatMap SrvOptKind.stream
 
 /-- **The `grpc.ServerOption` `v` is one of the kind `k`** (an axiomatized property; see the file
 header). -/
-axiom grpcSrvOpt [FfiSyntax] (v : GoInterface) (k : SrvOptKind) : Prop
+axiom grpcSrvOpt [GooseExts] (v : GoInterface) (k : SrvOptKind) : Prop
 
 /-- **The `grpc.Codec` `c` is a protobuf codec** (an axiomatized property): its `Marshal` and
 `Unmarshal` are protobuf's (`proto.Marshal`/`proto.Unmarshal` of the message), as the default
 codec's; what the wire models (`ProtoMsg`) presume. etcd's `v3rpc.codec` is one
 (`v3rpc.codec_proto`). -/
-axiom grpcProtoCodec [FfiSyntax] (c : GoInterface) : Prop
+axiom grpcProtoCodec [GooseExts] (c : GoInterface) : Prop
 
 /-- **The `stats.Handler` `h` adds no value under etcd's context keys and lets every call run**
 (an axiomatized property, introduced by `otelgrpc.NewServerHandler`'s spec): what `grpcRunCtx`
 presumes of the stats handlers in front of a method's handler. -/
-axiom grpcStatsHandlerOk [FfiSyntax] (h : GoInterface) : Prop
+axiom grpcStatsHandlerOk [GooseExts] (h : GoInterface) : Prop
 
 /-- **The server being built** (exclusive; see the file header). -/
-axiom grpcSrvNew {GF : BundledGFunctors} [FfiSyntax] (gs : Loc) (ics sics : List GoFunc)
+axiom grpcSrvNew {GF : BundledGFunctors} [GooseExts] (gs : Loc) (ics sics : List GoFunc)
   (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) : IProp GF
 
 /-- **The right to serve `gs` on the listener `lis`** (exclusive; `grpc.start`'s, what
 `gs.Serve(lis)` takes). -/
-axiom grpcServeTok {GF : BundledGFunctors} [FfiSyntax] (gs : Loc) (lis : GoInterface) : IProp GF
+axiom grpcServeTok {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) : IProp GF
 
 /-- **grpc's health server `hs`** (persistent; see the file header). -/
-axiom grpcHealthSrv {GF : BundledGFunctors} [FfiSyntax] (hs : Loc) : IProp GF
+axiom grpcHealthSrv {GF : BundledGFunctors} [GooseExts] (hs : Loc) : IProp GF
 
-axiom grpcHealthSrv_persistent {GF : BundledGFunctors} [FfiSyntax] (hs : Loc) :
+axiom grpcHealthSrv_persistent {GF : BundledGFunctors} [GooseExts] (hs : Loc) :
   Persistent (grpcHealthSrv (GF := GF) hs)
 
 attribute [instance] grpcHealthSrv_persistent
 
 /-- **grpc-prometheus's server metrics `m`** (persistent; see the file header). -/
-axiom promSrvMetrics {GF : BundledGFunctors} [FfiSyntax] (m : Loc) : IProp GF
+axiom promSrvMetrics {GF : BundledGFunctors} [GooseExts] (m : Loc) : IProp GF
 
-axiom promSrvMetrics_persistent {GF : BundledGFunctors} [FfiSyntax] (m : Loc) :
+axiom promSrvMetrics_persistent {GF : BundledGFunctors} [GooseExts] (m : Loc) :
   Persistent (promSrvMetrics (GF := GF) m)
 
 attribute [instance] promSrvMetrics_persistent
 
 /-- **`o` is one of grpc-prometheus's own server-metrics options** (see the file header). -/
-axiom promSrvMetricsOpt [FfiSyntax] (o : GoFunc) : Prop
+axiom promSrvMetricsOpt [GooseExts] (o : GoFunc) : Prop
 
 section pure
-variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- A method's full name, as grpc's server dispatches it (`/<service>/<method>`). -/
 def grpcFullName (sn mn : GoString) : GoString := go!"/" ++ sn ++ go!"/" ++ mn
@@ -158,9 +158,12 @@ def grpcImplements (ss ht : GoInterface) : Prop :=
     go.typeSetContains si.ty T = true
 
 /-- The interface `interface{ testEmbeddedByValue() }` the generated `Register*Server` assert a
-service value to (it calls the method if the value embeds the `Unimplemented*Server` by value). -/
+service value to (it calls the method if the value embeds the `Unimplemented*Server` by value).
+The method is unexported, so its id is qualified by the package that declares it, `etcdserverpb`
+(Go's `go/types.Id`, as goose names it). -/
 def testEmbeddedIface : go.GoType :=
-  go.GoType.InterfaceType [go.InterfaceElem.MethodElem go!"testEmbeddedByValue"
+  go.GoType.InterfaceType [go.InterfaceElem.MethodElem
+    go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue"
     (go.signature.Signature [] false [])]
 
 /-- **The service value `ss` has no `testEmbeddedByValue`** (a method-set fact: etcd's services
@@ -172,7 +175,7 @@ def grpcNoTestEmbedded (ss : GoInterface) : Prop :=
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

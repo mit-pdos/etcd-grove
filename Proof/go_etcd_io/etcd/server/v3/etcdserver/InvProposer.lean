@@ -64,7 +64,7 @@ def apply.irrEmpty : apply.IRRModel where
   range := none
   put := none
   deleteRange := none
-  txn := none
+  txnW := none
   compaction := none
   leaseGrant := none
   leaseRevoke := none
@@ -97,8 +97,13 @@ def irrPut (op : OpFull) : apply.IRRModel := { apply.irrEmpty with put := some o
 /-- `&pb.InternalRaftRequest{DeleteRange: r}`. -/
 def irrDeleteRange (op : OpFull) : apply.IRRModel :=
   { apply.irrEmpty with deleteRange := some op }
-/-- `&pb.InternalRaftRequest{Txn: r}`. -/
-def irrTxn (t : TxnModel) : apply.IRRModel := { apply.irrEmpty with txn := some t }
+/-- `&pb.InternalRaftRequest{Txn: r}` for `r` holding the wire transaction `tw` (E3e: its model
+`tw.toModel` until then). -/
+def irrTxn (tw : txn.TxnModelW) : apply.IRRModel := { apply.irrEmpty with txnW := some tw }
+
+@[simp] theorem irrTxn_txn (tw : txn.TxnModelW) : (irrTxn tw).txn = some tw.toModel := rfl
+@[simp] theorem irrTxn_txnW (tw : txn.TxnModelW) : (irrTxn tw).txnW = some tw := rfl
+@[simp] theorem irrEmpty_txn : apply.irrEmpty.txn = none := rfl
 
 /-- **`exceedsRequestLimit(ai, ci, r, enable)`** (`util.go`), `prio` = `isPriorityRequest(r)`
 (a lease revocation): the committed index more than `maxNormalGap` (5000) past the applied one,
@@ -152,7 +157,7 @@ instance notInterface_int64 : go.NotInterface go.int64 := ⟨by unfold go.int64;
 def srvMintN : Namespace := nroot .@ "server_mint"
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -168,7 +173,7 @@ def irrNoHdrIs (p : Loc) (rq : apply.IRRModel) : IProp GF :=
     apply.irrField p go!"Range" (fun l => apply.optReqIs l rq.range txn.rangeRequestIs) ∗
     apply.irrField p go!"Put" (fun l => apply.optReqIs l rq.put txn.putRequestIs) ∗
     apply.irrField p go!"DeleteRange" (fun l => apply.optReqIs l rq.deleteRange txn.deleteRangeRequestIs) ∗
-    apply.irrField p go!"Txn" (fun l => apply.optReqIs l rq.txn txn.txnRequestIs) ∗
+    apply.irrField p go!"Txn" (fun l => apply.optReqIs l rq.txnW txn.txnRequestIsW) ∗
     apply.irrField p go!"Compaction" (fun l => apply.optReqIs l rq.compaction apply.compactionIs) ∗
     apply.irrField p go!"LeaseGrant" (fun l => apply.optReqIs l rq.leaseGrant apply.leaseGrantIs) ∗
     apply.irrField p go!"LeaseRevoke" (fun l => apply.optReqIs l rq.leaseRevoke apply.leaseRevokeIs) ∗
@@ -264,39 +269,39 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
 
 /-- **A writing transaction's permission is its proposal's** (2026-10-15, unit T2). -/
-theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF)
+theorem txnPermit_reqPropOk (γk : KVNames) (tw : txn.TxnModelW) (Q : KVState → IProp GF)
     (γc : GName) :
-    txnPermit (GF := GF) γk t Q ⊢
-      reqPropOk γk (irrTxn t) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
+    txnPermit (GF := GF) γk tw.toModel Q ⊢
+      reqPropOk γk (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold txnPermit reqPropOk
   iintro ⟨%Ht, Hau⟩
   iright; iright
-  iexists .txn t, Q, γc
+  iexists .txn tw.toModel, Q, γc
   iframe Hau
   ipureintro
-  have hk : apply.dispatchKind (irrTxn t) = .txn := by
+  have hk : apply.dispatchKind (irrTxn tw) = .txn := by
     simp [apply.dispatchKind, irrTxn, apply.irrEmpty]
-  have hpl : plainCover (irrTxn t) := by
+  have hpl : plainCover (irrTxn tw) := by
     unfold plainCover
     rw [hk]
     refine ⟨by simp [apply.noSideEffect, irrTxn, apply.irrEmpty],
       by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
-    intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.1
+    intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.1
   refine ⟨⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
     rqShape_of_txn _ hpl hk ?_, rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
-    · intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.2.1
-  · intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.2.2
+    · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
+  · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2
 
 end defs
 
 /-! ## The server, as a proposer sees it -/
 
 section typeRepr
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -311,7 +316,7 @@ instance (priority := high) raftNodeConfig_typeRepr_u :
 end typeRepr
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The configuration's fields the request path reads. -/
 abbrev srvCfgFieldAddr (s : Loc) (f : GoString) : Loc :=
@@ -321,7 +326,7 @@ abbrev srvCfgFieldAddr (s : Loc) (f : GoString) : Loc :=
 end addrs
 
 section srv
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -331,7 +336,7 @@ variable [sem : go.Semantics]
 request claimed under its id (in the cluster's claims, D21e (A): every member's proposals mint
 here). -/
 def srvPropMint (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
-  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth γ.raft.reFresh 1 F ∗
+  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth γ.raft.fresh 1 F ∗
     [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
       ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim γi id d γf)
 

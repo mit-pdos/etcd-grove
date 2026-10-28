@@ -20,103 +20,103 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2
 
-noncomputable def FlowcontrolV1beta2Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FlowcontrolV1beta2Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.FlowcontrolV1beta2Interface" [])
 
 attribute [irreducible] FlowcontrolV1beta2Interface.ty
 
-noncomputable def FlowcontrolV1beta2Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FlowcontrolV1beta2Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.FlowcontrolV1beta2Client" [])
 
 attribute [irreducible] FlowcontrolV1beta2Client.ty
 
-noncomputable def FlowSchemasGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FlowSchemasGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.FlowSchemasGetter" [])
 
 attribute [irreducible] FlowSchemasGetter.ty
 
-noncomputable def FlowSchemaInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FlowSchemaInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.FlowSchemaInterface" [])
 
 attribute [irreducible] FlowSchemaInterface.ty
 
-noncomputable def flowSchemas.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def flowSchemas.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.flowSchemas" [])
 
 attribute [irreducible] flowSchemas.ty
 
-noncomputable def FlowSchemaExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FlowSchemaExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.FlowSchemaExpansion" [])
 
 attribute [irreducible] FlowSchemaExpansion.ty
 
-noncomputable def PriorityLevelConfigurationExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PriorityLevelConfigurationExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.PriorityLevelConfigurationExpansion" [])
 
 attribute [irreducible] PriorityLevelConfigurationExpansion.ty
 
-noncomputable def PriorityLevelConfigurationsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PriorityLevelConfigurationsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.PriorityLevelConfigurationsGetter" [])
 
 attribute [irreducible] PriorityLevelConfigurationsGetter.ty
 
-noncomputable def PriorityLevelConfigurationInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PriorityLevelConfigurationInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.PriorityLevelConfigurationInterface" [])
 
 attribute [irreducible] PriorityLevelConfigurationInterface.ty
 
-noncomputable def priorityLevelConfigurations.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def priorityLevelConfigurations.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.priorityLevelConfigurations" [])
 
 attribute [irreducible] priorityLevelConfigurations.ty
 
-axiom FlowcontrolV1beta2Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FlowcontrolV1beta2Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlowcontrolV1beta2Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FlowcontrolV1beta2Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlowSchemasGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FlowSchemasGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlowSchemaInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FlowSchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom flowSchemas.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom flowSchemas.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlowSchemaExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FlowSchemaExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityLevelConfigurationExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PriorityLevelConfigurationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityLevelConfigurationsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PriorityLevelConfigurationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityLevelConfigurationInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PriorityLevelConfigurationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom priorityLevelConfigurations.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom priorityLevelConfigurations.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.setConfigDefaults"
 
-noncomputable def newFlowSchemas [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFlowSchemas [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.newFlowSchemas"
 
-noncomputable def newPriorityLevelConfigurations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newPriorityLevelConfigurations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.newPriorityLevelConfigurations"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2)) (Lam BAnon
   (App (Val exceptionDo)
@@ -127,133 +127,173 @@ axiom FlowcontrolV1beta2Interface : Type
 axiom FlowcontrolV1beta2Interface.zero_val : ZeroVal FlowcontrolV1beta2Interface
 attribute [instance] FlowcontrolV1beta2Interface.zero_val
 
-class FlowcontrolV1beta2Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FlowcontrolV1beta2Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FlowcontrolV1beta2Interface.underlying FlowcontrolV1beta2Interface
   underlying : go.UnderlyingDirectedEq FlowcontrolV1beta2Interface.ty FlowcontrolV1beta2Interface.underlying
   isUnderlying : go.IsUnderlying FlowcontrolV1beta2Interface.underlying FlowcontrolV1beta2Interface.underlying
+  method_set : go.MethodSetIs FlowcontrolV1beta2Interface.ty [(go!"FlowSchemas", (some (go.signature.Signature [] false [FlowSchemaInterface.ty]))), (go!"PriorityLevelConfigurations", (some (go.signature.Signature [] false [PriorityLevelConfigurationInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FlowcontrolV1beta2Interface.ty) []
 
 attribute [instance] FlowcontrolV1beta2Interface.TypeAssumptions.type_repr
   FlowcontrolV1beta2Interface.TypeAssumptions.underlying
   FlowcontrolV1beta2Interface.TypeAssumptions.isUnderlying
+  FlowcontrolV1beta2Interface.TypeAssumptions.method_set
+  FlowcontrolV1beta2Interface.TypeAssumptions.ptr_method_set
 
 axiom FlowcontrolV1beta2Client : Type
 axiom FlowcontrolV1beta2Client.zero_val : ZeroVal FlowcontrolV1beta2Client
 attribute [instance] FlowcontrolV1beta2Client.zero_val
 
-class FlowcontrolV1beta2Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FlowcontrolV1beta2Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FlowcontrolV1beta2Client.underlying FlowcontrolV1beta2Client
   underlying : go.UnderlyingDirectedEq FlowcontrolV1beta2Client.ty FlowcontrolV1beta2Client.underlying
   isUnderlying : go.IsUnderlying FlowcontrolV1beta2Client.underlying FlowcontrolV1beta2Client.underlying
+  method_set : go.MethodSetIs FlowcontrolV1beta2Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FlowcontrolV1beta2Client.ty) [(go!"FlowSchemas", (some (go.signature.Signature [] false [FlowSchemaInterface.ty]))), (go!"PriorityLevelConfigurations", (some (go.signature.Signature [] false [PriorityLevelConfigurationInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
 
 attribute [instance] FlowcontrolV1beta2Client.TypeAssumptions.type_repr
   FlowcontrolV1beta2Client.TypeAssumptions.underlying
   FlowcontrolV1beta2Client.TypeAssumptions.isUnderlying
+  FlowcontrolV1beta2Client.TypeAssumptions.method_set
+  FlowcontrolV1beta2Client.TypeAssumptions.ptr_method_set
 
 axiom FlowSchemasGetter : Type
 axiom FlowSchemasGetter.zero_val : ZeroVal FlowSchemasGetter
 attribute [instance] FlowSchemasGetter.zero_val
 
-class FlowSchemasGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FlowSchemasGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FlowSchemasGetter.underlying FlowSchemasGetter
   underlying : go.UnderlyingDirectedEq FlowSchemasGetter.ty FlowSchemasGetter.underlying
   isUnderlying : go.IsUnderlying FlowSchemasGetter.underlying FlowSchemasGetter.underlying
+  method_set : go.MethodSetIs FlowSchemasGetter.ty [(go!"FlowSchemas", (some (go.signature.Signature [] false [FlowSchemaInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FlowSchemasGetter.ty) []
 
 attribute [instance] FlowSchemasGetter.TypeAssumptions.type_repr
   FlowSchemasGetter.TypeAssumptions.underlying
   FlowSchemasGetter.TypeAssumptions.isUnderlying
+  FlowSchemasGetter.TypeAssumptions.method_set
+  FlowSchemasGetter.TypeAssumptions.ptr_method_set
 
 axiom FlowSchemaInterface : Type
 axiom FlowSchemaInterface.zero_val : ZeroVal FlowSchemaInterface
 attribute [instance] FlowSchemaInterface.zero_val
 
-class FlowSchemaInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FlowSchemaInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FlowSchemaInterface.underlying FlowSchemaInterface
   underlying : go.UnderlyingDirectedEq FlowSchemaInterface.ty FlowSchemaInterface.underlying
   isUnderlying : go.IsUnderlying FlowSchemaInterface.underlying FlowSchemaInterface.underlying
+  method_set : go.MethodSetIs FlowSchemaInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.FlowSchemaApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.FlowSchemaApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchemaList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FlowSchemaInterface.ty) []
 
 attribute [instance] FlowSchemaInterface.TypeAssumptions.type_repr
   FlowSchemaInterface.TypeAssumptions.underlying
   FlowSchemaInterface.TypeAssumptions.isUnderlying
+  FlowSchemaInterface.TypeAssumptions.method_set
+  FlowSchemaInterface.TypeAssumptions.ptr_method_set
 
 axiom flowSchemas : Type
 axiom flowSchemas.zero_val : ZeroVal flowSchemas
 attribute [instance] flowSchemas.zero_val
 
-class flowSchemas.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class flowSchemas.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying flowSchemas.underlying flowSchemas
   underlying : go.UnderlyingDirectedEq flowSchemas.ty flowSchemas.underlying
   isUnderlying : go.IsUnderlying flowSchemas.underlying flowSchemas.underlying
+  method_set : go.MethodSetIs flowSchemas.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.FlowSchemaApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.FlowSchemaApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchemaList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType flowSchemas.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.FlowSchemaApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.FlowSchemaApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchemaList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.FlowSchema" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] flowSchemas.TypeAssumptions.type_repr
   flowSchemas.TypeAssumptions.underlying
   flowSchemas.TypeAssumptions.isUnderlying
+  flowSchemas.TypeAssumptions.method_set
+  flowSchemas.TypeAssumptions.ptr_method_set
 
 axiom FlowSchemaExpansion : Type
 axiom FlowSchemaExpansion.zero_val : ZeroVal FlowSchemaExpansion
 attribute [instance] FlowSchemaExpansion.zero_val
 
-class FlowSchemaExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FlowSchemaExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FlowSchemaExpansion.underlying FlowSchemaExpansion
   underlying : go.UnderlyingDirectedEq FlowSchemaExpansion.ty FlowSchemaExpansion.underlying
   isUnderlying : go.IsUnderlying FlowSchemaExpansion.underlying FlowSchemaExpansion.underlying
+  method_set : go.MethodSetIs FlowSchemaExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FlowSchemaExpansion.ty) []
 
 attribute [instance] FlowSchemaExpansion.TypeAssumptions.type_repr
   FlowSchemaExpansion.TypeAssumptions.underlying
   FlowSchemaExpansion.TypeAssumptions.isUnderlying
+  FlowSchemaExpansion.TypeAssumptions.method_set
+  FlowSchemaExpansion.TypeAssumptions.ptr_method_set
 
 axiom PriorityLevelConfigurationExpansion : Type
 axiom PriorityLevelConfigurationExpansion.zero_val : ZeroVal PriorityLevelConfigurationExpansion
 attribute [instance] PriorityLevelConfigurationExpansion.zero_val
 
-class PriorityLevelConfigurationExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PriorityLevelConfigurationExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PriorityLevelConfigurationExpansion.underlying PriorityLevelConfigurationExpansion
   underlying : go.UnderlyingDirectedEq PriorityLevelConfigurationExpansion.ty PriorityLevelConfigurationExpansion.underlying
   isUnderlying : go.IsUnderlying PriorityLevelConfigurationExpansion.underlying PriorityLevelConfigurationExpansion.underlying
+  method_set : go.MethodSetIs PriorityLevelConfigurationExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PriorityLevelConfigurationExpansion.ty) []
 
 attribute [instance] PriorityLevelConfigurationExpansion.TypeAssumptions.type_repr
   PriorityLevelConfigurationExpansion.TypeAssumptions.underlying
   PriorityLevelConfigurationExpansion.TypeAssumptions.isUnderlying
+  PriorityLevelConfigurationExpansion.TypeAssumptions.method_set
+  PriorityLevelConfigurationExpansion.TypeAssumptions.ptr_method_set
 
 axiom PriorityLevelConfigurationsGetter : Type
 axiom PriorityLevelConfigurationsGetter.zero_val : ZeroVal PriorityLevelConfigurationsGetter
 attribute [instance] PriorityLevelConfigurationsGetter.zero_val
 
-class PriorityLevelConfigurationsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PriorityLevelConfigurationsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PriorityLevelConfigurationsGetter.underlying PriorityLevelConfigurationsGetter
   underlying : go.UnderlyingDirectedEq PriorityLevelConfigurationsGetter.ty PriorityLevelConfigurationsGetter.underlying
   isUnderlying : go.IsUnderlying PriorityLevelConfigurationsGetter.underlying PriorityLevelConfigurationsGetter.underlying
+  method_set : go.MethodSetIs PriorityLevelConfigurationsGetter.ty [(go!"PriorityLevelConfigurations", (some (go.signature.Signature [] false [PriorityLevelConfigurationInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PriorityLevelConfigurationsGetter.ty) []
 
 attribute [instance] PriorityLevelConfigurationsGetter.TypeAssumptions.type_repr
   PriorityLevelConfigurationsGetter.TypeAssumptions.underlying
   PriorityLevelConfigurationsGetter.TypeAssumptions.isUnderlying
+  PriorityLevelConfigurationsGetter.TypeAssumptions.method_set
+  PriorityLevelConfigurationsGetter.TypeAssumptions.ptr_method_set
 
 axiom PriorityLevelConfigurationInterface : Type
 axiom PriorityLevelConfigurationInterface.zero_val : ZeroVal PriorityLevelConfigurationInterface
 attribute [instance] PriorityLevelConfigurationInterface.zero_val
 
-class PriorityLevelConfigurationInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PriorityLevelConfigurationInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PriorityLevelConfigurationInterface.underlying PriorityLevelConfigurationInterface
   underlying : go.UnderlyingDirectedEq PriorityLevelConfigurationInterface.ty PriorityLevelConfigurationInterface.underlying
   isUnderlying : go.IsUnderlying PriorityLevelConfigurationInterface.underlying PriorityLevelConfigurationInterface.underlying
+  method_set : go.MethodSetIs PriorityLevelConfigurationInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.PriorityLevelConfigurationApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.PriorityLevelConfigurationApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfigurationList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PriorityLevelConfigurationInterface.ty) []
 
 attribute [instance] PriorityLevelConfigurationInterface.TypeAssumptions.type_repr
   PriorityLevelConfigurationInterface.TypeAssumptions.underlying
   PriorityLevelConfigurationInterface.TypeAssumptions.isUnderlying
+  PriorityLevelConfigurationInterface.TypeAssumptions.method_set
+  PriorityLevelConfigurationInterface.TypeAssumptions.ptr_method_set
 
 axiom priorityLevelConfigurations : Type
 axiom priorityLevelConfigurations.zero_val : ZeroVal priorityLevelConfigurations
 attribute [instance] priorityLevelConfigurations.zero_val
 
-class priorityLevelConfigurations.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class priorityLevelConfigurations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying priorityLevelConfigurations.underlying priorityLevelConfigurations
   underlying : go.UnderlyingDirectedEq priorityLevelConfigurations.ty priorityLevelConfigurations.underlying
   isUnderlying : go.IsUnderlying priorityLevelConfigurations.underlying priorityLevelConfigurations.underlying
+  method_set : go.MethodSetIs priorityLevelConfigurations.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.PriorityLevelConfigurationApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.PriorityLevelConfigurationApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfigurationList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType priorityLevelConfigurations.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.PriorityLevelConfigurationApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/flowcontrol/v1beta2.PriorityLevelConfigurationApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfigurationList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1beta2.PriorityLevelConfiguration" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] priorityLevelConfigurations.TypeAssumptions.type_repr
   priorityLevelConfigurations.TypeAssumptions.underlying
   priorityLevelConfigurations.TypeAssumptions.isUnderlying
+  priorityLevelConfigurations.TypeAssumptions.method_set
+  priorityLevelConfigurations.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   FlowcontrolV1beta2Interface_instance : FlowcontrolV1beta2Interface.TypeAssumptions
   FlowcontrolV1beta2Client_instance : FlowcontrolV1beta2Client.TypeAssumptions
   FlowSchemasGetter_instance : FlowSchemasGetter.TypeAssumptions

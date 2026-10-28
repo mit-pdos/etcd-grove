@@ -25,7 +25,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -91,13 +91,22 @@ theorem readServed_logR (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64
   iframe HL HW HQ
   ipureintro; exact ⟨Hc, Hp.2.2, HpL⟩
 
+/-- Six later credits, one by one. -/
+theorem lc_join6 : ⊢ £ 1 -∗ £ 1 -∗ £ 1 -∗ £ 1 -∗ £ 1 -∗ £ 1 -∗ (£ 6 : IProp GF) := by
+  iintro H1 H2 H3 H4 H5 H6
+  iapply (lc_split (n := 5) (m := 1)).2; iframe H6
+  iapply (lc_split (n := 4) (m := 1)).2; iframe H5
+  iapply (lc_split (n := 3) (m := 1)).2; iframe H4
+  iapply (lc_split (n := 2) (m := 1)).2; iframe H3
+  iapply (lc_split (n := 1) (m := 1)).2; iframe H1 H2
+
 /-- **A served read's result at the log it read** (`l`, certified, extending the lower bound):
 `l` is the KV model of a committed raft log `L` through an index at least the round's read
 index, and raft's witness gives the client's `□ Q L` (three credits: two for raft's witness,
-one for the saved predicate's agreement). -/
+one for the saved predicate's agreement; 2026-10-27: six, `srvReadWit`'s five). -/
 theorem readWit_fire (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Q : List EntryModel → IProp GF)
     (g : GName) (l : mvcc.Log) :
-    ⊢ srvAppliedInv s E γr -∗ srvKVInvs E γr -∗ readWitAt γr Q g l -∗ mvcc.certOk E.γ l -∗ £ 3
+    ⊢ srvAppliedInv s E γr -∗ srvKVInvs E γr -∗ readWitAt γr Q g l -∗ mvcc.certOk E.γ l -∗ £ 6
       ={⊤}=∗ ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = l⌝ ∗ □ Q L := by
   iintro #Hainv #Hkvi #Hw #Hc Hlc
   iunfold srvKVInvs at Hkvi
@@ -108,7 +117,7 @@ theorem readWit_fire (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Q : List E
   imod kv_read_log γr E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) ci₀ L₀ l Hp.2.2 $$ HcI HkL Hc
     with ⟨%A, #HA, %HAp⟩
   iunfold srvReadWit at HW
-  icases (lc_split (n := 2) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc1⟩
+  icases (lc_split (n := 5) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc1⟩
   imod HW $$ %A HA %(by omega) Hlc2 with #HQs
   ihave HQL := readQs_get gs A k g Q Hp.2.1 $$ HQs HQ
   imod lc_fupd_elim_later $$ Hlc1 HQL with #HQL

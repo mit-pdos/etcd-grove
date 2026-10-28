@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
 
 @[expose] public section
 
@@ -18,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -73,6 +74,47 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
         ⌜entryStep m v3 x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
         srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x' ∗ srvRest E γr (A ++ [m])) ∗
+      (if v3 then iprop(ciApplying ci m.index m.term ∗
+          ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
+       else applyThread γ st) }}
+
+/-- **`spec` in the auth mode `on`** (the auth plan's E3o, 2026-10-27; `notes/decisions.md`, "E3o of
+the auth plan"): the server as the apply thread sees it with auth on (`isServerM true`: the wait's
+results `resultΨOn`, the applied logs the mode-`on` model's, `srvKVInvsOn`), the environment's
+mode `on γa`; the applier state with the auth row at the model's auth state `sa`
+(`srvApplyKVOn`), the apply thread at the mode-`on` model of `A` (`kvAppliedOn`, from the server's
+start state `srvAuthSt0`); the entry's premise `entryOkOn` (an admitted admin request too); the
+server's lessor finding no lease (`srvLessorNil`, `srv_uberKVL_on`'s named premise); one time
+receipt (an admin step's cost, E2l) under the receipts' bound. After the entry, as `spec`'s, the
+apply thread at the model's state after `A ++ [m]` (its auth state `sa'`), the log deposited as the
+mode-`on` model's (`srvAppliedPre`, `kvLogAtM true`), and a registered proposer's result handed
+over with the auth layer's verdict the model's (`resultΨOn`). -/
+abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
+    (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
+    (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel) (γa : auth.AuthNames)
+    (sa : auth.AuthState),
+  E.authMode = .on γa →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ entryWaitOk ρ E m ∗
+      entryRegd ρ.wait ρ.ids.pfx m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+      ⧗ 1 ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ srvRLogLb γr.raft (A ++ [m]) ∗
+      ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
+      ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
+      ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
+      (if v3 then iprop(ciApplying ci m.index m.term ∗
+          ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
+            uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
+       else iprop(True)) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
+      (Val #e)) (Val #v3))
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
+      (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
+        srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m v3 x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
+        srvAppliedPre γr v m.index x'.log ∗
+        kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' ∗ srvRest E γr (A ++ [m])) ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
        else applyThread γ st) }}

@@ -32,7 +32,7 @@ namespace dsctl
 open Iris Iris.BI apimodel
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -123,7 +123,7 @@ instance podNameValidatorOk_persistent : Persistent (podNameValidatorOk (GF := G
 end defs
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **`getPodsPrefix(name)`'s possible results**: `name + "-"`, or `name` when the validator
 rejects that. -/

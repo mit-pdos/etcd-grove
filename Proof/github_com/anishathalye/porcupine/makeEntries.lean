@@ -24,7 +24,7 @@ namespace porcupine
 open Iris Iris.BI Iris.ProofMode github_com.anishathalye.porcupine
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -118,7 +118,7 @@ theorem makeEntries.wp_proof
       rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Ho]; rfl
     have Htl : (ops.take (sint.nat n)).length = sint.nat n := by
       rw [List.length_take]; omega
-    iframe HΦ Hs
+    iframe HΦ Hs «$res0»
     iexists n + W64 1, s5, o
     simp only [named, Htake, rawEntries_snoc, Htl, List.append_assoc, List.cons_append,
       List.nil_append]

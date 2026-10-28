@@ -20,40 +20,40 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.scheme
 
-noncomputable def Scheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Scheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.Scheme"
 
-axiom Scheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom Scheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Codecs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Codecs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.Codecs"
 
-axiom Codecs.init [FfiSyntax] [GoGlobalContext] : val
+axiom Codecs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ParameterCodec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParameterCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.ParameterCodec"
 
-axiom ParameterCodec.init [FfiSyntax] [GoGlobalContext] : val
+axiom ParameterCodec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def localSchemeBuilder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [FfiSyntax] [GoGlobalContext] : val
+axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AddToScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.AddToScheme"
 
-axiom AddToScheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.init.0"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.scheme where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.scheme)) (Lam BAnon
   (App (Val exceptionDo)
@@ -75,7 +75,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val Scheme.init) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.client_go.kubernetes.scheme
 

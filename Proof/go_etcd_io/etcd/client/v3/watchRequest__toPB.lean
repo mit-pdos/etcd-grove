@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -33,10 +33,11 @@ theorem watchRequest.toPB.wp_proof : watchRequest.toPB.spec (GF := GF) (hG := hG
   wp_auto
   wp_apply wp_string_to_bytes key as %ksl ⟨Hks, -⟩
   wp_apply wp_string_to_bytes ed as %esl ⟨Hes, -⟩
-  rename_i cr
-  irename «$r0» => How
+  rename_i cr ow
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
+  irename : (ow ↦ (_ : etcdserverpb.WatchRequest_CreateRequest) : IProp GF) => How
   irename : (cr ↦ (_ : etcdserverpb.WatchCreateRequest) : IProp GF) => Hcr
-  wp_alloc p as Hp
   ihave %Hcrn := typedPointsto_not_null _ _ _ $$ Hcr
   iStructNamed Hp
   iStructNamed How
@@ -45,7 +46,6 @@ theorem watchRequest.toPB.wp_proof : watchRequest.toPB.spec (GF := GF) (hG := hG
   ipersist Key; ipersist RangeEnd; ipersist StartRevision; ipersist ProgressNotify
   ipersist Filters; ipersist PrevKv; ipersist WatchId; ipersist Fragment
   ipersist Hks; ipersist Hes
-  wp_auto
   imodintro
   iapply HΦ
   iframe
@@ -54,7 +54,7 @@ theorem watchRequest.toPB.wp_proof : watchRequest.toPB.spec (GF := GF) (hG := hG
   iframe #
   iexists cr
   isplitl []
-  · iexists «$r0_ptr»
+  · iexists ow
     iframe #
     ipureintro; rfl
   isplitl []

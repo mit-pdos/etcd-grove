@@ -9,7 +9,10 @@ returns (`stop` is never sent on).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 
@@ -21,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -43,7 +46,7 @@ def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
 /-- See the file header. -/
 abbrev node.run.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       runPre γ id n }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}

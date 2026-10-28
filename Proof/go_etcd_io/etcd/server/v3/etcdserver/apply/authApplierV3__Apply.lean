@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,6 +31,7 @@ theorem apply.authApplierV3.Apply.wp_proof
     apply.authApplierV3.Apply.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq skip v3 af A B
   wp_start as ⟨#Hauth, #Hinner, #Hw, HA, #Haf⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -185,9 +186,9 @@ theorem apply.authApplierV3.Apply.wp_proof
     · iright; iframe; ipureintro; first | rfl | (rw [hna] at h; exact h)
   | ok e =>
     wp_auto
-    wp_alloc ar as Har
+    irename «$r0» => Har
+    generalize «$r0_ptr» = ar at *
     ihave ⟨Har, %Harn⟩ := typedPointsto_not_null_dup _ _ _ $$ Har
-    wp_auto
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
     · inext
       iframe Hard

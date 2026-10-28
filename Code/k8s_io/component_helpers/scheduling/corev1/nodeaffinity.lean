@@ -26,79 +26,81 @@ end pkg_id
 
 namespace k8s_io.component_helpers.scheduling.corev1.nodeaffinity
 
-noncomputable def NodeSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.NodeSelector" [])
 
 attribute [irreducible] NodeSelector.ty
 
-noncomputable def LazyErrorNodeSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LazyErrorNodeSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.LazyErrorNodeSelector" [])
 
 attribute [irreducible] LazyErrorNodeSelector.ty
 
-noncomputable def PreferredSchedulingTerms.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PreferredSchedulingTerms.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.PreferredSchedulingTerms" [])
 
 attribute [irreducible] PreferredSchedulingTerms.ty
 
-noncomputable def nodeSelectorTerm.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nodeSelectorTerm.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.nodeSelectorTerm" [])
 
 attribute [irreducible] nodeSelectorTerm.ty
 
-noncomputable def preferredSchedulingTerm.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def preferredSchedulingTerm.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.preferredSchedulingTerm" [])
 
 attribute [irreducible] preferredSchedulingTerm.ty
 
-noncomputable def RequiredNodeAffinity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequiredNodeAffinity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.RequiredNodeAffinity" [])
 
 attribute [irreducible] RequiredNodeAffinity.ty
 
-noncomputable def validSelectorOperators [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validSelectorOperators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.validSelectorOperators"
 
-noncomputable def validFieldSelectorOperators [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validFieldSelectorOperators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.validFieldSelectorOperators"
 
-noncomputable def NewNodeSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNodeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.NewNodeSelector"
 
-noncomputable def NewLazyErrorNodeSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLazyErrorNodeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.NewLazyErrorNodeSelector"
 
-noncomputable def NewPreferredSchedulingTerms [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewPreferredSchedulingTerms [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.NewPreferredSchedulingTerms"
 
-noncomputable def isEmptyNodeSelectorTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isEmptyNodeSelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.isEmptyNodeSelectorTerm"
 
-noncomputable def extractNodeFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def extractNodeFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.extractNodeFields"
 
-noncomputable def newNodeSelectorTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newNodeSelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.newNodeSelectorTerm"
 
-noncomputable def nodeSelectorRequirementsAsSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nodeSelectorRequirementsAsSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.nodeSelectorRequirementsAsSelector"
 
-noncomputable def nodeSelectorRequirementsAsFieldSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nodeSelectorRequirementsAsFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.nodeSelectorRequirementsAsFieldSelector"
 
-noncomputable def GetRequiredNodeAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetRequiredNodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.GetRequiredNodeAffinity"
 
-noncomputable def NewRequiredNodeAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRequiredNodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.NewRequiredNodeAffinity"
 
 /-- NewNodeSelector returns a NodeSelector or aggregate parsing errors found.
 
     go: nodeaffinity.go:40:6 -/
-noncomputable def NewNodeSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewNodeSelector.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ns"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType NodeSelector.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType NodeSelector.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.PathOption.ty)))) (Var "opts"))
   (Let "ns" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (Var "ns"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (Var "ns"))
@@ -109,15 +111,31 @@ noncomputable def NewNodeSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "errs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.error)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc NodeSelector.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad LazyErrorNodeSelector.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Var "lazy")))
+  (App (Val (GoInstruction (CompositeLiteral NodeSelector.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lazy")) (ElementExpression LazyErrorNodeSelector.ty (Var "$v0")))]))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoAlloc NodeSelector.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad LazyErrorNodeSelector.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Var "lazy")))
-  (App (Val (GoInstruction (CompositeLiteral NodeSelector.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lazy")) (ElementExpression LazyErrorNodeSelector.ty (Var "$v0")))])))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType NodeSelector.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType NodeSelector.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Aggregate.ty go.error))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType NodeSelector.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Aggregate.ty go.error))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.NewAggregate []))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Flatten []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Flatten []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType NodeSelector.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType nodeSelectorTerm.ty)))) (App (Val (GoInstruction (StructFieldRef LazyErrorNodeSelector.ty go!"terms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Var "lazy"))))
@@ -141,16 +159,18 @@ noncomputable def NewNodeSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore nodeSelectorTerm.ty))) (Pair (Var "term") (Var "$value"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Pair (Var "lazy") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Pair (Var "lazy") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType NodeSelector.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- NewLazyErrorNodeSelector creates a NodeSelector that only reports parse
     errors when no terms match.
 
     go: nodeaffinity.go:56:6 -/
-noncomputable def NewLazyErrorNodeSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewLazyErrorNodeSelector.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ns"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.PathOption.ty)))) (Var "opts"))
   (Let "ns" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (Var "ns"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.PathOption.ty)))) (Var "opts"))
@@ -167,9 +187,13 @@ noncomputable def NewLazyErrorNodeSelector.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "path" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc LazyErrorNodeSelector.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType nodeSelectorTerm.ty)))) (Var "parsedTerms"))
+  (App (Val (GoInstruction (CompositeLiteral LazyErrorNodeSelector.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"terms")) (ElementExpression (go.GoType.SliceType nodeSelectorTerm.ty) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc LazyErrorNodeSelector.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType nodeSelectorTerm.ty)))) (Var "parsedTerms"))
-  (App (Val (GoInstruction (CompositeLiteral LazyErrorNodeSelector.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"terms")) (ElementExpression (go.GoType.SliceType nodeSelectorTerm.ty) (Var "$v0")))])))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty go!"NodeSelectorTerms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (Var "ns"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty)) (Var "$range"))
@@ -204,16 +228,18 @@ noncomputable def NewLazyErrorNodeSelector.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType nodeSelectorTerm.ty)))) (Pair (Var "parsedTerms") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Pair (Var "p") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Pair (Var "p") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Var "$res0"))))))
 
 /-- Match checks whether the node labels and fields match the selector terms, ORed;
     nil or empty term matches no objects.
 
     go: nodeaffinity.go:75:25 -/
-noncomputable def NodeSelector.Match.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NodeSelector.Match.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ns"
   (Lam "node"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ns" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType NodeSelector.ty)))) (Var "ns"))
   (Let "node" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Var "node"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Var "node"))
@@ -225,21 +251,28 @@ noncomputable def NodeSelector.Match.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "match" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "match"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "match")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Var "$r1")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "match") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "match") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- NewPreferredSchedulingTerms returns a PreferredSchedulingTerms or all the parsing errors found.
     If a v1.PreferredSchedulingTerm has a 0 weight, its parsing is skipped.
 
     go: nodeaffinity.go:112:6 -/
-noncomputable def NewPreferredSchedulingTerms.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewPreferredSchedulingTerms.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "terms"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PreferredSchedulingTerms.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType PreferredSchedulingTerms.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.PathOption.ty)))) (Var "opts"))
   (Let "terms" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.PreferredSchedulingTerm.ty)))) (Var "terms"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.PathOption.ty)))) (Var "opts"))
@@ -253,15 +286,31 @@ noncomputable def NewPreferredSchedulingTerms.impl [FfiSyntax] [GoGlobalContext]
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc PreferredSchedulingTerms.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType preferredSchedulingTerm.ty)))) (Var "parsedTerms"))
+  (App (Val (GoInstruction (CompositeLiteral PreferredSchedulingTerms.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"terms")) (ElementExpression (go.GoType.SliceType preferredSchedulingTerm.ty) (Var "$v0")))]))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoAlloc PreferredSchedulingTerms.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType preferredSchedulingTerm.ty)))) (Var "parsedTerms"))
-  (App (Val (GoInstruction (CompositeLiteral PreferredSchedulingTerms.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"terms")) (ElementExpression (go.GoType.SliceType preferredSchedulingTerm.ty) (Var "$v0")))])))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType PreferredSchedulingTerms.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType PreferredSchedulingTerms.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Aggregate.ty go.error))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType PreferredSchedulingTerms.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Aggregate.ty go.error))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.NewAggregate []))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Flatten []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Flatten []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType PreferredSchedulingTerms.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.PreferredSchedulingTerm.ty)))) (Var "terms"))
@@ -310,31 +359,43 @@ noncomputable def NewPreferredSchedulingTerms.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType preferredSchedulingTerm.ty)))) (Pair (Var "parsedTerms") (Var "$r0"))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Pair (Var "p") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Pair (Var "p") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PreferredSchedulingTerms.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: nodeaffinity.go:152:6 -/
-noncomputable def isEmptyNodeSelectorTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isEmptyNodeSelectorTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "term"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "term" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty)))) (Var "term"))
-  (App (Val doReturn)
-  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty go!"MatchExpressions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty)))) (Var "term"))))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty go!"MatchExpressions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty)))) (Var "term"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty go!"MatchFields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty)))) (Var "term"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false))))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- go: nodeaffinity.go:170:6 -/
-noncomputable def newNodeSelectorTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newNodeSelectorTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "term"
   (Lam "path"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc nodeSelectorTerm.ty))) (App (Val (GoInstruction (GoZeroVal nodeSelectorTerm.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Var "path"))
   (Let "term" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty)))) (Var "term"))
   (Let "parsedTerm" (App (Val (GoInstruction (GoAlloc nodeSelectorTerm.ty))) (App (Val (GoInstruction (GoZeroVal nodeSelectorTerm.ty))) (Val #())))
   (Let "errs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.error)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad nodeSelectorTerm.ty))) (Var "parsedTerm"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad nodeSelectorTerm.ty))) (Var "parsedTerm")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore nodeSelectorTerm.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty go!"MatchFields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm.ty)))) (Var "term"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
   (Let "$r0" (Let "$a0" (Val #(go!"matchFields"))
@@ -400,49 +461,87 @@ noncomputable def newNodeSelectorTerm.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Pair (Var "p") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad nodeSelectorTerm.ty))) (Var "$res0"))))))
 
 /-- go: nodeaffinity.go:190:28 -/
-noncomputable def nodeSelectorTerm.«match».impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def nodeSelectorTerm.«match».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "nodeLabels"
   (Lam "nodeFields"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.error)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType nodeSelectorTerm.ty)))) (Var "t"))
   (Let "nodeFields" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "nodeFields"))
   (Let "nodeLabels" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "nodeLabels"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #true) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (App (Val (GoInstruction (StructFieldRef nodeSelectorTerm.ty go!"matchFields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType nodeSelectorTerm.ty)))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "nodeFields"))
   (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty _root_.Perennial.k8s_io.apimachinery.pkg.fields.Fields.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "nodeFields")))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (App (Val (GoInstruction (StructFieldRef nodeSelectorTerm.ty go!"matchFields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType nodeSelectorTerm.ty)))) (Var "t"))))) (Var "$a0")))) (Val #false))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #false) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (App (Val (GoInstruction (StructFieldRef nodeSelectorTerm.ty go!"matchLabels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType nodeSelectorTerm.ty)))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "nodeLabels")))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (App (Val (GoInstruction (StructFieldRef nodeSelectorTerm.ty go!"matchLabels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType nodeSelectorTerm.ty)))) (Var "t"))))) (Var "$a0")))) (Val #false))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #false) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.error)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (StructFieldRef nodeSelectorTerm.ty go!"parseErrs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType nodeSelectorTerm.ty)))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))))))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (StructFieldRef nodeSelectorTerm.ty go!"parseErrs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType nodeSelectorTerm.ty)))) (Var "t"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Val #false) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (StructFieldRef nodeSelectorTerm.ty go!"parseErrs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType nodeSelectorTerm.ty)))) (Var "t"))))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "$res1")))))))))
 
 /-- nodeSelectorRequirementsAsSelector converts the []NodeSelectorRequirement api type into a struct that implements
     labels.Selector.
 
     go: nodeaffinity.go:214:6 -/
-noncomputable def nodeSelectorRequirementsAsSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def nodeSelectorRequirementsAsSelector.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nsm"
   (Lam "path"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.error)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Var "path"))
   (Let "nsm" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (Var "nsm"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -452,12 +551,28 @@ noncomputable def nodeSelectorRequirementsAsSelector.impl [FfiSyntax] [GoGlobalC
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "selector"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "selector")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (Var "nsm"))
@@ -553,19 +668,30 @@ noncomputable def nodeSelectorRequirementsAsSelector.impl [FfiSyntax] [GoGlobalC
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Pair (Var "selector") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (Var "nsm"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.labels.Nothing []))) (Val #())) (Val #()))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.labels.Nothing []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "$res1"))))))))
 
 /-- nodeSelectorRequirementsAsFieldSelector converts the []NodeSelectorRequirement core type into a struct that implements
     fields.Selector.
 
     go: nodeaffinity.go:260:6 -/
-noncomputable def nodeSelectorRequirementsAsFieldSelector.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def nodeSelectorRequirementsAsFieldSelector.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nsr"
   (Lam "path"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.error)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.ty)))) (Var "path"))
   (Let "nsr" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (Var "nsr"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -573,13 +699,29 @@ noncomputable def nodeSelectorRequirementsAsFieldSelector.impl [FfiSyntax] [GoGl
   (Let "selectors" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty)))) (Var "selectors"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.fields.AndSelectors []))) (Val #())) (Var "$a0")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty)))) (Var "selectors"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.fields.AndSelectors []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (Var "nsr"))
@@ -658,22 +800,37 @@ noncomputable def nodeSelectorRequirementsAsFieldSelector.impl [FfiSyntax] [GoGl
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty))) (Pair (Var "expr") (Var "$value"))))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)))) (Var "nsr"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.fields.Nothing []))) (Val #())) (Val #()))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.fields.Nothing []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.error)))) (Val UntypedNil))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "$res1"))))))))
 
 /-- GetRequiredNodeAffinity returns the parsing result of pod's nodeSelector and nodeAffinity.
 
     go: nodeaffinity.go:306:6 -/
-noncomputable def GetRequiredNodeAffinity.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def GetRequiredNodeAffinity.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pod"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RequiredNodeAffinity.ty))) (App (Val (GoInstruction (GoZeroVal RequiredNodeAffinity.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pod" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"NodeSelector"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"NodeSelector"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Affinity.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"Affinity"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod")))))
-  (App (App (App (Val (GoInstruction (FuncResolve NewRequiredNodeAffinity []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewRequiredNodeAffinity []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RequiredNodeAffinity.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad RequiredNodeAffinity.ty))) (Var "$res0")))))
 
 /-- NewRequiredNodeAffinity returns the parsing result of the given nodeSelector
     and affinity. It is equivalent to GetRequiredNodeAffinity for a pod carrying
@@ -681,20 +838,25 @@ noncomputable def GetRequiredNodeAffinity.impl [FfiSyntax] [GoGlobalContext] : v
     workload controllers evaluating a pod template).
 
     go: nodeaffinity.go:314:6 -/
-noncomputable def NewRequiredNodeAffinity.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewRequiredNodeAffinity.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nodeSelector"
   (Lam "affinity"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc RequiredNodeAffinity.ty))) (App (Val (GoInstruction (GoZeroVal RequiredNodeAffinity.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "affinity" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Affinity.ty)))) (Var "affinity"))
   (Let "nodeSelector" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "nodeSelector"))
   (Let "selector" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "lazyNodeSelector" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "selector"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "selector"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LazyErrorNodeSelector.ty)))) (Var "lazyNodeSelector"))
-  (App (Val (GoInstruction (CompositeLiteral RequiredNodeAffinity.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"labelSelector")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"nodeSelector")) (ElementExpression (go.GoType.PointerType LazyErrorNodeSelector.ty) (Var "$v1")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral RequiredNodeAffinity.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"labelSelector")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"nodeSelector")) (ElementExpression (go.GoType.PointerType LazyErrorNodeSelector.ty) (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore RequiredNodeAffinity.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Affinity.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Affinity.ty)))) (Var "affinity")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Affinity.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeAffinity.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeAffinity.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Affinity.ty go!"NodeAffinity"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Affinity.ty)))) (Var "affinity")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeAffinity.ty)))) (Val UntypedNil))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeAffinity.ty go!"RequiredDuringSchedulingIgnoredDuringExecution"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeAffinity.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Affinity.ty go!"NodeAffinity"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Affinity.ty)))) (Var "affinity")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (Val UntypedNil))))) (Val #false)))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeAffinity.ty go!"RequiredDuringSchedulingIgnoredDuringExecution"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeAffinity.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Affinity.ty go!"NodeAffinity"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Affinity.ty)))) (Var "affinity"))))))
   (Let "$a1" (Val #slice.nil)
@@ -710,12 +872,13 @@ noncomputable def NewRequiredNodeAffinity.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Pair (Var "selector") (Var "$r0")))))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad RequiredNodeAffinity.ty))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_helpers.scheduling.corev1.nodeaffinity where
   pkgImportedPkgs := [pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.selection, pkg_id.k8s_io.apimachinery.pkg.util.errors, pkg_id.k8s_io.apimachinery.pkg.util.validation.field]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.component_helpers.scheduling.corev1.nodeaffinity)) (Lam BAnon
   (App (Val exceptionDo)
@@ -759,126 +922,138 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc validFieldSelectorOperators (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.NodeSelectorOperator.ty))) (Val #()))))))))
 
-structure LazyErrorNodeSelector [FfiSyntax] where
+structure LazyErrorNodeSelector [GooseExts] where
   mk ::
   terms' : GoSlice
 
-noncomputable instance LazyErrorNodeSelector.zero_val [FfiSyntax] : ZeroVal LazyErrorNodeSelector :=
+noncomputable instance LazyErrorNodeSelector.zero_val [GooseExts] : ZeroVal LazyErrorNodeSelector :=
   ⟨LazyErrorNodeSelector.mk zeroValDef⟩
 
-@[reducible] noncomputable def LazyErrorNodeSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LazyErrorNodeSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"terms" (go.GoType.SliceType nodeSelectorTerm.ty))]
 
-@[irreducible] noncomputable def LazyErrorNodeSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LazyErrorNodeSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LazyErrorNodeSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_LazyErrorNodeSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LazyErrorNodeSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold LazyErrorNodeSelector.fields LazyErrorNodeSelector.fieldsUnsealed :=
   ⟨by unfold LazyErrorNodeSelector.fields; rfl⟩
 
-@[reducible] noncomputable def LazyErrorNodeSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LazyErrorNodeSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LazyErrorNodeSelector.fields)
 
-class LazyErrorNodeSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LazyErrorNodeSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LazyErrorNodeSelector.underlying LazyErrorNodeSelector
   underlying : go.UnderlyingDirectedEq LazyErrorNodeSelector.ty LazyErrorNodeSelector.underlying
   get_terms : ∀ (x : LazyErrorNodeSelector), go.IsGoStepPureDetTagged under (StructFieldGet LazyErrorNodeSelector.underlying go!"terms") #x (Val #(x.terms'))
   set_terms : ∀ (x : LazyErrorNodeSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LazyErrorNodeSelector.underlying go!"terms") (PairV #x #y) (Val #(({ x with terms' := y } : LazyErrorNodeSelector)))
+  method_set : go.MethodSetIs LazyErrorNodeSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LazyErrorNodeSelector.ty) [(go!"Match", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.bool, go.error])))]
 
 attribute [instance] LazyErrorNodeSelector.TypeAssumptions.type_repr
   LazyErrorNodeSelector.TypeAssumptions.underlying
   LazyErrorNodeSelector.TypeAssumptions.get_terms
   LazyErrorNodeSelector.TypeAssumptions.set_terms
+  LazyErrorNodeSelector.TypeAssumptions.method_set
+  LazyErrorNodeSelector.TypeAssumptions.ptr_method_set
 
-structure NodeSelector [FfiSyntax] where
+structure NodeSelector [GooseExts] where
   mk ::
   lazy' : LazyErrorNodeSelector
 
-noncomputable instance NodeSelector.zero_val [FfiSyntax] : ZeroVal NodeSelector :=
+noncomputable instance NodeSelector.zero_val [GooseExts] : ZeroVal NodeSelector :=
   ⟨NodeSelector.mk zeroValDef⟩
 
-@[reducible] noncomputable def NodeSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lazy" LazyErrorNodeSelector.ty)]
 
-@[irreducible] noncomputable def NodeSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeSelector.fields NodeSelector.fieldsUnsealed :=
   ⟨by unfold NodeSelector.fields; rfl⟩
 
-@[reducible] noncomputable def NodeSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeSelector.fields)
 
-class NodeSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NodeSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NodeSelector.underlying NodeSelector
   underlying : go.UnderlyingDirectedEq NodeSelector.ty NodeSelector.underlying
   get_lazy : ∀ (x : NodeSelector), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelector.underlying go!"lazy") #x (Val #(x.lazy'))
   set_lazy : ∀ (x : NodeSelector) (y : LazyErrorNodeSelector), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelector.underlying go!"lazy") (PairV #x #y) (Val #(({ x with lazy' := y } : NodeSelector)))
+  method_set : go.MethodSetIs NodeSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelector.ty) [(go!"Match", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.bool])))]
   ptr_Match_unfold : MethodUnfold (go.GoType.PointerType NodeSelector.ty) go!"Match" NodeSelector.Match.impl
 
 attribute [instance] NodeSelector.TypeAssumptions.type_repr
   NodeSelector.TypeAssumptions.underlying
   NodeSelector.TypeAssumptions.get_lazy
   NodeSelector.TypeAssumptions.set_lazy
+  NodeSelector.TypeAssumptions.method_set
+  NodeSelector.TypeAssumptions.ptr_method_set
   NodeSelector.TypeAssumptions.ptr_Match_unfold
 
-structure PreferredSchedulingTerms [FfiSyntax] where
+structure PreferredSchedulingTerms [GooseExts] where
   mk ::
   terms' : GoSlice
 
-noncomputable instance PreferredSchedulingTerms.zero_val [FfiSyntax] : ZeroVal PreferredSchedulingTerms :=
+noncomputable instance PreferredSchedulingTerms.zero_val [GooseExts] : ZeroVal PreferredSchedulingTerms :=
   ⟨PreferredSchedulingTerms.mk zeroValDef⟩
 
-@[reducible] noncomputable def PreferredSchedulingTerms.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PreferredSchedulingTerms.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"terms" (go.GoType.SliceType preferredSchedulingTerm.ty))]
 
-@[irreducible] noncomputable def PreferredSchedulingTerms.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PreferredSchedulingTerms.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PreferredSchedulingTerms.fieldsUnsealed
 
-noncomputable instance equals_unfold_PreferredSchedulingTerms [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PreferredSchedulingTerms [GooseExts] [GoGlobalContext] :
     EqualsUnfold PreferredSchedulingTerms.fields PreferredSchedulingTerms.fieldsUnsealed :=
   ⟨by unfold PreferredSchedulingTerms.fields; rfl⟩
 
-@[reducible] noncomputable def PreferredSchedulingTerms.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PreferredSchedulingTerms.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PreferredSchedulingTerms.fields)
 
-class PreferredSchedulingTerms.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PreferredSchedulingTerms.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PreferredSchedulingTerms.underlying PreferredSchedulingTerms
   underlying : go.UnderlyingDirectedEq PreferredSchedulingTerms.ty PreferredSchedulingTerms.underlying
   get_terms : ∀ (x : PreferredSchedulingTerms), go.IsGoStepPureDetTagged under (StructFieldGet PreferredSchedulingTerms.underlying go!"terms") #x (Val #(x.terms'))
   set_terms : ∀ (x : PreferredSchedulingTerms) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PreferredSchedulingTerms.underlying go!"terms") (PairV #x #y) (Val #(({ x with terms' := y } : PreferredSchedulingTerms)))
+  method_set : go.MethodSetIs PreferredSchedulingTerms.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PreferredSchedulingTerms.ty) [(go!"Score", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.int64])))]
 
 attribute [instance] PreferredSchedulingTerms.TypeAssumptions.type_repr
   PreferredSchedulingTerms.TypeAssumptions.underlying
   PreferredSchedulingTerms.TypeAssumptions.get_terms
   PreferredSchedulingTerms.TypeAssumptions.set_terms
+  PreferredSchedulingTerms.TypeAssumptions.method_set
+  PreferredSchedulingTerms.TypeAssumptions.ptr_method_set
 
-structure nodeSelectorTerm [FfiSyntax] where
+structure nodeSelectorTerm [GooseExts] where
   mk ::
   matchLabels' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector
   matchFields' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector
   parseErrs' : GoSlice
 
-noncomputable instance nodeSelectorTerm.zero_val [FfiSyntax] : ZeroVal nodeSelectorTerm :=
+noncomputable instance nodeSelectorTerm.zero_val [GooseExts] : ZeroVal nodeSelectorTerm :=
   ⟨nodeSelectorTerm.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def nodeSelectorTerm.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def nodeSelectorTerm.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"matchLabels" _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty),
 (go.field_decl.FieldDecl go!"matchFields" _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty),
 (go.field_decl.FieldDecl go!"parseErrs" (go.GoType.SliceType go.error))]
 
-@[irreducible] noncomputable def nodeSelectorTerm.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def nodeSelectorTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nodeSelectorTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_nodeSelectorTerm [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_nodeSelectorTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold nodeSelectorTerm.fields nodeSelectorTerm.fieldsUnsealed :=
   ⟨by unfold nodeSelectorTerm.fields; rfl⟩
 
-@[reducible] noncomputable def nodeSelectorTerm.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def nodeSelectorTerm.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType nodeSelectorTerm.fields)
 
-class nodeSelectorTerm.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class nodeSelectorTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nodeSelectorTerm.underlying nodeSelectorTerm
   underlying : go.UnderlyingDirectedEq nodeSelectorTerm.ty nodeSelectorTerm.underlying
   get_matchLabels : ∀ (x : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet nodeSelectorTerm.underlying go!"matchLabels") #x (Val #(x.matchLabels'))
@@ -887,6 +1062,8 @@ class nodeSelectorTerm.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_matchFields : ∀ (x : nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector), go.IsGoStepPureDetTagged under (StructFieldSet nodeSelectorTerm.underlying go!"matchFields") (PairV #x #y) (Val #(({ x with matchFields' := y } : nodeSelectorTerm)))
   get_parseErrs : ∀ (x : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet nodeSelectorTerm.underlying go!"parseErrs") #x (Val #(x.parseErrs'))
   set_parseErrs : ∀ (x : nodeSelectorTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet nodeSelectorTerm.underlying go!"parseErrs") (PairV #x #y) (Val #(({ x with parseErrs' := y } : nodeSelectorTerm)))
+  method_set : go.MethodSetIs nodeSelectorTerm.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nodeSelectorTerm.ty) [(go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.match", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty] false [go.bool, (go.GoType.SliceType go.error)])))]
   ptr_match_unfold : MethodUnfold (go.GoType.PointerType nodeSelectorTerm.ty) go!"match" nodeSelectorTerm.«match».impl
 
 attribute [instance] nodeSelectorTerm.TypeAssumptions.type_repr
@@ -897,37 +1074,41 @@ attribute [instance] nodeSelectorTerm.TypeAssumptions.type_repr
   nodeSelectorTerm.TypeAssumptions.set_matchFields
   nodeSelectorTerm.TypeAssumptions.get_parseErrs
   nodeSelectorTerm.TypeAssumptions.set_parseErrs
+  nodeSelectorTerm.TypeAssumptions.method_set
+  nodeSelectorTerm.TypeAssumptions.ptr_method_set
   nodeSelectorTerm.TypeAssumptions.ptr_match_unfold
 
-structure preferredSchedulingTerm [FfiSyntax] where
+structure preferredSchedulingTerm [GooseExts] where
   mk ::
   nodeSelectorTerm' : nodeSelectorTerm
   weight' : w64
 
-noncomputable instance preferredSchedulingTerm.zero_val [FfiSyntax] : ZeroVal preferredSchedulingTerm :=
+noncomputable instance preferredSchedulingTerm.zero_val [GooseExts] : ZeroVal preferredSchedulingTerm :=
   ⟨preferredSchedulingTerm.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def preferredSchedulingTerm.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def preferredSchedulingTerm.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"nodeSelectorTerm" nodeSelectorTerm.ty),
 (go.field_decl.FieldDecl go!"weight" go.int)]
 
-@[irreducible] noncomputable def preferredSchedulingTerm.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def preferredSchedulingTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   preferredSchedulingTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_preferredSchedulingTerm [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_preferredSchedulingTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold preferredSchedulingTerm.fields preferredSchedulingTerm.fieldsUnsealed :=
   ⟨by unfold preferredSchedulingTerm.fields; rfl⟩
 
-@[reducible] noncomputable def preferredSchedulingTerm.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def preferredSchedulingTerm.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType preferredSchedulingTerm.fields)
 
-class preferredSchedulingTerm.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class preferredSchedulingTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying preferredSchedulingTerm.underlying preferredSchedulingTerm
   underlying : go.UnderlyingDirectedEq preferredSchedulingTerm.ty preferredSchedulingTerm.underlying
   get_nodeSelectorTerm : ∀ (x : preferredSchedulingTerm), go.IsGoStepPureDetTagged under (StructFieldGet preferredSchedulingTerm.underlying go!"nodeSelectorTerm") #x (Val #(x.nodeSelectorTerm'))
   set_nodeSelectorTerm : ∀ (x : preferredSchedulingTerm) (y : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldSet preferredSchedulingTerm.underlying go!"nodeSelectorTerm") (PairV #x #y) (Val #(({ x with nodeSelectorTerm' := y } : preferredSchedulingTerm)))
   get_weight : ∀ (x : preferredSchedulingTerm), go.IsGoStepPureDetTagged under (StructFieldGet preferredSchedulingTerm.underlying go!"weight") #x (Val #(x.weight'))
   set_weight : ∀ (x : preferredSchedulingTerm) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet preferredSchedulingTerm.underlying go!"weight") (PairV #x #y) (Val #(({ x with weight' := y } : preferredSchedulingTerm)))
+  method_set : go.MethodSetIs preferredSchedulingTerm.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType preferredSchedulingTerm.ty) [(go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.match", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty] false [go.bool, (go.GoType.SliceType go.error)])))]
   ptr_match_unfold : MethodUnfold (go.GoType.PointerType preferredSchedulingTerm.ty) go!"match" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType nodeSelectorTerm.ty) go!"match"))) (App (Val (GoInstruction (StructFieldRef preferredSchedulingTerm.ty go!"nodeSelectorTerm"))) (Var "$r"))))
 
@@ -937,37 +1118,41 @@ attribute [instance] preferredSchedulingTerm.TypeAssumptions.type_repr
   preferredSchedulingTerm.TypeAssumptions.set_nodeSelectorTerm
   preferredSchedulingTerm.TypeAssumptions.get_weight
   preferredSchedulingTerm.TypeAssumptions.set_weight
+  preferredSchedulingTerm.TypeAssumptions.method_set
+  preferredSchedulingTerm.TypeAssumptions.ptr_method_set
   preferredSchedulingTerm.TypeAssumptions.ptr_match_unfold
 
-structure RequiredNodeAffinity [FfiSyntax] where
+structure RequiredNodeAffinity [GooseExts] where
   mk ::
   labelSelector' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector
   nodeSelector' : Loc
 
-noncomputable instance RequiredNodeAffinity.zero_val [FfiSyntax] : ZeroVal RequiredNodeAffinity :=
+noncomputable instance RequiredNodeAffinity.zero_val [GooseExts] : ZeroVal RequiredNodeAffinity :=
   ⟨RequiredNodeAffinity.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RequiredNodeAffinity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RequiredNodeAffinity.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"labelSelector" _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty),
 (go.field_decl.FieldDecl go!"nodeSelector" (go.GoType.PointerType LazyErrorNodeSelector.ty))]
 
-@[irreducible] noncomputable def RequiredNodeAffinity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RequiredNodeAffinity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RequiredNodeAffinity.fieldsUnsealed
 
-noncomputable instance equals_unfold_RequiredNodeAffinity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RequiredNodeAffinity [GooseExts] [GoGlobalContext] :
     EqualsUnfold RequiredNodeAffinity.fields RequiredNodeAffinity.fieldsUnsealed :=
   ⟨by unfold RequiredNodeAffinity.fields; rfl⟩
 
-@[reducible] noncomputable def RequiredNodeAffinity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RequiredNodeAffinity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RequiredNodeAffinity.fields)
 
-class RequiredNodeAffinity.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequiredNodeAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequiredNodeAffinity.underlying RequiredNodeAffinity
   underlying : go.UnderlyingDirectedEq RequiredNodeAffinity.ty RequiredNodeAffinity.underlying
   get_labelSelector : ∀ (x : RequiredNodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet RequiredNodeAffinity.underlying go!"labelSelector") #x (Val #(x.labelSelector'))
   set_labelSelector : ∀ (x : RequiredNodeAffinity) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector), go.IsGoStepPureDetTagged under (StructFieldSet RequiredNodeAffinity.underlying go!"labelSelector") (PairV #x #y) (Val #(({ x with labelSelector' := y } : RequiredNodeAffinity)))
   get_nodeSelector : ∀ (x : RequiredNodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet RequiredNodeAffinity.underlying go!"nodeSelector") #x (Val #(x.nodeSelector'))
   set_nodeSelector : ∀ (x : RequiredNodeAffinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequiredNodeAffinity.underlying go!"nodeSelector") (PairV #x #y) (Val #(({ x with nodeSelector' := y } : RequiredNodeAffinity)))
+  method_set : go.MethodSetIs RequiredNodeAffinity.ty [(go!"Match", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.bool, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequiredNodeAffinity.ty) [(go!"Match", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.bool, go.error])))]
 
 attribute [instance] RequiredNodeAffinity.TypeAssumptions.type_repr
   RequiredNodeAffinity.TypeAssumptions.underlying
@@ -975,8 +1160,10 @@ attribute [instance] RequiredNodeAffinity.TypeAssumptions.type_repr
   RequiredNodeAffinity.TypeAssumptions.set_labelSelector
   RequiredNodeAffinity.TypeAssumptions.get_nodeSelector
   RequiredNodeAffinity.TypeAssumptions.set_nodeSelector
+  RequiredNodeAffinity.TypeAssumptions.method_set
+  RequiredNodeAffinity.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   NodeSelector_instance : NodeSelector.TypeAssumptions
   LazyErrorNodeSelector_instance : LazyErrorNodeSelector.TypeAssumptions
   PreferredSchedulingTerms_instance : PreferredSchedulingTerms.TypeAssumptions

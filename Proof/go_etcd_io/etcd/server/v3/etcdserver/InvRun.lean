@@ -29,6 +29,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Perennial.Proof.context
 public import Perennial.Ghost.Token
 
@@ -53,7 +54,7 @@ def ciJ (c c₀ ai : w64) : Prop :=
   c = c₀ ∨ (uint.Z c₀ ≤ uint.Z ai ∧ uint.Z c ≤ uint.Z ai)
 
 /-- A batch after the log `A`: its indices are above `ai₀ + |A|`. -/
-theorem srvIdxOk_batch_above [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_above [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) :
     ∀ m ∈ B, uint.Z ai < uint.Z m.index := by
   intro m hm
@@ -63,7 +64,7 @@ theorem srvIdxOk_batch_above [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel
   omega
 
 /-- A non-empty batch after the log `A` counts up from `ai + 1` (`entriesFrom`). -/
-theorem srvIdxOk_batch_from [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_from [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) (hne : B ≠ []) :
     entriesFrom (ai + 1) B ∧ uint.Z (ai + 1) = uint.Z ai + 1 := by
   have h1 : uint.Z ai₀ + 1 + (A.length : Int) + (B.length : Int) < 2 ^ 64 := by
@@ -85,7 +86,7 @@ theorem srvIdxOk_batch_from [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel)
   exact ⟨e3, this.2⟩
 
 /-- The applied index after a non-empty batch: its last index. -/
-theorem srvIdxOk_batch_last [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_last [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) :
     max (uint.Z ai) (((B.getLast?).map (fun m => uint.Z m.index)).getD 0) =
       uint.Z ai₀ + (A ++ B).length := by
@@ -166,7 +167,7 @@ theorem ciJ_step (c c' c₀ ai ai' : w64) (hJ : ciJ c c₀ ai) (hle : uint.Z ai 
 /-! ## The server's `E.C` and the apply thread's resources -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -259,20 +260,25 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s B.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
-    srvRest B.E C.γr A ∗
-    -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap
-    srvWTAt C.wt ai ∗
+    srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
+    -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
+    -- 2026-10-26) a count `w` of the tokens taken, at least the applied index (no snapshot
+    -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
+    (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap ∧
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)
 
-/-- **The compactor** (`s.compactor`, a `v3compactor.Compactor`, names-only: a trust-boundary
-contract): nil (no auto-compaction), or one whose `Pause` and `Resume` return. -/
+/-- **The compactor** (`s.compactor`): nil, until the spec-first pilot's glue
+(`notes/compactor-pilot-plan.md`) replaces this contract with the compactor's own
+(`v3compactor.compactorOk`, whose `Run` takes the environment's contracts): `NewServer`'s premise
+`AutoCompactionRetention = 0` makes it nil, and a non-nil contract here would have to assume of the
+real compactor what it does not do (a `Run` with no precondition; the pilot's fourth review). Since
+the fork's fix, `start()` runs it (`issues/etcd-compactor-started-before-start.md`), `run` pauses and
+resumes it. -/
 def compactorOk (c : GoInterface) : IProp GF :=
-  iprop(⌜c = GoInterface.nil⌝ ∨ ∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗
-    □ ({{ True }} (App (Val #(methods ci.ty go!"Pause" ci.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods ci.ty go!"Resume" ci.v)) (Val #())) {{ RET #(); True }}))
+  iprop(⌜c = GoInterface.nil⌝)
 
 instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF := GF) c) := by
   unfold compactorOk; infer_instance
@@ -298,9 +304,10 @@ def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
       sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
       pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
       -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and the
-      -- application's snapshot token back, the storage's boundary at most `ai₀`
+      -- application's snapshot token back; (D22 J4) its boundary at most its snapshot (what the
+      -- shared token's invariant keeps; until J4 at most `ai₀`)
       epCsOk cs -∗
-      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z ai₀⌝) -∗
+      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z σ.ss.index'⌝) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -362,7 +369,7 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ srvApplyKV s E γw x₀ ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
@@ -380,7 +387,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.mode.isDyn = true → uint.Z c₀ ≤ uint.Z ai₀)⌝ ∗
+      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
@@ -390,7 +397,10 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀))
+    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`):
+    -- its persistent bundle, the snapshot-taken counter's authority, the reader-slot stocks
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 end defs
 

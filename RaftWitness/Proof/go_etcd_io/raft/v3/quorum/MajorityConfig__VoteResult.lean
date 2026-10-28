@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -51,6 +51,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     subst Hnil Hs
     wp_auto
     rw [show quorum.VoteWon = #VoteWon from rfl]
+    wp_auto
     iapply HΦ $$ %VoteWon
     iframe Hc Hvotes
     isplitr
@@ -66,6 +67,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     rw [GMap.map_size_empty]
     wp_auto
     rw [show quorum.VoteWon = #VoteWon from rfl]
+    wp_auto
     iapply HΦ $$ %VoteWon
     iframe Hc Hvotes
     isplitl [Hids]
@@ -194,6 +196,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     rw [decide_eq_true (by word)]
     wp_auto
     rw [show quorum.VoteWon = #VoteWon from rfl]
+    wp_auto
     iapply HΦ $$ %VoteWon
     iframe Hc Hvotes
     isplitl [Hids]
@@ -210,6 +213,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     rw [decide_eq_true (by word)]
     wp_auto
     rw [show quorum.VotePending = #VotePending from rfl]
+    wp_auto
     iapply HΦ $$ %VotePending
     iframe Hc Hvotes
     isplitl [Hids]
@@ -224,6 +228,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
   wp_auto
   -- `votedCnt + missing < q`: the candidate cannot still win
   rw [show quorum.VoteLost = #VoteLost from rfl]
+  wp_auto
   iapply HΦ $$ %VoteLost
   iframe Hc Hvotes
   isplitl [Hids]

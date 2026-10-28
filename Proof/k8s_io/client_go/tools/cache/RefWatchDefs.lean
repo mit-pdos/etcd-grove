@@ -39,7 +39,7 @@ namespace cache
 open Iris Iris.BI apimodel k8s_io.client_go.tools.cache
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -158,7 +158,7 @@ instance evStepOk_persistent (γa : ApiNames) (γw : WatchNames) (r : Res) (bm :
 end defs
 
 section tyOk
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **`*RealFIFO` is not a `ResourceVersionUpdater`** (a method-set fact, a premise as
 `batchTyOk`: `methodSet` is uninterpreted in the model): `RealFIFO` has no `UpdateResourceVersion`

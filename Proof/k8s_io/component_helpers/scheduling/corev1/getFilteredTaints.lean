@@ -18,7 +18,7 @@ namespace dsctl
 open Iris Iris.BI Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -44,7 +44,7 @@ theorem getFilteredTaints.wp_proof : getFilteredTaints.spec (GF := GF) (hG := hG
       "Hcap" ∷ ownSliceCap k8s_io.api.core.v1.Taint fs (DFrac.own 1) ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z ts.len⌝ ∗
       "Hts" ∷ ts ↦*{dq} tvs ∗ "inclusionFilter" ∷ inclusionFilter_ptr ↦ f : IProp GF)
-    $$ [-HΦ]
+    $$ [-HΦ «$res0»]
   · iexists W64 0, _
     iframe
     simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.filter_nil,

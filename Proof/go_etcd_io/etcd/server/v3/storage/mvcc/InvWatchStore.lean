@@ -180,7 +180,7 @@ instance RespM.countable : Pos.Countable RespM :=
     (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
         simp_all)
 
-instance watchResponseCountable [FfiSyntax] : Pos.Countable WatchResponse :=
+instance watchResponseCountable [GooseExts] : Pos.Countable WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (r.WatchID', r.Events', r.Revision', r.CompactRevision'))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
@@ -260,7 +260,7 @@ theorem regMap_lookup (L : List Loc) (w : Loc) : (regMap L !! w).isSome ↔ w �
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), ih]; simp [h]
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of the watchable store's own `mu`. -/
 abbrev wsMuAddr (s : Loc) : Loc := structFieldRef watchableStore go!"mu" s
@@ -416,7 +416,7 @@ theorem findSome_isSome_of_mem {B : GMap Loc EventBatch} {l : List (GMap Loc Eve
       | some _ => simp
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1630,15 +1630,101 @@ sole writer's certificate, tokens but the transaction's and notified-log half. T
 read-only (Go never writes it after `Write`; unit N4, D14a: the txn package's functions take the
 wrapper as an interface value over `mw`, `KVView.lean`'s `twWrap`). -/
 def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (pend : List Change)
-    (puts deletes putSize : w64) : IProp GF :=
+    (puts deletes putSize : w64) (ld : Bool := false) : IProp GF :=
   iprop(∃ mw : Loc,
     "#Htw" ∷ tw ↦□ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
                       s' := s } : watchableStoreTxnWrite) ∗
     "#Hws" ∷ isWatchableStore s st γ ∗
-    "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize ∗
+    "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize (ld := ld) ∗
     "#Hcert" ∷ idxCert γ.st.idx ilog ∗
     "Htoks" ∷ ownToks γ.st.revs (wBudget ilog - 1) ∗
     "Hwlog" ∷ monoListAuthOwn γ.wlog (1 : Qp).half ilog)
+
+/-- **The lessor's delete under the watchable write transaction's lock** (leases T3, 2026-10-25;
+`storeTxnWriteIs_leaseDel`): the transaction's batch transaction `bt` deletes a key of the
+`Lease` bucket, with the store's right to write the tracked buckets; the transaction is then one
+whose lock token only `Unlock` takes (`ld`), which `watchableStoreTxnWrite.End` takes. -/
+theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) :
+    isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize ⊢
+      ∃ bt : GoInterfaceOk, storeBt γ.st bt ∗ ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+          (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
+        globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b -∗ key ↦*{dq} k -∗
+        storeRb γ.st r -∗
+        ▷ (isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize true -∗ key ↦*{dq} k -∗
+          storeRb γ.st (rbDel r leaseName k) -∗ Φ #()) -∗
+        WP (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key)) {{ Φ }} := by
+  iintro H
+  iunfold isWatchTxnWrite at H
+  iNamed H
+  icases isTxnWrite_leaseDel mw st γ.st trace ilog pend puts deletes putSize _ _ $$ Htx
+    with ⟨%bt, #HbtB, Hd⟩
+  iexists bt
+  isplitr
+  · iexact HbtB
+  iintro %b %key %k %dq %r %Φ #HL Hkey Hrb HΦ
+  iapply Hd $$ %b %key %k %dq %r %Φ HL Hkey Hrb
+  inext
+  iintro Htx Hkey Hrb
+  iapply HΦ $$ [Htx Htoks Hwlog] Hkey Hrb
+  iunfold isWatchTxnWrite
+  iexists mw
+  simp only [named]
+  iframe Htx Htoks Hwlog
+  iframe #
+
+/-- **The watchable write transaction's batch transaction is the backend's** (`storeBt`),
+keeping the transaction (leases T3: `Revoke` calls the lessor's `le.b.BatchTx()` with it). -/
+theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (ld : Bool) :
+    isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize ld ⊢
+      isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize ld ∗
+        ∃ bt : GoInterfaceOk, storeBt γ.st bt := by
+  iintro H
+  iunfold isWatchTxnWrite at H
+  iNamed H
+  irename Htw => Hwtw
+  irename Htoks => Hwtoks
+  irename Hcert => Hwcert
+  iunfold isTxnWrite at Htx
+  icases Htx with ⟨%tw', %ranges, Hmw, Htw', Htrc⟩
+  iunfold storeTxnWriteIs at Htw'
+  icases Htw' with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, %Dep, Hst⟩
+  iNamed Hst
+  isplitl
+  · iunfold isWatchTxnWrite
+    iexists mw
+    simp only [named]
+    iframe Hwtw Hws Hwcert Hwtoks Hwlog
+    iunfold isTxnWrite
+    iexists tw', ranges
+    iframe Hmw Htrc
+    iunfold storeTxnWriteIs
+    iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+    simp only [named]
+    iframe
+    iframe #
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+  iexists bt; iexact HbtB
+
+/-- **The range deleter `rd`** of the watchable store `s` (inner store `st`, names `γ`;
+persistent; leases T3, L2d (iii), 2026-10-25): `newWatchableStore` gives the lessor the closure
+`func() lease.TxnDelete { return s.Write(traceutil.TODO()) }`, which, called by the store's sole
+writer at its committed log `L` (what `watchableStore.Write` takes: a reader's slot, the write
+token, `watchWriter`, the post-lock hook run on the caller's `Pre`), opens a watchable write
+transaction on a fresh trace and returns it as a `lease.TxnDelete` (the lessor's `Revoke`
+deletes the lease's keys through it); not `nil` (`Revoke` tests it). -/
+def rdIs (rd : GoFunc) (s st : Loc) (γ : WsNames) : IProp GF :=
+  iprop(⌜rd ≠ func.nil⌝ ∗ □ (∀ (L : Log) (P Pre Q : IProp GF) (f : val),
+    {{ storeReader st γ.st ∗ storeWT γ.st ∗ watchWriter γ L ∗ ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗
+        hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+      (App (Val #rd) (Val #()))
+    {{ (tw trace : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
+        isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) ∗ Q ∗ hookIs γ.st P f }}))
+
+instance rdIs_persistent (rd : GoFunc) (s st : Loc) (γ : WsNames) :
+    Persistent (rdIs (GF := GF) rd s st γ) := by
+  unfold rdIs; infer_instance
 
 end reprs
 

@@ -35,21 +35,21 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section alloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- A ghost variable's whole as its two halves. -/
-private theorem buildGhostVarHalves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
+theorem buildGhostVarHalves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
     ghostVar (GF := GF) γ 1 a ⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
   have h := ghostVar_split (GF := GF) γ a (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at h
   exact wand_entails h
 
 /-- A mono nat's whole authority as its two halves. -/
-private theorem buildMonoNatHalves (γ : GName) (n : Nat) :
+theorem buildMonoNatHalves (γ : GName) (n : Nat) :
     monoNatAuthOwn (GF := GF) γ 1 n ⊢
       monoNatAuthOwn γ (1 : Qp).half n ∗ monoNatAuthOwn γ (1 : Qp).half n := by
   have hf := (monoNatAuthOwn_fractional (GF := GF) γ n).fractional (1 : Qp).half (1 : Qp).half
@@ -70,23 +70,51 @@ theorem entryClaims_conf (γi : IdNames) :
       ileft; ipureintro; left; exact h m (by simp)
     · iapply entryClaims_conf γi l (fun m' hm => h m' (by simp [hm]))
 
+/-- **The bootstrap log's entries, as the server's** (2026-10-27): consecutive from index `1`,
+conf changes. -/
+theorem bootEntries_ok (ps : List w64) (bootLog : List EntryM) (hboot : srvBootLogOk ps bootLog) :
+    srvIdxOkW (W64 0) (bootEntries bootLog) ∧ ∀ m ∈ bootEntries bootLog, m.typ = W32 1 := by
+  obtain ⟨-, -, hk⟩ := hboot
+  have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
+      uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data := by
+    intro n m hm
+    unfold bootEntries at hm
+    rw [List.getElem?_map] at hm
+    cases he : bootLog[n]? with
+    | none => rw [he] at hm; simp at hm
+    | some e =>
+      rw [he] at hm
+      simp only [Option.map_some, Option.some.injEq] at hm
+      subst hm
+      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩⟩ := hk n e he
+      refine ⟨hi, ht, ?_⟩
+      unfold isConfChangeEncoding
+      show (ccDecodeV1 e.Data').isSome = true
+      rw [hd]; rfl
+  refine ⟨fun n m hm => ?_, fun m hm => ?_⟩
+  · obtain ⟨hi, ht, hc⟩ := hent n m hm
+    refine ⟨?_, Or.inr ⟨ht, hc⟩⟩
+    rw [hi]; word
+  · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    exact (hent n m hn).2.1
+
 /-- **The KV invariant at the bootstrap log** (a new cluster: the server's start log empty, its
 start index `0`, the consistent index `0`, the base chain, a non-empty start log): from the
-client's half of raft's committed log at `bootLog` and the KV state's variable at the bootstrap
-log's model, the invariant and the client's `etcdKV`. -/
-theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 → List w8 → Prop)
-    (ps : List w64) (bootLog : List EntryM) (E : CoPset)
-    (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : BootLogOk ccOk ps bootLog)
-    (hcc : ∀ ty d, ccOk ty d → ccIdOf d = W64 0 ∧ ccBootOk γs.raft.reCfg d)
+server's log of requested entries at the cluster's bootstrap log (`srvLogInv_alloc`'s; 2026-10-27,
+until then the client's half of raft's committed log), each a conf change of id `0` that
+`applyConfChange` takes (`hcc`), and the KV state's variable at the bootstrap log's model, the
+invariant and the client's `etcdKV`. -/
+theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64) (E : CoPset)
+    (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
+    (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
     (hlog : γk.log0 ≠ []) :
-    ⊢ rLog (GF := GF) γs.raft bootLog -∗
-      ghostVar γk.st 1 (kvStateOf (kvModel γk (bootEntries bootLog))) ={E}=∗
-      kvInv γs γk ∗ etcdKV γk (kvStateOf (kvModel γk (bootEntries bootLog))) := by
+    ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
+      ghostVar γk.st 1 (kvModelSt γk (bootEntries γs.raft.boot)) ={E}=∗
+      kvInv γs γk ∗ etcdKV γk (kvModelSt γk (bootEntries γs.raft.boot)) := by
+  generalize hbl : γs.raft.boot = bootLog at hboot hcc ⊢
   iintro HL Hv
   icases buildGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
-  have hsl : srvLogOf γs (bootEntries bootLog) = bootLog := by
-    unfold srvLogOf bootEntries; rw [hpre, List.nil_append, EntryModel.map_toM_ofM]
   have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
       uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data ∧
         ccIdOf m.data = W64 0 := by
@@ -100,14 +128,14 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       rw [he] at hm
       simp only [Option.map_some, Option.some.injEq] at hm
       subst hm
-      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩, hok⟩ := hk n e he
-      refine ⟨hi, ht, ?_, (hcc _ _ hok).1⟩
+      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩⟩ := hk n e he
+      refine ⟨hi, ht, ?_, (hcc e (List.mem_of_getElem? he)).1⟩
       unfold isConfChangeEncoding
       show (ccDecodeV1 e.Data').isSome = true
       rw [hd]; rfl
   have hent' := hent
   have hok : plainLog (bootEntries bootLog) ∧ srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
-      uint.Z γk.c0 ≤ uint.Z γs.ai0 + (bootEntries bootLog).length ∧
+      uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
     refine ⟨?_, ?_, ?_, hch, hlog⟩
     · intro m hm
@@ -129,7 +157,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
     refine ⟨fun h0 => ?_, fun _ => hid⟩
     rw [ht] at h0; exact absurd h0 (by decide)
   -- (audit phase B3) every conf change of the boot log is one `applyConfChange` takes
-  have hccl : ccLogOk γs.raft.reCfg (bootEntries bootLog) := by
+  have hccl : ccLogOk γs.raft (bootEntries bootLog) := by
     intro m hm _
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, -, hk⟩ := hboot
@@ -141,23 +169,22 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       rw [he] at hn
       simp only [Option.map_some, Option.some.injEq] at hn
       subst hn
-      obtain ⟨-, -, -, -, hok⟩ := hk n e he
-      exact (hcc _ _ hok).2
+      exact ccPolOk_of_boot _ _ (hcc e (List.mem_of_getElem? he)).2
   ihave #Hcl := entryClaims_conf (GF := GF) γk.ids (bootEntries bootLog) (fun m hm => by
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, ht, -, -⟩ := hent' n m hn
     rw [ht]; decide)
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
-      srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
-      ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
-        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft.reCfg γk L))
+      srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
+      ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
+        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog
     iframe Hv1
     isplitl [HL]
-    · iunfold srvRLog; rw [hsl]; iexact HL
+    · iexact HL
     isplitr
     · ipureintro; exact hok
     iunfold kvWork
@@ -222,19 +249,16 @@ theorem srvIndices_alloc (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : C
     iexists []
     iframe HL
     ipureintro; rw [hai]; simp
-  imod inv_alloc srvN Ec (iprop(∃ (v : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
-      sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v ∗
-      monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗
-      ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
-      ⌜appliedKeysOk M v p ∧ appliedMonoMap M⌝ ∗
-      appliedLogAt γr v L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOk γr M))
+  imod inv_alloc srvN Ec (srvAppliedBody s E γr)
     $$ [Hai Hap1 Hlogs Hp1] with #Hainv
   · inext
-    iexists W64 0, γr.kv.log0, (∅ : GMap w64 mvcc.Log).insert (W64 0) γr.kv.log0, false
+    iunfold srvAppliedBody
+    iexists W64 0, W64 0, γr.kv.log0, (∅ : GMap w64 mvcc.Log).insert (W64 0) γr.kv.log0, false
     rw [h0]
     iframe Hai Hap1 Hlogs Hp1 Hcert
     isplitr
     · ipureintro
+      refine ⟨Int.le_refl _, ?_⟩
       constructor
       · intro k L' hk
         rw [GMap.lookup_insert_Some] at hk
@@ -270,7 +294,7 @@ theorem srvIndices_alloc (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : C
 /-- **The proposals' mint, allocated** (`srvPropMint`; the cluster's since stage M4, 2026-10-19):
 from raft's fresh-data authority (empty; `allocClientBoot`'s continuation output). -/
 theorem srvPropMint_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
-    ⊢ ghostMapAuth (GF := GF) γ.raft.reFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
+    ⊢ ghostMapAuth (GF := GF) γ.raft.fresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
       srvPropMint γ γi := by
   iintro HF
   iunfold srvPropMint
@@ -283,11 +307,11 @@ theorem srvPropMint_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
 
 /-- **The mints** (`srvMintInv`): the cluster's proposals' mint and read contexts (stage M4,
 2026-10-19: allocated once for the cluster, `srvClusterBoot_alloc`), and the member's share of
-raft's read budget (`2 ^ 48` credits). (Until M4 from raft's fresh-data and fresh read-context
+the cluster's read credits (`2 ^ 48`, the node API's `readCredits`). (Until M4 from raft's fresh-data and fresh read-context
 authorities and its whole read budget.) -/
 theorem srvMintInv_alloc (ρ : ReqNames) (E : CoPset) :
     ⊢ srvPropMint (GF := GF) ρ.raft ρ.ids -∗ srvRdCtxInv ρ.raft ρ.ids.issued -∗
-      rdCred ρ.raft.raft (2 ^ 48) ={E}=∗ srvMintInv ρ := by
+      readCredits ρ.raft.raft.cl (2 ^ 48) ={E}=∗ srvMintInv ρ := by
   iintro #HP #HR Hc
   imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR Hc with #Hrd
   iunfold srvMintInv

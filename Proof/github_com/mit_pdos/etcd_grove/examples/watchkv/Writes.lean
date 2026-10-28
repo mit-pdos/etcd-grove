@@ -46,7 +46,7 @@ namespace watchkv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The put of `k ↦ v` with no options appends its one change. -/
 theorem kvOpStep_put_changes (k v : GoString) (σ : KVState) :
@@ -54,7 +54,9 @@ theorem kvOpStep_put_changes (k v : GoString) (σ : KVState) :
       σ.changes ++ [[mvcc.Change.put k v (W64 0)]] := by
   have hnp : txn.needsPrev (txn.putOpOf k v (W64 0) false false false) = false := by
     simp [txn.needsPrev, txn.putOpOf]
-  simp only [kvOpStep, hnp, Bool.false_and, Bool.false_eq_true, ↓reduceIte,
+  have hlm : ¬ σ.leaseMissing (txn.putOpOf k v (W64 0) false false false).leaseID := by
+    simp [txn.putOpOf, KVState.leaseMissing]
+  simp only [kvOpStep, hlm, hnp, Bool.false_and, Bool.false_eq_true, ↓reduceIte,
     KVState.commit, List.cons_ne_nil]
   simp [txn.putChangeOf, txn.putValOf, txn.putLeaseOf, txn.putOpOf]
 
@@ -65,7 +67,7 @@ theorem kvLogOkTo_compacted {σ : KVState} {r : Nat} (h : kvLogOkTo σ r) : σ.c
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

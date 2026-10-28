@@ -21,7 +21,7 @@ namespace k8s
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -29,6 +29,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem NewDefaultLeaseManagerConfig.wp_proof : NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   iapply HΦ
   itrivial
 

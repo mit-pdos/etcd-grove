@@ -21,7 +21,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
   go_etcd_io.etcd.server.v3.storage
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -58,7 +58,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
       · iframe
       iintro ⟨index, tx, HTM⟩
       wp_auto
-      wp_apply_core (hR tx ⊤ TM TM) $$ [] [HTM index tx]
+      wp_apply_core (hR tx ⊤ TM TM) $$ [] [HTM index tx «$res0» «$res1»]
       · iframe Hpkg Hrd
       unfold readCIAUA readAU
       imodintro

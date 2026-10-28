@@ -20,42 +20,42 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.json
 
-axiom maxDepth [FfiSyntax] [GoGlobalContext] : val
+axiom maxDepth [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/json.NewEncoder"
 
-noncomputable def Marshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Marshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/json.Marshal"
 
-noncomputable def Unmarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Unmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/json.Unmarshal"
 
-noncomputable def ConvertInterfaceNumbers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConvertInterfaceNumbers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/json.ConvertInterfaceNumbers"
 
-noncomputable def ConvertMapNumbers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConvertMapNumbers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/json.ConvertMapNumbers"
 
-noncomputable def ConvertSliceNumbers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConvertSliceNumbers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/json.ConvertSliceNumbers"
 
-noncomputable def convertNumber [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def convertNumber [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/json.convertNumber"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.json where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.json)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.apimachinery.pkg.util.json
 

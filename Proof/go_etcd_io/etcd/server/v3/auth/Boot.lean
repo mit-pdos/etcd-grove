@@ -51,7 +51,7 @@ theorem bootState_small : authSmall bootState := by
   refine ⟨?_, ?_, ?_, [], List.nodup_nil, ?_, ?_⟩ <;> simp [bootState, permsOn]
 
 section ghost
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- **The auth names at boot**: a history of the boot state alone, with the token names `γt`,
 `γf`: the admin side's authority, the other half of the latest state's ghost variable (the store's
@@ -59,12 +59,12 @@ revision invariant takes it, `newAuthStore_on`) and the batch lock's half of the
 boot state (the backend's, `authSchemaBoot`). -/
 theorem authBoot_alloc (γt γf : GName) :
     ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗
-      authOwn (GF := GF) (.on γa) [bootState] ∗ authCurHalf γa bootState ∗
+      authOwn (GF := GF) (.on γa) [bootState] ∗ authStoreInit γa bootState ∗
       authLockI (.on γa) bootState := by
   iintro
   imod (authHist_alloc (GF := GF) γt γf [bootState] bootState
     (by intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk))
-    with ⟨%γa, %Hγ, Hh, Hc1, Hc2⟩
+    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk⟩
   imodintro
   iexists γa
   isplitr
@@ -74,7 +74,10 @@ theorem authBoot_alloc (γt γf : GName) :
     iframe Hh
     iexists bootState; iframe Hc1; ipureintro; rfl
   icases authOwnF_lockI_split (.on γa) [bootState] bootState rfl $$ HF with ⟨Hown, HI⟩
-  iframe Hown Hc2 HI
+  iframe Hown HI
+  iunfold authStoreInit; iframe Hc2 Hp; isplitl [He]
+  · iexists false; iframe He
+  iexists ((null : Loc), 0); iframe Hk
 
 /-- **A right to issue a token, minted** from the rights' authority (`tokenSimple_new` gives it,
 empty, with the provider): one for any token not minted before. The server's apply thread, which
@@ -94,7 +97,7 @@ theorem tokFresh_mint (γa : AuthNames) (m : GMap GoString Unit) (token : GoStri
 end ghost
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -130,7 +133,7 @@ theorem authFuel_boot : ⊢ |==> authFuel (GF := GF) [bootState, bump bootState]
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

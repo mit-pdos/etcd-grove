@@ -50,7 +50,7 @@ open Iris Iris.BI Iris.ProofMode apimodel informer k8s_io.client_go.tools.cache
 /-! ### The watch's cursor in the log -/
 
 section pure
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- **The watch's cursor `p`** in `σ`'s log of resource `res`: the first change after its version
 `p.2`, which is at most `σ`'s. -/
@@ -236,7 +236,7 @@ end pure
 /-! ### The reflector's predicates -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -392,7 +392,7 @@ end defs
 /-! ### Each watch event's step through the informer invariant -/
 
 section glue
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

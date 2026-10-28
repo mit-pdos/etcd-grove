@@ -16,7 +16,805 @@ noncomputable section
 
 namespace k8s_io.api.core.v1
 
-class ContainerExtendedResourceRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodPhase.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq PodPhase.ty PodPhase.underlying
+  method_set : go.MethodSetIs PodPhase.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodPhase.ty) []
+
+attribute [instance] PodPhase.TypeAssumptions.underlying
+  PodPhase.TypeAssumptions.method_set
+  PodPhase.TypeAssumptions.ptr_method_set
+
+class PodConditionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq PodConditionType.ty PodConditionType.underlying
+  method_set : go.MethodSetIs PodConditionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodConditionType.ty) []
+
+attribute [instance] PodConditionType.TypeAssumptions.underlying
+  PodConditionType.TypeAssumptions.method_set
+  PodConditionType.TypeAssumptions.ptr_method_set
+
+class PodCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodCondition.underlying PodCondition
+  underlying : go.UnderlyingDirectedEq PodCondition.ty PodCondition.underlying
+  get_Type : ∀ (x : PodCondition), go.IsGoStepPureDetTagged under (StructFieldGet PodCondition.underlying go!"Type") #x (Val #(x.Type'))
+  set_Type : ∀ (x : PodCondition) (y : PodConditionType), go.IsGoStepPureDetTagged under (StructFieldSet PodCondition.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : PodCondition)))
+  get_ObservedGeneration : ∀ (x : PodCondition), go.IsGoStepPureDetTagged under (StructFieldGet PodCondition.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
+  set_ObservedGeneration : ∀ (x : PodCondition) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PodCondition.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : PodCondition)))
+  get_Status : ∀ (x : PodCondition), go.IsGoStepPureDetTagged under (StructFieldGet PodCondition.underlying go!"Status") #x (Val #(x.Status'))
+  set_Status : ∀ (x : PodCondition) (y : ConditionStatus), go.IsGoStepPureDetTagged under (StructFieldSet PodCondition.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : PodCondition)))
+  get_LastProbeTime : ∀ (x : PodCondition), go.IsGoStepPureDetTagged under (StructFieldGet PodCondition.underlying go!"LastProbeTime") #x (Val #(x.LastProbeTime'))
+  set_LastProbeTime : ∀ (x : PodCondition) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet PodCondition.underlying go!"LastProbeTime") (PairV #x #y) (Val #(({ x with LastProbeTime' := y } : PodCondition)))
+  get_LastTransitionTime : ∀ (x : PodCondition), go.IsGoStepPureDetTagged under (StructFieldGet PodCondition.underlying go!"LastTransitionTime") #x (Val #(x.LastTransitionTime'))
+  set_LastTransitionTime : ∀ (x : PodCondition) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet PodCondition.underlying go!"LastTransitionTime") (PairV #x #y) (Val #(({ x with LastTransitionTime' := y } : PodCondition)))
+  get_Reason : ∀ (x : PodCondition), go.IsGoStepPureDetTagged under (StructFieldGet PodCondition.underlying go!"Reason") #x (Val #(x.Reason'))
+  set_Reason : ∀ (x : PodCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : PodCondition)))
+  get_Message : ∀ (x : PodCondition), go.IsGoStepPureDetTagged under (StructFieldGet PodCondition.underlying go!"Message") #x (Val #(x.Message'))
+  set_Message : ∀ (x : PodCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : PodCondition)))
+  method_set : go.MethodSetIs PodCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodCondition.TypeAssumptions.type_repr
+  PodCondition.TypeAssumptions.underlying
+  PodCondition.TypeAssumptions.get_Type
+  PodCondition.TypeAssumptions.set_Type
+  PodCondition.TypeAssumptions.get_ObservedGeneration
+  PodCondition.TypeAssumptions.set_ObservedGeneration
+  PodCondition.TypeAssumptions.get_Status
+  PodCondition.TypeAssumptions.set_Status
+  PodCondition.TypeAssumptions.get_LastProbeTime
+  PodCondition.TypeAssumptions.set_LastProbeTime
+  PodCondition.TypeAssumptions.get_LastTransitionTime
+  PodCondition.TypeAssumptions.set_LastTransitionTime
+  PodCondition.TypeAssumptions.get_Reason
+  PodCondition.TypeAssumptions.set_Reason
+  PodCondition.TypeAssumptions.get_Message
+  PodCondition.TypeAssumptions.set_Message
+  PodCondition.TypeAssumptions.method_set
+  PodCondition.TypeAssumptions.ptr_method_set
+
+class PodResizeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq PodResizeStatus.ty PodResizeStatus.underlying
+  method_set : go.MethodSetIs PodResizeStatus.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodResizeStatus.ty) []
+
+attribute [instance] PodResizeStatus.TypeAssumptions.underlying
+  PodResizeStatus.TypeAssumptions.method_set
+  PodResizeStatus.TypeAssumptions.ptr_method_set
+
+class VolumeMountStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying VolumeMountStatus.underlying VolumeMountStatus
+  underlying : go.UnderlyingDirectedEq VolumeMountStatus.ty VolumeMountStatus.underlying
+  get_Name : ∀ (x : VolumeMountStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeMountStatus.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : VolumeMountStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet VolumeMountStatus.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : VolumeMountStatus)))
+  get_MountPath : ∀ (x : VolumeMountStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeMountStatus.underlying go!"MountPath") #x (Val #(x.MountPath'))
+  set_MountPath : ∀ (x : VolumeMountStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet VolumeMountStatus.underlying go!"MountPath") (PairV #x #y) (Val #(({ x with MountPath' := y } : VolumeMountStatus)))
+  get_ReadOnly : ∀ (x : VolumeMountStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeMountStatus.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set_ReadOnly : ∀ (x : VolumeMountStatus) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet VolumeMountStatus.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : VolumeMountStatus)))
+  get_RecursiveReadOnly : ∀ (x : VolumeMountStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeMountStatus.underlying go!"RecursiveReadOnly") #x (Val #(x.RecursiveReadOnly'))
+  set_RecursiveReadOnly : ∀ (x : VolumeMountStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeMountStatus.underlying go!"RecursiveReadOnly") (PairV #x #y) (Val #(({ x with RecursiveReadOnly' := y } : VolumeMountStatus)))
+  get_VolumeStatus : ∀ (x : VolumeMountStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeMountStatus.underlying go!"VolumeStatus") #x (Val #(x.VolumeStatus'))
+  set_VolumeStatus : ∀ (x : VolumeMountStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeMountStatus.underlying go!"VolumeStatus") (PairV #x #y) (Val #(({ x with VolumeStatus' := y } : VolumeMountStatus)))
+  method_set : go.MethodSetIs VolumeMountStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeMountStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeMountStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeMountStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] VolumeMountStatus.TypeAssumptions.type_repr
+  VolumeMountStatus.TypeAssumptions.underlying
+  VolumeMountStatus.TypeAssumptions.get_Name
+  VolumeMountStatus.TypeAssumptions.set_Name
+  VolumeMountStatus.TypeAssumptions.get_MountPath
+  VolumeMountStatus.TypeAssumptions.set_MountPath
+  VolumeMountStatus.TypeAssumptions.get_ReadOnly
+  VolumeMountStatus.TypeAssumptions.set_ReadOnly
+  VolumeMountStatus.TypeAssumptions.get_RecursiveReadOnly
+  VolumeMountStatus.TypeAssumptions.set_RecursiveReadOnly
+  VolumeMountStatus.TypeAssumptions.get_VolumeStatus
+  VolumeMountStatus.TypeAssumptions.set_VolumeStatus
+  VolumeMountStatus.TypeAssumptions.method_set
+  VolumeMountStatus.TypeAssumptions.ptr_method_set
+
+class VolumeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying VolumeStatus.underlying VolumeStatus
+  underlying : go.UnderlyingDirectedEq VolumeStatus.ty VolumeStatus.underlying
+  get_Image : ∀ (x : VolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeStatus.underlying go!"Image") #x (Val #(x.Image'))
+  set_Image : ∀ (x : VolumeStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeStatus.underlying go!"Image") (PairV #x #y) (Val #(({ x with Image' := y } : VolumeStatus)))
+  method_set : go.MethodSetIs VolumeStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] VolumeStatus.TypeAssumptions.type_repr
+  VolumeStatus.TypeAssumptions.underlying
+  VolumeStatus.TypeAssumptions.get_Image
+  VolumeStatus.TypeAssumptions.set_Image
+  VolumeStatus.TypeAssumptions.method_set
+  VolumeStatus.TypeAssumptions.ptr_method_set
+
+class ImageVolumeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ImageVolumeStatus.underlying ImageVolumeStatus
+  underlying : go.UnderlyingDirectedEq ImageVolumeStatus.ty ImageVolumeStatus.underlying
+  get_ImageRef : ∀ (x : ImageVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet ImageVolumeStatus.underlying go!"ImageRef") #x (Val #(x.ImageRef'))
+  set_ImageRef : ∀ (x : ImageVolumeStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ImageVolumeStatus.underlying go!"ImageRef") (PairV #x #y) (Val #(({ x with ImageRef' := y } : ImageVolumeStatus)))
+  method_set : go.MethodSetIs ImageVolumeStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ImageVolumeStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ImageVolumeStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ImageVolumeStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] ImageVolumeStatus.TypeAssumptions.type_repr
+  ImageVolumeStatus.TypeAssumptions.underlying
+  ImageVolumeStatus.TypeAssumptions.get_ImageRef
+  ImageVolumeStatus.TypeAssumptions.set_ImageRef
+  ImageVolumeStatus.TypeAssumptions.method_set
+  ImageVolumeStatus.TypeAssumptions.ptr_method_set
+
+class RestartPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq RestartPolicy.ty RestartPolicy.underlying
+  method_set : go.MethodSetIs RestartPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RestartPolicy.ty) []
+
+attribute [instance] RestartPolicy.TypeAssumptions.underlying
+  RestartPolicy.TypeAssumptions.method_set
+  RestartPolicy.TypeAssumptions.ptr_method_set
+
+class ContainerRestartPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ContainerRestartPolicy.ty ContainerRestartPolicy.underlying
+  method_set : go.MethodSetIs ContainerRestartPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerRestartPolicy.ty) []
+
+attribute [instance] ContainerRestartPolicy.TypeAssumptions.underlying
+  ContainerRestartPolicy.TypeAssumptions.method_set
+  ContainerRestartPolicy.TypeAssumptions.ptr_method_set
+
+class ContainerRestartRuleAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ContainerRestartRuleAction.ty ContainerRestartRuleAction.underlying
+  method_set : go.MethodSetIs ContainerRestartRuleAction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerRestartRuleAction.ty) []
+
+attribute [instance] ContainerRestartRuleAction.TypeAssumptions.underlying
+  ContainerRestartRuleAction.TypeAssumptions.method_set
+  ContainerRestartRuleAction.TypeAssumptions.ptr_method_set
+
+class ContainerRestartRule.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ContainerRestartRule.underlying ContainerRestartRule
+  underlying : go.UnderlyingDirectedEq ContainerRestartRule.ty ContainerRestartRule.underlying
+  get_Action : ∀ (x : ContainerRestartRule), go.IsGoStepPureDetTagged under (StructFieldGet ContainerRestartRule.underlying go!"Action") #x (Val #(x.Action'))
+  set_Action : ∀ (x : ContainerRestartRule) (y : ContainerRestartRuleAction), go.IsGoStepPureDetTagged under (StructFieldSet ContainerRestartRule.underlying go!"Action") (PairV #x #y) (Val #(({ x with Action' := y } : ContainerRestartRule)))
+  get_ExitCodes : ∀ (x : ContainerRestartRule), go.IsGoStepPureDetTagged under (StructFieldGet ContainerRestartRule.underlying go!"ExitCodes") #x (Val #(x.ExitCodes'))
+  set_ExitCodes : ∀ (x : ContainerRestartRule) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ContainerRestartRule.underlying go!"ExitCodes") (PairV #x #y) (Val #(({ x with ExitCodes' := y } : ContainerRestartRule)))
+  method_set : go.MethodSetIs ContainerRestartRule.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerRestartRule.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ContainerRestartRule.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ContainerRestartRule.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] ContainerRestartRule.TypeAssumptions.type_repr
+  ContainerRestartRule.TypeAssumptions.underlying
+  ContainerRestartRule.TypeAssumptions.get_Action
+  ContainerRestartRule.TypeAssumptions.set_Action
+  ContainerRestartRule.TypeAssumptions.get_ExitCodes
+  ContainerRestartRule.TypeAssumptions.set_ExitCodes
+  ContainerRestartRule.TypeAssumptions.method_set
+  ContainerRestartRule.TypeAssumptions.ptr_method_set
+
+class ContainerRestartRuleOnExitCodesOperator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ContainerRestartRuleOnExitCodesOperator.ty ContainerRestartRuleOnExitCodesOperator.underlying
+  method_set : go.MethodSetIs ContainerRestartRuleOnExitCodesOperator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerRestartRuleOnExitCodesOperator.ty) []
+
+attribute [instance] ContainerRestartRuleOnExitCodesOperator.TypeAssumptions.underlying
+  ContainerRestartRuleOnExitCodesOperator.TypeAssumptions.method_set
+  ContainerRestartRuleOnExitCodesOperator.TypeAssumptions.ptr_method_set
+
+class ContainerRestartRuleOnExitCodes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ContainerRestartRuleOnExitCodes.underlying ContainerRestartRuleOnExitCodes
+  underlying : go.UnderlyingDirectedEq ContainerRestartRuleOnExitCodes.ty ContainerRestartRuleOnExitCodes.underlying
+  get_Operator : ∀ (x : ContainerRestartRuleOnExitCodes), go.IsGoStepPureDetTagged under (StructFieldGet ContainerRestartRuleOnExitCodes.underlying go!"Operator") #x (Val #(x.Operator'))
+  set_Operator : ∀ (x : ContainerRestartRuleOnExitCodes) (y : ContainerRestartRuleOnExitCodesOperator), go.IsGoStepPureDetTagged under (StructFieldSet ContainerRestartRuleOnExitCodes.underlying go!"Operator") (PairV #x #y) (Val #(({ x with Operator' := y } : ContainerRestartRuleOnExitCodes)))
+  get_Values : ∀ (x : ContainerRestartRuleOnExitCodes), go.IsGoStepPureDetTagged under (StructFieldGet ContainerRestartRuleOnExitCodes.underlying go!"Values") #x (Val #(x.Values'))
+  set_Values : ∀ (x : ContainerRestartRuleOnExitCodes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ContainerRestartRuleOnExitCodes.underlying go!"Values") (PairV #x #y) (Val #(({ x with Values' := y } : ContainerRestartRuleOnExitCodes)))
+  method_set : go.MethodSetIs ContainerRestartRuleOnExitCodes.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerRestartRuleOnExitCodes.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ContainerRestartRuleOnExitCodes.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ContainerRestartRuleOnExitCodes.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] ContainerRestartRuleOnExitCodes.TypeAssumptions.type_repr
+  ContainerRestartRuleOnExitCodes.TypeAssumptions.underlying
+  ContainerRestartRuleOnExitCodes.TypeAssumptions.get_Operator
+  ContainerRestartRuleOnExitCodes.TypeAssumptions.set_Operator
+  ContainerRestartRuleOnExitCodes.TypeAssumptions.get_Values
+  ContainerRestartRuleOnExitCodes.TypeAssumptions.set_Values
+  ContainerRestartRuleOnExitCodes.TypeAssumptions.method_set
+  ContainerRestartRuleOnExitCodes.TypeAssumptions.ptr_method_set
+
+class DNSPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq DNSPolicy.ty DNSPolicy.underlying
+  method_set : go.MethodSetIs DNSPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DNSPolicy.ty) []
+
+attribute [instance] DNSPolicy.TypeAssumptions.underlying
+  DNSPolicy.TypeAssumptions.method_set
+  DNSPolicy.TypeAssumptions.ptr_method_set
+
+class NodeSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying NodeSelector.underlying NodeSelector
+  underlying : go.UnderlyingDirectedEq NodeSelector.ty NodeSelector.underlying
+  get_NodeSelectorTerms : ∀ (x : NodeSelector), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelector.underlying go!"NodeSelectorTerms") #x (Val #(x.NodeSelectorTerms'))
+  set_NodeSelectorTerms : ∀ (x : NodeSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelector.underlying go!"NodeSelectorTerms") (PairV #x #y) (Val #(({ x with NodeSelectorTerms' := y } : NodeSelector)))
+  method_set : go.MethodSetIs NodeSelector.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelector.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NodeSelector.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NodeSelector.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] NodeSelector.TypeAssumptions.type_repr
+  NodeSelector.TypeAssumptions.underlying
+  NodeSelector.TypeAssumptions.get_NodeSelectorTerms
+  NodeSelector.TypeAssumptions.set_NodeSelectorTerms
+  NodeSelector.TypeAssumptions.method_set
+  NodeSelector.TypeAssumptions.ptr_method_set
+
+class NodeSelectorTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying NodeSelectorTerm.underlying NodeSelectorTerm
+  underlying : go.UnderlyingDirectedEq NodeSelectorTerm.ty NodeSelectorTerm.underlying
+  get_MatchExpressions : ∀ (x : NodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelectorTerm.underlying go!"MatchExpressions") #x (Val #(x.MatchExpressions'))
+  set_MatchExpressions : ∀ (x : NodeSelectorTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelectorTerm.underlying go!"MatchExpressions") (PairV #x #y) (Val #(({ x with MatchExpressions' := y } : NodeSelectorTerm)))
+  get_MatchFields : ∀ (x : NodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelectorTerm.underlying go!"MatchFields") #x (Val #(x.MatchFields'))
+  set_MatchFields : ∀ (x : NodeSelectorTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelectorTerm.underlying go!"MatchFields") (PairV #x #y) (Val #(({ x with MatchFields' := y } : NodeSelectorTerm)))
+  method_set : go.MethodSetIs NodeSelectorTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelectorTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NodeSelectorTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NodeSelectorTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] NodeSelectorTerm.TypeAssumptions.type_repr
+  NodeSelectorTerm.TypeAssumptions.underlying
+  NodeSelectorTerm.TypeAssumptions.get_MatchExpressions
+  NodeSelectorTerm.TypeAssumptions.set_MatchExpressions
+  NodeSelectorTerm.TypeAssumptions.get_MatchFields
+  NodeSelectorTerm.TypeAssumptions.set_MatchFields
+  NodeSelectorTerm.TypeAssumptions.method_set
+  NodeSelectorTerm.TypeAssumptions.ptr_method_set
+
+class NodeSelectorOperator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq NodeSelectorOperator.ty NodeSelectorOperator.underlying
+  method_set : go.MethodSetIs NodeSelectorOperator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelectorOperator.ty) []
+
+attribute [instance] NodeSelectorOperator.TypeAssumptions.underlying
+  NodeSelectorOperator.TypeAssumptions.method_set
+  NodeSelectorOperator.TypeAssumptions.ptr_method_set
+
+class NodeSelectorRequirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying NodeSelectorRequirement.underlying NodeSelectorRequirement
+  underlying : go.UnderlyingDirectedEq NodeSelectorRequirement.ty NodeSelectorRequirement.underlying
+  get_Key : ∀ (x : NodeSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelectorRequirement.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : NodeSelectorRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelectorRequirement.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : NodeSelectorRequirement)))
+  get_Operator : ∀ (x : NodeSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelectorRequirement.underlying go!"Operator") #x (Val #(x.Operator'))
+  set_Operator : ∀ (x : NodeSelectorRequirement) (y : NodeSelectorOperator), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelectorRequirement.underlying go!"Operator") (PairV #x #y) (Val #(({ x with Operator' := y } : NodeSelectorRequirement)))
+  get_Values : ∀ (x : NodeSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelectorRequirement.underlying go!"Values") #x (Val #(x.Values'))
+  set_Values : ∀ (x : NodeSelectorRequirement) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelectorRequirement.underlying go!"Values") (PairV #x #y) (Val #(({ x with Values' := y } : NodeSelectorRequirement)))
+  method_set : go.MethodSetIs NodeSelectorRequirement.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelectorRequirement.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NodeSelectorRequirement.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NodeSelectorRequirement.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] NodeSelectorRequirement.TypeAssumptions.type_repr
+  NodeSelectorRequirement.TypeAssumptions.underlying
+  NodeSelectorRequirement.TypeAssumptions.get_Key
+  NodeSelectorRequirement.TypeAssumptions.set_Key
+  NodeSelectorRequirement.TypeAssumptions.get_Operator
+  NodeSelectorRequirement.TypeAssumptions.set_Operator
+  NodeSelectorRequirement.TypeAssumptions.get_Values
+  NodeSelectorRequirement.TypeAssumptions.set_Values
+  NodeSelectorRequirement.TypeAssumptions.method_set
+  NodeSelectorRequirement.TypeAssumptions.ptr_method_set
+
+class TopologySelectorTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying TopologySelectorTerm.underlying TopologySelectorTerm
+  underlying : go.UnderlyingDirectedEq TopologySelectorTerm.ty TopologySelectorTerm.underlying
+  get_MatchLabelExpressions : ∀ (x : TopologySelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet TopologySelectorTerm.underlying go!"MatchLabelExpressions") #x (Val #(x.MatchLabelExpressions'))
+  set_MatchLabelExpressions : ∀ (x : TopologySelectorTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TopologySelectorTerm.underlying go!"MatchLabelExpressions") (PairV #x #y) (Val #(({ x with MatchLabelExpressions' := y } : TopologySelectorTerm)))
+  method_set : go.MethodSetIs TopologySelectorTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TopologySelectorTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType TopologySelectorTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType TopologySelectorTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] TopologySelectorTerm.TypeAssumptions.type_repr
+  TopologySelectorTerm.TypeAssumptions.underlying
+  TopologySelectorTerm.TypeAssumptions.get_MatchLabelExpressions
+  TopologySelectorTerm.TypeAssumptions.set_MatchLabelExpressions
+  TopologySelectorTerm.TypeAssumptions.method_set
+  TopologySelectorTerm.TypeAssumptions.ptr_method_set
+
+class TopologySelectorLabelRequirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying TopologySelectorLabelRequirement.underlying TopologySelectorLabelRequirement
+  underlying : go.UnderlyingDirectedEq TopologySelectorLabelRequirement.ty TopologySelectorLabelRequirement.underlying
+  get_Key : ∀ (x : TopologySelectorLabelRequirement), go.IsGoStepPureDetTagged under (StructFieldGet TopologySelectorLabelRequirement.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : TopologySelectorLabelRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TopologySelectorLabelRequirement.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : TopologySelectorLabelRequirement)))
+  get_Values : ∀ (x : TopologySelectorLabelRequirement), go.IsGoStepPureDetTagged under (StructFieldGet TopologySelectorLabelRequirement.underlying go!"Values") #x (Val #(x.Values'))
+  set_Values : ∀ (x : TopologySelectorLabelRequirement) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TopologySelectorLabelRequirement.underlying go!"Values") (PairV #x #y) (Val #(({ x with Values' := y } : TopologySelectorLabelRequirement)))
+  method_set : go.MethodSetIs TopologySelectorLabelRequirement.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TopologySelectorLabelRequirement.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType TopologySelectorLabelRequirement.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType TopologySelectorLabelRequirement.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] TopologySelectorLabelRequirement.TypeAssumptions.type_repr
+  TopologySelectorLabelRequirement.TypeAssumptions.underlying
+  TopologySelectorLabelRequirement.TypeAssumptions.get_Key
+  TopologySelectorLabelRequirement.TypeAssumptions.set_Key
+  TopologySelectorLabelRequirement.TypeAssumptions.get_Values
+  TopologySelectorLabelRequirement.TypeAssumptions.set_Values
+  TopologySelectorLabelRequirement.TypeAssumptions.method_set
+  TopologySelectorLabelRequirement.TypeAssumptions.ptr_method_set
+
+class Affinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Affinity.underlying Affinity
+  underlying : go.UnderlyingDirectedEq Affinity.ty Affinity.underlying
+  get_NodeAffinity : ∀ (x : Affinity), go.IsGoStepPureDetTagged under (StructFieldGet Affinity.underlying go!"NodeAffinity") #x (Val #(x.NodeAffinity'))
+  set_NodeAffinity : ∀ (x : Affinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Affinity.underlying go!"NodeAffinity") (PairV #x #y) (Val #(({ x with NodeAffinity' := y } : Affinity)))
+  get_PodAffinity : ∀ (x : Affinity), go.IsGoStepPureDetTagged under (StructFieldGet Affinity.underlying go!"PodAffinity") #x (Val #(x.PodAffinity'))
+  set_PodAffinity : ∀ (x : Affinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Affinity.underlying go!"PodAffinity") (PairV #x #y) (Val #(({ x with PodAffinity' := y } : Affinity)))
+  get_PodAntiAffinity : ∀ (x : Affinity), go.IsGoStepPureDetTagged under (StructFieldGet Affinity.underlying go!"PodAntiAffinity") #x (Val #(x.PodAntiAffinity'))
+  set_PodAntiAffinity : ∀ (x : Affinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Affinity.underlying go!"PodAntiAffinity") (PairV #x #y) (Val #(({ x with PodAntiAffinity' := y } : Affinity)))
+  method_set : go.MethodSetIs Affinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Affinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Affinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Affinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] Affinity.TypeAssumptions.type_repr
+  Affinity.TypeAssumptions.underlying
+  Affinity.TypeAssumptions.get_NodeAffinity
+  Affinity.TypeAssumptions.set_NodeAffinity
+  Affinity.TypeAssumptions.get_PodAffinity
+  Affinity.TypeAssumptions.set_PodAffinity
+  Affinity.TypeAssumptions.get_PodAntiAffinity
+  Affinity.TypeAssumptions.set_PodAntiAffinity
+  Affinity.TypeAssumptions.method_set
+  Affinity.TypeAssumptions.ptr_method_set
+
+class PodAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodAffinity.underlying PodAffinity
+  underlying : go.UnderlyingDirectedEq PodAffinity.ty PodAffinity.underlying
+  get_RequiredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAffinity), go.IsGoStepPureDetTagged under (StructFieldGet PodAffinity.underlying go!"RequiredDuringSchedulingIgnoredDuringExecution") #x (Val #(x.RequiredDuringSchedulingIgnoredDuringExecution'))
+  set_RequiredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAffinity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinity.underlying go!"RequiredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with RequiredDuringSchedulingIgnoredDuringExecution' := y } : PodAffinity)))
+  get_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAffinity), go.IsGoStepPureDetTagged under (StructFieldGet PodAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") #x (Val #(x.PreferredDuringSchedulingIgnoredDuringExecution'))
+  set_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAffinity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with PreferredDuringSchedulingIgnoredDuringExecution' := y } : PodAffinity)))
+  method_set : go.MethodSetIs PodAffinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodAffinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodAffinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodAffinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodAffinity.TypeAssumptions.type_repr
+  PodAffinity.TypeAssumptions.underlying
+  PodAffinity.TypeAssumptions.get_RequiredDuringSchedulingIgnoredDuringExecution
+  PodAffinity.TypeAssumptions.set_RequiredDuringSchedulingIgnoredDuringExecution
+  PodAffinity.TypeAssumptions.get_PreferredDuringSchedulingIgnoredDuringExecution
+  PodAffinity.TypeAssumptions.set_PreferredDuringSchedulingIgnoredDuringExecution
+  PodAffinity.TypeAssumptions.method_set
+  PodAffinity.TypeAssumptions.ptr_method_set
+
+class PodAntiAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodAntiAffinity.underlying PodAntiAffinity
+  underlying : go.UnderlyingDirectedEq PodAntiAffinity.ty PodAntiAffinity.underlying
+  get_RequiredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAntiAffinity), go.IsGoStepPureDetTagged under (StructFieldGet PodAntiAffinity.underlying go!"RequiredDuringSchedulingIgnoredDuringExecution") #x (Val #(x.RequiredDuringSchedulingIgnoredDuringExecution'))
+  set_RequiredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAntiAffinity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAntiAffinity.underlying go!"RequiredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with RequiredDuringSchedulingIgnoredDuringExecution' := y } : PodAntiAffinity)))
+  get_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAntiAffinity), go.IsGoStepPureDetTagged under (StructFieldGet PodAntiAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") #x (Val #(x.PreferredDuringSchedulingIgnoredDuringExecution'))
+  set_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAntiAffinity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAntiAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with PreferredDuringSchedulingIgnoredDuringExecution' := y } : PodAntiAffinity)))
+  method_set : go.MethodSetIs PodAntiAffinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodAntiAffinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodAntiAffinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodAntiAffinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodAntiAffinity.TypeAssumptions.type_repr
+  PodAntiAffinity.TypeAssumptions.underlying
+  PodAntiAffinity.TypeAssumptions.get_RequiredDuringSchedulingIgnoredDuringExecution
+  PodAntiAffinity.TypeAssumptions.set_RequiredDuringSchedulingIgnoredDuringExecution
+  PodAntiAffinity.TypeAssumptions.get_PreferredDuringSchedulingIgnoredDuringExecution
+  PodAntiAffinity.TypeAssumptions.set_PreferredDuringSchedulingIgnoredDuringExecution
+  PodAntiAffinity.TypeAssumptions.method_set
+  PodAntiAffinity.TypeAssumptions.ptr_method_set
+
+class PodAffinityTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodAffinityTerm.underlying PodAffinityTerm
+  underlying : go.UnderlyingDirectedEq PodAffinityTerm.ty PodAffinityTerm.underlying
+  get_LabelSelector : ∀ (x : PodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldGet PodAffinityTerm.underlying go!"LabelSelector") #x (Val #(x.LabelSelector'))
+  set_LabelSelector : ∀ (x : PodAffinityTerm) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinityTerm.underlying go!"LabelSelector") (PairV #x #y) (Val #(({ x with LabelSelector' := y } : PodAffinityTerm)))
+  get_Namespaces : ∀ (x : PodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldGet PodAffinityTerm.underlying go!"Namespaces") #x (Val #(x.Namespaces'))
+  set_Namespaces : ∀ (x : PodAffinityTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinityTerm.underlying go!"Namespaces") (PairV #x #y) (Val #(({ x with Namespaces' := y } : PodAffinityTerm)))
+  get_TopologyKey : ∀ (x : PodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldGet PodAffinityTerm.underlying go!"TopologyKey") #x (Val #(x.TopologyKey'))
+  set_TopologyKey : ∀ (x : PodAffinityTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinityTerm.underlying go!"TopologyKey") (PairV #x #y) (Val #(({ x with TopologyKey' := y } : PodAffinityTerm)))
+  get_NamespaceSelector : ∀ (x : PodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldGet PodAffinityTerm.underlying go!"NamespaceSelector") #x (Val #(x.NamespaceSelector'))
+  set_NamespaceSelector : ∀ (x : PodAffinityTerm) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinityTerm.underlying go!"NamespaceSelector") (PairV #x #y) (Val #(({ x with NamespaceSelector' := y } : PodAffinityTerm)))
+  get_MatchLabelKeys : ∀ (x : PodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldGet PodAffinityTerm.underlying go!"MatchLabelKeys") #x (Val #(x.MatchLabelKeys'))
+  set_MatchLabelKeys : ∀ (x : PodAffinityTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinityTerm.underlying go!"MatchLabelKeys") (PairV #x #y) (Val #(({ x with MatchLabelKeys' := y } : PodAffinityTerm)))
+  get_MismatchLabelKeys : ∀ (x : PodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldGet PodAffinityTerm.underlying go!"MismatchLabelKeys") #x (Val #(x.MismatchLabelKeys'))
+  set_MismatchLabelKeys : ∀ (x : PodAffinityTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinityTerm.underlying go!"MismatchLabelKeys") (PairV #x #y) (Val #(({ x with MismatchLabelKeys' := y } : PodAffinityTerm)))
+  method_set : go.MethodSetIs PodAffinityTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodAffinityTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodAffinityTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodAffinityTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodAffinityTerm.TypeAssumptions.type_repr
+  PodAffinityTerm.TypeAssumptions.underlying
+  PodAffinityTerm.TypeAssumptions.get_LabelSelector
+  PodAffinityTerm.TypeAssumptions.set_LabelSelector
+  PodAffinityTerm.TypeAssumptions.get_Namespaces
+  PodAffinityTerm.TypeAssumptions.set_Namespaces
+  PodAffinityTerm.TypeAssumptions.get_TopologyKey
+  PodAffinityTerm.TypeAssumptions.set_TopologyKey
+  PodAffinityTerm.TypeAssumptions.get_NamespaceSelector
+  PodAffinityTerm.TypeAssumptions.set_NamespaceSelector
+  PodAffinityTerm.TypeAssumptions.get_MatchLabelKeys
+  PodAffinityTerm.TypeAssumptions.set_MatchLabelKeys
+  PodAffinityTerm.TypeAssumptions.get_MismatchLabelKeys
+  PodAffinityTerm.TypeAssumptions.set_MismatchLabelKeys
+  PodAffinityTerm.TypeAssumptions.method_set
+  PodAffinityTerm.TypeAssumptions.ptr_method_set
+
+class WeightedPodAffinityTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying WeightedPodAffinityTerm.underlying WeightedPodAffinityTerm
+  underlying : go.UnderlyingDirectedEq WeightedPodAffinityTerm.ty WeightedPodAffinityTerm.underlying
+  get_Weight : ∀ (x : WeightedPodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldGet WeightedPodAffinityTerm.underlying go!"Weight") #x (Val #(x.Weight'))
+  set_Weight : ∀ (x : WeightedPodAffinityTerm) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet WeightedPodAffinityTerm.underlying go!"Weight") (PairV #x #y) (Val #(({ x with Weight' := y } : WeightedPodAffinityTerm)))
+  get_PodAffinityTerm : ∀ (x : WeightedPodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldGet WeightedPodAffinityTerm.underlying go!"PodAffinityTerm") #x (Val #(x.PodAffinityTerm'))
+  set_PodAffinityTerm : ∀ (x : WeightedPodAffinityTerm) (y : PodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldSet WeightedPodAffinityTerm.underlying go!"PodAffinityTerm") (PairV #x #y) (Val #(({ x with PodAffinityTerm' := y } : WeightedPodAffinityTerm)))
+  method_set : go.MethodSetIs WeightedPodAffinityTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WeightedPodAffinityTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType WeightedPodAffinityTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType WeightedPodAffinityTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] WeightedPodAffinityTerm.TypeAssumptions.type_repr
+  WeightedPodAffinityTerm.TypeAssumptions.underlying
+  WeightedPodAffinityTerm.TypeAssumptions.get_Weight
+  WeightedPodAffinityTerm.TypeAssumptions.set_Weight
+  WeightedPodAffinityTerm.TypeAssumptions.get_PodAffinityTerm
+  WeightedPodAffinityTerm.TypeAssumptions.set_PodAffinityTerm
+  WeightedPodAffinityTerm.TypeAssumptions.method_set
+  WeightedPodAffinityTerm.TypeAssumptions.ptr_method_set
+
+class NodeAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying NodeAffinity.underlying NodeAffinity
+  underlying : go.UnderlyingDirectedEq NodeAffinity.ty NodeAffinity.underlying
+  get_RequiredDuringSchedulingIgnoredDuringExecution : ∀ (x : NodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet NodeAffinity.underlying go!"RequiredDuringSchedulingIgnoredDuringExecution") #x (Val #(x.RequiredDuringSchedulingIgnoredDuringExecution'))
+  set_RequiredDuringSchedulingIgnoredDuringExecution : ∀ (x : NodeAffinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NodeAffinity.underlying go!"RequiredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with RequiredDuringSchedulingIgnoredDuringExecution' := y } : NodeAffinity)))
+  get_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : NodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet NodeAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") #x (Val #(x.PreferredDuringSchedulingIgnoredDuringExecution'))
+  set_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : NodeAffinity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with PreferredDuringSchedulingIgnoredDuringExecution' := y } : NodeAffinity)))
+  method_set : go.MethodSetIs NodeAffinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeAffinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NodeAffinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NodeAffinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] NodeAffinity.TypeAssumptions.type_repr
+  NodeAffinity.TypeAssumptions.underlying
+  NodeAffinity.TypeAssumptions.get_RequiredDuringSchedulingIgnoredDuringExecution
+  NodeAffinity.TypeAssumptions.set_RequiredDuringSchedulingIgnoredDuringExecution
+  NodeAffinity.TypeAssumptions.get_PreferredDuringSchedulingIgnoredDuringExecution
+  NodeAffinity.TypeAssumptions.set_PreferredDuringSchedulingIgnoredDuringExecution
+  NodeAffinity.TypeAssumptions.method_set
+  NodeAffinity.TypeAssumptions.ptr_method_set
+
+class PreferredSchedulingTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PreferredSchedulingTerm.underlying PreferredSchedulingTerm
+  underlying : go.UnderlyingDirectedEq PreferredSchedulingTerm.ty PreferredSchedulingTerm.underlying
+  get_Weight : ∀ (x : PreferredSchedulingTerm), go.IsGoStepPureDetTagged under (StructFieldGet PreferredSchedulingTerm.underlying go!"Weight") #x (Val #(x.Weight'))
+  set_Weight : ∀ (x : PreferredSchedulingTerm) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet PreferredSchedulingTerm.underlying go!"Weight") (PairV #x #y) (Val #(({ x with Weight' := y } : PreferredSchedulingTerm)))
+  get_Preference : ∀ (x : PreferredSchedulingTerm), go.IsGoStepPureDetTagged under (StructFieldGet PreferredSchedulingTerm.underlying go!"Preference") #x (Val #(x.Preference'))
+  set_Preference : ∀ (x : PreferredSchedulingTerm) (y : NodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldSet PreferredSchedulingTerm.underlying go!"Preference") (PairV #x #y) (Val #(({ x with Preference' := y } : PreferredSchedulingTerm)))
+  method_set : go.MethodSetIs PreferredSchedulingTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PreferredSchedulingTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PreferredSchedulingTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PreferredSchedulingTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PreferredSchedulingTerm.TypeAssumptions.type_repr
+  PreferredSchedulingTerm.TypeAssumptions.underlying
+  PreferredSchedulingTerm.TypeAssumptions.get_Weight
+  PreferredSchedulingTerm.TypeAssumptions.set_Weight
+  PreferredSchedulingTerm.TypeAssumptions.get_Preference
+  PreferredSchedulingTerm.TypeAssumptions.set_Preference
+  PreferredSchedulingTerm.TypeAssumptions.method_set
+  PreferredSchedulingTerm.TypeAssumptions.ptr_method_set
+
+class TaintEffect.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq TaintEffect.ty TaintEffect.underlying
+  method_set : go.MethodSetIs TaintEffect.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TaintEffect.ty) []
+
+attribute [instance] TaintEffect.TypeAssumptions.underlying
+  TaintEffect.TypeAssumptions.method_set
+  TaintEffect.TypeAssumptions.ptr_method_set
+
+class Taint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Taint.underlying Taint
+  underlying : go.UnderlyingDirectedEq Taint.ty Taint.underlying
+  get_Key : ∀ (x : Taint), go.IsGoStepPureDetTagged under (StructFieldGet Taint.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : Taint) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Taint.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Taint)))
+  get_Value : ∀ (x : Taint), go.IsGoStepPureDetTagged under (StructFieldGet Taint.underlying go!"Value") #x (Val #(x.Value'))
+  set_Value : ∀ (x : Taint) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Taint.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Taint)))
+  get_Effect : ∀ (x : Taint), go.IsGoStepPureDetTagged under (StructFieldGet Taint.underlying go!"Effect") #x (Val #(x.Effect'))
+  set_Effect : ∀ (x : Taint) (y : TaintEffect), go.IsGoStepPureDetTagged under (StructFieldSet Taint.underlying go!"Effect") (PairV #x #y) (Val #(({ x with Effect' := y } : Taint)))
+  get_TimeAdded : ∀ (x : Taint), go.IsGoStepPureDetTagged under (StructFieldGet Taint.underlying go!"TimeAdded") #x (Val #(x.TimeAdded'))
+  set_TimeAdded : ∀ (x : Taint) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Taint.underlying go!"TimeAdded") (PairV #x #y) (Val #(({ x with TimeAdded' := y } : Taint)))
+  method_set : go.MethodSetIs Taint.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Taint.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Taint.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Taint.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MatchTaint", (some (go.signature.Signature [(go.GoType.PointerType Taint.ty)] false [go.bool]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"ToString", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] Taint.TypeAssumptions.type_repr
+  Taint.TypeAssumptions.underlying
+  Taint.TypeAssumptions.get_Key
+  Taint.TypeAssumptions.set_Key
+  Taint.TypeAssumptions.get_Value
+  Taint.TypeAssumptions.set_Value
+  Taint.TypeAssumptions.get_Effect
+  Taint.TypeAssumptions.set_Effect
+  Taint.TypeAssumptions.get_TimeAdded
+  Taint.TypeAssumptions.set_TimeAdded
+  Taint.TypeAssumptions.method_set
+  Taint.TypeAssumptions.ptr_method_set
+
+class TolerationOperator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq TolerationOperator.ty TolerationOperator.underlying
+  method_set : go.MethodSetIs TolerationOperator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TolerationOperator.ty) []
+
+attribute [instance] TolerationOperator.TypeAssumptions.underlying
+  TolerationOperator.TypeAssumptions.method_set
+  TolerationOperator.TypeAssumptions.ptr_method_set
+
+class Toleration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Toleration.underlying Toleration
+  underlying : go.UnderlyingDirectedEq Toleration.ty Toleration.underlying
+  get_Key : ∀ (x : Toleration), go.IsGoStepPureDetTagged under (StructFieldGet Toleration.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : Toleration) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Toleration.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Toleration)))
+  get_Operator : ∀ (x : Toleration), go.IsGoStepPureDetTagged under (StructFieldGet Toleration.underlying go!"Operator") #x (Val #(x.Operator'))
+  set_Operator : ∀ (x : Toleration) (y : TolerationOperator), go.IsGoStepPureDetTagged under (StructFieldSet Toleration.underlying go!"Operator") (PairV #x #y) (Val #(({ x with Operator' := y } : Toleration)))
+  get_Value : ∀ (x : Toleration), go.IsGoStepPureDetTagged under (StructFieldGet Toleration.underlying go!"Value") #x (Val #(x.Value'))
+  set_Value : ∀ (x : Toleration) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Toleration.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Toleration)))
+  get_Effect : ∀ (x : Toleration), go.IsGoStepPureDetTagged under (StructFieldGet Toleration.underlying go!"Effect") #x (Val #(x.Effect'))
+  set_Effect : ∀ (x : Toleration) (y : TaintEffect), go.IsGoStepPureDetTagged under (StructFieldSet Toleration.underlying go!"Effect") (PairV #x #y) (Val #(({ x with Effect' := y } : Toleration)))
+  get_TolerationSeconds : ∀ (x : Toleration), go.IsGoStepPureDetTagged under (StructFieldGet Toleration.underlying go!"TolerationSeconds") #x (Val #(x.TolerationSeconds'))
+  set_TolerationSeconds : ∀ (x : Toleration) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Toleration.underlying go!"TolerationSeconds") (PairV #x #y) (Val #(({ x with TolerationSeconds' := y } : Toleration)))
+  method_set : go.MethodSetIs Toleration.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Toleration.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Toleration.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Toleration.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MatchToleration", (some (go.signature.Signature [(go.GoType.PointerType Toleration.ty)] false [go.bool]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"ToleratesTaint", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.PointerType Taint.ty), go.bool] false [go.bool]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] Toleration.TypeAssumptions.type_repr
+  Toleration.TypeAssumptions.underlying
+  Toleration.TypeAssumptions.get_Key
+  Toleration.TypeAssumptions.set_Key
+  Toleration.TypeAssumptions.get_Operator
+  Toleration.TypeAssumptions.set_Operator
+  Toleration.TypeAssumptions.get_Value
+  Toleration.TypeAssumptions.set_Value
+  Toleration.TypeAssumptions.get_Effect
+  Toleration.TypeAssumptions.set_Effect
+  Toleration.TypeAssumptions.get_TolerationSeconds
+  Toleration.TypeAssumptions.set_TolerationSeconds
+  Toleration.TypeAssumptions.method_set
+  Toleration.TypeAssumptions.ptr_method_set
+
+class PodReadinessGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodReadinessGate.underlying PodReadinessGate
+  underlying : go.UnderlyingDirectedEq PodReadinessGate.ty PodReadinessGate.underlying
+  get_ConditionType : ∀ (x : PodReadinessGate), go.IsGoStepPureDetTagged under (StructFieldGet PodReadinessGate.underlying go!"ConditionType") #x (Val #(x.ConditionType'))
+  set_ConditionType : ∀ (x : PodReadinessGate) (y : PodConditionType), go.IsGoStepPureDetTagged under (StructFieldSet PodReadinessGate.underlying go!"ConditionType") (PairV #x #y) (Val #(({ x with ConditionType' := y } : PodReadinessGate)))
+  method_set : go.MethodSetIs PodReadinessGate.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodReadinessGate.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodReadinessGate.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodReadinessGate.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodReadinessGate.TypeAssumptions.type_repr
+  PodReadinessGate.TypeAssumptions.underlying
+  PodReadinessGate.TypeAssumptions.get_ConditionType
+  PodReadinessGate.TypeAssumptions.set_ConditionType
+  PodReadinessGate.TypeAssumptions.method_set
+  PodReadinessGate.TypeAssumptions.ptr_method_set
+
+class PodSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodSpec.underlying PodSpec
+  underlying : go.UnderlyingDirectedEq PodSpec.ty PodSpec.underlying
+  get_Volumes : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Volumes") #x (Val #(x.Volumes'))
+  set_Volumes : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Volumes") (PairV #x #y) (Val #(({ x with Volumes' := y } : PodSpec)))
+  get_InitContainers : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"InitContainers") #x (Val #(x.InitContainers'))
+  set_InitContainers : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"InitContainers") (PairV #x #y) (Val #(({ x with InitContainers' := y } : PodSpec)))
+  get_Containers : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Containers") #x (Val #(x.Containers'))
+  set_Containers : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Containers") (PairV #x #y) (Val #(({ x with Containers' := y } : PodSpec)))
+  get_EphemeralContainers : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"EphemeralContainers") #x (Val #(x.EphemeralContainers'))
+  set_EphemeralContainers : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"EphemeralContainers") (PairV #x #y) (Val #(({ x with EphemeralContainers' := y } : PodSpec)))
+  get_RestartPolicy : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"RestartPolicy") #x (Val #(x.RestartPolicy'))
+  set_RestartPolicy : ∀ (x : PodSpec) (y : RestartPolicy), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"RestartPolicy") (PairV #x #y) (Val #(({ x with RestartPolicy' := y } : PodSpec)))
+  get_TerminationGracePeriodSeconds : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"TerminationGracePeriodSeconds") #x (Val #(x.TerminationGracePeriodSeconds'))
+  set_TerminationGracePeriodSeconds : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"TerminationGracePeriodSeconds") (PairV #x #y) (Val #(({ x with TerminationGracePeriodSeconds' := y } : PodSpec)))
+  get_ActiveDeadlineSeconds : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"ActiveDeadlineSeconds") #x (Val #(x.ActiveDeadlineSeconds'))
+  set_ActiveDeadlineSeconds : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"ActiveDeadlineSeconds") (PairV #x #y) (Val #(({ x with ActiveDeadlineSeconds' := y } : PodSpec)))
+  get_DNSPolicy : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"DNSPolicy") #x (Val #(x.DNSPolicy'))
+  set_DNSPolicy : ∀ (x : PodSpec) (y : DNSPolicy), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"DNSPolicy") (PairV #x #y) (Val #(({ x with DNSPolicy' := y } : PodSpec)))
+  get_NodeSelector : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"NodeSelector") #x (Val #(x.NodeSelector'))
+  set_NodeSelector : ∀ (x : PodSpec) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"NodeSelector") (PairV #x #y) (Val #(({ x with NodeSelector' := y } : PodSpec)))
+  get_ServiceAccountName : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"ServiceAccountName") #x (Val #(x.ServiceAccountName'))
+  set_ServiceAccountName : ∀ (x : PodSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"ServiceAccountName") (PairV #x #y) (Val #(({ x with ServiceAccountName' := y } : PodSpec)))
+  get_DeprecatedServiceAccount : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"DeprecatedServiceAccount") #x (Val #(x.DeprecatedServiceAccount'))
+  set_DeprecatedServiceAccount : ∀ (x : PodSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"DeprecatedServiceAccount") (PairV #x #y) (Val #(({ x with DeprecatedServiceAccount' := y } : PodSpec)))
+  get_AutomountServiceAccountToken : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"AutomountServiceAccountToken") #x (Val #(x.AutomountServiceAccountToken'))
+  set_AutomountServiceAccountToken : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"AutomountServiceAccountToken") (PairV #x #y) (Val #(({ x with AutomountServiceAccountToken' := y } : PodSpec)))
+  get_NodeName : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"NodeName") #x (Val #(x.NodeName'))
+  set_NodeName : ∀ (x : PodSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"NodeName") (PairV #x #y) (Val #(({ x with NodeName' := y } : PodSpec)))
+  get_HostNetwork : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"HostNetwork") #x (Val #(x.HostNetwork'))
+  set_HostNetwork : ∀ (x : PodSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"HostNetwork") (PairV #x #y) (Val #(({ x with HostNetwork' := y } : PodSpec)))
+  get_HostPID : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"HostPID") #x (Val #(x.HostPID'))
+  set_HostPID : ∀ (x : PodSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"HostPID") (PairV #x #y) (Val #(({ x with HostPID' := y } : PodSpec)))
+  get_HostIPC : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"HostIPC") #x (Val #(x.HostIPC'))
+  set_HostIPC : ∀ (x : PodSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"HostIPC") (PairV #x #y) (Val #(({ x with HostIPC' := y } : PodSpec)))
+  get_ShareProcessNamespace : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"ShareProcessNamespace") #x (Val #(x.ShareProcessNamespace'))
+  set_ShareProcessNamespace : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"ShareProcessNamespace") (PairV #x #y) (Val #(({ x with ShareProcessNamespace' := y } : PodSpec)))
+  get_SecurityContext : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"SecurityContext") #x (Val #(x.SecurityContext'))
+  set_SecurityContext : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"SecurityContext") (PairV #x #y) (Val #(({ x with SecurityContext' := y } : PodSpec)))
+  get_ImagePullSecrets : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"ImagePullSecrets") #x (Val #(x.ImagePullSecrets'))
+  set_ImagePullSecrets : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"ImagePullSecrets") (PairV #x #y) (Val #(({ x with ImagePullSecrets' := y } : PodSpec)))
+  get_Hostname : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Hostname") #x (Val #(x.Hostname'))
+  set_Hostname : ∀ (x : PodSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Hostname") (PairV #x #y) (Val #(({ x with Hostname' := y } : PodSpec)))
+  get_Subdomain : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Subdomain") #x (Val #(x.Subdomain'))
+  set_Subdomain : ∀ (x : PodSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Subdomain") (PairV #x #y) (Val #(({ x with Subdomain' := y } : PodSpec)))
+  get_Affinity : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Affinity") #x (Val #(x.Affinity'))
+  set_Affinity : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Affinity") (PairV #x #y) (Val #(({ x with Affinity' := y } : PodSpec)))
+  get_SchedulerName : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"SchedulerName") #x (Val #(x.SchedulerName'))
+  set_SchedulerName : ∀ (x : PodSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"SchedulerName") (PairV #x #y) (Val #(({ x with SchedulerName' := y } : PodSpec)))
+  get_Tolerations : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Tolerations") #x (Val #(x.Tolerations'))
+  set_Tolerations : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Tolerations") (PairV #x #y) (Val #(({ x with Tolerations' := y } : PodSpec)))
+  get_HostAliases : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"HostAliases") #x (Val #(x.HostAliases'))
+  set_HostAliases : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"HostAliases") (PairV #x #y) (Val #(({ x with HostAliases' := y } : PodSpec)))
+  get_PriorityClassName : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"PriorityClassName") #x (Val #(x.PriorityClassName'))
+  set_PriorityClassName : ∀ (x : PodSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"PriorityClassName") (PairV #x #y) (Val #(({ x with PriorityClassName' := y } : PodSpec)))
+  get_Priority : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Priority") #x (Val #(x.Priority'))
+  set_Priority : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Priority") (PairV #x #y) (Val #(({ x with Priority' := y } : PodSpec)))
+  get_DNSConfig : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"DNSConfig") #x (Val #(x.DNSConfig'))
+  set_DNSConfig : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"DNSConfig") (PairV #x #y) (Val #(({ x with DNSConfig' := y } : PodSpec)))
+  get_ReadinessGates : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"ReadinessGates") #x (Val #(x.ReadinessGates'))
+  set_ReadinessGates : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"ReadinessGates") (PairV #x #y) (Val #(({ x with ReadinessGates' := y } : PodSpec)))
+  get_RuntimeClassName : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"RuntimeClassName") #x (Val #(x.RuntimeClassName'))
+  set_RuntimeClassName : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"RuntimeClassName") (PairV #x #y) (Val #(({ x with RuntimeClassName' := y } : PodSpec)))
+  get_EnableServiceLinks : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"EnableServiceLinks") #x (Val #(x.EnableServiceLinks'))
+  set_EnableServiceLinks : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"EnableServiceLinks") (PairV #x #y) (Val #(({ x with EnableServiceLinks' := y } : PodSpec)))
+  get_PreemptionPolicy : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"PreemptionPolicy") #x (Val #(x.PreemptionPolicy'))
+  set_PreemptionPolicy : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"PreemptionPolicy") (PairV #x #y) (Val #(({ x with PreemptionPolicy' := y } : PodSpec)))
+  get_Overhead : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Overhead") #x (Val #(x.Overhead'))
+  set_Overhead : ∀ (x : PodSpec) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Overhead") (PairV #x #y) (Val #(({ x with Overhead' := y } : PodSpec)))
+  get_TopologySpreadConstraints : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"TopologySpreadConstraints") #x (Val #(x.TopologySpreadConstraints'))
+  set_TopologySpreadConstraints : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"TopologySpreadConstraints") (PairV #x #y) (Val #(({ x with TopologySpreadConstraints' := y } : PodSpec)))
+  get_SetHostnameAsFQDN : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"SetHostnameAsFQDN") #x (Val #(x.SetHostnameAsFQDN'))
+  set_SetHostnameAsFQDN : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"SetHostnameAsFQDN") (PairV #x #y) (Val #(({ x with SetHostnameAsFQDN' := y } : PodSpec)))
+  get_OS : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"OS") #x (Val #(x.OS'))
+  set_OS : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"OS") (PairV #x #y) (Val #(({ x with OS' := y } : PodSpec)))
+  get_HostUsers : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"HostUsers") #x (Val #(x.HostUsers'))
+  set_HostUsers : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"HostUsers") (PairV #x #y) (Val #(({ x with HostUsers' := y } : PodSpec)))
+  get_SchedulingGates : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"SchedulingGates") #x (Val #(x.SchedulingGates'))
+  set_SchedulingGates : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"SchedulingGates") (PairV #x #y) (Val #(({ x with SchedulingGates' := y } : PodSpec)))
+  get_ResourceClaims : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"ResourceClaims") #x (Val #(x.ResourceClaims'))
+  set_ResourceClaims : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"ResourceClaims") (PairV #x #y) (Val #(({ x with ResourceClaims' := y } : PodSpec)))
+  get_Resources : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"Resources") #x (Val #(x.Resources'))
+  set_Resources : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"Resources") (PairV #x #y) (Val #(({ x with Resources' := y } : PodSpec)))
+  get_HostnameOverride : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"HostnameOverride") #x (Val #(x.HostnameOverride'))
+  set_HostnameOverride : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"HostnameOverride") (PairV #x #y) (Val #(({ x with HostnameOverride' := y } : PodSpec)))
+  get_SchedulingGroup : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"SchedulingGroup") #x (Val #(x.SchedulingGroup'))
+  set_SchedulingGroup : ∀ (x : PodSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"SchedulingGroup") (PairV #x #y) (Val #(({ x with SchedulingGroup' := y } : PodSpec)))
+  get_EvictionResponders : ∀ (x : PodSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodSpec.underlying go!"EvictionResponders") #x (Val #(x.EvictionResponders'))
+  set_EvictionResponders : ∀ (x : PodSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodSpec.underlying go!"EvictionResponders") (PairV #x #y) (Val #(({ x with EvictionResponders' := y } : PodSpec)))
+  method_set : go.MethodSetIs PodSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodSpec.TypeAssumptions.type_repr
+  PodSpec.TypeAssumptions.underlying
+  PodSpec.TypeAssumptions.get_Volumes
+  PodSpec.TypeAssumptions.set_Volumes
+  PodSpec.TypeAssumptions.get_InitContainers
+  PodSpec.TypeAssumptions.set_InitContainers
+  PodSpec.TypeAssumptions.get_Containers
+  PodSpec.TypeAssumptions.set_Containers
+  PodSpec.TypeAssumptions.get_EphemeralContainers
+  PodSpec.TypeAssumptions.set_EphemeralContainers
+  PodSpec.TypeAssumptions.get_RestartPolicy
+  PodSpec.TypeAssumptions.set_RestartPolicy
+  PodSpec.TypeAssumptions.get_TerminationGracePeriodSeconds
+  PodSpec.TypeAssumptions.set_TerminationGracePeriodSeconds
+  PodSpec.TypeAssumptions.get_ActiveDeadlineSeconds
+  PodSpec.TypeAssumptions.set_ActiveDeadlineSeconds
+  PodSpec.TypeAssumptions.get_DNSPolicy
+  PodSpec.TypeAssumptions.set_DNSPolicy
+  PodSpec.TypeAssumptions.get_NodeSelector
+  PodSpec.TypeAssumptions.set_NodeSelector
+  PodSpec.TypeAssumptions.get_ServiceAccountName
+  PodSpec.TypeAssumptions.set_ServiceAccountName
+  PodSpec.TypeAssumptions.get_DeprecatedServiceAccount
+  PodSpec.TypeAssumptions.set_DeprecatedServiceAccount
+  PodSpec.TypeAssumptions.get_AutomountServiceAccountToken
+  PodSpec.TypeAssumptions.set_AutomountServiceAccountToken
+  PodSpec.TypeAssumptions.get_NodeName
+  PodSpec.TypeAssumptions.set_NodeName
+  PodSpec.TypeAssumptions.get_HostNetwork
+  PodSpec.TypeAssumptions.set_HostNetwork
+  PodSpec.TypeAssumptions.get_HostPID
+  PodSpec.TypeAssumptions.set_HostPID
+  PodSpec.TypeAssumptions.get_HostIPC
+  PodSpec.TypeAssumptions.set_HostIPC
+  PodSpec.TypeAssumptions.get_ShareProcessNamespace
+  PodSpec.TypeAssumptions.set_ShareProcessNamespace
+  PodSpec.TypeAssumptions.get_SecurityContext
+  PodSpec.TypeAssumptions.set_SecurityContext
+  PodSpec.TypeAssumptions.get_ImagePullSecrets
+  PodSpec.TypeAssumptions.set_ImagePullSecrets
+  PodSpec.TypeAssumptions.get_Hostname
+  PodSpec.TypeAssumptions.set_Hostname
+  PodSpec.TypeAssumptions.get_Subdomain
+  PodSpec.TypeAssumptions.set_Subdomain
+  PodSpec.TypeAssumptions.get_Affinity
+  PodSpec.TypeAssumptions.set_Affinity
+  PodSpec.TypeAssumptions.get_SchedulerName
+  PodSpec.TypeAssumptions.set_SchedulerName
+  PodSpec.TypeAssumptions.get_Tolerations
+  PodSpec.TypeAssumptions.set_Tolerations
+  PodSpec.TypeAssumptions.get_HostAliases
+  PodSpec.TypeAssumptions.set_HostAliases
+  PodSpec.TypeAssumptions.get_PriorityClassName
+  PodSpec.TypeAssumptions.set_PriorityClassName
+  PodSpec.TypeAssumptions.get_Priority
+  PodSpec.TypeAssumptions.set_Priority
+  PodSpec.TypeAssumptions.get_DNSConfig
+  PodSpec.TypeAssumptions.set_DNSConfig
+  PodSpec.TypeAssumptions.get_ReadinessGates
+  PodSpec.TypeAssumptions.set_ReadinessGates
+  PodSpec.TypeAssumptions.get_RuntimeClassName
+  PodSpec.TypeAssumptions.set_RuntimeClassName
+  PodSpec.TypeAssumptions.get_EnableServiceLinks
+  PodSpec.TypeAssumptions.set_EnableServiceLinks
+  PodSpec.TypeAssumptions.get_PreemptionPolicy
+  PodSpec.TypeAssumptions.set_PreemptionPolicy
+  PodSpec.TypeAssumptions.get_Overhead
+  PodSpec.TypeAssumptions.set_Overhead
+  PodSpec.TypeAssumptions.get_TopologySpreadConstraints
+  PodSpec.TypeAssumptions.set_TopologySpreadConstraints
+  PodSpec.TypeAssumptions.get_SetHostnameAsFQDN
+  PodSpec.TypeAssumptions.set_SetHostnameAsFQDN
+  PodSpec.TypeAssumptions.get_OS
+  PodSpec.TypeAssumptions.set_OS
+  PodSpec.TypeAssumptions.get_HostUsers
+  PodSpec.TypeAssumptions.set_HostUsers
+  PodSpec.TypeAssumptions.get_SchedulingGates
+  PodSpec.TypeAssumptions.set_SchedulingGates
+  PodSpec.TypeAssumptions.get_ResourceClaims
+  PodSpec.TypeAssumptions.set_ResourceClaims
+  PodSpec.TypeAssumptions.get_Resources
+  PodSpec.TypeAssumptions.set_Resources
+  PodSpec.TypeAssumptions.get_HostnameOverride
+  PodSpec.TypeAssumptions.set_HostnameOverride
+  PodSpec.TypeAssumptions.get_SchedulingGroup
+  PodSpec.TypeAssumptions.set_SchedulingGroup
+  PodSpec.TypeAssumptions.get_EvictionResponders
+  PodSpec.TypeAssumptions.set_EvictionResponders
+  PodSpec.TypeAssumptions.method_set
+  PodSpec.TypeAssumptions.ptr_method_set
+
+class PodResourceClaim.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodResourceClaim.underlying PodResourceClaim
+  underlying : go.UnderlyingDirectedEq PodResourceClaim.ty PodResourceClaim.underlying
+  get_Name : ∀ (x : PodResourceClaim), go.IsGoStepPureDetTagged under (StructFieldGet PodResourceClaim.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : PodResourceClaim) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodResourceClaim.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : PodResourceClaim)))
+  get_ResourceClaimName : ∀ (x : PodResourceClaim), go.IsGoStepPureDetTagged under (StructFieldGet PodResourceClaim.underlying go!"ResourceClaimName") #x (Val #(x.ResourceClaimName'))
+  set_ResourceClaimName : ∀ (x : PodResourceClaim) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodResourceClaim.underlying go!"ResourceClaimName") (PairV #x #y) (Val #(({ x with ResourceClaimName' := y } : PodResourceClaim)))
+  get_ResourceClaimTemplateName : ∀ (x : PodResourceClaim), go.IsGoStepPureDetTagged under (StructFieldGet PodResourceClaim.underlying go!"ResourceClaimTemplateName") #x (Val #(x.ResourceClaimTemplateName'))
+  set_ResourceClaimTemplateName : ∀ (x : PodResourceClaim) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodResourceClaim.underlying go!"ResourceClaimTemplateName") (PairV #x #y) (Val #(({ x with ResourceClaimTemplateName' := y } : PodResourceClaim)))
+  method_set : go.MethodSetIs PodResourceClaim.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodResourceClaim.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodResourceClaim.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodResourceClaim.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodResourceClaim.TypeAssumptions.type_repr
+  PodResourceClaim.TypeAssumptions.underlying
+  PodResourceClaim.TypeAssumptions.get_Name
+  PodResourceClaim.TypeAssumptions.set_Name
+  PodResourceClaim.TypeAssumptions.get_ResourceClaimName
+  PodResourceClaim.TypeAssumptions.set_ResourceClaimName
+  PodResourceClaim.TypeAssumptions.get_ResourceClaimTemplateName
+  PodResourceClaim.TypeAssumptions.set_ResourceClaimTemplateName
+  PodResourceClaim.TypeAssumptions.method_set
+  PodResourceClaim.TypeAssumptions.ptr_method_set
+
+class PodResourceClaimStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodResourceClaimStatus.underlying PodResourceClaimStatus
+  underlying : go.UnderlyingDirectedEq PodResourceClaimStatus.ty PodResourceClaimStatus.underlying
+  get_Name : ∀ (x : PodResourceClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodResourceClaimStatus.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : PodResourceClaimStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodResourceClaimStatus.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : PodResourceClaimStatus)))
+  get_ResourceClaimName : ∀ (x : PodResourceClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodResourceClaimStatus.underlying go!"ResourceClaimName") #x (Val #(x.ResourceClaimName'))
+  set_ResourceClaimName : ∀ (x : PodResourceClaimStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodResourceClaimStatus.underlying go!"ResourceClaimName") (PairV #x #y) (Val #(({ x with ResourceClaimName' := y } : PodResourceClaimStatus)))
+  method_set : go.MethodSetIs PodResourceClaimStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodResourceClaimStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodResourceClaimStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodResourceClaimStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodResourceClaimStatus.TypeAssumptions.type_repr
+  PodResourceClaimStatus.TypeAssumptions.underlying
+  PodResourceClaimStatus.TypeAssumptions.get_Name
+  PodResourceClaimStatus.TypeAssumptions.set_Name
+  PodResourceClaimStatus.TypeAssumptions.get_ResourceClaimName
+  PodResourceClaimStatus.TypeAssumptions.set_ResourceClaimName
+  PodResourceClaimStatus.TypeAssumptions.method_set
+  PodResourceClaimStatus.TypeAssumptions.ptr_method_set
+
+class PodExtendedResourceClaimStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PodExtendedResourceClaimStatus.underlying PodExtendedResourceClaimStatus
+  underlying : go.UnderlyingDirectedEq PodExtendedResourceClaimStatus.ty PodExtendedResourceClaimStatus.underlying
+  get_RequestMappings : ∀ (x : PodExtendedResourceClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodExtendedResourceClaimStatus.underlying go!"RequestMappings") #x (Val #(x.RequestMappings'))
+  set_RequestMappings : ∀ (x : PodExtendedResourceClaimStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodExtendedResourceClaimStatus.underlying go!"RequestMappings") (PairV #x #y) (Val #(({ x with RequestMappings' := y } : PodExtendedResourceClaimStatus)))
+  get_ResourceClaimName : ∀ (x : PodExtendedResourceClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodExtendedResourceClaimStatus.underlying go!"ResourceClaimName") #x (Val #(x.ResourceClaimName'))
+  set_ResourceClaimName : ∀ (x : PodExtendedResourceClaimStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodExtendedResourceClaimStatus.underlying go!"ResourceClaimName") (PairV #x #y) (Val #(({ x with ResourceClaimName' := y } : PodExtendedResourceClaimStatus)))
+  method_set : go.MethodSetIs PodExtendedResourceClaimStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodExtendedResourceClaimStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodExtendedResourceClaimStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodExtendedResourceClaimStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] PodExtendedResourceClaimStatus.TypeAssumptions.type_repr
+  PodExtendedResourceClaimStatus.TypeAssumptions.underlying
+  PodExtendedResourceClaimStatus.TypeAssumptions.get_RequestMappings
+  PodExtendedResourceClaimStatus.TypeAssumptions.set_RequestMappings
+  PodExtendedResourceClaimStatus.TypeAssumptions.get_ResourceClaimName
+  PodExtendedResourceClaimStatus.TypeAssumptions.set_ResourceClaimName
+  PodExtendedResourceClaimStatus.TypeAssumptions.method_set
+  PodExtendedResourceClaimStatus.TypeAssumptions.ptr_method_set
+
+class ContainerExtendedResourceRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ContainerExtendedResourceRequest.underlying ContainerExtendedResourceRequest
   underlying : go.UnderlyingDirectedEq ContainerExtendedResourceRequest.ty ContainerExtendedResourceRequest.underlying
   get_ContainerName : ∀ (x : ContainerExtendedResourceRequest), go.IsGoStepPureDetTagged under (StructFieldGet ContainerExtendedResourceRequest.underlying go!"ContainerName") #x (Val #(x.ContainerName'))
@@ -25,6 +823,8 @@ class ContainerExtendedResourceRequest.TypeAssumptions [FfiSyntax] [GoGlobalCont
   set_ResourceName : ∀ (x : ContainerExtendedResourceRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ContainerExtendedResourceRequest.underlying go!"ResourceName") (PairV #x #y) (Val #(({ x with ResourceName' := y } : ContainerExtendedResourceRequest)))
   get_RequestName : ∀ (x : ContainerExtendedResourceRequest), go.IsGoStepPureDetTagged under (StructFieldGet ContainerExtendedResourceRequest.underlying go!"RequestName") #x (Val #(x.RequestName'))
   set_RequestName : ∀ (x : ContainerExtendedResourceRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ContainerExtendedResourceRequest.underlying go!"RequestName") (PairV #x #y) (Val #(({ x with RequestName' := y } : ContainerExtendedResourceRequest)))
+  method_set : go.MethodSetIs ContainerExtendedResourceRequest.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerExtendedResourceRequest.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ContainerExtendedResourceRequest.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ContainerExtendedResourceRequest.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ContainerExtendedResourceRequest.TypeAssumptions.type_repr
   ContainerExtendedResourceRequest.TypeAssumptions.underlying
@@ -34,56 +834,82 @@ attribute [instance] ContainerExtendedResourceRequest.TypeAssumptions.type_repr
   ContainerExtendedResourceRequest.TypeAssumptions.set_ResourceName
   ContainerExtendedResourceRequest.TypeAssumptions.get_RequestName
   ContainerExtendedResourceRequest.TypeAssumptions.set_RequestName
+  ContainerExtendedResourceRequest.TypeAssumptions.method_set
+  ContainerExtendedResourceRequest.TypeAssumptions.ptr_method_set
 
-class OSName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class OSName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq OSName.ty OSName.underlying
+  method_set : go.MethodSetIs OSName.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OSName.ty) []
 
 attribute [instance] OSName.TypeAssumptions.underlying
+  OSName.TypeAssumptions.method_set
+  OSName.TypeAssumptions.ptr_method_set
 
-class PodOS.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodOS.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodOS.underlying PodOS
   underlying : go.UnderlyingDirectedEq PodOS.ty PodOS.underlying
   get_Name : ∀ (x : PodOS), go.IsGoStepPureDetTagged under (StructFieldGet PodOS.underlying go!"Name") #x (Val #(x.Name'))
   set_Name : ∀ (x : PodOS) (y : OSName), go.IsGoStepPureDetTagged under (StructFieldSet PodOS.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : PodOS)))
+  method_set : go.MethodSetIs PodOS.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodOS.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodOS.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodOS.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodOS.TypeAssumptions.type_repr
   PodOS.TypeAssumptions.underlying
   PodOS.TypeAssumptions.get_Name
   PodOS.TypeAssumptions.set_Name
+  PodOS.TypeAssumptions.method_set
+  PodOS.TypeAssumptions.ptr_method_set
 
-class PodSchedulingGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodSchedulingGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodSchedulingGate.underlying PodSchedulingGate
   underlying : go.UnderlyingDirectedEq PodSchedulingGate.ty PodSchedulingGate.underlying
   get_Name : ∀ (x : PodSchedulingGate), go.IsGoStepPureDetTagged under (StructFieldGet PodSchedulingGate.underlying go!"Name") #x (Val #(x.Name'))
   set_Name : ∀ (x : PodSchedulingGate) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodSchedulingGate.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : PodSchedulingGate)))
+  method_set : go.MethodSetIs PodSchedulingGate.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodSchedulingGate.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodSchedulingGate.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodSchedulingGate.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodSchedulingGate.TypeAssumptions.type_repr
   PodSchedulingGate.TypeAssumptions.underlying
   PodSchedulingGate.TypeAssumptions.get_Name
   PodSchedulingGate.TypeAssumptions.set_Name
+  PodSchedulingGate.TypeAssumptions.method_set
+  PodSchedulingGate.TypeAssumptions.ptr_method_set
 
-class PodSchedulingGroup.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodSchedulingGroup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodSchedulingGroup.underlying PodSchedulingGroup
   underlying : go.UnderlyingDirectedEq PodSchedulingGroup.ty PodSchedulingGroup.underlying
   get_PodGroupName : ∀ (x : PodSchedulingGroup), go.IsGoStepPureDetTagged under (StructFieldGet PodSchedulingGroup.underlying go!"PodGroupName") #x (Val #(x.PodGroupName'))
   set_PodGroupName : ∀ (x : PodSchedulingGroup) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSchedulingGroup.underlying go!"PodGroupName") (PairV #x #y) (Val #(({ x with PodGroupName' := y } : PodSchedulingGroup)))
+  method_set : go.MethodSetIs PodSchedulingGroup.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodSchedulingGroup.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodSchedulingGroup.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodSchedulingGroup.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodSchedulingGroup.TypeAssumptions.type_repr
   PodSchedulingGroup.TypeAssumptions.underlying
   PodSchedulingGroup.TypeAssumptions.get_PodGroupName
   PodSchedulingGroup.TypeAssumptions.set_PodGroupName
+  PodSchedulingGroup.TypeAssumptions.method_set
+  PodSchedulingGroup.TypeAssumptions.ptr_method_set
 
-class UnsatisfiableConstraintAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsatisfiableConstraintAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsatisfiableConstraintAction.ty UnsatisfiableConstraintAction.underlying
+  method_set : go.MethodSetIs UnsatisfiableConstraintAction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsatisfiableConstraintAction.ty) []
 
 attribute [instance] UnsatisfiableConstraintAction.TypeAssumptions.underlying
+  UnsatisfiableConstraintAction.TypeAssumptions.method_set
+  UnsatisfiableConstraintAction.TypeAssumptions.ptr_method_set
 
-class NodeInclusionPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NodeInclusionPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NodeInclusionPolicy.ty NodeInclusionPolicy.underlying
+  method_set : go.MethodSetIs NodeInclusionPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeInclusionPolicy.ty) []
 
 attribute [instance] NodeInclusionPolicy.TypeAssumptions.underlying
+  NodeInclusionPolicy.TypeAssumptions.method_set
+  NodeInclusionPolicy.TypeAssumptions.ptr_method_set
 
-class TopologySpreadConstraint.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TopologySpreadConstraint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TopologySpreadConstraint.underlying TopologySpreadConstraint
   underlying : go.UnderlyingDirectedEq TopologySpreadConstraint.ty TopologySpreadConstraint.underlying
   get_MaxSkew : ∀ (x : TopologySpreadConstraint), go.IsGoStepPureDetTagged under (StructFieldGet TopologySpreadConstraint.underlying go!"MaxSkew") #x (Val #(x.MaxSkew'))
@@ -102,6 +928,8 @@ class TopologySpreadConstraint.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   set_NodeTaintsPolicy : ∀ (x : TopologySpreadConstraint) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TopologySpreadConstraint.underlying go!"NodeTaintsPolicy") (PairV #x #y) (Val #(({ x with NodeTaintsPolicy' := y } : TopologySpreadConstraint)))
   get_MatchLabelKeys : ∀ (x : TopologySpreadConstraint), go.IsGoStepPureDetTagged under (StructFieldGet TopologySpreadConstraint.underlying go!"MatchLabelKeys") #x (Val #(x.MatchLabelKeys'))
   set_MatchLabelKeys : ∀ (x : TopologySpreadConstraint) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TopologySpreadConstraint.underlying go!"MatchLabelKeys") (PairV #x #y) (Val #(({ x with MatchLabelKeys' := y } : TopologySpreadConstraint)))
+  method_set : go.MethodSetIs TopologySpreadConstraint.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TopologySpreadConstraint.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType TopologySpreadConstraint.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType TopologySpreadConstraint.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] TopologySpreadConstraint.TypeAssumptions.type_repr
   TopologySpreadConstraint.TypeAssumptions.underlying
@@ -121,14 +949,18 @@ attribute [instance] TopologySpreadConstraint.TypeAssumptions.type_repr
   TopologySpreadConstraint.TypeAssumptions.set_NodeTaintsPolicy
   TopologySpreadConstraint.TypeAssumptions.get_MatchLabelKeys
   TopologySpreadConstraint.TypeAssumptions.set_MatchLabelKeys
+  TopologySpreadConstraint.TypeAssumptions.method_set
+  TopologySpreadConstraint.TypeAssumptions.ptr_method_set
 
-class HostAlias.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HostAlias.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HostAlias.underlying HostAlias
   underlying : go.UnderlyingDirectedEq HostAlias.ty HostAlias.underlying
   get_IP : ∀ (x : HostAlias), go.IsGoStepPureDetTagged under (StructFieldGet HostAlias.underlying go!"IP") #x (Val #(x.IP'))
   set_IP : ∀ (x : HostAlias) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet HostAlias.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : HostAlias)))
   get_Hostnames : ∀ (x : HostAlias), go.IsGoStepPureDetTagged under (StructFieldGet HostAlias.underlying go!"Hostnames") #x (Val #(x.Hostnames'))
   set_Hostnames : ∀ (x : HostAlias) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet HostAlias.underlying go!"Hostnames") (PairV #x #y) (Val #(({ x with Hostnames' := y } : HostAlias)))
+  method_set : go.MethodSetIs HostAlias.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HostAlias.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HostAlias.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HostAlias.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HostAlias.TypeAssumptions.type_repr
   HostAlias.TypeAssumptions.underlying
@@ -136,23 +968,37 @@ attribute [instance] HostAlias.TypeAssumptions.type_repr
   HostAlias.TypeAssumptions.set_IP
   HostAlias.TypeAssumptions.get_Hostnames
   HostAlias.TypeAssumptions.set_Hostnames
+  HostAlias.TypeAssumptions.method_set
+  HostAlias.TypeAssumptions.ptr_method_set
 
-class PodFSGroupChangePolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodFSGroupChangePolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodFSGroupChangePolicy.ty PodFSGroupChangePolicy.underlying
+  method_set : go.MethodSetIs PodFSGroupChangePolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodFSGroupChangePolicy.ty) []
 
 attribute [instance] PodFSGroupChangePolicy.TypeAssumptions.underlying
+  PodFSGroupChangePolicy.TypeAssumptions.method_set
+  PodFSGroupChangePolicy.TypeAssumptions.ptr_method_set
 
-class SupplementalGroupsPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SupplementalGroupsPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SupplementalGroupsPolicy.ty SupplementalGroupsPolicy.underlying
+  method_set : go.MethodSetIs SupplementalGroupsPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SupplementalGroupsPolicy.ty) []
 
 attribute [instance] SupplementalGroupsPolicy.TypeAssumptions.underlying
+  SupplementalGroupsPolicy.TypeAssumptions.method_set
+  SupplementalGroupsPolicy.TypeAssumptions.ptr_method_set
 
-class PodSELinuxChangePolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodSELinuxChangePolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodSELinuxChangePolicy.ty PodSELinuxChangePolicy.underlying
+  method_set : go.MethodSetIs PodSELinuxChangePolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodSELinuxChangePolicy.ty) []
 
 attribute [instance] PodSELinuxChangePolicy.TypeAssumptions.underlying
+  PodSELinuxChangePolicy.TypeAssumptions.method_set
+  PodSELinuxChangePolicy.TypeAssumptions.ptr_method_set
 
-class PodSecurityContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodSecurityContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodSecurityContext.underlying PodSecurityContext
   underlying : go.UnderlyingDirectedEq PodSecurityContext.ty PodSecurityContext.underlying
   get_SELinuxOptions : ∀ (x : PodSecurityContext), go.IsGoStepPureDetTagged under (StructFieldGet PodSecurityContext.underlying go!"SELinuxOptions") #x (Val #(x.SELinuxOptions'))
@@ -181,6 +1027,8 @@ class PodSecurityContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_AppArmorProfile : ∀ (x : PodSecurityContext) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSecurityContext.underlying go!"AppArmorProfile") (PairV #x #y) (Val #(({ x with AppArmorProfile' := y } : PodSecurityContext)))
   get_SELinuxChangePolicy : ∀ (x : PodSecurityContext), go.IsGoStepPureDetTagged under (StructFieldGet PodSecurityContext.underlying go!"SELinuxChangePolicy") #x (Val #(x.SELinuxChangePolicy'))
   set_SELinuxChangePolicy : ∀ (x : PodSecurityContext) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSecurityContext.underlying go!"SELinuxChangePolicy") (PairV #x #y) (Val #(({ x with SELinuxChangePolicy' := y } : PodSecurityContext)))
+  method_set : go.MethodSetIs PodSecurityContext.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodSecurityContext.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodSecurityContext.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodSecurityContext.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodSecurityContext.TypeAssumptions.type_repr
   PodSecurityContext.TypeAssumptions.underlying
@@ -210,19 +1058,27 @@ attribute [instance] PodSecurityContext.TypeAssumptions.type_repr
   PodSecurityContext.TypeAssumptions.set_AppArmorProfile
   PodSecurityContext.TypeAssumptions.get_SELinuxChangePolicy
   PodSecurityContext.TypeAssumptions.set_SELinuxChangePolicy
+  PodSecurityContext.TypeAssumptions.method_set
+  PodSecurityContext.TypeAssumptions.ptr_method_set
 
-class SeccompProfileType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SeccompProfileType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SeccompProfileType.ty SeccompProfileType.underlying
+  method_set : go.MethodSetIs SeccompProfileType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SeccompProfileType.ty) []
 
 attribute [instance] SeccompProfileType.TypeAssumptions.underlying
+  SeccompProfileType.TypeAssumptions.method_set
+  SeccompProfileType.TypeAssumptions.ptr_method_set
 
-class SeccompProfile.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SeccompProfile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SeccompProfile.underlying SeccompProfile
   underlying : go.UnderlyingDirectedEq SeccompProfile.ty SeccompProfile.underlying
   get_Type : ∀ (x : SeccompProfile), go.IsGoStepPureDetTagged under (StructFieldGet SeccompProfile.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : SeccompProfile) (y : SeccompProfileType), go.IsGoStepPureDetTagged under (StructFieldSet SeccompProfile.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : SeccompProfile)))
   get_LocalhostProfile : ∀ (x : SeccompProfile), go.IsGoStepPureDetTagged under (StructFieldGet SeccompProfile.underlying go!"LocalhostProfile") #x (Val #(x.LocalhostProfile'))
   set_LocalhostProfile : ∀ (x : SeccompProfile) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SeccompProfile.underlying go!"LocalhostProfile") (PairV #x #y) (Val #(({ x with LocalhostProfile' := y } : SeccompProfile)))
+  method_set : go.MethodSetIs SeccompProfile.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SeccompProfile.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType SeccompProfile.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType SeccompProfile.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] SeccompProfile.TypeAssumptions.type_repr
   SeccompProfile.TypeAssumptions.underlying
@@ -230,19 +1086,27 @@ attribute [instance] SeccompProfile.TypeAssumptions.type_repr
   SeccompProfile.TypeAssumptions.set_Type
   SeccompProfile.TypeAssumptions.get_LocalhostProfile
   SeccompProfile.TypeAssumptions.set_LocalhostProfile
+  SeccompProfile.TypeAssumptions.method_set
+  SeccompProfile.TypeAssumptions.ptr_method_set
 
-class AppArmorProfileType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AppArmorProfileType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AppArmorProfileType.ty AppArmorProfileType.underlying
+  method_set : go.MethodSetIs AppArmorProfileType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AppArmorProfileType.ty) []
 
 attribute [instance] AppArmorProfileType.TypeAssumptions.underlying
+  AppArmorProfileType.TypeAssumptions.method_set
+  AppArmorProfileType.TypeAssumptions.ptr_method_set
 
-class AppArmorProfile.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AppArmorProfile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AppArmorProfile.underlying AppArmorProfile
   underlying : go.UnderlyingDirectedEq AppArmorProfile.ty AppArmorProfile.underlying
   get_Type : ∀ (x : AppArmorProfile), go.IsGoStepPureDetTagged under (StructFieldGet AppArmorProfile.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : AppArmorProfile) (y : AppArmorProfileType), go.IsGoStepPureDetTagged under (StructFieldSet AppArmorProfile.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : AppArmorProfile)))
   get_LocalhostProfile : ∀ (x : AppArmorProfile), go.IsGoStepPureDetTagged under (StructFieldGet AppArmorProfile.underlying go!"LocalhostProfile") #x (Val #(x.LocalhostProfile'))
   set_LocalhostProfile : ∀ (x : AppArmorProfile) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AppArmorProfile.underlying go!"LocalhostProfile") (PairV #x #y) (Val #(({ x with LocalhostProfile' := y } : AppArmorProfile)))
+  method_set : go.MethodSetIs AppArmorProfile.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AppArmorProfile.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType AppArmorProfile.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType AppArmorProfile.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] AppArmorProfile.TypeAssumptions.type_repr
   AppArmorProfile.TypeAssumptions.underlying
@@ -250,13 +1114,19 @@ attribute [instance] AppArmorProfile.TypeAssumptions.type_repr
   AppArmorProfile.TypeAssumptions.set_Type
   AppArmorProfile.TypeAssumptions.get_LocalhostProfile
   AppArmorProfile.TypeAssumptions.set_LocalhostProfile
+  AppArmorProfile.TypeAssumptions.method_set
+  AppArmorProfile.TypeAssumptions.ptr_method_set
 
-class PodQOSClass.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodQOSClass.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodQOSClass.ty PodQOSClass.underlying
+  method_set : go.MethodSetIs PodQOSClass.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodQOSClass.ty) []
 
 attribute [instance] PodQOSClass.TypeAssumptions.underlying
+  PodQOSClass.TypeAssumptions.method_set
+  PodQOSClass.TypeAssumptions.ptr_method_set
 
-class PodDNSConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDNSConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDNSConfig.underlying PodDNSConfig
   underlying : go.UnderlyingDirectedEq PodDNSConfig.ty PodDNSConfig.underlying
   get_Nameservers : ∀ (x : PodDNSConfig), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfig.underlying go!"Nameservers") #x (Val #(x.Nameservers'))
@@ -265,6 +1135,8 @@ class PodDNSConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_Searches : ∀ (x : PodDNSConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfig.underlying go!"Searches") (PairV #x #y) (Val #(({ x with Searches' := y } : PodDNSConfig)))
   get_Options : ∀ (x : PodDNSConfig), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfig.underlying go!"Options") #x (Val #(x.Options'))
   set_Options : ∀ (x : PodDNSConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfig.underlying go!"Options") (PairV #x #y) (Val #(({ x with Options' := y } : PodDNSConfig)))
+  method_set : go.MethodSetIs PodDNSConfig.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDNSConfig.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodDNSConfig.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodDNSConfig.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodDNSConfig.TypeAssumptions.type_repr
   PodDNSConfig.TypeAssumptions.underlying
@@ -274,14 +1146,18 @@ attribute [instance] PodDNSConfig.TypeAssumptions.type_repr
   PodDNSConfig.TypeAssumptions.set_Searches
   PodDNSConfig.TypeAssumptions.get_Options
   PodDNSConfig.TypeAssumptions.set_Options
+  PodDNSConfig.TypeAssumptions.method_set
+  PodDNSConfig.TypeAssumptions.ptr_method_set
 
-class PodDNSConfigOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDNSConfigOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDNSConfigOption.underlying PodDNSConfigOption
   underlying : go.UnderlyingDirectedEq PodDNSConfigOption.ty PodDNSConfigOption.underlying
   get_Name : ∀ (x : PodDNSConfigOption), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfigOption.underlying go!"Name") #x (Val #(x.Name'))
   set_Name : ∀ (x : PodDNSConfigOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfigOption.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : PodDNSConfigOption)))
   get_Value : ∀ (x : PodDNSConfigOption), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfigOption.underlying go!"Value") #x (Val #(x.Value'))
   set_Value : ∀ (x : PodDNSConfigOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfigOption.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : PodDNSConfigOption)))
+  method_set : go.MethodSetIs PodDNSConfigOption.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDNSConfigOption.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodDNSConfigOption.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodDNSConfigOption.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodDNSConfigOption.TypeAssumptions.type_repr
   PodDNSConfigOption.TypeAssumptions.underlying
@@ -289,950 +1165,38 @@ attribute [instance] PodDNSConfigOption.TypeAssumptions.type_repr
   PodDNSConfigOption.TypeAssumptions.set_Name
   PodDNSConfigOption.TypeAssumptions.get_Value
   PodDNSConfigOption.TypeAssumptions.set_Value
+  PodDNSConfigOption.TypeAssumptions.method_set
+  PodDNSConfigOption.TypeAssumptions.ptr_method_set
 
-class PodIP.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodIP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodIP.underlying PodIP
   underlying : go.UnderlyingDirectedEq PodIP.ty PodIP.underlying
   get_IP : ∀ (x : PodIP), go.IsGoStepPureDetTagged under (StructFieldGet PodIP.underlying go!"IP") #x (Val #(x.IP'))
   set_IP : ∀ (x : PodIP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodIP.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : PodIP)))
+  method_set : go.MethodSetIs PodIP.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodIP.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodIP.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodIP.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PodIP.TypeAssumptions.type_repr
   PodIP.TypeAssumptions.underlying
   PodIP.TypeAssumptions.get_IP
   PodIP.TypeAssumptions.set_IP
+  PodIP.TypeAssumptions.method_set
+  PodIP.TypeAssumptions.ptr_method_set
 
-class HostIP.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HostIP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HostIP.underlying HostIP
   underlying : go.UnderlyingDirectedEq HostIP.ty HostIP.underlying
   get_IP : ∀ (x : HostIP), go.IsGoStepPureDetTagged under (StructFieldGet HostIP.underlying go!"IP") #x (Val #(x.IP'))
   set_IP : ∀ (x : HostIP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet HostIP.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : HostIP)))
+  method_set : go.MethodSetIs HostIP.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HostIP.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HostIP.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HostIP.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HostIP.TypeAssumptions.type_repr
   HostIP.TypeAssumptions.underlying
   HostIP.TypeAssumptions.get_IP
   HostIP.TypeAssumptions.set_IP
-
-class EphemeralContainerCommon.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying EphemeralContainerCommon.underlying EphemeralContainerCommon
-  underlying : go.UnderlyingDirectedEq EphemeralContainerCommon.ty EphemeralContainerCommon.underlying
-  get_Name : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : EphemeralContainerCommon) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : EphemeralContainerCommon)))
-  get_Image : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Image") #x (Val #(x.Image'))
-  set_Image : ∀ (x : EphemeralContainerCommon) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Image") (PairV #x #y) (Val #(({ x with Image' := y } : EphemeralContainerCommon)))
-  get_Command : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Command") #x (Val #(x.Command'))
-  set_Command : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Command") (PairV #x #y) (Val #(({ x with Command' := y } : EphemeralContainerCommon)))
-  get_Args : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Args") #x (Val #(x.Args'))
-  set_Args : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Args") (PairV #x #y) (Val #(({ x with Args' := y } : EphemeralContainerCommon)))
-  get_WorkingDir : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"WorkingDir") #x (Val #(x.WorkingDir'))
-  set_WorkingDir : ∀ (x : EphemeralContainerCommon) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"WorkingDir") (PairV #x #y) (Val #(({ x with WorkingDir' := y } : EphemeralContainerCommon)))
-  get_Ports : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Ports") #x (Val #(x.Ports'))
-  set_Ports : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : EphemeralContainerCommon)))
-  get_EnvFrom : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"EnvFrom") #x (Val #(x.EnvFrom'))
-  set_EnvFrom : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"EnvFrom") (PairV #x #y) (Val #(({ x with EnvFrom' := y } : EphemeralContainerCommon)))
-  get_Env : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Env") #x (Val #(x.Env'))
-  set_Env : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Env") (PairV #x #y) (Val #(({ x with Env' := y } : EphemeralContainerCommon)))
-  get_Resources : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Resources") #x (Val #(x.Resources'))
-  set_Resources : ∀ (x : EphemeralContainerCommon) (y : ResourceRequirements), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Resources") (PairV #x #y) (Val #(({ x with Resources' := y } : EphemeralContainerCommon)))
-  get_ResizePolicy : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"ResizePolicy") #x (Val #(x.ResizePolicy'))
-  set_ResizePolicy : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"ResizePolicy") (PairV #x #y) (Val #(({ x with ResizePolicy' := y } : EphemeralContainerCommon)))
-  get_RestartPolicy : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"RestartPolicy") #x (Val #(x.RestartPolicy'))
-  set_RestartPolicy : ∀ (x : EphemeralContainerCommon) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"RestartPolicy") (PairV #x #y) (Val #(({ x with RestartPolicy' := y } : EphemeralContainerCommon)))
-  get_RestartPolicyRules : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"RestartPolicyRules") #x (Val #(x.RestartPolicyRules'))
-  set_RestartPolicyRules : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"RestartPolicyRules") (PairV #x #y) (Val #(({ x with RestartPolicyRules' := y } : EphemeralContainerCommon)))
-  get_VolumeMounts : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"VolumeMounts") #x (Val #(x.VolumeMounts'))
-  set_VolumeMounts : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"VolumeMounts") (PairV #x #y) (Val #(({ x with VolumeMounts' := y } : EphemeralContainerCommon)))
-  get_VolumeDevices : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"VolumeDevices") #x (Val #(x.VolumeDevices'))
-  set_VolumeDevices : ∀ (x : EphemeralContainerCommon) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"VolumeDevices") (PairV #x #y) (Val #(({ x with VolumeDevices' := y } : EphemeralContainerCommon)))
-  get_LivenessProbe : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"LivenessProbe") #x (Val #(x.LivenessProbe'))
-  set_LivenessProbe : ∀ (x : EphemeralContainerCommon) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"LivenessProbe") (PairV #x #y) (Val #(({ x with LivenessProbe' := y } : EphemeralContainerCommon)))
-  get_ReadinessProbe : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"ReadinessProbe") #x (Val #(x.ReadinessProbe'))
-  set_ReadinessProbe : ∀ (x : EphemeralContainerCommon) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"ReadinessProbe") (PairV #x #y) (Val #(({ x with ReadinessProbe' := y } : EphemeralContainerCommon)))
-  get_StartupProbe : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"StartupProbe") #x (Val #(x.StartupProbe'))
-  set_StartupProbe : ∀ (x : EphemeralContainerCommon) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"StartupProbe") (PairV #x #y) (Val #(({ x with StartupProbe' := y } : EphemeralContainerCommon)))
-  get_Lifecycle : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Lifecycle") #x (Val #(x.Lifecycle'))
-  set_Lifecycle : ∀ (x : EphemeralContainerCommon) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Lifecycle") (PairV #x #y) (Val #(({ x with Lifecycle' := y } : EphemeralContainerCommon)))
-  get_TerminationMessagePath : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"TerminationMessagePath") #x (Val #(x.TerminationMessagePath'))
-  set_TerminationMessagePath : ∀ (x : EphemeralContainerCommon) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"TerminationMessagePath") (PairV #x #y) (Val #(({ x with TerminationMessagePath' := y } : EphemeralContainerCommon)))
-  get_TerminationMessagePolicy : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"TerminationMessagePolicy") #x (Val #(x.TerminationMessagePolicy'))
-  set_TerminationMessagePolicy : ∀ (x : EphemeralContainerCommon) (y : TerminationMessagePolicy), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"TerminationMessagePolicy") (PairV #x #y) (Val #(({ x with TerminationMessagePolicy' := y } : EphemeralContainerCommon)))
-  get_ImagePullPolicy : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"ImagePullPolicy") #x (Val #(x.ImagePullPolicy'))
-  set_ImagePullPolicy : ∀ (x : EphemeralContainerCommon) (y : PullPolicy), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"ImagePullPolicy") (PairV #x #y) (Val #(({ x with ImagePullPolicy' := y } : EphemeralContainerCommon)))
-  get_SecurityContext : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"SecurityContext") #x (Val #(x.SecurityContext'))
-  set_SecurityContext : ∀ (x : EphemeralContainerCommon) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"SecurityContext") (PairV #x #y) (Val #(({ x with SecurityContext' := y } : EphemeralContainerCommon)))
-  get_Stdin : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"Stdin") #x (Val #(x.Stdin'))
-  set_Stdin : ∀ (x : EphemeralContainerCommon) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"Stdin") (PairV #x #y) (Val #(({ x with Stdin' := y } : EphemeralContainerCommon)))
-  get_StdinOnce : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"StdinOnce") #x (Val #(x.StdinOnce'))
-  set_StdinOnce : ∀ (x : EphemeralContainerCommon) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"StdinOnce") (PairV #x #y) (Val #(({ x with StdinOnce' := y } : EphemeralContainerCommon)))
-  get_TTY : ∀ (x : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainerCommon.underlying go!"TTY") #x (Val #(x.TTY'))
-  set_TTY : ∀ (x : EphemeralContainerCommon) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainerCommon.underlying go!"TTY") (PairV #x #y) (Val #(({ x with TTY' := y } : EphemeralContainerCommon)))
-
-attribute [instance] EphemeralContainerCommon.TypeAssumptions.type_repr
-  EphemeralContainerCommon.TypeAssumptions.underlying
-  EphemeralContainerCommon.TypeAssumptions.get_Name
-  EphemeralContainerCommon.TypeAssumptions.set_Name
-  EphemeralContainerCommon.TypeAssumptions.get_Image
-  EphemeralContainerCommon.TypeAssumptions.set_Image
-  EphemeralContainerCommon.TypeAssumptions.get_Command
-  EphemeralContainerCommon.TypeAssumptions.set_Command
-  EphemeralContainerCommon.TypeAssumptions.get_Args
-  EphemeralContainerCommon.TypeAssumptions.set_Args
-  EphemeralContainerCommon.TypeAssumptions.get_WorkingDir
-  EphemeralContainerCommon.TypeAssumptions.set_WorkingDir
-  EphemeralContainerCommon.TypeAssumptions.get_Ports
-  EphemeralContainerCommon.TypeAssumptions.set_Ports
-  EphemeralContainerCommon.TypeAssumptions.get_EnvFrom
-  EphemeralContainerCommon.TypeAssumptions.set_EnvFrom
-  EphemeralContainerCommon.TypeAssumptions.get_Env
-  EphemeralContainerCommon.TypeAssumptions.set_Env
-  EphemeralContainerCommon.TypeAssumptions.get_Resources
-  EphemeralContainerCommon.TypeAssumptions.set_Resources
-  EphemeralContainerCommon.TypeAssumptions.get_ResizePolicy
-  EphemeralContainerCommon.TypeAssumptions.set_ResizePolicy
-  EphemeralContainerCommon.TypeAssumptions.get_RestartPolicy
-  EphemeralContainerCommon.TypeAssumptions.set_RestartPolicy
-  EphemeralContainerCommon.TypeAssumptions.get_RestartPolicyRules
-  EphemeralContainerCommon.TypeAssumptions.set_RestartPolicyRules
-  EphemeralContainerCommon.TypeAssumptions.get_VolumeMounts
-  EphemeralContainerCommon.TypeAssumptions.set_VolumeMounts
-  EphemeralContainerCommon.TypeAssumptions.get_VolumeDevices
-  EphemeralContainerCommon.TypeAssumptions.set_VolumeDevices
-  EphemeralContainerCommon.TypeAssumptions.get_LivenessProbe
-  EphemeralContainerCommon.TypeAssumptions.set_LivenessProbe
-  EphemeralContainerCommon.TypeAssumptions.get_ReadinessProbe
-  EphemeralContainerCommon.TypeAssumptions.set_ReadinessProbe
-  EphemeralContainerCommon.TypeAssumptions.get_StartupProbe
-  EphemeralContainerCommon.TypeAssumptions.set_StartupProbe
-  EphemeralContainerCommon.TypeAssumptions.get_Lifecycle
-  EphemeralContainerCommon.TypeAssumptions.set_Lifecycle
-  EphemeralContainerCommon.TypeAssumptions.get_TerminationMessagePath
-  EphemeralContainerCommon.TypeAssumptions.set_TerminationMessagePath
-  EphemeralContainerCommon.TypeAssumptions.get_TerminationMessagePolicy
-  EphemeralContainerCommon.TypeAssumptions.set_TerminationMessagePolicy
-  EphemeralContainerCommon.TypeAssumptions.get_ImagePullPolicy
-  EphemeralContainerCommon.TypeAssumptions.set_ImagePullPolicy
-  EphemeralContainerCommon.TypeAssumptions.get_SecurityContext
-  EphemeralContainerCommon.TypeAssumptions.set_SecurityContext
-  EphemeralContainerCommon.TypeAssumptions.get_Stdin
-  EphemeralContainerCommon.TypeAssumptions.set_Stdin
-  EphemeralContainerCommon.TypeAssumptions.get_StdinOnce
-  EphemeralContainerCommon.TypeAssumptions.set_StdinOnce
-  EphemeralContainerCommon.TypeAssumptions.get_TTY
-  EphemeralContainerCommon.TypeAssumptions.set_TTY
-
-class EphemeralContainer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying EphemeralContainer.underlying EphemeralContainer
-  underlying : go.UnderlyingDirectedEq EphemeralContainer.ty EphemeralContainer.underlying
-  get_EphemeralContainerCommon : ∀ (x : EphemeralContainer), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainer.underlying go!"EphemeralContainerCommon") #x (Val #(x.EphemeralContainerCommon'))
-  set_EphemeralContainerCommon : ∀ (x : EphemeralContainer) (y : EphemeralContainerCommon), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainer.underlying go!"EphemeralContainerCommon") (PairV #x #y) (Val #(({ x with EphemeralContainerCommon' := y } : EphemeralContainer)))
-  get_TargetContainerName : ∀ (x : EphemeralContainer), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralContainer.underlying go!"TargetContainerName") #x (Val #(x.TargetContainerName'))
-  set_TargetContainerName : ∀ (x : EphemeralContainer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralContainer.underlying go!"TargetContainerName") (PairV #x #y) (Val #(({ x with TargetContainerName' := y } : EphemeralContainer)))
-
-attribute [instance] EphemeralContainer.TypeAssumptions.type_repr
-  EphemeralContainer.TypeAssumptions.underlying
-  EphemeralContainer.TypeAssumptions.get_EphemeralContainerCommon
-  EphemeralContainer.TypeAssumptions.set_EphemeralContainerCommon
-  EphemeralContainer.TypeAssumptions.get_TargetContainerName
-  EphemeralContainer.TypeAssumptions.set_TargetContainerName
-
-class EvictionResponder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying EvictionResponder.underlying EvictionResponder
-  underlying : go.UnderlyingDirectedEq EvictionResponder.ty EvictionResponder.underlying
-  get_Name : ∀ (x : EvictionResponder), go.IsGoStepPureDetTagged under (StructFieldGet EvictionResponder.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : EvictionResponder) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EvictionResponder.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : EvictionResponder)))
-  get_Priority : ∀ (x : EvictionResponder), go.IsGoStepPureDetTagged under (StructFieldGet EvictionResponder.underlying go!"Priority") #x (Val #(x.Priority'))
-  set_Priority : ∀ (x : EvictionResponder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EvictionResponder.underlying go!"Priority") (PairV #x #y) (Val #(({ x with Priority' := y } : EvictionResponder)))
-
-attribute [instance] EvictionResponder.TypeAssumptions.type_repr
-  EvictionResponder.TypeAssumptions.underlying
-  EvictionResponder.TypeAssumptions.get_Name
-  EvictionResponder.TypeAssumptions.set_Name
-  EvictionResponder.TypeAssumptions.get_Priority
-  EvictionResponder.TypeAssumptions.set_Priority
-
-class PodStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PodStatus.underlying PodStatus
-  underlying : go.UnderlyingDirectedEq PodStatus.ty PodStatus.underlying
-  get_ObservedGeneration : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
-  set_ObservedGeneration : ∀ (x : PodStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : PodStatus)))
-  get_Phase : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"Phase") #x (Val #(x.Phase'))
-  set_Phase : ∀ (x : PodStatus) (y : PodPhase), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : PodStatus)))
-  get_Conditions : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
-  set_Conditions : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : PodStatus)))
-  get_Message : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : PodStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : PodStatus)))
-  get_Reason : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"Reason") #x (Val #(x.Reason'))
-  set_Reason : ∀ (x : PodStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : PodStatus)))
-  get_NominatedNodeName : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"NominatedNodeName") #x (Val #(x.NominatedNodeName'))
-  set_NominatedNodeName : ∀ (x : PodStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"NominatedNodeName") (PairV #x #y) (Val #(({ x with NominatedNodeName' := y } : PodStatus)))
-  get_HostIP : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"HostIP") #x (Val #(x.HostIP'))
-  set_HostIP : ∀ (x : PodStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"HostIP") (PairV #x #y) (Val #(({ x with HostIP' := y } : PodStatus)))
-  get_HostIPs : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"HostIPs") #x (Val #(x.HostIPs'))
-  set_HostIPs : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"HostIPs") (PairV #x #y) (Val #(({ x with HostIPs' := y } : PodStatus)))
-  get_PodIP : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"PodIP") #x (Val #(x.PodIP'))
-  set_PodIP : ∀ (x : PodStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"PodIP") (PairV #x #y) (Val #(({ x with PodIP' := y } : PodStatus)))
-  get_PodIPs : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"PodIPs") #x (Val #(x.PodIPs'))
-  set_PodIPs : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"PodIPs") (PairV #x #y) (Val #(({ x with PodIPs' := y } : PodStatus)))
-  get_StartTime : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"StartTime") #x (Val #(x.StartTime'))
-  set_StartTime : ∀ (x : PodStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"StartTime") (PairV #x #y) (Val #(({ x with StartTime' := y } : PodStatus)))
-  get_InitContainerStatuses : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"InitContainerStatuses") #x (Val #(x.InitContainerStatuses'))
-  set_InitContainerStatuses : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"InitContainerStatuses") (PairV #x #y) (Val #(({ x with InitContainerStatuses' := y } : PodStatus)))
-  get_ContainerStatuses : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"ContainerStatuses") #x (Val #(x.ContainerStatuses'))
-  set_ContainerStatuses : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"ContainerStatuses") (PairV #x #y) (Val #(({ x with ContainerStatuses' := y } : PodStatus)))
-  get_QOSClass : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"QOSClass") #x (Val #(x.QOSClass'))
-  set_QOSClass : ∀ (x : PodStatus) (y : PodQOSClass), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"QOSClass") (PairV #x #y) (Val #(({ x with QOSClass' := y } : PodStatus)))
-  get_EphemeralContainerStatuses : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"EphemeralContainerStatuses") #x (Val #(x.EphemeralContainerStatuses'))
-  set_EphemeralContainerStatuses : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"EphemeralContainerStatuses") (PairV #x #y) (Val #(({ x with EphemeralContainerStatuses' := y } : PodStatus)))
-  get_Resize : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"Resize") #x (Val #(x.Resize'))
-  set_Resize : ∀ (x : PodStatus) (y : PodResizeStatus), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"Resize") (PairV #x #y) (Val #(({ x with Resize' := y } : PodStatus)))
-  get_ResourceClaimStatuses : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"ResourceClaimStatuses") #x (Val #(x.ResourceClaimStatuses'))
-  set_ResourceClaimStatuses : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"ResourceClaimStatuses") (PairV #x #y) (Val #(({ x with ResourceClaimStatuses' := y } : PodStatus)))
-  get_ExtendedResourceClaimStatus : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"ExtendedResourceClaimStatus") #x (Val #(x.ExtendedResourceClaimStatus'))
-  set_ExtendedResourceClaimStatus : ∀ (x : PodStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"ExtendedResourceClaimStatus") (PairV #x #y) (Val #(({ x with ExtendedResourceClaimStatus' := y } : PodStatus)))
-  get_AllocatedResources : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"AllocatedResources") #x (Val #(x.AllocatedResources'))
-  set_AllocatedResources : ∀ (x : PodStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"AllocatedResources") (PairV #x #y) (Val #(({ x with AllocatedResources' := y } : PodStatus)))
-  get_Resources : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"Resources") #x (Val #(x.Resources'))
-  set_Resources : ∀ (x : PodStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"Resources") (PairV #x #y) (Val #(({ x with Resources' := y } : PodStatus)))
-  get_NodeAllocatableResourceClaimStatuses : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"NodeAllocatableResourceClaimStatuses") #x (Val #(x.NodeAllocatableResourceClaimStatuses'))
-  set_NodeAllocatableResourceClaimStatuses : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"NodeAllocatableResourceClaimStatuses") (PairV #x #y) (Val #(({ x with NodeAllocatableResourceClaimStatuses' := y } : PodStatus)))
-  get_VolumeHealth : ∀ (x : PodStatus), go.IsGoStepPureDetTagged under (StructFieldGet PodStatus.underlying go!"VolumeHealth") #x (Val #(x.VolumeHealth'))
-  set_VolumeHealth : ∀ (x : PodStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodStatus.underlying go!"VolumeHealth") (PairV #x #y) (Val #(({ x with VolumeHealth' := y } : PodStatus)))
-
-attribute [instance] PodStatus.TypeAssumptions.type_repr
-  PodStatus.TypeAssumptions.underlying
-  PodStatus.TypeAssumptions.get_ObservedGeneration
-  PodStatus.TypeAssumptions.set_ObservedGeneration
-  PodStatus.TypeAssumptions.get_Phase
-  PodStatus.TypeAssumptions.set_Phase
-  PodStatus.TypeAssumptions.get_Conditions
-  PodStatus.TypeAssumptions.set_Conditions
-  PodStatus.TypeAssumptions.get_Message
-  PodStatus.TypeAssumptions.set_Message
-  PodStatus.TypeAssumptions.get_Reason
-  PodStatus.TypeAssumptions.set_Reason
-  PodStatus.TypeAssumptions.get_NominatedNodeName
-  PodStatus.TypeAssumptions.set_NominatedNodeName
-  PodStatus.TypeAssumptions.get_HostIP
-  PodStatus.TypeAssumptions.set_HostIP
-  PodStatus.TypeAssumptions.get_HostIPs
-  PodStatus.TypeAssumptions.set_HostIPs
-  PodStatus.TypeAssumptions.get_PodIP
-  PodStatus.TypeAssumptions.set_PodIP
-  PodStatus.TypeAssumptions.get_PodIPs
-  PodStatus.TypeAssumptions.set_PodIPs
-  PodStatus.TypeAssumptions.get_StartTime
-  PodStatus.TypeAssumptions.set_StartTime
-  PodStatus.TypeAssumptions.get_InitContainerStatuses
-  PodStatus.TypeAssumptions.set_InitContainerStatuses
-  PodStatus.TypeAssumptions.get_ContainerStatuses
-  PodStatus.TypeAssumptions.set_ContainerStatuses
-  PodStatus.TypeAssumptions.get_QOSClass
-  PodStatus.TypeAssumptions.set_QOSClass
-  PodStatus.TypeAssumptions.get_EphemeralContainerStatuses
-  PodStatus.TypeAssumptions.set_EphemeralContainerStatuses
-  PodStatus.TypeAssumptions.get_Resize
-  PodStatus.TypeAssumptions.set_Resize
-  PodStatus.TypeAssumptions.get_ResourceClaimStatuses
-  PodStatus.TypeAssumptions.set_ResourceClaimStatuses
-  PodStatus.TypeAssumptions.get_ExtendedResourceClaimStatus
-  PodStatus.TypeAssumptions.set_ExtendedResourceClaimStatus
-  PodStatus.TypeAssumptions.get_AllocatedResources
-  PodStatus.TypeAssumptions.set_AllocatedResources
-  PodStatus.TypeAssumptions.get_Resources
-  PodStatus.TypeAssumptions.set_Resources
-  PodStatus.TypeAssumptions.get_NodeAllocatableResourceClaimStatuses
-  PodStatus.TypeAssumptions.set_NodeAllocatableResourceClaimStatuses
-  PodStatus.TypeAssumptions.get_VolumeHealth
-  PodStatus.TypeAssumptions.set_VolumeHealth
-
-class Pod.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Pod.underlying Pod
-  underlying : go.UnderlyingDirectedEq Pod.ty Pod.underlying
-  get_TypeMeta : ∀ (x : Pod), go.IsGoStepPureDetTagged under (StructFieldGet Pod.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : Pod) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet Pod.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : Pod)))
-  get_ObjectMeta : ∀ (x : Pod), go.IsGoStepPureDetTagged under (StructFieldGet Pod.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : Pod) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet Pod.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : Pod)))
-  get_Spec : ∀ (x : Pod), go.IsGoStepPureDetTagged under (StructFieldGet Pod.underlying go!"Spec") #x (Val #(x.Spec'))
-  set_Spec : ∀ (x : Pod) (y : PodSpec), go.IsGoStepPureDetTagged under (StructFieldSet Pod.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : Pod)))
-  get_Status : ∀ (x : Pod), go.IsGoStepPureDetTagged under (StructFieldGet Pod.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : Pod) (y : PodStatus), go.IsGoStepPureDetTagged under (StructFieldSet Pod.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : Pod)))
-  ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetAnnotations" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetAnnotations"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetCreationTimestamp" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetDeletionGracePeriodSeconds" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetDeletionTimestamp" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetFinalizers_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetFinalizers" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetFinalizers"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetGenerateName_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetGenerateName" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetGenerateName"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetGeneration_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetGeneration" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetGeneration"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetLabels_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetLabels" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetLabels"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetManagedFields_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetManagedFields" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetManagedFields"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetName" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetName"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetNamespace" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetNamespace"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetObjectKind_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetObjectKind" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty) go!"GetObjectKind"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"TypeMeta"))) (Var "$r"))))
-  ptr_GetObjectMeta_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetObjectMeta" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetObjectMeta"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetOwnerReferences" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetResourceVersion" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetSelfLink" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetSelfLink"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_GetUID_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"GetUID" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetUID"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetAnnotations_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetAnnotations" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetAnnotations"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetCreationTimestamp" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetDeletionGracePeriodSeconds" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetDeletionTimestamp" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetFinalizers_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetFinalizers" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetFinalizers"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetGenerateName_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetGenerateName" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetGenerateName"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetGeneration_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetGeneration" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetGeneration"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetGroupVersionKind_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetGroupVersionKind" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty) go!"SetGroupVersionKind"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"TypeMeta"))) (Var "$r"))))
-  ptr_SetLabels_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetLabels" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetLabels"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetManagedFields_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetManagedFields" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetManagedFields"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetName_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetName" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetName"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetNamespace_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetNamespace" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetNamespace"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetOwnerReferences" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetResourceVersion" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetSelfLink" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetSelfLink"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-  ptr_SetUID_unfold : MethodUnfold (go.GoType.PointerType Pod.ty) go!"SetUID" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetUID"))) (App (Val (GoInstruction (StructFieldRef Pod.ty go!"ObjectMeta"))) (Var "$r"))))
-
-attribute [instance] Pod.TypeAssumptions.type_repr
-  Pod.TypeAssumptions.underlying
-  Pod.TypeAssumptions.get_TypeMeta
-  Pod.TypeAssumptions.set_TypeMeta
-  Pod.TypeAssumptions.get_ObjectMeta
-  Pod.TypeAssumptions.set_ObjectMeta
-  Pod.TypeAssumptions.get_Spec
-  Pod.TypeAssumptions.set_Spec
-  Pod.TypeAssumptions.get_Status
-  Pod.TypeAssumptions.set_Status
-  Pod.TypeAssumptions.ptr_GetAnnotations_unfold
-  Pod.TypeAssumptions.ptr_GetCreationTimestamp_unfold
-  Pod.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
-  Pod.TypeAssumptions.ptr_GetDeletionTimestamp_unfold
-  Pod.TypeAssumptions.ptr_GetFinalizers_unfold
-  Pod.TypeAssumptions.ptr_GetGenerateName_unfold
-  Pod.TypeAssumptions.ptr_GetGeneration_unfold
-  Pod.TypeAssumptions.ptr_GetLabels_unfold
-  Pod.TypeAssumptions.ptr_GetManagedFields_unfold
-  Pod.TypeAssumptions.ptr_GetName_unfold
-  Pod.TypeAssumptions.ptr_GetNamespace_unfold
-  Pod.TypeAssumptions.ptr_GetObjectKind_unfold
-  Pod.TypeAssumptions.ptr_GetObjectMeta_unfold
-  Pod.TypeAssumptions.ptr_GetOwnerReferences_unfold
-  Pod.TypeAssumptions.ptr_GetResourceVersion_unfold
-  Pod.TypeAssumptions.ptr_GetSelfLink_unfold
-  Pod.TypeAssumptions.ptr_GetUID_unfold
-  Pod.TypeAssumptions.ptr_SetAnnotations_unfold
-  Pod.TypeAssumptions.ptr_SetCreationTimestamp_unfold
-  Pod.TypeAssumptions.ptr_SetDeletionGracePeriodSeconds_unfold
-  Pod.TypeAssumptions.ptr_SetDeletionTimestamp_unfold
-  Pod.TypeAssumptions.ptr_SetFinalizers_unfold
-  Pod.TypeAssumptions.ptr_SetGenerateName_unfold
-  Pod.TypeAssumptions.ptr_SetGeneration_unfold
-  Pod.TypeAssumptions.ptr_SetGroupVersionKind_unfold
-  Pod.TypeAssumptions.ptr_SetLabels_unfold
-  Pod.TypeAssumptions.ptr_SetManagedFields_unfold
-  Pod.TypeAssumptions.ptr_SetName_unfold
-  Pod.TypeAssumptions.ptr_SetNamespace_unfold
-  Pod.TypeAssumptions.ptr_SetOwnerReferences_unfold
-  Pod.TypeAssumptions.ptr_SetResourceVersion_unfold
-  Pod.TypeAssumptions.ptr_SetSelfLink_unfold
-  Pod.TypeAssumptions.ptr_SetUID_unfold
-
-class PodList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PodList.underlying PodList
-  underlying : go.UnderlyingDirectedEq PodList.ty PodList.underlying
-  get_TypeMeta : ∀ (x : PodList), go.IsGoStepPureDetTagged under (StructFieldGet PodList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : PodList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PodList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PodList)))
-  get_ListMeta : ∀ (x : PodList), go.IsGoStepPureDetTagged under (StructFieldGet PodList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : PodList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet PodList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : PodList)))
-  get_Items : ∀ (x : PodList), go.IsGoStepPureDetTagged under (StructFieldGet PodList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : PodList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : PodList)))
-
-attribute [instance] PodList.TypeAssumptions.type_repr
-  PodList.TypeAssumptions.underlying
-  PodList.TypeAssumptions.get_TypeMeta
-  PodList.TypeAssumptions.set_TypeMeta
-  PodList.TypeAssumptions.get_ListMeta
-  PodList.TypeAssumptions.set_ListMeta
-  PodList.TypeAssumptions.get_Items
-  PodList.TypeAssumptions.set_Items
-
-class PodTemplateSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PodTemplateSpec.underlying PodTemplateSpec
-  underlying : go.UnderlyingDirectedEq PodTemplateSpec.ty PodTemplateSpec.underlying
-  get_ObjectMeta : ∀ (x : PodTemplateSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodTemplateSpec.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : PodTemplateSpec) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet PodTemplateSpec.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : PodTemplateSpec)))
-  get_Spec : ∀ (x : PodTemplateSpec), go.IsGoStepPureDetTagged under (StructFieldGet PodTemplateSpec.underlying go!"Spec") #x (Val #(x.Spec'))
-  set_Spec : ∀ (x : PodTemplateSpec) (y : PodSpec), go.IsGoStepPureDetTagged under (StructFieldSet PodTemplateSpec.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : PodTemplateSpec)))
-
-attribute [instance] PodTemplateSpec.TypeAssumptions.type_repr
-  PodTemplateSpec.TypeAssumptions.underlying
-  PodTemplateSpec.TypeAssumptions.get_ObjectMeta
-  PodTemplateSpec.TypeAssumptions.set_ObjectMeta
-  PodTemplateSpec.TypeAssumptions.get_Spec
-  PodTemplateSpec.TypeAssumptions.set_Spec
-
-class PodTemplate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PodTemplate.underlying PodTemplate
-  underlying : go.UnderlyingDirectedEq PodTemplate.ty PodTemplate.underlying
-  get_TypeMeta : ∀ (x : PodTemplate), go.IsGoStepPureDetTagged under (StructFieldGet PodTemplate.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : PodTemplate) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PodTemplate.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PodTemplate)))
-  get_ObjectMeta : ∀ (x : PodTemplate), go.IsGoStepPureDetTagged under (StructFieldGet PodTemplate.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : PodTemplate) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet PodTemplate.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : PodTemplate)))
-  get_Template : ∀ (x : PodTemplate), go.IsGoStepPureDetTagged under (StructFieldGet PodTemplate.underlying go!"Template") #x (Val #(x.Template'))
-  set_Template : ∀ (x : PodTemplate) (y : PodTemplateSpec), go.IsGoStepPureDetTagged under (StructFieldSet PodTemplate.underlying go!"Template") (PairV #x #y) (Val #(({ x with Template' := y } : PodTemplate)))
-
-attribute [instance] PodTemplate.TypeAssumptions.type_repr
-  PodTemplate.TypeAssumptions.underlying
-  PodTemplate.TypeAssumptions.get_TypeMeta
-  PodTemplate.TypeAssumptions.set_TypeMeta
-  PodTemplate.TypeAssumptions.get_ObjectMeta
-  PodTemplate.TypeAssumptions.set_ObjectMeta
-  PodTemplate.TypeAssumptions.get_Template
-  PodTemplate.TypeAssumptions.set_Template
-
-class PodTemplateList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PodTemplateList.underlying PodTemplateList
-  underlying : go.UnderlyingDirectedEq PodTemplateList.ty PodTemplateList.underlying
-  get_TypeMeta : ∀ (x : PodTemplateList), go.IsGoStepPureDetTagged under (StructFieldGet PodTemplateList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : PodTemplateList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PodTemplateList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PodTemplateList)))
-  get_ListMeta : ∀ (x : PodTemplateList), go.IsGoStepPureDetTagged under (StructFieldGet PodTemplateList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : PodTemplateList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet PodTemplateList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : PodTemplateList)))
-  get_Items : ∀ (x : PodTemplateList), go.IsGoStepPureDetTagged under (StructFieldGet PodTemplateList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : PodTemplateList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodTemplateList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : PodTemplateList)))
-
-attribute [instance] PodTemplateList.TypeAssumptions.type_repr
-  PodTemplateList.TypeAssumptions.underlying
-  PodTemplateList.TypeAssumptions.get_TypeMeta
-  PodTemplateList.TypeAssumptions.set_TypeMeta
-  PodTemplateList.TypeAssumptions.get_ListMeta
-  PodTemplateList.TypeAssumptions.set_ListMeta
-  PodTemplateList.TypeAssumptions.get_Items
-  PodTemplateList.TypeAssumptions.set_Items
-
-class ReplicationControllerSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ReplicationControllerSpec.underlying ReplicationControllerSpec
-  underlying : go.UnderlyingDirectedEq ReplicationControllerSpec.ty ReplicationControllerSpec.underlying
-  get_Replicas : ∀ (x : ReplicationControllerSpec), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerSpec.underlying go!"Replicas") #x (Val #(x.Replicas'))
-  set_Replicas : ∀ (x : ReplicationControllerSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerSpec.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : ReplicationControllerSpec)))
-  get_MinReadySeconds : ∀ (x : ReplicationControllerSpec), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerSpec.underlying go!"MinReadySeconds") #x (Val #(x.MinReadySeconds'))
-  set_MinReadySeconds : ∀ (x : ReplicationControllerSpec) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerSpec.underlying go!"MinReadySeconds") (PairV #x #y) (Val #(({ x with MinReadySeconds' := y } : ReplicationControllerSpec)))
-  get_Selector : ∀ (x : ReplicationControllerSpec), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerSpec.underlying go!"Selector") #x (Val #(x.Selector'))
-  set_Selector : ∀ (x : ReplicationControllerSpec) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerSpec.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : ReplicationControllerSpec)))
-  get_Template : ∀ (x : ReplicationControllerSpec), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerSpec.underlying go!"Template") #x (Val #(x.Template'))
-  set_Template : ∀ (x : ReplicationControllerSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerSpec.underlying go!"Template") (PairV #x #y) (Val #(({ x with Template' := y } : ReplicationControllerSpec)))
-
-attribute [instance] ReplicationControllerSpec.TypeAssumptions.type_repr
-  ReplicationControllerSpec.TypeAssumptions.underlying
-  ReplicationControllerSpec.TypeAssumptions.get_Replicas
-  ReplicationControllerSpec.TypeAssumptions.set_Replicas
-  ReplicationControllerSpec.TypeAssumptions.get_MinReadySeconds
-  ReplicationControllerSpec.TypeAssumptions.set_MinReadySeconds
-  ReplicationControllerSpec.TypeAssumptions.get_Selector
-  ReplicationControllerSpec.TypeAssumptions.set_Selector
-  ReplicationControllerSpec.TypeAssumptions.get_Template
-  ReplicationControllerSpec.TypeAssumptions.set_Template
-
-class ReplicationControllerStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ReplicationControllerStatus.underlying ReplicationControllerStatus
-  underlying : go.UnderlyingDirectedEq ReplicationControllerStatus.ty ReplicationControllerStatus.underlying
-  get_Replicas : ∀ (x : ReplicationControllerStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerStatus.underlying go!"Replicas") #x (Val #(x.Replicas'))
-  set_Replicas : ∀ (x : ReplicationControllerStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerStatus.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : ReplicationControllerStatus)))
-  get_FullyLabeledReplicas : ∀ (x : ReplicationControllerStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerStatus.underlying go!"FullyLabeledReplicas") #x (Val #(x.FullyLabeledReplicas'))
-  set_FullyLabeledReplicas : ∀ (x : ReplicationControllerStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerStatus.underlying go!"FullyLabeledReplicas") (PairV #x #y) (Val #(({ x with FullyLabeledReplicas' := y } : ReplicationControllerStatus)))
-  get_ReadyReplicas : ∀ (x : ReplicationControllerStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerStatus.underlying go!"ReadyReplicas") #x (Val #(x.ReadyReplicas'))
-  set_ReadyReplicas : ∀ (x : ReplicationControllerStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerStatus.underlying go!"ReadyReplicas") (PairV #x #y) (Val #(({ x with ReadyReplicas' := y } : ReplicationControllerStatus)))
-  get_AvailableReplicas : ∀ (x : ReplicationControllerStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerStatus.underlying go!"AvailableReplicas") #x (Val #(x.AvailableReplicas'))
-  set_AvailableReplicas : ∀ (x : ReplicationControllerStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerStatus.underlying go!"AvailableReplicas") (PairV #x #y) (Val #(({ x with AvailableReplicas' := y } : ReplicationControllerStatus)))
-  get_ObservedGeneration : ∀ (x : ReplicationControllerStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
-  set_ObservedGeneration : ∀ (x : ReplicationControllerStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : ReplicationControllerStatus)))
-  get_Conditions : ∀ (x : ReplicationControllerStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
-  set_Conditions : ∀ (x : ReplicationControllerStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : ReplicationControllerStatus)))
-
-attribute [instance] ReplicationControllerStatus.TypeAssumptions.type_repr
-  ReplicationControllerStatus.TypeAssumptions.underlying
-  ReplicationControllerStatus.TypeAssumptions.get_Replicas
-  ReplicationControllerStatus.TypeAssumptions.set_Replicas
-  ReplicationControllerStatus.TypeAssumptions.get_FullyLabeledReplicas
-  ReplicationControllerStatus.TypeAssumptions.set_FullyLabeledReplicas
-  ReplicationControllerStatus.TypeAssumptions.get_ReadyReplicas
-  ReplicationControllerStatus.TypeAssumptions.set_ReadyReplicas
-  ReplicationControllerStatus.TypeAssumptions.get_AvailableReplicas
-  ReplicationControllerStatus.TypeAssumptions.set_AvailableReplicas
-  ReplicationControllerStatus.TypeAssumptions.get_ObservedGeneration
-  ReplicationControllerStatus.TypeAssumptions.set_ObservedGeneration
-  ReplicationControllerStatus.TypeAssumptions.get_Conditions
-  ReplicationControllerStatus.TypeAssumptions.set_Conditions
-
-class ReplicationControllerConditionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ReplicationControllerConditionType.ty ReplicationControllerConditionType.underlying
-
-attribute [instance] ReplicationControllerConditionType.TypeAssumptions.underlying
-
-class ReplicationControllerCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ReplicationControllerCondition.underlying ReplicationControllerCondition
-  underlying : go.UnderlyingDirectedEq ReplicationControllerCondition.ty ReplicationControllerCondition.underlying
-  get_Type : ∀ (x : ReplicationControllerCondition), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerCondition.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : ReplicationControllerCondition) (y : ReplicationControllerConditionType), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerCondition.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : ReplicationControllerCondition)))
-  get_Status : ∀ (x : ReplicationControllerCondition), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerCondition.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : ReplicationControllerCondition) (y : ConditionStatus), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerCondition.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : ReplicationControllerCondition)))
-  get_LastTransitionTime : ∀ (x : ReplicationControllerCondition), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerCondition.underlying go!"LastTransitionTime") #x (Val #(x.LastTransitionTime'))
-  set_LastTransitionTime : ∀ (x : ReplicationControllerCondition) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerCondition.underlying go!"LastTransitionTime") (PairV #x #y) (Val #(({ x with LastTransitionTime' := y } : ReplicationControllerCondition)))
-  get_Reason : ∀ (x : ReplicationControllerCondition), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerCondition.underlying go!"Reason") #x (Val #(x.Reason'))
-  set_Reason : ∀ (x : ReplicationControllerCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : ReplicationControllerCondition)))
-  get_Message : ∀ (x : ReplicationControllerCondition), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerCondition.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : ReplicationControllerCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ReplicationControllerCondition)))
-
-attribute [instance] ReplicationControllerCondition.TypeAssumptions.type_repr
-  ReplicationControllerCondition.TypeAssumptions.underlying
-  ReplicationControllerCondition.TypeAssumptions.get_Type
-  ReplicationControllerCondition.TypeAssumptions.set_Type
-  ReplicationControllerCondition.TypeAssumptions.get_Status
-  ReplicationControllerCondition.TypeAssumptions.set_Status
-  ReplicationControllerCondition.TypeAssumptions.get_LastTransitionTime
-  ReplicationControllerCondition.TypeAssumptions.set_LastTransitionTime
-  ReplicationControllerCondition.TypeAssumptions.get_Reason
-  ReplicationControllerCondition.TypeAssumptions.set_Reason
-  ReplicationControllerCondition.TypeAssumptions.get_Message
-  ReplicationControllerCondition.TypeAssumptions.set_Message
-
-class ReplicationController.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ReplicationController.underlying ReplicationController
-  underlying : go.UnderlyingDirectedEq ReplicationController.ty ReplicationController.underlying
-  get_TypeMeta : ∀ (x : ReplicationController), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationController.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : ReplicationController) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationController.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ReplicationController)))
-  get_ObjectMeta : ∀ (x : ReplicationController), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationController.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : ReplicationController) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationController.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : ReplicationController)))
-  get_Spec : ∀ (x : ReplicationController), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationController.underlying go!"Spec") #x (Val #(x.Spec'))
-  set_Spec : ∀ (x : ReplicationController) (y : ReplicationControllerSpec), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationController.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : ReplicationController)))
-  get_Status : ∀ (x : ReplicationController), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationController.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : ReplicationController) (y : ReplicationControllerStatus), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationController.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : ReplicationController)))
-
-attribute [instance] ReplicationController.TypeAssumptions.type_repr
-  ReplicationController.TypeAssumptions.underlying
-  ReplicationController.TypeAssumptions.get_TypeMeta
-  ReplicationController.TypeAssumptions.set_TypeMeta
-  ReplicationController.TypeAssumptions.get_ObjectMeta
-  ReplicationController.TypeAssumptions.set_ObjectMeta
-  ReplicationController.TypeAssumptions.get_Spec
-  ReplicationController.TypeAssumptions.set_Spec
-  ReplicationController.TypeAssumptions.get_Status
-  ReplicationController.TypeAssumptions.set_Status
-
-class ReplicationControllerList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ReplicationControllerList.underlying ReplicationControllerList
-  underlying : go.UnderlyingDirectedEq ReplicationControllerList.ty ReplicationControllerList.underlying
-  get_TypeMeta : ∀ (x : ReplicationControllerList), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : ReplicationControllerList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ReplicationControllerList)))
-  get_ListMeta : ∀ (x : ReplicationControllerList), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : ReplicationControllerList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : ReplicationControllerList)))
-  get_Items : ∀ (x : ReplicationControllerList), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationControllerList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : ReplicationControllerList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationControllerList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ReplicationControllerList)))
-
-attribute [instance] ReplicationControllerList.TypeAssumptions.type_repr
-  ReplicationControllerList.TypeAssumptions.underlying
-  ReplicationControllerList.TypeAssumptions.get_TypeMeta
-  ReplicationControllerList.TypeAssumptions.set_TypeMeta
-  ReplicationControllerList.TypeAssumptions.get_ListMeta
-  ReplicationControllerList.TypeAssumptions.set_ListMeta
-  ReplicationControllerList.TypeAssumptions.get_Items
-  ReplicationControllerList.TypeAssumptions.set_Items
-
-class ServiceAffinity.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ServiceAffinity.ty ServiceAffinity.underlying
-
-attribute [instance] ServiceAffinity.TypeAssumptions.underlying
-
-class SessionAffinityConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying SessionAffinityConfig.underlying SessionAffinityConfig
-  underlying : go.UnderlyingDirectedEq SessionAffinityConfig.ty SessionAffinityConfig.underlying
-  get_ClientIP : ∀ (x : SessionAffinityConfig), go.IsGoStepPureDetTagged under (StructFieldGet SessionAffinityConfig.underlying go!"ClientIP") #x (Val #(x.ClientIP'))
-  set_ClientIP : ∀ (x : SessionAffinityConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SessionAffinityConfig.underlying go!"ClientIP") (PairV #x #y) (Val #(({ x with ClientIP' := y } : SessionAffinityConfig)))
-
-attribute [instance] SessionAffinityConfig.TypeAssumptions.type_repr
-  SessionAffinityConfig.TypeAssumptions.underlying
-  SessionAffinityConfig.TypeAssumptions.get_ClientIP
-  SessionAffinityConfig.TypeAssumptions.set_ClientIP
-
-class ClientIPConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ClientIPConfig.underlying ClientIPConfig
-  underlying : go.UnderlyingDirectedEq ClientIPConfig.ty ClientIPConfig.underlying
-  get_TimeoutSeconds : ∀ (x : ClientIPConfig), go.IsGoStepPureDetTagged under (StructFieldGet ClientIPConfig.underlying go!"TimeoutSeconds") #x (Val #(x.TimeoutSeconds'))
-  set_TimeoutSeconds : ∀ (x : ClientIPConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientIPConfig.underlying go!"TimeoutSeconds") (PairV #x #y) (Val #(({ x with TimeoutSeconds' := y } : ClientIPConfig)))
-
-attribute [instance] ClientIPConfig.TypeAssumptions.type_repr
-  ClientIPConfig.TypeAssumptions.underlying
-  ClientIPConfig.TypeAssumptions.get_TimeoutSeconds
-  ClientIPConfig.TypeAssumptions.set_TimeoutSeconds
-
-class ServiceType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ServiceType.ty ServiceType.underlying
-
-attribute [instance] ServiceType.TypeAssumptions.underlying
-
-class ServiceInternalTrafficPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ServiceInternalTrafficPolicy.ty ServiceInternalTrafficPolicy.underlying
-
-attribute [instance] ServiceInternalTrafficPolicy.TypeAssumptions.underlying
-
-class ServiceExternalTrafficPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ServiceExternalTrafficPolicy.ty ServiceExternalTrafficPolicy.underlying
-
-attribute [instance] ServiceExternalTrafficPolicy.TypeAssumptions.underlying
-
-class LoadBalancerStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying LoadBalancerStatus.underlying LoadBalancerStatus
-  underlying : go.UnderlyingDirectedEq LoadBalancerStatus.ty LoadBalancerStatus.underlying
-  get_Ingress : ∀ (x : LoadBalancerStatus), go.IsGoStepPureDetTagged under (StructFieldGet LoadBalancerStatus.underlying go!"Ingress") #x (Val #(x.Ingress'))
-  set_Ingress : ∀ (x : LoadBalancerStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LoadBalancerStatus.underlying go!"Ingress") (PairV #x #y) (Val #(({ x with Ingress' := y } : LoadBalancerStatus)))
-
-attribute [instance] LoadBalancerStatus.TypeAssumptions.type_repr
-  LoadBalancerStatus.TypeAssumptions.underlying
-  LoadBalancerStatus.TypeAssumptions.get_Ingress
-  LoadBalancerStatus.TypeAssumptions.set_Ingress
-
-class ServiceStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ServiceStatus.underlying ServiceStatus
-  underlying : go.UnderlyingDirectedEq ServiceStatus.ty ServiceStatus.underlying
-  get_LoadBalancer : ∀ (x : ServiceStatus), go.IsGoStepPureDetTagged under (StructFieldGet ServiceStatus.underlying go!"LoadBalancer") #x (Val #(x.LoadBalancer'))
-  set_LoadBalancer : ∀ (x : ServiceStatus) (y : LoadBalancerStatus), go.IsGoStepPureDetTagged under (StructFieldSet ServiceStatus.underlying go!"LoadBalancer") (PairV #x #y) (Val #(({ x with LoadBalancer' := y } : ServiceStatus)))
-  get_Conditions : ∀ (x : ServiceStatus), go.IsGoStepPureDetTagged under (StructFieldGet ServiceStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
-  set_Conditions : ∀ (x : ServiceStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : ServiceStatus)))
-
-attribute [instance] ServiceStatus.TypeAssumptions.type_repr
-  ServiceStatus.TypeAssumptions.underlying
-  ServiceStatus.TypeAssumptions.get_LoadBalancer
-  ServiceStatus.TypeAssumptions.set_LoadBalancer
-  ServiceStatus.TypeAssumptions.get_Conditions
-  ServiceStatus.TypeAssumptions.set_Conditions
-
-class LoadBalancerIngress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying LoadBalancerIngress.underlying LoadBalancerIngress
-  underlying : go.UnderlyingDirectedEq LoadBalancerIngress.ty LoadBalancerIngress.underlying
-  get_IP : ∀ (x : LoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet LoadBalancerIngress.underlying go!"IP") #x (Val #(x.IP'))
-  set_IP : ∀ (x : LoadBalancerIngress) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LoadBalancerIngress.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : LoadBalancerIngress)))
-  get_Hostname : ∀ (x : LoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet LoadBalancerIngress.underlying go!"Hostname") #x (Val #(x.Hostname'))
-  set_Hostname : ∀ (x : LoadBalancerIngress) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LoadBalancerIngress.underlying go!"Hostname") (PairV #x #y) (Val #(({ x with Hostname' := y } : LoadBalancerIngress)))
-  get_IPMode : ∀ (x : LoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet LoadBalancerIngress.underlying go!"IPMode") #x (Val #(x.IPMode'))
-  set_IPMode : ∀ (x : LoadBalancerIngress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LoadBalancerIngress.underlying go!"IPMode") (PairV #x #y) (Val #(({ x with IPMode' := y } : LoadBalancerIngress)))
-  get_Ports : ∀ (x : LoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet LoadBalancerIngress.underlying go!"Ports") #x (Val #(x.Ports'))
-  set_Ports : ∀ (x : LoadBalancerIngress) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LoadBalancerIngress.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : LoadBalancerIngress)))
-
-attribute [instance] LoadBalancerIngress.TypeAssumptions.type_repr
-  LoadBalancerIngress.TypeAssumptions.underlying
-  LoadBalancerIngress.TypeAssumptions.get_IP
-  LoadBalancerIngress.TypeAssumptions.set_IP
-  LoadBalancerIngress.TypeAssumptions.get_Hostname
-  LoadBalancerIngress.TypeAssumptions.set_Hostname
-  LoadBalancerIngress.TypeAssumptions.get_IPMode
-  LoadBalancerIngress.TypeAssumptions.set_IPMode
-  LoadBalancerIngress.TypeAssumptions.get_Ports
-  LoadBalancerIngress.TypeAssumptions.set_Ports
-
-class IPFamily.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq IPFamily.ty IPFamily.underlying
-
-attribute [instance] IPFamily.TypeAssumptions.underlying
-
-class IPFamilyPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq IPFamilyPolicy.ty IPFamilyPolicy.underlying
-
-attribute [instance] IPFamilyPolicy.TypeAssumptions.underlying
-
-class ServiceSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ServiceSpec.underlying ServiceSpec
-  underlying : go.UnderlyingDirectedEq ServiceSpec.ty ServiceSpec.underlying
-  get_Ports : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"Ports") #x (Val #(x.Ports'))
-  set_Ports : ∀ (x : ServiceSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : ServiceSpec)))
-  get_Selector : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"Selector") #x (Val #(x.Selector'))
-  set_Selector : ∀ (x : ServiceSpec) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : ServiceSpec)))
-  get_ClusterIP : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"ClusterIP") #x (Val #(x.ClusterIP'))
-  set_ClusterIP : ∀ (x : ServiceSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"ClusterIP") (PairV #x #y) (Val #(({ x with ClusterIP' := y } : ServiceSpec)))
-  get_ClusterIPs : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"ClusterIPs") #x (Val #(x.ClusterIPs'))
-  set_ClusterIPs : ∀ (x : ServiceSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"ClusterIPs") (PairV #x #y) (Val #(({ x with ClusterIPs' := y } : ServiceSpec)))
-  get_Type : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : ServiceSpec) (y : ServiceType), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : ServiceSpec)))
-  get_ExternalIPs : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"ExternalIPs") #x (Val #(x.ExternalIPs'))
-  set_ExternalIPs : ∀ (x : ServiceSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"ExternalIPs") (PairV #x #y) (Val #(({ x with ExternalIPs' := y } : ServiceSpec)))
-  get_SessionAffinity : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"SessionAffinity") #x (Val #(x.SessionAffinity'))
-  set_SessionAffinity : ∀ (x : ServiceSpec) (y : ServiceAffinity), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"SessionAffinity") (PairV #x #y) (Val #(({ x with SessionAffinity' := y } : ServiceSpec)))
-  get_LoadBalancerIP : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"LoadBalancerIP") #x (Val #(x.LoadBalancerIP'))
-  set_LoadBalancerIP : ∀ (x : ServiceSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"LoadBalancerIP") (PairV #x #y) (Val #(({ x with LoadBalancerIP' := y } : ServiceSpec)))
-  get_LoadBalancerSourceRanges : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"LoadBalancerSourceRanges") #x (Val #(x.LoadBalancerSourceRanges'))
-  set_LoadBalancerSourceRanges : ∀ (x : ServiceSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"LoadBalancerSourceRanges") (PairV #x #y) (Val #(({ x with LoadBalancerSourceRanges' := y } : ServiceSpec)))
-  get_ExternalName : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"ExternalName") #x (Val #(x.ExternalName'))
-  set_ExternalName : ∀ (x : ServiceSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"ExternalName") (PairV #x #y) (Val #(({ x with ExternalName' := y } : ServiceSpec)))
-  get_ExternalTrafficPolicy : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"ExternalTrafficPolicy") #x (Val #(x.ExternalTrafficPolicy'))
-  set_ExternalTrafficPolicy : ∀ (x : ServiceSpec) (y : ServiceExternalTrafficPolicy), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"ExternalTrafficPolicy") (PairV #x #y) (Val #(({ x with ExternalTrafficPolicy' := y } : ServiceSpec)))
-  get_HealthCheckNodePort : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"HealthCheckNodePort") #x (Val #(x.HealthCheckNodePort'))
-  set_HealthCheckNodePort : ∀ (x : ServiceSpec) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"HealthCheckNodePort") (PairV #x #y) (Val #(({ x with HealthCheckNodePort' := y } : ServiceSpec)))
-  get_PublishNotReadyAddresses : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"PublishNotReadyAddresses") #x (Val #(x.PublishNotReadyAddresses'))
-  set_PublishNotReadyAddresses : ∀ (x : ServiceSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"PublishNotReadyAddresses") (PairV #x #y) (Val #(({ x with PublishNotReadyAddresses' := y } : ServiceSpec)))
-  get_SessionAffinityConfig : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"SessionAffinityConfig") #x (Val #(x.SessionAffinityConfig'))
-  set_SessionAffinityConfig : ∀ (x : ServiceSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"SessionAffinityConfig") (PairV #x #y) (Val #(({ x with SessionAffinityConfig' := y } : ServiceSpec)))
-  get_IPFamilies : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"IPFamilies") #x (Val #(x.IPFamilies'))
-  set_IPFamilies : ∀ (x : ServiceSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"IPFamilies") (PairV #x #y) (Val #(({ x with IPFamilies' := y } : ServiceSpec)))
-  get_IPFamilyPolicy : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"IPFamilyPolicy") #x (Val #(x.IPFamilyPolicy'))
-  set_IPFamilyPolicy : ∀ (x : ServiceSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"IPFamilyPolicy") (PairV #x #y) (Val #(({ x with IPFamilyPolicy' := y } : ServiceSpec)))
-  get_AllocateLoadBalancerNodePorts : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"AllocateLoadBalancerNodePorts") #x (Val #(x.AllocateLoadBalancerNodePorts'))
-  set_AllocateLoadBalancerNodePorts : ∀ (x : ServiceSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"AllocateLoadBalancerNodePorts") (PairV #x #y) (Val #(({ x with AllocateLoadBalancerNodePorts' := y } : ServiceSpec)))
-  get_LoadBalancerClass : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"LoadBalancerClass") #x (Val #(x.LoadBalancerClass'))
-  set_LoadBalancerClass : ∀ (x : ServiceSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"LoadBalancerClass") (PairV #x #y) (Val #(({ x with LoadBalancerClass' := y } : ServiceSpec)))
-  get_InternalTrafficPolicy : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"InternalTrafficPolicy") #x (Val #(x.InternalTrafficPolicy'))
-  set_InternalTrafficPolicy : ∀ (x : ServiceSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"InternalTrafficPolicy") (PairV #x #y) (Val #(({ x with InternalTrafficPolicy' := y } : ServiceSpec)))
-  get_TrafficDistribution : ∀ (x : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldGet ServiceSpec.underlying go!"TrafficDistribution") #x (Val #(x.TrafficDistribution'))
-  set_TrafficDistribution : ∀ (x : ServiceSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServiceSpec.underlying go!"TrafficDistribution") (PairV #x #y) (Val #(({ x with TrafficDistribution' := y } : ServiceSpec)))
-
-attribute [instance] ServiceSpec.TypeAssumptions.type_repr
-  ServiceSpec.TypeAssumptions.underlying
-  ServiceSpec.TypeAssumptions.get_Ports
-  ServiceSpec.TypeAssumptions.set_Ports
-  ServiceSpec.TypeAssumptions.get_Selector
-  ServiceSpec.TypeAssumptions.set_Selector
-  ServiceSpec.TypeAssumptions.get_ClusterIP
-  ServiceSpec.TypeAssumptions.set_ClusterIP
-  ServiceSpec.TypeAssumptions.get_ClusterIPs
-  ServiceSpec.TypeAssumptions.set_ClusterIPs
-  ServiceSpec.TypeAssumptions.get_Type
-  ServiceSpec.TypeAssumptions.set_Type
-  ServiceSpec.TypeAssumptions.get_ExternalIPs
-  ServiceSpec.TypeAssumptions.set_ExternalIPs
-  ServiceSpec.TypeAssumptions.get_SessionAffinity
-  ServiceSpec.TypeAssumptions.set_SessionAffinity
-  ServiceSpec.TypeAssumptions.get_LoadBalancerIP
-  ServiceSpec.TypeAssumptions.set_LoadBalancerIP
-  ServiceSpec.TypeAssumptions.get_LoadBalancerSourceRanges
-  ServiceSpec.TypeAssumptions.set_LoadBalancerSourceRanges
-  ServiceSpec.TypeAssumptions.get_ExternalName
-  ServiceSpec.TypeAssumptions.set_ExternalName
-  ServiceSpec.TypeAssumptions.get_ExternalTrafficPolicy
-  ServiceSpec.TypeAssumptions.set_ExternalTrafficPolicy
-  ServiceSpec.TypeAssumptions.get_HealthCheckNodePort
-  ServiceSpec.TypeAssumptions.set_HealthCheckNodePort
-  ServiceSpec.TypeAssumptions.get_PublishNotReadyAddresses
-  ServiceSpec.TypeAssumptions.set_PublishNotReadyAddresses
-  ServiceSpec.TypeAssumptions.get_SessionAffinityConfig
-  ServiceSpec.TypeAssumptions.set_SessionAffinityConfig
-  ServiceSpec.TypeAssumptions.get_IPFamilies
-  ServiceSpec.TypeAssumptions.set_IPFamilies
-  ServiceSpec.TypeAssumptions.get_IPFamilyPolicy
-  ServiceSpec.TypeAssumptions.set_IPFamilyPolicy
-  ServiceSpec.TypeAssumptions.get_AllocateLoadBalancerNodePorts
-  ServiceSpec.TypeAssumptions.set_AllocateLoadBalancerNodePorts
-  ServiceSpec.TypeAssumptions.get_LoadBalancerClass
-  ServiceSpec.TypeAssumptions.set_LoadBalancerClass
-  ServiceSpec.TypeAssumptions.get_InternalTrafficPolicy
-  ServiceSpec.TypeAssumptions.set_InternalTrafficPolicy
-  ServiceSpec.TypeAssumptions.get_TrafficDistribution
-  ServiceSpec.TypeAssumptions.set_TrafficDistribution
-
-class ServicePort.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ServicePort.underlying ServicePort
-  underlying : go.UnderlyingDirectedEq ServicePort.ty ServicePort.underlying
-  get_Name : ∀ (x : ServicePort), go.IsGoStepPureDetTagged under (StructFieldGet ServicePort.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : ServicePort) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServicePort.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ServicePort)))
-  get_Protocol : ∀ (x : ServicePort), go.IsGoStepPureDetTagged under (StructFieldGet ServicePort.underlying go!"Protocol") #x (Val #(x.Protocol'))
-  set_Protocol : ∀ (x : ServicePort) (y : Protocol), go.IsGoStepPureDetTagged under (StructFieldSet ServicePort.underlying go!"Protocol") (PairV #x #y) (Val #(({ x with Protocol' := y } : ServicePort)))
-  get_AppProtocol : ∀ (x : ServicePort), go.IsGoStepPureDetTagged under (StructFieldGet ServicePort.underlying go!"AppProtocol") #x (Val #(x.AppProtocol'))
-  set_AppProtocol : ∀ (x : ServicePort) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServicePort.underlying go!"AppProtocol") (PairV #x #y) (Val #(({ x with AppProtocol' := y } : ServicePort)))
-  get_Port : ∀ (x : ServicePort), go.IsGoStepPureDetTagged under (StructFieldGet ServicePort.underlying go!"Port") #x (Val #(x.Port'))
-  set_Port : ∀ (x : ServicePort) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ServicePort.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : ServicePort)))
-  get_TargetPort : ∀ (x : ServicePort), go.IsGoStepPureDetTagged under (StructFieldGet ServicePort.underlying go!"TargetPort") #x (Val #(x.TargetPort'))
-  set_TargetPort : ∀ (x : ServicePort) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString), go.IsGoStepPureDetTagged under (StructFieldSet ServicePort.underlying go!"TargetPort") (PairV #x #y) (Val #(({ x with TargetPort' := y } : ServicePort)))
-  get_NodePort : ∀ (x : ServicePort), go.IsGoStepPureDetTagged under (StructFieldGet ServicePort.underlying go!"NodePort") #x (Val #(x.NodePort'))
-  set_NodePort : ∀ (x : ServicePort) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ServicePort.underlying go!"NodePort") (PairV #x #y) (Val #(({ x with NodePort' := y } : ServicePort)))
-
-attribute [instance] ServicePort.TypeAssumptions.type_repr
-  ServicePort.TypeAssumptions.underlying
-  ServicePort.TypeAssumptions.get_Name
-  ServicePort.TypeAssumptions.set_Name
-  ServicePort.TypeAssumptions.get_Protocol
-  ServicePort.TypeAssumptions.set_Protocol
-  ServicePort.TypeAssumptions.get_AppProtocol
-  ServicePort.TypeAssumptions.set_AppProtocol
-  ServicePort.TypeAssumptions.get_Port
-  ServicePort.TypeAssumptions.set_Port
-  ServicePort.TypeAssumptions.get_TargetPort
-  ServicePort.TypeAssumptions.set_TargetPort
-  ServicePort.TypeAssumptions.get_NodePort
-  ServicePort.TypeAssumptions.set_NodePort
-
-class Service.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Service.underlying Service
-  underlying : go.UnderlyingDirectedEq Service.ty Service.underlying
-  get_TypeMeta : ∀ (x : Service), go.IsGoStepPureDetTagged under (StructFieldGet Service.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : Service) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet Service.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : Service)))
-  get_ObjectMeta : ∀ (x : Service), go.IsGoStepPureDetTagged under (StructFieldGet Service.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : Service) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet Service.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : Service)))
-  get_Spec : ∀ (x : Service), go.IsGoStepPureDetTagged under (StructFieldGet Service.underlying go!"Spec") #x (Val #(x.Spec'))
-  set_Spec : ∀ (x : Service) (y : ServiceSpec), go.IsGoStepPureDetTagged under (StructFieldSet Service.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : Service)))
-  get_Status : ∀ (x : Service), go.IsGoStepPureDetTagged under (StructFieldGet Service.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : Service) (y : ServiceStatus), go.IsGoStepPureDetTagged under (StructFieldSet Service.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : Service)))
-
-attribute [instance] Service.TypeAssumptions.type_repr
-  Service.TypeAssumptions.underlying
-  Service.TypeAssumptions.get_TypeMeta
-  Service.TypeAssumptions.set_TypeMeta
-  Service.TypeAssumptions.get_ObjectMeta
-  Service.TypeAssumptions.set_ObjectMeta
-  Service.TypeAssumptions.get_Spec
-  Service.TypeAssumptions.set_Spec
-  Service.TypeAssumptions.get_Status
-  Service.TypeAssumptions.set_Status
-
-class ServiceList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ServiceList.underlying ServiceList
-  underlying : go.UnderlyingDirectedEq ServiceList.ty ServiceList.underlying
-  get_TypeMeta : ∀ (x : ServiceList), go.IsGoStepPureDetTagged under (StructFieldGet ServiceList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : ServiceList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ServiceList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ServiceList)))
-  get_ListMeta : ∀ (x : ServiceList), go.IsGoStepPureDetTagged under (StructFieldGet ServiceList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : ServiceList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet ServiceList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : ServiceList)))
-  get_Items : ∀ (x : ServiceList), go.IsGoStepPureDetTagged under (StructFieldGet ServiceList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : ServiceList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ServiceList)))
-
-attribute [instance] ServiceList.TypeAssumptions.type_repr
-  ServiceList.TypeAssumptions.underlying
-  ServiceList.TypeAssumptions.get_TypeMeta
-  ServiceList.TypeAssumptions.set_TypeMeta
-  ServiceList.TypeAssumptions.get_ListMeta
-  ServiceList.TypeAssumptions.set_ListMeta
-  ServiceList.TypeAssumptions.get_Items
-  ServiceList.TypeAssumptions.set_Items
-
-class ServiceAccount.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ServiceAccount.underlying ServiceAccount
-  underlying : go.UnderlyingDirectedEq ServiceAccount.ty ServiceAccount.underlying
-  get_TypeMeta : ∀ (x : ServiceAccount), go.IsGoStepPureDetTagged under (StructFieldGet ServiceAccount.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : ServiceAccount) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ServiceAccount.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ServiceAccount)))
-  get_ObjectMeta : ∀ (x : ServiceAccount), go.IsGoStepPureDetTagged under (StructFieldGet ServiceAccount.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : ServiceAccount) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet ServiceAccount.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : ServiceAccount)))
-  get_Secrets : ∀ (x : ServiceAccount), go.IsGoStepPureDetTagged under (StructFieldGet ServiceAccount.underlying go!"Secrets") #x (Val #(x.Secrets'))
-  set_Secrets : ∀ (x : ServiceAccount) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceAccount.underlying go!"Secrets") (PairV #x #y) (Val #(({ x with Secrets' := y } : ServiceAccount)))
-  get_ImagePullSecrets : ∀ (x : ServiceAccount), go.IsGoStepPureDetTagged under (StructFieldGet ServiceAccount.underlying go!"ImagePullSecrets") #x (Val #(x.ImagePullSecrets'))
-  set_ImagePullSecrets : ∀ (x : ServiceAccount) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceAccount.underlying go!"ImagePullSecrets") (PairV #x #y) (Val #(({ x with ImagePullSecrets' := y } : ServiceAccount)))
-  get_AutomountServiceAccountToken : ∀ (x : ServiceAccount), go.IsGoStepPureDetTagged under (StructFieldGet ServiceAccount.underlying go!"AutomountServiceAccountToken") #x (Val #(x.AutomountServiceAccountToken'))
-  set_AutomountServiceAccountToken : ∀ (x : ServiceAccount) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServiceAccount.underlying go!"AutomountServiceAccountToken") (PairV #x #y) (Val #(({ x with AutomountServiceAccountToken' := y } : ServiceAccount)))
-
-attribute [instance] ServiceAccount.TypeAssumptions.type_repr
-  ServiceAccount.TypeAssumptions.underlying
-  ServiceAccount.TypeAssumptions.get_TypeMeta
-  ServiceAccount.TypeAssumptions.set_TypeMeta
-  ServiceAccount.TypeAssumptions.get_ObjectMeta
-  ServiceAccount.TypeAssumptions.set_ObjectMeta
-  ServiceAccount.TypeAssumptions.get_Secrets
-  ServiceAccount.TypeAssumptions.set_Secrets
-  ServiceAccount.TypeAssumptions.get_ImagePullSecrets
-  ServiceAccount.TypeAssumptions.set_ImagePullSecrets
-  ServiceAccount.TypeAssumptions.get_AutomountServiceAccountToken
-  ServiceAccount.TypeAssumptions.set_AutomountServiceAccountToken
-
-class ServiceAccountList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ServiceAccountList.underlying ServiceAccountList
-  underlying : go.UnderlyingDirectedEq ServiceAccountList.ty ServiceAccountList.underlying
-  get_TypeMeta : ∀ (x : ServiceAccountList), go.IsGoStepPureDetTagged under (StructFieldGet ServiceAccountList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : ServiceAccountList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ServiceAccountList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ServiceAccountList)))
-  get_ListMeta : ∀ (x : ServiceAccountList), go.IsGoStepPureDetTagged under (StructFieldGet ServiceAccountList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : ServiceAccountList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet ServiceAccountList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : ServiceAccountList)))
-  get_Items : ∀ (x : ServiceAccountList), go.IsGoStepPureDetTagged under (StructFieldGet ServiceAccountList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : ServiceAccountList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceAccountList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ServiceAccountList)))
-
-attribute [instance] ServiceAccountList.TypeAssumptions.type_repr
-  ServiceAccountList.TypeAssumptions.underlying
-  ServiceAccountList.TypeAssumptions.get_TypeMeta
-  ServiceAccountList.TypeAssumptions.set_TypeMeta
-  ServiceAccountList.TypeAssumptions.get_ListMeta
-  ServiceAccountList.TypeAssumptions.set_ListMeta
-  ServiceAccountList.TypeAssumptions.get_Items
-  ServiceAccountList.TypeAssumptions.set_Items
-
-class Endpoints.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Endpoints.underlying Endpoints
-  underlying : go.UnderlyingDirectedEq Endpoints.ty Endpoints.underlying
-  get_TypeMeta : ∀ (x : Endpoints), go.IsGoStepPureDetTagged under (StructFieldGet Endpoints.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : Endpoints) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet Endpoints.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : Endpoints)))
-  get_ObjectMeta : ∀ (x : Endpoints), go.IsGoStepPureDetTagged under (StructFieldGet Endpoints.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : Endpoints) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet Endpoints.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : Endpoints)))
-  get_Subsets : ∀ (x : Endpoints), go.IsGoStepPureDetTagged under (StructFieldGet Endpoints.underlying go!"Subsets") #x (Val #(x.Subsets'))
-  set_Subsets : ∀ (x : Endpoints) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Endpoints.underlying go!"Subsets") (PairV #x #y) (Val #(({ x with Subsets' := y } : Endpoints)))
-
-attribute [instance] Endpoints.TypeAssumptions.type_repr
-  Endpoints.TypeAssumptions.underlying
-  Endpoints.TypeAssumptions.get_TypeMeta
-  Endpoints.TypeAssumptions.set_TypeMeta
-  Endpoints.TypeAssumptions.get_ObjectMeta
-  Endpoints.TypeAssumptions.set_ObjectMeta
-  Endpoints.TypeAssumptions.get_Subsets
-  Endpoints.TypeAssumptions.set_Subsets
-
-class EndpointSubset.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying EndpointSubset.underlying EndpointSubset
-  underlying : go.UnderlyingDirectedEq EndpointSubset.ty EndpointSubset.underlying
-  get_Addresses : ∀ (x : EndpointSubset), go.IsGoStepPureDetTagged under (StructFieldGet EndpointSubset.underlying go!"Addresses") #x (Val #(x.Addresses'))
-  set_Addresses : ∀ (x : EndpointSubset) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EndpointSubset.underlying go!"Addresses") (PairV #x #y) (Val #(({ x with Addresses' := y } : EndpointSubset)))
-  get_NotReadyAddresses : ∀ (x : EndpointSubset), go.IsGoStepPureDetTagged under (StructFieldGet EndpointSubset.underlying go!"NotReadyAddresses") #x (Val #(x.NotReadyAddresses'))
-  set_NotReadyAddresses : ∀ (x : EndpointSubset) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EndpointSubset.underlying go!"NotReadyAddresses") (PairV #x #y) (Val #(({ x with NotReadyAddresses' := y } : EndpointSubset)))
-  get_Ports : ∀ (x : EndpointSubset), go.IsGoStepPureDetTagged under (StructFieldGet EndpointSubset.underlying go!"Ports") #x (Val #(x.Ports'))
-  set_Ports : ∀ (x : EndpointSubset) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EndpointSubset.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : EndpointSubset)))
-
-attribute [instance] EndpointSubset.TypeAssumptions.type_repr
-  EndpointSubset.TypeAssumptions.underlying
-  EndpointSubset.TypeAssumptions.get_Addresses
-  EndpointSubset.TypeAssumptions.set_Addresses
-  EndpointSubset.TypeAssumptions.get_NotReadyAddresses
-  EndpointSubset.TypeAssumptions.set_NotReadyAddresses
-  EndpointSubset.TypeAssumptions.get_Ports
-  EndpointSubset.TypeAssumptions.set_Ports
-
-class EndpointAddress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying EndpointAddress.underlying EndpointAddress
-  underlying : go.UnderlyingDirectedEq EndpointAddress.ty EndpointAddress.underlying
-  get_IP : ∀ (x : EndpointAddress), go.IsGoStepPureDetTagged under (StructFieldGet EndpointAddress.underlying go!"IP") #x (Val #(x.IP'))
-  set_IP : ∀ (x : EndpointAddress) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EndpointAddress.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : EndpointAddress)))
-  get_Hostname : ∀ (x : EndpointAddress), go.IsGoStepPureDetTagged under (StructFieldGet EndpointAddress.underlying go!"Hostname") #x (Val #(x.Hostname'))
-  set_Hostname : ∀ (x : EndpointAddress) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EndpointAddress.underlying go!"Hostname") (PairV #x #y) (Val #(({ x with Hostname' := y } : EndpointAddress)))
-  get_NodeName : ∀ (x : EndpointAddress), go.IsGoStepPureDetTagged under (StructFieldGet EndpointAddress.underlying go!"NodeName") #x (Val #(x.NodeName'))
-  set_NodeName : ∀ (x : EndpointAddress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EndpointAddress.underlying go!"NodeName") (PairV #x #y) (Val #(({ x with NodeName' := y } : EndpointAddress)))
-  get_TargetRef : ∀ (x : EndpointAddress), go.IsGoStepPureDetTagged under (StructFieldGet EndpointAddress.underlying go!"TargetRef") #x (Val #(x.TargetRef'))
-  set_TargetRef : ∀ (x : EndpointAddress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EndpointAddress.underlying go!"TargetRef") (PairV #x #y) (Val #(({ x with TargetRef' := y } : EndpointAddress)))
-
-attribute [instance] EndpointAddress.TypeAssumptions.type_repr
-  EndpointAddress.TypeAssumptions.underlying
-  EndpointAddress.TypeAssumptions.get_IP
-  EndpointAddress.TypeAssumptions.set_IP
-  EndpointAddress.TypeAssumptions.get_Hostname
-  EndpointAddress.TypeAssumptions.set_Hostname
-  EndpointAddress.TypeAssumptions.get_NodeName
-  EndpointAddress.TypeAssumptions.set_NodeName
-  EndpointAddress.TypeAssumptions.get_TargetRef
-  EndpointAddress.TypeAssumptions.set_TargetRef
+  HostIP.TypeAssumptions.method_set
+  HostIP.TypeAssumptions.ptr_method_set
 
 end k8s_io.api.core.v1
 

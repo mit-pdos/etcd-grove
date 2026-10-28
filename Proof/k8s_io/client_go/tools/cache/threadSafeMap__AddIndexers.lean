@@ -25,7 +25,7 @@ namespace cache
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem mem_union {V : Type _} (a b : GMap GoString V) (n : GoString) :
     n ∈ a ∪ b ↔ n ∈ a ∨ n ∈ b := by
@@ -72,7 +72,7 @@ theorem ivWf_add {R : Type _} {old new : GMap GoString R} {it : Items} {iv ivc :
 end model
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -155,7 +155,7 @@ theorem itemsIv_union (new old : GMap GoString (Fn GF)) (it : Items) (iv ivc : I
 end proof
 
 section proof2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

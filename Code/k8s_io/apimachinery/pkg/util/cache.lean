@@ -20,76 +20,76 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.cache
 
-noncomputable def Expiring.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Expiring.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/cache.Expiring" [])
 
 attribute [irreducible] Expiring.ty
 
-noncomputable def entry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def entry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/cache.entry" [])
 
 attribute [irreducible] entry.ty
 
-noncomputable def expiringHeapEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def expiringHeapEntry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/cache.expiringHeapEntry" [])
 
 attribute [irreducible] expiringHeapEntry.ty
 
-noncomputable def expiringHeap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def expiringHeap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/cache.expiringHeap" [])
 
 attribute [irreducible] expiringHeap.ty
 
-noncomputable def Clock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Clock.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/cache.Clock" [])
 
 attribute [irreducible] Clock.ty
 
-noncomputable def realClock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def realClock.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/cache.realClock" [])
 
 attribute [irreducible] realClock.ty
 
-noncomputable def LRUExpireCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LRUExpireCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/cache.LRUExpireCache" [])
 
 attribute [irreducible] LRUExpireCache.ty
 
-noncomputable def cacheEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cacheEntry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/cache.cacheEntry" [])
 
 attribute [irreducible] cacheEntry.ty
 
-axiom Expiring.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Expiring.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom entry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom entry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom expiringHeapEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom expiringHeapEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Clock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Clock.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LRUExpireCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LRUExpireCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cacheEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cacheEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewExpiring [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewExpiring [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/cache.NewExpiring"
 
-noncomputable def NewExpiringWithClock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewExpiringWithClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/cache.NewExpiringWithClock"
 
-noncomputable def NewLRUExpireCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLRUExpireCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/cache.NewLRUExpireCache"
 
-noncomputable def NewLRUExpireCacheWithClock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLRUExpireCacheWithClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/cache.NewLRUExpireCacheWithClock"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.cache where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.cache)) (Lam BAnon
   (App (Val exceptionDo)
@@ -100,117 +100,149 @@ axiom Expiring : Type
 axiom Expiring.zero_val : ZeroVal Expiring
 attribute [instance] Expiring.zero_val
 
-class Expiring.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Expiring.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Expiring.underlying Expiring
   underlying : go.UnderlyingDirectedEq Expiring.ty Expiring.underlying
   isUnderlying : go.IsUnderlying Expiring.underlying Expiring.underlying
+  method_set : go.MethodSetIs Expiring.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Expiring.ty) [(go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.Named go!"time.Duration" [])] false []))), (go!"k8s.io/apimachinery/pkg/util/cache.del", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.uint64] false []))), (go!"k8s.io/apimachinery/pkg/util/cache.gc", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [])))]
 
 attribute [instance] Expiring.TypeAssumptions.type_repr
   Expiring.TypeAssumptions.underlying
   Expiring.TypeAssumptions.isUnderlying
+  Expiring.TypeAssumptions.method_set
+  Expiring.TypeAssumptions.ptr_method_set
 
 axiom entry : Type
 axiom entry.zero_val : ZeroVal entry
 attribute [instance] entry.zero_val
 
-class entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying entry.underlying entry
   underlying : go.UnderlyingDirectedEq entry.ty entry.underlying
   isUnderlying : go.IsUnderlying entry.underlying entry.underlying
+  method_set : go.MethodSetIs entry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType entry.ty) []
 
 attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.underlying
   entry.TypeAssumptions.isUnderlying
+  entry.TypeAssumptions.method_set
+  entry.TypeAssumptions.ptr_method_set
 
 axiom expiringHeapEntry : Type
 axiom expiringHeapEntry.zero_val : ZeroVal expiringHeapEntry
 attribute [instance] expiringHeapEntry.zero_val
 
-class expiringHeapEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class expiringHeapEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying expiringHeapEntry.underlying expiringHeapEntry
   underlying : go.UnderlyingDirectedEq expiringHeapEntry.ty expiringHeapEntry.underlying
   isUnderlying : go.IsUnderlying expiringHeapEntry.underlying expiringHeapEntry.underlying
+  method_set : go.MethodSetIs expiringHeapEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType expiringHeapEntry.ty) []
 
 attribute [instance] expiringHeapEntry.TypeAssumptions.type_repr
   expiringHeapEntry.TypeAssumptions.underlying
   expiringHeapEntry.TypeAssumptions.isUnderlying
+  expiringHeapEntry.TypeAssumptions.method_set
+  expiringHeapEntry.TypeAssumptions.ptr_method_set
 
-abbrev expiringHeap [FfiSyntax] : Type := GoSlice
+abbrev expiringHeap [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def expiringHeap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def expiringHeap.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType expiringHeapEntry.ty))
 
-class expiringHeap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class expiringHeap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq expiringHeap.ty expiringHeap.underlying
+  method_set : go.MethodSetIs expiringHeap.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType expiringHeap.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Pop", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Push", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] expiringHeap.TypeAssumptions.underlying
+  expiringHeap.TypeAssumptions.method_set
+  expiringHeap.TypeAssumptions.ptr_method_set
 
 axiom Clock : Type
 axiom Clock.zero_val : ZeroVal Clock
 attribute [instance] Clock.zero_val
 
-class Clock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Clock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Clock.underlying Clock
   underlying : go.UnderlyingDirectedEq Clock.ty Clock.underlying
   isUnderlying : go.IsUnderlying Clock.underlying Clock.underlying
+  method_set : go.MethodSetIs Clock.ty [(go!"Now", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Clock.ty) []
 
 attribute [instance] Clock.TypeAssumptions.type_repr
   Clock.TypeAssumptions.underlying
   Clock.TypeAssumptions.isUnderlying
+  Clock.TypeAssumptions.method_set
+  Clock.TypeAssumptions.ptr_method_set
 
-structure realClock [FfiSyntax] where
+structure realClock [GooseExts] where
   mk ::
 
-noncomputable instance realClock.zero_val [FfiSyntax] : ZeroVal realClock :=
+noncomputable instance realClock.zero_val [GooseExts] : ZeroVal realClock :=
   ⟨realClock.mk⟩
 
-@[reducible] noncomputable def realClock.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def realClock.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def realClock.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def realClock.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realClock.fieldsUnsealed
 
-noncomputable instance equals_unfold_realClock [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_realClock [GooseExts] [GoGlobalContext] :
     EqualsUnfold realClock.fields realClock.fieldsUnsealed :=
   ⟨by unfold realClock.fields; rfl⟩
 
-@[reducible] noncomputable def realClock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def realClock.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType realClock.fields)
 
-class realClock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class realClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realClock.underlying realClock
   underlying : go.UnderlyingDirectedEq realClock.ty realClock.underlying
+  method_set : go.MethodSetIs realClock.ty [(go!"Now", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType realClock.ty) [(go!"Now", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])])))]
 
 attribute [instance] realClock.TypeAssumptions.type_repr
   realClock.TypeAssumptions.underlying
+  realClock.TypeAssumptions.method_set
+  realClock.TypeAssumptions.ptr_method_set
 
 axiom LRUExpireCache : Type
 axiom LRUExpireCache.zero_val : ZeroVal LRUExpireCache
 attribute [instance] LRUExpireCache.zero_val
 
-class LRUExpireCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LRUExpireCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LRUExpireCache.underlying LRUExpireCache
   underlying : go.UnderlyingDirectedEq LRUExpireCache.ty LRUExpireCache.underlying
   isUnderlying : go.IsUnderlying LRUExpireCache.underlying LRUExpireCache.underlying
+  method_set : go.MethodSetIs LRUExpireCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LRUExpireCache.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.Named go!"time.Duration" [])] false []))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"Remove", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"RemoveAll", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.any] false [go.bool]))] false [])))]
 
 attribute [instance] LRUExpireCache.TypeAssumptions.type_repr
   LRUExpireCache.TypeAssumptions.underlying
   LRUExpireCache.TypeAssumptions.isUnderlying
+  LRUExpireCache.TypeAssumptions.method_set
+  LRUExpireCache.TypeAssumptions.ptr_method_set
 
 axiom cacheEntry : Type
 axiom cacheEntry.zero_val : ZeroVal cacheEntry
 attribute [instance] cacheEntry.zero_val
 
-class cacheEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cacheEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cacheEntry.underlying cacheEntry
   underlying : go.UnderlyingDirectedEq cacheEntry.ty cacheEntry.underlying
   isUnderlying : go.IsUnderlying cacheEntry.underlying cacheEntry.underlying
+  method_set : go.MethodSetIs cacheEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacheEntry.ty) []
 
 attribute [instance] cacheEntry.TypeAssumptions.type_repr
   cacheEntry.TypeAssumptions.underlying
   cacheEntry.TypeAssumptions.isUnderlying
+  cacheEntry.TypeAssumptions.method_set
+  cacheEntry.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Expiring_instance : Expiring.TypeAssumptions
   entry_instance : entry.TypeAssumptions
   expiringHeapEntry_instance : expiringHeapEntry.TypeAssumptions

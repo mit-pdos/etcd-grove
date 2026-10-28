@@ -23,7 +23,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
   go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -39,8 +39,6 @@ theorem v3rpc.NewClusterServer.wp_proof
   wp_auto
   wp_apply (hCl s cl)
   · iframe #
-  wp_alloc p as Hp
-  wp_auto
   iapply HΦ
   itrivial
 

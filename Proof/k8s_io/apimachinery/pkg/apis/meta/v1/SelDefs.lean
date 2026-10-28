@@ -29,7 +29,7 @@ namespace labels
 open Iris Iris.BI k8s_io.apimachinery.pkg.apis.«meta».v1
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A `LabelSelectorRequirement`'s value. -/
 structure Req where
@@ -74,7 +74,7 @@ def selEmpty : Option SelV → Bool
 end model
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

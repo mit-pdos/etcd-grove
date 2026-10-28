@@ -18,7 +18,7 @@ namespace pager
 open Iris Iris.BI Iris.ProofMode apimodel cache k8s_io.client_go.tools.pager
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -28,10 +28,8 @@ theorem New.wp_proof : New.spec (GF := GF) (hG := hG) := by
   intro fn
   wp_start
   wp_auto
-  wp_apply wp_alloc as %l Hl
-  (try wp_auto)
   iapply HΦ
-  iexact Hl
+  iexact «$r0»
 
 end proof
 

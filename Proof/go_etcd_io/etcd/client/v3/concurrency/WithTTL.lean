@@ -18,7 +18,7 @@ namespace concurrency
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -33,7 +33,6 @@ theorem WithTTL.wp_proof (hZI : zap.Int64.spec (GF := GF) (hG := hG))
   wp_auto
   ipersist ttl
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold sessionOptSpec
   imodintro

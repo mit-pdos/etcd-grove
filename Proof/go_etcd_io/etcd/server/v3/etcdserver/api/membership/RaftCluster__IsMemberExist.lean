@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -37,17 +37,20 @@ theorem membership.RaftCluster.IsMemberExist.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
   iunfold membership.rcLockInv at Hinv
-  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, #Hloc, %rp, Hrf, Hrm⟩
+  icases Hinv with ⟨%mm, %mem, Hmem, %Hsz, #Hloc, %rp, Hrf, Hrm⟩
+  icases membership.memAt_open c _ mm mem $$ Hmem with ⟨%mp, Hfl, Hmap, Hmems, Hmf⟩
   (try wp_auto)
-  wp_apply wp_map_lookup2 _ _ mp mm id (DFrac.own 1) $$ [$Hmap] as Hmap
+  wp_apply wp_map_lookup2 _ _ mp mm id (DFrac.own (1 : Qp).half) $$ [$Hmap] as Hmap
   (try wp_auto)
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrf Hrm]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hfl Hmap Hmems Hrf Hrm]
   · inext
     iunfold membership.rcLockInv
-    iexists mp, mm
-    iframe Hmf Hmap Hmems Hloc
+    iexists mm, mem
+    isplitl [Hmf Hfl Hmap Hmems]
+    · iapply Hmf $$ Hfl Hmap Hmems
+    iframe Hloc
     isplitr
     · ipureintro; exact Hsz
     iexists rp

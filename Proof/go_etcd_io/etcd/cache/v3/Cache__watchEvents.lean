@@ -74,7 +74,7 @@ theorem watchCase_pre {pfx : GoString} {k k' : w64} {r : RespModel} (h : WatchCa
 /-! ## Separation-logic lemmas -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -349,7 +349,7 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
 end lemmas
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -561,7 +561,7 @@ theorem Cache.watchEvents.wp_proof
       icases Ha with ⟨#Hwo', #Hkc', #Hk0c', %Hle'⟩
       wp_auto
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0»
       iexists k', n + 1, updResp cap cc r
       simp only [named]
       iframe Hcons Hdw Haec

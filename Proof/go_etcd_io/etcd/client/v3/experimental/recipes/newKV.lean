@@ -18,7 +18,7 @@ namespace recipes
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -35,8 +35,8 @@ theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   icases Hres with (⟨%Heq, #Hr, #Hc, -, %Hrr⟩ | ⟨#Herr, %Hrev, %r, #Hr, #Hp, %Hlr⟩ | ⟨%Hne, #Hce⟩)
   · subst Heq
     wp_auto
-    wp_alloc rk as Hrk
-    wp_auto
+    irename «$r0» => Hrk
+    generalize «$r0_ptr» = rk at *
     iapply HΦ
     ileft
     isplitr

@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -32,10 +32,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- (D22 S-l sender) A `Ready`'s message opened: its fields at some fraction, and back to what
 it is for the transport (any but a `MsgSnap`) or for `msgSnapC` (a `MsgSnap`). -/
-theorem rnMsgR_open (E : RNEnv GF) (γ : NodeNames) (m : Loc) :
+theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     rnMsgR E γ m ⊢ ∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗
       ((⌜st.msg.Type' ≠ MsgSnap⌝ -∗ msgOwn m dq st -∗ rnMsgOk E m) ∧
-       (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg γ m)) := by
+       (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg m)) := by
   iintro H
   iunfold rnMsgR at H
   icases H with (⟨%to, %ty, #Hat, %Hty, HM⟩ | Hs)
@@ -56,17 +56,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : NodeNames) (m : Loc) :
     · iintro %h
       exact absurd h Hty
   · iunfold rnSnapMsg at Hs
-    icases Hs with ⟨%st, Hm, %Hty, #Hrm, #Htl⟩
-    iexists DFrac.own 1, st
-    iframe Hm
-    isplit
-    · iintro %h
-      exact absurd Hty h
-    · iintro %_ Hm
-      iunfold rnSnapMsg
-      iexists st
-      iframe Hm Hrm Htl
-      ipureintro; exact Hty
+    iexfalso; iexact Hs
 
 /-- `m.GetTo()` at any fraction. -/
 theorem wp_msgOwn_GetTo (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
@@ -126,7 +116,7 @@ theorem raftNode.processMessages.wp_proof
       "Hcap" ∷ ownSliceCap Loc out (DFrac.own 1) ∗ "Houtok" ∷ ([∗list] m ∈ outL, rnMsgOk E m) ∗
       "sentAppResp" ∷ sentAppResp_ptr ↦ b ∗
       -- (D21 stage M1) the messages not yet looked at, each with its bundle
-      "Hall" ∷ ([∗list] m ∈ msL.take (sint.Z k + 1).toNat, rnMsgR E γ.node m) ∗
+      "Hall" ∷ ([∗list] m ∈ msL.take (sint.Z k + 1).toNat, rnMsgR E γ m) ∗
       "%Hk" ∷ ⌜-1 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len⌝) $$ [r ms i messages sentAppResp Hall]
   · iexists sl.len - W64 1, slice.nil, [], false
     iframe r ms i sentAppResp
@@ -159,10 +149,10 @@ theorem raftNode.processMessages.wp_proof
       have : sint.Z (k - W64 1) = sint.Z k - 1 := by word
       omega
     rw [htake]
-    icases (BigSepL.bigSepL_snoc (Φ := fun _ m => rnMsgR (GF := GF) E γ.node m)).1 $$ Hall
+    icases (BigSepL.bigSepL_snoc (Φ := fun _ m => rnMsgR (GF := GF) E γ m)).1 $$ Hall
       with ⟨Hall, HmR⟩
     -- (D22 S-l sender) a `MsgSnap` owned, any other read-only
-    icases rnMsgR_open E γ.node m $$ HmR with ⟨%dq, %st, Hmat, HK⟩
+    icases rnMsgR_open E γ m $$ HmR with ⟨%dq, %st, Hmat, HK⟩
     obtain ⟨to, hto⟩ : ∃ to, st.msg.To' = to := ⟨_, rfl⟩
     obtain ⟨ty, hty⟩ : ∃ ty, st.msg.Type' = ty := ⟨_, rfl⟩
     wp_apply wp_GetTo m dq st to hto $$ [$Hrpb $Hmat] as Hmat
@@ -173,7 +163,7 @@ theorem raftNode.processMessages.wp_proof
     rotate_left
     · -- removed member: `continue`
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0»
       iexists k - W64 1, out, outL, b
       rw [hk1]
       iframe
@@ -185,7 +175,7 @@ theorem raftNode.processMessages.wp_proof
       rotate_left
       · wp_auto
         wp_for_post
-        iframe HΦ
+        iframe HΦ «$res0»
         iexists k - W64 1, out, outL, true
         rw [hk1]
         iframe
@@ -200,7 +190,7 @@ theorem raftNode.processMessages.wp_proof
       wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
         as %out' ⟨Hout, Hcap, -⟩
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0»
       iexists k - W64 1, out', outL ++ [m], _
       rw [hk1]
       iframe r ms i messages Hout Hcap sentAppResp Hall
@@ -220,12 +210,12 @@ theorem raftNode.processMessages.wp_proof
         -- (D22 S-l sender) owned, with its protocol facts
         have hsn : st.msg.Type' = MsgSnap := hty
         icases HK with ⟨-, HK⟩
-        ihave HmS : rnSnapMsg γ.node m $$ [HK Hmat]
+        ihave HmS : rnSnapMsg m $$ [HK Hmat]
         · iapply HK $$ %hsn Hmat
         iunfold isRNMsgSnapC at Hmsci
         icases Hmsci with ⟨%γc, #Hbag⟩
         ihave #Hbagch := is_bag_is_chan γc msc
-          (rnSnapMsg γ.node) $$ Hbag
+          rnSnapMsg $$ Hbag
         rw [isChanBag_unseal]
         iunfold isChanBagDef at Hbag
         icases Hbag with ⟨#Hch, #Hinv⟩
@@ -259,7 +249,7 @@ theorem raftNode.processMessages.wp_proof
                 imodintro
                 wp_auto
                 wp_for_post
-                iframe HΦ
+                iframe HΦ «$res0»
                 iexists k - W64 1, out, outL, _
                 rw [hk1]
                 iframe
@@ -274,7 +264,7 @@ theorem raftNode.processMessages.wp_proof
                 imodintro
                 wp_auto
                 wp_for_post
-                iframe HΦ
+                iframe HΦ «$res0»
                 iexists k - W64 1, out, outL, _
                 rw [hk1]
                 iframe
@@ -289,7 +279,7 @@ theorem raftNode.processMessages.wp_proof
         · -- `default`: dropped
           wp_auto
           wp_for_post
-          iframe HΦ
+          iframe HΦ «$res0»
           iexists k - W64 1, out, outL, _
           rw [hk1]
           iframe
@@ -344,7 +334,7 @@ theorem raftNode.processMessages.wp_proof
           wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
             as %out' ⟨Hout, Hcap, -⟩
           wp_for_post
-          iframe HΦ
+          iframe HΦ «$res0»
           iexists k - W64 1, out', outL ++ [m], _
           rw [hk1]
           iframe r ms i messages Hout Hcap sentAppResp Hall
@@ -367,7 +357,7 @@ theorem raftNode.processMessages.wp_proof
           wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
             as %out' ⟨Hout, Hcap, -⟩
           wp_for_post
-          iframe HΦ
+          iframe HΦ «$res0»
           iexists k - W64 1, out', outL ++ [m], _
           rw [hk1]
           iframe r ms i messages Hout Hcap sentAppResp Hall
@@ -388,7 +378,7 @@ theorem raftNode.processMessages.wp_proof
       wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
         as %out' ⟨Hout, Hcap, -⟩
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0»
       iexists k - W64 1, out', outL ++ [m], _
       rw [hk1]
       iframe r ms i messages Hout Hcap sentAppResp Hall

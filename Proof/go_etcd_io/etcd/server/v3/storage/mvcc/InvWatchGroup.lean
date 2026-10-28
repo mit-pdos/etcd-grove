@@ -328,7 +328,7 @@ end pure
 /-! ## The ranges holding a key -/
 
 section ranges
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 theorem covers_none (r : WatchRange) (k : GoString) (h : r.end? = none) :
     r.covers k = true ↔ k = r.key := by
@@ -362,7 +362,7 @@ end ranges
 /-! ## The tree's entries under a change of members -/
 
 section rangesOk
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The entries `L` of the interval tree of the members `W`: in the tree's order, one per
 distinct interval of the range members, each with its set. -/
@@ -626,7 +626,7 @@ theorem upTo_succ (keys : List Loc) (S' : GMap Loc Unit) (n : Nat) (key : Loc)
 /-! ## Ownership -/
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

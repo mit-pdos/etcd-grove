@@ -28,7 +28,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -53,7 +53,9 @@ theorem podClient.Delete.wp_proof
   ihave #Hgrace := graceOk_pods (functions apimodel.podGrace []) (fun x d opts dq dop => wp_podGrace x d opts dq dop)
   wp_apply (wp_remove s γ cfg Res.pods L.tp.t ns name opts dq dop (functions apimodel.podGrace []) admin)
     $$ [$Hpkg $Hsrv $Htp $Hgrace $Ho]
-  iapply (au_mono γ _ _ _) $$ [$HΦ]
+  iapply (au_mono γ _ _ _)
+  isplitl [HΦ]
+  · iexact HΦ
   iintro %σ0 %σ1 %oc %_ HK %err ⟨Ho, Hret⟩
   wp_auto
   iapply HK

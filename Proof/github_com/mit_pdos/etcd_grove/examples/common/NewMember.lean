@@ -29,7 +29,7 @@ namespace common
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -40,16 +40,16 @@ theorem NewMember.wp_proof
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG)) :
     NewMember.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id γ bud ρ E₀ Φs
-    γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq
+  intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
+    γn Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq
     Hdbo
   wp_start as ⟨Haddr, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
   -- `newServer(name, peer, client, cluster, token, lg)`
-  wp_apply (wp_newServer N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id
-      γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok HU Hlg
+  wp_apply (wp_newServer N name peerAddr client token peer cluster lg M iu Uok ps bootLog ctxs dir id
+      γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg
       Hck Haf Hbuq Hdbo) $$ [Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb⟩)

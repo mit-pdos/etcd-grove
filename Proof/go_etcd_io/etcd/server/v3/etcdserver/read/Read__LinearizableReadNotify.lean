@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.read
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -64,7 +64,7 @@ local macro "notify_done_clause" : tactic => `(tactic| (
 theorem read.Read.LinearizableReadNotify.wp_proof
     (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
     read.Read.LinearizableReadNotify.spec (GF := GF) (hG := hG) := by
-  intro r γr ctx cd c g Q
+  intro r γr ctx cd c g Q F
   wp_start as ⟨#Hpre, #Hctx, #Hc, Hrr, #HsQ, #HdQ⟩
   iunfold isReadPre at Hpre
   icases Hpre with ⟨%srv, %wc, %γw, #Hsf, #Hdone, #Hwcf, #Hbag, #Hinv⟩
@@ -77,7 +77,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
   iunfold readMuP at HP
   icases HP with ⟨%nc, %γn, Hpt, Hg⟩
   wp_auto_lc 3
-  imod read_need_deposit γr _ nc γn c g Q $$ Hinv Hlc1 Hg Hc HsQ HdQ with ⟨Hg, #Hnis, #Hlb, %k, #Hidx⟩
+  imod read_need_deposit γr _ nc γn c g Q F $$ Hinv Hlc1 Hg Hc HsQ HdQ with ⟨Hg, #Hnis, #Hlb, %k, #Hidx⟩
   wp_apply sync.RWMutex.wp_RUnlock (readMuAddr r) (readMuP r γr) $$ [Hrl Hpt Hg] as Hrr
   · iframe #; iframe Hrl; iunfold readMuP; iexists nc, γn; iframe Hpt Hg
   wp_join iprop(r_ptr ↦ r ∗ ctx_ptr ↦ GoInterface.ok ctx ∗ nc_ptr ↦ nc ∗

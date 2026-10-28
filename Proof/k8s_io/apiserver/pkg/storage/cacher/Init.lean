@@ -13,6 +13,7 @@ public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
+public import Perennial.Proof.iter.Link
 public import Perennial.Proof.math.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strings.Link
@@ -21,7 +22,6 @@ public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_opentelemetry_io.otel.attribute.Init
 public import Proof.google_golang_org.grpc.metadata.Init
-public import Proof.iter.Init
 public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
@@ -74,7 +74,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section opaqueInits
 namespace k8s_io.apiserver.pkg.storage.cacher
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -95,14 +95,11 @@ end k8s_io.apiserver.pkg.storage.cacher
 end opaqueInits
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
-variable [EtcdGrove.RpctypesEtcdErrorMethods]
-variable [_root_.Perennial.context.ErrorStringIsError]
-  [_root_.Perennial.context.DeadlineExceededIsError]
 
 namespace k8s_io.apiserver.pkg.storage.cacher
 
@@ -117,7 +114,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.iter.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd45⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.iter _root_.Perennial.iter.initialize'
+      EtcdGrove.ExternalInit.iter _root_.Perennial.iter.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd45⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
       EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd44⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'

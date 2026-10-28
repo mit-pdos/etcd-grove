@@ -120,7 +120,7 @@ theorem idClusterOk_issue (I : GMap w64 (Option (List w8 × GName))) (C : GMap w
       exact Hok.2 p L' hp
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -137,6 +137,8 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   obtain ⟨Hs0, Hpl⟩ := Hs0
   -- the steps up to `atomic.AddUint64`'s resolution, one by one (`wp_auto` would take that step
   -- too, and its receipt with it)
+  wp_alloc res_ptr as Hres
+  wp_pures
   wp_alloc g_ptr as Hgl
   wp_pure
   wp_pure
@@ -153,7 +155,7 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   inext
   iintro Hr -
   iapply wp_value'
-  wp_apply_core sync.atomic.wp_AddUint64 $$ [] [HΦ Hc Hgl Hr]
+  wp_apply_core sync.atomic.wp_AddUint64 $$ [] [HΦ Hc Hgl Hr Hres]
   · iexact Hat
   iinv Hinv with Hi Hclose
   icases Hi with ⟨%k, %L, %S, >Hsuf, >Hcr, >Hcnt, >HS, >%Hdom⟩

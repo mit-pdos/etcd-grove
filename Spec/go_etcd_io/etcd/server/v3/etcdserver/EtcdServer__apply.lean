@@ -6,6 +6,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
 
 @[expose] public section
 
@@ -17,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -47,36 +49,88 @@ apply thread at the committed raft log `A` through `f0 - 1` (`kvApplied`), the b
 it (`kvBatch`), at `A ++ ms` after. **The write budget**
 (2026-10-13, unit 6): one write token of the store per entry, spent (a conf change's is wasted);
 since D19b (2026-10-18) taken from the budget `srvWTPool E` with a time receipt of the entry's
-iteration, until then handed in (`txn.storeWTs E.γ ms.length`). **The stop** (D19m, 2026-10-18): it
+iteration, until then handed in (`txn.storeWTs E.γ ms.length`); (D22 J5, 2026-10-26) the count of
+tokens taken goes from `w` to `w + ms.length` (`srvWTTaken`; until J5 from `f0 - 1` to the last
+index, `srvWTAt`). **The stop** (D19m, 2026-10-18): it
 returns `shouldStop = false`, since `applyConfChange` removes no member (`ccApplyOk`), so the
 caller's `stopWithDelay` is never reached. **The driver's view** (D43 M3, 2026-10-25; raft's
 dynamic mode): with a view `dv` (`dvOk`: no replay, the node at the server's decoder), the view
 after `A` goes to the view after `A ++ ms`, each conf entry applied through `applyConfChange`;
-without, nothing (raft's static mode, or no conf entry in the batch). -/
+without, nothing (raft's static mode, or no conf entry in the batch). **The membership** (D43
+M5e, 2026-10-26): the apply thread's membership resource (`srvApRes`: the fields and the cluster
+and transport `applyConfChange` writes) from `A` to `A ++ ms`. -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
-    (A : List EntryModel) (γp : GName) (dv : Option NodeNames),
+    (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat),
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
-  dvOk ρ.raft dv (ciEff γ st.k) f0 ms →
+  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
-      srvWTAt γp (f0 - 1) ∗ srvFS s ∗
+      srvWTTaken γp w ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) }}
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ srvApRes s γr A }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
       RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗ dvView ρ.raft dv (A ++ ms) ∗
+      srvApRes s γr (A ++ ms) ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
         epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
-        srvWTAt γp appliedi ∗
+        srvWTTaken γp (w + ms.length) ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
           appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x' ∗ srvRest E γr (A ++ ms)) ∗
+        ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
+          (ms.getLast?).map EntryModel.term = some appliedt ∧
+          loopOk γ st' appliedi ∧
+          uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z appliedi) ∧
+          shouldStop = false⌝ }}
+
+
+/-- **`spec` in the auth mode `on`** (the auth plan's E3p, 2026-10-27; `notes/decisions.md`, "E3p of
+the auth plan"): the loop over `applyEntryNormal.specOn`. The server as the apply thread sees it with
+auth on (`isServerM true`), the environment's mode `on γa`; the batch of the mode-`on` log's shapes
+(`logShapeOn`: an admitted admin request too); the applier state with the auth row at the model's
+auth state `sa` (`srvApplyKVOn`), the apply thread at the mode-`on` model of `A`
+(`kvAppliedOn … srvAuthSt0`); the server's lessor finding no lease (`srvLessorNil`) and the receipts'
+bound (`applyEntryNormal.specOn`'s; each entry's receipt for its admin step comes from the
+iteration's Go steps). After the batch, as `spec`'s, the apply thread at the model's state after
+`A ++ ms` (its auth state `sa'`). -/
+abbrev EtcdServer.apply.specOn : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
+    (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
+    (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
+    (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat) (γa : auth.AuthNames)
+    (sa : auth.AuthState),
+  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
+  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeOn ms →
+  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗
+      entriesAt ents ms ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr (f0 - 1) ∗
+      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
+      srvWTTaken γp w ∗ srvFS s ∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+      kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ srvApRes s γr A }}
+    (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
+      (Val #es)) (Val #ep)) (Val #rac))
+  {{ (appliedt appliedi : w64) (shouldStop : Bool),
+      RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗ dvView ρ.raft dv (A ++ ms) ∗
+      srvApRes s γr (A ++ ms) ∗
+      ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
+        applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
+        epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        srvWTTaken γp (w + ms.length) ∗
+        (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E ρ.wait x' sa' ∗
+          ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗
+          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ ms) x' sa' ∗ srvRest E γr (A ++ ms)) ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧

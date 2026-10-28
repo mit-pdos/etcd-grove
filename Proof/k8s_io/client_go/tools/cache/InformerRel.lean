@@ -30,7 +30,7 @@ namespace informer
 open apimodel
 
 section model
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- The slash, as a byte. -/
 def slashB : w8 := 47

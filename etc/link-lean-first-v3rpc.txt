@@ -59,12 +59,20 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # cluster's). Trust boundary (axioms): the apply package's
 # `storage.NewBackendQuota` (under `apply.backendUnderQuota`; since audit B3 no `EtcdServer.Alarm`),
 # `api.IsCapabilityEnabled`, grpc's
-# `metadata.FromIncomingContext`/`MD.Get`, `utf8.ValidString`, prometheus's
-# `CounterVec.WithLabelValues`, and `logUnaryRequestStats` (zap, peer, proto.Size).
+# `metadata.FromIncomingContext`/`MD.Get`, prometheus's `CounterVec.WithLabelValues`, and
+# `logUnaryRequestStats` (zap, peer, proto.Size). `utf8.ValidString` is proved (2026-10-26; until
+# then an axiom), over `utf8.word`.
 _KV_Put_Handler:
 _KV_Range_Handler:
 _KV_DeleteRange_Handler:
 _KV_Txn_Handler:
+# The auth plan's E3za: the generated handlers of the Auth service's five admin methods SetUp calls
+# (`wp_unaryHandlerOwn`: the method may write its decoded request, as `UserAdd` does).
+_Auth_UserAdd_Handler:
+_Auth_UserGrantRole_Handler:
+_Auth_RoleAdd_Handler:
+_Auth_RoleGrantPermission_Handler:
+_Auth_AuthEnable_Handler:
 # Unit W-W (the gRPC stream wire): the generated stream handler of the Watch service
 # (rpc_grpc.pb.go: `srv.(WatchServer).Watch(&grpc.GenericServerStream{ServerStream: stream})`),
 # over the generic server-stream wrapper's methods (stream_interfaces.go), axioms: Goose does not
@@ -83,7 +91,8 @@ EtcdServer__IsMemberExist: @
 EtcdServer__IsLearner: @
 api_IsCapabilityEnabled:
 metadata_MD__Get:
-utf8_ValidString:
+utf8_word:
+utf8_ValidString: utf8_word
 prometheus_CounterVec__WithLabelValues:
 logUnaryRequestStats:
 isRPCSupportedForLearner:

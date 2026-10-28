@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -35,19 +35,21 @@ theorem witness.handleHeartbeat.wp_proof
   wp_auto
   rw [show raftpb.MsgHeartbeatResp = #((W32 9 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  iapply wp_fupd
   wp_apply wp_MessageType_Enum (W32 9) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy
   imod cellRO_alloc $$ «$v1» with #cTe
   imod cellRO_alloc $$ «$v2» with #cFr
   imod cellRO_alloc $$ «$v3» with #cTo
-  wp_alloc ml as Hml
+  irename «$r0» => Hml
+  generalize «$r0_ptr» = ml at *
   imod msgOwn_lit ml _ (wHeartbeat id term μ).1 μ.ctx ⊤ $$ [Hml] with Hmsg
   · simp only [wHeartbeat, respM, show MsgHeartbeatResp = W32 9 from rfl, ← Hfr]
     iframe Hml Hctx cTy cTo cFr cTe
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     msg_nulls
-  wp_auto
+  imodintro
   rw [show (wHeartbeat id term μ).2 = μ.ctx from rfl]
   iapply HΦ
   iframe Hmsg

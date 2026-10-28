@@ -26,7 +26,7 @@ namespace kv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -45,7 +45,7 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
   ihave IH : iprop(∃ (k : w64) (rsv : ReadState) (restv : GoSlice) (ps' : List ReadState),
       "i" ∷ i_ptr ↦ k ∗ "rs" ∷ rs_ptr ↦ rsv ∗ "rest" ∷ rest_ptr ↦ restv ∗
       "Hrest" ∷ restv ↦* ps' ∗ "Hcap" ∷ ownSliceCap ReadState restv (DFrac.own 1) ∗
-      "Hps'" ∷ ([∗list] v ∈ ps', rsOk γr.raft v) ∗
+      "Hps'" ∷ ([∗list] v ∈ ps', rsOk γr.cluster v) ∗
       "Hrun" ∷ runOwn γr r ap ∗ "Hpsl" ∷ psl ↦*{dq} ps ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ps.length : Int)⌝) $$ [i rs rest Hrun Hpsl]
   · iexists W64 0, _, _, []
@@ -65,7 +65,7 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
     simp only [Hbnd', and_self]
     wp_apply wp_load_slice_index psl (sint.Z k) _ dq sv Hk.1 $$ [Hpsl] as Hpsl
     · iframe Hpsl; ipureintro; exact Hsv
-    ihave #Hsv := BigSepL.bigSepL_lookup (Φ := fun _ v => rsOk (GF := GF) γr.raft v) Hsv $$ Hps
+    ihave #Hsv := BigSepL.bigSepL_lookup (Φ := fun _ v => rsOk (GF := GF) γr.cluster v) Hsv $$ Hps
     wp_if_destruct
     · -- a later index: kept
       wp_apply wp_slice_literal
@@ -78,17 +78,13 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
       iexists k + W64 1, sv, rest', ps' ++ [sv]
       iframe
       isplitl
-      · iapply (BigSepL.bigSepL_singleton (Φ := fun _ v => rsOk (GF := GF) γr.raft v)).2
+      · iapply (BigSepL.bigSepL_singleton (Φ := fun _ v => rsOk (GF := GF) γr.cluster v)).2
         iexact Hsv
       ipureintro; constructor <;> word
     · -- answered, if it is this replica's waiting read
       have Hle : uint.Z sv.Index' ≤ (ap.length : Int) := by word
       iunfold rsOk at Hsv
       icases Hsv with ⟨%cx, #Hcx, #Hok⟩
-      imod node_readState_data γp.node id n ⟨sv.Index', cx⟩ ⊤ $$ HisNode [] with #Hok0
-      · rw [Hraft]; iexact Hok
-      ihave #Hok' : readOk γr.raft cx sv.Index' $$ []
-      · rw [← Hraft]; iexact Hok0
       wp_apply wp_decode sv.RequestCtx' cx DFrac.discard $$ [$Hcx]
       iintro -
       cases Hdec : decodeOp cx with
@@ -122,8 +118,8 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
             · iintro HmK HK HmA HA
               unfold runOwn
               iexists mK, K, mA, A, ods
-              iframe HmK HK HmA HA Hap Hods
-              ipureintro; exact ⟨Hval, HA⟩
+              iframe HmK HK HmA HA Hap
+              ipureintro; exact ⟨Hods, Hval, HA⟩
             cases HRs : Rd !! sq with
             | none =>
               simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
@@ -157,14 +153,9 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
               iunfold readWaiterOk at Hw
               icases Hw with ⟨%c0, %γh, #Hmint, #Hho, Hprod⟩
               -- the waiter's context is the read state's: both are minted at `(id, sq)`
-              ihave #Hok'' := Hok'
-              iunfold readOk at Hok''
-              icases Hok'' with ⟨%Lc', #Hrq', -⟩
               rw [Hif] at Hkey
-              ihave #Hcinv : raftCommitInv γr.raft $$ []
-              · rw [← Hraft]; open_node HisNode; iexact Hcinv
-              imod kv_read_minted γr cx c0 Lc' (id, sq) ⊤ CoPset.subseteq_top raftN_regN Hkey
-                $$ Hinv Hcinv Hrq' Hmint with %Hc0
+              imod kv_read_minted γr cx c0 sv.Index' (id, sq) ⊤ CoPset.subseteq_top Hkey
+                $$ Hinv Hok Hmint with %Hc0
               subst Hc0
               wp_apply wp_map_lookup1 go.string go.string mK K key (DFrac.own 1) $$ [$HK] as HK
               wp_apply sync.Mutex.wp_Unlock _ _
@@ -187,12 +178,12 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
                 iprop(False) ((K !! key).getD (zero_val GoString)) $$ [$Hho $Hprod]
               · isplitl
                 · unfold readAns
-                  iexists sv.Index', ap, ods
-                  iframe Hok' Hap Hods
+                  iexists sv.Index', ap
+                  iframe Hok Hap
                   ipureintro
                   refine ⟨Hle, ?_⟩
                   have Hdk : dkey c0 = key := by simp [dkey, Hdec]
-                  rw [Hdk]; exact Hval key
+                  rw [Hdk]; unfold logHist; rw [← Hods]; exact Hval key
                 · itrivial
               iintro -
               wp_auto

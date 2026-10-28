@@ -30,598 +30,609 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.features
 
-noncomputable def clientAdapter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientAdapter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/kubernetes/pkg/features.clientAdapter" [])
 
 attribute [irreducible] clientAdapter.ty
 
-@[reducible] noncomputable def AllowDNSOnlyNodeCSR [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def AllowDNSOnlyNodeCSR [GooseExts] [GoGlobalContext] : val :=
   #(go!"AllowDNSOnlyNodeCSR")
 
-@[reducible] noncomputable def AllowInsecureKubeletCertificateSigningRequests [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def AllowInsecureKubeletCertificateSigningRequests [GooseExts] [GoGlobalContext] : val :=
   #(go!"AllowInsecureKubeletCertificateSigningRequests")
 
-@[reducible] noncomputable def AllowOverwriteTerminationGracePeriodSeconds [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def AllowOverwriteTerminationGracePeriodSeconds [GooseExts] [GoGlobalContext] : val :=
   #(go!"AllowOverwriteTerminationGracePeriodSeconds")
 
-@[reducible] noncomputable def AllowServiceExternalIPs [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def AllowServiceExternalIPs [GooseExts] [GoGlobalContext] : val :=
   #(go!"AllowServiceExternalIPs")
 
-@[reducible] noncomputable def AtomicWriteVolumeUserFields [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def AtomicWriteVolumeUserFields [GooseExts] [GoGlobalContext] : val :=
   #(go!"AtomicWriteVolumeUserFields")
 
-@[reducible] noncomputable def AuthorizePodWebsocketUpgradeCreatePermission [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def AuthorizePodWebsocketUpgradeCreatePermission [GooseExts] [GoGlobalContext] : val :=
   #(go!"AuthorizePodWebsocketUpgradeCreatePermission")
 
-@[reducible] noncomputable def CPUCFSQuotaPeriod [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CPUCFSQuotaPeriod [GooseExts] [GoGlobalContext] : val :=
   #(go!"CustomCPUCFSQuotaPeriod")
 
-@[reducible] noncomputable def CPUManagerPolicyAlphaOptions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CPUManagerPolicyAlphaOptions [GooseExts] [GoGlobalContext] : val :=
   #(go!"CPUManagerPolicyAlphaOptions")
 
-@[reducible] noncomputable def CPUManagerPolicyBetaOptions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CPUManagerPolicyBetaOptions [GooseExts] [GoGlobalContext] : val :=
   #(go!"CPUManagerPolicyBetaOptions")
 
-@[reducible] noncomputable def CPUManagerPolicyOptions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CPUManagerPolicyOptions [GooseExts] [GoGlobalContext] : val :=
   #(go!"CPUManagerPolicyOptions")
 
-@[reducible] noncomputable def CRIListStreaming [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CRIListStreaming [GooseExts] [GoGlobalContext] : val :=
   #(go!"CRIListStreaming")
 
-@[reducible] noncomputable def CSIServiceAccountTokenSecrets [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CSIServiceAccountTokenSecrets [GooseExts] [GoGlobalContext] : val :=
   #(go!"CSIServiceAccountTokenSecrets")
 
-@[reducible] noncomputable def CSIVolumeHealth [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CSIVolumeHealth [GooseExts] [GoGlobalContext] : val :=
   #(go!"CSIVolumeHealth")
 
-@[reducible] noncomputable def CertificateSigningRequestMLDSA [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CertificateSigningRequestMLDSA [GooseExts] [GoGlobalContext] : val :=
   #(go!"CertificateSigningRequestMLDSA")
 
-@[reducible] noncomputable def ChangeContainerStatusOnKubeletRestart [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ChangeContainerStatusOnKubeletRestart [GooseExts] [GoGlobalContext] : val :=
   #(go!"ChangeContainerStatusOnKubeletRestart")
 
-@[reducible] noncomputable def ClearingNominatedNodeNameAfterBinding [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ClearingNominatedNodeNameAfterBinding [GooseExts] [GoGlobalContext] : val :=
   #(go!"ClearingNominatedNodeNameAfterBinding")
 
-@[reducible] noncomputable def ClusterTrustBundle [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ClusterTrustBundle [GooseExts] [GoGlobalContext] : val :=
   #(go!"ClusterTrustBundle")
 
-@[reducible] noncomputable def ClusterTrustBundleProjection [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ClusterTrustBundleProjection [GooseExts] [GoGlobalContext] : val :=
   #(go!"ClusterTrustBundleProjection")
 
-@[reducible] noncomputable def CompositePodGroup [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CompositePodGroup [GooseExts] [GoGlobalContext] : val :=
   #(go!"CompositePodGroup")
 
-@[reducible] noncomputable def ContainerCheckpoint [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ContainerCheckpoint [GooseExts] [GoGlobalContext] : val :=
   #(go!"ContainerCheckpoint")
 
-@[reducible] noncomputable def ContainerRestartRules [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ContainerRestartRules [GooseExts] [GoGlobalContext] : val :=
   #(go!"ContainerRestartRules")
 
-@[reducible] noncomputable def ContainerStopSignals [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ContainerStopSignals [GooseExts] [GoGlobalContext] : val :=
   #(go!"ContainerStopSignals")
 
-@[reducible] noncomputable def CoordinatedLeaderElection [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CoordinatedLeaderElection [GooseExts] [GoGlobalContext] : val :=
   #(go!"CoordinatedLeaderElection")
 
-@[reducible] noncomputable def CrossNamespaceVolumeDataSource [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CrossNamespaceVolumeDataSource [GooseExts] [GoGlobalContext] : val :=
   #(go!"CrossNamespaceVolumeDataSource")
 
-@[reducible] noncomputable def DRAAdminAccess [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAAdminAccess [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAAdminAccess")
 
-@[reducible] noncomputable def DRAConsumableCapacity [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAConsumableCapacity [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAConsumableCapacity")
 
-@[reducible] noncomputable def DRADerivedAttributes [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRADerivedAttributes [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRADerivedAttributes")
 
-@[reducible] noncomputable def DRADeviceBindingConditions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRADeviceBindingConditions [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRADeviceBindingConditions")
 
-@[reducible] noncomputable def DRADeviceCompatibilityGroups [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRADeviceCompatibilityGroups [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRADeviceCompatibilityGroups")
 
-@[reducible] noncomputable def DRADeviceTaintRules [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRADeviceTaintRules [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRADeviceTaintRules")
 
-@[reducible] noncomputable def DRADeviceTaints [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRADeviceTaints [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRADeviceTaints")
 
-@[reducible] noncomputable def DRAExtendedResource [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAExtendedResource [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAExtendedResource")
 
-@[reducible] noncomputable def DRAFractionalCapacityRange [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAFractionalCapacityRange [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAFractionalCapacityRange")
 
-@[reducible] noncomputable def DRAListTypeAttributes [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAListTypeAttributes [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAListTypeAttributes")
 
-@[reducible] noncomputable def DRANodeAllocatableResources [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRANodeAllocatableResources [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRANodeAllocatableResources")
 
-@[reducible] noncomputable def DRAOptionalNodeOperations [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAOptionalNodeOperations [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAOptionalNodeOperations")
 
-@[reducible] noncomputable def DRAPartitionableDevices [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAPartitionableDevices [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAPartitionableDevices")
 
-@[reducible] noncomputable def DRAPartitionableDevicesType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAPartitionableDevicesType [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAPartitionableDevicesType")
 
-@[reducible] noncomputable def DRAPrioritizedList [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAPrioritizedList [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAPrioritizedList")
 
-@[reducible] noncomputable def DRAResourceClaimDeviceStatus [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAResourceClaimDeviceStatus [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAResourceClaimDeviceStatus")
 
-@[reducible] noncomputable def DRAResourceClaimGranularStatusAuthorization [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAResourceClaimGranularStatusAuthorization [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAResourceClaimGranularStatusAuthorization")
 
-@[reducible] noncomputable def DRAResourcePoolStatus [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAResourcePoolStatus [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAResourcePoolStatus")
 
-@[reducible] noncomputable def DRASchedulerFilterTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRASchedulerFilterTimeout [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRASchedulerFilterTimeout")
 
-@[reducible] noncomputable def DRAWorkloadResourceClaims [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DRAWorkloadResourceClaims [GooseExts] [GoGlobalContext] : val :=
   #(go!"DRAWorkloadResourceClaims")
 
-@[reducible] noncomputable def DefaultPodSysctls [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultPodSysctls [GooseExts] [GoGlobalContext] : val :=
   #(go!"DefaultPodSysctls")
 
-@[reducible] noncomputable def DeploymentReplicaSetTerminatingReplicas [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DeploymentReplicaSetTerminatingReplicas [GooseExts] [GoGlobalContext] : val :=
   #(go!"DeploymentReplicaSetTerminatingReplicas")
 
-@[reducible] noncomputable def DisableCPUQuotaWithExclusiveCPUs [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DisableCPUQuotaWithExclusiveCPUs [GooseExts] [GoGlobalContext] : val :=
   #(go!"DisableCPUQuotaWithExclusiveCPUs")
 
-@[reducible] noncomputable def DisableNodeKubeProxyVersion [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DisableNodeKubeProxyVersion [GooseExts] [GoGlobalContext] : val :=
   #(go!"DisableNodeKubeProxyVersion")
 
-@[reducible] noncomputable def EmptyDirVolumeMode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EmptyDirVolumeMode [GooseExts] [GoGlobalContext] : val :=
   #(go!"EmptyDirVolumeMode")
 
-@[reducible] noncomputable def EnvFiles [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EnvFiles [GooseExts] [GoGlobalContext] : val :=
   #(go!"EnvFiles")
 
-@[reducible] noncomputable def EventedPLEG [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EventedPLEG [GooseExts] [GoGlobalContext] : val :=
   #(go!"EventedPLEG")
 
-@[reducible] noncomputable def EvictionRequestAPI [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EvictionRequestAPI [GooseExts] [GoGlobalContext] : val :=
   #(go!"EvictionRequestAPI")
 
-@[reducible] noncomputable def ExecProbeTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ExecProbeTimeout [GooseExts] [GoGlobalContext] : val :=
   #(go!"ExecProbeTimeout")
 
-@[reducible] noncomputable def ExtendWebSocketsToKubelet [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ExtendWebSocketsToKubelet [GooseExts] [GoGlobalContext] : val :=
   #(go!"ExtendWebSocketsToKubelet")
 
-@[reducible] noncomputable def ExternalServiceAccountTokenSigner [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ExternalServiceAccountTokenSigner [GooseExts] [GoGlobalContext] : val :=
   #(go!"ExternalServiceAccountTokenSigner")
 
-@[reducible] noncomputable def GRPCContainerProbeTLS [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def GRPCContainerProbeTLS [GooseExts] [GoGlobalContext] : val :=
   #(go!"GRPCContainerProbeTLS")
 
-@[reducible] noncomputable def GenericWorkload [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def GenericWorkload [GooseExts] [GoGlobalContext] : val :=
   #(go!"GenericWorkload")
 
-@[reducible] noncomputable def GitRepoVolumeDriver [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def GitRepoVolumeDriver [GooseExts] [GoGlobalContext] : val :=
   #(go!"GitRepoVolumeDriver")
 
-@[reducible] noncomputable def GracefulNodeShutdown [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def GracefulNodeShutdown [GooseExts] [GoGlobalContext] : val :=
   #(go!"GracefulNodeShutdown")
 
-@[reducible] noncomputable def GracefulNodeShutdownBasedOnPodPriority [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def GracefulNodeShutdownBasedOnPodPriority [GooseExts] [GoGlobalContext] : val :=
   #(go!"GracefulNodeShutdownBasedOnPodPriority")
 
-@[reducible] noncomputable def H2CContainerProbe [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def H2CContainerProbe [GooseExts] [GoGlobalContext] : val :=
   #(go!"H2CContainerProbe")
 
-@[reducible] noncomputable def HPAConfigurableTolerance [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def HPAConfigurableTolerance [GooseExts] [GoGlobalContext] : val :=
   #(go!"HPAConfigurableTolerance")
 
-@[reducible] noncomputable def HPAGeneration [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def HPAGeneration [GooseExts] [GoGlobalContext] : val :=
   #(go!"HPAGeneration")
 
-@[reducible] noncomputable def HPAOptimizedSelectorStore [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def HPAOptimizedSelectorStore [GooseExts] [GoGlobalContext] : val :=
   #(go!"HPAOptimizedSelectorStore")
 
-@[reducible] noncomputable def HPAScaleToZero [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def HPAScaleToZero [GooseExts] [GoGlobalContext] : val :=
   #(go!"HPAScaleToZero")
 
-@[reducible] noncomputable def HostnameOverride [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def HostnameOverride [GooseExts] [GoGlobalContext] : val :=
   #(go!"HostnameOverride")
 
-@[reducible] noncomputable def HugepageAwareEviction [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def HugepageAwareEviction [GooseExts] [GoGlobalContext] : val :=
   #(go!"HugepageAwareEviction")
 
-@[reducible] noncomputable def ImageMaximumGCAge [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ImageMaximumGCAge [GooseExts] [GoGlobalContext] : val :=
   #(go!"ImageMaximumGCAge")
 
-@[reducible] noncomputable def ImageVolume [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ImageVolume [GooseExts] [GoGlobalContext] : val :=
   #(go!"ImageVolume")
 
-@[reducible] noncomputable def ImageVolumeWithDigest [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ImageVolumeWithDigest [GooseExts] [GoGlobalContext] : val :=
   #(go!"ImageVolumeWithDigest")
 
-@[reducible] noncomputable def InPlacePodLevelResourcesVerticalScaling [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def InPlacePodLevelResourcesVerticalScaling [GooseExts] [GoGlobalContext] : val :=
   #(go!"InPlacePodLevelResourcesVerticalScaling")
 
-@[reducible] noncomputable def InPlacePodVerticalScaling [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def InPlacePodVerticalScaling [GooseExts] [GoGlobalContext] : val :=
   #(go!"InPlacePodVerticalScaling")
 
-@[reducible] noncomputable def InPlacePodVerticalScalingExclusiveCPUs [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def InPlacePodVerticalScalingExclusiveCPUs [GooseExts] [GoGlobalContext] : val :=
   #(go!"InPlacePodVerticalScalingExclusiveCPUs")
 
-@[reducible] noncomputable def InPlacePodVerticalScalingExclusiveMemory [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def InPlacePodVerticalScalingExclusiveMemory [GooseExts] [GoGlobalContext] : val :=
   #(go!"InPlacePodVerticalScalingExclusiveMemory")
 
-@[reducible] noncomputable def InPlacePodVerticalScalingInitContainers [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def InPlacePodVerticalScalingInitContainers [GooseExts] [GoGlobalContext] : val :=
   #(go!"InPlacePodVerticalScalingInitContainers")
 
-@[reducible] noncomputable def InPlacePodVerticalScalingMemoryBackedVolumes [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def InPlacePodVerticalScalingMemoryBackedVolumes [GooseExts] [GoGlobalContext] : val :=
   #(go!"InPlacePodVerticalScalingMemoryBackedVolumes")
 
-@[reducible] noncomputable def InPlacePodVerticalScalingSchedulerPreemption [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def InPlacePodVerticalScalingSchedulerPreemption [GooseExts] [GoGlobalContext] : val :=
   #(go!"InPlacePodVerticalScalingSchedulerPreemption")
 
-@[reducible] noncomputable def InterPodAffinityHostnameFastPath [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def InterPodAffinityHostnameFastPath [GooseExts] [GoGlobalContext] : val :=
   #(go!"InterPodAffinityHostnameFastPath")
 
-@[reducible] noncomputable def KubeProxyIPVS [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeProxyIPVS [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeProxyIPVS")
 
-@[reducible] noncomputable def KubeProxyNFTablesLocalhostNodePorts [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeProxyNFTablesLocalhostNodePorts [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeProxyNFTablesLocalhostNodePorts")
 
-@[reducible] noncomputable def KubeletAllocatedPodsEndpoint [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletAllocatedPodsEndpoint [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletAllocatedPodsEndpoint")
 
-@[reducible] noncomputable def KubeletCgroupDriverFromCRI [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletCgroupDriverFromCRI [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletCgroupDriverFromCRI")
 
-@[reducible] noncomputable def KubeletCrashLoopBackOffMax [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletCrashLoopBackOffMax [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletCrashLoopBackOffMax")
 
-@[reducible] noncomputable def KubeletEnsureSecretPulledImages [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletEnsureSecretPulledImages [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletEnsureSecretPulledImages")
 
-@[reducible] noncomputable def KubeletFineGrainedAuthz [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletFineGrainedAuthz [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletFineGrainedAuthz")
 
-@[reducible] noncomputable def KubeletInUserNamespace [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletInUserNamespace [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletInUserNamespace")
 
-@[reducible] noncomputable def KubeletPSI [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletPSI [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletPSI")
 
-@[reducible] noncomputable def KubeletPodResourcesDynamicResources [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletPodResourcesDynamicResources [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletPodResourcesDynamicResources")
 
-@[reducible] noncomputable def KubeletPodResourcesGet [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletPodResourcesGet [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletPodResourcesGet")
 
-@[reducible] noncomputable def KubeletPodResourcesListUseActivePods [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletPodResourcesListUseActivePods [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletPodResourcesListUseActivePods")
 
-@[reducible] noncomputable def KubeletRegistrationGetOnExistsOnly [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletRegistrationGetOnExistsOnly [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletRegistrationGetOnExistsOnly")
 
-@[reducible] noncomputable def KubeletSeparateDiskGC [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletSeparateDiskGC [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletSeparateDiskGC")
 
-@[reducible] noncomputable def KubeletServiceAccountTokenForCredentialProviders [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KubeletServiceAccountTokenForCredentialProviders [GooseExts] [GoGlobalContext] : val :=
   #(go!"KubeletServiceAccountTokenForCredentialProviders")
 
-@[reducible] noncomputable def LocalStorageCapacityIsolationFSQuotaMonitoring [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def LocalStorageCapacityIsolationFSQuotaMonitoring [GooseExts] [GoGlobalContext] : val :=
   #(go!"LocalStorageCapacityIsolationFSQuotaMonitoring")
 
-@[reducible] noncomputable def MatchLabelKeysInPodTopologySpread [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MatchLabelKeysInPodTopologySpread [GooseExts] [GoGlobalContext] : val :=
   #(go!"MatchLabelKeysInPodTopologySpread")
 
-@[reducible] noncomputable def MatchLabelKeysInPodTopologySpreadSelectorMerge [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MatchLabelKeysInPodTopologySpreadSelectorMerge [GooseExts] [GoGlobalContext] : val :=
   #(go!"MatchLabelKeysInPodTopologySpreadSelectorMerge")
 
-@[reducible] noncomputable def MaxUnavailableStatefulSet [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MaxUnavailableStatefulSet [GooseExts] [GoGlobalContext] : val :=
   #(go!"MaxUnavailableStatefulSet")
 
-@[reducible] noncomputable def MemoryQoS [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MemoryQoS [GooseExts] [GoGlobalContext] : val :=
   #(go!"MemoryQoS")
 
-@[reducible] noncomputable def MutableCSINodeAllocatableCount [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MutableCSINodeAllocatableCount [GooseExts] [GoGlobalContext] : val :=
   #(go!"MutableCSINodeAllocatableCount")
 
-@[reducible] noncomputable def MutablePVNodeAffinity [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MutablePVNodeAffinity [GooseExts] [GoGlobalContext] : val :=
   #(go!"MutablePVNodeAffinity")
 
-@[reducible] noncomputable def MutablePodResourcesForSuspendedJobs [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MutablePodResourcesForSuspendedJobs [GooseExts] [GoGlobalContext] : val :=
   #(go!"MutablePodResourcesForSuspendedJobs")
 
-@[reducible] noncomputable def MutableSchedulingDirectivesForSuspendedJobs [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MutableSchedulingDirectivesForSuspendedJobs [GooseExts] [GoGlobalContext] : val :=
   #(go!"MutableSchedulingDirectivesForSuspendedJobs")
 
-@[reducible] noncomputable def NFTablesNetlink [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NFTablesNetlink [GooseExts] [GoGlobalContext] : val :=
   #(go!"NFTablesNetlink")
 
-@[reducible] noncomputable def NodeControllerLeaseCircuitBreaker [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeControllerLeaseCircuitBreaker [GooseExts] [GoGlobalContext] : val :=
   #(go!"NodeControllerLeaseCircuitBreaker")
 
-@[reducible] noncomputable def NodeDeclaredFeatures [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeDeclaredFeatures [GooseExts] [GoGlobalContext] : val :=
   #(go!"NodeDeclaredFeatures")
 
-@[reducible] noncomputable def NodeInclusionPolicyInPodTopologySpread [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeInclusionPolicyInPodTopologySpread [GooseExts] [GoGlobalContext] : val :=
   #(go!"NodeInclusionPolicyInPodTopologySpread")
 
-@[reducible] noncomputable def NodeLifecycleConditions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeLifecycleConditions [GooseExts] [GoGlobalContext] : val :=
   #(go!"NodeLifecycleConditions")
 
-@[reducible] noncomputable def NodeLogQuery [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeLogQuery [GooseExts] [GoGlobalContext] : val :=
   #(go!"NodeLogQuery")
 
-@[reducible] noncomputable def NodeSwap [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeSwap [GooseExts] [GoGlobalContext] : val :=
   #(go!"NodeSwap")
 
-@[reducible] noncomputable def NominatedNodeNameForExpectation [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NominatedNodeNameForExpectation [GooseExts] [GoGlobalContext] : val :=
   #(go!"NominatedNodeNameForExpectation")
 
-@[reducible] noncomputable def OpportunisticBatching [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def OpportunisticBatching [GooseExts] [GoGlobalContext] : val :=
   #(go!"OpportunisticBatching")
 
-@[reducible] noncomputable def PLEGOnDemandRelist [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PLEGOnDemandRelist [GooseExts] [GoGlobalContext] : val :=
   #(go!"PLEGOnDemandRelist")
 
-@[reducible] noncomputable def PersistentVolumeClaimUnusedSinceTime [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PersistentVolumeClaimUnusedSinceTime [GooseExts] [GoGlobalContext] : val :=
   #(go!"PersistentVolumeClaimUnusedSinceTime")
 
-@[reducible] noncomputable def PodAndContainerStatsFromCRI [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodAndContainerStatsFromCRI [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodAndContainerStatsFromCRI")
 
-@[reducible] noncomputable def PodCertificateMLDSA [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodCertificateMLDSA [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodCertificateMLDSA")
 
-@[reducible] noncomputable def PodCertificateRequest [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodCertificateRequest [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodCertificateRequest")
 
-@[reducible] noncomputable def PodDeletionCost [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodDeletionCost [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodDeletionCost")
 
-@[reducible] noncomputable def PodGroupPreemptionPolicy [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodGroupPreemptionPolicy [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodGroupPreemptionPolicy")
 
-@[reducible] noncomputable def PodLevelResourceManagers [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodLevelResourceManagers [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodLevelResourceManagers")
 
-@[reducible] noncomputable def PodLevelResources [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodLevelResources [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodLevelResources")
 
-@[reducible] noncomputable def PodLevelResourcesFixDefaulting [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodLevelResourcesFixDefaulting [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodLevelResourcesFixDefaulting")
 
-@[reducible] noncomputable def PodLevelResourcesFixKubeletQOSClass [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodLevelResourcesFixKubeletQOSClass [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodLevelResourcesFixKubeletQOSClass")
 
-@[reducible] noncomputable def PodLogsQuerySplitStreams [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodLogsQuerySplitStreams [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodLogsQuerySplitStreams")
 
-@[reducible] noncomputable def PodObservedGenerationTracking [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodObservedGenerationTracking [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodObservedGenerationTracking")
 
-@[reducible] noncomputable def PodReadyToStartContainersCondition [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodReadyToStartContainersCondition [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodReadyToStartContainersCondition")
 
-@[reducible] noncomputable def PodTopologyLabelsAdmission [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodTopologyLabelsAdmission [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodTopologyLabelsAdmission")
 
-@[reducible] noncomputable def PodsAPI [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodsAPI [GooseExts] [GoGlobalContext] : val :=
   #(go!"PodsAPI")
 
-@[reducible] noncomputable def PortForwardWebsockets [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PortForwardWebsockets [GooseExts] [GoGlobalContext] : val :=
   #(go!"PortForwardWebsockets")
 
-@[reducible] noncomputable def ProcMountType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ProcMountType [GooseExts] [GoGlobalContext] : val :=
   #(go!"ProcMountType")
 
-@[reducible] noncomputable def QOSReserved [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def QOSReserved [GooseExts] [GoGlobalContext] : val :=
   #(go!"QOSReserved")
 
-@[reducible] noncomputable def RecoverVolumeExpansionFailure [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RecoverVolumeExpansionFailure [GooseExts] [GoGlobalContext] : val :=
   #(go!"RecoverVolumeExpansionFailure")
 
-@[reducible] noncomputable def RecursiveReadOnlyMounts [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RecursiveReadOnlyMounts [GooseExts] [GoGlobalContext] : val :=
   #(go!"RecursiveReadOnlyMounts")
 
-@[reducible] noncomputable def ReduceDefaultCrashLoopBackOffDecay [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ReduceDefaultCrashLoopBackOffDecay [GooseExts] [GoGlobalContext] : val :=
   #(go!"ReduceDefaultCrashLoopBackOffDecay")
 
-@[reducible] noncomputable def RelaxedEnvironmentVariableValidation [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RelaxedEnvironmentVariableValidation [GooseExts] [GoGlobalContext] : val :=
   #(go!"RelaxedEnvironmentVariableValidation")
 
-@[reducible] noncomputable def RelaxedServiceNameValidation [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RelaxedServiceNameValidation [GooseExts] [GoGlobalContext] : val :=
   #(go!"RelaxedServiceNameValidation")
 
-@[reducible] noncomputable def ReloadKubeletClientCAFile [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ReloadKubeletClientCAFile [GooseExts] [GoGlobalContext] : val :=
   #(go!"ReloadKubeletClientCAFile")
 
-@[reducible] noncomputable def ReloadKubeletServerCertificateFile [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ReloadKubeletServerCertificateFile [GooseExts] [GoGlobalContext] : val :=
   #(go!"ReloadKubeletServerCertificateFile")
 
-@[reducible] noncomputable def ResourceHealthStatus [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ResourceHealthStatus [GooseExts] [GoGlobalContext] : val :=
   #(go!"ResourceHealthStatus")
 
-@[reducible] noncomputable def ResourceHealthStatusMessage [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ResourceHealthStatusMessage [GooseExts] [GoGlobalContext] : val :=
   #(go!"ResourceHealthStatusMessage")
 
-@[reducible] noncomputable def RestartAllContainersOnContainerExits [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RestartAllContainersOnContainerExits [GooseExts] [GoGlobalContext] : val :=
   #(go!"RestartAllContainersOnContainerExits")
 
-@[reducible] noncomputable def RotateKubeletServerCertificate [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RotateKubeletServerCertificate [GooseExts] [GoGlobalContext] : val :=
   #(go!"RotateKubeletServerCertificate")
 
-@[reducible] noncomputable def RuntimeClassInImageCriAPI [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RuntimeClassInImageCriAPI [GooseExts] [GoGlobalContext] : val :=
   #(go!"RuntimeClassInImageCriApi")
 
-@[reducible] noncomputable def SELinuxChangePolicy [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SELinuxChangePolicy [GooseExts] [GoGlobalContext] : val :=
   #(go!"SELinuxChangePolicy")
 
-@[reducible] noncomputable def SELinuxMount [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SELinuxMount [GooseExts] [GoGlobalContext] : val :=
   #(go!"SELinuxMount")
 
-@[reducible] noncomputable def SELinuxMountReadWriteOncePod [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SELinuxMountReadWriteOncePod [GooseExts] [GoGlobalContext] : val :=
   #(go!"SELinuxMountReadWriteOncePod")
 
-@[reducible] noncomputable def SchedulerAsyncAPICalls [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SchedulerAsyncAPICalls [GooseExts] [GoGlobalContext] : val :=
   #(go!"SchedulerAsyncAPICalls")
 
-@[reducible] noncomputable def SchedulerAsyncPreemption [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SchedulerAsyncPreemption [GooseExts] [GoGlobalContext] : val :=
   #(go!"SchedulerAsyncPreemption")
 
-@[reducible] noncomputable def SchedulerPopFromBackoffQ [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SchedulerPopFromBackoffQ [GooseExts] [GoGlobalContext] : val :=
   #(go!"SchedulerPopFromBackoffQ")
 
-@[reducible] noncomputable def SchedulerPreQueueingHints [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SchedulerPreQueueingHints [GooseExts] [GoGlobalContext] : val :=
   #(go!"SchedulerPreQueueingHints")
 
-@[reducible] noncomputable def ServiceAccountNodeAudienceRestriction [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ServiceAccountNodeAudienceRestriction [GooseExts] [GoGlobalContext] : val :=
   #(go!"ServiceAccountNodeAudienceRestriction")
 
-@[reducible] noncomputable def ServiceAccountTokenJTI [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ServiceAccountTokenJTI [GooseExts] [GoGlobalContext] : val :=
   #(go!"ServiceAccountTokenJTI")
 
-@[reducible] noncomputable def ServiceAccountTokenNodeBinding [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ServiceAccountTokenNodeBinding [GooseExts] [GoGlobalContext] : val :=
   #(go!"ServiceAccountTokenNodeBinding")
 
-@[reducible] noncomputable def ServiceAccountTokenNodeBindingValidation [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ServiceAccountTokenNodeBindingValidation [GooseExts] [GoGlobalContext] : val :=
   #(go!"ServiceAccountTokenNodeBindingValidation")
 
-@[reducible] noncomputable def ServiceCIDRStatusFieldWiping [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ServiceCIDRStatusFieldWiping [GooseExts] [GoGlobalContext] : val :=
   #(go!"ServiceCIDRStatusFieldWiping")
 
-@[reducible] noncomputable def StaleControllerConsistencyDaemonSet [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StaleControllerConsistencyDaemonSet [GooseExts] [GoGlobalContext] : val :=
   #(go!"StaleControllerConsistencyDaemonSet")
 
-@[reducible] noncomputable def StaleControllerConsistencyHPA [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StaleControllerConsistencyHPA [GooseExts] [GoGlobalContext] : val :=
   #(go!"StaleControllerConsistencyHPA")
 
-@[reducible] noncomputable def StaleControllerConsistencyJob [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StaleControllerConsistencyJob [GooseExts] [GoGlobalContext] : val :=
   #(go!"StaleControllerConsistencyJob")
 
-@[reducible] noncomputable def StaleControllerConsistencyReplicaSet [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StaleControllerConsistencyReplicaSet [GooseExts] [GoGlobalContext] : val :=
   #(go!"StaleControllerConsistencyReplicaSet")
 
-@[reducible] noncomputable def StaleControllerConsistencyStatefulSet [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StaleControllerConsistencyStatefulSet [GooseExts] [GoGlobalContext] : val :=
   #(go!"StaleControllerConsistencyStatefulSet")
 
-@[reducible] noncomputable def StatefulSetRecreateStrategy [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StatefulSetRecreateStrategy [GooseExts] [GoGlobalContext] : val :=
   #(go!"StatefulSetRecreateStrategy")
 
-@[reducible] noncomputable def StatefulSetSemanticRevisionComparison [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StatefulSetSemanticRevisionComparison [GooseExts] [GoGlobalContext] : val :=
   #(go!"StatefulSetSemanticRevisionComparison")
 
-@[reducible] noncomputable def StorageCapacityScoring [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StorageCapacityScoring [GooseExts] [GoGlobalContext] : val :=
   #(go!"StorageCapacityScoring")
 
-@[reducible] noncomputable def StorageNamespaceIndex [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StorageNamespaceIndex [GooseExts] [GoGlobalContext] : val :=
   #(go!"StorageNamespaceIndex")
 
-@[reducible] noncomputable def StorageVersionMigrator [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StorageVersionMigrator [GooseExts] [GoGlobalContext] : val :=
   #(go!"StorageVersionMigrator")
 
-@[reducible] noncomputable def StrictIPCIDRValidation [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StrictIPCIDRValidation [GooseExts] [GoGlobalContext] : val :=
   #(go!"StrictIPCIDRValidation")
 
-@[reducible] noncomputable def SupplementalGroupsPolicy [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SupplementalGroupsPolicy [GooseExts] [GoGlobalContext] : val :=
   #(go!"SupplementalGroupsPolicy")
 
-@[reducible] noncomputable def SystemdWatchdog [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SystemdWatchdog [GooseExts] [GoGlobalContext] : val :=
   #(go!"SystemdWatchdog")
 
-@[reducible] noncomputable def TaintTolerationComparisonOperators [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintTolerationComparisonOperators [GooseExts] [GoGlobalContext] : val :=
   #(go!"TaintTolerationComparisonOperators")
 
-@[reducible] noncomputable def TopologyAwareWorkloadScheduling [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TopologyAwareWorkloadScheduling [GooseExts] [GoGlobalContext] : val :=
   #(go!"TopologyAwareWorkloadScheduling")
 
-@[reducible] noncomputable def TopologyManagerPolicyAlphaOptions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TopologyManagerPolicyAlphaOptions [GooseExts] [GoGlobalContext] : val :=
   #(go!"TopologyManagerPolicyAlphaOptions")
 
-@[reducible] noncomputable def TopologyManagerPolicyBetaOptions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TopologyManagerPolicyBetaOptions [GooseExts] [GoGlobalContext] : val :=
   #(go!"TopologyManagerPolicyBetaOptions")
 
-@[reducible] noncomputable def TopologyManagerPolicyOptions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TopologyManagerPolicyOptions [GooseExts] [GoGlobalContext] : val :=
   #(go!"TopologyManagerPolicyOptions")
 
-@[reducible] noncomputable def TranslateStreamCloseWebsocketRequests [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TranslateStreamCloseWebsocketRequests [GooseExts] [GoGlobalContext] : val :=
   #(go!"TranslateStreamCloseWebsocketRequests")
 
-@[reducible] noncomputable def UserNamespacesHostNetworkSupport [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def UserNamespacesHostNetworkSupport [GooseExts] [GoGlobalContext] : val :=
   #(go!"UserNamespacesHostNetworkSupport")
 
-@[reducible] noncomputable def UserNamespacesSupport [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def UserNamespacesSupport [GooseExts] [GoGlobalContext] : val :=
   #(go!"UserNamespacesSupport")
 
-@[reducible] noncomputable def VolumeAttributesClass [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def VolumeAttributesClass [GooseExts] [GoGlobalContext] : val :=
   #(go!"VolumeAttributesClass")
 
-@[reducible] noncomputable def VolumeBindMountOptions [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def VolumeBindMountOptions [GooseExts] [GoGlobalContext] : val :=
   #(go!"VolumeBindMountOptions")
 
-@[reducible] noncomputable def VolumeLimitScaling [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def VolumeLimitScaling [GooseExts] [GoGlobalContext] : val :=
   #(go!"VolumeLimitScaling")
 
-@[reducible] noncomputable def WinDSR [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WinDSR [GooseExts] [GoGlobalContext] : val :=
   #(go!"WinDSR")
 
-@[reducible] noncomputable def WinOverlay [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WinOverlay [GooseExts] [GoGlobalContext] : val :=
   #(go!"WinOverlay")
 
-@[reducible] noncomputable def WindowsCPUAndMemoryAffinity [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WindowsCPUAndMemoryAffinity [GooseExts] [GoGlobalContext] : val :=
   #(go!"WindowsCPUAndMemoryAffinity")
 
-@[reducible] noncomputable def WindowsGracefulNodeShutdown [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WindowsGracefulNodeShutdown [GooseExts] [GoGlobalContext] : val :=
   #(go!"WindowsGracefulNodeShutdown")
 
-@[reducible] noncomputable def WorkloadWithJob [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WorkloadWithJob [GooseExts] [GoGlobalContext] : val :=
   #(go!"WorkloadWithJob")
 
-noncomputable def defaultVersionedKubernetesFeatureGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultVersionedKubernetesFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/features.defaultVersionedKubernetesFeatureGates"
 
-axiom defaultVersionedKubernetesFeatureGates.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultKubernetesFeatureGateDependencies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultKubernetesFeatureGateDependencies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/features.defaultKubernetesFeatureGateDependencies"
 
-axiom defaultKubernetesFeatureGateDependencies.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultKubernetesFeatureGateDependencies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/features.init.0"
 
 /-- go: client_adapter.go:38:25 -/
-noncomputable def clientAdapter.Enabled.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def clientAdapter.Enabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "name"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))
   (Let "name" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (Var "name"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (Var "name"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty))) (App (Val (GoInstruction (StructFieldRef clientAdapter.ty go!"mfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (Var "name"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty))) (App (Val (GoInstruction (StructFieldRef clientAdapter.ty go!"mfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))))) (Var "$a0")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: client_adapter.go:44:25 -/
-noncomputable def clientAdapter.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def clientAdapter.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "in"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))
   (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.k8s_io.client_go.features.Feature.ty _root_.Perennial.k8s_io.client_go.features.FeatureSpec.ty)))) (Var "in"))
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec.ty)))) (LiteralValue []))
   (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec.ty)))) (Var "out"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty go!"Add"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty))) (App (Val (GoInstruction (StructFieldRef clientAdapter.ty go!"mfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec.ty)))) (Var "out"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty go!"Add"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty))) (App (Val (GoInstruction (StructFieldRef clientAdapter.ty go!"mfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))))) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.client_go.features.Feature.ty _root_.Perennial.k8s_io.client_go.features.FeatureSpec.ty)))) (Var "in"))
   (Let "spec" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.features.FeatureSpec.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.features.FeatureSpec.ty))) (Val #())))
   (Let "name" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (Val #())))
@@ -670,15 +681,17 @@ noncomputable def clientAdapter.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.client_go.features.FeatureSpec.ty))) (Pair (Var "spec") (Var "$value"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec.ty)))) (Pair (Var "out") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec.ty)))) (Pair (Var "out") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- AddVersioned adds the provided versioned feature gates.
 
     go: client_adapter.go:72:25 -/
-noncomputable def clientAdapter.AddVersioned.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def clientAdapter.AddVersioned.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "in"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))
   (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.k8s_io.client_go.features.Feature.ty _root_.Perennial.k8s_io.client_go.features.VersionedSpecs.ty)))) (Var "in"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty))) (App (Val (GoInstruction (StructFieldRef clientAdapter.ty go!"mfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType clientAdapter.ty)))) (Var "a")))))
@@ -695,9 +708,13 @@ noncomputable def clientAdapter.AddVersioned.impl [FfiSyntax] [GoGlobalContext] 
   (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.VersionedSpecs.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.VersionedSpecs.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.VersionedSpecs.ty)))) (Var "out"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty go!"AddVersioned"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (Var "mvfg"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.VersionedSpecs.ty)))) (Var "out"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty go!"AddVersioned"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (Var "mvfg"))) (Var "$a0"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.client_go.features.Feature.ty _root_.Perennial.k8s_io.client_go.features.VersionedSpecs.ty)))) (Var "in"))
   (Let "specs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.features.VersionedSpecs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.features.VersionedSpecs.ty))) (Val #())))
   (Let "name" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (Val #())))
@@ -771,42 +788,53 @@ noncomputable def clientAdapter.AddVersioned.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.k8s_io.component_base.featuregate.Feature.ty _root_.Perennial.k8s_io.component_base.featuregate.VersionedSpecs.ty)))) (Pair (Var "out") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
-  (App (Val doReturn)
-  (Let "$a0" (Val #(go!"feature gate does not support versioning"))
+  (Let "$r0" (Let "$a0" (Val #(go!"feature gate does not support versioning"))
   (Let "$a1" (Val #slice.nil)
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (Pair (Var "mvfg") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (Pair (Var "mvfg") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- Set implements the unexported interface that client-go feature gate testing expects for
     ek8s.io/client-go/features/testing.SetFeatureDuringTest. This is necessary for integration tests
     to set test overrides for client-go feature gates.
 
     go: client_adapter.go:112:25 -/
-noncomputable def clientAdapter.Set.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def clientAdapter.Set.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "name"
   (Lam "enabled"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))
   (Let "enabled" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "enabled"))
   (Let "name" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (Var "name"))
-  (App (Val doReturn)
-  (Let "$a0" (Let "$k0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (Var "name"))
+  (Let "$r0" (Let "$a0" (Let "$k0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.features.Feature.ty))) (Var "name"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "enabled"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.bool)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.bool (Var "$v1")))]))))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty go!"SetFromMap"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty))) (App (Val (GoInstruction (StructFieldRef clientAdapter.ty go!"mfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))))) (Var "$a0")))))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty go!"SetFromMap"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty))) (App (Val (GoInstruction (StructFieldRef clientAdapter.ty go!"mfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType clientAdapter.ty)))) (Var "a"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.features where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.k8s_io.client_go.features, pkg_id.k8s_io.component_base.featuregate, pkg_id.k8s_io.apiextensions_apiserver.pkg.features, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.util.version, pkg_id.k8s_io.apiserver.pkg.features, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.k8s_io.component_base.zpages.features, pkg_id.k8s_io.controller_manager.pkg.features]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.kubernetes.pkg.features)) (Lam BAnon
   (App (Val exceptionDo)
@@ -855,31 +883,33 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.controller_manager.pkg.features.initialize') (Val #()))))))))
 
-structure clientAdapter [FfiSyntax] where
+structure clientAdapter [GooseExts] where
   mk ::
   mfg' : _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate
 
-noncomputable instance clientAdapter.zero_val [FfiSyntax] : ZeroVal clientAdapter :=
+noncomputable instance clientAdapter.zero_val [GooseExts] : ZeroVal clientAdapter :=
   ⟨clientAdapter.mk zeroValDef⟩
 
-@[reducible] noncomputable def clientAdapter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def clientAdapter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mfg" _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate.ty)]
 
-@[irreducible] noncomputable def clientAdapter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def clientAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   clientAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_clientAdapter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_clientAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold clientAdapter.fields clientAdapter.fieldsUnsealed :=
   ⟨by unfold clientAdapter.fields; rfl⟩
 
-@[reducible] noncomputable def clientAdapter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def clientAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType clientAdapter.fields)
 
-class clientAdapter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class clientAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientAdapter.underlying clientAdapter
   underlying : go.UnderlyingDirectedEq clientAdapter.ty clientAdapter.underlying
   get_mfg : ∀ (x : clientAdapter), go.IsGoStepPureDetTagged under (StructFieldGet clientAdapter.underlying go!"mfg") #x (Val #(x.mfg'))
   set_mfg : ∀ (x : clientAdapter) (y : _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate), go.IsGoStepPureDetTagged under (StructFieldSet clientAdapter.underlying go!"mfg") (PairV #x #y) (Val #(({ x with mfg' := y } : clientAdapter)))
+  method_set : go.MethodSetIs clientAdapter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientAdapter.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType _root_.Perennial.k8s_io.client_go.features.Feature.ty _root_.Perennial.k8s_io.client_go.features.FeatureSpec.ty)] false [go.error]))), (go!"AddVersioned", (some (go.signature.Signature [(go.GoType.MapType _root_.Perennial.k8s_io.client_go.features.Feature.ty _root_.Perennial.k8s_io.client_go.features.VersionedSpecs.ty)] false [go.error]))), (go!"Enabled", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.features.Feature.ty] false [go.bool]))), (go!"Set", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.features.Feature.ty, go.bool] false [go.error])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"Add" clientAdapter.Add.impl
   ptr_AddVersioned_unfold : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"AddVersioned" clientAdapter.AddVersioned.impl
   ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"Enabled" clientAdapter.Enabled.impl
@@ -889,12 +919,14 @@ attribute [instance] clientAdapter.TypeAssumptions.type_repr
   clientAdapter.TypeAssumptions.underlying
   clientAdapter.TypeAssumptions.get_mfg
   clientAdapter.TypeAssumptions.set_mfg
+  clientAdapter.TypeAssumptions.method_set
+  clientAdapter.TypeAssumptions.ptr_method_set
   clientAdapter.TypeAssumptions.ptr_Add_unfold
   clientAdapter.TypeAssumptions.ptr_AddVersioned_unfold
   clientAdapter.TypeAssumptions.ptr_Enabled_unfold
   clientAdapter.TypeAssumptions.ptr_Set_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   clientAdapter_instance : clientAdapter.TypeAssumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_k8s_io_client_go_features_Assumption : _root_.Perennial.k8s_io.client_go.features.Assumptions

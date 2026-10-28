@@ -79,7 +79,7 @@ def OltqNone (em : EpochM) : Prop :=
   (em.rs0.wit ≠ W64 0 ∧ em.rs0.wit = em.rs1.wit ∧ em.rs0.rep ≠ em.rs1.rep)
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

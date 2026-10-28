@@ -25,3805 +25,3805 @@ end pkg_id
 
 namespace k8s_io.api.core.v1
 
-noncomputable def Volume.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Volume.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Volume" [])
 
 attribute [irreducible] Volume.ty
 
-noncomputable def VolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeSource" [])
 
 attribute [irreducible] VolumeSource.ty
 
-noncomputable def PersistentVolumeClaimVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource" [])
 
 attribute [irreducible] PersistentVolumeClaimVolumeSource.ty
 
-noncomputable def PersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeSource" [])
 
 attribute [irreducible] PersistentVolumeSource.ty
 
-noncomputable def PersistentVolume.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolume.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolume" [])
 
 attribute [irreducible] PersistentVolume.ty
 
-noncomputable def PersistentVolumeSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeSpec" [])
 
 attribute [irreducible] PersistentVolumeSpec.ty
 
-noncomputable def VolumeNodeAffinity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeNodeAffinity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeNodeAffinity" [])
 
 attribute [irreducible] VolumeNodeAffinity.ty
 
-noncomputable def PersistentVolumeReclaimPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeReclaimPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeReclaimPolicy" [])
 
 attribute [irreducible] PersistentVolumeReclaimPolicy.ty
 
-noncomputable def PersistentVolumeMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeMode" [])
 
 attribute [irreducible] PersistentVolumeMode.ty
 
-noncomputable def PersistentVolumeStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeStatus" [])
 
 attribute [irreducible] PersistentVolumeStatus.ty
 
-noncomputable def PersistentVolumeList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeList" [])
 
 attribute [irreducible] PersistentVolumeList.ty
 
-noncomputable def PersistentVolumeClaim.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaim.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaim" [])
 
 attribute [irreducible] PersistentVolumeClaim.ty
 
-noncomputable def PersistentVolumeClaimList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimList" [])
 
 attribute [irreducible] PersistentVolumeClaimList.ty
 
-noncomputable def PersistentVolumeClaimSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimSpec" [])
 
 attribute [irreducible] PersistentVolumeClaimSpec.ty
 
-noncomputable def TypedObjectReference.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TypedObjectReference.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TypedObjectReference" [])
 
 attribute [irreducible] TypedObjectReference.ty
 
-noncomputable def PersistentVolumeClaimConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimConditionType" [])
 
 attribute [irreducible] PersistentVolumeClaimConditionType.ty
 
-noncomputable def ClaimResourceStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClaimResourceStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ClaimResourceStatus" [])
 
 attribute [irreducible] ClaimResourceStatus.ty
 
-noncomputable def PersistentVolumeClaimModifyVolumeStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimModifyVolumeStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimModifyVolumeStatus" [])
 
 attribute [irreducible] PersistentVolumeClaimModifyVolumeStatus.ty
 
-noncomputable def ModifyVolumeStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ModifyVolumeStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ModifyVolumeStatus" [])
 
 attribute [irreducible] ModifyVolumeStatus.ty
 
-noncomputable def PersistentVolumeClaimCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimCondition" [])
 
 attribute [irreducible] PersistentVolumeClaimCondition.ty
 
-noncomputable def VolumeHealthStatusType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeHealthStatusType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeHealthStatusType" [])
 
 attribute [irreducible] VolumeHealthStatusType.ty
 
-noncomputable def VolumeHealthCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeHealthCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeHealthCondition" [])
 
 attribute [irreducible] VolumeHealthCondition.ty
 
-noncomputable def VolumeHealthStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeHealthStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeHealthStatus" [])
 
 attribute [irreducible] VolumeHealthStatus.ty
 
-noncomputable def PodVolumeHealth.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodVolumeHealth.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodVolumeHealth" [])
 
 attribute [irreducible] PodVolumeHealth.ty
 
-noncomputable def PersistentVolumeClaimStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimStatus" [])
 
 attribute [irreducible] PersistentVolumeClaimStatus.ty
 
-noncomputable def PersistentVolumeAccessMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeAccessMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeAccessMode" [])
 
 attribute [irreducible] PersistentVolumeAccessMode.ty
 
-noncomputable def PersistentVolumePhase.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumePhase.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumePhase" [])
 
 attribute [irreducible] PersistentVolumePhase.ty
 
-noncomputable def PersistentVolumeClaimPhase.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimPhase.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimPhase" [])
 
 attribute [irreducible] PersistentVolumeClaimPhase.ty
 
-noncomputable def HostPathType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HostPathType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.HostPathType" [])
 
 attribute [irreducible] HostPathType.ty
 
-noncomputable def HostPathVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HostPathVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.HostPathVolumeSource" [])
 
 attribute [irreducible] HostPathVolumeSource.ty
 
-noncomputable def EmptyDirVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EmptyDirVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EmptyDirVolumeSource" [])
 
 attribute [irreducible] EmptyDirVolumeSource.ty
 
-noncomputable def GlusterfsVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GlusterfsVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.GlusterfsVolumeSource" [])
 
 attribute [irreducible] GlusterfsVolumeSource.ty
 
-noncomputable def GlusterfsPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GlusterfsPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.GlusterfsPersistentVolumeSource" [])
 
 attribute [irreducible] GlusterfsPersistentVolumeSource.ty
 
-noncomputable def RBDVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RBDVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.RBDVolumeSource" [])
 
 attribute [irreducible] RBDVolumeSource.ty
 
-noncomputable def RBDPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RBDPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.RBDPersistentVolumeSource" [])
 
 attribute [irreducible] RBDPersistentVolumeSource.ty
 
-noncomputable def CinderVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CinderVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.CinderVolumeSource" [])
 
 attribute [irreducible] CinderVolumeSource.ty
 
-noncomputable def CinderPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CinderPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.CinderPersistentVolumeSource" [])
 
 attribute [irreducible] CinderPersistentVolumeSource.ty
 
-noncomputable def CephFSVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CephFSVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.CephFSVolumeSource" [])
 
 attribute [irreducible] CephFSVolumeSource.ty
 
-noncomputable def SecretReference.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretReference.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SecretReference" [])
 
 attribute [irreducible] SecretReference.ty
 
-noncomputable def CephFSPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CephFSPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.CephFSPersistentVolumeSource" [])
 
 attribute [irreducible] CephFSPersistentVolumeSource.ty
 
-noncomputable def FlockerVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FlockerVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.FlockerVolumeSource" [])
 
 attribute [irreducible] FlockerVolumeSource.ty
 
-noncomputable def StorageMedium.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageMedium.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.StorageMedium" [])
 
 attribute [irreducible] StorageMedium.ty
 
-noncomputable def Protocol.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Protocol.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Protocol" [])
 
 attribute [irreducible] Protocol.ty
 
-noncomputable def GCEPersistentDiskVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GCEPersistentDiskVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.GCEPersistentDiskVolumeSource" [])
 
 attribute [irreducible] GCEPersistentDiskVolumeSource.ty
 
-noncomputable def QuobyteVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QuobyteVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.QuobyteVolumeSource" [])
 
 attribute [irreducible] QuobyteVolumeSource.ty
 
-noncomputable def FlexPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FlexPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.FlexPersistentVolumeSource" [])
 
 attribute [irreducible] FlexPersistentVolumeSource.ty
 
-noncomputable def FlexVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FlexVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.FlexVolumeSource" [])
 
 attribute [irreducible] FlexVolumeSource.ty
 
-noncomputable def AWSElasticBlockStoreVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AWSElasticBlockStoreVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource" [])
 
 attribute [irreducible] AWSElasticBlockStoreVolumeSource.ty
 
-noncomputable def GitRepoVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GitRepoVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.GitRepoVolumeSource" [])
 
 attribute [irreducible] GitRepoVolumeSource.ty
 
-noncomputable def SecretVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SecretVolumeSource" [])
 
 attribute [irreducible] SecretVolumeSource.ty
 
-noncomputable def SecretProjection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretProjection.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SecretProjection" [])
 
 attribute [irreducible] SecretProjection.ty
 
-noncomputable def NFSVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NFSVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NFSVolumeSource" [])
 
 attribute [irreducible] NFSVolumeSource.ty
 
-noncomputable def ISCSIVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ISCSIVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ISCSIVolumeSource" [])
 
 attribute [irreducible] ISCSIVolumeSource.ty
 
-noncomputable def ISCSIPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ISCSIPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ISCSIPersistentVolumeSource" [])
 
 attribute [irreducible] ISCSIPersistentVolumeSource.ty
 
-noncomputable def FCVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FCVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.FCVolumeSource" [])
 
 attribute [irreducible] FCVolumeSource.ty
 
-noncomputable def AzureFileVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AzureFileVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AzureFileVolumeSource" [])
 
 attribute [irreducible] AzureFileVolumeSource.ty
 
-noncomputable def AzureFilePersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AzureFilePersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AzureFilePersistentVolumeSource" [])
 
 attribute [irreducible] AzureFilePersistentVolumeSource.ty
 
-noncomputable def VsphereVirtualDiskVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VsphereVirtualDiskVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource" [])
 
 attribute [irreducible] VsphereVirtualDiskVolumeSource.ty
 
-noncomputable def PhotonPersistentDiskVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PhotonPersistentDiskVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource" [])
 
 attribute [irreducible] PhotonPersistentDiskVolumeSource.ty
 
-noncomputable def AzureDataDiskCachingMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AzureDataDiskCachingMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AzureDataDiskCachingMode" [])
 
 attribute [irreducible] AzureDataDiskCachingMode.ty
 
-noncomputable def AzureDataDiskKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AzureDataDiskKind.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AzureDataDiskKind" [])
 
 attribute [irreducible] AzureDataDiskKind.ty
 
-noncomputable def AzureDiskVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AzureDiskVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AzureDiskVolumeSource" [])
 
 attribute [irreducible] AzureDiskVolumeSource.ty
 
-noncomputable def PortworxVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PortworxVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PortworxVolumeSource" [])
 
 attribute [irreducible] PortworxVolumeSource.ty
 
-noncomputable def ScaleIOVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScaleIOVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ScaleIOVolumeSource" [])
 
 attribute [irreducible] ScaleIOVolumeSource.ty
 
-noncomputable def ScaleIOPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScaleIOPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ScaleIOPersistentVolumeSource" [])
 
 attribute [irreducible] ScaleIOPersistentVolumeSource.ty
 
-noncomputable def StorageOSVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageOSVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.StorageOSVolumeSource" [])
 
 attribute [irreducible] StorageOSVolumeSource.ty
 
-noncomputable def StorageOSPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageOSPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.StorageOSPersistentVolumeSource" [])
 
 attribute [irreducible] StorageOSPersistentVolumeSource.ty
 
-noncomputable def ConfigMapVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ConfigMapVolumeSource" [])
 
 attribute [irreducible] ConfigMapVolumeSource.ty
 
-noncomputable def ConfigMapProjection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapProjection.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ConfigMapProjection" [])
 
 attribute [irreducible] ConfigMapProjection.ty
 
-noncomputable def ServiceAccountTokenProjection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceAccountTokenProjection.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceAccountTokenProjection" [])
 
 attribute [irreducible] ServiceAccountTokenProjection.ty
 
-noncomputable def ClusterTrustBundleProjection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterTrustBundleProjection.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ClusterTrustBundleProjection" [])
 
 attribute [irreducible] ClusterTrustBundleProjection.ty
 
-noncomputable def PodCertificateProjection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodCertificateProjection.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodCertificateProjection" [])
 
 attribute [irreducible] PodCertificateProjection.ty
 
-noncomputable def ProjectedVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProjectedVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ProjectedVolumeSource" [])
 
 attribute [irreducible] ProjectedVolumeSource.ty
 
-noncomputable def VolumeProjection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeProjection.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeProjection" [])
 
 attribute [irreducible] VolumeProjection.ty
 
-noncomputable def KeyToPath.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyToPath.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.KeyToPath" [])
 
 attribute [irreducible] KeyToPath.ty
 
-noncomputable def LocalVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LocalVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LocalVolumeSource" [])
 
 attribute [irreducible] LocalVolumeSource.ty
 
-noncomputable def CSIPersistentVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSIPersistentVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.CSIPersistentVolumeSource" [])
 
 attribute [irreducible] CSIPersistentVolumeSource.ty
 
-noncomputable def CSIVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CSIVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.CSIVolumeSource" [])
 
 attribute [irreducible] CSIVolumeSource.ty
 
-noncomputable def EphemeralVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EphemeralVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EphemeralVolumeSource" [])
 
 attribute [irreducible] EphemeralVolumeSource.ty
 
-noncomputable def PersistentVolumeClaimTemplate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimTemplate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PersistentVolumeClaimTemplate" [])
 
 attribute [irreducible] PersistentVolumeClaimTemplate.ty
 
-noncomputable def ContainerPort.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerPort.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerPort" [])
 
 attribute [irreducible] ContainerPort.ty
 
-noncomputable def VolumeMount.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeMount.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeMount" [])
 
 attribute [irreducible] VolumeMount.ty
 
-noncomputable def BindMountOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BindMountOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.BindMountOption" [])
 
 attribute [irreducible] BindMountOption.ty
 
-noncomputable def MountPropagationMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MountPropagationMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.MountPropagationMode" [])
 
 attribute [irreducible] MountPropagationMode.ty
 
-noncomputable def RecursiveReadOnlyMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RecursiveReadOnlyMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.RecursiveReadOnlyMode" [])
 
 attribute [irreducible] RecursiveReadOnlyMode.ty
 
-noncomputable def VolumeDevice.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeDevice.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeDevice" [])
 
 attribute [irreducible] VolumeDevice.ty
 
-noncomputable def EnvVar.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnvVar.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EnvVar" [])
 
 attribute [irreducible] EnvVar.ty
 
-noncomputable def EnvVarSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnvVarSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EnvVarSource" [])
 
 attribute [irreducible] EnvVarSource.ty
 
-noncomputable def FileKeySelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FileKeySelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.FileKeySelector" [])
 
 attribute [irreducible] FileKeySelector.ty
 
-noncomputable def ObjectFieldSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectFieldSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ObjectFieldSelector" [])
 
 attribute [irreducible] ObjectFieldSelector.ty
 
-noncomputable def ResourceFieldSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceFieldSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceFieldSelector" [])
 
 attribute [irreducible] ResourceFieldSelector.ty
 
-noncomputable def ConfigMapKeySelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapKeySelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ConfigMapKeySelector" [])
 
 attribute [irreducible] ConfigMapKeySelector.ty
 
-noncomputable def SecretKeySelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretKeySelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SecretKeySelector" [])
 
 attribute [irreducible] SecretKeySelector.ty
 
-noncomputable def EnvFromSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnvFromSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EnvFromSource" [])
 
 attribute [irreducible] EnvFromSource.ty
 
-noncomputable def ConfigMapEnvSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapEnvSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ConfigMapEnvSource" [])
 
 attribute [irreducible] ConfigMapEnvSource.ty
 
-noncomputable def SecretEnvSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretEnvSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SecretEnvSource" [])
 
 attribute [irreducible] SecretEnvSource.ty
 
-noncomputable def HTTPHeader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HTTPHeader.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.HTTPHeader" [])
 
 attribute [irreducible] HTTPHeader.ty
 
-noncomputable def HTTPProtocol.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HTTPProtocol.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.HTTPProtocol" [])
 
 attribute [irreducible] HTTPProtocol.ty
 
-noncomputable def HTTPGetAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HTTPGetAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.HTTPGetAction" [])
 
 attribute [irreducible] HTTPGetAction.ty
 
-noncomputable def URIScheme.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def URIScheme.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.URIScheme" [])
 
 attribute [irreducible] URIScheme.ty
 
-noncomputable def TCPSocketAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TCPSocketAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TCPSocketAction" [])
 
 attribute [irreducible] TCPSocketAction.ty
 
-noncomputable def GRPCAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GRPCAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.GRPCAction" [])
 
 attribute [irreducible] GRPCAction.ty
 
-noncomputable def GRPCProbeMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GRPCProbeMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.GRPCProbeMode" [])
 
 attribute [irreducible] GRPCProbeMode.ty
 
-noncomputable def ExecAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExecAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ExecAction" [])
 
 attribute [irreducible] ExecAction.ty
 
-noncomputable def SleepAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SleepAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SleepAction" [])
 
 attribute [irreducible] SleepAction.ty
 
-noncomputable def Probe.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Probe.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Probe" [])
 
 attribute [irreducible] Probe.ty
 
-noncomputable def PullPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PullPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PullPolicy" [])
 
 attribute [irreducible] PullPolicy.ty
 
-noncomputable def ResourceResizeRestartPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceResizeRestartPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceResizeRestartPolicy" [])
 
 attribute [irreducible] ResourceResizeRestartPolicy.ty
 
-noncomputable def ContainerResizePolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerResizePolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerResizePolicy" [])
 
 attribute [irreducible] ContainerResizePolicy.ty
 
-noncomputable def PreemptionPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PreemptionPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PreemptionPolicy" [])
 
 attribute [irreducible] PreemptionPolicy.ty
 
-noncomputable def TerminationMessagePolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TerminationMessagePolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TerminationMessagePolicy" [])
 
 attribute [irreducible] TerminationMessagePolicy.ty
 
-noncomputable def Capability.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Capability.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Capability" [])
 
 attribute [irreducible] Capability.ty
 
-noncomputable def Capabilities.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Capabilities.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Capabilities" [])
 
 attribute [irreducible] Capabilities.ty
 
-noncomputable def ResourceRequirements.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceRequirements.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceRequirements" [])
 
 attribute [irreducible] ResourceRequirements.ty
 
-noncomputable def VolumeResourceRequirements.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeResourceRequirements.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeResourceRequirements" [])
 
 attribute [irreducible] VolumeResourceRequirements.ty
 
-noncomputable def ResourceClaim.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceClaim.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceClaim" [])
 
 attribute [irreducible] ResourceClaim.ty
 
-noncomputable def Container.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Container.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Container" [])
 
 attribute [irreducible] Container.ty
 
-noncomputable def ProbeHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProbeHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ProbeHandler" [])
 
 attribute [irreducible] ProbeHandler.ty
 
-noncomputable def LifecycleHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LifecycleHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LifecycleHandler" [])
 
 attribute [irreducible] LifecycleHandler.ty
 
-noncomputable def Signal.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Signal.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Signal" [])
 
 attribute [irreducible] Signal.ty
 
-noncomputable def Lifecycle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Lifecycle.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Lifecycle" [])
 
 attribute [irreducible] Lifecycle.ty
 
-noncomputable def ConditionStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConditionStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ConditionStatus" [])
 
 attribute [irreducible] ConditionStatus.ty
 
-noncomputable def ContainerStateWaiting.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerStateWaiting.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerStateWaiting" [])
 
 attribute [irreducible] ContainerStateWaiting.ty
 
-noncomputable def ContainerStateRunning.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerStateRunning.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerStateRunning" [])
 
 attribute [irreducible] ContainerStateRunning.ty
 
-noncomputable def ContainerStateTerminated.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerStateTerminated.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerStateTerminated" [])
 
 attribute [irreducible] ContainerStateTerminated.ty
 
-noncomputable def ContainerState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerState" [])
 
 attribute [irreducible] ContainerState.ty
 
-noncomputable def ContainerStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerStatus" [])
 
 attribute [irreducible] ContainerStatus.ty
 
-noncomputable def ResourceStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceStatus" [])
 
 attribute [irreducible] ResourceStatus.ty
 
-noncomputable def ResourceHealthStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceHealthStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceHealthStatus" [])
 
 attribute [irreducible] ResourceHealthStatus.ty
 
-noncomputable def ResourceID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceID" [])
 
 attribute [irreducible] ResourceID.ty
 
-noncomputable def ResourceHealth.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceHealth.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceHealth" [])
 
 attribute [irreducible] ResourceHealth.ty
 
-noncomputable def ContainerUser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerUser.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerUser" [])
 
 attribute [irreducible] ContainerUser.ty
 
-noncomputable def LinuxContainerUser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LinuxContainerUser.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LinuxContainerUser" [])
 
 attribute [irreducible] LinuxContainerUser.ty
 
-noncomputable def PodPhase.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodPhase.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodPhase" [])
 
 attribute [irreducible] PodPhase.ty
 
-noncomputable def PodConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodConditionType" [])
 
 attribute [irreducible] PodConditionType.ty
 
-noncomputable def PodCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodCondition" [])
 
 attribute [irreducible] PodCondition.ty
 
-noncomputable def PodResizeStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodResizeStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodResizeStatus" [])
 
 attribute [irreducible] PodResizeStatus.ty
 
-noncomputable def VolumeMountStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeMountStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeMountStatus" [])
 
 attribute [irreducible] VolumeMountStatus.ty
 
-noncomputable def VolumeStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VolumeStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.VolumeStatus" [])
 
 attribute [irreducible] VolumeStatus.ty
 
-noncomputable def ImageVolumeStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ImageVolumeStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ImageVolumeStatus" [])
 
 attribute [irreducible] ImageVolumeStatus.ty
 
-noncomputable def RestartPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RestartPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.RestartPolicy" [])
 
 attribute [irreducible] RestartPolicy.ty
 
-noncomputable def ContainerRestartPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerRestartPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerRestartPolicy" [])
 
 attribute [irreducible] ContainerRestartPolicy.ty
 
-noncomputable def ContainerRestartRule.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerRestartRule.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerRestartRule" [])
 
 attribute [irreducible] ContainerRestartRule.ty
 
-noncomputable def ContainerRestartRuleAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerRestartRuleAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerRestartRuleAction" [])
 
 attribute [irreducible] ContainerRestartRuleAction.ty
 
-noncomputable def ContainerRestartRuleOnExitCodes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerRestartRuleOnExitCodes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes" [])
 
 attribute [irreducible] ContainerRestartRuleOnExitCodes.ty
 
-noncomputable def ContainerRestartRuleOnExitCodesOperator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerRestartRuleOnExitCodesOperator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerRestartRuleOnExitCodesOperator" [])
 
 attribute [irreducible] ContainerRestartRuleOnExitCodesOperator.ty
 
-noncomputable def DNSPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DNSPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.DNSPolicy" [])
 
 attribute [irreducible] DNSPolicy.ty
 
-noncomputable def NodeSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeSelector" [])
 
 attribute [irreducible] NodeSelector.ty
 
-noncomputable def NodeSelectorTerm.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeSelectorTerm.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeSelectorTerm" [])
 
 attribute [irreducible] NodeSelectorTerm.ty
 
-noncomputable def NodeSelectorRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeSelectorRequirement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeSelectorRequirement" [])
 
 attribute [irreducible] NodeSelectorRequirement.ty
 
-noncomputable def NodeSelectorOperator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeSelectorOperator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeSelectorOperator" [])
 
 attribute [irreducible] NodeSelectorOperator.ty
 
-noncomputable def TopologySelectorTerm.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TopologySelectorTerm.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TopologySelectorTerm" [])
 
 attribute [irreducible] TopologySelectorTerm.ty
 
-noncomputable def TopologySelectorLabelRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TopologySelectorLabelRequirement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TopologySelectorLabelRequirement" [])
 
 attribute [irreducible] TopologySelectorLabelRequirement.ty
 
-noncomputable def Affinity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Affinity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Affinity" [])
 
 attribute [irreducible] Affinity.ty
 
-noncomputable def PodAffinity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodAffinity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodAffinity" [])
 
 attribute [irreducible] PodAffinity.ty
 
-noncomputable def PodAntiAffinity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodAntiAffinity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodAntiAffinity" [])
 
 attribute [irreducible] PodAntiAffinity.ty
 
-noncomputable def WeightedPodAffinityTerm.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WeightedPodAffinityTerm.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.WeightedPodAffinityTerm" [])
 
 attribute [irreducible] WeightedPodAffinityTerm.ty
 
-noncomputable def PodAffinityTerm.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodAffinityTerm.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodAffinityTerm" [])
 
 attribute [irreducible] PodAffinityTerm.ty
 
-noncomputable def NodeAffinity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeAffinity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeAffinity" [])
 
 attribute [irreducible] NodeAffinity.ty
 
-noncomputable def PreferredSchedulingTerm.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PreferredSchedulingTerm.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PreferredSchedulingTerm" [])
 
 attribute [irreducible] PreferredSchedulingTerm.ty
 
-noncomputable def Taint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Taint.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Taint" [])
 
 attribute [irreducible] Taint.ty
 
-noncomputable def TaintEffect.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TaintEffect.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TaintEffect" [])
 
 attribute [irreducible] TaintEffect.ty
 
-noncomputable def Toleration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Toleration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Toleration" [])
 
 attribute [irreducible] Toleration.ty
 
-noncomputable def TolerationOperator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TolerationOperator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TolerationOperator" [])
 
 attribute [irreducible] TolerationOperator.ty
 
-noncomputable def PodReadinessGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodReadinessGate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodReadinessGate" [])
 
 attribute [irreducible] PodReadinessGate.ty
 
-noncomputable def PodSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodSpec" [])
 
 attribute [irreducible] PodSpec.ty
 
-noncomputable def PodResourceClaim.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodResourceClaim.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodResourceClaim" [])
 
 attribute [irreducible] PodResourceClaim.ty
 
-noncomputable def PodResourceClaimStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodResourceClaimStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodResourceClaimStatus" [])
 
 attribute [irreducible] PodResourceClaimStatus.ty
 
-noncomputable def PodExtendedResourceClaimStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodExtendedResourceClaimStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodExtendedResourceClaimStatus" [])
 
 attribute [irreducible] PodExtendedResourceClaimStatus.ty
 
-noncomputable def ContainerExtendedResourceRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerExtendedResourceRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerExtendedResourceRequest" [])
 
 attribute [irreducible] ContainerExtendedResourceRequest.ty
 
-noncomputable def OSName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OSName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.OSName" [])
 
 attribute [irreducible] OSName.ty
 
-noncomputable def PodOS.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodOS.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodOS" [])
 
 attribute [irreducible] PodOS.ty
 
-noncomputable def PodSchedulingGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodSchedulingGate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodSchedulingGate" [])
 
 attribute [irreducible] PodSchedulingGate.ty
 
-noncomputable def PodSchedulingGroup.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodSchedulingGroup.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodSchedulingGroup" [])
 
 attribute [irreducible] PodSchedulingGroup.ty
 
-noncomputable def UnsatisfiableConstraintAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsatisfiableConstraintAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.UnsatisfiableConstraintAction" [])
 
 attribute [irreducible] UnsatisfiableConstraintAction.ty
 
-noncomputable def NodeInclusionPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeInclusionPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeInclusionPolicy" [])
 
 attribute [irreducible] NodeInclusionPolicy.ty
 
-noncomputable def TopologySpreadConstraint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TopologySpreadConstraint.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TopologySpreadConstraint" [])
 
 attribute [irreducible] TopologySpreadConstraint.ty
 
-noncomputable def HostAlias.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HostAlias.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.HostAlias" [])
 
 attribute [irreducible] HostAlias.ty
 
-noncomputable def PodFSGroupChangePolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodFSGroupChangePolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodFSGroupChangePolicy" [])
 
 attribute [irreducible] PodFSGroupChangePolicy.ty
 
-noncomputable def SupplementalGroupsPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SupplementalGroupsPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SupplementalGroupsPolicy" [])
 
 attribute [irreducible] SupplementalGroupsPolicy.ty
 
-noncomputable def PodSELinuxChangePolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodSELinuxChangePolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodSELinuxChangePolicy" [])
 
 attribute [irreducible] PodSELinuxChangePolicy.ty
 
-noncomputable def PodSecurityContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodSecurityContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodSecurityContext" [])
 
 attribute [irreducible] PodSecurityContext.ty
 
-noncomputable def SeccompProfile.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SeccompProfile.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SeccompProfile" [])
 
 attribute [irreducible] SeccompProfile.ty
 
-noncomputable def SeccompProfileType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SeccompProfileType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SeccompProfileType" [])
 
 attribute [irreducible] SeccompProfileType.ty
 
-noncomputable def AppArmorProfile.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AppArmorProfile.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AppArmorProfile" [])
 
 attribute [irreducible] AppArmorProfile.ty
 
-noncomputable def AppArmorProfileType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AppArmorProfileType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AppArmorProfileType" [])
 
 attribute [irreducible] AppArmorProfileType.ty
 
-noncomputable def PodQOSClass.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodQOSClass.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodQOSClass" [])
 
 attribute [irreducible] PodQOSClass.ty
 
-noncomputable def PodDNSConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDNSConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodDNSConfig" [])
 
 attribute [irreducible] PodDNSConfig.ty
 
-noncomputable def PodDNSConfigOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDNSConfigOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodDNSConfigOption" [])
 
 attribute [irreducible] PodDNSConfigOption.ty
 
-noncomputable def PodIP.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodIP.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodIP" [])
 
 attribute [irreducible] PodIP.ty
 
-noncomputable def HostIP.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HostIP.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.HostIP" [])
 
 attribute [irreducible] HostIP.ty
 
-noncomputable def EphemeralContainerCommon.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EphemeralContainerCommon.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EphemeralContainerCommon" [])
 
 attribute [irreducible] EphemeralContainerCommon.ty
 
-noncomputable def EphemeralContainer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EphemeralContainer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EphemeralContainer" [])
 
 attribute [irreducible] EphemeralContainer.ty
 
-noncomputable def EvictionResponder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EvictionResponder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EvictionResponder" [])
 
 attribute [irreducible] EvictionResponder.ty
 
-noncomputable def PodStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodStatus" [])
 
 attribute [irreducible] PodStatus.ty
 
-noncomputable def Pod.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pod.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Pod" [])
 
 attribute [irreducible] Pod.ty
 
-noncomputable def PodList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodList" [])
 
 attribute [irreducible] PodList.ty
 
-noncomputable def PodTemplateSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodTemplateSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodTemplateSpec" [])
 
 attribute [irreducible] PodTemplateSpec.ty
 
-noncomputable def PodTemplate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodTemplate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodTemplate" [])
 
 attribute [irreducible] PodTemplate.ty
 
-noncomputable def PodTemplateList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodTemplateList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodTemplateList" [])
 
 attribute [irreducible] PodTemplateList.ty
 
-noncomputable def ReplicationControllerSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ReplicationControllerSpec" [])
 
 attribute [irreducible] ReplicationControllerSpec.ty
 
-noncomputable def ReplicationControllerStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ReplicationControllerStatus" [])
 
 attribute [irreducible] ReplicationControllerStatus.ty
 
-noncomputable def ReplicationControllerConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ReplicationControllerConditionType" [])
 
 attribute [irreducible] ReplicationControllerConditionType.ty
 
-noncomputable def ReplicationControllerCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ReplicationControllerCondition" [])
 
 attribute [irreducible] ReplicationControllerCondition.ty
 
-noncomputable def ReplicationController.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationController.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ReplicationController" [])
 
 attribute [irreducible] ReplicationController.ty
 
-noncomputable def ReplicationControllerList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicationControllerList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ReplicationControllerList" [])
 
 attribute [irreducible] ReplicationControllerList.ty
 
-noncomputable def ServiceAffinity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceAffinity.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceAffinity" [])
 
 attribute [irreducible] ServiceAffinity.ty
 
-noncomputable def SessionAffinityConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SessionAffinityConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SessionAffinityConfig" [])
 
 attribute [irreducible] SessionAffinityConfig.ty
 
-noncomputable def ClientIPConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientIPConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ClientIPConfig" [])
 
 attribute [irreducible] ClientIPConfig.ty
 
-noncomputable def ServiceType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceType" [])
 
 attribute [irreducible] ServiceType.ty
 
-noncomputable def ServiceInternalTrafficPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceInternalTrafficPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceInternalTrafficPolicy" [])
 
 attribute [irreducible] ServiceInternalTrafficPolicy.ty
 
-noncomputable def ServiceExternalTrafficPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceExternalTrafficPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceExternalTrafficPolicy" [])
 
 attribute [irreducible] ServiceExternalTrafficPolicy.ty
 
-noncomputable def ServiceStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceStatus" [])
 
 attribute [irreducible] ServiceStatus.ty
 
-noncomputable def LoadBalancerStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LoadBalancerStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LoadBalancerStatus" [])
 
 attribute [irreducible] LoadBalancerStatus.ty
 
-noncomputable def LoadBalancerIngress.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LoadBalancerIngress.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LoadBalancerIngress" [])
 
 attribute [irreducible] LoadBalancerIngress.ty
 
-noncomputable def IPFamily.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IPFamily.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.IPFamily" [])
 
 attribute [irreducible] IPFamily.ty
 
-noncomputable def IPFamilyPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IPFamilyPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.IPFamilyPolicy" [])
 
 attribute [irreducible] IPFamilyPolicy.ty
 
-noncomputable def ServiceSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceSpec" [])
 
 attribute [irreducible] ServiceSpec.ty
 
-noncomputable def ServicePort.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServicePort.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServicePort" [])
 
 attribute [irreducible] ServicePort.ty
 
-noncomputable def Service.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Service.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Service" [])
 
 attribute [irreducible] Service.ty
 
-noncomputable def ServiceList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceList" [])
 
 attribute [irreducible] ServiceList.ty
 
-noncomputable def ServiceAccount.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceAccount.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceAccount" [])
 
 attribute [irreducible] ServiceAccount.ty
 
-noncomputable def ServiceAccountList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceAccountList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceAccountList" [])
 
 attribute [irreducible] ServiceAccountList.ty
 
-noncomputable def Endpoints.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Endpoints.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Endpoints" [])
 
 attribute [irreducible] Endpoints.ty
 
-noncomputable def EndpointSubset.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointSubset.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EndpointSubset" [])
 
 attribute [irreducible] EndpointSubset.ty
 
-noncomputable def EndpointAddress.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointAddress.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EndpointAddress" [])
 
 attribute [irreducible] EndpointAddress.ty
 
-noncomputable def EndpointPort.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointPort.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EndpointPort" [])
 
 attribute [irreducible] EndpointPort.ty
 
-noncomputable def EndpointsList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EndpointsList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EndpointsList" [])
 
 attribute [irreducible] EndpointsList.ty
 
-noncomputable def NodeSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeSpec" [])
 
 attribute [irreducible] NodeSpec.ty
 
-noncomputable def NodePodPreemptionPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodePodPreemptionPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodePodPreemptionPolicy" [])
 
 attribute [irreducible] NodePodPreemptionPolicy.ty
 
-noncomputable def NodeConfigSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeConfigSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeConfigSource" [])
 
 attribute [irreducible] NodeConfigSource.ty
 
-noncomputable def ConfigMapNodeConfigSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapNodeConfigSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ConfigMapNodeConfigSource" [])
 
 attribute [irreducible] ConfigMapNodeConfigSource.ty
 
-noncomputable def DaemonEndpoint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonEndpoint.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.DaemonEndpoint" [])
 
 attribute [irreducible] DaemonEndpoint.ty
 
-noncomputable def NodeDaemonEndpoints.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeDaemonEndpoints.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeDaemonEndpoints" [])
 
 attribute [irreducible] NodeDaemonEndpoints.ty
 
-noncomputable def NodeRuntimeHandlerFeatures.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeRuntimeHandlerFeatures.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeRuntimeHandlerFeatures" [])
 
 attribute [irreducible] NodeRuntimeHandlerFeatures.ty
 
-noncomputable def NodeRuntimeHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeRuntimeHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeRuntimeHandler" [])
 
 attribute [irreducible] NodeRuntimeHandler.ty
 
-noncomputable def NodeFeatures.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeFeatures.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeFeatures" [])
 
 attribute [irreducible] NodeFeatures.ty
 
-noncomputable def NodeSystemInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeSystemInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeSystemInfo" [])
 
 attribute [irreducible] NodeSystemInfo.ty
 
-noncomputable def NodeSwapStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeSwapStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeSwapStatus" [])
 
 attribute [irreducible] NodeSwapStatus.ty
 
-noncomputable def NodeConfigStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeConfigStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeConfigStatus" [])
 
 attribute [irreducible] NodeConfigStatus.ty
 
-noncomputable def NodeStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeStatus" [])
 
 attribute [irreducible] NodeStatus.ty
 
-noncomputable def UniqueVolumeName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UniqueVolumeName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.UniqueVolumeName" [])
 
 attribute [irreducible] UniqueVolumeName.ty
 
-noncomputable def AttachedVolume.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AttachedVolume.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AttachedVolume" [])
 
 attribute [irreducible] AttachedVolume.ty
 
-noncomputable def AvoidPods.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AvoidPods.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.AvoidPods" [])
 
 attribute [irreducible] AvoidPods.ty
 
-noncomputable def PreferAvoidPodsEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PreferAvoidPodsEntry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PreferAvoidPodsEntry" [])
 
 attribute [irreducible] PreferAvoidPodsEntry.ty
 
-noncomputable def PodSignature.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodSignature.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodSignature" [])
 
 attribute [irreducible] PodSignature.ty
 
-noncomputable def ContainerImage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContainerImage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ContainerImage" [])
 
 attribute [irreducible] ContainerImage.ty
 
-noncomputable def NodePhase.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodePhase.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodePhase" [])
 
 attribute [irreducible] NodePhase.ty
 
-noncomputable def NodeConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeConditionType" [])
 
 attribute [irreducible] NodeConditionType.ty
 
-noncomputable def NodeCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeCondition" [])
 
 attribute [irreducible] NodeCondition.ty
 
-noncomputable def NodeAddressType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeAddressType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeAddressType" [])
 
 attribute [irreducible] NodeAddressType.ty
 
-noncomputable def NodeAddress.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeAddress.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeAddress" [])
 
 attribute [irreducible] NodeAddress.ty
 
-noncomputable def ResourceName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceName" [])
 
 attribute [irreducible] ResourceName.ty
 
-noncomputable def ResourceList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceList" [])
 
 attribute [irreducible] ResourceList.ty
 
-noncomputable def Node.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Node.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Node" [])
 
 attribute [irreducible] Node.ty
 
-noncomputable def NodeList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeList" [])
 
 attribute [irreducible] NodeList.ty
 
-noncomputable def FinalizerName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FinalizerName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.FinalizerName" [])
 
 attribute [irreducible] FinalizerName.ty
 
-noncomputable def NamespaceSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespaceSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NamespaceSpec" [])
 
 attribute [irreducible] NamespaceSpec.ty
 
-noncomputable def NamespaceStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespaceStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NamespaceStatus" [])
 
 attribute [irreducible] NamespaceStatus.ty
 
-noncomputable def NamespacePhase.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespacePhase.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NamespacePhase" [])
 
 attribute [irreducible] NamespacePhase.ty
 
-noncomputable def NamespaceConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespaceConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NamespaceConditionType" [])
 
 attribute [irreducible] NamespaceConditionType.ty
 
-noncomputable def NamespaceCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespaceCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NamespaceCondition" [])
 
 attribute [irreducible] NamespaceCondition.ty
 
-noncomputable def Namespace.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Namespace.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Namespace" [])
 
 attribute [irreducible] Namespace.ty
 
-noncomputable def NamespaceList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NamespaceList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NamespaceList" [])
 
 attribute [irreducible] NamespaceList.ty
 
-noncomputable def Binding.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Binding.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Binding" [])
 
 attribute [irreducible] Binding.ty
 
-noncomputable def Preconditions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Preconditions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Preconditions" [])
 
 attribute [irreducible] Preconditions.ty
 
-noncomputable def PodLogOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodLogOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodLogOptions" [])
 
 attribute [irreducible] PodLogOptions.ty
 
-noncomputable def PodAttachOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodAttachOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodAttachOptions" [])
 
 attribute [irreducible] PodAttachOptions.ty
 
-noncomputable def PodExecOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodExecOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodExecOptions" [])
 
 attribute [irreducible] PodExecOptions.ty
 
-noncomputable def PodPortForwardOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodPortForwardOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodPortForwardOptions" [])
 
 attribute [irreducible] PodPortForwardOptions.ty
 
-noncomputable def PodProxyOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodProxyOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PodProxyOptions" [])
 
 attribute [irreducible] PodProxyOptions.ty
 
-noncomputable def NodeProxyOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeProxyOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeProxyOptions" [])
 
 attribute [irreducible] NodeProxyOptions.ty
 
-noncomputable def ServiceProxyOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceProxyOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ServiceProxyOptions" [])
 
 attribute [irreducible] ServiceProxyOptions.ty
 
-noncomputable def ObjectReference.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectReference.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ObjectReference" [])
 
 attribute [irreducible] ObjectReference.ty
 
-noncomputable def LocalObjectReference.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LocalObjectReference.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LocalObjectReference" [])
 
 attribute [irreducible] LocalObjectReference.ty
 
-noncomputable def TypedLocalObjectReference.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TypedLocalObjectReference.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.TypedLocalObjectReference" [])
 
 attribute [irreducible] TypedLocalObjectReference.ty
 
-noncomputable def SerializedReference.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SerializedReference.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SerializedReference" [])
 
 attribute [irreducible] SerializedReference.ty
 
-noncomputable def EventSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EventSource" [])
 
 attribute [irreducible] EventSource.ty
 
-noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Event" [])
 
 attribute [irreducible] Event.ty
 
-noncomputable def EventSeries.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventSeries.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EventSeries" [])
 
 attribute [irreducible] EventSeries.ty
 
-noncomputable def EventList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.EventList" [])
 
 attribute [irreducible] EventList.ty
 
-noncomputable def List'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def List'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.List" [])
 
 attribute [irreducible] List'.ty
 
-noncomputable def LimitType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LimitType" [])
 
 attribute [irreducible] LimitType.ty
 
-noncomputable def LimitRangeItem.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitRangeItem.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LimitRangeItem" [])
 
 attribute [irreducible] LimitRangeItem.ty
 
-noncomputable def LimitRangeSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitRangeSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LimitRangeSpec" [])
 
 attribute [irreducible] LimitRangeSpec.ty
 
-noncomputable def LimitRange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitRange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LimitRange" [])
 
 attribute [irreducible] LimitRange.ty
 
-noncomputable def LimitRangeList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LimitRangeList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LimitRangeList" [])
 
 attribute [irreducible] LimitRangeList.ty
 
-noncomputable def ResourceQuotaScope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuotaScope.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceQuotaScope" [])
 
 attribute [irreducible] ResourceQuotaScope.ty
 
-noncomputable def ResourceQuotaSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuotaSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceQuotaSpec" [])
 
 attribute [irreducible] ResourceQuotaSpec.ty
 
-noncomputable def ScopeSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScopeSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ScopeSelector" [])
 
 attribute [irreducible] ScopeSelector.ty
 
-noncomputable def ScopedResourceSelectorRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScopedResourceSelectorRequirement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ScopedResourceSelectorRequirement" [])
 
 attribute [irreducible] ScopedResourceSelectorRequirement.ty
 
-noncomputable def ScopeSelectorOperator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScopeSelectorOperator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ScopeSelectorOperator" [])
 
 attribute [irreducible] ScopeSelectorOperator.ty
 
-noncomputable def ResourceQuotaStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuotaStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceQuotaStatus" [])
 
 attribute [irreducible] ResourceQuotaStatus.ty
 
-noncomputable def ResourceQuota.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuota.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceQuota" [])
 
 attribute [irreducible] ResourceQuota.ty
 
-noncomputable def ResourceQuotaList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceQuotaList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ResourceQuotaList" [])
 
 attribute [irreducible] ResourceQuotaList.ty
 
-noncomputable def Secret.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Secret.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Secret" [])
 
 attribute [irreducible] Secret.ty
 
-noncomputable def SecretType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SecretType" [])
 
 attribute [irreducible] SecretType.ty
 
-noncomputable def SecretList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecretList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SecretList" [])
 
 attribute [irreducible] SecretList.ty
 
-noncomputable def ConfigMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ConfigMap" [])
 
 attribute [irreducible] ConfigMap.ty
 
-noncomputable def ConfigMapList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigMapList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ConfigMapList" [])
 
 attribute [irreducible] ConfigMapList.ty
 
-noncomputable def ComponentConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ComponentConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ComponentConditionType" [])
 
 attribute [irreducible] ComponentConditionType.ty
 
-noncomputable def ComponentCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ComponentCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ComponentCondition" [])
 
 attribute [irreducible] ComponentCondition.ty
 
-noncomputable def ComponentStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ComponentStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ComponentStatus" [])
 
 attribute [irreducible] ComponentStatus.ty
 
-noncomputable def ComponentStatusList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ComponentStatusList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ComponentStatusList" [])
 
 attribute [irreducible] ComponentStatusList.ty
 
-noncomputable def DownwardAPIVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DownwardAPIVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.DownwardAPIVolumeSource" [])
 
 attribute [irreducible] DownwardAPIVolumeSource.ty
 
-noncomputable def DownwardAPIVolumeFile.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DownwardAPIVolumeFile.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.DownwardAPIVolumeFile" [])
 
 attribute [irreducible] DownwardAPIVolumeFile.ty
 
-noncomputable def DownwardAPIProjection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DownwardAPIProjection.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.DownwardAPIProjection" [])
 
 attribute [irreducible] DownwardAPIProjection.ty
 
-noncomputable def SecurityContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecurityContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SecurityContext" [])
 
 attribute [irreducible] SecurityContext.ty
 
-noncomputable def ProcMountType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProcMountType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ProcMountType" [])
 
 attribute [irreducible] ProcMountType.ty
 
-noncomputable def SELinuxOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SELinuxOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.SELinuxOptions" [])
 
 attribute [irreducible] SELinuxOptions.ty
 
-noncomputable def WindowsSecurityContextOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WindowsSecurityContextOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.WindowsSecurityContextOptions" [])
 
 attribute [irreducible] WindowsSecurityContextOptions.ty
 
-noncomputable def RangeAllocation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RangeAllocation.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.RangeAllocation" [])
 
 attribute [irreducible] RangeAllocation.ty
 
-noncomputable def Sysctl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Sysctl.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.Sysctl" [])
 
 attribute [irreducible] Sysctl.ty
 
-noncomputable def PortStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PortStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.PortStatus" [])
 
 attribute [irreducible] PortStatus.ty
 
-noncomputable def LoadBalancerIPMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LoadBalancerIPMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LoadBalancerIPMode" [])
 
 attribute [irreducible] LoadBalancerIPMode.ty
 
-noncomputable def ImageVolumeSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ImageVolumeSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.ImageVolumeSource" [])
 
 attribute [irreducible] ImageVolumeSource.ty
 
-noncomputable def NodeAllocatableResourceClaimStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeAllocatableResourceClaimStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeAllocatableResourceClaimStatus" [])
 
 attribute [irreducible] NodeAllocatableResourceClaimStatus.ty
 
-noncomputable def NodeAllocatableMappedResources.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeAllocatableMappedResources.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeAllocatableMappedResources" [])
 
 attribute [irreducible] NodeAllocatableMappedResources.ty
 
-noncomputable def NodeAllocatableOverheadResources.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NodeAllocatableOverheadResources.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.NodeAllocatableOverheadResources" [])
 
 attribute [irreducible] NodeAllocatableOverheadResources.ty
 
-@[reducible] noncomputable def ServiceInternalTrafficPolicyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceInternalTrafficPolicyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   ServiceInternalTrafficPolicy.ty
 
-@[reducible] noncomputable def ServiceExternalTrafficPolicyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceExternalTrafficPolicyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   ServiceExternalTrafficPolicy.ty
 
-@[reducible] noncomputable def IPFamilyPolicyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IPFamilyPolicyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   IPFamilyPolicy.ty
 
-axiom ImagePolicyFailedOpenKey [FfiSyntax] [GoGlobalContext] : val
+axiom ImagePolicyFailedOpenKey [GooseExts] [GoGlobalContext] : val
 
-axiom MirrorPodAnnotationKey [FfiSyntax] [GoGlobalContext] : val
+axiom MirrorPodAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom TolerationsAnnotationKey [FfiSyntax] [GoGlobalContext] : val
+axiom TolerationsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom TaintsAnnotationKey [FfiSyntax] [GoGlobalContext] : val
+axiom TaintsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompPodAnnotationKey [FfiSyntax] [GoGlobalContext] : val
+axiom SeccompPodAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompContainerAnnotationKeyPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom SeccompContainerAnnotationKeyPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileRuntimeDefault [FfiSyntax] [GoGlobalContext] : val
+axiom SeccompProfileRuntimeDefault [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileNameUnconfined [FfiSyntax] [GoGlobalContext] : val
+axiom SeccompProfileNameUnconfined [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompLocalhostProfileNamePrefix [FfiSyntax] [GoGlobalContext] : val
+axiom SeccompLocalhostProfileNamePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAppArmorBetaContainerAnnotationKeyPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom DeprecatedAppArmorBetaContainerAnnotationKeyPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAppArmorBetaProfileRuntimeDefault [FfiSyntax] [GoGlobalContext] : val
+axiom DeprecatedAppArmorBetaProfileRuntimeDefault [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAppArmorBetaProfileNamePrefix [FfiSyntax] [GoGlobalContext] : val
+axiom DeprecatedAppArmorBetaProfileNamePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAppArmorBetaProfileNameUnconfined [FfiSyntax] [GoGlobalContext] : val
+axiom DeprecatedAppArmorBetaProfileNameUnconfined [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedSeccompProfileDockerDefault [FfiSyntax] [GoGlobalContext] : val
+axiom DeprecatedSeccompProfileDockerDefault [GooseExts] [GoGlobalContext] : val
 
-axiom PreferAvoidPodsAnnotationKey [FfiSyntax] [GoGlobalContext] : val
+axiom PreferAvoidPodsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom ObjectTTLAnnotationKey [FfiSyntax] [GoGlobalContext] : val
+axiom ObjectTTLAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom NonConvertibleAnnotationPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom NonConvertibleAnnotationPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom kubectlPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom kubectlPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom LastAppliedConfigAnnotation [FfiSyntax] [GoGlobalContext] : val
+axiom LastAppliedConfigAnnotation [GooseExts] [GoGlobalContext] : val
 
-axiom AnnotationLoadBalancerSourceRangesKey [FfiSyntax] [GoGlobalContext] : val
+axiom AnnotationLoadBalancerSourceRangesKey [GooseExts] [GoGlobalContext] : val
 
-axiom EndpointsLastChangeTriggerTime [FfiSyntax] [GoGlobalContext] : val
+axiom EndpointsLastChangeTriggerTime [GooseExts] [GoGlobalContext] : val
 
-axiom EndpointsOverCapacity [FfiSyntax] [GoGlobalContext] : val
+axiom EndpointsOverCapacity [GooseExts] [GoGlobalContext] : val
 
-axiom MigratedPluginsAnnotationKey [FfiSyntax] [GoGlobalContext] : val
+axiom MigratedPluginsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom PodDeletionCost [FfiSyntax] [GoGlobalContext] : val
+axiom PodDeletionCost [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAnnotationTopologyAwareHints [FfiSyntax] [GoGlobalContext] : val
+axiom DeprecatedAnnotationTopologyAwareHints [GooseExts] [GoGlobalContext] : val
 
-axiom AnnotationTopologyMode [FfiSyntax] [GoGlobalContext] : val
+axiom AnnotationTopologyMode [GooseExts] [GoGlobalContext] : val
 
-axiom GroupName [FfiSyntax] [GoGlobalContext] : val
+axiom GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceDefault [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceDefault [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceAll [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceAll [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceNodeLease [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceNodeLease [GooseExts] [GoGlobalContext] : val
 
-axiom BetaStorageClassAnnotation [FfiSyntax] [GoGlobalContext] : val
+axiom BetaStorageClassAnnotation [GooseExts] [GoGlobalContext] : val
 
-axiom MountOptionAnnotation [FfiSyntax] [GoGlobalContext] : val
+axiom MountOptionAnnotation [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeReclaimRecycle [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeReclaimRecycle [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeReclaimDelete [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeReclaimDelete [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeReclaimRetain [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeReclaimRetain [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeBlock [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeBlock [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeFilesystem [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeFilesystem [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimResizing [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimResizing [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimFileSystemResizePending [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimFileSystemResizePending [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimControllerResizeError [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimControllerResizeError [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimNodeResizeError [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimNodeResizeError [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimVolumeModifyVolumeError [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimVolumeModifyVolumeError [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimVolumeModifyingVolume [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimVolumeModifyingVolume [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimUnused [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimUnused [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimControllerResizeInProgress [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimControllerResizeInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimControllerResizeInfeasible [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimControllerResizeInfeasible [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimNodeResizePending [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimNodeResizePending [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimNodeResizeInProgress [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimNodeResizeInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimNodeResizeInfeasible [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimNodeResizeInfeasible [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimModifyVolumePending [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimModifyVolumePending [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimModifyVolumeInProgress [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimModifyVolumeInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimModifyVolumeInfeasible [FfiSyntax] [GoGlobalContext] : val
+axiom PersistentVolumeClaimModifyVolumeInfeasible [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeHealthInaccessible [FfiSyntax] [GoGlobalContext] : val
+axiom VolumeHealthInaccessible [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeHealthDataLoss [FfiSyntax] [GoGlobalContext] : val
+axiom VolumeHealthDataLoss [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeHealthDegraded [FfiSyntax] [GoGlobalContext] : val
+axiom VolumeHealthDegraded [GooseExts] [GoGlobalContext] : val
 
-axiom ReadWriteOnce [FfiSyntax] [GoGlobalContext] : val
+axiom ReadWriteOnce [GooseExts] [GoGlobalContext] : val
 
-axiom ReadOnlyMany [FfiSyntax] [GoGlobalContext] : val
+axiom ReadOnlyMany [GooseExts] [GoGlobalContext] : val
 
-axiom ReadWriteMany [FfiSyntax] [GoGlobalContext] : val
+axiom ReadWriteMany [GooseExts] [GoGlobalContext] : val
 
-axiom ReadWriteOncePod [FfiSyntax] [GoGlobalContext] : val
+axiom ReadWriteOncePod [GooseExts] [GoGlobalContext] : val
 
-axiom VolumePending [FfiSyntax] [GoGlobalContext] : val
+axiom VolumePending [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeAvailable [FfiSyntax] [GoGlobalContext] : val
+axiom VolumeAvailable [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeBound [FfiSyntax] [GoGlobalContext] : val
+axiom VolumeBound [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeReleased [FfiSyntax] [GoGlobalContext] : val
+axiom VolumeReleased [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeFailed [FfiSyntax] [GoGlobalContext] : val
+axiom VolumeFailed [GooseExts] [GoGlobalContext] : val
 
-axiom ClaimPending [FfiSyntax] [GoGlobalContext] : val
+axiom ClaimPending [GooseExts] [GoGlobalContext] : val
 
-axiom ClaimBound [FfiSyntax] [GoGlobalContext] : val
+axiom ClaimBound [GooseExts] [GoGlobalContext] : val
 
-axiom ClaimLost [FfiSyntax] [GoGlobalContext] : val
+axiom ClaimLost [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathUnset [FfiSyntax] [GoGlobalContext] : val
+axiom HostPathUnset [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathDirectoryOrCreate [FfiSyntax] [GoGlobalContext] : val
+axiom HostPathDirectoryOrCreate [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathDirectory [FfiSyntax] [GoGlobalContext] : val
+axiom HostPathDirectory [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathFileOrCreate [FfiSyntax] [GoGlobalContext] : val
+axiom HostPathFileOrCreate [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathFile [FfiSyntax] [GoGlobalContext] : val
+axiom HostPathFile [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathSocket [FfiSyntax] [GoGlobalContext] : val
+axiom HostPathSocket [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathCharDev [FfiSyntax] [GoGlobalContext] : val
+axiom HostPathCharDev [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathBlockDev [FfiSyntax] [GoGlobalContext] : val
+axiom HostPathBlockDev [GooseExts] [GoGlobalContext] : val
 
-axiom StorageMediumDefault [FfiSyntax] [GoGlobalContext] : val
+axiom StorageMediumDefault [GooseExts] [GoGlobalContext] : val
 
-axiom StorageMediumMemory [FfiSyntax] [GoGlobalContext] : val
+axiom StorageMediumMemory [GooseExts] [GoGlobalContext] : val
 
-axiom StorageMediumHugePages [FfiSyntax] [GoGlobalContext] : val
+axiom StorageMediumHugePages [GooseExts] [GoGlobalContext] : val
 
-axiom StorageMediumHugePagesPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom StorageMediumHugePagesPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom ProtocolTCP [FfiSyntax] [GoGlobalContext] : val
+axiom ProtocolTCP [GooseExts] [GoGlobalContext] : val
 
-axiom ProtocolUDP [FfiSyntax] [GoGlobalContext] : val
+axiom ProtocolUDP [GooseExts] [GoGlobalContext] : val
 
-axiom ProtocolSCTP [FfiSyntax] [GoGlobalContext] : val
+axiom ProtocolSCTP [GooseExts] [GoGlobalContext] : val
 
-axiom SecretVolumeSourceDefaultMode [FfiSyntax] [GoGlobalContext] : val
+axiom SecretVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom AzureDataDiskCachingNone [FfiSyntax] [GoGlobalContext] : val
+axiom AzureDataDiskCachingNone [GooseExts] [GoGlobalContext] : val
 
-axiom AzureDataDiskCachingReadOnly [FfiSyntax] [GoGlobalContext] : val
+axiom AzureDataDiskCachingReadOnly [GooseExts] [GoGlobalContext] : val
 
-axiom AzureDataDiskCachingReadWrite [FfiSyntax] [GoGlobalContext] : val
+axiom AzureDataDiskCachingReadWrite [GooseExts] [GoGlobalContext] : val
 
-axiom AzureSharedBlobDisk [FfiSyntax] [GoGlobalContext] : val
+axiom AzureSharedBlobDisk [GooseExts] [GoGlobalContext] : val
 
-axiom AzureDedicatedBlobDisk [FfiSyntax] [GoGlobalContext] : val
+axiom AzureDedicatedBlobDisk [GooseExts] [GoGlobalContext] : val
 
-axiom AzureManagedDisk [FfiSyntax] [GoGlobalContext] : val
+axiom AzureManagedDisk [GooseExts] [GoGlobalContext] : val
 
-axiom ConfigMapVolumeSourceDefaultMode [FfiSyntax] [GoGlobalContext] : val
+axiom ConfigMapVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom ProjectedVolumeSourceDefaultMode [FfiSyntax] [GoGlobalContext] : val
+axiom ProjectedVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom BindMountOptionNoExec [FfiSyntax] [GoGlobalContext] : val
+axiom BindMountOptionNoExec [GooseExts] [GoGlobalContext] : val
 
-axiom BindMountOptionNoDev [FfiSyntax] [GoGlobalContext] : val
+axiom BindMountOptionNoDev [GooseExts] [GoGlobalContext] : val
 
-axiom BindMountOptionNoSUID [FfiSyntax] [GoGlobalContext] : val
+axiom BindMountOptionNoSUID [GooseExts] [GoGlobalContext] : val
 
-axiom MountPropagationNone [FfiSyntax] [GoGlobalContext] : val
+axiom MountPropagationNone [GooseExts] [GoGlobalContext] : val
 
-axiom MountPropagationHostToContainer [FfiSyntax] [GoGlobalContext] : val
+axiom MountPropagationHostToContainer [GooseExts] [GoGlobalContext] : val
 
-axiom MountPropagationBidirectional [FfiSyntax] [GoGlobalContext] : val
+axiom MountPropagationBidirectional [GooseExts] [GoGlobalContext] : val
 
-axiom RecursiveReadOnlyDisabled [FfiSyntax] [GoGlobalContext] : val
+axiom RecursiveReadOnlyDisabled [GooseExts] [GoGlobalContext] : val
 
-axiom RecursiveReadOnlyIfPossible [FfiSyntax] [GoGlobalContext] : val
+axiom RecursiveReadOnlyIfPossible [GooseExts] [GoGlobalContext] : val
 
-axiom RecursiveReadOnlyEnabled [FfiSyntax] [GoGlobalContext] : val
+axiom RecursiveReadOnlyEnabled [GooseExts] [GoGlobalContext] : val
 
-axiom HTTPProtocolHTTP1 [FfiSyntax] [GoGlobalContext] : val
+axiom HTTPProtocolHTTP1 [GooseExts] [GoGlobalContext] : val
 
-axiom HTTPProtocolHTTP2 [FfiSyntax] [GoGlobalContext] : val
+axiom HTTPProtocolHTTP2 [GooseExts] [GoGlobalContext] : val
 
-axiom URISchemeHTTP [FfiSyntax] [GoGlobalContext] : val
+axiom URISchemeHTTP [GooseExts] [GoGlobalContext] : val
 
-axiom URISchemeHTTPS [FfiSyntax] [GoGlobalContext] : val
+axiom URISchemeHTTPS [GooseExts] [GoGlobalContext] : val
 
-axiom GRPCProbeModePlaintext [FfiSyntax] [GoGlobalContext] : val
+axiom GRPCProbeModePlaintext [GooseExts] [GoGlobalContext] : val
 
-axiom GRPCProbeModeTLS [FfiSyntax] [GoGlobalContext] : val
+axiom GRPCProbeModeTLS [GooseExts] [GoGlobalContext] : val
 
-axiom PullAlways [FfiSyntax] [GoGlobalContext] : val
+axiom PullAlways [GooseExts] [GoGlobalContext] : val
 
-axiom PullNever [FfiSyntax] [GoGlobalContext] : val
+axiom PullNever [GooseExts] [GoGlobalContext] : val
 
-axiom PullIfNotPresent [FfiSyntax] [GoGlobalContext] : val
+axiom PullIfNotPresent [GooseExts] [GoGlobalContext] : val
 
-axiom NotRequired [FfiSyntax] [GoGlobalContext] : val
+axiom NotRequired [GooseExts] [GoGlobalContext] : val
 
-axiom RestartContainer [FfiSyntax] [GoGlobalContext] : val
+axiom RestartContainer [GooseExts] [GoGlobalContext] : val
 
-axiom PreemptLowerPriority [FfiSyntax] [GoGlobalContext] : val
+axiom PreemptLowerPriority [GooseExts] [GoGlobalContext] : val
 
-axiom PreemptNever [FfiSyntax] [GoGlobalContext] : val
+axiom PreemptNever [GooseExts] [GoGlobalContext] : val
 
-axiom TerminationMessageReadFile [FfiSyntax] [GoGlobalContext] : val
+axiom TerminationMessageReadFile [GooseExts] [GoGlobalContext] : val
 
-axiom TerminationMessageFallbackToLogsOnError [FfiSyntax] [GoGlobalContext] : val
+axiom TerminationMessageFallbackToLogsOnError [GooseExts] [GoGlobalContext] : val
 
-axiom TerminationMessagePathDefault [FfiSyntax] [GoGlobalContext] : val
+axiom TerminationMessagePathDefault [GooseExts] [GoGlobalContext] : val
 
-axiom SIGABRT [FfiSyntax] [GoGlobalContext] : val
+axiom SIGABRT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGALRM [FfiSyntax] [GoGlobalContext] : val
+axiom SIGALRM [GooseExts] [GoGlobalContext] : val
 
-axiom SIGBUS [FfiSyntax] [GoGlobalContext] : val
+axiom SIGBUS [GooseExts] [GoGlobalContext] : val
 
-axiom SIGCHLD [FfiSyntax] [GoGlobalContext] : val
+axiom SIGCHLD [GooseExts] [GoGlobalContext] : val
 
-axiom SIGCLD [FfiSyntax] [GoGlobalContext] : val
+axiom SIGCLD [GooseExts] [GoGlobalContext] : val
 
-axiom SIGCONT [FfiSyntax] [GoGlobalContext] : val
+axiom SIGCONT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGFPE [FfiSyntax] [GoGlobalContext] : val
+axiom SIGFPE [GooseExts] [GoGlobalContext] : val
 
-axiom SIGHUP [FfiSyntax] [GoGlobalContext] : val
+axiom SIGHUP [GooseExts] [GoGlobalContext] : val
 
-axiom SIGILL [FfiSyntax] [GoGlobalContext] : val
+axiom SIGILL [GooseExts] [GoGlobalContext] : val
 
-axiom SIGINT [FfiSyntax] [GoGlobalContext] : val
+axiom SIGINT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGIO [FfiSyntax] [GoGlobalContext] : val
+axiom SIGIO [GooseExts] [GoGlobalContext] : val
 
-axiom SIGIOT [FfiSyntax] [GoGlobalContext] : val
+axiom SIGIOT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGKILL [FfiSyntax] [GoGlobalContext] : val
+axiom SIGKILL [GooseExts] [GoGlobalContext] : val
 
-axiom SIGPIPE [FfiSyntax] [GoGlobalContext] : val
+axiom SIGPIPE [GooseExts] [GoGlobalContext] : val
 
-axiom SIGPOLL [FfiSyntax] [GoGlobalContext] : val
+axiom SIGPOLL [GooseExts] [GoGlobalContext] : val
 
-axiom SIGPROF [FfiSyntax] [GoGlobalContext] : val
+axiom SIGPROF [GooseExts] [GoGlobalContext] : val
 
-axiom SIGPWR [FfiSyntax] [GoGlobalContext] : val
+axiom SIGPWR [GooseExts] [GoGlobalContext] : val
 
-axiom SIGQUIT [FfiSyntax] [GoGlobalContext] : val
+axiom SIGQUIT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGSEGV [FfiSyntax] [GoGlobalContext] : val
+axiom SIGSEGV [GooseExts] [GoGlobalContext] : val
 
-axiom SIGSTKFLT [FfiSyntax] [GoGlobalContext] : val
+axiom SIGSTKFLT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGSTOP [FfiSyntax] [GoGlobalContext] : val
+axiom SIGSTOP [GooseExts] [GoGlobalContext] : val
 
-axiom SIGSYS [FfiSyntax] [GoGlobalContext] : val
+axiom SIGSYS [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTERM [FfiSyntax] [GoGlobalContext] : val
+axiom SIGTERM [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTRAP [FfiSyntax] [GoGlobalContext] : val
+axiom SIGTRAP [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTSTP [FfiSyntax] [GoGlobalContext] : val
+axiom SIGTSTP [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTTIN [FfiSyntax] [GoGlobalContext] : val
+axiom SIGTTIN [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTTOU [FfiSyntax] [GoGlobalContext] : val
+axiom SIGTTOU [GooseExts] [GoGlobalContext] : val
 
-axiom SIGURG [FfiSyntax] [GoGlobalContext] : val
+axiom SIGURG [GooseExts] [GoGlobalContext] : val
 
-axiom SIGUSR1 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGUSR1 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGUSR2 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGUSR2 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGVTALRM [FfiSyntax] [GoGlobalContext] : val
+axiom SIGVTALRM [GooseExts] [GoGlobalContext] : val
 
-axiom SIGWINCH [FfiSyntax] [GoGlobalContext] : val
+axiom SIGWINCH [GooseExts] [GoGlobalContext] : val
 
-axiom SIGXCPU [FfiSyntax] [GoGlobalContext] : val
+axiom SIGXCPU [GooseExts] [GoGlobalContext] : val
 
-axiom SIGXFSZ [FfiSyntax] [GoGlobalContext] : val
+axiom SIGXFSZ [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMIN [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMIN [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS1 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS1 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS2 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS2 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS3 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS3 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS4 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS4 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS5 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS5 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS6 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS6 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS7 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS7 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS8 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS8 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS9 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS9 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS10 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS10 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS11 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS11 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS12 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS12 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS13 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS13 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS14 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS14 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS15 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMINPLUS15 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS14 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS14 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS13 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS13 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS12 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS12 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS11 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS11 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS10 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS10 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS9 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS9 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS8 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS8 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS7 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS7 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS6 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS6 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS5 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS5 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS4 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS4 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS3 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS3 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS2 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS2 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS1 [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAXMINUS1 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAX [FfiSyntax] [GoGlobalContext] : val
+axiom SIGRTMAX [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def ConditionTrue [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConditionTrue [GooseExts] [GoGlobalContext] : val :=
   #(go!"True")
 
-axiom ConditionFalse [FfiSyntax] [GoGlobalContext] : val
+axiom ConditionFalse [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionUnknown [FfiSyntax] [GoGlobalContext] : val
+axiom ConditionUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHealthStatusHealthy [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceHealthStatusHealthy [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHealthStatusUnhealthy [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceHealthStatusUnhealthy [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHealthStatusUnknown [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceHealthStatusUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHealthMessageMaxLength [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceHealthMessageMaxLength [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def PodPending [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodPending [GooseExts] [GoGlobalContext] : val :=
   #(go!"Pending")
 
-@[reducible] noncomputable def PodRunning [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodRunning [GooseExts] [GoGlobalContext] : val :=
   #(go!"Running")
 
-@[reducible] noncomputable def PodSucceeded [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodSucceeded [GooseExts] [GoGlobalContext] : val :=
   #(go!"Succeeded")
 
-@[reducible] noncomputable def PodFailed [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodFailed [GooseExts] [GoGlobalContext] : val :=
   #(go!"Failed")
 
-@[reducible] noncomputable def PodUnknown [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodUnknown [GooseExts] [GoGlobalContext] : val :=
   #(go!"Unknown")
 
-@[reducible] noncomputable def ContainersReady [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ContainersReady [GooseExts] [GoGlobalContext] : val :=
   #(go!"ContainersReady")
 
-axiom PodInitialized [FfiSyntax] [GoGlobalContext] : val
+axiom PodInitialized [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def PodReady [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PodReady [GooseExts] [GoGlobalContext] : val :=
   #(go!"Ready")
 
-axiom PodScheduled [FfiSyntax] [GoGlobalContext] : val
+axiom PodScheduled [GooseExts] [GoGlobalContext] : val
 
-axiom DisruptionTarget [FfiSyntax] [GoGlobalContext] : val
+axiom DisruptionTarget [GooseExts] [GoGlobalContext] : val
 
-axiom PodReadyToStartContainers [FfiSyntax] [GoGlobalContext] : val
+axiom PodReadyToStartContainers [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizePending [FfiSyntax] [GoGlobalContext] : val
+axiom PodResizePending [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizeInProgress [FfiSyntax] [GoGlobalContext] : val
+axiom PodResizeInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom AllContainersRestarting [FfiSyntax] [GoGlobalContext] : val
+axiom AllContainersRestarting [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonUnschedulable [FfiSyntax] [GoGlobalContext] : val
+axiom PodReasonUnschedulable [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonSchedulingGated [FfiSyntax] [GoGlobalContext] : val
+axiom PodReasonSchedulingGated [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonSchedulerError [FfiSyntax] [GoGlobalContext] : val
+axiom PodReasonSchedulerError [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonTerminationByKubelet [FfiSyntax] [GoGlobalContext] : val
+axiom PodReasonTerminationByKubelet [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonPreemptionByScheduler [FfiSyntax] [GoGlobalContext] : val
+axiom PodReasonPreemptionByScheduler [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonDeferred [FfiSyntax] [GoGlobalContext] : val
+axiom PodReasonDeferred [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonInfeasible [FfiSyntax] [GoGlobalContext] : val
+axiom PodReasonInfeasible [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonError [FfiSyntax] [GoGlobalContext] : val
+axiom PodReasonError [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizeStatusInProgress [FfiSyntax] [GoGlobalContext] : val
+axiom PodResizeStatusInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizeStatusDeferred [FfiSyntax] [GoGlobalContext] : val
+axiom PodResizeStatusDeferred [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizeStatusInfeasible [FfiSyntax] [GoGlobalContext] : val
+axiom PodResizeStatusInfeasible [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def RestartPolicyAlways [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RestartPolicyAlways [GooseExts] [GoGlobalContext] : val :=
   #(go!"Always")
 
-@[reducible] noncomputable def RestartPolicyOnFailure [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RestartPolicyOnFailure [GooseExts] [GoGlobalContext] : val :=
   #(go!"OnFailure")
 
-@[reducible] noncomputable def RestartPolicyNever [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RestartPolicyNever [GooseExts] [GoGlobalContext] : val :=
   #(go!"Never")
 
-axiom ContainerRestartPolicyAlways [FfiSyntax] [GoGlobalContext] : val
+axiom ContainerRestartPolicyAlways [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartPolicyNever [FfiSyntax] [GoGlobalContext] : val
+axiom ContainerRestartPolicyNever [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartPolicyOnFailure [FfiSyntax] [GoGlobalContext] : val
+axiom ContainerRestartPolicyOnFailure [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartRuleActionRestart [FfiSyntax] [GoGlobalContext] : val
+axiom ContainerRestartRuleActionRestart [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartRuleActionRestartAllContainers [FfiSyntax] [GoGlobalContext] : val
+axiom ContainerRestartRuleActionRestartAllContainers [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartRuleOnExitCodesOpIn [FfiSyntax] [GoGlobalContext] : val
+axiom ContainerRestartRuleOnExitCodesOpIn [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartRuleOnExitCodesOpNotIn [FfiSyntax] [GoGlobalContext] : val
+axiom ContainerRestartRuleOnExitCodesOpNotIn [GooseExts] [GoGlobalContext] : val
 
-axiom DNSClusterFirstWithHostNet [FfiSyntax] [GoGlobalContext] : val
+axiom DNSClusterFirstWithHostNet [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def DNSClusterFirst [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DNSClusterFirst [GooseExts] [GoGlobalContext] : val :=
   #(go!"ClusterFirst")
 
-axiom DNSDefault [FfiSyntax] [GoGlobalContext] : val
+axiom DNSDefault [GooseExts] [GoGlobalContext] : val
 
-axiom DNSNone [FfiSyntax] [GoGlobalContext] : val
+axiom DNSNone [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def DefaultTerminationGracePeriodSeconds [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultTerminationGracePeriodSeconds [GooseExts] [GoGlobalContext] : val :=
   #(30 : Int)
 
-@[reducible] noncomputable def NodeSelectorOpIn [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeSelectorOpIn [GooseExts] [GoGlobalContext] : val :=
   #(go!"In")
 
-@[reducible] noncomputable def NodeSelectorOpNotIn [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeSelectorOpNotIn [GooseExts] [GoGlobalContext] : val :=
   #(go!"NotIn")
 
-@[reducible] noncomputable def NodeSelectorOpExists [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeSelectorOpExists [GooseExts] [GoGlobalContext] : val :=
   #(go!"Exists")
 
-@[reducible] noncomputable def NodeSelectorOpDoesNotExist [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeSelectorOpDoesNotExist [GooseExts] [GoGlobalContext] : val :=
   #(go!"DoesNotExist")
 
-@[reducible] noncomputable def NodeSelectorOpGt [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeSelectorOpGt [GooseExts] [GoGlobalContext] : val :=
   #(go!"Gt")
 
-@[reducible] noncomputable def NodeSelectorOpLt [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NodeSelectorOpLt [GooseExts] [GoGlobalContext] : val :=
   #(go!"Lt")
 
-@[reducible] noncomputable def TaintEffectNoSchedule [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintEffectNoSchedule [GooseExts] [GoGlobalContext] : val :=
   #(go!"NoSchedule")
 
-axiom TaintEffectPreferNoSchedule [FfiSyntax] [GoGlobalContext] : val
+axiom TaintEffectPreferNoSchedule [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def TaintEffectNoExecute [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintEffectNoExecute [GooseExts] [GoGlobalContext] : val :=
   #(go!"NoExecute")
 
-@[reducible] noncomputable def TolerationOpExists [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TolerationOpExists [GooseExts] [GoGlobalContext] : val :=
   #(go!"Exists")
 
-axiom TolerationOpEqual [FfiSyntax] [GoGlobalContext] : val
+axiom TolerationOpEqual [GooseExts] [GoGlobalContext] : val
 
-axiom TolerationOpLt [FfiSyntax] [GoGlobalContext] : val
+axiom TolerationOpLt [GooseExts] [GoGlobalContext] : val
 
-axiom TolerationOpGt [FfiSyntax] [GoGlobalContext] : val
+axiom TolerationOpGt [GooseExts] [GoGlobalContext] : val
 
-axiom Linux [FfiSyntax] [GoGlobalContext] : val
+axiom Linux [GooseExts] [GoGlobalContext] : val
 
-axiom Windows [FfiSyntax] [GoGlobalContext] : val
+axiom Windows [GooseExts] [GoGlobalContext] : val
 
-axiom DoNotSchedule [FfiSyntax] [GoGlobalContext] : val
+axiom DoNotSchedule [GooseExts] [GoGlobalContext] : val
 
-axiom ScheduleAnyway [FfiSyntax] [GoGlobalContext] : val
+axiom ScheduleAnyway [GooseExts] [GoGlobalContext] : val
 
-axiom NodeInclusionPolicyIgnore [FfiSyntax] [GoGlobalContext] : val
+axiom NodeInclusionPolicyIgnore [GooseExts] [GoGlobalContext] : val
 
-axiom NodeInclusionPolicyHonor [FfiSyntax] [GoGlobalContext] : val
+axiom NodeInclusionPolicyHonor [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultEnableServiceLinks [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultEnableServiceLinks [GooseExts] [GoGlobalContext] : val
 
-axiom FSGroupChangeOnRootMismatch [FfiSyntax] [GoGlobalContext] : val
+axiom FSGroupChangeOnRootMismatch [GooseExts] [GoGlobalContext] : val
 
-axiom FSGroupChangeAlways [FfiSyntax] [GoGlobalContext] : val
+axiom FSGroupChangeAlways [GooseExts] [GoGlobalContext] : val
 
-axiom SupplementalGroupsPolicyMerge [FfiSyntax] [GoGlobalContext] : val
+axiom SupplementalGroupsPolicyMerge [GooseExts] [GoGlobalContext] : val
 
-axiom SupplementalGroupsPolicyStrict [FfiSyntax] [GoGlobalContext] : val
+axiom SupplementalGroupsPolicyStrict [GooseExts] [GoGlobalContext] : val
 
-axiom SELinuxChangePolicyRecursive [FfiSyntax] [GoGlobalContext] : val
+axiom SELinuxChangePolicyRecursive [GooseExts] [GoGlobalContext] : val
 
-axiom SELinuxChangePolicyMountOption [FfiSyntax] [GoGlobalContext] : val
+axiom SELinuxChangePolicyMountOption [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileTypeUnconfined [FfiSyntax] [GoGlobalContext] : val
+axiom SeccompProfileTypeUnconfined [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileTypeRuntimeDefault [FfiSyntax] [GoGlobalContext] : val
+axiom SeccompProfileTypeRuntimeDefault [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileTypeLocalhost [FfiSyntax] [GoGlobalContext] : val
+axiom SeccompProfileTypeLocalhost [GooseExts] [GoGlobalContext] : val
 
-axiom AppArmorProfileTypeUnconfined [FfiSyntax] [GoGlobalContext] : val
+axiom AppArmorProfileTypeUnconfined [GooseExts] [GoGlobalContext] : val
 
-axiom AppArmorProfileTypeRuntimeDefault [FfiSyntax] [GoGlobalContext] : val
+axiom AppArmorProfileTypeRuntimeDefault [GooseExts] [GoGlobalContext] : val
 
-axiom AppArmorProfileTypeLocalhost [FfiSyntax] [GoGlobalContext] : val
+axiom AppArmorProfileTypeLocalhost [GooseExts] [GoGlobalContext] : val
 
-axiom PodQOSGuaranteed [FfiSyntax] [GoGlobalContext] : val
+axiom PodQOSGuaranteed [GooseExts] [GoGlobalContext] : val
 
-axiom PodQOSBurstable [FfiSyntax] [GoGlobalContext] : val
+axiom PodQOSBurstable [GooseExts] [GoGlobalContext] : val
 
-axiom PodQOSBestEffort [FfiSyntax] [GoGlobalContext] : val
+axiom PodQOSBestEffort [GooseExts] [GoGlobalContext] : val
 
-axiom ReplicationControllerReplicaFailure [FfiSyntax] [GoGlobalContext] : val
+axiom ReplicationControllerReplicaFailure [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAffinityClientIP [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceAffinityClientIP [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAffinityNone [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceAffinityNone [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultClientIPServiceAffinitySeconds [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultClientIPServiceAffinitySeconds [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTypeClusterIP [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceTypeClusterIP [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTypeNodePort [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceTypeNodePort [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTypeLoadBalancer [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceTypeLoadBalancer [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTypeExternalName [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceTypeExternalName [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceInternalTrafficPolicyCluster [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceInternalTrafficPolicyCluster [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceInternalTrafficPolicyLocal [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceInternalTrafficPolicyLocal [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceExternalTrafficPolicyCluster [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceExternalTrafficPolicyCluster [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceExternalTrafficPolicyLocal [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceExternalTrafficPolicyLocal [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceExternalTrafficPolicyTypeLocal [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceExternalTrafficPolicyTypeLocal [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceExternalTrafficPolicyTypeCluster [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceExternalTrafficPolicyTypeCluster [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTrafficDistributionPreferSameZone [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceTrafficDistributionPreferSameZone [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTrafficDistributionPreferSameNode [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceTrafficDistributionPreferSameNode [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTrafficDistributionPreferClose [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceTrafficDistributionPreferClose [GooseExts] [GoGlobalContext] : val
 
-axiom LoadBalancerPortsError [FfiSyntax] [GoGlobalContext] : val
+axiom LoadBalancerPortsError [GooseExts] [GoGlobalContext] : val
 
-axiom LoadBalancerPortsErrorReason [FfiSyntax] [GoGlobalContext] : val
+axiom LoadBalancerPortsErrorReason [GooseExts] [GoGlobalContext] : val
 
-axiom IPv4Protocol [FfiSyntax] [GoGlobalContext] : val
+axiom IPv4Protocol [GooseExts] [GoGlobalContext] : val
 
-axiom IPv6Protocol [FfiSyntax] [GoGlobalContext] : val
+axiom IPv6Protocol [GooseExts] [GoGlobalContext] : val
 
-axiom IPFamilyUnknown [FfiSyntax] [GoGlobalContext] : val
+axiom IPFamilyUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom IPFamilyPolicySingleStack [FfiSyntax] [GoGlobalContext] : val
+axiom IPFamilyPolicySingleStack [GooseExts] [GoGlobalContext] : val
 
-axiom IPFamilyPolicyPreferDualStack [FfiSyntax] [GoGlobalContext] : val
+axiom IPFamilyPolicyPreferDualStack [GooseExts] [GoGlobalContext] : val
 
-axiom IPFamilyPolicyRequireDualStack [FfiSyntax] [GoGlobalContext] : val
+axiom IPFamilyPolicyRequireDualStack [GooseExts] [GoGlobalContext] : val
 
-axiom ClusterIPNone [FfiSyntax] [GoGlobalContext] : val
+axiom ClusterIPNone [GooseExts] [GoGlobalContext] : val
 
-axiom NodePending [FfiSyntax] [GoGlobalContext] : val
+axiom NodePending [GooseExts] [GoGlobalContext] : val
 
-axiom NodeRunning [FfiSyntax] [GoGlobalContext] : val
+axiom NodeRunning [GooseExts] [GoGlobalContext] : val
 
-axiom NodeTerminated [FfiSyntax] [GoGlobalContext] : val
+axiom NodeTerminated [GooseExts] [GoGlobalContext] : val
 
-axiom NodeReady [FfiSyntax] [GoGlobalContext] : val
+axiom NodeReady [GooseExts] [GoGlobalContext] : val
 
-axiom NodeMemoryPressure [FfiSyntax] [GoGlobalContext] : val
+axiom NodeMemoryPressure [GooseExts] [GoGlobalContext] : val
 
-axiom NodeDiskPressure [FfiSyntax] [GoGlobalContext] : val
+axiom NodeDiskPressure [GooseExts] [GoGlobalContext] : val
 
-axiom NodePIDPressure [FfiSyntax] [GoGlobalContext] : val
+axiom NodePIDPressure [GooseExts] [GoGlobalContext] : val
 
-axiom NodeNetworkUnavailable [FfiSyntax] [GoGlobalContext] : val
+axiom NodeNetworkUnavailable [GooseExts] [GoGlobalContext] : val
 
-axiom NodeGracefulNodeShutdownInProgress [FfiSyntax] [GoGlobalContext] : val
+axiom NodeGracefulNodeShutdownInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom NodeDrainInProgress [FfiSyntax] [GoGlobalContext] : val
+axiom NodeDrainInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom NodeDrained [FfiSyntax] [GoGlobalContext] : val
+axiom NodeDrained [GooseExts] [GoGlobalContext] : val
 
-axiom NodeMaintenancePlanned [FfiSyntax] [GoGlobalContext] : val
+axiom NodeMaintenancePlanned [GooseExts] [GoGlobalContext] : val
 
-axiom NodeMaintenanceInProgress [FfiSyntax] [GoGlobalContext] : val
+axiom NodeMaintenanceInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom NodeHostName [FfiSyntax] [GoGlobalContext] : val
+axiom NodeHostName [GooseExts] [GoGlobalContext] : val
 
-axiom NodeInternalIP [FfiSyntax] [GoGlobalContext] : val
+axiom NodeInternalIP [GooseExts] [GoGlobalContext] : val
 
-axiom NodeExternalIP [FfiSyntax] [GoGlobalContext] : val
+axiom NodeExternalIP [GooseExts] [GoGlobalContext] : val
 
-axiom NodeInternalDNS [FfiSyntax] [GoGlobalContext] : val
+axiom NodeInternalDNS [GooseExts] [GoGlobalContext] : val
 
-axiom NodeExternalDNS [FfiSyntax] [GoGlobalContext] : val
+axiom NodeExternalDNS [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceCPU [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceCPU [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceMemory [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceMemory [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceStorage [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceEphemeralStorage [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceEphemeralStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceDefaultNamespacePrefix [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceDefaultNamespacePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHugePagesPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceHugePagesPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceAttachableVolumesPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceAttachableVolumesPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom FinalizerKubernetes [FfiSyntax] [GoGlobalContext] : val
+axiom FinalizerKubernetes [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceActive [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceActive [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceTerminating [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceTerminating [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def NamespaceTerminatingCause [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def NamespaceTerminatingCause [GooseExts] [GoGlobalContext] : val :=
   #(go!"NamespaceTerminating")
 
-axiom NamespaceDeletionDiscoveryFailure [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceDeletionDiscoveryFailure [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceDeletionContentFailure [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceDeletionContentFailure [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceDeletionGVParsingFailure [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceDeletionGVParsingFailure [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceContentRemaining [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceContentRemaining [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceFinalizersRemaining [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceFinalizersRemaining [GooseExts] [GoGlobalContext] : val
 
-axiom LogStreamStdout [FfiSyntax] [GoGlobalContext] : val
+axiom LogStreamStdout [GooseExts] [GoGlobalContext] : val
 
-axiom LogStreamStderr [FfiSyntax] [GoGlobalContext] : val
+axiom LogStreamStderr [GooseExts] [GoGlobalContext] : val
 
-axiom LogStreamAll [FfiSyntax] [GoGlobalContext] : val
+axiom LogStreamAll [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def EventTypeNormal [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EventTypeNormal [GooseExts] [GoGlobalContext] : val :=
   #(go!"Normal")
 
-@[reducible] noncomputable def EventTypeWarning [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EventTypeWarning [GooseExts] [GoGlobalContext] : val :=
   #(go!"Warning")
 
-axiom LimitTypePod [FfiSyntax] [GoGlobalContext] : val
+axiom LimitTypePod [GooseExts] [GoGlobalContext] : val
 
-axiom LimitTypeContainer [FfiSyntax] [GoGlobalContext] : val
+axiom LimitTypeContainer [GooseExts] [GoGlobalContext] : val
 
-axiom LimitTypePersistentVolumeClaim [FfiSyntax] [GoGlobalContext] : val
+axiom LimitTypePersistentVolumeClaim [GooseExts] [GoGlobalContext] : val
 
-axiom ResourcePods [FfiSyntax] [GoGlobalContext] : val
+axiom ResourcePods [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceServices [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceServices [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceReplicationControllers [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceReplicationControllers [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotas [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceQuotas [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceSecrets [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceSecrets [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceConfigMaps [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceConfigMaps [GooseExts] [GoGlobalContext] : val
 
-axiom ResourcePersistentVolumeClaims [FfiSyntax] [GoGlobalContext] : val
+axiom ResourcePersistentVolumeClaims [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceServicesNodePorts [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceServicesNodePorts [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceServicesLoadBalancers [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceServicesLoadBalancers [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsCPU [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceRequestsCPU [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsMemory [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceRequestsMemory [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsStorage [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceRequestsStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsEphemeralStorage [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceRequestsEphemeralStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceLimitsCPU [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceLimitsCPU [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceLimitsMemory [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceLimitsMemory [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceLimitsEphemeralStorage [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceLimitsEphemeralStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceClaimsPerClass [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceClaimsPerClass [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceImplicitExtendedClaimsPerClass [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceImplicitExtendedClaimsPerClass [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsHugePagesPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceRequestsHugePagesPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultResourceRequestsPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultResourceRequestsPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeTerminating [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceQuotaScopeTerminating [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeNotTerminating [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceQuotaScopeNotTerminating [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeBestEffort [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceQuotaScopeBestEffort [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeNotBestEffort [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceQuotaScopeNotBestEffort [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopePriorityClass [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceQuotaScopePriorityClass [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeCrossNamespacePodAffinity [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceQuotaScopeCrossNamespacePodAffinity [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeVolumeAttributesClass [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceQuotaScopeVolumeAttributesClass [GooseExts] [GoGlobalContext] : val
 
-axiom ScopeSelectorOpIn [FfiSyntax] [GoGlobalContext] : val
+axiom ScopeSelectorOpIn [GooseExts] [GoGlobalContext] : val
 
-axiom ScopeSelectorOpNotIn [FfiSyntax] [GoGlobalContext] : val
+axiom ScopeSelectorOpNotIn [GooseExts] [GoGlobalContext] : val
 
-axiom ScopeSelectorOpExists [FfiSyntax] [GoGlobalContext] : val
+axiom ScopeSelectorOpExists [GooseExts] [GoGlobalContext] : val
 
-axiom ScopeSelectorOpDoesNotExist [FfiSyntax] [GoGlobalContext] : val
+axiom ScopeSelectorOpDoesNotExist [GooseExts] [GoGlobalContext] : val
 
-axiom MaxSecretSize [FfiSyntax] [GoGlobalContext] : val
+axiom MaxSecretSize [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeOpaque [FfiSyntax] [GoGlobalContext] : val
+axiom SecretTypeOpaque [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeServiceAccountToken [FfiSyntax] [GoGlobalContext] : val
+axiom SecretTypeServiceAccountToken [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountNameKey [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceAccountNameKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountUIDKey [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceAccountUIDKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountTokenKey [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceAccountTokenKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountKubeconfigKey [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceAccountKubeconfigKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountRootCAKey [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceAccountRootCAKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountNamespaceKey [FfiSyntax] [GoGlobalContext] : val
+axiom ServiceAccountNamespaceKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeDockercfg [FfiSyntax] [GoGlobalContext] : val
+axiom SecretTypeDockercfg [GooseExts] [GoGlobalContext] : val
 
-axiom DockerConfigKey [FfiSyntax] [GoGlobalContext] : val
+axiom DockerConfigKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeDockerConfigJson [FfiSyntax] [GoGlobalContext] : val
+axiom SecretTypeDockerConfigJson [GooseExts] [GoGlobalContext] : val
 
-axiom DockerConfigJsonKey [FfiSyntax] [GoGlobalContext] : val
+axiom DockerConfigJsonKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeBasicAuth [FfiSyntax] [GoGlobalContext] : val
+axiom SecretTypeBasicAuth [GooseExts] [GoGlobalContext] : val
 
-axiom BasicAuthUsernameKey [FfiSyntax] [GoGlobalContext] : val
+axiom BasicAuthUsernameKey [GooseExts] [GoGlobalContext] : val
 
-axiom BasicAuthPasswordKey [FfiSyntax] [GoGlobalContext] : val
+axiom BasicAuthPasswordKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeSSHAuth [FfiSyntax] [GoGlobalContext] : val
+axiom SecretTypeSSHAuth [GooseExts] [GoGlobalContext] : val
 
-axiom SSHAuthPrivateKey [FfiSyntax] [GoGlobalContext] : val
+axiom SSHAuthPrivateKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeTLS [FfiSyntax] [GoGlobalContext] : val
+axiom SecretTypeTLS [GooseExts] [GoGlobalContext] : val
 
-axiom TLSCertKey [FfiSyntax] [GoGlobalContext] : val
+axiom TLSCertKey [GooseExts] [GoGlobalContext] : val
 
-axiom TLSPrivateKeyKey [FfiSyntax] [GoGlobalContext] : val
+axiom TLSPrivateKeyKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeBootstrapToken [FfiSyntax] [GoGlobalContext] : val
+axiom SecretTypeBootstrapToken [GooseExts] [GoGlobalContext] : val
 
-axiom ComponentHealthy [FfiSyntax] [GoGlobalContext] : val
+axiom ComponentHealthy [GooseExts] [GoGlobalContext] : val
 
-axiom DownwardAPIVolumeSourceDefaultMode [FfiSyntax] [GoGlobalContext] : val
+axiom DownwardAPIVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultProcMount [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultProcMount [GooseExts] [GoGlobalContext] : val
 
-axiom UnmaskedProcMount [FfiSyntax] [GoGlobalContext] : val
+axiom UnmaskedProcMount [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def DefaultSchedulerName [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultSchedulerName [GooseExts] [GoGlobalContext] : val :=
   #(go!"default-scheduler")
 
-axiom DefaultHardPodAffinitySymmetricWeight [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultHardPodAffinitySymmetricWeight [GooseExts] [GoGlobalContext] : val
 
-axiom ExecStdinParam [FfiSyntax] [GoGlobalContext] : val
+axiom ExecStdinParam [GooseExts] [GoGlobalContext] : val
 
-axiom ExecStdoutParam [FfiSyntax] [GoGlobalContext] : val
+axiom ExecStdoutParam [GooseExts] [GoGlobalContext] : val
 
-axiom ExecStderrParam [FfiSyntax] [GoGlobalContext] : val
+axiom ExecStderrParam [GooseExts] [GoGlobalContext] : val
 
-axiom ExecTTYParam [FfiSyntax] [GoGlobalContext] : val
+axiom ExecTTYParam [GooseExts] [GoGlobalContext] : val
 
-axiom ExecCommandParam [FfiSyntax] [GoGlobalContext] : val
+axiom ExecCommandParam [GooseExts] [GoGlobalContext] : val
 
-axiom StreamType [FfiSyntax] [GoGlobalContext] : val
+axiom StreamType [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeStdin [FfiSyntax] [GoGlobalContext] : val
+axiom StreamTypeStdin [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeStdout [FfiSyntax] [GoGlobalContext] : val
+axiom StreamTypeStdout [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeStderr [FfiSyntax] [GoGlobalContext] : val
+axiom StreamTypeStderr [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeData [FfiSyntax] [GoGlobalContext] : val
+axiom StreamTypeData [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeError [FfiSyntax] [GoGlobalContext] : val
+axiom StreamTypeError [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeResize [FfiSyntax] [GoGlobalContext] : val
+axiom StreamTypeResize [GooseExts] [GoGlobalContext] : val
 
-axiom PortHeader [FfiSyntax] [GoGlobalContext] : val
+axiom PortHeader [GooseExts] [GoGlobalContext] : val
 
-axiom PortForwardRequestIDHeader [FfiSyntax] [GoGlobalContext] : val
+axiom PortForwardRequestIDHeader [GooseExts] [GoGlobalContext] : val
 
-axiom MixedProtocolNotSupported [FfiSyntax] [GoGlobalContext] : val
+axiom MixedProtocolNotSupported [GooseExts] [GoGlobalContext] : val
 
-axiom LoadBalancerIPModeVIP [FfiSyntax] [GoGlobalContext] : val
+axiom LoadBalancerIPModeVIP [GooseExts] [GoGlobalContext] : val
 
-axiom LoadBalancerIPModeProxy [FfiSyntax] [GoGlobalContext] : val
+axiom LoadBalancerIPModeProxy [GooseExts] [GoGlobalContext] : val
 
-axiom LabelHostname [FfiSyntax] [GoGlobalContext] : val
+axiom LabelHostname [GooseExts] [GoGlobalContext] : val
 
-axiom AnnotationPeerAdvertiseAddress [FfiSyntax] [GoGlobalContext] : val
+axiom AnnotationPeerAdvertiseAddress [GooseExts] [GoGlobalContext] : val
 
-axiom LabelTopologyZone [FfiSyntax] [GoGlobalContext] : val
+axiom LabelTopologyZone [GooseExts] [GoGlobalContext] : val
 
-axiom LabelTopologyRegion [FfiSyntax] [GoGlobalContext] : val
+axiom LabelTopologyRegion [GooseExts] [GoGlobalContext] : val
 
-axiom LabelFailureDomainBetaZone [FfiSyntax] [GoGlobalContext] : val
+axiom LabelFailureDomainBetaZone [GooseExts] [GoGlobalContext] : val
 
-axiom LabelFailureDomainBetaRegion [FfiSyntax] [GoGlobalContext] : val
+axiom LabelFailureDomainBetaRegion [GooseExts] [GoGlobalContext] : val
 
-axiom LabelZoneFailureDomain [FfiSyntax] [GoGlobalContext] : val
+axiom LabelZoneFailureDomain [GooseExts] [GoGlobalContext] : val
 
-axiom LabelZoneRegion [FfiSyntax] [GoGlobalContext] : val
+axiom LabelZoneRegion [GooseExts] [GoGlobalContext] : val
 
-axiom LabelZoneFailureDomainStable [FfiSyntax] [GoGlobalContext] : val
+axiom LabelZoneFailureDomainStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelZoneRegionStable [FfiSyntax] [GoGlobalContext] : val
+axiom LabelZoneRegionStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelInstanceType [FfiSyntax] [GoGlobalContext] : val
+axiom LabelInstanceType [GooseExts] [GoGlobalContext] : val
 
-axiom LabelInstanceTypeStable [FfiSyntax] [GoGlobalContext] : val
+axiom LabelInstanceTypeStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelOSStable [FfiSyntax] [GoGlobalContext] : val
+axiom LabelOSStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelArchStable [FfiSyntax] [GoGlobalContext] : val
+axiom LabelArchStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelWindowsBuild [FfiSyntax] [GoGlobalContext] : val
+axiom LabelWindowsBuild [GooseExts] [GoGlobalContext] : val
 
-axiom LabelNamespaceSuffixKubelet [FfiSyntax] [GoGlobalContext] : val
+axiom LabelNamespaceSuffixKubelet [GooseExts] [GoGlobalContext] : val
 
-axiom LabelNamespaceSuffixNode [FfiSyntax] [GoGlobalContext] : val
+axiom LabelNamespaceSuffixNode [GooseExts] [GoGlobalContext] : val
 
-axiom LabelNamespaceNodeRestriction [FfiSyntax] [GoGlobalContext] : val
+axiom LabelNamespaceNodeRestriction [GooseExts] [GoGlobalContext] : val
 
-axiom IsHeadlessService [FfiSyntax] [GoGlobalContext] : val
+axiom IsHeadlessService [GooseExts] [GoGlobalContext] : val
 
-axiom LabelNodeExcludeBalancers [FfiSyntax] [GoGlobalContext] : val
+axiom LabelNodeExcludeBalancers [GooseExts] [GoGlobalContext] : val
 
-axiom LabelMetadataName [FfiSyntax] [GoGlobalContext] : val
+axiom LabelMetadataName [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def TaintNodeNotReady [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintNodeNotReady [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/not-ready")
 
-@[reducible] noncomputable def TaintNodeUnreachable [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintNodeUnreachable [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/unreachable")
 
-@[reducible] noncomputable def TaintNodeUnschedulable [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintNodeUnschedulable [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/unschedulable")
 
-@[reducible] noncomputable def TaintNodeMemoryPressure [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintNodeMemoryPressure [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/memory-pressure")
 
-@[reducible] noncomputable def TaintNodeDiskPressure [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintNodeDiskPressure [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/disk-pressure")
 
-@[reducible] noncomputable def TaintNodeNetworkUnavailable [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintNodeNetworkUnavailable [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/network-unavailable")
 
-@[reducible] noncomputable def TaintNodePIDPressure [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TaintNodePIDPressure [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/pid-pressure")
 
-axiom TaintNodeOutOfService [FfiSyntax] [GoGlobalContext] : val
+axiom TaintNodeOutOfService [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrIntOverflowGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUnexpectedEndOfGroupGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeGroupVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeBuilder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AddToScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.AddToScheme"
 
-axiom AddToScheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_AWSElasticBlockStoreVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_AWSElasticBlockStoreVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AWSElasticBlockStoreVolumeSource"
 
-axiom map_AWSElasticBlockStoreVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_AWSElasticBlockStoreVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Affinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Affinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Affinity"
 
-axiom map_Affinity.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Affinity.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_AppArmorProfile [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_AppArmorProfile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AppArmorProfile"
 
-axiom map_AppArmorProfile.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_AppArmorProfile.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_AttachedVolume [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_AttachedVolume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AttachedVolume"
 
-axiom map_AttachedVolume.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_AttachedVolume.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_AvoidPods [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_AvoidPods [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AvoidPods"
 
-axiom map_AvoidPods.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_AvoidPods.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_AzureDiskVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_AzureDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AzureDiskVolumeSource"
 
-axiom map_AzureDiskVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_AzureDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_AzureFilePersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_AzureFilePersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AzureFilePersistentVolumeSource"
 
-axiom map_AzureFilePersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_AzureFilePersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_AzureFileVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_AzureFileVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AzureFileVolumeSource"
 
-axiom map_AzureFileVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_AzureFileVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Binding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Binding [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Binding"
 
-axiom map_Binding.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Binding.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_CSIPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_CSIPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CSIPersistentVolumeSource"
 
-axiom map_CSIPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_CSIPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_CSIVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_CSIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CSIVolumeSource"
 
-axiom map_CSIVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_CSIVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Capabilities [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Capabilities [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Capabilities"
 
-axiom map_Capabilities.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Capabilities.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_CephFSPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_CephFSPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CephFSPersistentVolumeSource"
 
-axiom map_CephFSPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_CephFSPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_CephFSVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_CephFSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CephFSVolumeSource"
 
-axiom map_CephFSVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_CephFSVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_CinderPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_CinderPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CinderPersistentVolumeSource"
 
-axiom map_CinderPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_CinderPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_CinderVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_CinderVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CinderVolumeSource"
 
-axiom map_CinderVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_CinderVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ClientIPConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ClientIPConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ClientIPConfig"
 
-axiom map_ClientIPConfig.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ClientIPConfig.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ClusterTrustBundleProjection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ClusterTrustBundleProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ClusterTrustBundleProjection"
 
-axiom map_ClusterTrustBundleProjection.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ClusterTrustBundleProjection.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ComponentCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ComponentCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ComponentCondition"
 
-axiom map_ComponentCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ComponentCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ComponentStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ComponentStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ComponentStatus"
 
-axiom map_ComponentStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ComponentStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ComponentStatusList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ComponentStatusList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ComponentStatusList"
 
-axiom map_ComponentStatusList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ComponentStatusList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ConfigMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ConfigMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMap"
 
-axiom map_ConfigMap.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ConfigMap.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ConfigMapEnvSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ConfigMapEnvSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapEnvSource"
 
-axiom map_ConfigMapEnvSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ConfigMapEnvSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ConfigMapKeySelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ConfigMapKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapKeySelector"
 
-axiom map_ConfigMapKeySelector.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ConfigMapKeySelector.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ConfigMapList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ConfigMapList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapList"
 
-axiom map_ConfigMapList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ConfigMapList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ConfigMapNodeConfigSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ConfigMapNodeConfigSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapNodeConfigSource"
 
-axiom map_ConfigMapNodeConfigSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ConfigMapNodeConfigSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ConfigMapProjection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ConfigMapProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapProjection"
 
-axiom map_ConfigMapProjection.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ConfigMapProjection.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ConfigMapVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ConfigMapVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapVolumeSource"
 
-axiom map_ConfigMapVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ConfigMapVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Container [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Container [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Container"
 
-axiom map_Container.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Container.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerExtendedResourceRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerExtendedResourceRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerExtendedResourceRequest"
 
-axiom map_ContainerExtendedResourceRequest.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerExtendedResourceRequest.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerImage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerImage [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerImage"
 
-axiom map_ContainerImage.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerImage.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerPort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerPort"
 
-axiom map_ContainerPort.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerPort.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerResizePolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerResizePolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerResizePolicy"
 
-axiom map_ContainerResizePolicy.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerResizePolicy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerRestartRule [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerRestartRule [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerRestartRule"
 
-axiom map_ContainerRestartRule.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerRestartRule.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerRestartRuleOnExitCodes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerRestartRuleOnExitCodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerRestartRuleOnExitCodes"
 
-axiom map_ContainerRestartRuleOnExitCodes.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerRestartRuleOnExitCodes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerState [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerState [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerState"
 
-axiom map_ContainerState.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerState.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerStateRunning [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerStateRunning [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerStateRunning"
 
-axiom map_ContainerStateRunning.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerStateRunning.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerStateTerminated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerStateTerminated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerStateTerminated"
 
-axiom map_ContainerStateTerminated.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerStateTerminated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerStateWaiting [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerStateWaiting [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerStateWaiting"
 
-axiom map_ContainerStateWaiting.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerStateWaiting.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerStatus"
 
-axiom map_ContainerStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ContainerUser [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ContainerUser [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerUser"
 
-axiom map_ContainerUser.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ContainerUser.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DaemonEndpoint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DaemonEndpoint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_DaemonEndpoint"
 
-axiom map_DaemonEndpoint.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DaemonEndpoint.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DownwardAPIProjection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DownwardAPIProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_DownwardAPIProjection"
 
-axiom map_DownwardAPIProjection.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DownwardAPIProjection.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DownwardAPIVolumeFile [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DownwardAPIVolumeFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_DownwardAPIVolumeFile"
 
-axiom map_DownwardAPIVolumeFile.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DownwardAPIVolumeFile.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DownwardAPIVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DownwardAPIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_DownwardAPIVolumeSource"
 
-axiom map_DownwardAPIVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DownwardAPIVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EmptyDirVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EmptyDirVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EmptyDirVolumeSource"
 
-axiom map_EmptyDirVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EmptyDirVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EndpointAddress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EndpointAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EndpointAddress"
 
-axiom map_EndpointAddress.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EndpointAddress.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EndpointPort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EndpointPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EndpointPort"
 
-axiom map_EndpointPort.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EndpointPort.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EndpointSubset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EndpointSubset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EndpointSubset"
 
-axiom map_EndpointSubset.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EndpointSubset.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Endpoints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Endpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Endpoints"
 
-axiom map_Endpoints.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Endpoints.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EndpointsList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EndpointsList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EndpointsList"
 
-axiom map_EndpointsList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EndpointsList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EnvFromSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EnvFromSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EnvFromSource"
 
-axiom map_EnvFromSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EnvFromSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EnvVar [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EnvVar [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EnvVar"
 
-axiom map_EnvVar.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EnvVar.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EnvVarSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EnvVarSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EnvVarSource"
 
-axiom map_EnvVarSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EnvVarSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EphemeralContainer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EphemeralContainer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EphemeralContainer"
 
-axiom map_EphemeralContainer.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EphemeralContainer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EphemeralContainerCommon [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EphemeralContainerCommon [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EphemeralContainerCommon"
 
-axiom map_EphemeralContainerCommon.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EphemeralContainerCommon.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EphemeralVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EphemeralVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EphemeralVolumeSource"
 
-axiom map_EphemeralVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EphemeralVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Event [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Event [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Event"
 
-axiom map_Event.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Event.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EventList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EventList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EventList"
 
-axiom map_EventList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EventList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EventSeries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EventSeries [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EventSeries"
 
-axiom map_EventSeries.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EventSeries.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EventSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EventSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EventSource"
 
-axiom map_EventSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EventSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_EvictionResponder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_EvictionResponder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EvictionResponder"
 
-axiom map_EvictionResponder.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_EvictionResponder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ExecAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ExecAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ExecAction"
 
-axiom map_ExecAction.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ExecAction.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_FCVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_FCVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FCVolumeSource"
 
-axiom map_FCVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_FCVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_FileKeySelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_FileKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FileKeySelector"
 
-axiom map_FileKeySelector.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_FileKeySelector.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_FlexPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_FlexPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FlexPersistentVolumeSource"
 
-axiom map_FlexPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_FlexPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_FlexVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_FlexVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FlexVolumeSource"
 
-axiom map_FlexVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_FlexVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_FlockerVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_FlockerVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FlockerVolumeSource"
 
-axiom map_FlockerVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_FlockerVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_GCEPersistentDiskVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_GCEPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GCEPersistentDiskVolumeSource"
 
-axiom map_GCEPersistentDiskVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_GCEPersistentDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_GRPCAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_GRPCAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GRPCAction"
 
-axiom map_GRPCAction.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_GRPCAction.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_GitRepoVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_GitRepoVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GitRepoVolumeSource"
 
-axiom map_GitRepoVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_GitRepoVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_GlusterfsPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_GlusterfsPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GlusterfsPersistentVolumeSource"
 
-axiom map_GlusterfsPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_GlusterfsPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_GlusterfsVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_GlusterfsVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GlusterfsVolumeSource"
 
-axiom map_GlusterfsVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_GlusterfsVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HTTPGetAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HTTPGetAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HTTPGetAction"
 
-axiom map_HTTPGetAction.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HTTPGetAction.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HTTPHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HTTPHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HTTPHeader"
 
-axiom map_HTTPHeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HTTPHeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HostAlias [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HostAlias [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HostAlias"
 
-axiom map_HostAlias.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HostAlias.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HostIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HostIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HostIP"
 
-axiom map_HostIP.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HostIP.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_HostPathVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_HostPathVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HostPathVolumeSource"
 
-axiom map_HostPathVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_HostPathVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ISCSIPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ISCSIPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ISCSIPersistentVolumeSource"
 
-axiom map_ISCSIPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ISCSIPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ISCSIVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ISCSIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ISCSIVolumeSource"
 
-axiom map_ISCSIVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ISCSIVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ImageVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ImageVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ImageVolumeSource"
 
-axiom map_ImageVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ImageVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ImageVolumeStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ImageVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ImageVolumeStatus"
 
-axiom map_ImageVolumeStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ImageVolumeStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_KeyToPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_KeyToPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_KeyToPath"
 
-axiom map_KeyToPath.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_KeyToPath.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Lifecycle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Lifecycle [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Lifecycle"
 
-axiom map_Lifecycle.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Lifecycle.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LifecycleHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LifecycleHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LifecycleHandler"
 
-axiom map_LifecycleHandler.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LifecycleHandler.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LimitRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LimitRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LimitRange"
 
-axiom map_LimitRange.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LimitRange.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LimitRangeItem [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LimitRangeItem [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LimitRangeItem"
 
-axiom map_LimitRangeItem.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LimitRangeItem.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LimitRangeList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LimitRangeList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LimitRangeList"
 
-axiom map_LimitRangeList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LimitRangeList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LimitRangeSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LimitRangeSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LimitRangeSpec"
 
-axiom map_LimitRangeSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LimitRangeSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LinuxContainerUser [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LinuxContainerUser [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LinuxContainerUser"
 
-axiom map_LinuxContainerUser.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LinuxContainerUser.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LoadBalancerIngress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LoadBalancerIngress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LoadBalancerIngress"
 
-axiom map_LoadBalancerIngress.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LoadBalancerIngress.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LoadBalancerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LoadBalancerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LoadBalancerStatus"
 
-axiom map_LoadBalancerStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LoadBalancerStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LocalObjectReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LocalObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LocalObjectReference"
 
-axiom map_LocalObjectReference.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LocalObjectReference.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_LocalVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_LocalVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LocalVolumeSource"
 
-axiom map_LocalVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_LocalVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ModifyVolumeStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ModifyVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ModifyVolumeStatus"
 
-axiom map_ModifyVolumeStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ModifyVolumeStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NFSVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NFSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NFSVolumeSource"
 
-axiom map_NFSVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NFSVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Namespace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Namespace [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Namespace"
 
-axiom map_Namespace.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Namespace.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NamespaceCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NamespaceCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NamespaceCondition"
 
-axiom map_NamespaceCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NamespaceCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NamespaceList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NamespaceList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NamespaceList"
 
-axiom map_NamespaceList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NamespaceList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NamespaceSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NamespaceSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NamespaceSpec"
 
-axiom map_NamespaceSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NamespaceSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NamespaceStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NamespaceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NamespaceStatus"
 
-axiom map_NamespaceStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NamespaceStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Node [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Node [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Node"
 
-axiom map_Node.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Node.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeAddress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAddress"
 
-axiom map_NodeAddress.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeAddress.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAffinity"
 
-axiom map_NodeAffinity.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeAffinity.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeAllocatableMappedResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeAllocatableMappedResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAllocatableMappedResources"
 
-axiom map_NodeAllocatableMappedResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeAllocatableMappedResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeAllocatableOverheadResources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeAllocatableOverheadResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAllocatableOverheadResources"
 
-axiom map_NodeAllocatableOverheadResources.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeAllocatableOverheadResources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeAllocatableResourceClaimStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeAllocatableResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAllocatableResourceClaimStatus"
 
-axiom map_NodeAllocatableResourceClaimStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeAllocatableResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeCondition"
 
-axiom map_NodeCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeConfigSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeConfigSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeConfigSource"
 
-axiom map_NodeConfigSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeConfigSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeConfigStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeConfigStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeConfigStatus"
 
-axiom map_NodeConfigStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeConfigStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeDaemonEndpoints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeDaemonEndpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeDaemonEndpoints"
 
-axiom map_NodeDaemonEndpoints.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeDaemonEndpoints.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeFeatures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeFeatures"
 
-axiom map_NodeFeatures.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeFeatures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeList"
 
-axiom map_NodeList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodePodPreemptionPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodePodPreemptionPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodePodPreemptionPolicy"
 
-axiom map_NodePodPreemptionPolicy.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodePodPreemptionPolicy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeProxyOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeProxyOptions"
 
-axiom map_NodeProxyOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeProxyOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeRuntimeHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeRuntimeHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeRuntimeHandler"
 
-axiom map_NodeRuntimeHandler.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeRuntimeHandler.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeRuntimeHandlerFeatures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeRuntimeHandlerFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeRuntimeHandlerFeatures"
 
-axiom map_NodeRuntimeHandlerFeatures.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeRuntimeHandlerFeatures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSelector"
 
-axiom map_NodeSelector.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeSelector.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeSelectorRequirement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSelectorRequirement"
 
-axiom map_NodeSelectorRequirement.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeSelectorTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeSelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSelectorTerm"
 
-axiom map_NodeSelectorTerm.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeSelectorTerm.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSpec"
 
-axiom map_NodeSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeStatus"
 
-axiom map_NodeStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeSwapStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeSwapStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSwapStatus"
 
-axiom map_NodeSwapStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeSwapStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_NodeSystemInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_NodeSystemInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSystemInfo"
 
-axiom map_NodeSystemInfo.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_NodeSystemInfo.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ObjectFieldSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ObjectFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ObjectFieldSelector"
 
-axiom map_ObjectFieldSelector.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ObjectFieldSelector.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ObjectReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ObjectReference"
 
-axiom map_ObjectReference.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ObjectReference.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolume [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolume"
 
-axiom map_PersistentVolume.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolume.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeClaim [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaim"
 
-axiom map_PersistentVolumeClaim.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeClaim.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeClaimCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeClaimCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimCondition"
 
-axiom map_PersistentVolumeClaimCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeClaimCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeClaimList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeClaimList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimList"
 
-axiom map_PersistentVolumeClaimList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeClaimList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeClaimSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeClaimSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimSpec"
 
-axiom map_PersistentVolumeClaimSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeClaimSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeClaimStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimStatus"
 
-axiom map_PersistentVolumeClaimStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeClaimStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeClaimTemplate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeClaimTemplate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimTemplate"
 
-axiom map_PersistentVolumeClaimTemplate.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeClaimTemplate.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeClaimVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeClaimVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimVolumeSource"
 
-axiom map_PersistentVolumeClaimVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeClaimVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeList"
 
-axiom map_PersistentVolumeList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeSource"
 
-axiom map_PersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeSpec"
 
-axiom map_PersistentVolumeSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PersistentVolumeStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PersistentVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeStatus"
 
-axiom map_PersistentVolumeStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PersistentVolumeStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PhotonPersistentDiskVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PhotonPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PhotonPersistentDiskVolumeSource"
 
-axiom map_PhotonPersistentDiskVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PhotonPersistentDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Pod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Pod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Pod"
 
-axiom map_Pod.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Pod.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodAffinity"
 
-axiom map_PodAffinity.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodAffinity.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodAffinityTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodAffinityTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodAffinityTerm"
 
-axiom map_PodAffinityTerm.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodAffinityTerm.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodAntiAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodAntiAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodAntiAffinity"
 
-axiom map_PodAntiAffinity.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodAntiAffinity.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodAttachOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodAttachOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodAttachOptions"
 
-axiom map_PodAttachOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodAttachOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodCertificateProjection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodCertificateProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodCertificateProjection"
 
-axiom map_PodCertificateProjection.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodCertificateProjection.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodCondition"
 
-axiom map_PodCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodDNSConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodDNSConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodDNSConfig"
 
-axiom map_PodDNSConfig.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodDNSConfig.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodDNSConfigOption [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodDNSConfigOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodDNSConfigOption"
 
-axiom map_PodDNSConfigOption.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodDNSConfigOption.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodExecOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodExecOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodExecOptions"
 
-axiom map_PodExecOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodExecOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodExtendedResourceClaimStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodExtendedResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodExtendedResourceClaimStatus"
 
-axiom map_PodExtendedResourceClaimStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodExtendedResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodIP"
 
-axiom map_PodIP.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodIP.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodList"
 
-axiom map_PodList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodLogOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodLogOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodLogOptions"
 
-axiom map_PodLogOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodLogOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodOS [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodOS [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodOS"
 
-axiom map_PodOS.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodOS.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodPortForwardOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodPortForwardOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodPortForwardOptions"
 
-axiom map_PodPortForwardOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodPortForwardOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodProxyOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodProxyOptions"
 
-axiom map_PodProxyOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodProxyOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodReadinessGate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodReadinessGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodReadinessGate"
 
-axiom map_PodReadinessGate.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodReadinessGate.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodResourceClaim [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodResourceClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodResourceClaim"
 
-axiom map_PodResourceClaim.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodResourceClaim.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodResourceClaimStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodResourceClaimStatus"
 
-axiom map_PodResourceClaimStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodSchedulingGate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodSchedulingGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSchedulingGate"
 
-axiom map_PodSchedulingGate.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodSchedulingGate.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodSchedulingGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodSchedulingGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSchedulingGroup"
 
-axiom map_PodSchedulingGroup.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodSchedulingGroup.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodSecurityContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodSecurityContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSecurityContext"
 
-axiom map_PodSecurityContext.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodSecurityContext.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodSignature [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodSignature [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSignature"
 
-axiom map_PodSignature.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodSignature.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSpec"
 
-axiom map_PodSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodStatus"
 
-axiom map_PodStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodTemplate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodTemplate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodTemplate"
 
-axiom map_PodTemplate.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodTemplate.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodTemplateList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodTemplateList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodTemplateList"
 
-axiom map_PodTemplateList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodTemplateList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodTemplateSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodTemplateSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodTemplateSpec"
 
-axiom map_PodTemplateSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodTemplateSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PodVolumeHealth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PodVolumeHealth [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodVolumeHealth"
 
-axiom map_PodVolumeHealth.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PodVolumeHealth.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PortStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PortStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PortStatus"
 
-axiom map_PortStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PortStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PortworxVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PortworxVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PortworxVolumeSource"
 
-axiom map_PortworxVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PortworxVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Preconditions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Preconditions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Preconditions"
 
-axiom map_Preconditions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Preconditions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PreferAvoidPodsEntry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PreferAvoidPodsEntry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PreferAvoidPodsEntry"
 
-axiom map_PreferAvoidPodsEntry.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PreferAvoidPodsEntry.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PreferredSchedulingTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PreferredSchedulingTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PreferredSchedulingTerm"
 
-axiom map_PreferredSchedulingTerm.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PreferredSchedulingTerm.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Probe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Probe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Probe"
 
-axiom map_Probe.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Probe.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ProbeHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ProbeHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ProbeHandler"
 
-axiom map_ProbeHandler.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ProbeHandler.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ProjectedVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ProjectedVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ProjectedVolumeSource"
 
-axiom map_ProjectedVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ProjectedVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_QuobyteVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_QuobyteVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_QuobyteVolumeSource"
 
-axiom map_QuobyteVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_QuobyteVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_RBDPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_RBDPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_RBDPersistentVolumeSource"
 
-axiom map_RBDPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_RBDPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_RBDVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_RBDVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_RBDVolumeSource"
 
-axiom map_RBDVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_RBDVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_RangeAllocation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_RangeAllocation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_RangeAllocation"
 
-axiom map_RangeAllocation.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_RangeAllocation.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicationController [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicationController [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationController"
 
-axiom map_ReplicationController.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicationController.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicationControllerCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicationControllerCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationControllerCondition"
 
-axiom map_ReplicationControllerCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicationControllerCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicationControllerList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicationControllerList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationControllerList"
 
-axiom map_ReplicationControllerList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicationControllerList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicationControllerSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicationControllerSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationControllerSpec"
 
-axiom map_ReplicationControllerSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicationControllerSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicationControllerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicationControllerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationControllerStatus"
 
-axiom map_ReplicationControllerStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicationControllerStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceClaim [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceClaim"
 
-axiom map_ResourceClaim.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceClaim.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceFieldSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceFieldSelector"
 
-axiom map_ResourceFieldSelector.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceFieldSelector.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceHealth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceHealth [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceHealth"
 
-axiom map_ResourceHealth.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceHealth.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceQuota [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceQuota [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceQuota"
 
-axiom map_ResourceQuota.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceQuota.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceQuotaList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceQuotaList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceQuotaList"
 
-axiom map_ResourceQuotaList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceQuotaList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceQuotaSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceQuotaSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceQuotaSpec"
 
-axiom map_ResourceQuotaSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceQuotaSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceQuotaStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceQuotaStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceQuotaStatus"
 
-axiom map_ResourceQuotaStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceQuotaStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceRequirements [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceRequirements"
 
-axiom map_ResourceRequirements.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceRequirements.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ResourceStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ResourceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceStatus"
 
-axiom map_ResourceStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ResourceStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SELinuxOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SELinuxOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SELinuxOptions"
 
-axiom map_SELinuxOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SELinuxOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ScaleIOPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ScaleIOPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ScaleIOPersistentVolumeSource"
 
-axiom map_ScaleIOPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ScaleIOPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ScaleIOVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ScaleIOVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ScaleIOVolumeSource"
 
-axiom map_ScaleIOVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ScaleIOVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ScopeSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ScopeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ScopeSelector"
 
-axiom map_ScopeSelector.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ScopeSelector.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ScopedResourceSelectorRequirement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ScopedResourceSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ScopedResourceSelectorRequirement"
 
-axiom map_ScopedResourceSelectorRequirement.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ScopedResourceSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SeccompProfile [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SeccompProfile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SeccompProfile"
 
-axiom map_SeccompProfile.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SeccompProfile.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Secret [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Secret [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Secret"
 
-axiom map_Secret.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Secret.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SecretEnvSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SecretEnvSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretEnvSource"
 
-axiom map_SecretEnvSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SecretEnvSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SecretKeySelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SecretKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretKeySelector"
 
-axiom map_SecretKeySelector.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SecretKeySelector.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SecretList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SecretList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretList"
 
-axiom map_SecretList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SecretList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SecretProjection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SecretProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretProjection"
 
-axiom map_SecretProjection.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SecretProjection.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SecretReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SecretReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretReference"
 
-axiom map_SecretReference.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SecretReference.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SecretVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SecretVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretVolumeSource"
 
-axiom map_SecretVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SecretVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SecurityContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SecurityContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecurityContext"
 
-axiom map_SecurityContext.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SecurityContext.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SerializedReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SerializedReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SerializedReference"
 
-axiom map_SerializedReference.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SerializedReference.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Service [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Service [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Service"
 
-axiom map_Service.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Service.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ServiceAccount [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ServiceAccount [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceAccount"
 
-axiom map_ServiceAccount.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ServiceAccount.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ServiceAccountList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ServiceAccountList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceAccountList"
 
-axiom map_ServiceAccountList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ServiceAccountList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ServiceAccountTokenProjection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ServiceAccountTokenProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceAccountTokenProjection"
 
-axiom map_ServiceAccountTokenProjection.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ServiceAccountTokenProjection.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ServiceList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ServiceList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceList"
 
-axiom map_ServiceList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ServiceList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ServicePort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ServicePort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServicePort"
 
-axiom map_ServicePort.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ServicePort.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ServiceProxyOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ServiceProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceProxyOptions"
 
-axiom map_ServiceProxyOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ServiceProxyOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ServiceSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ServiceSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceSpec"
 
-axiom map_ServiceSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ServiceSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ServiceStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ServiceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceStatus"
 
-axiom map_ServiceStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ServiceStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SessionAffinityConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SessionAffinityConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SessionAffinityConfig"
 
-axiom map_SessionAffinityConfig.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SessionAffinityConfig.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_SleepAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_SleepAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SleepAction"
 
-axiom map_SleepAction.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_SleepAction.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StorageOSPersistentVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StorageOSPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_StorageOSPersistentVolumeSource"
 
-axiom map_StorageOSPersistentVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StorageOSPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StorageOSVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StorageOSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_StorageOSVolumeSource"
 
-axiom map_StorageOSVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StorageOSVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Sysctl [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Sysctl [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Sysctl"
 
-axiom map_Sysctl.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Sysctl.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_TCPSocketAction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_TCPSocketAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TCPSocketAction"
 
-axiom map_TCPSocketAction.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_TCPSocketAction.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Taint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Taint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Taint"
 
-axiom map_Taint.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Taint.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Toleration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Toleration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Toleration"
 
-axiom map_Toleration.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Toleration.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_TopologySelectorLabelRequirement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_TopologySelectorLabelRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TopologySelectorLabelRequirement"
 
-axiom map_TopologySelectorLabelRequirement.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_TopologySelectorLabelRequirement.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_TopologySelectorTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_TopologySelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TopologySelectorTerm"
 
-axiom map_TopologySelectorTerm.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_TopologySelectorTerm.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_TopologySpreadConstraint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_TopologySpreadConstraint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TopologySpreadConstraint"
 
-axiom map_TopologySpreadConstraint.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_TopologySpreadConstraint.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_TypedLocalObjectReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_TypedLocalObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TypedLocalObjectReference"
 
-axiom map_TypedLocalObjectReference.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_TypedLocalObjectReference.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_TypedObjectReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_TypedObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TypedObjectReference"
 
-axiom map_TypedObjectReference.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_TypedObjectReference.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Volume [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Volume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Volume"
 
-axiom map_Volume.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Volume.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeDevice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeDevice [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeDevice"
 
-axiom map_VolumeDevice.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeDevice.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeHealthCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeHealthCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeHealthCondition"
 
-axiom map_VolumeHealthCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeHealthCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeHealthStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeHealthStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeHealthStatus"
 
-axiom map_VolumeHealthStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeHealthStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeMount [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeMount [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeMount"
 
-axiom map_VolumeMount.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeMount.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeMountStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeMountStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeMountStatus"
 
-axiom map_VolumeMountStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeMountStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeNodeAffinity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeNodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeNodeAffinity"
 
-axiom map_VolumeNodeAffinity.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeNodeAffinity.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeProjection [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeProjection"
 
-axiom map_VolumeProjection.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeProjection.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeResourceRequirements [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeResourceRequirements"
 
-axiom map_VolumeResourceRequirements.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeResourceRequirements.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeSource"
 
-axiom map_VolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VolumeStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeStatus"
 
-axiom map_VolumeStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VolumeStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_VsphereVirtualDiskVolumeSource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_VsphereVirtualDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VsphereVirtualDiskVolumeSource"
 
-axiom map_VsphereVirtualDiskVolumeSource.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_VsphereVirtualDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_WeightedPodAffinityTerm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_WeightedPodAffinityTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_WeightedPodAffinityTerm"
 
-axiom map_WeightedPodAffinityTerm.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_WeightedPodAffinityTerm.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_WindowsSecurityContextOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_WindowsSecurityContextOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_WindowsSecurityContextOptions"
 
-axiom map_WindowsSecurityContextOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_WindowsSecurityContextOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def encodeVarintGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.encodeVarintGenerated"
 
-noncomputable def sovGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sovGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.sovGenerated"
 
-noncomputable def sozGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sozGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.sozGenerated"
 
-noncomputable def valueToStringGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def valueToStringGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.valueToStringGenerated"
 
-noncomputable def skipGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def skipGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.skipGenerated"
 
-noncomputable def Resource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Resource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.Resource"
 
-noncomputable def addKnownTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.addKnownTypes"
 
-noncomputable def compareNumericValues [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def compareNumericValues [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.compareNumericValues"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.core.v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.api.resource, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.util.intstr]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.api.core.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -4601,7 +4601,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.initialize') (Val #()))))))))
 
-structure VolumeSource [FfiSyntax] where
+structure VolumeSource [GooseExts] where
   mk ::
   HostPath' : Loc
   EmptyDir' : Loc
@@ -4634,10 +4634,10 @@ structure VolumeSource [FfiSyntax] where
   Ephemeral' : Loc
   Image' : Loc
 
-noncomputable instance VolumeSource.zero_val [FfiSyntax] : ZeroVal VolumeSource :=
+noncomputable instance VolumeSource.zero_val [GooseExts] : ZeroVal VolumeSource :=
   ⟨VolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"HostPath" (go.GoType.PointerType HostPathVolumeSource.ty)),
 (go.field_decl.FieldDecl go!"EmptyDir" (go.GoType.PointerType EmptyDirVolumeSource.ty)),
 (go.field_decl.FieldDecl go!"GCEPersistentDisk" (go.GoType.PointerType GCEPersistentDiskVolumeSource.ty)),
@@ -4669,61 +4669,61 @@ noncomputable instance VolumeSource.zero_val [FfiSyntax] : ZeroVal VolumeSource 
 (go.field_decl.FieldDecl go!"Ephemeral" (go.GoType.PointerType EphemeralVolumeSource.ty)),
 (go.field_decl.FieldDecl go!"Image" (go.GoType.PointerType ImageVolumeSource.ty))]
 
-@[irreducible] noncomputable def VolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeSource.fields VolumeSource.fieldsUnsealed :=
   ⟨by unfold VolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeSource.fields)
 
-structure Volume [FfiSyntax] where
+structure Volume [GooseExts] where
   mk ::
   Name' : GoString
   VolumeSource' : VolumeSource
 
-noncomputable instance Volume.zero_val [FfiSyntax] : ZeroVal Volume :=
+noncomputable instance Volume.zero_val [GooseExts] : ZeroVal Volume :=
   ⟨Volume.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Volume.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Volume.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.EmbeddedField go!"VolumeSource" VolumeSource.ty)]
 
-@[irreducible] noncomputable def Volume.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Volume.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Volume.fieldsUnsealed
 
-noncomputable instance equals_unfold_Volume [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Volume [GooseExts] [GoGlobalContext] :
     EqualsUnfold Volume.fields Volume.fieldsUnsealed :=
   ⟨by unfold Volume.fields; rfl⟩
 
-@[reducible] noncomputable def Volume.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Volume.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Volume.fields)
 
-structure PersistentVolumeClaimVolumeSource [FfiSyntax] where
+structure PersistentVolumeClaimVolumeSource [GooseExts] where
   mk ::
   ClaimName' : GoString
   ReadOnly' : Bool
 
-noncomputable instance PersistentVolumeClaimVolumeSource.zero_val [FfiSyntax] : ZeroVal PersistentVolumeClaimVolumeSource :=
+noncomputable instance PersistentVolumeClaimVolumeSource.zero_val [GooseExts] : ZeroVal PersistentVolumeClaimVolumeSource :=
   ⟨PersistentVolumeClaimVolumeSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeClaimVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ClaimName" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def PersistentVolumeClaimVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeClaimVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaimVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaimVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeClaimVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaimVolumeSource.fields PersistentVolumeClaimVolumeSource.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaimVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeClaimVolumeSource.fields)
 
-structure PersistentVolumeSource [FfiSyntax] where
+structure PersistentVolumeSource [GooseExts] where
   mk ::
   GCEPersistentDisk' : Loc
   AWSElasticBlockStore' : Loc
@@ -4748,10 +4748,10 @@ structure PersistentVolumeSource [FfiSyntax] where
   StorageOS' : Loc
   CSI' : Loc
 
-noncomputable instance PersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal PersistentVolumeSource :=
+noncomputable instance PersistentVolumeSource.zero_val [GooseExts] : ZeroVal PersistentVolumeSource :=
   ⟨PersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"GCEPersistentDisk" (go.GoType.PointerType GCEPersistentDiskVolumeSource.ty)),
 (go.field_decl.FieldDecl go!"AWSElasticBlockStore" (go.GoType.PointerType AWSElasticBlockStoreVolumeSource.ty)),
 (go.field_decl.FieldDecl go!"HostPath" (go.GoType.PointerType HostPathVolumeSource.ty)),
@@ -4775,27 +4775,27 @@ noncomputable instance PersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal Per
 (go.field_decl.FieldDecl go!"StorageOS" (go.GoType.PointerType StorageOSPersistentVolumeSource.ty)),
 (go.field_decl.FieldDecl go!"CSI" (go.GoType.PointerType CSIPersistentVolumeSource.ty))]
 
-@[irreducible] noncomputable def PersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeSource.fields PersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeSource.fields)
 
-abbrev ResourceList [FfiSyntax] : Type := GoMap
+abbrev ResourceList [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def ResourceList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType ResourceName.ty _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Quantity.ty)
 
-abbrev PersistentVolumeReclaimPolicy [FfiSyntax] : Type := GoString
+abbrev PersistentVolumeReclaimPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PersistentVolumeReclaimPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeReclaimPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PersistentVolumeSpec [FfiSyntax] where
+structure PersistentVolumeSpec [GooseExts] where
   mk ::
   Capacity' : ResourceList
   PersistentVolumeSource' : PersistentVolumeSource
@@ -4808,10 +4808,10 @@ structure PersistentVolumeSpec [FfiSyntax] where
   NodeAffinity' : Loc
   VolumeAttributesClassName' : Loc
 
-noncomputable instance PersistentVolumeSpec.zero_val [FfiSyntax] : ZeroVal PersistentVolumeSpec :=
+noncomputable instance PersistentVolumeSpec.zero_val [GooseExts] : ZeroVal PersistentVolumeSpec :=
   ⟨PersistentVolumeSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Capacity" ResourceList.ty),
 (go.field_decl.EmbeddedField go!"PersistentVolumeSource" PersistentVolumeSource.ty),
 (go.field_decl.FieldDecl go!"AccessModes" (go.GoType.SliceType PersistentVolumeAccessMode.ty)),
@@ -4823,145 +4823,145 @@ noncomputable instance PersistentVolumeSpec.zero_val [FfiSyntax] : ZeroVal Persi
 (go.field_decl.FieldDecl go!"NodeAffinity" (go.GoType.PointerType VolumeNodeAffinity.ty)),
 (go.field_decl.FieldDecl go!"VolumeAttributesClassName" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def PersistentVolumeSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeSpec.fields PersistentVolumeSpec.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeSpec.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeSpec.fields)
 
-abbrev PersistentVolumePhase [FfiSyntax] : Type := GoString
+abbrev PersistentVolumePhase [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PersistentVolumePhase.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumePhase.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PersistentVolumeStatus [FfiSyntax] where
+structure PersistentVolumeStatus [GooseExts] where
   mk ::
   Phase' : PersistentVolumePhase
   Message' : GoString
   Reason' : GoString
   LastPhaseTransitionTime' : Loc
 
-noncomputable instance PersistentVolumeStatus.zero_val [FfiSyntax] : ZeroVal PersistentVolumeStatus :=
+noncomputable instance PersistentVolumeStatus.zero_val [GooseExts] : ZeroVal PersistentVolumeStatus :=
   ⟨PersistentVolumeStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Phase" PersistentVolumePhase.ty),
 (go.field_decl.FieldDecl go!"Message" go.string),
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"LastPhaseTransitionTime" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty))]
 
-@[irreducible] noncomputable def PersistentVolumeStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeStatus.fields PersistentVolumeStatus.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeStatus.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeStatus.fields)
 
-structure PersistentVolume [FfiSyntax] where
+structure PersistentVolume [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : PersistentVolumeSpec
   Status' : PersistentVolumeStatus
 
-noncomputable instance PersistentVolume.zero_val [FfiSyntax] : ZeroVal PersistentVolume :=
+noncomputable instance PersistentVolume.zero_val [GooseExts] : ZeroVal PersistentVolume :=
   ⟨PersistentVolume.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolume.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolume.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" PersistentVolumeSpec.ty),
 (go.field_decl.FieldDecl go!"Status" PersistentVolumeStatus.ty)]
 
-@[irreducible] noncomputable def PersistentVolume.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolume.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolume.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolume [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolume [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolume.fields PersistentVolume.fieldsUnsealed :=
   ⟨by unfold PersistentVolume.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolume.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolume.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolume.fields)
 
-structure VolumeNodeAffinity [FfiSyntax] where
+structure VolumeNodeAffinity [GooseExts] where
   mk ::
   Required' : Loc
 
-noncomputable instance VolumeNodeAffinity.zero_val [FfiSyntax] : ZeroVal VolumeNodeAffinity :=
+noncomputable instance VolumeNodeAffinity.zero_val [GooseExts] : ZeroVal VolumeNodeAffinity :=
   ⟨VolumeNodeAffinity.mk zeroValDef⟩
 
-@[reducible] noncomputable def VolumeNodeAffinity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeNodeAffinity.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Required" (go.GoType.PointerType NodeSelector.ty))]
 
-@[irreducible] noncomputable def VolumeNodeAffinity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeNodeAffinity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeNodeAffinity.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeNodeAffinity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeNodeAffinity [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeNodeAffinity.fields VolumeNodeAffinity.fieldsUnsealed :=
   ⟨by unfold VolumeNodeAffinity.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeNodeAffinity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeNodeAffinity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeNodeAffinity.fields)
 
-abbrev PersistentVolumeMode [FfiSyntax] : Type := GoString
+abbrev PersistentVolumeMode [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PersistentVolumeMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PersistentVolumeList [FfiSyntax] where
+structure PersistentVolumeList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance PersistentVolumeList.zero_val [FfiSyntax] : ZeroVal PersistentVolumeList :=
+noncomputable instance PersistentVolumeList.zero_val [GooseExts] : ZeroVal PersistentVolumeList :=
   ⟨PersistentVolumeList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType PersistentVolume.ty))]
 
-@[irreducible] noncomputable def PersistentVolumeList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeList.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeList [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeList.fields PersistentVolumeList.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeList.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeList.fields)
 
-structure VolumeResourceRequirements [FfiSyntax] where
+structure VolumeResourceRequirements [GooseExts] where
   mk ::
   Limits' : ResourceList
   Requests' : ResourceList
 
-noncomputable instance VolumeResourceRequirements.zero_val [FfiSyntax] : ZeroVal VolumeResourceRequirements :=
+noncomputable instance VolumeResourceRequirements.zero_val [GooseExts] : ZeroVal VolumeResourceRequirements :=
   ⟨VolumeResourceRequirements.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VolumeResourceRequirements.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeResourceRequirements.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Limits" ResourceList.ty),
 (go.field_decl.FieldDecl go!"Requests" ResourceList.ty)]
 
-@[irreducible] noncomputable def VolumeResourceRequirements.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeResourceRequirements.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeResourceRequirements.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeResourceRequirements [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeResourceRequirements [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeResourceRequirements.fields VolumeResourceRequirements.fieldsUnsealed :=
   ⟨by unfold VolumeResourceRequirements.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeResourceRequirements.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeResourceRequirements.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeResourceRequirements.fields)
 
-structure PersistentVolumeClaimSpec [FfiSyntax] where
+structure PersistentVolumeClaimSpec [GooseExts] where
   mk ::
   AccessModes' : GoSlice
   Selector' : Loc
@@ -4973,10 +4973,10 @@ structure PersistentVolumeClaimSpec [FfiSyntax] where
   DataSourceRef' : Loc
   VolumeAttributesClassName' : Loc
 
-noncomputable instance PersistentVolumeClaimSpec.zero_val [FfiSyntax] : ZeroVal PersistentVolumeClaimSpec :=
+noncomputable instance PersistentVolumeClaimSpec.zero_val [GooseExts] : ZeroVal PersistentVolumeClaimSpec :=
   ⟨PersistentVolumeClaimSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeClaimSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"AccessModes" (go.GoType.SliceType PersistentVolumeAccessMode.ty)),
 (go.field_decl.FieldDecl go!"Selector" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)),
 (go.field_decl.FieldDecl go!"Resources" VolumeResourceRequirements.ty),
@@ -4987,22 +4987,22 @@ noncomputable instance PersistentVolumeClaimSpec.zero_val [FfiSyntax] : ZeroVal 
 (go.field_decl.FieldDecl go!"DataSourceRef" (go.GoType.PointerType TypedObjectReference.ty)),
 (go.field_decl.FieldDecl go!"VolumeAttributesClassName" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def PersistentVolumeClaimSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeClaimSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaimSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaimSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeClaimSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaimSpec.fields PersistentVolumeClaimSpec.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaimSpec.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeClaimSpec.fields)
 
-abbrev PersistentVolumeClaimPhase [FfiSyntax] : Type := GoString
+abbrev PersistentVolumeClaimPhase [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PersistentVolumeClaimPhase.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimPhase.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PersistentVolumeClaimStatus [FfiSyntax] where
+structure PersistentVolumeClaimStatus [GooseExts] where
   mk ::
   Phase' : PersistentVolumeClaimPhase
   AccessModes' : GoSlice
@@ -5014,10 +5014,10 @@ structure PersistentVolumeClaimStatus [FfiSyntax] where
   ModifyVolumeStatus' : Loc
   HealthStatus' : Loc
 
-noncomputable instance PersistentVolumeClaimStatus.zero_val [FfiSyntax] : ZeroVal PersistentVolumeClaimStatus :=
+noncomputable instance PersistentVolumeClaimStatus.zero_val [GooseExts] : ZeroVal PersistentVolumeClaimStatus :=
   ⟨PersistentVolumeClaimStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeClaimStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Phase" PersistentVolumeClaimPhase.ty),
 (go.field_decl.FieldDecl go!"AccessModes" (go.GoType.SliceType PersistentVolumeAccessMode.ty)),
 (go.field_decl.FieldDecl go!"Capacity" ResourceList.ty),
@@ -5028,135 +5028,135 @@ noncomputable instance PersistentVolumeClaimStatus.zero_val [FfiSyntax] : ZeroVa
 (go.field_decl.FieldDecl go!"ModifyVolumeStatus" (go.GoType.PointerType ModifyVolumeStatus.ty)),
 (go.field_decl.FieldDecl go!"HealthStatus" (go.GoType.PointerType VolumeHealthStatus.ty))]
 
-@[irreducible] noncomputable def PersistentVolumeClaimStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeClaimStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaimStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaimStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeClaimStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaimStatus.fields PersistentVolumeClaimStatus.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaimStatus.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeClaimStatus.fields)
 
-structure PersistentVolumeClaim [FfiSyntax] where
+structure PersistentVolumeClaim [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : PersistentVolumeClaimSpec
   Status' : PersistentVolumeClaimStatus
 
-noncomputable instance PersistentVolumeClaim.zero_val [FfiSyntax] : ZeroVal PersistentVolumeClaim :=
+noncomputable instance PersistentVolumeClaim.zero_val [GooseExts] : ZeroVal PersistentVolumeClaim :=
   ⟨PersistentVolumeClaim.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeClaim.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeClaim.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" PersistentVolumeClaimSpec.ty),
 (go.field_decl.FieldDecl go!"Status" PersistentVolumeClaimStatus.ty)]
 
-@[irreducible] noncomputable def PersistentVolumeClaim.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeClaim.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaim.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaim [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeClaim [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaim.fields PersistentVolumeClaim.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaim.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeClaim.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaim.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeClaim.fields)
 
-structure PersistentVolumeClaimList [FfiSyntax] where
+structure PersistentVolumeClaimList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance PersistentVolumeClaimList.zero_val [FfiSyntax] : ZeroVal PersistentVolumeClaimList :=
+noncomputable instance PersistentVolumeClaimList.zero_val [GooseExts] : ZeroVal PersistentVolumeClaimList :=
   ⟨PersistentVolumeClaimList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeClaimList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType PersistentVolumeClaim.ty))]
 
-@[irreducible] noncomputable def PersistentVolumeClaimList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeClaimList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaimList.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaimList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeClaimList [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaimList.fields PersistentVolumeClaimList.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaimList.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeClaimList.fields)
 
-structure TypedObjectReference [FfiSyntax] where
+structure TypedObjectReference [GooseExts] where
   mk ::
   APIGroup' : Loc
   Kind' : GoString
   Name' : GoString
   Namespace' : Loc
 
-noncomputable instance TypedObjectReference.zero_val [FfiSyntax] : ZeroVal TypedObjectReference :=
+noncomputable instance TypedObjectReference.zero_val [GooseExts] : ZeroVal TypedObjectReference :=
   ⟨TypedObjectReference.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedObjectReference.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TypedObjectReference.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"APIGroup" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"Kind" go.string),
 (go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Namespace" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def TypedObjectReference.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TypedObjectReference.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TypedObjectReference.fieldsUnsealed
 
-noncomputable instance equals_unfold_TypedObjectReference [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TypedObjectReference [GooseExts] [GoGlobalContext] :
     EqualsUnfold TypedObjectReference.fields TypedObjectReference.fieldsUnsealed :=
   ⟨by unfold TypedObjectReference.fields; rfl⟩
 
-@[reducible] noncomputable def TypedObjectReference.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TypedObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TypedObjectReference.fields)
 
-abbrev PersistentVolumeClaimConditionType [FfiSyntax] : Type := GoString
+abbrev PersistentVolumeClaimConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PersistentVolumeClaimConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev ClaimResourceStatus [FfiSyntax] : Type := GoString
+abbrev ClaimResourceStatus [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ClaimResourceStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClaimResourceStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev PersistentVolumeClaimModifyVolumeStatus [FfiSyntax] : Type := GoString
+abbrev PersistentVolumeClaimModifyVolumeStatus [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PersistentVolumeClaimModifyVolumeStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimModifyVolumeStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ModifyVolumeStatus [FfiSyntax] where
+structure ModifyVolumeStatus [GooseExts] where
   mk ::
   TargetVolumeAttributesClassName' : GoString
   Status' : PersistentVolumeClaimModifyVolumeStatus
 
-noncomputable instance ModifyVolumeStatus.zero_val [FfiSyntax] : ZeroVal ModifyVolumeStatus :=
+noncomputable instance ModifyVolumeStatus.zero_val [GooseExts] : ZeroVal ModifyVolumeStatus :=
   ⟨ModifyVolumeStatus.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ModifyVolumeStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ModifyVolumeStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TargetVolumeAttributesClassName" go.string),
 (go.field_decl.FieldDecl go!"Status" PersistentVolumeClaimModifyVolumeStatus.ty)]
 
-@[irreducible] noncomputable def ModifyVolumeStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ModifyVolumeStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ModifyVolumeStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ModifyVolumeStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ModifyVolumeStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ModifyVolumeStatus.fields ModifyVolumeStatus.fieldsUnsealed :=
   ⟨by unfold ModifyVolumeStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ModifyVolumeStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ModifyVolumeStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ModifyVolumeStatus.fields)
 
-abbrev ConditionStatus [FfiSyntax] : Type := GoString
+abbrev ConditionStatus [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ConditionStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConditionStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PersistentVolumeClaimCondition [FfiSyntax] where
+structure PersistentVolumeClaimCondition [GooseExts] where
   mk ::
   Type' : PersistentVolumeClaimConditionType
   Status' : ConditionStatus
@@ -5165,10 +5165,10 @@ structure PersistentVolumeClaimCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance PersistentVolumeClaimCondition.zero_val [FfiSyntax] : ZeroVal PersistentVolumeClaimCondition :=
+noncomputable instance PersistentVolumeClaimCondition.zero_val [GooseExts] : ZeroVal PersistentVolumeClaimCondition :=
   ⟨PersistentVolumeClaimCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeClaimCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" PersistentVolumeClaimConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"LastProbeTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
@@ -5176,203 +5176,203 @@ noncomputable instance PersistentVolumeClaimCondition.zero_val [FfiSyntax] : Zer
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def PersistentVolumeClaimCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeClaimCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaimCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaimCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeClaimCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaimCondition.fields PersistentVolumeClaimCondition.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaimCondition.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeClaimCondition.fields)
 
-abbrev VolumeHealthStatusType [FfiSyntax] : Type := GoString
+abbrev VolumeHealthStatusType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def VolumeHealthStatusType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeHealthStatusType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure VolumeHealthCondition [FfiSyntax] where
+structure VolumeHealthCondition [GooseExts] where
   mk ::
   Status' : VolumeHealthStatusType
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance VolumeHealthCondition.zero_val [FfiSyntax] : ZeroVal VolumeHealthCondition :=
+noncomputable instance VolumeHealthCondition.zero_val [GooseExts] : ZeroVal VolumeHealthCondition :=
   ⟨VolumeHealthCondition.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VolumeHealthCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeHealthCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Status" VolumeHealthStatusType.ty),
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def VolumeHealthCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeHealthCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeHealthCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeHealthCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeHealthCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeHealthCondition.fields VolumeHealthCondition.fieldsUnsealed :=
   ⟨by unfold VolumeHealthCondition.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeHealthCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeHealthCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeHealthCondition.fields)
 
-structure VolumeHealthStatus [FfiSyntax] where
+structure VolumeHealthStatus [GooseExts] where
   mk ::
   HealthConditions' : GoSlice
   LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time
 
-noncomputable instance VolumeHealthStatus.zero_val [FfiSyntax] : ZeroVal VolumeHealthStatus :=
+noncomputable instance VolumeHealthStatus.zero_val [GooseExts] : ZeroVal VolumeHealthStatus :=
   ⟨VolumeHealthStatus.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VolumeHealthStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeHealthStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"HealthConditions" (go.GoType.SliceType VolumeHealthCondition.ty)),
 (go.field_decl.FieldDecl go!"LastTransitionTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]
 
-@[irreducible] noncomputable def VolumeHealthStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeHealthStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeHealthStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeHealthStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeHealthStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeHealthStatus.fields VolumeHealthStatus.fieldsUnsealed :=
   ⟨by unfold VolumeHealthStatus.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeHealthStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeHealthStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeHealthStatus.fields)
 
-structure PodVolumeHealth [FfiSyntax] where
+structure PodVolumeHealth [GooseExts] where
   mk ::
   Name' : GoString
   HealthConditions' : GoSlice
   LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time
 
-noncomputable instance PodVolumeHealth.zero_val [FfiSyntax] : ZeroVal PodVolumeHealth :=
+noncomputable instance PodVolumeHealth.zero_val [GooseExts] : ZeroVal PodVolumeHealth :=
   ⟨PodVolumeHealth.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodVolumeHealth.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodVolumeHealth.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"HealthConditions" (go.GoType.SliceType VolumeHealthCondition.ty)),
 (go.field_decl.FieldDecl go!"LastTransitionTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]
 
-@[irreducible] noncomputable def PodVolumeHealth.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodVolumeHealth.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodVolumeHealth.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodVolumeHealth [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodVolumeHealth [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodVolumeHealth.fields PodVolumeHealth.fieldsUnsealed :=
   ⟨by unfold PodVolumeHealth.fields; rfl⟩
 
-@[reducible] noncomputable def PodVolumeHealth.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodVolumeHealth.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodVolumeHealth.fields)
 
-abbrev PersistentVolumeAccessMode [FfiSyntax] : Type := GoString
+abbrev PersistentVolumeAccessMode [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PersistentVolumeAccessMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeAccessMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev HostPathType [FfiSyntax] : Type := GoString
+abbrev HostPathType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def HostPathType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HostPathType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure HostPathVolumeSource [FfiSyntax] where
+structure HostPathVolumeSource [GooseExts] where
   mk ::
   Path' : GoString
   Type' : Loc
 
-noncomputable instance HostPathVolumeSource.zero_val [FfiSyntax] : ZeroVal HostPathVolumeSource :=
+noncomputable instance HostPathVolumeSource.zero_val [GooseExts] : ZeroVal HostPathVolumeSource :=
   ⟨HostPathVolumeSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def HostPathVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HostPathVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType HostPathType.ty))]
 
-@[irreducible] noncomputable def HostPathVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HostPathVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HostPathVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_HostPathVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HostPathVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold HostPathVolumeSource.fields HostPathVolumeSource.fieldsUnsealed :=
   ⟨by unfold HostPathVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def HostPathVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HostPathVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HostPathVolumeSource.fields)
 
-abbrev StorageMedium [FfiSyntax] : Type := GoString
+abbrev StorageMedium [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def StorageMedium.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StorageMedium.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure EmptyDirVolumeSource [FfiSyntax] where
+structure EmptyDirVolumeSource [GooseExts] where
   mk ::
   Medium' : StorageMedium
   SizeLimit' : Loc
   Mode' : Loc
 
-noncomputable instance EmptyDirVolumeSource.zero_val [FfiSyntax] : ZeroVal EmptyDirVolumeSource :=
+noncomputable instance EmptyDirVolumeSource.zero_val [GooseExts] : ZeroVal EmptyDirVolumeSource :=
   ⟨EmptyDirVolumeSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EmptyDirVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EmptyDirVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Medium" StorageMedium.ty),
 (go.field_decl.FieldDecl go!"SizeLimit" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Quantity.ty)),
 (go.field_decl.FieldDecl go!"Mode" (go.GoType.PointerType go.int32))]
 
-@[irreducible] noncomputable def EmptyDirVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EmptyDirVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EmptyDirVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_EmptyDirVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EmptyDirVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold EmptyDirVolumeSource.fields EmptyDirVolumeSource.fieldsUnsealed :=
   ⟨by unfold EmptyDirVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def EmptyDirVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EmptyDirVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EmptyDirVolumeSource.fields)
 
-structure GlusterfsVolumeSource [FfiSyntax] where
+structure GlusterfsVolumeSource [GooseExts] where
   mk ::
   EndpointsName' : GoString
   Path' : GoString
   ReadOnly' : Bool
 
-noncomputable instance GlusterfsVolumeSource.zero_val [FfiSyntax] : ZeroVal GlusterfsVolumeSource :=
+noncomputable instance GlusterfsVolumeSource.zero_val [GooseExts] : ZeroVal GlusterfsVolumeSource :=
   ⟨GlusterfsVolumeSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def GlusterfsVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GlusterfsVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"EndpointsName" go.string),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def GlusterfsVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GlusterfsVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GlusterfsVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_GlusterfsVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GlusterfsVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold GlusterfsVolumeSource.fields GlusterfsVolumeSource.fieldsUnsealed :=
   ⟨by unfold GlusterfsVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def GlusterfsVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GlusterfsVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GlusterfsVolumeSource.fields)
 
-structure GlusterfsPersistentVolumeSource [FfiSyntax] where
+structure GlusterfsPersistentVolumeSource [GooseExts] where
   mk ::
   EndpointsName' : GoString
   Path' : GoString
   ReadOnly' : Bool
   EndpointsNamespace' : Loc
 
-noncomputable instance GlusterfsPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal GlusterfsPersistentVolumeSource :=
+noncomputable instance GlusterfsPersistentVolumeSource.zero_val [GooseExts] : ZeroVal GlusterfsPersistentVolumeSource :=
   ⟨GlusterfsPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def GlusterfsPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GlusterfsPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"EndpointsName" go.string),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"EndpointsNamespace" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def GlusterfsPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GlusterfsPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GlusterfsPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_GlusterfsPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GlusterfsPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold GlusterfsPersistentVolumeSource.fields GlusterfsPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold GlusterfsPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def GlusterfsPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GlusterfsPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GlusterfsPersistentVolumeSource.fields)
 
-structure RBDVolumeSource [FfiSyntax] where
+structure RBDVolumeSource [GooseExts] where
   mk ::
   CephMonitors' : GoSlice
   RBDImage' : GoString
@@ -5383,10 +5383,10 @@ structure RBDVolumeSource [FfiSyntax] where
   SecretRef' : Loc
   ReadOnly' : Bool
 
-noncomputable instance RBDVolumeSource.zero_val [FfiSyntax] : ZeroVal RBDVolumeSource :=
+noncomputable instance RBDVolumeSource.zero_val [GooseExts] : ZeroVal RBDVolumeSource :=
   ⟨RBDVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RBDVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RBDVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"CephMonitors" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"RBDImage" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
@@ -5396,17 +5396,17 @@ noncomputable instance RBDVolumeSource.zero_val [FfiSyntax] : ZeroVal RBDVolumeS
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType LocalObjectReference.ty)),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def RBDVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RBDVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RBDVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_RBDVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RBDVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold RBDVolumeSource.fields RBDVolumeSource.fieldsUnsealed :=
   ⟨by unfold RBDVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def RBDVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RBDVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RBDVolumeSource.fields)
 
-structure RBDPersistentVolumeSource [FfiSyntax] where
+structure RBDPersistentVolumeSource [GooseExts] where
   mk ::
   CephMonitors' : GoSlice
   RBDImage' : GoString
@@ -5417,10 +5417,10 @@ structure RBDPersistentVolumeSource [FfiSyntax] where
   SecretRef' : Loc
   ReadOnly' : Bool
 
-noncomputable instance RBDPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal RBDPersistentVolumeSource :=
+noncomputable instance RBDPersistentVolumeSource.zero_val [GooseExts] : ZeroVal RBDPersistentVolumeSource :=
   ⟨RBDPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RBDPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RBDPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"CephMonitors" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"RBDImage" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
@@ -5430,69 +5430,69 @@ noncomputable instance RBDPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal 
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType SecretReference.ty)),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def RBDPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RBDPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RBDPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_RBDPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RBDPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold RBDPersistentVolumeSource.fields RBDPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold RBDPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def RBDPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RBDPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RBDPersistentVolumeSource.fields)
 
-structure CinderVolumeSource [FfiSyntax] where
+structure CinderVolumeSource [GooseExts] where
   mk ::
   VolumeID' : GoString
   FSType' : GoString
   ReadOnly' : Bool
   SecretRef' : Loc
 
-noncomputable instance CinderVolumeSource.zero_val [FfiSyntax] : ZeroVal CinderVolumeSource :=
+noncomputable instance CinderVolumeSource.zero_val [GooseExts] : ZeroVal CinderVolumeSource :=
   ⟨CinderVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CinderVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CinderVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumeID" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType LocalObjectReference.ty))]
 
-@[irreducible] noncomputable def CinderVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CinderVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CinderVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_CinderVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CinderVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold CinderVolumeSource.fields CinderVolumeSource.fieldsUnsealed :=
   ⟨by unfold CinderVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def CinderVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CinderVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CinderVolumeSource.fields)
 
-structure CinderPersistentVolumeSource [FfiSyntax] where
+structure CinderPersistentVolumeSource [GooseExts] where
   mk ::
   VolumeID' : GoString
   FSType' : GoString
   ReadOnly' : Bool
   SecretRef' : Loc
 
-noncomputable instance CinderPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal CinderPersistentVolumeSource :=
+noncomputable instance CinderPersistentVolumeSource.zero_val [GooseExts] : ZeroVal CinderPersistentVolumeSource :=
   ⟨CinderPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CinderPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CinderPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumeID" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType SecretReference.ty))]
 
-@[irreducible] noncomputable def CinderPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CinderPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CinderPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_CinderPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CinderPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold CinderPersistentVolumeSource.fields CinderPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold CinderPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def CinderPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CinderPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CinderPersistentVolumeSource.fields)
 
-structure CephFSVolumeSource [FfiSyntax] where
+structure CephFSVolumeSource [GooseExts] where
   mk ::
   Monitors' : GoSlice
   Path' : GoString
@@ -5501,10 +5501,10 @@ structure CephFSVolumeSource [FfiSyntax] where
   SecretRef' : Loc
   ReadOnly' : Bool
 
-noncomputable instance CephFSVolumeSource.zero_val [FfiSyntax] : ZeroVal CephFSVolumeSource :=
+noncomputable instance CephFSVolumeSource.zero_val [GooseExts] : ZeroVal CephFSVolumeSource :=
   ⟨CephFSVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CephFSVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CephFSVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Monitors" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"User" go.string),
@@ -5512,39 +5512,39 @@ noncomputable instance CephFSVolumeSource.zero_val [FfiSyntax] : ZeroVal CephFSV
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType LocalObjectReference.ty)),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def CephFSVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CephFSVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CephFSVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_CephFSVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CephFSVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold CephFSVolumeSource.fields CephFSVolumeSource.fieldsUnsealed :=
   ⟨by unfold CephFSVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def CephFSVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CephFSVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CephFSVolumeSource.fields)
 
-structure SecretReference [FfiSyntax] where
+structure SecretReference [GooseExts] where
   mk ::
   Name' : GoString
   Namespace' : GoString
 
-noncomputable instance SecretReference.zero_val [FfiSyntax] : ZeroVal SecretReference :=
+noncomputable instance SecretReference.zero_val [GooseExts] : ZeroVal SecretReference :=
   ⟨SecretReference.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SecretReference.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SecretReference.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Namespace" go.string)]
 
-@[irreducible] noncomputable def SecretReference.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SecretReference.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SecretReference.fieldsUnsealed
 
-noncomputable instance equals_unfold_SecretReference [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SecretReference [GooseExts] [GoGlobalContext] :
     EqualsUnfold SecretReference.fields SecretReference.fieldsUnsealed :=
   ⟨by unfold SecretReference.fields; rfl⟩
 
-@[reducible] noncomputable def SecretReference.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecretReference.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SecretReference.fields)
 
-structure CephFSPersistentVolumeSource [FfiSyntax] where
+structure CephFSPersistentVolumeSource [GooseExts] where
   mk ::
   Monitors' : GoSlice
   Path' : GoString
@@ -5553,10 +5553,10 @@ structure CephFSPersistentVolumeSource [FfiSyntax] where
   SecretRef' : Loc
   ReadOnly' : Bool
 
-noncomputable instance CephFSPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal CephFSPersistentVolumeSource :=
+noncomputable instance CephFSPersistentVolumeSource.zero_val [GooseExts] : ZeroVal CephFSPersistentVolumeSource :=
   ⟨CephFSPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CephFSPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CephFSPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Monitors" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"User" go.string),
@@ -5564,70 +5564,70 @@ noncomputable instance CephFSPersistentVolumeSource.zero_val [FfiSyntax] : ZeroV
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType SecretReference.ty)),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def CephFSPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CephFSPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CephFSPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_CephFSPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CephFSPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold CephFSPersistentVolumeSource.fields CephFSPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold CephFSPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def CephFSPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CephFSPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CephFSPersistentVolumeSource.fields)
 
-structure FlockerVolumeSource [FfiSyntax] where
+structure FlockerVolumeSource [GooseExts] where
   mk ::
   DatasetName' : GoString
   DatasetUUID' : GoString
 
-noncomputable instance FlockerVolumeSource.zero_val [FfiSyntax] : ZeroVal FlockerVolumeSource :=
+noncomputable instance FlockerVolumeSource.zero_val [GooseExts] : ZeroVal FlockerVolumeSource :=
   ⟨FlockerVolumeSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def FlockerVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FlockerVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"DatasetName" go.string),
 (go.field_decl.FieldDecl go!"DatasetUUID" go.string)]
 
-@[irreducible] noncomputable def FlockerVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FlockerVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FlockerVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_FlockerVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FlockerVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold FlockerVolumeSource.fields FlockerVolumeSource.fieldsUnsealed :=
   ⟨by unfold FlockerVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def FlockerVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FlockerVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FlockerVolumeSource.fields)
 
-abbrev Protocol [FfiSyntax] : Type := GoString
+abbrev Protocol [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def Protocol.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Protocol.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure GCEPersistentDiskVolumeSource [FfiSyntax] where
+structure GCEPersistentDiskVolumeSource [GooseExts] where
   mk ::
   PDName' : GoString
   FSType' : GoString
   Partition' : w32
   ReadOnly' : Bool
 
-noncomputable instance GCEPersistentDiskVolumeSource.zero_val [FfiSyntax] : ZeroVal GCEPersistentDiskVolumeSource :=
+noncomputable instance GCEPersistentDiskVolumeSource.zero_val [GooseExts] : ZeroVal GCEPersistentDiskVolumeSource :=
   ⟨GCEPersistentDiskVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def GCEPersistentDiskVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GCEPersistentDiskVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PDName" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"Partition" go.int32),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def GCEPersistentDiskVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GCEPersistentDiskVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GCEPersistentDiskVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_GCEPersistentDiskVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GCEPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold GCEPersistentDiskVolumeSource.fields GCEPersistentDiskVolumeSource.fieldsUnsealed :=
   ⟨by unfold GCEPersistentDiskVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def GCEPersistentDiskVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GCEPersistentDiskVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GCEPersistentDiskVolumeSource.fields)
 
-structure QuobyteVolumeSource [FfiSyntax] where
+structure QuobyteVolumeSource [GooseExts] where
   mk ::
   Registry' : GoString
   Volume' : GoString
@@ -5636,10 +5636,10 @@ structure QuobyteVolumeSource [FfiSyntax] where
   Group' : GoString
   Tenant' : GoString
 
-noncomputable instance QuobyteVolumeSource.zero_val [FfiSyntax] : ZeroVal QuobyteVolumeSource :=
+noncomputable instance QuobyteVolumeSource.zero_val [GooseExts] : ZeroVal QuobyteVolumeSource :=
   ⟨QuobyteVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def QuobyteVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def QuobyteVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Registry" go.string),
 (go.field_decl.FieldDecl go!"Volume" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
@@ -5647,17 +5647,17 @@ noncomputable instance QuobyteVolumeSource.zero_val [FfiSyntax] : ZeroVal Quobyt
 (go.field_decl.FieldDecl go!"Group" go.string),
 (go.field_decl.FieldDecl go!"Tenant" go.string)]
 
-@[irreducible] noncomputable def QuobyteVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def QuobyteVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   QuobyteVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_QuobyteVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_QuobyteVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold QuobyteVolumeSource.fields QuobyteVolumeSource.fieldsUnsealed :=
   ⟨by unfold QuobyteVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def QuobyteVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def QuobyteVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType QuobyteVolumeSource.fields)
 
-structure FlexPersistentVolumeSource [FfiSyntax] where
+structure FlexPersistentVolumeSource [GooseExts] where
   mk ::
   Driver' : GoString
   FSType' : GoString
@@ -5665,27 +5665,27 @@ structure FlexPersistentVolumeSource [FfiSyntax] where
   ReadOnly' : Bool
   Options' : GoMap
 
-noncomputable instance FlexPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal FlexPersistentVolumeSource :=
+noncomputable instance FlexPersistentVolumeSource.zero_val [GooseExts] : ZeroVal FlexPersistentVolumeSource :=
   ⟨FlexPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def FlexPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FlexPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Driver" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType SecretReference.ty)),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"Options" (go.GoType.MapType go.string go.string))]
 
-@[irreducible] noncomputable def FlexPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FlexPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FlexPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_FlexPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FlexPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold FlexPersistentVolumeSource.fields FlexPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold FlexPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def FlexPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FlexPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FlexPersistentVolumeSource.fields)
 
-structure FlexVolumeSource [FfiSyntax] where
+structure FlexVolumeSource [GooseExts] where
   mk ::
   Driver' : GoString
   FSType' : GoString
@@ -5693,77 +5693,77 @@ structure FlexVolumeSource [FfiSyntax] where
   ReadOnly' : Bool
   Options' : GoMap
 
-noncomputable instance FlexVolumeSource.zero_val [FfiSyntax] : ZeroVal FlexVolumeSource :=
+noncomputable instance FlexVolumeSource.zero_val [GooseExts] : ZeroVal FlexVolumeSource :=
   ⟨FlexVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def FlexVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FlexVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Driver" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType LocalObjectReference.ty)),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"Options" (go.GoType.MapType go.string go.string))]
 
-@[irreducible] noncomputable def FlexVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FlexVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FlexVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_FlexVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FlexVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold FlexVolumeSource.fields FlexVolumeSource.fieldsUnsealed :=
   ⟨by unfold FlexVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def FlexVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FlexVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FlexVolumeSource.fields)
 
-structure AWSElasticBlockStoreVolumeSource [FfiSyntax] where
+structure AWSElasticBlockStoreVolumeSource [GooseExts] where
   mk ::
   VolumeID' : GoString
   FSType' : GoString
   Partition' : w32
   ReadOnly' : Bool
 
-noncomputable instance AWSElasticBlockStoreVolumeSource.zero_val [FfiSyntax] : ZeroVal AWSElasticBlockStoreVolumeSource :=
+noncomputable instance AWSElasticBlockStoreVolumeSource.zero_val [GooseExts] : ZeroVal AWSElasticBlockStoreVolumeSource :=
   ⟨AWSElasticBlockStoreVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def AWSElasticBlockStoreVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AWSElasticBlockStoreVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumeID" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"Partition" go.int32),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def AWSElasticBlockStoreVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AWSElasticBlockStoreVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AWSElasticBlockStoreVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_AWSElasticBlockStoreVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AWSElasticBlockStoreVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold AWSElasticBlockStoreVolumeSource.fields AWSElasticBlockStoreVolumeSource.fieldsUnsealed :=
   ⟨by unfold AWSElasticBlockStoreVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def AWSElasticBlockStoreVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AWSElasticBlockStoreVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AWSElasticBlockStoreVolumeSource.fields)
 
-structure GitRepoVolumeSource [FfiSyntax] where
+structure GitRepoVolumeSource [GooseExts] where
   mk ::
   Repository' : GoString
   Revision' : GoString
   Directory' : GoString
 
-noncomputable instance GitRepoVolumeSource.zero_val [FfiSyntax] : ZeroVal GitRepoVolumeSource :=
+noncomputable instance GitRepoVolumeSource.zero_val [GooseExts] : ZeroVal GitRepoVolumeSource :=
   ⟨GitRepoVolumeSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def GitRepoVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GitRepoVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Repository" go.string),
 (go.field_decl.FieldDecl go!"Revision" go.string),
 (go.field_decl.FieldDecl go!"Directory" go.string)]
 
-@[irreducible] noncomputable def GitRepoVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GitRepoVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GitRepoVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_GitRepoVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GitRepoVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold GitRepoVolumeSource.fields GitRepoVolumeSource.fieldsUnsealed :=
   ⟨by unfold GitRepoVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def GitRepoVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GitRepoVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GitRepoVolumeSource.fields)
 
-structure SecretVolumeSource [FfiSyntax] where
+structure SecretVolumeSource [GooseExts] where
   mk ::
   SecretName' : GoString
   Items' : GoSlice
@@ -5771,95 +5771,95 @@ structure SecretVolumeSource [FfiSyntax] where
   Optional' : Loc
   DefaultUser' : Loc
 
-noncomputable instance SecretVolumeSource.zero_val [FfiSyntax] : ZeroVal SecretVolumeSource :=
+noncomputable instance SecretVolumeSource.zero_val [GooseExts] : ZeroVal SecretVolumeSource :=
   ⟨SecretVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SecretVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SecretVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SecretName" go.string),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType KeyToPath.ty)),
 (go.field_decl.FieldDecl go!"DefaultMode" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool)),
 (go.field_decl.FieldDecl go!"DefaultUser" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def SecretVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SecretVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SecretVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_SecretVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SecretVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold SecretVolumeSource.fields SecretVolumeSource.fieldsUnsealed :=
   ⟨by unfold SecretVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def SecretVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecretVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SecretVolumeSource.fields)
 
-structure LocalObjectReference [FfiSyntax] where
+structure LocalObjectReference [GooseExts] where
   mk ::
   Name' : GoString
 
-noncomputable instance LocalObjectReference.zero_val [FfiSyntax] : ZeroVal LocalObjectReference :=
+noncomputable instance LocalObjectReference.zero_val [GooseExts] : ZeroVal LocalObjectReference :=
   ⟨LocalObjectReference.mk zeroValDef⟩
 
-@[reducible] noncomputable def LocalObjectReference.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LocalObjectReference.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string)]
 
-@[irreducible] noncomputable def LocalObjectReference.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LocalObjectReference.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LocalObjectReference.fieldsUnsealed
 
-noncomputable instance equals_unfold_LocalObjectReference [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LocalObjectReference [GooseExts] [GoGlobalContext] :
     EqualsUnfold LocalObjectReference.fields LocalObjectReference.fieldsUnsealed :=
   ⟨by unfold LocalObjectReference.fields; rfl⟩
 
-@[reducible] noncomputable def LocalObjectReference.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LocalObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LocalObjectReference.fields)
 
-structure SecretProjection [FfiSyntax] where
+structure SecretProjection [GooseExts] where
   mk ::
   LocalObjectReference' : LocalObjectReference
   Items' : GoSlice
   Optional' : Loc
 
-noncomputable instance SecretProjection.zero_val [FfiSyntax] : ZeroVal SecretProjection :=
+noncomputable instance SecretProjection.zero_val [GooseExts] : ZeroVal SecretProjection :=
   ⟨SecretProjection.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SecretProjection.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SecretProjection.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"LocalObjectReference" LocalObjectReference.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType KeyToPath.ty)),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def SecretProjection.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SecretProjection.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SecretProjection.fieldsUnsealed
 
-noncomputable instance equals_unfold_SecretProjection [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SecretProjection [GooseExts] [GoGlobalContext] :
     EqualsUnfold SecretProjection.fields SecretProjection.fieldsUnsealed :=
   ⟨by unfold SecretProjection.fields; rfl⟩
 
-@[reducible] noncomputable def SecretProjection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecretProjection.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SecretProjection.fields)
 
-structure NFSVolumeSource [FfiSyntax] where
+structure NFSVolumeSource [GooseExts] where
   mk ::
   Server' : GoString
   Path' : GoString
   ReadOnly' : Bool
 
-noncomputable instance NFSVolumeSource.zero_val [FfiSyntax] : ZeroVal NFSVolumeSource :=
+noncomputable instance NFSVolumeSource.zero_val [GooseExts] : ZeroVal NFSVolumeSource :=
   ⟨NFSVolumeSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NFSVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NFSVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Server" go.string),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def NFSVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NFSVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NFSVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_NFSVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NFSVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold NFSVolumeSource.fields NFSVolumeSource.fieldsUnsealed :=
   ⟨by unfold NFSVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def NFSVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NFSVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NFSVolumeSource.fields)
 
-structure ISCSIVolumeSource [FfiSyntax] where
+structure ISCSIVolumeSource [GooseExts] where
   mk ::
   TargetPortal' : GoString
   IQN' : GoString
@@ -5873,10 +5873,10 @@ structure ISCSIVolumeSource [FfiSyntax] where
   SecretRef' : Loc
   InitiatorName' : Loc
 
-noncomputable instance ISCSIVolumeSource.zero_val [FfiSyntax] : ZeroVal ISCSIVolumeSource :=
+noncomputable instance ISCSIVolumeSource.zero_val [GooseExts] : ZeroVal ISCSIVolumeSource :=
   ⟨ISCSIVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ISCSIVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ISCSIVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TargetPortal" go.string),
 (go.field_decl.FieldDecl go!"IQN" go.string),
 (go.field_decl.FieldDecl go!"Lun" go.int32),
@@ -5889,17 +5889,17 @@ noncomputable instance ISCSIVolumeSource.zero_val [FfiSyntax] : ZeroVal ISCSIVol
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType LocalObjectReference.ty)),
 (go.field_decl.FieldDecl go!"InitiatorName" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def ISCSIVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ISCSIVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ISCSIVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ISCSIVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ISCSIVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ISCSIVolumeSource.fields ISCSIVolumeSource.fieldsUnsealed :=
   ⟨by unfold ISCSIVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def ISCSIVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ISCSIVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ISCSIVolumeSource.fields)
 
-structure ISCSIPersistentVolumeSource [FfiSyntax] where
+structure ISCSIPersistentVolumeSource [GooseExts] where
   mk ::
   TargetPortal' : GoString
   IQN' : GoString
@@ -5913,10 +5913,10 @@ structure ISCSIPersistentVolumeSource [FfiSyntax] where
   SecretRef' : Loc
   InitiatorName' : Loc
 
-noncomputable instance ISCSIPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal ISCSIPersistentVolumeSource :=
+noncomputable instance ISCSIPersistentVolumeSource.zero_val [GooseExts] : ZeroVal ISCSIPersistentVolumeSource :=
   ⟨ISCSIPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ISCSIPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ISCSIPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TargetPortal" go.string),
 (go.field_decl.FieldDecl go!"IQN" go.string),
 (go.field_decl.FieldDecl go!"Lun" go.int32),
@@ -5929,17 +5929,17 @@ noncomputable instance ISCSIPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVa
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType SecretReference.ty)),
 (go.field_decl.FieldDecl go!"InitiatorName" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def ISCSIPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ISCSIPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ISCSIPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ISCSIPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ISCSIPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ISCSIPersistentVolumeSource.fields ISCSIPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold ISCSIPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def ISCSIPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ISCSIPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ISCSIPersistentVolumeSource.fields)
 
-structure FCVolumeSource [FfiSyntax] where
+structure FCVolumeSource [GooseExts] where
   mk ::
   TargetWWNs' : GoSlice
   Lun' : Loc
@@ -5947,135 +5947,135 @@ structure FCVolumeSource [FfiSyntax] where
   ReadOnly' : Bool
   WWIDs' : GoSlice
 
-noncomputable instance FCVolumeSource.zero_val [FfiSyntax] : ZeroVal FCVolumeSource :=
+noncomputable instance FCVolumeSource.zero_val [GooseExts] : ZeroVal FCVolumeSource :=
   ⟨FCVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def FCVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FCVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TargetWWNs" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"Lun" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"WWIDs" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def FCVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FCVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FCVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_FCVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FCVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold FCVolumeSource.fields FCVolumeSource.fieldsUnsealed :=
   ⟨by unfold FCVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def FCVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FCVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FCVolumeSource.fields)
 
-structure AzureFileVolumeSource [FfiSyntax] where
+structure AzureFileVolumeSource [GooseExts] where
   mk ::
   SecretName' : GoString
   ShareName' : GoString
   ReadOnly' : Bool
 
-noncomputable instance AzureFileVolumeSource.zero_val [FfiSyntax] : ZeroVal AzureFileVolumeSource :=
+noncomputable instance AzureFileVolumeSource.zero_val [GooseExts] : ZeroVal AzureFileVolumeSource :=
   ⟨AzureFileVolumeSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def AzureFileVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AzureFileVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SecretName" go.string),
 (go.field_decl.FieldDecl go!"ShareName" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def AzureFileVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AzureFileVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AzureFileVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_AzureFileVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AzureFileVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold AzureFileVolumeSource.fields AzureFileVolumeSource.fieldsUnsealed :=
   ⟨by unfold AzureFileVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def AzureFileVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AzureFileVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AzureFileVolumeSource.fields)
 
-structure AzureFilePersistentVolumeSource [FfiSyntax] where
+structure AzureFilePersistentVolumeSource [GooseExts] where
   mk ::
   SecretName' : GoString
   ShareName' : GoString
   ReadOnly' : Bool
   SecretNamespace' : Loc
 
-noncomputable instance AzureFilePersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal AzureFilePersistentVolumeSource :=
+noncomputable instance AzureFilePersistentVolumeSource.zero_val [GooseExts] : ZeroVal AzureFilePersistentVolumeSource :=
   ⟨AzureFilePersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def AzureFilePersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AzureFilePersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SecretName" go.string),
 (go.field_decl.FieldDecl go!"ShareName" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"SecretNamespace" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def AzureFilePersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AzureFilePersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AzureFilePersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_AzureFilePersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AzureFilePersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold AzureFilePersistentVolumeSource.fields AzureFilePersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold AzureFilePersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def AzureFilePersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AzureFilePersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AzureFilePersistentVolumeSource.fields)
 
-structure VsphereVirtualDiskVolumeSource [FfiSyntax] where
+structure VsphereVirtualDiskVolumeSource [GooseExts] where
   mk ::
   VolumePath' : GoString
   FSType' : GoString
   StoragePolicyName' : GoString
   StoragePolicyID' : GoString
 
-noncomputable instance VsphereVirtualDiskVolumeSource.zero_val [FfiSyntax] : ZeroVal VsphereVirtualDiskVolumeSource :=
+noncomputable instance VsphereVirtualDiskVolumeSource.zero_val [GooseExts] : ZeroVal VsphereVirtualDiskVolumeSource :=
   ⟨VsphereVirtualDiskVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VsphereVirtualDiskVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VsphereVirtualDiskVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumePath" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"StoragePolicyName" go.string),
 (go.field_decl.FieldDecl go!"StoragePolicyID" go.string)]
 
-@[irreducible] noncomputable def VsphereVirtualDiskVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VsphereVirtualDiskVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VsphereVirtualDiskVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_VsphereVirtualDiskVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VsphereVirtualDiskVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold VsphereVirtualDiskVolumeSource.fields VsphereVirtualDiskVolumeSource.fieldsUnsealed :=
   ⟨by unfold VsphereVirtualDiskVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def VsphereVirtualDiskVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VsphereVirtualDiskVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VsphereVirtualDiskVolumeSource.fields)
 
-structure PhotonPersistentDiskVolumeSource [FfiSyntax] where
+structure PhotonPersistentDiskVolumeSource [GooseExts] where
   mk ::
   PdID' : GoString
   FSType' : GoString
 
-noncomputable instance PhotonPersistentDiskVolumeSource.zero_val [FfiSyntax] : ZeroVal PhotonPersistentDiskVolumeSource :=
+noncomputable instance PhotonPersistentDiskVolumeSource.zero_val [GooseExts] : ZeroVal PhotonPersistentDiskVolumeSource :=
   ⟨PhotonPersistentDiskVolumeSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PhotonPersistentDiskVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PhotonPersistentDiskVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PdID" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string)]
 
-@[irreducible] noncomputable def PhotonPersistentDiskVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PhotonPersistentDiskVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PhotonPersistentDiskVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_PhotonPersistentDiskVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PhotonPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold PhotonPersistentDiskVolumeSource.fields PhotonPersistentDiskVolumeSource.fieldsUnsealed :=
   ⟨by unfold PhotonPersistentDiskVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def PhotonPersistentDiskVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PhotonPersistentDiskVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PhotonPersistentDiskVolumeSource.fields)
 
-abbrev AzureDataDiskCachingMode [FfiSyntax] : Type := GoString
+abbrev AzureDataDiskCachingMode [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def AzureDataDiskCachingMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AzureDataDiskCachingMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev AzureDataDiskKind [FfiSyntax] : Type := GoString
+abbrev AzureDataDiskKind [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def AzureDataDiskKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AzureDataDiskKind.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure AzureDiskVolumeSource [FfiSyntax] where
+structure AzureDiskVolumeSource [GooseExts] where
   mk ::
   DiskName' : GoString
   DataDiskURI' : GoString
@@ -6084,10 +6084,10 @@ structure AzureDiskVolumeSource [FfiSyntax] where
   ReadOnly' : Loc
   Kind' : Loc
 
-noncomputable instance AzureDiskVolumeSource.zero_val [FfiSyntax] : ZeroVal AzureDiskVolumeSource :=
+noncomputable instance AzureDiskVolumeSource.zero_val [GooseExts] : ZeroVal AzureDiskVolumeSource :=
   ⟨AzureDiskVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def AzureDiskVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AzureDiskVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"DiskName" go.string),
 (go.field_decl.FieldDecl go!"DataDiskURI" go.string),
 (go.field_decl.FieldDecl go!"CachingMode" (go.GoType.PointerType AzureDataDiskCachingMode.ty)),
@@ -6095,41 +6095,41 @@ noncomputable instance AzureDiskVolumeSource.zero_val [FfiSyntax] : ZeroVal Azur
 (go.field_decl.FieldDecl go!"ReadOnly" (go.GoType.PointerType go.bool)),
 (go.field_decl.FieldDecl go!"Kind" (go.GoType.PointerType AzureDataDiskKind.ty))]
 
-@[irreducible] noncomputable def AzureDiskVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AzureDiskVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AzureDiskVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_AzureDiskVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AzureDiskVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold AzureDiskVolumeSource.fields AzureDiskVolumeSource.fieldsUnsealed :=
   ⟨by unfold AzureDiskVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def AzureDiskVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AzureDiskVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AzureDiskVolumeSource.fields)
 
-structure PortworxVolumeSource [FfiSyntax] where
+structure PortworxVolumeSource [GooseExts] where
   mk ::
   VolumeID' : GoString
   FSType' : GoString
   ReadOnly' : Bool
 
-noncomputable instance PortworxVolumeSource.zero_val [FfiSyntax] : ZeroVal PortworxVolumeSource :=
+noncomputable instance PortworxVolumeSource.zero_val [GooseExts] : ZeroVal PortworxVolumeSource :=
   ⟨PortworxVolumeSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PortworxVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PortworxVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumeID" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def PortworxVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PortworxVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PortworxVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_PortworxVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PortworxVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold PortworxVolumeSource.fields PortworxVolumeSource.fieldsUnsealed :=
   ⟨by unfold PortworxVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def PortworxVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PortworxVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PortworxVolumeSource.fields)
 
-structure ScaleIOVolumeSource [FfiSyntax] where
+structure ScaleIOVolumeSource [GooseExts] where
   mk ::
   Gateway' : GoString
   System' : GoString
@@ -6142,10 +6142,10 @@ structure ScaleIOVolumeSource [FfiSyntax] where
   FSType' : GoString
   ReadOnly' : Bool
 
-noncomputable instance ScaleIOVolumeSource.zero_val [FfiSyntax] : ZeroVal ScaleIOVolumeSource :=
+noncomputable instance ScaleIOVolumeSource.zero_val [GooseExts] : ZeroVal ScaleIOVolumeSource :=
   ⟨ScaleIOVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ScaleIOVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ScaleIOVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Gateway" go.string),
 (go.field_decl.FieldDecl go!"System" go.string),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType LocalObjectReference.ty)),
@@ -6157,17 +6157,17 @@ noncomputable instance ScaleIOVolumeSource.zero_val [FfiSyntax] : ZeroVal ScaleI
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def ScaleIOVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ScaleIOVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ScaleIOVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ScaleIOVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ScaleIOVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ScaleIOVolumeSource.fields ScaleIOVolumeSource.fieldsUnsealed :=
   ⟨by unfold ScaleIOVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def ScaleIOVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ScaleIOVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ScaleIOVolumeSource.fields)
 
-structure ScaleIOPersistentVolumeSource [FfiSyntax] where
+structure ScaleIOPersistentVolumeSource [GooseExts] where
   mk ::
   Gateway' : GoString
   System' : GoString
@@ -6180,10 +6180,10 @@ structure ScaleIOPersistentVolumeSource [FfiSyntax] where
   FSType' : GoString
   ReadOnly' : Bool
 
-noncomputable instance ScaleIOPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal ScaleIOPersistentVolumeSource :=
+noncomputable instance ScaleIOPersistentVolumeSource.zero_val [GooseExts] : ZeroVal ScaleIOPersistentVolumeSource :=
   ⟨ScaleIOPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ScaleIOPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ScaleIOPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Gateway" go.string),
 (go.field_decl.FieldDecl go!"System" go.string),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType SecretReference.ty)),
@@ -6195,17 +6195,17 @@ noncomputable instance ScaleIOPersistentVolumeSource.zero_val [FfiSyntax] : Zero
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool)]
 
-@[irreducible] noncomputable def ScaleIOPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ScaleIOPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ScaleIOPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ScaleIOPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ScaleIOPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ScaleIOPersistentVolumeSource.fields ScaleIOPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold ScaleIOPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def ScaleIOPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ScaleIOPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ScaleIOPersistentVolumeSource.fields)
 
-structure StorageOSVolumeSource [FfiSyntax] where
+structure StorageOSVolumeSource [GooseExts] where
   mk ::
   VolumeName' : GoString
   VolumeNamespace' : GoString
@@ -6213,27 +6213,27 @@ structure StorageOSVolumeSource [FfiSyntax] where
   ReadOnly' : Bool
   SecretRef' : Loc
 
-noncomputable instance StorageOSVolumeSource.zero_val [FfiSyntax] : ZeroVal StorageOSVolumeSource :=
+noncomputable instance StorageOSVolumeSource.zero_val [GooseExts] : ZeroVal StorageOSVolumeSource :=
   ⟨StorageOSVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StorageOSVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StorageOSVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumeName" go.string),
 (go.field_decl.FieldDecl go!"VolumeNamespace" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType LocalObjectReference.ty))]
 
-@[irreducible] noncomputable def StorageOSVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StorageOSVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StorageOSVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_StorageOSVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StorageOSVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold StorageOSVolumeSource.fields StorageOSVolumeSource.fieldsUnsealed :=
   ⟨by unfold StorageOSVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def StorageOSVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StorageOSVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StorageOSVolumeSource.fields)
 
-structure StorageOSPersistentVolumeSource [FfiSyntax] where
+structure StorageOSPersistentVolumeSource [GooseExts] where
   mk ::
   VolumeName' : GoString
   VolumeNamespace' : GoString
@@ -6241,27 +6241,27 @@ structure StorageOSPersistentVolumeSource [FfiSyntax] where
   ReadOnly' : Bool
   SecretRef' : Loc
 
-noncomputable instance StorageOSPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal StorageOSPersistentVolumeSource :=
+noncomputable instance StorageOSPersistentVolumeSource.zero_val [GooseExts] : ZeroVal StorageOSPersistentVolumeSource :=
   ⟨StorageOSPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StorageOSPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StorageOSPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumeName" go.string),
 (go.field_decl.FieldDecl go!"VolumeNamespace" go.string),
 (go.field_decl.FieldDecl go!"FSType" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType ObjectReference.ty))]
 
-@[irreducible] noncomputable def StorageOSPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StorageOSPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StorageOSPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_StorageOSPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StorageOSPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold StorageOSPersistentVolumeSource.fields StorageOSPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold StorageOSPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def StorageOSPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StorageOSPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StorageOSPersistentVolumeSource.fields)
 
-structure ConfigMapVolumeSource [FfiSyntax] where
+structure ConfigMapVolumeSource [GooseExts] where
   mk ::
   LocalObjectReference' : LocalObjectReference
   Items' : GoSlice
@@ -6269,77 +6269,77 @@ structure ConfigMapVolumeSource [FfiSyntax] where
   Optional' : Loc
   DefaultUser' : Loc
 
-noncomputable instance ConfigMapVolumeSource.zero_val [FfiSyntax] : ZeroVal ConfigMapVolumeSource :=
+noncomputable instance ConfigMapVolumeSource.zero_val [GooseExts] : ZeroVal ConfigMapVolumeSource :=
   ⟨ConfigMapVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfigMapVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfigMapVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"LocalObjectReference" LocalObjectReference.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType KeyToPath.ty)),
 (go.field_decl.FieldDecl go!"DefaultMode" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool)),
 (go.field_decl.FieldDecl go!"DefaultUser" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def ConfigMapVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfigMapVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigMapVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigMapVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfigMapVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigMapVolumeSource.fields ConfigMapVolumeSource.fieldsUnsealed :=
   ⟨by unfold ConfigMapVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def ConfigMapVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfigMapVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfigMapVolumeSource.fields)
 
-structure ConfigMapProjection [FfiSyntax] where
+structure ConfigMapProjection [GooseExts] where
   mk ::
   LocalObjectReference' : LocalObjectReference
   Items' : GoSlice
   Optional' : Loc
 
-noncomputable instance ConfigMapProjection.zero_val [FfiSyntax] : ZeroVal ConfigMapProjection :=
+noncomputable instance ConfigMapProjection.zero_val [GooseExts] : ZeroVal ConfigMapProjection :=
   ⟨ConfigMapProjection.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfigMapProjection.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfigMapProjection.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"LocalObjectReference" LocalObjectReference.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType KeyToPath.ty)),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def ConfigMapProjection.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfigMapProjection.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigMapProjection.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigMapProjection [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfigMapProjection [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigMapProjection.fields ConfigMapProjection.fieldsUnsealed :=
   ⟨by unfold ConfigMapProjection.fields; rfl⟩
 
-@[reducible] noncomputable def ConfigMapProjection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfigMapProjection.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfigMapProjection.fields)
 
-structure ServiceAccountTokenProjection [FfiSyntax] where
+structure ServiceAccountTokenProjection [GooseExts] where
   mk ::
   Audience' : GoString
   ExpirationSeconds' : Loc
   Path' : GoString
   User' : Loc
 
-noncomputable instance ServiceAccountTokenProjection.zero_val [FfiSyntax] : ZeroVal ServiceAccountTokenProjection :=
+noncomputable instance ServiceAccountTokenProjection.zero_val [GooseExts] : ZeroVal ServiceAccountTokenProjection :=
   ⟨ServiceAccountTokenProjection.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceAccountTokenProjection.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceAccountTokenProjection.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Audience" go.string),
 (go.field_decl.FieldDecl go!"ExpirationSeconds" (go.GoType.PointerType go.int64)),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"User" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def ServiceAccountTokenProjection.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceAccountTokenProjection.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceAccountTokenProjection.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceAccountTokenProjection [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceAccountTokenProjection [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceAccountTokenProjection.fields ServiceAccountTokenProjection.fieldsUnsealed :=
   ⟨by unfold ServiceAccountTokenProjection.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceAccountTokenProjection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceAccountTokenProjection.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceAccountTokenProjection.fields)
 
-structure ClusterTrustBundleProjection [FfiSyntax] where
+structure ClusterTrustBundleProjection [GooseExts] where
   mk ::
   Name' : Loc
   SignerName' : Loc
@@ -6348,10 +6348,10 @@ structure ClusterTrustBundleProjection [FfiSyntax] where
   Path' : GoString
   User' : Loc
 
-noncomputable instance ClusterTrustBundleProjection.zero_val [FfiSyntax] : ZeroVal ClusterTrustBundleProjection :=
+noncomputable instance ClusterTrustBundleProjection.zero_val [GooseExts] : ZeroVal ClusterTrustBundleProjection :=
   ⟨ClusterTrustBundleProjection.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ClusterTrustBundleProjection.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClusterTrustBundleProjection.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"SignerName" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"LabelSelector" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)),
@@ -6359,17 +6359,17 @@ noncomputable instance ClusterTrustBundleProjection.zero_val [FfiSyntax] : ZeroV
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"User" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def ClusterTrustBundleProjection.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClusterTrustBundleProjection.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClusterTrustBundleProjection.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClusterTrustBundleProjection [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClusterTrustBundleProjection [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClusterTrustBundleProjection.fields ClusterTrustBundleProjection.fieldsUnsealed :=
   ⟨by unfold ClusterTrustBundleProjection.fields; rfl⟩
 
-@[reducible] noncomputable def ClusterTrustBundleProjection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClusterTrustBundleProjection.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClusterTrustBundleProjection.fields)
 
-structure PodCertificateProjection [FfiSyntax] where
+structure PodCertificateProjection [GooseExts] where
   mk ::
   SignerName' : GoString
   KeyType' : GoString
@@ -6380,10 +6380,10 @@ structure PodCertificateProjection [FfiSyntax] where
   UserAnnotations' : GoMap
   User' : Loc
 
-noncomputable instance PodCertificateProjection.zero_val [FfiSyntax] : ZeroVal PodCertificateProjection :=
+noncomputable instance PodCertificateProjection.zero_val [GooseExts] : ZeroVal PodCertificateProjection :=
   ⟨PodCertificateProjection.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodCertificateProjection.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodCertificateProjection.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SignerName" go.string),
 (go.field_decl.FieldDecl go!"KeyType" go.string),
 (go.field_decl.FieldDecl go!"MaxExpirationSeconds" (go.GoType.PointerType go.int32)),
@@ -6393,41 +6393,41 @@ noncomputable instance PodCertificateProjection.zero_val [FfiSyntax] : ZeroVal P
 (go.field_decl.FieldDecl go!"UserAnnotations" (go.GoType.MapType go.string go.string)),
 (go.field_decl.FieldDecl go!"User" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def PodCertificateProjection.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodCertificateProjection.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodCertificateProjection.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodCertificateProjection [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodCertificateProjection [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodCertificateProjection.fields PodCertificateProjection.fieldsUnsealed :=
   ⟨by unfold PodCertificateProjection.fields; rfl⟩
 
-@[reducible] noncomputable def PodCertificateProjection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodCertificateProjection.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodCertificateProjection.fields)
 
-structure ProjectedVolumeSource [FfiSyntax] where
+structure ProjectedVolumeSource [GooseExts] where
   mk ::
   Sources' : GoSlice
   DefaultMode' : Loc
   DefaultUser' : Loc
 
-noncomputable instance ProjectedVolumeSource.zero_val [FfiSyntax] : ZeroVal ProjectedVolumeSource :=
+noncomputable instance ProjectedVolumeSource.zero_val [GooseExts] : ZeroVal ProjectedVolumeSource :=
   ⟨ProjectedVolumeSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ProjectedVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ProjectedVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Sources" (go.GoType.SliceType VolumeProjection.ty)),
 (go.field_decl.FieldDecl go!"DefaultMode" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"DefaultUser" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def ProjectedVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ProjectedVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProjectedVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProjectedVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ProjectedVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProjectedVolumeSource.fields ProjectedVolumeSource.fieldsUnsealed :=
   ⟨by unfold ProjectedVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def ProjectedVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProjectedVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ProjectedVolumeSource.fields)
 
-structure VolumeProjection [FfiSyntax] where
+structure VolumeProjection [GooseExts] where
   mk ::
   Secret' : Loc
   DownwardAPI' : Loc
@@ -6436,10 +6436,10 @@ structure VolumeProjection [FfiSyntax] where
   ClusterTrustBundle' : Loc
   PodCertificate' : Loc
 
-noncomputable instance VolumeProjection.zero_val [FfiSyntax] : ZeroVal VolumeProjection :=
+noncomputable instance VolumeProjection.zero_val [GooseExts] : ZeroVal VolumeProjection :=
   ⟨VolumeProjection.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VolumeProjection.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeProjection.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Secret" (go.GoType.PointerType SecretProjection.ty)),
 (go.field_decl.FieldDecl go!"DownwardAPI" (go.GoType.PointerType DownwardAPIProjection.ty)),
 (go.field_decl.FieldDecl go!"ConfigMap" (go.GoType.PointerType ConfigMapProjection.ty)),
@@ -6447,65 +6447,65 @@ noncomputable instance VolumeProjection.zero_val [FfiSyntax] : ZeroVal VolumePro
 (go.field_decl.FieldDecl go!"ClusterTrustBundle" (go.GoType.PointerType ClusterTrustBundleProjection.ty)),
 (go.field_decl.FieldDecl go!"PodCertificate" (go.GoType.PointerType PodCertificateProjection.ty))]
 
-@[irreducible] noncomputable def VolumeProjection.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeProjection.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeProjection.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeProjection [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeProjection [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeProjection.fields VolumeProjection.fieldsUnsealed :=
   ⟨by unfold VolumeProjection.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeProjection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeProjection.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeProjection.fields)
 
-structure KeyToPath [FfiSyntax] where
+structure KeyToPath [GooseExts] where
   mk ::
   Key' : GoString
   Path' : GoString
   Mode' : Loc
   User' : Loc
 
-noncomputable instance KeyToPath.zero_val [FfiSyntax] : ZeroVal KeyToPath :=
+noncomputable instance KeyToPath.zero_val [GooseExts] : ZeroVal KeyToPath :=
   ⟨KeyToPath.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def KeyToPath.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def KeyToPath.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"Mode" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"User" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def KeyToPath.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def KeyToPath.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   KeyToPath.fieldsUnsealed
 
-noncomputable instance equals_unfold_KeyToPath [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_KeyToPath [GooseExts] [GoGlobalContext] :
     EqualsUnfold KeyToPath.fields KeyToPath.fieldsUnsealed :=
   ⟨by unfold KeyToPath.fields; rfl⟩
 
-@[reducible] noncomputable def KeyToPath.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def KeyToPath.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType KeyToPath.fields)
 
-structure LocalVolumeSource [FfiSyntax] where
+structure LocalVolumeSource [GooseExts] where
   mk ::
   Path' : GoString
   FSType' : Loc
 
-noncomputable instance LocalVolumeSource.zero_val [FfiSyntax] : ZeroVal LocalVolumeSource :=
+noncomputable instance LocalVolumeSource.zero_val [GooseExts] : ZeroVal LocalVolumeSource :=
   ⟨LocalVolumeSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LocalVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LocalVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"FSType" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def LocalVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LocalVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LocalVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_LocalVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LocalVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold LocalVolumeSource.fields LocalVolumeSource.fieldsUnsealed :=
   ⟨by unfold LocalVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def LocalVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LocalVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LocalVolumeSource.fields)
 
-structure CSIPersistentVolumeSource [FfiSyntax] where
+structure CSIPersistentVolumeSource [GooseExts] where
   mk ::
   Driver' : GoString
   VolumeHandle' : GoString
@@ -6518,10 +6518,10 @@ structure CSIPersistentVolumeSource [FfiSyntax] where
   ControllerExpandSecretRef' : Loc
   NodeExpandSecretRef' : Loc
 
-noncomputable instance CSIPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal CSIPersistentVolumeSource :=
+noncomputable instance CSIPersistentVolumeSource.zero_val [GooseExts] : ZeroVal CSIPersistentVolumeSource :=
   ⟨CSIPersistentVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CSIPersistentVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CSIPersistentVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Driver" go.string),
 (go.field_decl.FieldDecl go!"VolumeHandle" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
@@ -6533,17 +6533,17 @@ noncomputable instance CSIPersistentVolumeSource.zero_val [FfiSyntax] : ZeroVal 
 (go.field_decl.FieldDecl go!"ControllerExpandSecretRef" (go.GoType.PointerType SecretReference.ty)),
 (go.field_decl.FieldDecl go!"NodeExpandSecretRef" (go.GoType.PointerType SecretReference.ty))]
 
-@[irreducible] noncomputable def CSIPersistentVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CSIPersistentVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CSIPersistentVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_CSIPersistentVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CSIPersistentVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold CSIPersistentVolumeSource.fields CSIPersistentVolumeSource.fieldsUnsealed :=
   ⟨by unfold CSIPersistentVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def CSIPersistentVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CSIPersistentVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CSIPersistentVolumeSource.fields)
 
-structure CSIVolumeSource [FfiSyntax] where
+structure CSIVolumeSource [GooseExts] where
   mk ::
   Driver' : GoString
   ReadOnly' : Loc
@@ -6551,69 +6551,69 @@ structure CSIVolumeSource [FfiSyntax] where
   VolumeAttributes' : GoMap
   NodePublishSecretRef' : Loc
 
-noncomputable instance CSIVolumeSource.zero_val [FfiSyntax] : ZeroVal CSIVolumeSource :=
+noncomputable instance CSIVolumeSource.zero_val [GooseExts] : ZeroVal CSIVolumeSource :=
   ⟨CSIVolumeSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CSIVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CSIVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Driver" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" (go.GoType.PointerType go.bool)),
 (go.field_decl.FieldDecl go!"FSType" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"VolumeAttributes" (go.GoType.MapType go.string go.string)),
 (go.field_decl.FieldDecl go!"NodePublishSecretRef" (go.GoType.PointerType LocalObjectReference.ty))]
 
-@[irreducible] noncomputable def CSIVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CSIVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CSIVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_CSIVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CSIVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold CSIVolumeSource.fields CSIVolumeSource.fieldsUnsealed :=
   ⟨by unfold CSIVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def CSIVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CSIVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CSIVolumeSource.fields)
 
-structure EphemeralVolumeSource [FfiSyntax] where
+structure EphemeralVolumeSource [GooseExts] where
   mk ::
   VolumeClaimTemplate' : Loc
 
-noncomputable instance EphemeralVolumeSource.zero_val [FfiSyntax] : ZeroVal EphemeralVolumeSource :=
+noncomputable instance EphemeralVolumeSource.zero_val [GooseExts] : ZeroVal EphemeralVolumeSource :=
   ⟨EphemeralVolumeSource.mk zeroValDef⟩
 
-@[reducible] noncomputable def EphemeralVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EphemeralVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumeClaimTemplate" (go.GoType.PointerType PersistentVolumeClaimTemplate.ty))]
 
-@[irreducible] noncomputable def EphemeralVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EphemeralVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EphemeralVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_EphemeralVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EphemeralVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold EphemeralVolumeSource.fields EphemeralVolumeSource.fieldsUnsealed :=
   ⟨by unfold EphemeralVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def EphemeralVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EphemeralVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EphemeralVolumeSource.fields)
 
-structure PersistentVolumeClaimTemplate [FfiSyntax] where
+structure PersistentVolumeClaimTemplate [GooseExts] where
   mk ::
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : PersistentVolumeClaimSpec
 
-noncomputable instance PersistentVolumeClaimTemplate.zero_val [FfiSyntax] : ZeroVal PersistentVolumeClaimTemplate :=
+noncomputable instance PersistentVolumeClaimTemplate.zero_val [GooseExts] : ZeroVal PersistentVolumeClaimTemplate :=
   ⟨PersistentVolumeClaimTemplate.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimTemplate.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PersistentVolumeClaimTemplate.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" PersistentVolumeClaimSpec.ty)]
 
-@[irreducible] noncomputable def PersistentVolumeClaimTemplate.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PersistentVolumeClaimTemplate.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaimTemplate.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaimTemplate [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PersistentVolumeClaimTemplate [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaimTemplate.fields PersistentVolumeClaimTemplate.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaimTemplate.fields; rfl⟩
 
-@[reducible] noncomputable def PersistentVolumeClaimTemplate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimTemplate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PersistentVolumeClaimTemplate.fields)
 
-structure ContainerPort [FfiSyntax] where
+structure ContainerPort [GooseExts] where
   mk ::
   Name' : GoString
   HostPort' : w32
@@ -6621,27 +6621,27 @@ structure ContainerPort [FfiSyntax] where
   Protocol' : Protocol
   HostIP' : GoString
 
-noncomputable instance ContainerPort.zero_val [FfiSyntax] : ZeroVal ContainerPort :=
+noncomputable instance ContainerPort.zero_val [GooseExts] : ZeroVal ContainerPort :=
   ⟨ContainerPort.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerPort.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerPort.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"HostPort" go.int32),
 (go.field_decl.FieldDecl go!"ContainerPort" go.int32),
 (go.field_decl.FieldDecl go!"Protocol" Protocol.ty),
 (go.field_decl.FieldDecl go!"HostIP" go.string)]
 
-@[irreducible] noncomputable def ContainerPort.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerPort.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerPort.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerPort [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerPort [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerPort.fields ContainerPort.fieldsUnsealed :=
   ⟨by unfold ContainerPort.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerPort.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerPort.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerPort.fields)
 
-structure VolumeMount [FfiSyntax] where
+structure VolumeMount [GooseExts] where
   mk ::
   Name' : GoString
   ReadOnly' : Bool
@@ -6652,10 +6652,10 @@ structure VolumeMount [FfiSyntax] where
   SubPathExpr' : GoString
   BindMountOptions' : GoSlice
 
-noncomputable instance VolumeMount.zero_val [FfiSyntax] : ZeroVal VolumeMount :=
+noncomputable instance VolumeMount.zero_val [GooseExts] : ZeroVal VolumeMount :=
   ⟨VolumeMount.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VolumeMount.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeMount.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"RecursiveReadOnly" (go.GoType.PointerType RecursiveReadOnlyMode.ty)),
@@ -6665,78 +6665,78 @@ noncomputable instance VolumeMount.zero_val [FfiSyntax] : ZeroVal VolumeMount :=
 (go.field_decl.FieldDecl go!"SubPathExpr" go.string),
 (go.field_decl.FieldDecl go!"BindMountOptions" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def VolumeMount.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeMount.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeMount.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeMount [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeMount [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeMount.fields VolumeMount.fieldsUnsealed :=
   ⟨by unfold VolumeMount.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeMount.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeMount.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeMount.fields)
 
-abbrev BindMountOption [FfiSyntax] : Type := GoString
+abbrev BindMountOption [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def BindMountOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BindMountOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev MountPropagationMode [FfiSyntax] : Type := GoString
+abbrev MountPropagationMode [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def MountPropagationMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MountPropagationMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev RecursiveReadOnlyMode [FfiSyntax] : Type := GoString
+abbrev RecursiveReadOnlyMode [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def RecursiveReadOnlyMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RecursiveReadOnlyMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure VolumeDevice [FfiSyntax] where
+structure VolumeDevice [GooseExts] where
   mk ::
   Name' : GoString
   DevicePath' : GoString
 
-noncomputable instance VolumeDevice.zero_val [FfiSyntax] : ZeroVal VolumeDevice :=
+noncomputable instance VolumeDevice.zero_val [GooseExts] : ZeroVal VolumeDevice :=
   ⟨VolumeDevice.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VolumeDevice.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeDevice.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"DevicePath" go.string)]
 
-@[irreducible] noncomputable def VolumeDevice.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeDevice.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeDevice.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeDevice [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeDevice [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeDevice.fields VolumeDevice.fieldsUnsealed :=
   ⟨by unfold VolumeDevice.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeDevice.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeDevice.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeDevice.fields)
 
-structure EnvVar [FfiSyntax] where
+structure EnvVar [GooseExts] where
   mk ::
   Name' : GoString
   Value' : GoString
   ValueFrom' : Loc
 
-noncomputable instance EnvVar.zero_val [FfiSyntax] : ZeroVal EnvVar :=
+noncomputable instance EnvVar.zero_val [GooseExts] : ZeroVal EnvVar :=
   ⟨EnvVar.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EnvVar.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EnvVar.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Value" go.string),
 (go.field_decl.FieldDecl go!"ValueFrom" (go.GoType.PointerType EnvVarSource.ty))]
 
-@[irreducible] noncomputable def EnvVar.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EnvVar.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EnvVar.fieldsUnsealed
 
-noncomputable instance equals_unfold_EnvVar [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EnvVar [GooseExts] [GoGlobalContext] :
     EqualsUnfold EnvVar.fields EnvVar.fieldsUnsealed :=
   ⟨by unfold EnvVar.fields; rfl⟩
 
-@[reducible] noncomputable def EnvVar.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnvVar.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EnvVar.fields)
 
-structure EnvVarSource [FfiSyntax] where
+structure EnvVarSource [GooseExts] where
   mk ::
   FieldRef' : Loc
   ResourceFieldRef' : Loc
@@ -6744,247 +6744,247 @@ structure EnvVarSource [FfiSyntax] where
   SecretKeyRef' : Loc
   FileKeyRef' : Loc
 
-noncomputable instance EnvVarSource.zero_val [FfiSyntax] : ZeroVal EnvVarSource :=
+noncomputable instance EnvVarSource.zero_val [GooseExts] : ZeroVal EnvVarSource :=
   ⟨EnvVarSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EnvVarSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EnvVarSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"FieldRef" (go.GoType.PointerType ObjectFieldSelector.ty)),
 (go.field_decl.FieldDecl go!"ResourceFieldRef" (go.GoType.PointerType ResourceFieldSelector.ty)),
 (go.field_decl.FieldDecl go!"ConfigMapKeyRef" (go.GoType.PointerType ConfigMapKeySelector.ty)),
 (go.field_decl.FieldDecl go!"SecretKeyRef" (go.GoType.PointerType SecretKeySelector.ty)),
 (go.field_decl.FieldDecl go!"FileKeyRef" (go.GoType.PointerType FileKeySelector.ty))]
 
-@[irreducible] noncomputable def EnvVarSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EnvVarSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EnvVarSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_EnvVarSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EnvVarSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold EnvVarSource.fields EnvVarSource.fieldsUnsealed :=
   ⟨by unfold EnvVarSource.fields; rfl⟩
 
-@[reducible] noncomputable def EnvVarSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnvVarSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EnvVarSource.fields)
 
-structure FileKeySelector [FfiSyntax] where
+structure FileKeySelector [GooseExts] where
   mk ::
   VolumeName' : GoString
   Path' : GoString
   Key' : GoString
   Optional' : Loc
 
-noncomputable instance FileKeySelector.zero_val [FfiSyntax] : ZeroVal FileKeySelector :=
+noncomputable instance FileKeySelector.zero_val [GooseExts] : ZeroVal FileKeySelector :=
   ⟨FileKeySelector.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def FileKeySelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FileKeySelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"VolumeName" go.string),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def FileKeySelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FileKeySelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FileKeySelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_FileKeySelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FileKeySelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold FileKeySelector.fields FileKeySelector.fieldsUnsealed :=
   ⟨by unfold FileKeySelector.fields; rfl⟩
 
-@[reducible] noncomputable def FileKeySelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FileKeySelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FileKeySelector.fields)
 
-structure ObjectFieldSelector [FfiSyntax] where
+structure ObjectFieldSelector [GooseExts] where
   mk ::
   APIVersion' : GoString
   FieldPath' : GoString
 
-noncomputable instance ObjectFieldSelector.zero_val [FfiSyntax] : ZeroVal ObjectFieldSelector :=
+noncomputable instance ObjectFieldSelector.zero_val [GooseExts] : ZeroVal ObjectFieldSelector :=
   ⟨ObjectFieldSelector.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ObjectFieldSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ObjectFieldSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"APIVersion" go.string),
 (go.field_decl.FieldDecl go!"FieldPath" go.string)]
 
-@[irreducible] noncomputable def ObjectFieldSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ObjectFieldSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ObjectFieldSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_ObjectFieldSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ObjectFieldSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold ObjectFieldSelector.fields ObjectFieldSelector.fieldsUnsealed :=
   ⟨by unfold ObjectFieldSelector.fields; rfl⟩
 
-@[reducible] noncomputable def ObjectFieldSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ObjectFieldSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ObjectFieldSelector.fields)
 
-structure ResourceFieldSelector [FfiSyntax] where
+structure ResourceFieldSelector [GooseExts] where
   mk ::
   ContainerName' : GoString
   Resource' : GoString
   Divisor' : _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Quantity
 
-noncomputable instance ResourceFieldSelector.zero_val [FfiSyntax] : ZeroVal ResourceFieldSelector :=
+noncomputable instance ResourceFieldSelector.zero_val [GooseExts] : ZeroVal ResourceFieldSelector :=
   ⟨ResourceFieldSelector.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceFieldSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceFieldSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ContainerName" go.string),
 (go.field_decl.FieldDecl go!"Resource" go.string),
 (go.field_decl.FieldDecl go!"Divisor" _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Quantity.ty)]
 
-@[irreducible] noncomputable def ResourceFieldSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceFieldSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceFieldSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceFieldSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceFieldSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceFieldSelector.fields ResourceFieldSelector.fieldsUnsealed :=
   ⟨by unfold ResourceFieldSelector.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceFieldSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceFieldSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceFieldSelector.fields)
 
-structure ConfigMapKeySelector [FfiSyntax] where
+structure ConfigMapKeySelector [GooseExts] where
   mk ::
   LocalObjectReference' : LocalObjectReference
   Key' : GoString
   Optional' : Loc
 
-noncomputable instance ConfigMapKeySelector.zero_val [FfiSyntax] : ZeroVal ConfigMapKeySelector :=
+noncomputable instance ConfigMapKeySelector.zero_val [GooseExts] : ZeroVal ConfigMapKeySelector :=
   ⟨ConfigMapKeySelector.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfigMapKeySelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfigMapKeySelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"LocalObjectReference" LocalObjectReference.ty),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def ConfigMapKeySelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfigMapKeySelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigMapKeySelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigMapKeySelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfigMapKeySelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigMapKeySelector.fields ConfigMapKeySelector.fieldsUnsealed :=
   ⟨by unfold ConfigMapKeySelector.fields; rfl⟩
 
-@[reducible] noncomputable def ConfigMapKeySelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfigMapKeySelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfigMapKeySelector.fields)
 
-structure SecretKeySelector [FfiSyntax] where
+structure SecretKeySelector [GooseExts] where
   mk ::
   LocalObjectReference' : LocalObjectReference
   Key' : GoString
   Optional' : Loc
 
-noncomputable instance SecretKeySelector.zero_val [FfiSyntax] : ZeroVal SecretKeySelector :=
+noncomputable instance SecretKeySelector.zero_val [GooseExts] : ZeroVal SecretKeySelector :=
   ⟨SecretKeySelector.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SecretKeySelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SecretKeySelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"LocalObjectReference" LocalObjectReference.ty),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def SecretKeySelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SecretKeySelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SecretKeySelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_SecretKeySelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SecretKeySelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold SecretKeySelector.fields SecretKeySelector.fieldsUnsealed :=
   ⟨by unfold SecretKeySelector.fields; rfl⟩
 
-@[reducible] noncomputable def SecretKeySelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecretKeySelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SecretKeySelector.fields)
 
-structure EnvFromSource [FfiSyntax] where
+structure EnvFromSource [GooseExts] where
   mk ::
   Prefix' : GoString
   ConfigMapRef' : Loc
   SecretRef' : Loc
 
-noncomputable instance EnvFromSource.zero_val [FfiSyntax] : ZeroVal EnvFromSource :=
+noncomputable instance EnvFromSource.zero_val [GooseExts] : ZeroVal EnvFromSource :=
   ⟨EnvFromSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EnvFromSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EnvFromSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Prefix" go.string),
 (go.field_decl.FieldDecl go!"ConfigMapRef" (go.GoType.PointerType ConfigMapEnvSource.ty)),
 (go.field_decl.FieldDecl go!"SecretRef" (go.GoType.PointerType SecretEnvSource.ty))]
 
-@[irreducible] noncomputable def EnvFromSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EnvFromSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EnvFromSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_EnvFromSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EnvFromSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold EnvFromSource.fields EnvFromSource.fieldsUnsealed :=
   ⟨by unfold EnvFromSource.fields; rfl⟩
 
-@[reducible] noncomputable def EnvFromSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnvFromSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EnvFromSource.fields)
 
-structure ConfigMapEnvSource [FfiSyntax] where
+structure ConfigMapEnvSource [GooseExts] where
   mk ::
   LocalObjectReference' : LocalObjectReference
   Optional' : Loc
 
-noncomputable instance ConfigMapEnvSource.zero_val [FfiSyntax] : ZeroVal ConfigMapEnvSource :=
+noncomputable instance ConfigMapEnvSource.zero_val [GooseExts] : ZeroVal ConfigMapEnvSource :=
   ⟨ConfigMapEnvSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfigMapEnvSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfigMapEnvSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"LocalObjectReference" LocalObjectReference.ty),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def ConfigMapEnvSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfigMapEnvSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigMapEnvSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigMapEnvSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfigMapEnvSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigMapEnvSource.fields ConfigMapEnvSource.fieldsUnsealed :=
   ⟨by unfold ConfigMapEnvSource.fields; rfl⟩
 
-@[reducible] noncomputable def ConfigMapEnvSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfigMapEnvSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfigMapEnvSource.fields)
 
-structure SecretEnvSource [FfiSyntax] where
+structure SecretEnvSource [GooseExts] where
   mk ::
   LocalObjectReference' : LocalObjectReference
   Optional' : Loc
 
-noncomputable instance SecretEnvSource.zero_val [FfiSyntax] : ZeroVal SecretEnvSource :=
+noncomputable instance SecretEnvSource.zero_val [GooseExts] : ZeroVal SecretEnvSource :=
   ⟨SecretEnvSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SecretEnvSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SecretEnvSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"LocalObjectReference" LocalObjectReference.ty),
 (go.field_decl.FieldDecl go!"Optional" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def SecretEnvSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SecretEnvSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SecretEnvSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_SecretEnvSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SecretEnvSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold SecretEnvSource.fields SecretEnvSource.fieldsUnsealed :=
   ⟨by unfold SecretEnvSource.fields; rfl⟩
 
-@[reducible] noncomputable def SecretEnvSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecretEnvSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SecretEnvSource.fields)
 
-structure HTTPHeader [FfiSyntax] where
+structure HTTPHeader [GooseExts] where
   mk ::
   Name' : GoString
   Value' : GoString
 
-noncomputable instance HTTPHeader.zero_val [FfiSyntax] : ZeroVal HTTPHeader :=
+noncomputable instance HTTPHeader.zero_val [GooseExts] : ZeroVal HTTPHeader :=
   ⟨HTTPHeader.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def HTTPHeader.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HTTPHeader.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Value" go.string)]
 
-@[irreducible] noncomputable def HTTPHeader.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HTTPHeader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HTTPHeader.fieldsUnsealed
 
-noncomputable instance equals_unfold_HTTPHeader [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HTTPHeader [GooseExts] [GoGlobalContext] :
     EqualsUnfold HTTPHeader.fields HTTPHeader.fieldsUnsealed :=
   ⟨by unfold HTTPHeader.fields; rfl⟩
 
-@[reducible] noncomputable def HTTPHeader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HTTPHeader.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HTTPHeader.fields)
 
-abbrev HTTPProtocol [FfiSyntax] : Type := GoString
+abbrev HTTPProtocol [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def HTTPProtocol.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HTTPProtocol.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev URIScheme [FfiSyntax] : Type := GoString
+abbrev URIScheme [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def URIScheme.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def URIScheme.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure HTTPGetAction [FfiSyntax] where
+structure HTTPGetAction [GooseExts] where
   mk ::
   Path' : GoString
   Port' : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString
@@ -6993,10 +6993,10 @@ structure HTTPGetAction [FfiSyntax] where
   HTTPHeaders' : GoSlice
   Protocol' : Loc
 
-noncomputable instance HTTPGetAction.zero_val [FfiSyntax] : ZeroVal HTTPGetAction :=
+noncomputable instance HTTPGetAction.zero_val [GooseExts] : ZeroVal HTTPGetAction :=
   ⟨HTTPGetAction.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def HTTPGetAction.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HTTPGetAction.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"Port" _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty),
 (go.field_decl.FieldDecl go!"Host" go.string),
@@ -7004,134 +7004,134 @@ noncomputable instance HTTPGetAction.zero_val [FfiSyntax] : ZeroVal HTTPGetActio
 (go.field_decl.FieldDecl go!"HTTPHeaders" (go.GoType.SliceType HTTPHeader.ty)),
 (go.field_decl.FieldDecl go!"Protocol" (go.GoType.PointerType HTTPProtocol.ty))]
 
-@[irreducible] noncomputable def HTTPGetAction.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HTTPGetAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HTTPGetAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_HTTPGetAction [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HTTPGetAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold HTTPGetAction.fields HTTPGetAction.fieldsUnsealed :=
   ⟨by unfold HTTPGetAction.fields; rfl⟩
 
-@[reducible] noncomputable def HTTPGetAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HTTPGetAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HTTPGetAction.fields)
 
-structure TCPSocketAction [FfiSyntax] where
+structure TCPSocketAction [GooseExts] where
   mk ::
   Port' : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString
   Host' : GoString
 
-noncomputable instance TCPSocketAction.zero_val [FfiSyntax] : ZeroVal TCPSocketAction :=
+noncomputable instance TCPSocketAction.zero_val [GooseExts] : ZeroVal TCPSocketAction :=
   ⟨TCPSocketAction.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TCPSocketAction.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TCPSocketAction.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Port" _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty),
 (go.field_decl.FieldDecl go!"Host" go.string)]
 
-@[irreducible] noncomputable def TCPSocketAction.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TCPSocketAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TCPSocketAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_TCPSocketAction [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TCPSocketAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold TCPSocketAction.fields TCPSocketAction.fieldsUnsealed :=
   ⟨by unfold TCPSocketAction.fields; rfl⟩
 
-@[reducible] noncomputable def TCPSocketAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TCPSocketAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TCPSocketAction.fields)
 
-structure GRPCAction [FfiSyntax] where
+structure GRPCAction [GooseExts] where
   mk ::
   Port' : w32
   Service' : Loc
   Mode' : Loc
 
-noncomputable instance GRPCAction.zero_val [FfiSyntax] : ZeroVal GRPCAction :=
+noncomputable instance GRPCAction.zero_val [GooseExts] : ZeroVal GRPCAction :=
   ⟨GRPCAction.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def GRPCAction.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GRPCAction.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Port" go.int32),
 (go.field_decl.FieldDecl go!"Service" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"Mode" (go.GoType.PointerType GRPCProbeMode.ty))]
 
-@[irreducible] noncomputable def GRPCAction.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GRPCAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GRPCAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_GRPCAction [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GRPCAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold GRPCAction.fields GRPCAction.fieldsUnsealed :=
   ⟨by unfold GRPCAction.fields; rfl⟩
 
-@[reducible] noncomputable def GRPCAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GRPCAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GRPCAction.fields)
 
-abbrev GRPCProbeMode [FfiSyntax] : Type := GoString
+abbrev GRPCProbeMode [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def GRPCProbeMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GRPCProbeMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ExecAction [FfiSyntax] where
+structure ExecAction [GooseExts] where
   mk ::
   Command' : GoSlice
 
-noncomputable instance ExecAction.zero_val [FfiSyntax] : ZeroVal ExecAction :=
+noncomputable instance ExecAction.zero_val [GooseExts] : ZeroVal ExecAction :=
   ⟨ExecAction.mk zeroValDef⟩
 
-@[reducible] noncomputable def ExecAction.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ExecAction.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Command" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def ExecAction.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ExecAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ExecAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_ExecAction [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ExecAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold ExecAction.fields ExecAction.fieldsUnsealed :=
   ⟨by unfold ExecAction.fields; rfl⟩
 
-@[reducible] noncomputable def ExecAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ExecAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ExecAction.fields)
 
-structure SleepAction [FfiSyntax] where
+structure SleepAction [GooseExts] where
   mk ::
   Seconds' : w64
 
-noncomputable instance SleepAction.zero_val [FfiSyntax] : ZeroVal SleepAction :=
+noncomputable instance SleepAction.zero_val [GooseExts] : ZeroVal SleepAction :=
   ⟨SleepAction.mk zeroValDef⟩
 
-@[reducible] noncomputable def SleepAction.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SleepAction.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Seconds" go.int64)]
 
-@[irreducible] noncomputable def SleepAction.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SleepAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SleepAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_SleepAction [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SleepAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold SleepAction.fields SleepAction.fieldsUnsealed :=
   ⟨by unfold SleepAction.fields; rfl⟩
 
-@[reducible] noncomputable def SleepAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SleepAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SleepAction.fields)
 
-structure ProbeHandler [FfiSyntax] where
+structure ProbeHandler [GooseExts] where
   mk ::
   Exec' : Loc
   HTTPGet' : Loc
   TCPSocket' : Loc
   GRPC' : Loc
 
-noncomputable instance ProbeHandler.zero_val [FfiSyntax] : ZeroVal ProbeHandler :=
+noncomputable instance ProbeHandler.zero_val [GooseExts] : ZeroVal ProbeHandler :=
   ⟨ProbeHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ProbeHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ProbeHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Exec" (go.GoType.PointerType ExecAction.ty)),
 (go.field_decl.FieldDecl go!"HTTPGet" (go.GoType.PointerType HTTPGetAction.ty)),
 (go.field_decl.FieldDecl go!"TCPSocket" (go.GoType.PointerType TCPSocketAction.ty)),
 (go.field_decl.FieldDecl go!"GRPC" (go.GoType.PointerType GRPCAction.ty))]
 
-@[irreducible] noncomputable def ProbeHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ProbeHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProbeHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProbeHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ProbeHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProbeHandler.fields ProbeHandler.fieldsUnsealed :=
   ⟨by unfold ProbeHandler.fields; rfl⟩
 
-@[reducible] noncomputable def ProbeHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProbeHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ProbeHandler.fields)
 
-structure Probe [FfiSyntax] where
+structure Probe [GooseExts] where
   mk ::
   ProbeHandler' : ProbeHandler
   InitialDelaySeconds' : w32
@@ -7141,10 +7141,10 @@ structure Probe [FfiSyntax] where
   FailureThreshold' : w32
   TerminationGracePeriodSeconds' : Loc
 
-noncomputable instance Probe.zero_val [FfiSyntax] : ZeroVal Probe :=
+noncomputable instance Probe.zero_val [GooseExts] : ZeroVal Probe :=
   ⟨Probe.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Probe.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Probe.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ProbeHandler" ProbeHandler.ty),
 (go.field_decl.FieldDecl go!"InitialDelaySeconds" go.int32),
 (go.field_decl.FieldDecl go!"TimeoutSeconds" go.int32),
@@ -7153,137 +7153,137 @@ noncomputable instance Probe.zero_val [FfiSyntax] : ZeroVal Probe :=
 (go.field_decl.FieldDecl go!"FailureThreshold" go.int32),
 (go.field_decl.FieldDecl go!"TerminationGracePeriodSeconds" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def Probe.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Probe.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Probe.fieldsUnsealed
 
-noncomputable instance equals_unfold_Probe [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Probe [GooseExts] [GoGlobalContext] :
     EqualsUnfold Probe.fields Probe.fieldsUnsealed :=
   ⟨by unfold Probe.fields; rfl⟩
 
-@[reducible] noncomputable def Probe.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Probe.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Probe.fields)
 
-abbrev PullPolicy [FfiSyntax] : Type := GoString
+abbrev PullPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PullPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PullPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev ResourceResizeRestartPolicy [FfiSyntax] : Type := GoString
+abbrev ResourceResizeRestartPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ResourceResizeRestartPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceResizeRestartPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev ResourceName [FfiSyntax] : Type := GoString
+abbrev ResourceName [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ResourceName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ContainerResizePolicy [FfiSyntax] where
+structure ContainerResizePolicy [GooseExts] where
   mk ::
   ResourceName' : ResourceName
   RestartPolicy' : ResourceResizeRestartPolicy
 
-noncomputable instance ContainerResizePolicy.zero_val [FfiSyntax] : ZeroVal ContainerResizePolicy :=
+noncomputable instance ContainerResizePolicy.zero_val [GooseExts] : ZeroVal ContainerResizePolicy :=
   ⟨ContainerResizePolicy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerResizePolicy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerResizePolicy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ResourceName" ResourceName.ty),
 (go.field_decl.FieldDecl go!"RestartPolicy" ResourceResizeRestartPolicy.ty)]
 
-@[irreducible] noncomputable def ContainerResizePolicy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerResizePolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerResizePolicy.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerResizePolicy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerResizePolicy [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerResizePolicy.fields ContainerResizePolicy.fieldsUnsealed :=
   ⟨by unfold ContainerResizePolicy.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerResizePolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerResizePolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerResizePolicy.fields)
 
-abbrev PreemptionPolicy [FfiSyntax] : Type := GoString
+abbrev PreemptionPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PreemptionPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PreemptionPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev TerminationMessagePolicy [FfiSyntax] : Type := GoString
+abbrev TerminationMessagePolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def TerminationMessagePolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TerminationMessagePolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev Capability [FfiSyntax] : Type := GoString
+abbrev Capability [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def Capability.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Capability.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure Capabilities [FfiSyntax] where
+structure Capabilities [GooseExts] where
   mk ::
   Add' : GoSlice
   Drop' : GoSlice
 
-noncomputable instance Capabilities.zero_val [FfiSyntax] : ZeroVal Capabilities :=
+noncomputable instance Capabilities.zero_val [GooseExts] : ZeroVal Capabilities :=
   ⟨Capabilities.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Capabilities.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Capabilities.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Add" (go.GoType.SliceType Capability.ty)),
 (go.field_decl.FieldDecl go!"Drop" (go.GoType.SliceType Capability.ty))]
 
-@[irreducible] noncomputable def Capabilities.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Capabilities.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Capabilities.fieldsUnsealed
 
-noncomputable instance equals_unfold_Capabilities [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Capabilities [GooseExts] [GoGlobalContext] :
     EqualsUnfold Capabilities.fields Capabilities.fieldsUnsealed :=
   ⟨by unfold Capabilities.fields; rfl⟩
 
-@[reducible] noncomputable def Capabilities.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Capabilities.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Capabilities.fields)
 
-structure ResourceRequirements [FfiSyntax] where
+structure ResourceRequirements [GooseExts] where
   mk ::
   Limits' : ResourceList
   Requests' : ResourceList
   Claims' : GoSlice
 
-noncomputable instance ResourceRequirements.zero_val [FfiSyntax] : ZeroVal ResourceRequirements :=
+noncomputable instance ResourceRequirements.zero_val [GooseExts] : ZeroVal ResourceRequirements :=
   ⟨ResourceRequirements.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceRequirements.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceRequirements.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Limits" ResourceList.ty),
 (go.field_decl.FieldDecl go!"Requests" ResourceList.ty),
 (go.field_decl.FieldDecl go!"Claims" (go.GoType.SliceType ResourceClaim.ty))]
 
-@[irreducible] noncomputable def ResourceRequirements.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceRequirements.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceRequirements.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceRequirements [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceRequirements [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceRequirements.fields ResourceRequirements.fieldsUnsealed :=
   ⟨by unfold ResourceRequirements.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceRequirements.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceRequirements.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceRequirements.fields)
 
-structure ResourceClaim [FfiSyntax] where
+structure ResourceClaim [GooseExts] where
   mk ::
   Name' : GoString
   Request' : GoString
 
-noncomputable instance ResourceClaim.zero_val [FfiSyntax] : ZeroVal ResourceClaim :=
+noncomputable instance ResourceClaim.zero_val [GooseExts] : ZeroVal ResourceClaim :=
   ⟨ResourceClaim.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceClaim.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceClaim.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Request" go.string)]
 
-@[irreducible] noncomputable def ResourceClaim.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceClaim.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceClaim.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceClaim [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceClaim [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceClaim.fields ResourceClaim.fieldsUnsealed :=
   ⟨by unfold ResourceClaim.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceClaim.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceClaim.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceClaim.fields)
 
-structure Container [FfiSyntax] where
+structure Container [GooseExts] where
   mk ::
   Name' : GoString
   Image' : GoString
@@ -7311,10 +7311,10 @@ structure Container [FfiSyntax] where
   StdinOnce' : Bool
   TTY' : Bool
 
-noncomputable instance Container.zero_val [FfiSyntax] : ZeroVal Container :=
+noncomputable instance Container.zero_val [GooseExts] : ZeroVal Container :=
   ⟨Container.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Container.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Container.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Image" go.string),
 (go.field_decl.FieldDecl go!"Command" (go.GoType.SliceType go.string)),
@@ -7341,114 +7341,114 @@ noncomputable instance Container.zero_val [FfiSyntax] : ZeroVal Container :=
 (go.field_decl.FieldDecl go!"StdinOnce" go.bool),
 (go.field_decl.FieldDecl go!"TTY" go.bool)]
 
-@[irreducible] noncomputable def Container.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Container.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Container.fieldsUnsealed
 
-noncomputable instance equals_unfold_Container [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Container [GooseExts] [GoGlobalContext] :
     EqualsUnfold Container.fields Container.fieldsUnsealed :=
   ⟨by unfold Container.fields; rfl⟩
 
-@[reducible] noncomputable def Container.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Container.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Container.fields)
 
-structure LifecycleHandler [FfiSyntax] where
+structure LifecycleHandler [GooseExts] where
   mk ::
   Exec' : Loc
   HTTPGet' : Loc
   TCPSocket' : Loc
   Sleep' : Loc
 
-noncomputable instance LifecycleHandler.zero_val [FfiSyntax] : ZeroVal LifecycleHandler :=
+noncomputable instance LifecycleHandler.zero_val [GooseExts] : ZeroVal LifecycleHandler :=
   ⟨LifecycleHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LifecycleHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LifecycleHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Exec" (go.GoType.PointerType ExecAction.ty)),
 (go.field_decl.FieldDecl go!"HTTPGet" (go.GoType.PointerType HTTPGetAction.ty)),
 (go.field_decl.FieldDecl go!"TCPSocket" (go.GoType.PointerType TCPSocketAction.ty)),
 (go.field_decl.FieldDecl go!"Sleep" (go.GoType.PointerType SleepAction.ty))]
 
-@[irreducible] noncomputable def LifecycleHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LifecycleHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LifecycleHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_LifecycleHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LifecycleHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold LifecycleHandler.fields LifecycleHandler.fieldsUnsealed :=
   ⟨by unfold LifecycleHandler.fields; rfl⟩
 
-@[reducible] noncomputable def LifecycleHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LifecycleHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LifecycleHandler.fields)
 
-abbrev Signal [FfiSyntax] : Type := GoString
+abbrev Signal [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def Signal.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Signal.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure Lifecycle [FfiSyntax] where
+structure Lifecycle [GooseExts] where
   mk ::
   PostStart' : Loc
   PreStop' : Loc
   StopSignal' : Loc
 
-noncomputable instance Lifecycle.zero_val [FfiSyntax] : ZeroVal Lifecycle :=
+noncomputable instance Lifecycle.zero_val [GooseExts] : ZeroVal Lifecycle :=
   ⟨Lifecycle.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Lifecycle.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Lifecycle.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PostStart" (go.GoType.PointerType LifecycleHandler.ty)),
 (go.field_decl.FieldDecl go!"PreStop" (go.GoType.PointerType LifecycleHandler.ty)),
 (go.field_decl.FieldDecl go!"StopSignal" (go.GoType.PointerType Signal.ty))]
 
-@[irreducible] noncomputable def Lifecycle.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Lifecycle.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Lifecycle.fieldsUnsealed
 
-noncomputable instance equals_unfold_Lifecycle [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Lifecycle [GooseExts] [GoGlobalContext] :
     EqualsUnfold Lifecycle.fields Lifecycle.fieldsUnsealed :=
   ⟨by unfold Lifecycle.fields; rfl⟩
 
-@[reducible] noncomputable def Lifecycle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Lifecycle.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Lifecycle.fields)
 
-structure ContainerStateWaiting [FfiSyntax] where
+structure ContainerStateWaiting [GooseExts] where
   mk ::
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance ContainerStateWaiting.zero_val [FfiSyntax] : ZeroVal ContainerStateWaiting :=
+noncomputable instance ContainerStateWaiting.zero_val [GooseExts] : ZeroVal ContainerStateWaiting :=
   ⟨ContainerStateWaiting.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerStateWaiting.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerStateWaiting.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def ContainerStateWaiting.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerStateWaiting.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerStateWaiting.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerStateWaiting [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerStateWaiting [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerStateWaiting.fields ContainerStateWaiting.fieldsUnsealed :=
   ⟨by unfold ContainerStateWaiting.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerStateWaiting.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerStateWaiting.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerStateWaiting.fields)
 
-structure ContainerStateRunning [FfiSyntax] where
+structure ContainerStateRunning [GooseExts] where
   mk ::
   StartedAt' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time
 
-noncomputable instance ContainerStateRunning.zero_val [FfiSyntax] : ZeroVal ContainerStateRunning :=
+noncomputable instance ContainerStateRunning.zero_val [GooseExts] : ZeroVal ContainerStateRunning :=
   ⟨ContainerStateRunning.mk zeroValDef⟩
 
-@[reducible] noncomputable def ContainerStateRunning.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerStateRunning.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"StartedAt" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]
 
-@[irreducible] noncomputable def ContainerStateRunning.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerStateRunning.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerStateRunning.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerStateRunning [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerStateRunning [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerStateRunning.fields ContainerStateRunning.fieldsUnsealed :=
   ⟨by unfold ContainerStateRunning.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerStateRunning.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerStateRunning.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerStateRunning.fields)
 
-structure ContainerStateTerminated [FfiSyntax] where
+structure ContainerStateTerminated [GooseExts] where
   mk ::
   ExitCode' : w32
   Signal' : w32
@@ -7458,10 +7458,10 @@ structure ContainerStateTerminated [FfiSyntax] where
   FinishedAt' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time
   ContainerID' : GoString
 
-noncomputable instance ContainerStateTerminated.zero_val [FfiSyntax] : ZeroVal ContainerStateTerminated :=
+noncomputable instance ContainerStateTerminated.zero_val [GooseExts] : ZeroVal ContainerStateTerminated :=
   ⟨ContainerStateTerminated.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerStateTerminated.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerStateTerminated.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ExitCode" go.int32),
 (go.field_decl.FieldDecl go!"Signal" go.int32),
 (go.field_decl.FieldDecl go!"Reason" go.string),
@@ -7470,41 +7470,41 @@ noncomputable instance ContainerStateTerminated.zero_val [FfiSyntax] : ZeroVal C
 (go.field_decl.FieldDecl go!"FinishedAt" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
 (go.field_decl.FieldDecl go!"ContainerID" go.string)]
 
-@[irreducible] noncomputable def ContainerStateTerminated.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerStateTerminated.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerStateTerminated.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerStateTerminated [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerStateTerminated [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerStateTerminated.fields ContainerStateTerminated.fieldsUnsealed :=
   ⟨by unfold ContainerStateTerminated.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerStateTerminated.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerStateTerminated.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerStateTerminated.fields)
 
-structure ContainerState [FfiSyntax] where
+structure ContainerState [GooseExts] where
   mk ::
   Waiting' : Loc
   Running' : Loc
   Terminated' : Loc
 
-noncomputable instance ContainerState.zero_val [FfiSyntax] : ZeroVal ContainerState :=
+noncomputable instance ContainerState.zero_val [GooseExts] : ZeroVal ContainerState :=
   ⟨ContainerState.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerState.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Waiting" (go.GoType.PointerType ContainerStateWaiting.ty)),
 (go.field_decl.FieldDecl go!"Running" (go.GoType.PointerType ContainerStateRunning.ty)),
 (go.field_decl.FieldDecl go!"Terminated" (go.GoType.PointerType ContainerStateTerminated.ty))]
 
-@[irreducible] noncomputable def ContainerState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerState.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerState [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerState.fields ContainerState.fieldsUnsealed :=
   ⟨by unfold ContainerState.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerState.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerState.fields)
 
-structure ContainerStatus [FfiSyntax] where
+structure ContainerStatus [GooseExts] where
   mk ::
   Name' : GoString
   State' : ContainerState
@@ -7522,10 +7522,10 @@ structure ContainerStatus [FfiSyntax] where
   AllocatedResourcesStatus' : GoSlice
   StopSignal' : Loc
 
-noncomputable instance ContainerStatus.zero_val [FfiSyntax] : ZeroVal ContainerStatus :=
+noncomputable instance ContainerStatus.zero_val [GooseExts] : ZeroVal ContainerStatus :=
   ⟨ContainerStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"State" ContainerState.ty),
 (go.field_decl.FieldDecl go!"LastTerminationState" ContainerState.ty),
@@ -7542,127 +7542,127 @@ noncomputable instance ContainerStatus.zero_val [FfiSyntax] : ZeroVal ContainerS
 (go.field_decl.FieldDecl go!"AllocatedResourcesStatus" (go.GoType.SliceType ResourceStatus.ty)),
 (go.field_decl.FieldDecl go!"StopSignal" (go.GoType.PointerType Signal.ty))]
 
-@[irreducible] noncomputable def ContainerStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerStatus.fields ContainerStatus.fieldsUnsealed :=
   ⟨by unfold ContainerStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerStatus.fields)
 
-structure ResourceStatus [FfiSyntax] where
+structure ResourceStatus [GooseExts] where
   mk ::
   Name' : ResourceName
   Resources' : GoSlice
 
-noncomputable instance ResourceStatus.zero_val [FfiSyntax] : ZeroVal ResourceStatus :=
+noncomputable instance ResourceStatus.zero_val [GooseExts] : ZeroVal ResourceStatus :=
   ⟨ResourceStatus.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" ResourceName.ty),
 (go.field_decl.FieldDecl go!"Resources" (go.GoType.SliceType ResourceHealth.ty))]
 
-@[irreducible] noncomputable def ResourceStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceStatus.fields ResourceStatus.fieldsUnsealed :=
   ⟨by unfold ResourceStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceStatus.fields)
 
-abbrev ResourceHealthStatus [FfiSyntax] : Type := GoString
+abbrev ResourceHealthStatus [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ResourceHealthStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceHealthStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev ResourceID [FfiSyntax] : Type := GoString
+abbrev ResourceID [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ResourceID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceID.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ResourceHealth [FfiSyntax] where
+structure ResourceHealth [GooseExts] where
   mk ::
   ResourceID' : ResourceID
   Health' : ResourceHealthStatus
   Message' : Loc
 
-noncomputable instance ResourceHealth.zero_val [FfiSyntax] : ZeroVal ResourceHealth :=
+noncomputable instance ResourceHealth.zero_val [GooseExts] : ZeroVal ResourceHealth :=
   ⟨ResourceHealth.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceHealth.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceHealth.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ResourceID" ResourceID.ty),
 (go.field_decl.FieldDecl go!"Health" ResourceHealthStatus.ty),
 (go.field_decl.FieldDecl go!"Message" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def ResourceHealth.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceHealth.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceHealth.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceHealth [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceHealth [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceHealth.fields ResourceHealth.fieldsUnsealed :=
   ⟨by unfold ResourceHealth.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceHealth.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceHealth.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceHealth.fields)
 
-structure ContainerUser [FfiSyntax] where
+structure ContainerUser [GooseExts] where
   mk ::
   Linux' : Loc
 
-noncomputable instance ContainerUser.zero_val [FfiSyntax] : ZeroVal ContainerUser :=
+noncomputable instance ContainerUser.zero_val [GooseExts] : ZeroVal ContainerUser :=
   ⟨ContainerUser.mk zeroValDef⟩
 
-@[reducible] noncomputable def ContainerUser.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerUser.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Linux" (go.GoType.PointerType LinuxContainerUser.ty))]
 
-@[irreducible] noncomputable def ContainerUser.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerUser.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerUser.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerUser [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerUser [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerUser.fields ContainerUser.fieldsUnsealed :=
   ⟨by unfold ContainerUser.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerUser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerUser.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerUser.fields)
 
-structure LinuxContainerUser [FfiSyntax] where
+structure LinuxContainerUser [GooseExts] where
   mk ::
   UID' : w64
   GID' : w64
   SupplementalGroups' : GoSlice
 
-noncomputable instance LinuxContainerUser.zero_val [FfiSyntax] : ZeroVal LinuxContainerUser :=
+noncomputable instance LinuxContainerUser.zero_val [GooseExts] : ZeroVal LinuxContainerUser :=
   ⟨LinuxContainerUser.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LinuxContainerUser.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LinuxContainerUser.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"UID" go.int64),
 (go.field_decl.FieldDecl go!"GID" go.int64),
 (go.field_decl.FieldDecl go!"SupplementalGroups" (go.GoType.SliceType go.int64))]
 
-@[irreducible] noncomputable def LinuxContainerUser.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LinuxContainerUser.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LinuxContainerUser.fieldsUnsealed
 
-noncomputable instance equals_unfold_LinuxContainerUser [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LinuxContainerUser [GooseExts] [GoGlobalContext] :
     EqualsUnfold LinuxContainerUser.fields LinuxContainerUser.fieldsUnsealed :=
   ⟨by unfold LinuxContainerUser.fields; rfl⟩
 
-@[reducible] noncomputable def LinuxContainerUser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LinuxContainerUser.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LinuxContainerUser.fields)
 
-abbrev PodPhase [FfiSyntax] : Type := GoString
+abbrev PodPhase [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PodPhase.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodPhase.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev PodConditionType [FfiSyntax] : Type := GoString
+abbrev PodConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PodConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PodCondition [FfiSyntax] where
+structure PodCondition [GooseExts] where
   mk ::
   Type' : PodConditionType
   ObservedGeneration' : w64
@@ -7672,10 +7672,10 @@ structure PodCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance PodCondition.zero_val [FfiSyntax] : ZeroVal PodCondition :=
+noncomputable instance PodCondition.zero_val [GooseExts] : ZeroVal PodCondition :=
   ⟨PodCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" PodConditionType.ty),
 (go.field_decl.FieldDecl go!"ObservedGeneration" go.int64),
 (go.field_decl.FieldDecl go!"Status" ConditionStatus.ty),
@@ -7684,22 +7684,22 @@ noncomputable instance PodCondition.zero_val [FfiSyntax] : ZeroVal PodCondition 
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def PodCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodCondition.fields PodCondition.fieldsUnsealed :=
   ⟨by unfold PodCondition.fields; rfl⟩
 
-@[reducible] noncomputable def PodCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodCondition.fields)
 
-abbrev PodResizeStatus [FfiSyntax] : Type := GoString
+abbrev PodResizeStatus [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PodResizeStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodResizeStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure VolumeMountStatus [FfiSyntax] where
+structure VolumeMountStatus [GooseExts] where
   mk ::
   Name' : GoString
   MountPath' : GoString
@@ -7707,317 +7707,317 @@ structure VolumeMountStatus [FfiSyntax] where
   RecursiveReadOnly' : Loc
   VolumeStatus' : Loc
 
-noncomputable instance VolumeMountStatus.zero_val [FfiSyntax] : ZeroVal VolumeMountStatus :=
+noncomputable instance VolumeMountStatus.zero_val [GooseExts] : ZeroVal VolumeMountStatus :=
   ⟨VolumeMountStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def VolumeMountStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeMountStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"MountPath" go.string),
 (go.field_decl.FieldDecl go!"ReadOnly" go.bool),
 (go.field_decl.FieldDecl go!"RecursiveReadOnly" (go.GoType.PointerType RecursiveReadOnlyMode.ty)),
 (go.field_decl.FieldDecl go!"VolumeStatus" (go.GoType.PointerType VolumeStatus.ty))]
 
-@[irreducible] noncomputable def VolumeMountStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeMountStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeMountStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeMountStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeMountStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeMountStatus.fields VolumeMountStatus.fieldsUnsealed :=
   ⟨by unfold VolumeMountStatus.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeMountStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeMountStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeMountStatus.fields)
 
-structure VolumeStatus [FfiSyntax] where
+structure VolumeStatus [GooseExts] where
   mk ::
   Image' : Loc
 
-noncomputable instance VolumeStatus.zero_val [FfiSyntax] : ZeroVal VolumeStatus :=
+noncomputable instance VolumeStatus.zero_val [GooseExts] : ZeroVal VolumeStatus :=
   ⟨VolumeStatus.mk zeroValDef⟩
 
-@[reducible] noncomputable def VolumeStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def VolumeStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Image" (go.GoType.PointerType ImageVolumeStatus.ty))]
 
-@[irreducible] noncomputable def VolumeStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def VolumeStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VolumeStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_VolumeStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_VolumeStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold VolumeStatus.fields VolumeStatus.fieldsUnsealed :=
   ⟨by unfold VolumeStatus.fields; rfl⟩
 
-@[reducible] noncomputable def VolumeStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VolumeStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType VolumeStatus.fields)
 
-structure ImageVolumeStatus [FfiSyntax] where
+structure ImageVolumeStatus [GooseExts] where
   mk ::
   ImageRef' : GoString
 
-noncomputable instance ImageVolumeStatus.zero_val [FfiSyntax] : ZeroVal ImageVolumeStatus :=
+noncomputable instance ImageVolumeStatus.zero_val [GooseExts] : ZeroVal ImageVolumeStatus :=
   ⟨ImageVolumeStatus.mk zeroValDef⟩
 
-@[reducible] noncomputable def ImageVolumeStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ImageVolumeStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ImageRef" go.string)]
 
-@[irreducible] noncomputable def ImageVolumeStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ImageVolumeStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ImageVolumeStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ImageVolumeStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ImageVolumeStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ImageVolumeStatus.fields ImageVolumeStatus.fieldsUnsealed :=
   ⟨by unfold ImageVolumeStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ImageVolumeStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ImageVolumeStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ImageVolumeStatus.fields)
 
-abbrev RestartPolicy [FfiSyntax] : Type := GoString
+abbrev RestartPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def RestartPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RestartPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev ContainerRestartPolicy [FfiSyntax] : Type := GoString
+abbrev ContainerRestartPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ContainerRestartPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerRestartPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev ContainerRestartRuleAction [FfiSyntax] : Type := GoString
+abbrev ContainerRestartRuleAction [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ContainerRestartRuleAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerRestartRuleAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ContainerRestartRule [FfiSyntax] where
+structure ContainerRestartRule [GooseExts] where
   mk ::
   Action' : ContainerRestartRuleAction
   ExitCodes' : Loc
 
-noncomputable instance ContainerRestartRule.zero_val [FfiSyntax] : ZeroVal ContainerRestartRule :=
+noncomputable instance ContainerRestartRule.zero_val [GooseExts] : ZeroVal ContainerRestartRule :=
   ⟨ContainerRestartRule.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerRestartRule.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerRestartRule.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Action" ContainerRestartRuleAction.ty),
 (go.field_decl.FieldDecl go!"ExitCodes" (go.GoType.PointerType ContainerRestartRuleOnExitCodes.ty))]
 
-@[irreducible] noncomputable def ContainerRestartRule.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerRestartRule.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerRestartRule.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerRestartRule [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerRestartRule [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerRestartRule.fields ContainerRestartRule.fieldsUnsealed :=
   ⟨by unfold ContainerRestartRule.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerRestartRule.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerRestartRule.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerRestartRule.fields)
 
-abbrev ContainerRestartRuleOnExitCodesOperator [FfiSyntax] : Type := GoString
+abbrev ContainerRestartRuleOnExitCodesOperator [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ContainerRestartRuleOnExitCodesOperator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerRestartRuleOnExitCodesOperator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ContainerRestartRuleOnExitCodes [FfiSyntax] where
+structure ContainerRestartRuleOnExitCodes [GooseExts] where
   mk ::
   Operator' : ContainerRestartRuleOnExitCodesOperator
   Values' : GoSlice
 
-noncomputable instance ContainerRestartRuleOnExitCodes.zero_val [FfiSyntax] : ZeroVal ContainerRestartRuleOnExitCodes :=
+noncomputable instance ContainerRestartRuleOnExitCodes.zero_val [GooseExts] : ZeroVal ContainerRestartRuleOnExitCodes :=
   ⟨ContainerRestartRuleOnExitCodes.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerRestartRuleOnExitCodes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerRestartRuleOnExitCodes.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Operator" ContainerRestartRuleOnExitCodesOperator.ty),
 (go.field_decl.FieldDecl go!"Values" (go.GoType.SliceType go.int32))]
 
-@[irreducible] noncomputable def ContainerRestartRuleOnExitCodes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerRestartRuleOnExitCodes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerRestartRuleOnExitCodes.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerRestartRuleOnExitCodes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerRestartRuleOnExitCodes [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerRestartRuleOnExitCodes.fields ContainerRestartRuleOnExitCodes.fieldsUnsealed :=
   ⟨by unfold ContainerRestartRuleOnExitCodes.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerRestartRuleOnExitCodes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerRestartRuleOnExitCodes.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerRestartRuleOnExitCodes.fields)
 
-abbrev DNSPolicy [FfiSyntax] : Type := GoString
+abbrev DNSPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def DNSPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DNSPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure NodeSelector [FfiSyntax] where
+structure NodeSelector [GooseExts] where
   mk ::
   NodeSelectorTerms' : GoSlice
 
-noncomputable instance NodeSelector.zero_val [FfiSyntax] : ZeroVal NodeSelector :=
+noncomputable instance NodeSelector.zero_val [GooseExts] : ZeroVal NodeSelector :=
   ⟨NodeSelector.mk zeroValDef⟩
 
-@[reducible] noncomputable def NodeSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"NodeSelectorTerms" (go.GoType.SliceType NodeSelectorTerm.ty))]
 
-@[irreducible] noncomputable def NodeSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeSelector.fields NodeSelector.fieldsUnsealed :=
   ⟨by unfold NodeSelector.fields; rfl⟩
 
-@[reducible] noncomputable def NodeSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeSelector.fields)
 
-structure NodeSelectorTerm [FfiSyntax] where
+structure NodeSelectorTerm [GooseExts] where
   mk ::
   MatchExpressions' : GoSlice
   MatchFields' : GoSlice
 
-noncomputable instance NodeSelectorTerm.zero_val [FfiSyntax] : ZeroVal NodeSelectorTerm :=
+noncomputable instance NodeSelectorTerm.zero_val [GooseExts] : ZeroVal NodeSelectorTerm :=
   ⟨NodeSelectorTerm.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeSelectorTerm.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeSelectorTerm.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MatchExpressions" (go.GoType.SliceType NodeSelectorRequirement.ty)),
 (go.field_decl.FieldDecl go!"MatchFields" (go.GoType.SliceType NodeSelectorRequirement.ty))]
 
-@[irreducible] noncomputable def NodeSelectorTerm.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeSelectorTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeSelectorTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeSelectorTerm [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeSelectorTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeSelectorTerm.fields NodeSelectorTerm.fieldsUnsealed :=
   ⟨by unfold NodeSelectorTerm.fields; rfl⟩
 
-@[reducible] noncomputable def NodeSelectorTerm.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeSelectorTerm.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeSelectorTerm.fields)
 
-abbrev NodeSelectorOperator [FfiSyntax] : Type := GoString
+abbrev NodeSelectorOperator [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def NodeSelectorOperator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeSelectorOperator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure NodeSelectorRequirement [FfiSyntax] where
+structure NodeSelectorRequirement [GooseExts] where
   mk ::
   Key' : GoString
   Operator' : NodeSelectorOperator
   Values' : GoSlice
 
-noncomputable instance NodeSelectorRequirement.zero_val [FfiSyntax] : ZeroVal NodeSelectorRequirement :=
+noncomputable instance NodeSelectorRequirement.zero_val [GooseExts] : ZeroVal NodeSelectorRequirement :=
   ⟨NodeSelectorRequirement.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeSelectorRequirement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeSelectorRequirement.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Operator" NodeSelectorOperator.ty),
 (go.field_decl.FieldDecl go!"Values" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def NodeSelectorRequirement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeSelectorRequirement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeSelectorRequirement.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeSelectorRequirement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeSelectorRequirement [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeSelectorRequirement.fields NodeSelectorRequirement.fieldsUnsealed :=
   ⟨by unfold NodeSelectorRequirement.fields; rfl⟩
 
-@[reducible] noncomputable def NodeSelectorRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeSelectorRequirement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeSelectorRequirement.fields)
 
-structure TopologySelectorTerm [FfiSyntax] where
+structure TopologySelectorTerm [GooseExts] where
   mk ::
   MatchLabelExpressions' : GoSlice
 
-noncomputable instance TopologySelectorTerm.zero_val [FfiSyntax] : ZeroVal TopologySelectorTerm :=
+noncomputable instance TopologySelectorTerm.zero_val [GooseExts] : ZeroVal TopologySelectorTerm :=
   ⟨TopologySelectorTerm.mk zeroValDef⟩
 
-@[reducible] noncomputable def TopologySelectorTerm.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TopologySelectorTerm.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MatchLabelExpressions" (go.GoType.SliceType TopologySelectorLabelRequirement.ty))]
 
-@[irreducible] noncomputable def TopologySelectorTerm.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TopologySelectorTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TopologySelectorTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_TopologySelectorTerm [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TopologySelectorTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold TopologySelectorTerm.fields TopologySelectorTerm.fieldsUnsealed :=
   ⟨by unfold TopologySelectorTerm.fields; rfl⟩
 
-@[reducible] noncomputable def TopologySelectorTerm.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TopologySelectorTerm.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TopologySelectorTerm.fields)
 
-structure TopologySelectorLabelRequirement [FfiSyntax] where
+structure TopologySelectorLabelRequirement [GooseExts] where
   mk ::
   Key' : GoString
   Values' : GoSlice
 
-noncomputable instance TopologySelectorLabelRequirement.zero_val [FfiSyntax] : ZeroVal TopologySelectorLabelRequirement :=
+noncomputable instance TopologySelectorLabelRequirement.zero_val [GooseExts] : ZeroVal TopologySelectorLabelRequirement :=
   ⟨TopologySelectorLabelRequirement.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TopologySelectorLabelRequirement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TopologySelectorLabelRequirement.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Values" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def TopologySelectorLabelRequirement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TopologySelectorLabelRequirement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TopologySelectorLabelRequirement.fieldsUnsealed
 
-noncomputable instance equals_unfold_TopologySelectorLabelRequirement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TopologySelectorLabelRequirement [GooseExts] [GoGlobalContext] :
     EqualsUnfold TopologySelectorLabelRequirement.fields TopologySelectorLabelRequirement.fieldsUnsealed :=
   ⟨by unfold TopologySelectorLabelRequirement.fields; rfl⟩
 
-@[reducible] noncomputable def TopologySelectorLabelRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TopologySelectorLabelRequirement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TopologySelectorLabelRequirement.fields)
 
-structure Affinity [FfiSyntax] where
+structure Affinity [GooseExts] where
   mk ::
   NodeAffinity' : Loc
   PodAffinity' : Loc
   PodAntiAffinity' : Loc
 
-noncomputable instance Affinity.zero_val [FfiSyntax] : ZeroVal Affinity :=
+noncomputable instance Affinity.zero_val [GooseExts] : ZeroVal Affinity :=
   ⟨Affinity.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Affinity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Affinity.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"NodeAffinity" (go.GoType.PointerType NodeAffinity.ty)),
 (go.field_decl.FieldDecl go!"PodAffinity" (go.GoType.PointerType PodAffinity.ty)),
 (go.field_decl.FieldDecl go!"PodAntiAffinity" (go.GoType.PointerType PodAntiAffinity.ty))]
 
-@[irreducible] noncomputable def Affinity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Affinity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Affinity.fieldsUnsealed
 
-noncomputable instance equals_unfold_Affinity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Affinity [GooseExts] [GoGlobalContext] :
     EqualsUnfold Affinity.fields Affinity.fieldsUnsealed :=
   ⟨by unfold Affinity.fields; rfl⟩
 
-@[reducible] noncomputable def Affinity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Affinity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Affinity.fields)
 
-structure PodAffinity [FfiSyntax] where
+structure PodAffinity [GooseExts] where
   mk ::
   RequiredDuringSchedulingIgnoredDuringExecution' : GoSlice
   PreferredDuringSchedulingIgnoredDuringExecution' : GoSlice
 
-noncomputable instance PodAffinity.zero_val [FfiSyntax] : ZeroVal PodAffinity :=
+noncomputable instance PodAffinity.zero_val [GooseExts] : ZeroVal PodAffinity :=
   ⟨PodAffinity.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodAffinity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodAffinity.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"RequiredDuringSchedulingIgnoredDuringExecution" (go.GoType.SliceType PodAffinityTerm.ty)),
 (go.field_decl.FieldDecl go!"PreferredDuringSchedulingIgnoredDuringExecution" (go.GoType.SliceType WeightedPodAffinityTerm.ty))]
 
-@[irreducible] noncomputable def PodAffinity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodAffinity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodAffinity.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodAffinity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodAffinity [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodAffinity.fields PodAffinity.fieldsUnsealed :=
   ⟨by unfold PodAffinity.fields; rfl⟩
 
-@[reducible] noncomputable def PodAffinity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodAffinity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodAffinity.fields)
 
-structure PodAntiAffinity [FfiSyntax] where
+structure PodAntiAffinity [GooseExts] where
   mk ::
   RequiredDuringSchedulingIgnoredDuringExecution' : GoSlice
   PreferredDuringSchedulingIgnoredDuringExecution' : GoSlice
 
-noncomputable instance PodAntiAffinity.zero_val [FfiSyntax] : ZeroVal PodAntiAffinity :=
+noncomputable instance PodAntiAffinity.zero_val [GooseExts] : ZeroVal PodAntiAffinity :=
   ⟨PodAntiAffinity.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodAntiAffinity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodAntiAffinity.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"RequiredDuringSchedulingIgnoredDuringExecution" (go.GoType.SliceType PodAffinityTerm.ty)),
 (go.field_decl.FieldDecl go!"PreferredDuringSchedulingIgnoredDuringExecution" (go.GoType.SliceType WeightedPodAffinityTerm.ty))]
 
-@[irreducible] noncomputable def PodAntiAffinity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodAntiAffinity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodAntiAffinity.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodAntiAffinity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodAntiAffinity [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodAntiAffinity.fields PodAntiAffinity.fieldsUnsealed :=
   ⟨by unfold PodAntiAffinity.fields; rfl⟩
 
-@[reducible] noncomputable def PodAntiAffinity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodAntiAffinity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodAntiAffinity.fields)
 
-structure PodAffinityTerm [FfiSyntax] where
+structure PodAffinityTerm [GooseExts] where
   mk ::
   LabelSelector' : Loc
   Namespaces' : GoSlice
@@ -8026,10 +8026,10 @@ structure PodAffinityTerm [FfiSyntax] where
   MatchLabelKeys' : GoSlice
   MismatchLabelKeys' : GoSlice
 
-noncomputable instance PodAffinityTerm.zero_val [FfiSyntax] : ZeroVal PodAffinityTerm :=
+noncomputable instance PodAffinityTerm.zero_val [GooseExts] : ZeroVal PodAffinityTerm :=
   ⟨PodAffinityTerm.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodAffinityTerm.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodAffinityTerm.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"LabelSelector" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)),
 (go.field_decl.FieldDecl go!"Namespaces" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"TopologyKey" go.string),
@@ -8037,119 +8037,119 @@ noncomputable instance PodAffinityTerm.zero_val [FfiSyntax] : ZeroVal PodAffinit
 (go.field_decl.FieldDecl go!"MatchLabelKeys" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"MismatchLabelKeys" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def PodAffinityTerm.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodAffinityTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodAffinityTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodAffinityTerm [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodAffinityTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodAffinityTerm.fields PodAffinityTerm.fieldsUnsealed :=
   ⟨by unfold PodAffinityTerm.fields; rfl⟩
 
-@[reducible] noncomputable def PodAffinityTerm.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodAffinityTerm.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodAffinityTerm.fields)
 
-structure WeightedPodAffinityTerm [FfiSyntax] where
+structure WeightedPodAffinityTerm [GooseExts] where
   mk ::
   Weight' : w32
   PodAffinityTerm' : PodAffinityTerm
 
-noncomputable instance WeightedPodAffinityTerm.zero_val [FfiSyntax] : ZeroVal WeightedPodAffinityTerm :=
+noncomputable instance WeightedPodAffinityTerm.zero_val [GooseExts] : ZeroVal WeightedPodAffinityTerm :=
   ⟨WeightedPodAffinityTerm.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def WeightedPodAffinityTerm.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def WeightedPodAffinityTerm.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Weight" go.int32),
 (go.field_decl.FieldDecl go!"PodAffinityTerm" PodAffinityTerm.ty)]
 
-@[irreducible] noncomputable def WeightedPodAffinityTerm.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def WeightedPodAffinityTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WeightedPodAffinityTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_WeightedPodAffinityTerm [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_WeightedPodAffinityTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold WeightedPodAffinityTerm.fields WeightedPodAffinityTerm.fieldsUnsealed :=
   ⟨by unfold WeightedPodAffinityTerm.fields; rfl⟩
 
-@[reducible] noncomputable def WeightedPodAffinityTerm.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WeightedPodAffinityTerm.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType WeightedPodAffinityTerm.fields)
 
-structure NodeAffinity [FfiSyntax] where
+structure NodeAffinity [GooseExts] where
   mk ::
   RequiredDuringSchedulingIgnoredDuringExecution' : Loc
   PreferredDuringSchedulingIgnoredDuringExecution' : GoSlice
 
-noncomputable instance NodeAffinity.zero_val [FfiSyntax] : ZeroVal NodeAffinity :=
+noncomputable instance NodeAffinity.zero_val [GooseExts] : ZeroVal NodeAffinity :=
   ⟨NodeAffinity.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeAffinity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeAffinity.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"RequiredDuringSchedulingIgnoredDuringExecution" (go.GoType.PointerType NodeSelector.ty)),
 (go.field_decl.FieldDecl go!"PreferredDuringSchedulingIgnoredDuringExecution" (go.GoType.SliceType PreferredSchedulingTerm.ty))]
 
-@[irreducible] noncomputable def NodeAffinity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeAffinity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeAffinity.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeAffinity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeAffinity [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeAffinity.fields NodeAffinity.fieldsUnsealed :=
   ⟨by unfold NodeAffinity.fields; rfl⟩
 
-@[reducible] noncomputable def NodeAffinity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeAffinity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeAffinity.fields)
 
-structure PreferredSchedulingTerm [FfiSyntax] where
+structure PreferredSchedulingTerm [GooseExts] where
   mk ::
   Weight' : w32
   Preference' : NodeSelectorTerm
 
-noncomputable instance PreferredSchedulingTerm.zero_val [FfiSyntax] : ZeroVal PreferredSchedulingTerm :=
+noncomputable instance PreferredSchedulingTerm.zero_val [GooseExts] : ZeroVal PreferredSchedulingTerm :=
   ⟨PreferredSchedulingTerm.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PreferredSchedulingTerm.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PreferredSchedulingTerm.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Weight" go.int32),
 (go.field_decl.FieldDecl go!"Preference" NodeSelectorTerm.ty)]
 
-@[irreducible] noncomputable def PreferredSchedulingTerm.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PreferredSchedulingTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PreferredSchedulingTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_PreferredSchedulingTerm [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PreferredSchedulingTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold PreferredSchedulingTerm.fields PreferredSchedulingTerm.fieldsUnsealed :=
   ⟨by unfold PreferredSchedulingTerm.fields; rfl⟩
 
-@[reducible] noncomputable def PreferredSchedulingTerm.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PreferredSchedulingTerm.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PreferredSchedulingTerm.fields)
 
-abbrev TaintEffect [FfiSyntax] : Type := GoString
+abbrev TaintEffect [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def TaintEffect.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TaintEffect.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure Taint [FfiSyntax] where
+structure Taint [GooseExts] where
   mk ::
   Key' : GoString
   Value' : GoString
   Effect' : TaintEffect
   TimeAdded' : Loc
 
-noncomputable instance Taint.zero_val [FfiSyntax] : ZeroVal Taint :=
+noncomputable instance Taint.zero_val [GooseExts] : ZeroVal Taint :=
   ⟨Taint.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Taint.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Taint.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Value" go.string),
 (go.field_decl.FieldDecl go!"Effect" TaintEffect.ty),
 (go.field_decl.FieldDecl go!"TimeAdded" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty))]
 
-@[irreducible] noncomputable def Taint.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Taint.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Taint.fieldsUnsealed
 
-noncomputable instance equals_unfold_Taint [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Taint [GooseExts] [GoGlobalContext] :
     EqualsUnfold Taint.fields Taint.fieldsUnsealed :=
   ⟨by unfold Taint.fields; rfl⟩
 
-@[reducible] noncomputable def Taint.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Taint.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Taint.fields)
 
-abbrev TolerationOperator [FfiSyntax] : Type := GoString
+abbrev TolerationOperator [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def TolerationOperator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TolerationOperator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure Toleration [FfiSyntax] where
+structure Toleration [GooseExts] where
   mk ::
   Key' : GoString
   Operator' : TolerationOperator
@@ -8157,47 +8157,47 @@ structure Toleration [FfiSyntax] where
   Effect' : TaintEffect
   TolerationSeconds' : Loc
 
-noncomputable instance Toleration.zero_val [FfiSyntax] : ZeroVal Toleration :=
+noncomputable instance Toleration.zero_val [GooseExts] : ZeroVal Toleration :=
   ⟨Toleration.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Toleration.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Toleration.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Operator" TolerationOperator.ty),
 (go.field_decl.FieldDecl go!"Value" go.string),
 (go.field_decl.FieldDecl go!"Effect" TaintEffect.ty),
 (go.field_decl.FieldDecl go!"TolerationSeconds" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def Toleration.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Toleration.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Toleration.fieldsUnsealed
 
-noncomputable instance equals_unfold_Toleration [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Toleration [GooseExts] [GoGlobalContext] :
     EqualsUnfold Toleration.fields Toleration.fieldsUnsealed :=
   ⟨by unfold Toleration.fields; rfl⟩
 
-@[reducible] noncomputable def Toleration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Toleration.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Toleration.fields)
 
-structure PodReadinessGate [FfiSyntax] where
+structure PodReadinessGate [GooseExts] where
   mk ::
   ConditionType' : PodConditionType
 
-noncomputable instance PodReadinessGate.zero_val [FfiSyntax] : ZeroVal PodReadinessGate :=
+noncomputable instance PodReadinessGate.zero_val [GooseExts] : ZeroVal PodReadinessGate :=
   ⟨PodReadinessGate.mk zeroValDef⟩
 
-@[reducible] noncomputable def PodReadinessGate.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodReadinessGate.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ConditionType" PodConditionType.ty)]
 
-@[irreducible] noncomputable def PodReadinessGate.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodReadinessGate.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodReadinessGate.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodReadinessGate [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodReadinessGate [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodReadinessGate.fields PodReadinessGate.fieldsUnsealed :=
   ⟨by unfold PodReadinessGate.fields; rfl⟩
 
-@[reducible] noncomputable def PodReadinessGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodReadinessGate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodReadinessGate.fields)
 
-structure PodSpec [FfiSyntax] where
+structure PodSpec [GooseExts] where
   mk ::
   Volumes' : GoSlice
   InitContainers' : GoSlice
@@ -8243,10 +8243,10 @@ structure PodSpec [FfiSyntax] where
   SchedulingGroup' : Loc
   EvictionResponders' : GoSlice
 
-noncomputable instance PodSpec.zero_val [FfiSyntax] : ZeroVal PodSpec :=
+noncomputable instance PodSpec.zero_val [GooseExts] : ZeroVal PodSpec :=
   ⟨PodSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Volumes" (go.GoType.SliceType Volume.ty)),
 (go.field_decl.FieldDecl go!"InitContainers" (go.GoType.SliceType Container.ty)),
 (go.field_decl.FieldDecl go!"Containers" (go.GoType.SliceType Container.ty)),
@@ -8291,184 +8291,184 @@ noncomputable instance PodSpec.zero_val [FfiSyntax] : ZeroVal PodSpec :=
 (go.field_decl.FieldDecl go!"SchedulingGroup" (go.GoType.PointerType PodSchedulingGroup.ty)),
 (go.field_decl.FieldDecl go!"EvictionResponders" (go.GoType.SliceType EvictionResponder.ty))]
 
-@[irreducible] noncomputable def PodSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodSpec.fields PodSpec.fieldsUnsealed :=
   ⟨by unfold PodSpec.fields; rfl⟩
 
-@[reducible] noncomputable def PodSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodSpec.fields)
 
-structure PodResourceClaim [FfiSyntax] where
+structure PodResourceClaim [GooseExts] where
   mk ::
   Name' : GoString
   ResourceClaimName' : Loc
   ResourceClaimTemplateName' : Loc
 
-noncomputable instance PodResourceClaim.zero_val [FfiSyntax] : ZeroVal PodResourceClaim :=
+noncomputable instance PodResourceClaim.zero_val [GooseExts] : ZeroVal PodResourceClaim :=
   ⟨PodResourceClaim.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodResourceClaim.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodResourceClaim.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"ResourceClaimName" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"ResourceClaimTemplateName" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def PodResourceClaim.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodResourceClaim.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodResourceClaim.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodResourceClaim [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodResourceClaim [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodResourceClaim.fields PodResourceClaim.fieldsUnsealed :=
   ⟨by unfold PodResourceClaim.fields; rfl⟩
 
-@[reducible] noncomputable def PodResourceClaim.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodResourceClaim.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodResourceClaim.fields)
 
-structure PodResourceClaimStatus [FfiSyntax] where
+structure PodResourceClaimStatus [GooseExts] where
   mk ::
   Name' : GoString
   ResourceClaimName' : Loc
 
-noncomputable instance PodResourceClaimStatus.zero_val [FfiSyntax] : ZeroVal PodResourceClaimStatus :=
+noncomputable instance PodResourceClaimStatus.zero_val [GooseExts] : ZeroVal PodResourceClaimStatus :=
   ⟨PodResourceClaimStatus.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodResourceClaimStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodResourceClaimStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"ResourceClaimName" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def PodResourceClaimStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodResourceClaimStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodResourceClaimStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodResourceClaimStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodResourceClaimStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodResourceClaimStatus.fields PodResourceClaimStatus.fieldsUnsealed :=
   ⟨by unfold PodResourceClaimStatus.fields; rfl⟩
 
-@[reducible] noncomputable def PodResourceClaimStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodResourceClaimStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodResourceClaimStatus.fields)
 
-structure PodExtendedResourceClaimStatus [FfiSyntax] where
+structure PodExtendedResourceClaimStatus [GooseExts] where
   mk ::
   RequestMappings' : GoSlice
   ResourceClaimName' : GoString
 
-noncomputable instance PodExtendedResourceClaimStatus.zero_val [FfiSyntax] : ZeroVal PodExtendedResourceClaimStatus :=
+noncomputable instance PodExtendedResourceClaimStatus.zero_val [GooseExts] : ZeroVal PodExtendedResourceClaimStatus :=
   ⟨PodExtendedResourceClaimStatus.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodExtendedResourceClaimStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodExtendedResourceClaimStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"RequestMappings" (go.GoType.SliceType ContainerExtendedResourceRequest.ty)),
 (go.field_decl.FieldDecl go!"ResourceClaimName" go.string)]
 
-@[irreducible] noncomputable def PodExtendedResourceClaimStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodExtendedResourceClaimStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodExtendedResourceClaimStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodExtendedResourceClaimStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodExtendedResourceClaimStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodExtendedResourceClaimStatus.fields PodExtendedResourceClaimStatus.fieldsUnsealed :=
   ⟨by unfold PodExtendedResourceClaimStatus.fields; rfl⟩
 
-@[reducible] noncomputable def PodExtendedResourceClaimStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodExtendedResourceClaimStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodExtendedResourceClaimStatus.fields)
 
-structure ContainerExtendedResourceRequest [FfiSyntax] where
+structure ContainerExtendedResourceRequest [GooseExts] where
   mk ::
   ContainerName' : GoString
   ResourceName' : GoString
   RequestName' : GoString
 
-noncomputable instance ContainerExtendedResourceRequest.zero_val [FfiSyntax] : ZeroVal ContainerExtendedResourceRequest :=
+noncomputable instance ContainerExtendedResourceRequest.zero_val [GooseExts] : ZeroVal ContainerExtendedResourceRequest :=
   ⟨ContainerExtendedResourceRequest.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerExtendedResourceRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerExtendedResourceRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ContainerName" go.string),
 (go.field_decl.FieldDecl go!"ResourceName" go.string),
 (go.field_decl.FieldDecl go!"RequestName" go.string)]
 
-@[irreducible] noncomputable def ContainerExtendedResourceRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerExtendedResourceRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerExtendedResourceRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerExtendedResourceRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerExtendedResourceRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerExtendedResourceRequest.fields ContainerExtendedResourceRequest.fieldsUnsealed :=
   ⟨by unfold ContainerExtendedResourceRequest.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerExtendedResourceRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerExtendedResourceRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerExtendedResourceRequest.fields)
 
-abbrev OSName [FfiSyntax] : Type := GoString
+abbrev OSName [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def OSName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def OSName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PodOS [FfiSyntax] where
+structure PodOS [GooseExts] where
   mk ::
   Name' : OSName
 
-noncomputable instance PodOS.zero_val [FfiSyntax] : ZeroVal PodOS :=
+noncomputable instance PodOS.zero_val [GooseExts] : ZeroVal PodOS :=
   ⟨PodOS.mk zeroValDef⟩
 
-@[reducible] noncomputable def PodOS.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodOS.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" OSName.ty)]
 
-@[irreducible] noncomputable def PodOS.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodOS.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodOS.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodOS [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodOS [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodOS.fields PodOS.fieldsUnsealed :=
   ⟨by unfold PodOS.fields; rfl⟩
 
-@[reducible] noncomputable def PodOS.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodOS.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodOS.fields)
 
-structure PodSchedulingGate [FfiSyntax] where
+structure PodSchedulingGate [GooseExts] where
   mk ::
   Name' : GoString
 
-noncomputable instance PodSchedulingGate.zero_val [FfiSyntax] : ZeroVal PodSchedulingGate :=
+noncomputable instance PodSchedulingGate.zero_val [GooseExts] : ZeroVal PodSchedulingGate :=
   ⟨PodSchedulingGate.mk zeroValDef⟩
 
-@[reducible] noncomputable def PodSchedulingGate.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodSchedulingGate.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string)]
 
-@[irreducible] noncomputable def PodSchedulingGate.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodSchedulingGate.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodSchedulingGate.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodSchedulingGate [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodSchedulingGate [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodSchedulingGate.fields PodSchedulingGate.fieldsUnsealed :=
   ⟨by unfold PodSchedulingGate.fields; rfl⟩
 
-@[reducible] noncomputable def PodSchedulingGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodSchedulingGate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodSchedulingGate.fields)
 
-structure PodSchedulingGroup [FfiSyntax] where
+structure PodSchedulingGroup [GooseExts] where
   mk ::
   PodGroupName' : Loc
 
-noncomputable instance PodSchedulingGroup.zero_val [FfiSyntax] : ZeroVal PodSchedulingGroup :=
+noncomputable instance PodSchedulingGroup.zero_val [GooseExts] : ZeroVal PodSchedulingGroup :=
   ⟨PodSchedulingGroup.mk zeroValDef⟩
 
-@[reducible] noncomputable def PodSchedulingGroup.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodSchedulingGroup.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PodGroupName" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def PodSchedulingGroup.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodSchedulingGroup.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodSchedulingGroup.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodSchedulingGroup [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodSchedulingGroup [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodSchedulingGroup.fields PodSchedulingGroup.fieldsUnsealed :=
   ⟨by unfold PodSchedulingGroup.fields; rfl⟩
 
-@[reducible] noncomputable def PodSchedulingGroup.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodSchedulingGroup.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodSchedulingGroup.fields)
 
-abbrev UnsatisfiableConstraintAction [FfiSyntax] : Type := GoString
+abbrev UnsatisfiableConstraintAction [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def UnsatisfiableConstraintAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnsatisfiableConstraintAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev NodeInclusionPolicy [FfiSyntax] : Type := GoString
+abbrev NodeInclusionPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def NodeInclusionPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeInclusionPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure TopologySpreadConstraint [FfiSyntax] where
+structure TopologySpreadConstraint [GooseExts] where
   mk ::
   MaxSkew' : w32
   TopologyKey' : GoString
@@ -8479,10 +8479,10 @@ structure TopologySpreadConstraint [FfiSyntax] where
   NodeTaintsPolicy' : Loc
   MatchLabelKeys' : GoSlice
 
-noncomputable instance TopologySpreadConstraint.zero_val [FfiSyntax] : ZeroVal TopologySpreadConstraint :=
+noncomputable instance TopologySpreadConstraint.zero_val [GooseExts] : ZeroVal TopologySpreadConstraint :=
   ⟨TopologySpreadConstraint.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TopologySpreadConstraint.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TopologySpreadConstraint.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxSkew" go.int32),
 (go.field_decl.FieldDecl go!"TopologyKey" go.string),
 (go.field_decl.FieldDecl go!"WhenUnsatisfiable" UnsatisfiableConstraintAction.ty),
@@ -8492,54 +8492,54 @@ noncomputable instance TopologySpreadConstraint.zero_val [FfiSyntax] : ZeroVal T
 (go.field_decl.FieldDecl go!"NodeTaintsPolicy" (go.GoType.PointerType NodeInclusionPolicy.ty)),
 (go.field_decl.FieldDecl go!"MatchLabelKeys" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def TopologySpreadConstraint.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TopologySpreadConstraint.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TopologySpreadConstraint.fieldsUnsealed
 
-noncomputable instance equals_unfold_TopologySpreadConstraint [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TopologySpreadConstraint [GooseExts] [GoGlobalContext] :
     EqualsUnfold TopologySpreadConstraint.fields TopologySpreadConstraint.fieldsUnsealed :=
   ⟨by unfold TopologySpreadConstraint.fields; rfl⟩
 
-@[reducible] noncomputable def TopologySpreadConstraint.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TopologySpreadConstraint.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TopologySpreadConstraint.fields)
 
-structure HostAlias [FfiSyntax] where
+structure HostAlias [GooseExts] where
   mk ::
   IP' : GoString
   Hostnames' : GoSlice
 
-noncomputable instance HostAlias.zero_val [FfiSyntax] : ZeroVal HostAlias :=
+noncomputable instance HostAlias.zero_val [GooseExts] : ZeroVal HostAlias :=
   ⟨HostAlias.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def HostAlias.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HostAlias.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IP" go.string),
 (go.field_decl.FieldDecl go!"Hostnames" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def HostAlias.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HostAlias.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HostAlias.fieldsUnsealed
 
-noncomputable instance equals_unfold_HostAlias [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HostAlias [GooseExts] [GoGlobalContext] :
     EqualsUnfold HostAlias.fields HostAlias.fieldsUnsealed :=
   ⟨by unfold HostAlias.fields; rfl⟩
 
-@[reducible] noncomputable def HostAlias.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HostAlias.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HostAlias.fields)
 
-abbrev PodFSGroupChangePolicy [FfiSyntax] : Type := GoString
+abbrev PodFSGroupChangePolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PodFSGroupChangePolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodFSGroupChangePolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev SupplementalGroupsPolicy [FfiSyntax] : Type := GoString
+abbrev SupplementalGroupsPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def SupplementalGroupsPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SupplementalGroupsPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev PodSELinuxChangePolicy [FfiSyntax] : Type := GoString
+abbrev PodSELinuxChangePolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PodSELinuxChangePolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodSELinuxChangePolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PodSecurityContext [FfiSyntax] where
+structure PodSecurityContext [GooseExts] where
   mk ::
   SELinuxOptions' : Loc
   WindowsOptions' : Loc
@@ -8555,10 +8555,10 @@ structure PodSecurityContext [FfiSyntax] where
   AppArmorProfile' : Loc
   SELinuxChangePolicy' : Loc
 
-noncomputable instance PodSecurityContext.zero_val [FfiSyntax] : ZeroVal PodSecurityContext :=
+noncomputable instance PodSecurityContext.zero_val [GooseExts] : ZeroVal PodSecurityContext :=
   ⟨PodSecurityContext.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodSecurityContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodSecurityContext.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SELinuxOptions" (go.GoType.PointerType SELinuxOptions.ty)),
 (go.field_decl.FieldDecl go!"WindowsOptions" (go.GoType.PointerType WindowsSecurityContextOptions.ty)),
 (go.field_decl.FieldDecl go!"RunAsUser" (go.GoType.PointerType go.int64)),
@@ -8573,162 +8573,162 @@ noncomputable instance PodSecurityContext.zero_val [FfiSyntax] : ZeroVal PodSecu
 (go.field_decl.FieldDecl go!"AppArmorProfile" (go.GoType.PointerType AppArmorProfile.ty)),
 (go.field_decl.FieldDecl go!"SELinuxChangePolicy" (go.GoType.PointerType PodSELinuxChangePolicy.ty))]
 
-@[irreducible] noncomputable def PodSecurityContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodSecurityContext.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodSecurityContext.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodSecurityContext [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodSecurityContext [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodSecurityContext.fields PodSecurityContext.fieldsUnsealed :=
   ⟨by unfold PodSecurityContext.fields; rfl⟩
 
-@[reducible] noncomputable def PodSecurityContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodSecurityContext.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodSecurityContext.fields)
 
-abbrev SeccompProfileType [FfiSyntax] : Type := GoString
+abbrev SeccompProfileType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def SeccompProfileType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SeccompProfileType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure SeccompProfile [FfiSyntax] where
+structure SeccompProfile [GooseExts] where
   mk ::
   Type' : SeccompProfileType
   LocalhostProfile' : Loc
 
-noncomputable instance SeccompProfile.zero_val [FfiSyntax] : ZeroVal SeccompProfile :=
+noncomputable instance SeccompProfile.zero_val [GooseExts] : ZeroVal SeccompProfile :=
   ⟨SeccompProfile.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SeccompProfile.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SeccompProfile.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" SeccompProfileType.ty),
 (go.field_decl.FieldDecl go!"LocalhostProfile" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def SeccompProfile.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SeccompProfile.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SeccompProfile.fieldsUnsealed
 
-noncomputable instance equals_unfold_SeccompProfile [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SeccompProfile [GooseExts] [GoGlobalContext] :
     EqualsUnfold SeccompProfile.fields SeccompProfile.fieldsUnsealed :=
   ⟨by unfold SeccompProfile.fields; rfl⟩
 
-@[reducible] noncomputable def SeccompProfile.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SeccompProfile.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SeccompProfile.fields)
 
-abbrev AppArmorProfileType [FfiSyntax] : Type := GoString
+abbrev AppArmorProfileType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def AppArmorProfileType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AppArmorProfileType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure AppArmorProfile [FfiSyntax] where
+structure AppArmorProfile [GooseExts] where
   mk ::
   Type' : AppArmorProfileType
   LocalhostProfile' : Loc
 
-noncomputable instance AppArmorProfile.zero_val [FfiSyntax] : ZeroVal AppArmorProfile :=
+noncomputable instance AppArmorProfile.zero_val [GooseExts] : ZeroVal AppArmorProfile :=
   ⟨AppArmorProfile.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def AppArmorProfile.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AppArmorProfile.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" AppArmorProfileType.ty),
 (go.field_decl.FieldDecl go!"LocalhostProfile" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def AppArmorProfile.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AppArmorProfile.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AppArmorProfile.fieldsUnsealed
 
-noncomputable instance equals_unfold_AppArmorProfile [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AppArmorProfile [GooseExts] [GoGlobalContext] :
     EqualsUnfold AppArmorProfile.fields AppArmorProfile.fieldsUnsealed :=
   ⟨by unfold AppArmorProfile.fields; rfl⟩
 
-@[reducible] noncomputable def AppArmorProfile.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AppArmorProfile.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AppArmorProfile.fields)
 
-abbrev PodQOSClass [FfiSyntax] : Type := GoString
+abbrev PodQOSClass [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PodQOSClass.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodQOSClass.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure PodDNSConfig [FfiSyntax] where
+structure PodDNSConfig [GooseExts] where
   mk ::
   Nameservers' : GoSlice
   Searches' : GoSlice
   Options' : GoSlice
 
-noncomputable instance PodDNSConfig.zero_val [FfiSyntax] : ZeroVal PodDNSConfig :=
+noncomputable instance PodDNSConfig.zero_val [GooseExts] : ZeroVal PodDNSConfig :=
   ⟨PodDNSConfig.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodDNSConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodDNSConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Nameservers" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"Searches" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"Options" (go.GoType.SliceType PodDNSConfigOption.ty))]
 
-@[irreducible] noncomputable def PodDNSConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodDNSConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodDNSConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodDNSConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodDNSConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodDNSConfig.fields PodDNSConfig.fieldsUnsealed :=
   ⟨by unfold PodDNSConfig.fields; rfl⟩
 
-@[reducible] noncomputable def PodDNSConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodDNSConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodDNSConfig.fields)
 
-structure PodDNSConfigOption [FfiSyntax] where
+structure PodDNSConfigOption [GooseExts] where
   mk ::
   Name' : GoString
   Value' : Loc
 
-noncomputable instance PodDNSConfigOption.zero_val [FfiSyntax] : ZeroVal PodDNSConfigOption :=
+noncomputable instance PodDNSConfigOption.zero_val [GooseExts] : ZeroVal PodDNSConfigOption :=
   ⟨PodDNSConfigOption.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodDNSConfigOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodDNSConfigOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Value" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def PodDNSConfigOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodDNSConfigOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodDNSConfigOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodDNSConfigOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodDNSConfigOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodDNSConfigOption.fields PodDNSConfigOption.fieldsUnsealed :=
   ⟨by unfold PodDNSConfigOption.fields; rfl⟩
 
-@[reducible] noncomputable def PodDNSConfigOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodDNSConfigOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodDNSConfigOption.fields)
 
-structure PodIP [FfiSyntax] where
+structure PodIP [GooseExts] where
   mk ::
   IP' : GoString
 
-noncomputable instance PodIP.zero_val [FfiSyntax] : ZeroVal PodIP :=
+noncomputable instance PodIP.zero_val [GooseExts] : ZeroVal PodIP :=
   ⟨PodIP.mk zeroValDef⟩
 
-@[reducible] noncomputable def PodIP.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodIP.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IP" go.string)]
 
-@[irreducible] noncomputable def PodIP.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodIP.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodIP.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodIP [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodIP [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodIP.fields PodIP.fieldsUnsealed :=
   ⟨by unfold PodIP.fields; rfl⟩
 
-@[reducible] noncomputable def PodIP.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodIP.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodIP.fields)
 
-structure HostIP [FfiSyntax] where
+structure HostIP [GooseExts] where
   mk ::
   IP' : GoString
 
-noncomputable instance HostIP.zero_val [FfiSyntax] : ZeroVal HostIP :=
+noncomputable instance HostIP.zero_val [GooseExts] : ZeroVal HostIP :=
   ⟨HostIP.mk zeroValDef⟩
 
-@[reducible] noncomputable def HostIP.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HostIP.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IP" go.string)]
 
-@[irreducible] noncomputable def HostIP.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HostIP.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HostIP.fieldsUnsealed
 
-noncomputable instance equals_unfold_HostIP [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HostIP [GooseExts] [GoGlobalContext] :
     EqualsUnfold HostIP.fields HostIP.fieldsUnsealed :=
   ⟨by unfold HostIP.fields; rfl⟩
 
-@[reducible] noncomputable def HostIP.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HostIP.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HostIP.fields)
 
-structure EphemeralContainerCommon [FfiSyntax] where
+structure EphemeralContainerCommon [GooseExts] where
   mk ::
   Name' : GoString
   Image' : GoString
@@ -8756,10 +8756,10 @@ structure EphemeralContainerCommon [FfiSyntax] where
   StdinOnce' : Bool
   TTY' : Bool
 
-noncomputable instance EphemeralContainerCommon.zero_val [FfiSyntax] : ZeroVal EphemeralContainerCommon :=
+noncomputable instance EphemeralContainerCommon.zero_val [GooseExts] : ZeroVal EphemeralContainerCommon :=
   ⟨EphemeralContainerCommon.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EphemeralContainerCommon.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EphemeralContainerCommon.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Image" go.string),
 (go.field_decl.FieldDecl go!"Command" (go.GoType.SliceType go.string)),
@@ -8786,61 +8786,61 @@ noncomputable instance EphemeralContainerCommon.zero_val [FfiSyntax] : ZeroVal E
 (go.field_decl.FieldDecl go!"StdinOnce" go.bool),
 (go.field_decl.FieldDecl go!"TTY" go.bool)]
 
-@[irreducible] noncomputable def EphemeralContainerCommon.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EphemeralContainerCommon.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EphemeralContainerCommon.fieldsUnsealed
 
-noncomputable instance equals_unfold_EphemeralContainerCommon [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EphemeralContainerCommon [GooseExts] [GoGlobalContext] :
     EqualsUnfold EphemeralContainerCommon.fields EphemeralContainerCommon.fieldsUnsealed :=
   ⟨by unfold EphemeralContainerCommon.fields; rfl⟩
 
-@[reducible] noncomputable def EphemeralContainerCommon.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EphemeralContainerCommon.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EphemeralContainerCommon.fields)
 
-structure EphemeralContainer [FfiSyntax] where
+structure EphemeralContainer [GooseExts] where
   mk ::
   EphemeralContainerCommon' : EphemeralContainerCommon
   TargetContainerName' : GoString
 
-noncomputable instance EphemeralContainer.zero_val [FfiSyntax] : ZeroVal EphemeralContainer :=
+noncomputable instance EphemeralContainer.zero_val [GooseExts] : ZeroVal EphemeralContainer :=
   ⟨EphemeralContainer.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EphemeralContainer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EphemeralContainer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"EphemeralContainerCommon" EphemeralContainerCommon.ty),
 (go.field_decl.FieldDecl go!"TargetContainerName" go.string)]
 
-@[irreducible] noncomputable def EphemeralContainer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EphemeralContainer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EphemeralContainer.fieldsUnsealed
 
-noncomputable instance equals_unfold_EphemeralContainer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EphemeralContainer [GooseExts] [GoGlobalContext] :
     EqualsUnfold EphemeralContainer.fields EphemeralContainer.fieldsUnsealed :=
   ⟨by unfold EphemeralContainer.fields; rfl⟩
 
-@[reducible] noncomputable def EphemeralContainer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EphemeralContainer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EphemeralContainer.fields)
 
-structure EvictionResponder [FfiSyntax] where
+structure EvictionResponder [GooseExts] where
   mk ::
   Name' : GoString
   Priority' : Loc
 
-noncomputable instance EvictionResponder.zero_val [FfiSyntax] : ZeroVal EvictionResponder :=
+noncomputable instance EvictionResponder.zero_val [GooseExts] : ZeroVal EvictionResponder :=
   ⟨EvictionResponder.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EvictionResponder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EvictionResponder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Priority" (go.GoType.PointerType go.int32))]
 
-@[irreducible] noncomputable def EvictionResponder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EvictionResponder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EvictionResponder.fieldsUnsealed
 
-noncomputable instance equals_unfold_EvictionResponder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EvictionResponder [GooseExts] [GoGlobalContext] :
     EqualsUnfold EvictionResponder.fields EvictionResponder.fieldsUnsealed :=
   ⟨by unfold EvictionResponder.fields; rfl⟩
 
-@[reducible] noncomputable def EvictionResponder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EvictionResponder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EvictionResponder.fields)
 
-structure PodStatus [FfiSyntax] where
+structure PodStatus [GooseExts] where
   mk ::
   ObservedGeneration' : w64
   Phase' : PodPhase
@@ -8865,10 +8865,10 @@ structure PodStatus [FfiSyntax] where
   NodeAllocatableResourceClaimStatuses' : GoSlice
   VolumeHealth' : GoSlice
 
-noncomputable instance PodStatus.zero_val [FfiSyntax] : ZeroVal PodStatus :=
+noncomputable instance PodStatus.zero_val [GooseExts] : ZeroVal PodStatus :=
   ⟨PodStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ObservedGeneration" go.int64),
 (go.field_decl.FieldDecl go!"Phase" PodPhase.ty),
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType PodCondition.ty)),
@@ -8892,163 +8892,163 @@ noncomputable instance PodStatus.zero_val [FfiSyntax] : ZeroVal PodStatus :=
 (go.field_decl.FieldDecl go!"NodeAllocatableResourceClaimStatuses" (go.GoType.SliceType NodeAllocatableResourceClaimStatus.ty)),
 (go.field_decl.FieldDecl go!"VolumeHealth" (go.GoType.SliceType PodVolumeHealth.ty))]
 
-@[irreducible] noncomputable def PodStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodStatus.fields PodStatus.fieldsUnsealed :=
   ⟨by unfold PodStatus.fields; rfl⟩
 
-@[reducible] noncomputable def PodStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodStatus.fields)
 
-structure Pod [FfiSyntax] where
+structure Pod [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : PodSpec
   Status' : PodStatus
 
-noncomputable instance Pod.zero_val [FfiSyntax] : ZeroVal Pod :=
+noncomputable instance Pod.zero_val [GooseExts] : ZeroVal Pod :=
   ⟨Pod.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Pod.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Pod.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" PodSpec.ty),
 (go.field_decl.FieldDecl go!"Status" PodStatus.ty)]
 
-@[irreducible] noncomputable def Pod.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Pod.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Pod.fieldsUnsealed
 
-noncomputable instance equals_unfold_Pod [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Pod [GooseExts] [GoGlobalContext] :
     EqualsUnfold Pod.fields Pod.fieldsUnsealed :=
   ⟨by unfold Pod.fields; rfl⟩
 
-@[reducible] noncomputable def Pod.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Pod.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Pod.fields)
 
-structure PodList [FfiSyntax] where
+structure PodList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance PodList.zero_val [FfiSyntax] : ZeroVal PodList :=
+noncomputable instance PodList.zero_val [GooseExts] : ZeroVal PodList :=
   ⟨PodList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Pod.ty))]
 
-@[irreducible] noncomputable def PodList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodList.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodList [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodList.fields PodList.fieldsUnsealed :=
   ⟨by unfold PodList.fields; rfl⟩
 
-@[reducible] noncomputable def PodList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodList.fields)
 
-structure PodTemplateSpec [FfiSyntax] where
+structure PodTemplateSpec [GooseExts] where
   mk ::
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : PodSpec
 
-noncomputable instance PodTemplateSpec.zero_val [FfiSyntax] : ZeroVal PodTemplateSpec :=
+noncomputable instance PodTemplateSpec.zero_val [GooseExts] : ZeroVal PodTemplateSpec :=
   ⟨PodTemplateSpec.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodTemplateSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodTemplateSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" PodSpec.ty)]
 
-@[irreducible] noncomputable def PodTemplateSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodTemplateSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodTemplateSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodTemplateSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodTemplateSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodTemplateSpec.fields PodTemplateSpec.fieldsUnsealed :=
   ⟨by unfold PodTemplateSpec.fields; rfl⟩
 
-@[reducible] noncomputable def PodTemplateSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodTemplateSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodTemplateSpec.fields)
 
-structure PodTemplate [FfiSyntax] where
+structure PodTemplate [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Template' : PodTemplateSpec
 
-noncomputable instance PodTemplate.zero_val [FfiSyntax] : ZeroVal PodTemplate :=
+noncomputable instance PodTemplate.zero_val [GooseExts] : ZeroVal PodTemplate :=
   ⟨PodTemplate.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodTemplate.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodTemplate.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Template" PodTemplateSpec.ty)]
 
-@[irreducible] noncomputable def PodTemplate.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodTemplate.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodTemplate.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodTemplate [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodTemplate [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodTemplate.fields PodTemplate.fieldsUnsealed :=
   ⟨by unfold PodTemplate.fields; rfl⟩
 
-@[reducible] noncomputable def PodTemplate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodTemplate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodTemplate.fields)
 
-structure PodTemplateList [FfiSyntax] where
+structure PodTemplateList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance PodTemplateList.zero_val [FfiSyntax] : ZeroVal PodTemplateList :=
+noncomputable instance PodTemplateList.zero_val [GooseExts] : ZeroVal PodTemplateList :=
   ⟨PodTemplateList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodTemplateList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodTemplateList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType PodTemplate.ty))]
 
-@[irreducible] noncomputable def PodTemplateList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodTemplateList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodTemplateList.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodTemplateList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodTemplateList [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodTemplateList.fields PodTemplateList.fieldsUnsealed :=
   ⟨by unfold PodTemplateList.fields; rfl⟩
 
-@[reducible] noncomputable def PodTemplateList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodTemplateList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodTemplateList.fields)
 
-structure ReplicationControllerSpec [FfiSyntax] where
+structure ReplicationControllerSpec [GooseExts] where
   mk ::
   Replicas' : Loc
   MinReadySeconds' : w32
   Selector' : GoMap
   Template' : Loc
 
-noncomputable instance ReplicationControllerSpec.zero_val [FfiSyntax] : ZeroVal ReplicationControllerSpec :=
+noncomputable instance ReplicationControllerSpec.zero_val [GooseExts] : ZeroVal ReplicationControllerSpec :=
   ⟨ReplicationControllerSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicationControllerSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicationControllerSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Replicas" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"MinReadySeconds" go.int32),
 (go.field_decl.FieldDecl go!"Selector" (go.GoType.MapType go.string go.string)),
 (go.field_decl.FieldDecl go!"Template" (go.GoType.PointerType PodTemplateSpec.ty))]
 
-@[irreducible] noncomputable def ReplicationControllerSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicationControllerSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicationControllerSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicationControllerSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicationControllerSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicationControllerSpec.fields ReplicationControllerSpec.fieldsUnsealed :=
   ⟨by unfold ReplicationControllerSpec.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicationControllerSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicationControllerSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicationControllerSpec.fields)
 
-structure ReplicationControllerStatus [FfiSyntax] where
+structure ReplicationControllerStatus [GooseExts] where
   mk ::
   Replicas' : w32
   FullyLabeledReplicas' : w32
@@ -9057,10 +9057,10 @@ structure ReplicationControllerStatus [FfiSyntax] where
   ObservedGeneration' : w64
   Conditions' : GoSlice
 
-noncomputable instance ReplicationControllerStatus.zero_val [FfiSyntax] : ZeroVal ReplicationControllerStatus :=
+noncomputable instance ReplicationControllerStatus.zero_val [GooseExts] : ZeroVal ReplicationControllerStatus :=
   ⟨ReplicationControllerStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicationControllerStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicationControllerStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Replicas" go.int32),
 (go.field_decl.FieldDecl go!"FullyLabeledReplicas" go.int32),
 (go.field_decl.FieldDecl go!"ReadyReplicas" go.int32),
@@ -9068,22 +9068,22 @@ noncomputable instance ReplicationControllerStatus.zero_val [FfiSyntax] : ZeroVa
 (go.field_decl.FieldDecl go!"ObservedGeneration" go.int64),
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType ReplicationControllerCondition.ty))]
 
-@[irreducible] noncomputable def ReplicationControllerStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicationControllerStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicationControllerStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicationControllerStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicationControllerStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicationControllerStatus.fields ReplicationControllerStatus.fieldsUnsealed :=
   ⟨by unfold ReplicationControllerStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicationControllerStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicationControllerStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicationControllerStatus.fields)
 
-abbrev ReplicationControllerConditionType [FfiSyntax] : Type := GoString
+abbrev ReplicationControllerConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ReplicationControllerConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicationControllerConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ReplicationControllerCondition [FfiSyntax] where
+structure ReplicationControllerCondition [GooseExts] where
   mk ::
   Type' : ReplicationControllerConditionType
   Status' : ConditionStatus
@@ -9091,215 +9091,215 @@ structure ReplicationControllerCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance ReplicationControllerCondition.zero_val [FfiSyntax] : ZeroVal ReplicationControllerCondition :=
+noncomputable instance ReplicationControllerCondition.zero_val [GooseExts] : ZeroVal ReplicationControllerCondition :=
   ⟨ReplicationControllerCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicationControllerCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicationControllerCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" ReplicationControllerConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"LastTransitionTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def ReplicationControllerCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicationControllerCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicationControllerCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicationControllerCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicationControllerCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicationControllerCondition.fields ReplicationControllerCondition.fieldsUnsealed :=
   ⟨by unfold ReplicationControllerCondition.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicationControllerCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicationControllerCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicationControllerCondition.fields)
 
-structure ReplicationController [FfiSyntax] where
+structure ReplicationController [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : ReplicationControllerSpec
   Status' : ReplicationControllerStatus
 
-noncomputable instance ReplicationController.zero_val [FfiSyntax] : ZeroVal ReplicationController :=
+noncomputable instance ReplicationController.zero_val [GooseExts] : ZeroVal ReplicationController :=
   ⟨ReplicationController.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicationController.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicationController.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" ReplicationControllerSpec.ty),
 (go.field_decl.FieldDecl go!"Status" ReplicationControllerStatus.ty)]
 
-@[irreducible] noncomputable def ReplicationController.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicationController.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicationController.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicationController [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicationController [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicationController.fields ReplicationController.fieldsUnsealed :=
   ⟨by unfold ReplicationController.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicationController.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicationController.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicationController.fields)
 
-structure ReplicationControllerList [FfiSyntax] where
+structure ReplicationControllerList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance ReplicationControllerList.zero_val [FfiSyntax] : ZeroVal ReplicationControllerList :=
+noncomputable instance ReplicationControllerList.zero_val [GooseExts] : ZeroVal ReplicationControllerList :=
   ⟨ReplicationControllerList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicationControllerList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicationControllerList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType ReplicationController.ty))]
 
-@[irreducible] noncomputable def ReplicationControllerList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicationControllerList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicationControllerList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicationControllerList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicationControllerList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicationControllerList.fields ReplicationControllerList.fieldsUnsealed :=
   ⟨by unfold ReplicationControllerList.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicationControllerList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicationControllerList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicationControllerList.fields)
 
-abbrev ServiceAffinity [FfiSyntax] : Type := GoString
+abbrev ServiceAffinity [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ServiceAffinity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceAffinity.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure SessionAffinityConfig [FfiSyntax] where
+structure SessionAffinityConfig [GooseExts] where
   mk ::
   ClientIP' : Loc
 
-noncomputable instance SessionAffinityConfig.zero_val [FfiSyntax] : ZeroVal SessionAffinityConfig :=
+noncomputable instance SessionAffinityConfig.zero_val [GooseExts] : ZeroVal SessionAffinityConfig :=
   ⟨SessionAffinityConfig.mk zeroValDef⟩
 
-@[reducible] noncomputable def SessionAffinityConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SessionAffinityConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ClientIP" (go.GoType.PointerType ClientIPConfig.ty))]
 
-@[irreducible] noncomputable def SessionAffinityConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SessionAffinityConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SessionAffinityConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_SessionAffinityConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SessionAffinityConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold SessionAffinityConfig.fields SessionAffinityConfig.fieldsUnsealed :=
   ⟨by unfold SessionAffinityConfig.fields; rfl⟩
 
-@[reducible] noncomputable def SessionAffinityConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SessionAffinityConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SessionAffinityConfig.fields)
 
-structure ClientIPConfig [FfiSyntax] where
+structure ClientIPConfig [GooseExts] where
   mk ::
   TimeoutSeconds' : Loc
 
-noncomputable instance ClientIPConfig.zero_val [FfiSyntax] : ZeroVal ClientIPConfig :=
+noncomputable instance ClientIPConfig.zero_val [GooseExts] : ZeroVal ClientIPConfig :=
   ⟨ClientIPConfig.mk zeroValDef⟩
 
-@[reducible] noncomputable def ClientIPConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClientIPConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TimeoutSeconds" (go.GoType.PointerType go.int32))]
 
-@[irreducible] noncomputable def ClientIPConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClientIPConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientIPConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientIPConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClientIPConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientIPConfig.fields ClientIPConfig.fieldsUnsealed :=
   ⟨by unfold ClientIPConfig.fields; rfl⟩
 
-@[reducible] noncomputable def ClientIPConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClientIPConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClientIPConfig.fields)
 
-abbrev ServiceType [FfiSyntax] : Type := GoString
+abbrev ServiceType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ServiceType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev ServiceInternalTrafficPolicy [FfiSyntax] : Type := GoString
+abbrev ServiceInternalTrafficPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ServiceInternalTrafficPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceInternalTrafficPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev ServiceExternalTrafficPolicy [FfiSyntax] : Type := GoString
+abbrev ServiceExternalTrafficPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ServiceExternalTrafficPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceExternalTrafficPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure LoadBalancerStatus [FfiSyntax] where
+structure LoadBalancerStatus [GooseExts] where
   mk ::
   Ingress' : GoSlice
 
-noncomputable instance LoadBalancerStatus.zero_val [FfiSyntax] : ZeroVal LoadBalancerStatus :=
+noncomputable instance LoadBalancerStatus.zero_val [GooseExts] : ZeroVal LoadBalancerStatus :=
   ⟨LoadBalancerStatus.mk zeroValDef⟩
 
-@[reducible] noncomputable def LoadBalancerStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LoadBalancerStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Ingress" (go.GoType.SliceType LoadBalancerIngress.ty))]
 
-@[irreducible] noncomputable def LoadBalancerStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LoadBalancerStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LoadBalancerStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_LoadBalancerStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LoadBalancerStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold LoadBalancerStatus.fields LoadBalancerStatus.fieldsUnsealed :=
   ⟨by unfold LoadBalancerStatus.fields; rfl⟩
 
-@[reducible] noncomputable def LoadBalancerStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LoadBalancerStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LoadBalancerStatus.fields)
 
-structure ServiceStatus [FfiSyntax] where
+structure ServiceStatus [GooseExts] where
   mk ::
   LoadBalancer' : LoadBalancerStatus
   Conditions' : GoSlice
 
-noncomputable instance ServiceStatus.zero_val [FfiSyntax] : ZeroVal ServiceStatus :=
+noncomputable instance ServiceStatus.zero_val [GooseExts] : ZeroVal ServiceStatus :=
   ⟨ServiceStatus.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"LoadBalancer" LoadBalancerStatus.ty),
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Condition.ty))]
 
-@[irreducible] noncomputable def ServiceStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceStatus.fields ServiceStatus.fieldsUnsealed :=
   ⟨by unfold ServiceStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceStatus.fields)
 
-structure LoadBalancerIngress [FfiSyntax] where
+structure LoadBalancerIngress [GooseExts] where
   mk ::
   IP' : GoString
   Hostname' : GoString
   IPMode' : Loc
   Ports' : GoSlice
 
-noncomputable instance LoadBalancerIngress.zero_val [FfiSyntax] : ZeroVal LoadBalancerIngress :=
+noncomputable instance LoadBalancerIngress.zero_val [GooseExts] : ZeroVal LoadBalancerIngress :=
   ⟨LoadBalancerIngress.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LoadBalancerIngress.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LoadBalancerIngress.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IP" go.string),
 (go.field_decl.FieldDecl go!"Hostname" go.string),
 (go.field_decl.FieldDecl go!"IPMode" (go.GoType.PointerType LoadBalancerIPMode.ty)),
 (go.field_decl.FieldDecl go!"Ports" (go.GoType.SliceType PortStatus.ty))]
 
-@[irreducible] noncomputable def LoadBalancerIngress.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LoadBalancerIngress.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LoadBalancerIngress.fieldsUnsealed
 
-noncomputable instance equals_unfold_LoadBalancerIngress [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LoadBalancerIngress [GooseExts] [GoGlobalContext] :
     EqualsUnfold LoadBalancerIngress.fields LoadBalancerIngress.fieldsUnsealed :=
   ⟨by unfold LoadBalancerIngress.fields; rfl⟩
 
-@[reducible] noncomputable def LoadBalancerIngress.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LoadBalancerIngress.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LoadBalancerIngress.fields)
 
-abbrev IPFamily [FfiSyntax] : Type := GoString
+abbrev IPFamily [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def IPFamily.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IPFamily.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-abbrev IPFamilyPolicy [FfiSyntax] : Type := GoString
+abbrev IPFamilyPolicy [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def IPFamilyPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IPFamilyPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ServiceSpec [FfiSyntax] where
+structure ServiceSpec [GooseExts] where
   mk ::
   Ports' : GoSlice
   Selector' : GoMap
@@ -9322,10 +9322,10 @@ structure ServiceSpec [FfiSyntax] where
   InternalTrafficPolicy' : Loc
   TrafficDistribution' : Loc
 
-noncomputable instance ServiceSpec.zero_val [FfiSyntax] : ZeroVal ServiceSpec :=
+noncomputable instance ServiceSpec.zero_val [GooseExts] : ZeroVal ServiceSpec :=
   ⟨ServiceSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Ports" (go.GoType.SliceType ServicePort.ty)),
 (go.field_decl.FieldDecl go!"Selector" (go.GoType.MapType go.string go.string)),
 (go.field_decl.FieldDecl go!"ClusterIP" go.string),
@@ -9347,17 +9347,17 @@ noncomputable instance ServiceSpec.zero_val [FfiSyntax] : ZeroVal ServiceSpec :=
 (go.field_decl.FieldDecl go!"InternalTrafficPolicy" (go.GoType.PointerType ServiceInternalTrafficPolicy.ty)),
 (go.field_decl.FieldDecl go!"TrafficDistribution" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def ServiceSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceSpec.fields ServiceSpec.fieldsUnsealed :=
   ⟨by unfold ServiceSpec.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceSpec.fields)
 
-structure ServicePort [FfiSyntax] where
+structure ServicePort [GooseExts] where
   mk ::
   Name' : GoString
   Protocol' : Protocol
@@ -9366,10 +9366,10 @@ structure ServicePort [FfiSyntax] where
   TargetPort' : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString
   NodePort' : w32
 
-noncomputable instance ServicePort.zero_val [FfiSyntax] : ZeroVal ServicePort :=
+noncomputable instance ServicePort.zero_val [GooseExts] : ZeroVal ServicePort :=
   ⟨ServicePort.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServicePort.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServicePort.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Protocol" Protocol.ty),
 (go.field_decl.FieldDecl go!"AppProtocol" (go.GoType.PointerType go.string)),
@@ -9377,67 +9377,67 @@ noncomputable instance ServicePort.zero_val [FfiSyntax] : ZeroVal ServicePort :=
 (go.field_decl.FieldDecl go!"TargetPort" _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty),
 (go.field_decl.FieldDecl go!"NodePort" go.int32)]
 
-@[irreducible] noncomputable def ServicePort.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServicePort.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServicePort.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServicePort [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServicePort [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServicePort.fields ServicePort.fieldsUnsealed :=
   ⟨by unfold ServicePort.fields; rfl⟩
 
-@[reducible] noncomputable def ServicePort.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServicePort.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServicePort.fields)
 
-structure Service [FfiSyntax] where
+structure Service [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : ServiceSpec
   Status' : ServiceStatus
 
-noncomputable instance Service.zero_val [FfiSyntax] : ZeroVal Service :=
+noncomputable instance Service.zero_val [GooseExts] : ZeroVal Service :=
   ⟨Service.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Service.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Service.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" ServiceSpec.ty),
 (go.field_decl.FieldDecl go!"Status" ServiceStatus.ty)]
 
-@[irreducible] noncomputable def Service.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Service.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Service.fieldsUnsealed
 
-noncomputable instance equals_unfold_Service [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Service [GooseExts] [GoGlobalContext] :
     EqualsUnfold Service.fields Service.fieldsUnsealed :=
   ⟨by unfold Service.fields; rfl⟩
 
-@[reducible] noncomputable def Service.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Service.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Service.fields)
 
-structure ServiceList [FfiSyntax] where
+structure ServiceList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance ServiceList.zero_val [FfiSyntax] : ZeroVal ServiceList :=
+noncomputable instance ServiceList.zero_val [GooseExts] : ZeroVal ServiceList :=
   ⟨ServiceList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Service.ty))]
 
-@[irreducible] noncomputable def ServiceList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceList.fields ServiceList.fieldsUnsealed :=
   ⟨by unfold ServiceList.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceList.fields)
 
-structure ServiceAccount [FfiSyntax] where
+structure ServiceAccount [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
@@ -9445,175 +9445,175 @@ structure ServiceAccount [FfiSyntax] where
   ImagePullSecrets' : GoSlice
   AutomountServiceAccountToken' : Loc
 
-noncomputable instance ServiceAccount.zero_val [FfiSyntax] : ZeroVal ServiceAccount :=
+noncomputable instance ServiceAccount.zero_val [GooseExts] : ZeroVal ServiceAccount :=
   ⟨ServiceAccount.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceAccount.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceAccount.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Secrets" (go.GoType.SliceType ObjectReference.ty)),
 (go.field_decl.FieldDecl go!"ImagePullSecrets" (go.GoType.SliceType LocalObjectReference.ty)),
 (go.field_decl.FieldDecl go!"AutomountServiceAccountToken" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def ServiceAccount.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceAccount.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceAccount.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceAccount [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceAccount [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceAccount.fields ServiceAccount.fieldsUnsealed :=
   ⟨by unfold ServiceAccount.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceAccount.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceAccount.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceAccount.fields)
 
-structure ServiceAccountList [FfiSyntax] where
+structure ServiceAccountList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance ServiceAccountList.zero_val [FfiSyntax] : ZeroVal ServiceAccountList :=
+noncomputable instance ServiceAccountList.zero_val [GooseExts] : ZeroVal ServiceAccountList :=
   ⟨ServiceAccountList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceAccountList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceAccountList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType ServiceAccount.ty))]
 
-@[irreducible] noncomputable def ServiceAccountList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceAccountList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceAccountList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceAccountList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceAccountList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceAccountList.fields ServiceAccountList.fieldsUnsealed :=
   ⟨by unfold ServiceAccountList.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceAccountList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceAccountList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceAccountList.fields)
 
-structure Endpoints [FfiSyntax] where
+structure Endpoints [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Subsets' : GoSlice
 
-noncomputable instance Endpoints.zero_val [FfiSyntax] : ZeroVal Endpoints :=
+noncomputable instance Endpoints.zero_val [GooseExts] : ZeroVal Endpoints :=
   ⟨Endpoints.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Endpoints.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Endpoints.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Subsets" (go.GoType.SliceType EndpointSubset.ty))]
 
-@[irreducible] noncomputable def Endpoints.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Endpoints.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Endpoints.fieldsUnsealed
 
-noncomputable instance equals_unfold_Endpoints [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Endpoints [GooseExts] [GoGlobalContext] :
     EqualsUnfold Endpoints.fields Endpoints.fieldsUnsealed :=
   ⟨by unfold Endpoints.fields; rfl⟩
 
-@[reducible] noncomputable def Endpoints.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Endpoints.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Endpoints.fields)
 
-structure EndpointSubset [FfiSyntax] where
+structure EndpointSubset [GooseExts] where
   mk ::
   Addresses' : GoSlice
   NotReadyAddresses' : GoSlice
   Ports' : GoSlice
 
-noncomputable instance EndpointSubset.zero_val [FfiSyntax] : ZeroVal EndpointSubset :=
+noncomputable instance EndpointSubset.zero_val [GooseExts] : ZeroVal EndpointSubset :=
   ⟨EndpointSubset.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EndpointSubset.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EndpointSubset.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Addresses" (go.GoType.SliceType EndpointAddress.ty)),
 (go.field_decl.FieldDecl go!"NotReadyAddresses" (go.GoType.SliceType EndpointAddress.ty)),
 (go.field_decl.FieldDecl go!"Ports" (go.GoType.SliceType EndpointPort.ty))]
 
-@[irreducible] noncomputable def EndpointSubset.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EndpointSubset.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EndpointSubset.fieldsUnsealed
 
-noncomputable instance equals_unfold_EndpointSubset [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EndpointSubset [GooseExts] [GoGlobalContext] :
     EqualsUnfold EndpointSubset.fields EndpointSubset.fieldsUnsealed :=
   ⟨by unfold EndpointSubset.fields; rfl⟩
 
-@[reducible] noncomputable def EndpointSubset.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EndpointSubset.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EndpointSubset.fields)
 
-structure EndpointAddress [FfiSyntax] where
+structure EndpointAddress [GooseExts] where
   mk ::
   IP' : GoString
   Hostname' : GoString
   NodeName' : Loc
   TargetRef' : Loc
 
-noncomputable instance EndpointAddress.zero_val [FfiSyntax] : ZeroVal EndpointAddress :=
+noncomputable instance EndpointAddress.zero_val [GooseExts] : ZeroVal EndpointAddress :=
   ⟨EndpointAddress.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EndpointAddress.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EndpointAddress.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IP" go.string),
 (go.field_decl.FieldDecl go!"Hostname" go.string),
 (go.field_decl.FieldDecl go!"NodeName" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"TargetRef" (go.GoType.PointerType ObjectReference.ty))]
 
-@[irreducible] noncomputable def EndpointAddress.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EndpointAddress.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EndpointAddress.fieldsUnsealed
 
-noncomputable instance equals_unfold_EndpointAddress [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EndpointAddress [GooseExts] [GoGlobalContext] :
     EqualsUnfold EndpointAddress.fields EndpointAddress.fieldsUnsealed :=
   ⟨by unfold EndpointAddress.fields; rfl⟩
 
-@[reducible] noncomputable def EndpointAddress.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EndpointAddress.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EndpointAddress.fields)
 
-structure EndpointPort [FfiSyntax] where
+structure EndpointPort [GooseExts] where
   mk ::
   Name' : GoString
   Port' : w32
   Protocol' : Protocol
   AppProtocol' : Loc
 
-noncomputable instance EndpointPort.zero_val [FfiSyntax] : ZeroVal EndpointPort :=
+noncomputable instance EndpointPort.zero_val [GooseExts] : ZeroVal EndpointPort :=
   ⟨EndpointPort.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EndpointPort.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EndpointPort.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Port" go.int32),
 (go.field_decl.FieldDecl go!"Protocol" Protocol.ty),
 (go.field_decl.FieldDecl go!"AppProtocol" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def EndpointPort.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EndpointPort.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EndpointPort.fieldsUnsealed
 
-noncomputable instance equals_unfold_EndpointPort [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EndpointPort [GooseExts] [GoGlobalContext] :
     EqualsUnfold EndpointPort.fields EndpointPort.fieldsUnsealed :=
   ⟨by unfold EndpointPort.fields; rfl⟩
 
-@[reducible] noncomputable def EndpointPort.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EndpointPort.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EndpointPort.fields)
 
-structure EndpointsList [FfiSyntax] where
+structure EndpointsList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance EndpointsList.zero_val [FfiSyntax] : ZeroVal EndpointsList :=
+noncomputable instance EndpointsList.zero_val [GooseExts] : ZeroVal EndpointsList :=
   ⟨EndpointsList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EndpointsList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EndpointsList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Endpoints.ty))]
 
-@[irreducible] noncomputable def EndpointsList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EndpointsList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EndpointsList.fieldsUnsealed
 
-noncomputable instance equals_unfold_EndpointsList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EndpointsList [GooseExts] [GoGlobalContext] :
     EqualsUnfold EndpointsList.fields EndpointsList.fieldsUnsealed :=
   ⟨by unfold EndpointsList.fields; rfl⟩
 
-@[reducible] noncomputable def EndpointsList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EndpointsList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EndpointsList.fields)
 
-structure NodeSpec [FfiSyntax] where
+structure NodeSpec [GooseExts] where
   mk ::
   PodCIDR' : GoString
   PodCIDRs' : GoSlice
@@ -9624,10 +9624,10 @@ structure NodeSpec [FfiSyntax] where
   DoNotUseExternalID' : GoString
   PodPreemptionPolicy' : Loc
 
-noncomputable instance NodeSpec.zero_val [FfiSyntax] : ZeroVal NodeSpec :=
+noncomputable instance NodeSpec.zero_val [GooseExts] : ZeroVal NodeSpec :=
   ⟨NodeSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PodCIDR" go.string),
 (go.field_decl.FieldDecl go!"PodCIDRs" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"ProviderID" go.string),
@@ -9637,57 +9637,57 @@ noncomputable instance NodeSpec.zero_val [FfiSyntax] : ZeroVal NodeSpec :=
 (go.field_decl.FieldDecl go!"DoNotUseExternalID" go.string),
 (go.field_decl.FieldDecl go!"PodPreemptionPolicy" (go.GoType.PointerType NodePodPreemptionPolicy.ty))]
 
-@[irreducible] noncomputable def NodeSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeSpec.fields NodeSpec.fieldsUnsealed :=
   ⟨by unfold NodeSpec.fields; rfl⟩
 
-@[reducible] noncomputable def NodeSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeSpec.fields)
 
-structure NodePodPreemptionPolicy [FfiSyntax] where
+structure NodePodPreemptionPolicy [GooseExts] where
   mk ::
   DisableResizePreemption' : GoSlice
 
-noncomputable instance NodePodPreemptionPolicy.zero_val [FfiSyntax] : ZeroVal NodePodPreemptionPolicy :=
+noncomputable instance NodePodPreemptionPolicy.zero_val [GooseExts] : ZeroVal NodePodPreemptionPolicy :=
   ⟨NodePodPreemptionPolicy.mk zeroValDef⟩
 
-@[reducible] noncomputable def NodePodPreemptionPolicy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodePodPreemptionPolicy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"DisableResizePreemption" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def NodePodPreemptionPolicy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodePodPreemptionPolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodePodPreemptionPolicy.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodePodPreemptionPolicy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodePodPreemptionPolicy [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodePodPreemptionPolicy.fields NodePodPreemptionPolicy.fieldsUnsealed :=
   ⟨by unfold NodePodPreemptionPolicy.fields; rfl⟩
 
-@[reducible] noncomputable def NodePodPreemptionPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodePodPreemptionPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodePodPreemptionPolicy.fields)
 
-structure NodeConfigSource [FfiSyntax] where
+structure NodeConfigSource [GooseExts] where
   mk ::
   ConfigMap' : Loc
 
-noncomputable instance NodeConfigSource.zero_val [FfiSyntax] : ZeroVal NodeConfigSource :=
+noncomputable instance NodeConfigSource.zero_val [GooseExts] : ZeroVal NodeConfigSource :=
   ⟨NodeConfigSource.mk zeroValDef⟩
 
-@[reducible] noncomputable def NodeConfigSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeConfigSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ConfigMap" (go.GoType.PointerType ConfigMapNodeConfigSource.ty))]
 
-@[irreducible] noncomputable def NodeConfigSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeConfigSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeConfigSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeConfigSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeConfigSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeConfigSource.fields NodeConfigSource.fieldsUnsealed :=
   ⟨by unfold NodeConfigSource.fields; rfl⟩
 
-@[reducible] noncomputable def NodeConfigSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeConfigSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeConfigSource.fields)
 
-structure ConfigMapNodeConfigSource [FfiSyntax] where
+structure ConfigMapNodeConfigSource [GooseExts] where
   mk ::
   Namespace' : GoString
   Name' : GoString
@@ -9695,131 +9695,131 @@ structure ConfigMapNodeConfigSource [FfiSyntax] where
   ResourceVersion' : GoString
   KubeletConfigKey' : GoString
 
-noncomputable instance ConfigMapNodeConfigSource.zero_val [FfiSyntax] : ZeroVal ConfigMapNodeConfigSource :=
+noncomputable instance ConfigMapNodeConfigSource.zero_val [GooseExts] : ZeroVal ConfigMapNodeConfigSource :=
   ⟨ConfigMapNodeConfigSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfigMapNodeConfigSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfigMapNodeConfigSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Namespace" go.string),
 (go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"UID" _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty),
 (go.field_decl.FieldDecl go!"ResourceVersion" go.string),
 (go.field_decl.FieldDecl go!"KubeletConfigKey" go.string)]
 
-@[irreducible] noncomputable def ConfigMapNodeConfigSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfigMapNodeConfigSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigMapNodeConfigSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigMapNodeConfigSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfigMapNodeConfigSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigMapNodeConfigSource.fields ConfigMapNodeConfigSource.fieldsUnsealed :=
   ⟨by unfold ConfigMapNodeConfigSource.fields; rfl⟩
 
-@[reducible] noncomputable def ConfigMapNodeConfigSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfigMapNodeConfigSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfigMapNodeConfigSource.fields)
 
-structure DaemonEndpoint [FfiSyntax] where
+structure DaemonEndpoint [GooseExts] where
   mk ::
   Port' : w32
 
-noncomputable instance DaemonEndpoint.zero_val [FfiSyntax] : ZeroVal DaemonEndpoint :=
+noncomputable instance DaemonEndpoint.zero_val [GooseExts] : ZeroVal DaemonEndpoint :=
   ⟨DaemonEndpoint.mk zeroValDef⟩
 
-@[reducible] noncomputable def DaemonEndpoint.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DaemonEndpoint.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Port" go.int32)]
 
-@[irreducible] noncomputable def DaemonEndpoint.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DaemonEndpoint.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonEndpoint.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonEndpoint [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DaemonEndpoint [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonEndpoint.fields DaemonEndpoint.fieldsUnsealed :=
   ⟨by unfold DaemonEndpoint.fields; rfl⟩
 
-@[reducible] noncomputable def DaemonEndpoint.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonEndpoint.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DaemonEndpoint.fields)
 
-structure NodeDaemonEndpoints [FfiSyntax] where
+structure NodeDaemonEndpoints [GooseExts] where
   mk ::
   KubeletEndpoint' : DaemonEndpoint
 
-noncomputable instance NodeDaemonEndpoints.zero_val [FfiSyntax] : ZeroVal NodeDaemonEndpoints :=
+noncomputable instance NodeDaemonEndpoints.zero_val [GooseExts] : ZeroVal NodeDaemonEndpoints :=
   ⟨NodeDaemonEndpoints.mk zeroValDef⟩
 
-@[reducible] noncomputable def NodeDaemonEndpoints.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeDaemonEndpoints.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"KubeletEndpoint" DaemonEndpoint.ty)]
 
-@[irreducible] noncomputable def NodeDaemonEndpoints.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeDaemonEndpoints.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeDaemonEndpoints.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeDaemonEndpoints [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeDaemonEndpoints [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeDaemonEndpoints.fields NodeDaemonEndpoints.fieldsUnsealed :=
   ⟨by unfold NodeDaemonEndpoints.fields; rfl⟩
 
-@[reducible] noncomputable def NodeDaemonEndpoints.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeDaemonEndpoints.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeDaemonEndpoints.fields)
 
-structure NodeRuntimeHandlerFeatures [FfiSyntax] where
+structure NodeRuntimeHandlerFeatures [GooseExts] where
   mk ::
   RecursiveReadOnlyMounts' : Loc
   UserNamespaces' : Loc
 
-noncomputable instance NodeRuntimeHandlerFeatures.zero_val [FfiSyntax] : ZeroVal NodeRuntimeHandlerFeatures :=
+noncomputable instance NodeRuntimeHandlerFeatures.zero_val [GooseExts] : ZeroVal NodeRuntimeHandlerFeatures :=
   ⟨NodeRuntimeHandlerFeatures.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeRuntimeHandlerFeatures.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeRuntimeHandlerFeatures.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"RecursiveReadOnlyMounts" (go.GoType.PointerType go.bool)),
 (go.field_decl.FieldDecl go!"UserNamespaces" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def NodeRuntimeHandlerFeatures.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeRuntimeHandlerFeatures.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeRuntimeHandlerFeatures.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeRuntimeHandlerFeatures [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeRuntimeHandlerFeatures [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeRuntimeHandlerFeatures.fields NodeRuntimeHandlerFeatures.fieldsUnsealed :=
   ⟨by unfold NodeRuntimeHandlerFeatures.fields; rfl⟩
 
-@[reducible] noncomputable def NodeRuntimeHandlerFeatures.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeRuntimeHandlerFeatures.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeRuntimeHandlerFeatures.fields)
 
-structure NodeRuntimeHandler [FfiSyntax] where
+structure NodeRuntimeHandler [GooseExts] where
   mk ::
   Name' : GoString
   Features' : Loc
 
-noncomputable instance NodeRuntimeHandler.zero_val [FfiSyntax] : ZeroVal NodeRuntimeHandler :=
+noncomputable instance NodeRuntimeHandler.zero_val [GooseExts] : ZeroVal NodeRuntimeHandler :=
   ⟨NodeRuntimeHandler.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeRuntimeHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeRuntimeHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Features" (go.GoType.PointerType NodeRuntimeHandlerFeatures.ty))]
 
-@[irreducible] noncomputable def NodeRuntimeHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeRuntimeHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeRuntimeHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeRuntimeHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeRuntimeHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeRuntimeHandler.fields NodeRuntimeHandler.fieldsUnsealed :=
   ⟨by unfold NodeRuntimeHandler.fields; rfl⟩
 
-@[reducible] noncomputable def NodeRuntimeHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeRuntimeHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeRuntimeHandler.fields)
 
-structure NodeFeatures [FfiSyntax] where
+structure NodeFeatures [GooseExts] where
   mk ::
   SupplementalGroupsPolicy' : Loc
 
-noncomputable instance NodeFeatures.zero_val [FfiSyntax] : ZeroVal NodeFeatures :=
+noncomputable instance NodeFeatures.zero_val [GooseExts] : ZeroVal NodeFeatures :=
   ⟨NodeFeatures.mk zeroValDef⟩
 
-@[reducible] noncomputable def NodeFeatures.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeFeatures.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SupplementalGroupsPolicy" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def NodeFeatures.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeFeatures.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeFeatures.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeFeatures [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeFeatures [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeFeatures.fields NodeFeatures.fieldsUnsealed :=
   ⟨by unfold NodeFeatures.fields; rfl⟩
 
-@[reducible] noncomputable def NodeFeatures.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeFeatures.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeFeatures.fields)
 
-structure NodeSystemInfo [FfiSyntax] where
+structure NodeSystemInfo [GooseExts] where
   mk ::
   MachineID' : GoString
   SystemUUID' : GoString
@@ -9834,10 +9834,10 @@ structure NodeSystemInfo [FfiSyntax] where
   Swap' : Loc
   RunningInUserNamespace' : Loc
 
-noncomputable instance NodeSystemInfo.zero_val [FfiSyntax] : ZeroVal NodeSystemInfo :=
+noncomputable instance NodeSystemInfo.zero_val [GooseExts] : ZeroVal NodeSystemInfo :=
   ⟨NodeSystemInfo.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeSystemInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeSystemInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MachineID" go.string),
 (go.field_decl.FieldDecl go!"SystemUUID" go.string),
 (go.field_decl.FieldDecl go!"BootID" go.string),
@@ -9851,68 +9851,68 @@ noncomputable instance NodeSystemInfo.zero_val [FfiSyntax] : ZeroVal NodeSystemI
 (go.field_decl.FieldDecl go!"Swap" (go.GoType.PointerType NodeSwapStatus.ty)),
 (go.field_decl.FieldDecl go!"RunningInUserNamespace" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def NodeSystemInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeSystemInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeSystemInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeSystemInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeSystemInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeSystemInfo.fields NodeSystemInfo.fieldsUnsealed :=
   ⟨by unfold NodeSystemInfo.fields; rfl⟩
 
-@[reducible] noncomputable def NodeSystemInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeSystemInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeSystemInfo.fields)
 
-structure NodeSwapStatus [FfiSyntax] where
+structure NodeSwapStatus [GooseExts] where
   mk ::
   Capacity' : Loc
 
-noncomputable instance NodeSwapStatus.zero_val [FfiSyntax] : ZeroVal NodeSwapStatus :=
+noncomputable instance NodeSwapStatus.zero_val [GooseExts] : ZeroVal NodeSwapStatus :=
   ⟨NodeSwapStatus.mk zeroValDef⟩
 
-@[reducible] noncomputable def NodeSwapStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeSwapStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Capacity" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def NodeSwapStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeSwapStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeSwapStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeSwapStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeSwapStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeSwapStatus.fields NodeSwapStatus.fieldsUnsealed :=
   ⟨by unfold NodeSwapStatus.fields; rfl⟩
 
-@[reducible] noncomputable def NodeSwapStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeSwapStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeSwapStatus.fields)
 
-structure NodeConfigStatus [FfiSyntax] where
+structure NodeConfigStatus [GooseExts] where
   mk ::
   Assigned' : Loc
   Active' : Loc
   LastKnownGood' : Loc
   Error' : GoString
 
-noncomputable instance NodeConfigStatus.zero_val [FfiSyntax] : ZeroVal NodeConfigStatus :=
+noncomputable instance NodeConfigStatus.zero_val [GooseExts] : ZeroVal NodeConfigStatus :=
   ⟨NodeConfigStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeConfigStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeConfigStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Assigned" (go.GoType.PointerType NodeConfigSource.ty)),
 (go.field_decl.FieldDecl go!"Active" (go.GoType.PointerType NodeConfigSource.ty)),
 (go.field_decl.FieldDecl go!"LastKnownGood" (go.GoType.PointerType NodeConfigSource.ty)),
 (go.field_decl.FieldDecl go!"Error" go.string)]
 
-@[irreducible] noncomputable def NodeConfigStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeConfigStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeConfigStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeConfigStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeConfigStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeConfigStatus.fields NodeConfigStatus.fieldsUnsealed :=
   ⟨by unfold NodeConfigStatus.fields; rfl⟩
 
-@[reducible] noncomputable def NodeConfigStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeConfigStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeConfigStatus.fields)
 
-abbrev NodePhase [FfiSyntax] : Type := GoString
+abbrev NodePhase [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def NodePhase.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodePhase.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure NodeStatus [FfiSyntax] where
+structure NodeStatus [GooseExts] where
   mk ::
   Capacity' : ResourceList
   Allocatable' : ResourceList
@@ -9929,10 +9929,10 @@ structure NodeStatus [FfiSyntax] where
   Features' : Loc
   DeclaredFeatures' : GoSlice
 
-noncomputable instance NodeStatus.zero_val [FfiSyntax] : ZeroVal NodeStatus :=
+noncomputable instance NodeStatus.zero_val [GooseExts] : ZeroVal NodeStatus :=
   ⟨NodeStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Capacity" ResourceList.ty),
 (go.field_decl.FieldDecl go!"Allocatable" ResourceList.ty),
 (go.field_decl.FieldDecl go!"Phase" NodePhase.ty),
@@ -9948,137 +9948,137 @@ noncomputable instance NodeStatus.zero_val [FfiSyntax] : ZeroVal NodeStatus :=
 (go.field_decl.FieldDecl go!"Features" (go.GoType.PointerType NodeFeatures.ty)),
 (go.field_decl.FieldDecl go!"DeclaredFeatures" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def NodeStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeStatus.fields NodeStatus.fieldsUnsealed :=
   ⟨by unfold NodeStatus.fields; rfl⟩
 
-@[reducible] noncomputable def NodeStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeStatus.fields)
 
-abbrev UniqueVolumeName [FfiSyntax] : Type := GoString
+abbrev UniqueVolumeName [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def UniqueVolumeName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UniqueVolumeName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure AttachedVolume [FfiSyntax] where
+structure AttachedVolume [GooseExts] where
   mk ::
   Name' : UniqueVolumeName
   DevicePath' : GoString
 
-noncomputable instance AttachedVolume.zero_val [FfiSyntax] : ZeroVal AttachedVolume :=
+noncomputable instance AttachedVolume.zero_val [GooseExts] : ZeroVal AttachedVolume :=
   ⟨AttachedVolume.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def AttachedVolume.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AttachedVolume.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" UniqueVolumeName.ty),
 (go.field_decl.FieldDecl go!"DevicePath" go.string)]
 
-@[irreducible] noncomputable def AttachedVolume.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AttachedVolume.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AttachedVolume.fieldsUnsealed
 
-noncomputable instance equals_unfold_AttachedVolume [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AttachedVolume [GooseExts] [GoGlobalContext] :
     EqualsUnfold AttachedVolume.fields AttachedVolume.fieldsUnsealed :=
   ⟨by unfold AttachedVolume.fields; rfl⟩
 
-@[reducible] noncomputable def AttachedVolume.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AttachedVolume.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AttachedVolume.fields)
 
-structure AvoidPods [FfiSyntax] where
+structure AvoidPods [GooseExts] where
   mk ::
   PreferAvoidPods' : GoSlice
 
-noncomputable instance AvoidPods.zero_val [FfiSyntax] : ZeroVal AvoidPods :=
+noncomputable instance AvoidPods.zero_val [GooseExts] : ZeroVal AvoidPods :=
   ⟨AvoidPods.mk zeroValDef⟩
 
-@[reducible] noncomputable def AvoidPods.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AvoidPods.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PreferAvoidPods" (go.GoType.SliceType PreferAvoidPodsEntry.ty))]
 
-@[irreducible] noncomputable def AvoidPods.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AvoidPods.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AvoidPods.fieldsUnsealed
 
-noncomputable instance equals_unfold_AvoidPods [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AvoidPods [GooseExts] [GoGlobalContext] :
     EqualsUnfold AvoidPods.fields AvoidPods.fieldsUnsealed :=
   ⟨by unfold AvoidPods.fields; rfl⟩
 
-@[reducible] noncomputable def AvoidPods.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AvoidPods.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AvoidPods.fields)
 
-structure PodSignature [FfiSyntax] where
+structure PodSignature [GooseExts] where
   mk ::
   PodController' : Loc
 
-noncomputable instance PodSignature.zero_val [FfiSyntax] : ZeroVal PodSignature :=
+noncomputable instance PodSignature.zero_val [GooseExts] : ZeroVal PodSignature :=
   ⟨PodSignature.mk zeroValDef⟩
 
-@[reducible] noncomputable def PodSignature.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodSignature.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PodController" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty))]
 
-@[irreducible] noncomputable def PodSignature.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodSignature.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodSignature.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodSignature [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodSignature [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodSignature.fields PodSignature.fieldsUnsealed :=
   ⟨by unfold PodSignature.fields; rfl⟩
 
-@[reducible] noncomputable def PodSignature.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodSignature.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodSignature.fields)
 
-structure PreferAvoidPodsEntry [FfiSyntax] where
+structure PreferAvoidPodsEntry [GooseExts] where
   mk ::
   PodSignature' : PodSignature
   EvictionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance PreferAvoidPodsEntry.zero_val [FfiSyntax] : ZeroVal PreferAvoidPodsEntry :=
+noncomputable instance PreferAvoidPodsEntry.zero_val [GooseExts] : ZeroVal PreferAvoidPodsEntry :=
   ⟨PreferAvoidPodsEntry.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PreferAvoidPodsEntry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PreferAvoidPodsEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PodSignature" PodSignature.ty),
 (go.field_decl.FieldDecl go!"EvictionTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def PreferAvoidPodsEntry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PreferAvoidPodsEntry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PreferAvoidPodsEntry.fieldsUnsealed
 
-noncomputable instance equals_unfold_PreferAvoidPodsEntry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PreferAvoidPodsEntry [GooseExts] [GoGlobalContext] :
     EqualsUnfold PreferAvoidPodsEntry.fields PreferAvoidPodsEntry.fieldsUnsealed :=
   ⟨by unfold PreferAvoidPodsEntry.fields; rfl⟩
 
-@[reducible] noncomputable def PreferAvoidPodsEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PreferAvoidPodsEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PreferAvoidPodsEntry.fields)
 
-structure ContainerImage [FfiSyntax] where
+structure ContainerImage [GooseExts] where
   mk ::
   Names' : GoSlice
   SizeBytes' : w64
 
-noncomputable instance ContainerImage.zero_val [FfiSyntax] : ZeroVal ContainerImage :=
+noncomputable instance ContainerImage.zero_val [GooseExts] : ZeroVal ContainerImage :=
   ⟨ContainerImage.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ContainerImage.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContainerImage.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Names" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"SizeBytes" go.int64)]
 
-@[irreducible] noncomputable def ContainerImage.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContainerImage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContainerImage.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContainerImage [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContainerImage [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContainerImage.fields ContainerImage.fieldsUnsealed :=
   ⟨by unfold ContainerImage.fields; rfl⟩
 
-@[reducible] noncomputable def ContainerImage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContainerImage.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContainerImage.fields)
 
-abbrev NodeConditionType [FfiSyntax] : Type := GoString
+abbrev NodeConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def NodeConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure NodeCondition [FfiSyntax] where
+structure NodeCondition [GooseExts] where
   mk ::
   Type' : NodeConditionType
   Status' : ConditionStatus
@@ -10087,10 +10087,10 @@ structure NodeCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance NodeCondition.zero_val [FfiSyntax] : ZeroVal NodeCondition :=
+noncomputable instance NodeCondition.zero_val [GooseExts] : ZeroVal NodeCondition :=
   ⟨NodeCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" NodeConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"LastHeartbeatTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
@@ -10098,151 +10098,151 @@ noncomputable instance NodeCondition.zero_val [FfiSyntax] : ZeroVal NodeConditio
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def NodeCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeCondition.fields NodeCondition.fieldsUnsealed :=
   ⟨by unfold NodeCondition.fields; rfl⟩
 
-@[reducible] noncomputable def NodeCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeCondition.fields)
 
-abbrev NodeAddressType [FfiSyntax] : Type := GoString
+abbrev NodeAddressType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def NodeAddressType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeAddressType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure NodeAddress [FfiSyntax] where
+structure NodeAddress [GooseExts] where
   mk ::
   Type' : NodeAddressType
   Address' : GoString
 
-noncomputable instance NodeAddress.zero_val [FfiSyntax] : ZeroVal NodeAddress :=
+noncomputable instance NodeAddress.zero_val [GooseExts] : ZeroVal NodeAddress :=
   ⟨NodeAddress.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeAddress.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeAddress.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" NodeAddressType.ty),
 (go.field_decl.FieldDecl go!"Address" go.string)]
 
-@[irreducible] noncomputable def NodeAddress.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeAddress.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeAddress.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeAddress [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeAddress [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeAddress.fields NodeAddress.fieldsUnsealed :=
   ⟨by unfold NodeAddress.fields; rfl⟩
 
-@[reducible] noncomputable def NodeAddress.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeAddress.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeAddress.fields)
 
-structure Node [FfiSyntax] where
+structure Node [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : NodeSpec
   Status' : NodeStatus
 
-noncomputable instance Node.zero_val [FfiSyntax] : ZeroVal Node :=
+noncomputable instance Node.zero_val [GooseExts] : ZeroVal Node :=
   ⟨Node.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Node.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Node.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" NodeSpec.ty),
 (go.field_decl.FieldDecl go!"Status" NodeStatus.ty)]
 
-@[irreducible] noncomputable def Node.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Node.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Node.fieldsUnsealed
 
-noncomputable instance equals_unfold_Node [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Node [GooseExts] [GoGlobalContext] :
     EqualsUnfold Node.fields Node.fieldsUnsealed :=
   ⟨by unfold Node.fields; rfl⟩
 
-@[reducible] noncomputable def Node.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Node.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Node.fields)
 
-structure NodeList [FfiSyntax] where
+structure NodeList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance NodeList.zero_val [FfiSyntax] : ZeroVal NodeList :=
+noncomputable instance NodeList.zero_val [GooseExts] : ZeroVal NodeList :=
   ⟨NodeList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Node.ty))]
 
-@[irreducible] noncomputable def NodeList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeList.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeList [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeList.fields NodeList.fieldsUnsealed :=
   ⟨by unfold NodeList.fields; rfl⟩
 
-@[reducible] noncomputable def NodeList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeList.fields)
 
-abbrev FinalizerName [FfiSyntax] : Type := GoString
+abbrev FinalizerName [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def FinalizerName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FinalizerName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure NamespaceSpec [FfiSyntax] where
+structure NamespaceSpec [GooseExts] where
   mk ::
   Finalizers' : GoSlice
 
-noncomputable instance NamespaceSpec.zero_val [FfiSyntax] : ZeroVal NamespaceSpec :=
+noncomputable instance NamespaceSpec.zero_val [GooseExts] : ZeroVal NamespaceSpec :=
   ⟨NamespaceSpec.mk zeroValDef⟩
 
-@[reducible] noncomputable def NamespaceSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NamespaceSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Finalizers" (go.GoType.SliceType FinalizerName.ty))]
 
-@[irreducible] noncomputable def NamespaceSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NamespaceSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NamespaceSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_NamespaceSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NamespaceSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold NamespaceSpec.fields NamespaceSpec.fieldsUnsealed :=
   ⟨by unfold NamespaceSpec.fields; rfl⟩
 
-@[reducible] noncomputable def NamespaceSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NamespaceSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NamespaceSpec.fields)
 
-abbrev NamespacePhase [FfiSyntax] : Type := GoString
+abbrev NamespacePhase [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def NamespacePhase.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NamespacePhase.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure NamespaceStatus [FfiSyntax] where
+structure NamespaceStatus [GooseExts] where
   mk ::
   Phase' : NamespacePhase
   Conditions' : GoSlice
 
-noncomputable instance NamespaceStatus.zero_val [FfiSyntax] : ZeroVal NamespaceStatus :=
+noncomputable instance NamespaceStatus.zero_val [GooseExts] : ZeroVal NamespaceStatus :=
   ⟨NamespaceStatus.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NamespaceStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NamespaceStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Phase" NamespacePhase.ty),
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType NamespaceCondition.ty))]
 
-@[irreducible] noncomputable def NamespaceStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NamespaceStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NamespaceStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_NamespaceStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NamespaceStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold NamespaceStatus.fields NamespaceStatus.fieldsUnsealed :=
   ⟨by unfold NamespaceStatus.fields; rfl⟩
 
-@[reducible] noncomputable def NamespaceStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NamespaceStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NamespaceStatus.fields)
 
-abbrev NamespaceConditionType [FfiSyntax] : Type := GoString
+abbrev NamespaceConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def NamespaceConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NamespaceConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure NamespaceCondition [FfiSyntax] where
+structure NamespaceCondition [GooseExts] where
   mk ::
   Type' : NamespaceConditionType
   Status' : ConditionStatus
@@ -10250,77 +10250,77 @@ structure NamespaceCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance NamespaceCondition.zero_val [FfiSyntax] : ZeroVal NamespaceCondition :=
+noncomputable instance NamespaceCondition.zero_val [GooseExts] : ZeroVal NamespaceCondition :=
   ⟨NamespaceCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NamespaceCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NamespaceCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" NamespaceConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"LastTransitionTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def NamespaceCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NamespaceCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NamespaceCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_NamespaceCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NamespaceCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold NamespaceCondition.fields NamespaceCondition.fieldsUnsealed :=
   ⟨by unfold NamespaceCondition.fields; rfl⟩
 
-@[reducible] noncomputable def NamespaceCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NamespaceCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NamespaceCondition.fields)
 
-structure Namespace [FfiSyntax] where
+structure Namespace [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : NamespaceSpec
   Status' : NamespaceStatus
 
-noncomputable instance Namespace.zero_val [FfiSyntax] : ZeroVal Namespace :=
+noncomputable instance Namespace.zero_val [GooseExts] : ZeroVal Namespace :=
   ⟨Namespace.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Namespace.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Namespace.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" NamespaceSpec.ty),
 (go.field_decl.FieldDecl go!"Status" NamespaceStatus.ty)]
 
-@[irreducible] noncomputable def Namespace.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Namespace.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Namespace.fieldsUnsealed
 
-noncomputable instance equals_unfold_Namespace [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Namespace [GooseExts] [GoGlobalContext] :
     EqualsUnfold Namespace.fields Namespace.fieldsUnsealed :=
   ⟨by unfold Namespace.fields; rfl⟩
 
-@[reducible] noncomputable def Namespace.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Namespace.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Namespace.fields)
 
-structure NamespaceList [FfiSyntax] where
+structure NamespaceList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance NamespaceList.zero_val [FfiSyntax] : ZeroVal NamespaceList :=
+noncomputable instance NamespaceList.zero_val [GooseExts] : ZeroVal NamespaceList :=
   ⟨NamespaceList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NamespaceList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NamespaceList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Namespace.ty))]
 
-@[irreducible] noncomputable def NamespaceList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NamespaceList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NamespaceList.fieldsUnsealed
 
-noncomputable instance equals_unfold_NamespaceList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NamespaceList [GooseExts] [GoGlobalContext] :
     EqualsUnfold NamespaceList.fields NamespaceList.fieldsUnsealed :=
   ⟨by unfold NamespaceList.fields; rfl⟩
 
-@[reducible] noncomputable def NamespaceList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NamespaceList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NamespaceList.fields)
 
-structure ObjectReference [FfiSyntax] where
+structure ObjectReference [GooseExts] where
   mk ::
   Kind' : GoString
   Namespace' : GoString
@@ -10330,10 +10330,10 @@ structure ObjectReference [FfiSyntax] where
   ResourceVersion' : GoString
   FieldPath' : GoString
 
-noncomputable instance ObjectReference.zero_val [FfiSyntax] : ZeroVal ObjectReference :=
+noncomputable instance ObjectReference.zero_val [GooseExts] : ZeroVal ObjectReference :=
   ⟨ObjectReference.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ObjectReference.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ObjectReference.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Kind" go.string),
 (go.field_decl.FieldDecl go!"Namespace" go.string),
 (go.field_decl.FieldDecl go!"Name" go.string),
@@ -10342,61 +10342,61 @@ noncomputable instance ObjectReference.zero_val [FfiSyntax] : ZeroVal ObjectRefe
 (go.field_decl.FieldDecl go!"ResourceVersion" go.string),
 (go.field_decl.FieldDecl go!"FieldPath" go.string)]
 
-@[irreducible] noncomputable def ObjectReference.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ObjectReference.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ObjectReference.fieldsUnsealed
 
-noncomputable instance equals_unfold_ObjectReference [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ObjectReference [GooseExts] [GoGlobalContext] :
     EqualsUnfold ObjectReference.fields ObjectReference.fieldsUnsealed :=
   ⟨by unfold ObjectReference.fields; rfl⟩
 
-@[reducible] noncomputable def ObjectReference.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ObjectReference.fields)
 
-structure Binding [FfiSyntax] where
+structure Binding [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Target' : ObjectReference
 
-noncomputable instance Binding.zero_val [FfiSyntax] : ZeroVal Binding :=
+noncomputable instance Binding.zero_val [GooseExts] : ZeroVal Binding :=
   ⟨Binding.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Binding.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Binding.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Target" ObjectReference.ty)]
 
-@[irreducible] noncomputable def Binding.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Binding.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Binding.fieldsUnsealed
 
-noncomputable instance equals_unfold_Binding [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Binding [GooseExts] [GoGlobalContext] :
     EqualsUnfold Binding.fields Binding.fieldsUnsealed :=
   ⟨by unfold Binding.fields; rfl⟩
 
-@[reducible] noncomputable def Binding.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Binding.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Binding.fields)
 
-structure Preconditions [FfiSyntax] where
+structure Preconditions [GooseExts] where
   mk ::
   UID' : Loc
 
-noncomputable instance Preconditions.zero_val [FfiSyntax] : ZeroVal Preconditions :=
+noncomputable instance Preconditions.zero_val [GooseExts] : ZeroVal Preconditions :=
   ⟨Preconditions.mk zeroValDef⟩
 
-@[reducible] noncomputable def Preconditions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Preconditions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"UID" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))]
 
-@[irreducible] noncomputable def Preconditions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Preconditions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Preconditions.fieldsUnsealed
 
-noncomputable instance equals_unfold_Preconditions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Preconditions [GooseExts] [GoGlobalContext] :
     EqualsUnfold Preconditions.fields Preconditions.fieldsUnsealed :=
   ⟨by unfold Preconditions.fields; rfl⟩
 
-@[reducible] noncomputable def Preconditions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Preconditions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Preconditions.fields)
 
-structure PodLogOptions [FfiSyntax] where
+structure PodLogOptions [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   Container' : GoString
@@ -10410,10 +10410,10 @@ structure PodLogOptions [FfiSyntax] where
   InsecureSkipTLSVerifyBackend' : Bool
   Stream' : Loc
 
-noncomputable instance PodLogOptions.zero_val [FfiSyntax] : ZeroVal PodLogOptions :=
+noncomputable instance PodLogOptions.zero_val [GooseExts] : ZeroVal PodLogOptions :=
   ⟨PodLogOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodLogOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodLogOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.FieldDecl go!"Container" go.string),
 (go.field_decl.FieldDecl go!"Follow" go.bool),
@@ -10426,17 +10426,17 @@ noncomputable instance PodLogOptions.zero_val [FfiSyntax] : ZeroVal PodLogOption
 (go.field_decl.FieldDecl go!"InsecureSkipTLSVerifyBackend" go.bool),
 (go.field_decl.FieldDecl go!"Stream" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def PodLogOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodLogOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodLogOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodLogOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodLogOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodLogOptions.fields PodLogOptions.fieldsUnsealed :=
   ⟨by unfold PodLogOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PodLogOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodLogOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodLogOptions.fields)
 
-structure PodAttachOptions [FfiSyntax] where
+structure PodAttachOptions [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   Stdin' : Bool
@@ -10445,10 +10445,10 @@ structure PodAttachOptions [FfiSyntax] where
   TTY' : Bool
   Container' : GoString
 
-noncomputable instance PodAttachOptions.zero_val [FfiSyntax] : ZeroVal PodAttachOptions :=
+noncomputable instance PodAttachOptions.zero_val [GooseExts] : ZeroVal PodAttachOptions :=
   ⟨PodAttachOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodAttachOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodAttachOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.FieldDecl go!"Stdin" go.bool),
 (go.field_decl.FieldDecl go!"Stdout" go.bool),
@@ -10456,17 +10456,17 @@ noncomputable instance PodAttachOptions.zero_val [FfiSyntax] : ZeroVal PodAttach
 (go.field_decl.FieldDecl go!"TTY" go.bool),
 (go.field_decl.FieldDecl go!"Container" go.string)]
 
-@[irreducible] noncomputable def PodAttachOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodAttachOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodAttachOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodAttachOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodAttachOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodAttachOptions.fields PodAttachOptions.fieldsUnsealed :=
   ⟨by unfold PodAttachOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PodAttachOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodAttachOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodAttachOptions.fields)
 
-structure PodExecOptions [FfiSyntax] where
+structure PodExecOptions [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   Stdin' : Bool
@@ -10476,10 +10476,10 @@ structure PodExecOptions [FfiSyntax] where
   Container' : GoString
   Command' : GoSlice
 
-noncomputable instance PodExecOptions.zero_val [FfiSyntax] : ZeroVal PodExecOptions :=
+noncomputable instance PodExecOptions.zero_val [GooseExts] : ZeroVal PodExecOptions :=
   ⟨PodExecOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodExecOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodExecOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.FieldDecl go!"Stdin" go.bool),
 (go.field_decl.FieldDecl go!"Stdout" go.bool),
@@ -10488,173 +10488,173 @@ noncomputable instance PodExecOptions.zero_val [FfiSyntax] : ZeroVal PodExecOpti
 (go.field_decl.FieldDecl go!"Container" go.string),
 (go.field_decl.FieldDecl go!"Command" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def PodExecOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodExecOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodExecOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodExecOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodExecOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodExecOptions.fields PodExecOptions.fieldsUnsealed :=
   ⟨by unfold PodExecOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PodExecOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodExecOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodExecOptions.fields)
 
-structure PodPortForwardOptions [FfiSyntax] where
+structure PodPortForwardOptions [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   Ports' : GoSlice
 
-noncomputable instance PodPortForwardOptions.zero_val [FfiSyntax] : ZeroVal PodPortForwardOptions :=
+noncomputable instance PodPortForwardOptions.zero_val [GooseExts] : ZeroVal PodPortForwardOptions :=
   ⟨PodPortForwardOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodPortForwardOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodPortForwardOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.FieldDecl go!"Ports" (go.GoType.SliceType go.int32))]
 
-@[irreducible] noncomputable def PodPortForwardOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodPortForwardOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodPortForwardOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodPortForwardOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodPortForwardOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodPortForwardOptions.fields PodPortForwardOptions.fieldsUnsealed :=
   ⟨by unfold PodPortForwardOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PodPortForwardOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodPortForwardOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodPortForwardOptions.fields)
 
-structure PodProxyOptions [FfiSyntax] where
+structure PodProxyOptions [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   Path' : GoString
 
-noncomputable instance PodProxyOptions.zero_val [FfiSyntax] : ZeroVal PodProxyOptions :=
+noncomputable instance PodProxyOptions.zero_val [GooseExts] : ZeroVal PodProxyOptions :=
   ⟨PodProxyOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PodProxyOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PodProxyOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.FieldDecl go!"Path" go.string)]
 
-@[irreducible] noncomputable def PodProxyOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PodProxyOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodProxyOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodProxyOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PodProxyOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodProxyOptions.fields PodProxyOptions.fieldsUnsealed :=
   ⟨by unfold PodProxyOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PodProxyOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodProxyOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PodProxyOptions.fields)
 
-structure NodeProxyOptions [FfiSyntax] where
+structure NodeProxyOptions [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   Path' : GoString
 
-noncomputable instance NodeProxyOptions.zero_val [FfiSyntax] : ZeroVal NodeProxyOptions :=
+noncomputable instance NodeProxyOptions.zero_val [GooseExts] : ZeroVal NodeProxyOptions :=
   ⟨NodeProxyOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeProxyOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeProxyOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.FieldDecl go!"Path" go.string)]
 
-@[irreducible] noncomputable def NodeProxyOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeProxyOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeProxyOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeProxyOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeProxyOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeProxyOptions.fields NodeProxyOptions.fieldsUnsealed :=
   ⟨by unfold NodeProxyOptions.fields; rfl⟩
 
-@[reducible] noncomputable def NodeProxyOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeProxyOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeProxyOptions.fields)
 
-structure ServiceProxyOptions [FfiSyntax] where
+structure ServiceProxyOptions [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   Path' : GoString
 
-noncomputable instance ServiceProxyOptions.zero_val [FfiSyntax] : ZeroVal ServiceProxyOptions :=
+noncomputable instance ServiceProxyOptions.zero_val [GooseExts] : ZeroVal ServiceProxyOptions :=
   ⟨ServiceProxyOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceProxyOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceProxyOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.FieldDecl go!"Path" go.string)]
 
-@[irreducible] noncomputable def ServiceProxyOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceProxyOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceProxyOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceProxyOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceProxyOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceProxyOptions.fields ServiceProxyOptions.fieldsUnsealed :=
   ⟨by unfold ServiceProxyOptions.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceProxyOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceProxyOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceProxyOptions.fields)
 
-structure TypedLocalObjectReference [FfiSyntax] where
+structure TypedLocalObjectReference [GooseExts] where
   mk ::
   APIGroup' : Loc
   Kind' : GoString
   Name' : GoString
 
-noncomputable instance TypedLocalObjectReference.zero_val [FfiSyntax] : ZeroVal TypedLocalObjectReference :=
+noncomputable instance TypedLocalObjectReference.zero_val [GooseExts] : ZeroVal TypedLocalObjectReference :=
   ⟨TypedLocalObjectReference.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedLocalObjectReference.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TypedLocalObjectReference.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"APIGroup" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"Kind" go.string),
 (go.field_decl.FieldDecl go!"Name" go.string)]
 
-@[irreducible] noncomputable def TypedLocalObjectReference.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TypedLocalObjectReference.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TypedLocalObjectReference.fieldsUnsealed
 
-noncomputable instance equals_unfold_TypedLocalObjectReference [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TypedLocalObjectReference [GooseExts] [GoGlobalContext] :
     EqualsUnfold TypedLocalObjectReference.fields TypedLocalObjectReference.fieldsUnsealed :=
   ⟨by unfold TypedLocalObjectReference.fields; rfl⟩
 
-@[reducible] noncomputable def TypedLocalObjectReference.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TypedLocalObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TypedLocalObjectReference.fields)
 
-structure SerializedReference [FfiSyntax] where
+structure SerializedReference [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   Reference' : ObjectReference
 
-noncomputable instance SerializedReference.zero_val [FfiSyntax] : ZeroVal SerializedReference :=
+noncomputable instance SerializedReference.zero_val [GooseExts] : ZeroVal SerializedReference :=
   ⟨SerializedReference.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SerializedReference.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SerializedReference.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.FieldDecl go!"Reference" ObjectReference.ty)]
 
-@[irreducible] noncomputable def SerializedReference.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SerializedReference.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SerializedReference.fieldsUnsealed
 
-noncomputable instance equals_unfold_SerializedReference [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SerializedReference [GooseExts] [GoGlobalContext] :
     EqualsUnfold SerializedReference.fields SerializedReference.fieldsUnsealed :=
   ⟨by unfold SerializedReference.fields; rfl⟩
 
-@[reducible] noncomputable def SerializedReference.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SerializedReference.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SerializedReference.fields)
 
-structure EventSource [FfiSyntax] where
+structure EventSource [GooseExts] where
   mk ::
   Component' : GoString
   Host' : GoString
 
-noncomputable instance EventSource.zero_val [FfiSyntax] : ZeroVal EventSource :=
+noncomputable instance EventSource.zero_val [GooseExts] : ZeroVal EventSource :=
   ⟨EventSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EventSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EventSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Component" go.string),
 (go.field_decl.FieldDecl go!"Host" go.string)]
 
-@[irreducible] noncomputable def EventSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EventSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EventSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventSource.fields EventSource.fieldsUnsealed :=
   ⟨by unfold EventSource.fields; rfl⟩
 
-@[reducible] noncomputable def EventSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EventSource.fields)
 
-structure Event [FfiSyntax] where
+structure Event [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
@@ -10673,10 +10673,10 @@ structure Event [FfiSyntax] where
   ReportingController' : GoString
   ReportingInstance' : GoString
 
-noncomputable instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
+noncomputable instance Event.zero_val [GooseExts] : ZeroVal Event :=
   ⟨Event.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Event.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"InvolvedObject" ObjectReference.ty),
@@ -10694,73 +10694,73 @@ noncomputable instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
 (go.field_decl.FieldDecl go!"ReportingController" go.string),
 (go.field_decl.FieldDecl go!"ReportingInstance" go.string)]
 
-@[irreducible] noncomputable def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Event.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-noncomputable instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
-@[reducible] noncomputable def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Event.fields)
 
-structure EventSeries [FfiSyntax] where
+structure EventSeries [GooseExts] where
   mk ::
   Count' : w32
   LastObservedTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime
 
-noncomputable instance EventSeries.zero_val [FfiSyntax] : ZeroVal EventSeries :=
+noncomputable instance EventSeries.zero_val [GooseExts] : ZeroVal EventSeries :=
   ⟨EventSeries.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EventSeries.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EventSeries.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Count" go.int32),
 (go.field_decl.FieldDecl go!"LastObservedTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime.ty)]
 
-@[irreducible] noncomputable def EventSeries.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EventSeries.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventSeries.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventSeries [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EventSeries [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventSeries.fields EventSeries.fieldsUnsealed :=
   ⟨by unfold EventSeries.fields; rfl⟩
 
-@[reducible] noncomputable def EventSeries.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventSeries.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EventSeries.fields)
 
-structure EventList [FfiSyntax] where
+structure EventList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance EventList.zero_val [FfiSyntax] : ZeroVal EventList :=
+noncomputable instance EventList.zero_val [GooseExts] : ZeroVal EventList :=
   ⟨EventList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EventList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EventList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Event.ty))]
 
-@[irreducible] noncomputable def EventList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EventList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventList.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EventList [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventList.fields EventList.fieldsUnsealed :=
   ⟨by unfold EventList.fields; rfl⟩
 
-@[reducible] noncomputable def EventList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EventList.fields)
 
-abbrev List' [FfiSyntax] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'
+abbrev List' [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'
 
-@[reducible] noncomputable def List'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def List'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'.ty
 
-abbrev LimitType [FfiSyntax] : Type := GoString
+abbrev LimitType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def LimitType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LimitType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure LimitRangeItem [FfiSyntax] where
+structure LimitRangeItem [GooseExts] where
   mk ::
   Type' : LimitType
   Max' : ResourceList
@@ -10769,10 +10769,10 @@ structure LimitRangeItem [FfiSyntax] where
   DefaultRequest' : ResourceList
   MaxLimitRequestRatio' : ResourceList
 
-noncomputable instance LimitRangeItem.zero_val [FfiSyntax] : ZeroVal LimitRangeItem :=
+noncomputable instance LimitRangeItem.zero_val [GooseExts] : ZeroVal LimitRangeItem :=
   ⟨LimitRangeItem.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LimitRangeItem.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LimitRangeItem.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" LimitType.ty),
 (go.field_decl.FieldDecl go!"Max" ResourceList.ty),
 (go.field_decl.FieldDecl go!"Min" ResourceList.ty),
@@ -10780,240 +10780,240 @@ noncomputable instance LimitRangeItem.zero_val [FfiSyntax] : ZeroVal LimitRangeI
 (go.field_decl.FieldDecl go!"DefaultRequest" ResourceList.ty),
 (go.field_decl.FieldDecl go!"MaxLimitRequestRatio" ResourceList.ty)]
 
-@[irreducible] noncomputable def LimitRangeItem.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LimitRangeItem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LimitRangeItem.fieldsUnsealed
 
-noncomputable instance equals_unfold_LimitRangeItem [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LimitRangeItem [GooseExts] [GoGlobalContext] :
     EqualsUnfold LimitRangeItem.fields LimitRangeItem.fieldsUnsealed :=
   ⟨by unfold LimitRangeItem.fields; rfl⟩
 
-@[reducible] noncomputable def LimitRangeItem.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LimitRangeItem.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LimitRangeItem.fields)
 
-structure LimitRangeSpec [FfiSyntax] where
+structure LimitRangeSpec [GooseExts] where
   mk ::
   Limits' : GoSlice
 
-noncomputable instance LimitRangeSpec.zero_val [FfiSyntax] : ZeroVal LimitRangeSpec :=
+noncomputable instance LimitRangeSpec.zero_val [GooseExts] : ZeroVal LimitRangeSpec :=
   ⟨LimitRangeSpec.mk zeroValDef⟩
 
-@[reducible] noncomputable def LimitRangeSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LimitRangeSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Limits" (go.GoType.SliceType LimitRangeItem.ty))]
 
-@[irreducible] noncomputable def LimitRangeSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LimitRangeSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LimitRangeSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_LimitRangeSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LimitRangeSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold LimitRangeSpec.fields LimitRangeSpec.fieldsUnsealed :=
   ⟨by unfold LimitRangeSpec.fields; rfl⟩
 
-@[reducible] noncomputable def LimitRangeSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LimitRangeSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LimitRangeSpec.fields)
 
-structure LimitRange [FfiSyntax] where
+structure LimitRange [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : LimitRangeSpec
 
-noncomputable instance LimitRange.zero_val [FfiSyntax] : ZeroVal LimitRange :=
+noncomputable instance LimitRange.zero_val [GooseExts] : ZeroVal LimitRange :=
   ⟨LimitRange.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LimitRange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LimitRange.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" LimitRangeSpec.ty)]
 
-@[irreducible] noncomputable def LimitRange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LimitRange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LimitRange.fieldsUnsealed
 
-noncomputable instance equals_unfold_LimitRange [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LimitRange [GooseExts] [GoGlobalContext] :
     EqualsUnfold LimitRange.fields LimitRange.fieldsUnsealed :=
   ⟨by unfold LimitRange.fields; rfl⟩
 
-@[reducible] noncomputable def LimitRange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LimitRange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LimitRange.fields)
 
-structure LimitRangeList [FfiSyntax] where
+structure LimitRangeList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance LimitRangeList.zero_val [FfiSyntax] : ZeroVal LimitRangeList :=
+noncomputable instance LimitRangeList.zero_val [GooseExts] : ZeroVal LimitRangeList :=
   ⟨LimitRangeList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LimitRangeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LimitRangeList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType LimitRange.ty))]
 
-@[irreducible] noncomputable def LimitRangeList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LimitRangeList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LimitRangeList.fieldsUnsealed
 
-noncomputable instance equals_unfold_LimitRangeList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LimitRangeList [GooseExts] [GoGlobalContext] :
     EqualsUnfold LimitRangeList.fields LimitRangeList.fieldsUnsealed :=
   ⟨by unfold LimitRangeList.fields; rfl⟩
 
-@[reducible] noncomputable def LimitRangeList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LimitRangeList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LimitRangeList.fields)
 
-abbrev ResourceQuotaScope [FfiSyntax] : Type := GoString
+abbrev ResourceQuotaScope [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ResourceQuotaScope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceQuotaScope.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ResourceQuotaSpec [FfiSyntax] where
+structure ResourceQuotaSpec [GooseExts] where
   mk ::
   Hard' : ResourceList
   Scopes' : GoSlice
   ScopeSelector' : Loc
 
-noncomputable instance ResourceQuotaSpec.zero_val [FfiSyntax] : ZeroVal ResourceQuotaSpec :=
+noncomputable instance ResourceQuotaSpec.zero_val [GooseExts] : ZeroVal ResourceQuotaSpec :=
   ⟨ResourceQuotaSpec.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceQuotaSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceQuotaSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Hard" ResourceList.ty),
 (go.field_decl.FieldDecl go!"Scopes" (go.GoType.SliceType ResourceQuotaScope.ty)),
 (go.field_decl.FieldDecl go!"ScopeSelector" (go.GoType.PointerType ScopeSelector.ty))]
 
-@[irreducible] noncomputable def ResourceQuotaSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceQuotaSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceQuotaSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceQuotaSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceQuotaSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceQuotaSpec.fields ResourceQuotaSpec.fieldsUnsealed :=
   ⟨by unfold ResourceQuotaSpec.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceQuotaSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceQuotaSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceQuotaSpec.fields)
 
-structure ScopeSelector [FfiSyntax] where
+structure ScopeSelector [GooseExts] where
   mk ::
   MatchExpressions' : GoSlice
 
-noncomputable instance ScopeSelector.zero_val [FfiSyntax] : ZeroVal ScopeSelector :=
+noncomputable instance ScopeSelector.zero_val [GooseExts] : ZeroVal ScopeSelector :=
   ⟨ScopeSelector.mk zeroValDef⟩
 
-@[reducible] noncomputable def ScopeSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ScopeSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MatchExpressions" (go.GoType.SliceType ScopedResourceSelectorRequirement.ty))]
 
-@[irreducible] noncomputable def ScopeSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ScopeSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ScopeSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_ScopeSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ScopeSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold ScopeSelector.fields ScopeSelector.fieldsUnsealed :=
   ⟨by unfold ScopeSelector.fields; rfl⟩
 
-@[reducible] noncomputable def ScopeSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ScopeSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ScopeSelector.fields)
 
-abbrev ScopeSelectorOperator [FfiSyntax] : Type := GoString
+abbrev ScopeSelectorOperator [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ScopeSelectorOperator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ScopeSelectorOperator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ScopedResourceSelectorRequirement [FfiSyntax] where
+structure ScopedResourceSelectorRequirement [GooseExts] where
   mk ::
   ScopeName' : ResourceQuotaScope
   Operator' : ScopeSelectorOperator
   Values' : GoSlice
 
-noncomputable instance ScopedResourceSelectorRequirement.zero_val [FfiSyntax] : ZeroVal ScopedResourceSelectorRequirement :=
+noncomputable instance ScopedResourceSelectorRequirement.zero_val [GooseExts] : ZeroVal ScopedResourceSelectorRequirement :=
   ⟨ScopedResourceSelectorRequirement.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ScopedResourceSelectorRequirement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ScopedResourceSelectorRequirement.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ScopeName" ResourceQuotaScope.ty),
 (go.field_decl.FieldDecl go!"Operator" ScopeSelectorOperator.ty),
 (go.field_decl.FieldDecl go!"Values" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def ScopedResourceSelectorRequirement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ScopedResourceSelectorRequirement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ScopedResourceSelectorRequirement.fieldsUnsealed
 
-noncomputable instance equals_unfold_ScopedResourceSelectorRequirement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ScopedResourceSelectorRequirement [GooseExts] [GoGlobalContext] :
     EqualsUnfold ScopedResourceSelectorRequirement.fields ScopedResourceSelectorRequirement.fieldsUnsealed :=
   ⟨by unfold ScopedResourceSelectorRequirement.fields; rfl⟩
 
-@[reducible] noncomputable def ScopedResourceSelectorRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ScopedResourceSelectorRequirement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ScopedResourceSelectorRequirement.fields)
 
-structure ResourceQuotaStatus [FfiSyntax] where
+structure ResourceQuotaStatus [GooseExts] where
   mk ::
   Hard' : ResourceList
   Used' : ResourceList
 
-noncomputable instance ResourceQuotaStatus.zero_val [FfiSyntax] : ZeroVal ResourceQuotaStatus :=
+noncomputable instance ResourceQuotaStatus.zero_val [GooseExts] : ZeroVal ResourceQuotaStatus :=
   ⟨ResourceQuotaStatus.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceQuotaStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceQuotaStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Hard" ResourceList.ty),
 (go.field_decl.FieldDecl go!"Used" ResourceList.ty)]
 
-@[irreducible] noncomputable def ResourceQuotaStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceQuotaStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceQuotaStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceQuotaStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceQuotaStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceQuotaStatus.fields ResourceQuotaStatus.fieldsUnsealed :=
   ⟨by unfold ResourceQuotaStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceQuotaStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceQuotaStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceQuotaStatus.fields)
 
-structure ResourceQuota [FfiSyntax] where
+structure ResourceQuota [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : ResourceQuotaSpec
   Status' : ResourceQuotaStatus
 
-noncomputable instance ResourceQuota.zero_val [FfiSyntax] : ZeroVal ResourceQuota :=
+noncomputable instance ResourceQuota.zero_val [GooseExts] : ZeroVal ResourceQuota :=
   ⟨ResourceQuota.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceQuota.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceQuota.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" ResourceQuotaSpec.ty),
 (go.field_decl.FieldDecl go!"Status" ResourceQuotaStatus.ty)]
 
-@[irreducible] noncomputable def ResourceQuota.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceQuota.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceQuota.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceQuota [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceQuota [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceQuota.fields ResourceQuota.fieldsUnsealed :=
   ⟨by unfold ResourceQuota.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceQuota.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceQuota.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceQuota.fields)
 
-structure ResourceQuotaList [FfiSyntax] where
+structure ResourceQuotaList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance ResourceQuotaList.zero_val [FfiSyntax] : ZeroVal ResourceQuotaList :=
+noncomputable instance ResourceQuotaList.zero_val [GooseExts] : ZeroVal ResourceQuotaList :=
   ⟨ResourceQuotaList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResourceQuotaList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResourceQuotaList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType ResourceQuota.ty))]
 
-@[irreducible] noncomputable def ResourceQuotaList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResourceQuotaList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceQuotaList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceQuotaList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResourceQuotaList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceQuotaList.fields ResourceQuotaList.fieldsUnsealed :=
   ⟨by unfold ResourceQuotaList.fields; rfl⟩
 
-@[reducible] noncomputable def ResourceQuotaList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResourceQuotaList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceQuotaList.fields)
 
-abbrev SecretType [FfiSyntax] : Type := GoString
+abbrev SecretType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def SecretType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecretType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure Secret [FfiSyntax] where
+structure Secret [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
@@ -11022,10 +11022,10 @@ structure Secret [FfiSyntax] where
   StringData' : GoMap
   Type' : SecretType
 
-noncomputable instance Secret.zero_val [FfiSyntax] : ZeroVal Secret :=
+noncomputable instance Secret.zero_val [GooseExts] : ZeroVal Secret :=
   ⟨Secret.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Secret.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Secret.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Immutable" (go.GoType.PointerType go.bool)),
@@ -11033,41 +11033,41 @@ noncomputable instance Secret.zero_val [FfiSyntax] : ZeroVal Secret :=
 (go.field_decl.FieldDecl go!"StringData" (go.GoType.MapType go.string go.string)),
 (go.field_decl.FieldDecl go!"Type" SecretType.ty)]
 
-@[irreducible] noncomputable def Secret.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Secret.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Secret.fieldsUnsealed
 
-noncomputable instance equals_unfold_Secret [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Secret [GooseExts] [GoGlobalContext] :
     EqualsUnfold Secret.fields Secret.fieldsUnsealed :=
   ⟨by unfold Secret.fields; rfl⟩
 
-@[reducible] noncomputable def Secret.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Secret.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Secret.fields)
 
-structure SecretList [FfiSyntax] where
+structure SecretList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance SecretList.zero_val [FfiSyntax] : ZeroVal SecretList :=
+noncomputable instance SecretList.zero_val [GooseExts] : ZeroVal SecretList :=
   ⟨SecretList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SecretList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SecretList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Secret.ty))]
 
-@[irreducible] noncomputable def SecretList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SecretList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SecretList.fieldsUnsealed
 
-noncomputable instance equals_unfold_SecretList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SecretList [GooseExts] [GoGlobalContext] :
     EqualsUnfold SecretList.fields SecretList.fieldsUnsealed :=
   ⟨by unfold SecretList.fields; rfl⟩
 
-@[reducible] noncomputable def SecretList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecretList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SecretList.fields)
 
-structure ConfigMap [FfiSyntax] where
+structure ConfigMap [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
@@ -11075,154 +11075,154 @@ structure ConfigMap [FfiSyntax] where
   Data' : GoMap
   BinaryData' : GoMap
 
-noncomputable instance ConfigMap.zero_val [FfiSyntax] : ZeroVal ConfigMap :=
+noncomputable instance ConfigMap.zero_val [GooseExts] : ZeroVal ConfigMap :=
   ⟨ConfigMap.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfigMap.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfigMap.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Immutable" (go.GoType.PointerType go.bool)),
 (go.field_decl.FieldDecl go!"Data" (go.GoType.MapType go.string go.string)),
 (go.field_decl.FieldDecl go!"BinaryData" (go.GoType.MapType go.string (go.GoType.SliceType go.byte)))]
 
-@[irreducible] noncomputable def ConfigMap.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfigMap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigMap.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigMap [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfigMap [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigMap.fields ConfigMap.fieldsUnsealed :=
   ⟨by unfold ConfigMap.fields; rfl⟩
 
-@[reducible] noncomputable def ConfigMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfigMap.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfigMap.fields)
 
-structure ConfigMapList [FfiSyntax] where
+structure ConfigMapList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance ConfigMapList.zero_val [FfiSyntax] : ZeroVal ConfigMapList :=
+noncomputable instance ConfigMapList.zero_val [GooseExts] : ZeroVal ConfigMapList :=
   ⟨ConfigMapList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfigMapList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfigMapList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType ConfigMap.ty))]
 
-@[irreducible] noncomputable def ConfigMapList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfigMapList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigMapList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigMapList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfigMapList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigMapList.fields ConfigMapList.fieldsUnsealed :=
   ⟨by unfold ConfigMapList.fields; rfl⟩
 
-@[reducible] noncomputable def ConfigMapList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfigMapList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfigMapList.fields)
 
-abbrev ComponentConditionType [FfiSyntax] : Type := GoString
+abbrev ComponentConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ComponentConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ComponentConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ComponentCondition [FfiSyntax] where
+structure ComponentCondition [GooseExts] where
   mk ::
   Type' : ComponentConditionType
   Status' : ConditionStatus
   Message' : GoString
   Error' : GoString
 
-noncomputable instance ComponentCondition.zero_val [FfiSyntax] : ZeroVal ComponentCondition :=
+noncomputable instance ComponentCondition.zero_val [GooseExts] : ZeroVal ComponentCondition :=
   ⟨ComponentCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ComponentCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ComponentCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" ComponentConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"Message" go.string),
 (go.field_decl.FieldDecl go!"Error" go.string)]
 
-@[irreducible] noncomputable def ComponentCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ComponentCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ComponentCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_ComponentCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ComponentCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold ComponentCondition.fields ComponentCondition.fieldsUnsealed :=
   ⟨by unfold ComponentCondition.fields; rfl⟩
 
-@[reducible] noncomputable def ComponentCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ComponentCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ComponentCondition.fields)
 
-structure ComponentStatus [FfiSyntax] where
+structure ComponentStatus [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Conditions' : GoSlice
 
-noncomputable instance ComponentStatus.zero_val [FfiSyntax] : ZeroVal ComponentStatus :=
+noncomputable instance ComponentStatus.zero_val [GooseExts] : ZeroVal ComponentStatus :=
   ⟨ComponentStatus.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ComponentStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ComponentStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType ComponentCondition.ty))]
 
-@[irreducible] noncomputable def ComponentStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ComponentStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ComponentStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ComponentStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ComponentStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ComponentStatus.fields ComponentStatus.fieldsUnsealed :=
   ⟨by unfold ComponentStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ComponentStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ComponentStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ComponentStatus.fields)
 
-structure ComponentStatusList [FfiSyntax] where
+structure ComponentStatusList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance ComponentStatusList.zero_val [FfiSyntax] : ZeroVal ComponentStatusList :=
+noncomputable instance ComponentStatusList.zero_val [GooseExts] : ZeroVal ComponentStatusList :=
   ⟨ComponentStatusList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ComponentStatusList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ComponentStatusList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType ComponentStatus.ty))]
 
-@[irreducible] noncomputable def ComponentStatusList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ComponentStatusList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ComponentStatusList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ComponentStatusList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ComponentStatusList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ComponentStatusList.fields ComponentStatusList.fieldsUnsealed :=
   ⟨by unfold ComponentStatusList.fields; rfl⟩
 
-@[reducible] noncomputable def ComponentStatusList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ComponentStatusList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ComponentStatusList.fields)
 
-structure DownwardAPIVolumeSource [FfiSyntax] where
+structure DownwardAPIVolumeSource [GooseExts] where
   mk ::
   Items' : GoSlice
   DefaultMode' : Loc
   DefaultUser' : Loc
 
-noncomputable instance DownwardAPIVolumeSource.zero_val [FfiSyntax] : ZeroVal DownwardAPIVolumeSource :=
+noncomputable instance DownwardAPIVolumeSource.zero_val [GooseExts] : ZeroVal DownwardAPIVolumeSource :=
   ⟨DownwardAPIVolumeSource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DownwardAPIVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DownwardAPIVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType DownwardAPIVolumeFile.ty)),
 (go.field_decl.FieldDecl go!"DefaultMode" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"DefaultUser" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def DownwardAPIVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DownwardAPIVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DownwardAPIVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_DownwardAPIVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DownwardAPIVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold DownwardAPIVolumeSource.fields DownwardAPIVolumeSource.fieldsUnsealed :=
   ⟨by unfold DownwardAPIVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def DownwardAPIVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DownwardAPIVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DownwardAPIVolumeSource.fields)
 
-structure DownwardAPIVolumeFile [FfiSyntax] where
+structure DownwardAPIVolumeFile [GooseExts] where
   mk ::
   Path' : GoString
   FieldRef' : Loc
@@ -11230,47 +11230,47 @@ structure DownwardAPIVolumeFile [FfiSyntax] where
   Mode' : Loc
   User' : Loc
 
-noncomputable instance DownwardAPIVolumeFile.zero_val [FfiSyntax] : ZeroVal DownwardAPIVolumeFile :=
+noncomputable instance DownwardAPIVolumeFile.zero_val [GooseExts] : ZeroVal DownwardAPIVolumeFile :=
   ⟨DownwardAPIVolumeFile.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DownwardAPIVolumeFile.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DownwardAPIVolumeFile.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"FieldRef" (go.GoType.PointerType ObjectFieldSelector.ty)),
 (go.field_decl.FieldDecl go!"ResourceFieldRef" (go.GoType.PointerType ResourceFieldSelector.ty)),
 (go.field_decl.FieldDecl go!"Mode" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"User" (go.GoType.PointerType go.int64))]
 
-@[irreducible] noncomputable def DownwardAPIVolumeFile.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DownwardAPIVolumeFile.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DownwardAPIVolumeFile.fieldsUnsealed
 
-noncomputable instance equals_unfold_DownwardAPIVolumeFile [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DownwardAPIVolumeFile [GooseExts] [GoGlobalContext] :
     EqualsUnfold DownwardAPIVolumeFile.fields DownwardAPIVolumeFile.fieldsUnsealed :=
   ⟨by unfold DownwardAPIVolumeFile.fields; rfl⟩
 
-@[reducible] noncomputable def DownwardAPIVolumeFile.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DownwardAPIVolumeFile.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DownwardAPIVolumeFile.fields)
 
-structure DownwardAPIProjection [FfiSyntax] where
+structure DownwardAPIProjection [GooseExts] where
   mk ::
   Items' : GoSlice
 
-noncomputable instance DownwardAPIProjection.zero_val [FfiSyntax] : ZeroVal DownwardAPIProjection :=
+noncomputable instance DownwardAPIProjection.zero_val [GooseExts] : ZeroVal DownwardAPIProjection :=
   ⟨DownwardAPIProjection.mk zeroValDef⟩
 
-@[reducible] noncomputable def DownwardAPIProjection.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DownwardAPIProjection.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType DownwardAPIVolumeFile.ty))]
 
-@[irreducible] noncomputable def DownwardAPIProjection.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DownwardAPIProjection.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DownwardAPIProjection.fieldsUnsealed
 
-noncomputable instance equals_unfold_DownwardAPIProjection [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DownwardAPIProjection [GooseExts] [GoGlobalContext] :
     EqualsUnfold DownwardAPIProjection.fields DownwardAPIProjection.fieldsUnsealed :=
   ⟨by unfold DownwardAPIProjection.fields; rfl⟩
 
-@[reducible] noncomputable def DownwardAPIProjection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DownwardAPIProjection.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DownwardAPIProjection.fields)
 
-structure SecurityContext [FfiSyntax] where
+structure SecurityContext [GooseExts] where
   mk ::
   Capabilities' : Loc
   Privileged' : Loc
@@ -11285,10 +11285,10 @@ structure SecurityContext [FfiSyntax] where
   SeccompProfile' : Loc
   AppArmorProfile' : Loc
 
-noncomputable instance SecurityContext.zero_val [FfiSyntax] : ZeroVal SecurityContext :=
+noncomputable instance SecurityContext.zero_val [GooseExts] : ZeroVal SecurityContext :=
   ⟨SecurityContext.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SecurityContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SecurityContext.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Capabilities" (go.GoType.PointerType Capabilities.ty)),
 (go.field_decl.FieldDecl go!"Privileged" (go.GoType.PointerType go.bool)),
 (go.field_decl.FieldDecl go!"SELinuxOptions" (go.GoType.PointerType SELinuxOptions.ty)),
@@ -11302,242 +11302,242 @@ noncomputable instance SecurityContext.zero_val [FfiSyntax] : ZeroVal SecurityCo
 (go.field_decl.FieldDecl go!"SeccompProfile" (go.GoType.PointerType SeccompProfile.ty)),
 (go.field_decl.FieldDecl go!"AppArmorProfile" (go.GoType.PointerType AppArmorProfile.ty))]
 
-@[irreducible] noncomputable def SecurityContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SecurityContext.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SecurityContext.fieldsUnsealed
 
-noncomputable instance equals_unfold_SecurityContext [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SecurityContext [GooseExts] [GoGlobalContext] :
     EqualsUnfold SecurityContext.fields SecurityContext.fieldsUnsealed :=
   ⟨by unfold SecurityContext.fields; rfl⟩
 
-@[reducible] noncomputable def SecurityContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecurityContext.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SecurityContext.fields)
 
-abbrev ProcMountType [FfiSyntax] : Type := GoString
+abbrev ProcMountType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ProcMountType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProcMountType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure SELinuxOptions [FfiSyntax] where
+structure SELinuxOptions [GooseExts] where
   mk ::
   User' : GoString
   Role' : GoString
   Type' : GoString
   Level' : GoString
 
-noncomputable instance SELinuxOptions.zero_val [FfiSyntax] : ZeroVal SELinuxOptions :=
+noncomputable instance SELinuxOptions.zero_val [GooseExts] : ZeroVal SELinuxOptions :=
   ⟨SELinuxOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SELinuxOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SELinuxOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"User" go.string),
 (go.field_decl.FieldDecl go!"Role" go.string),
 (go.field_decl.FieldDecl go!"Type" go.string),
 (go.field_decl.FieldDecl go!"Level" go.string)]
 
-@[irreducible] noncomputable def SELinuxOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SELinuxOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SELinuxOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_SELinuxOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SELinuxOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold SELinuxOptions.fields SELinuxOptions.fieldsUnsealed :=
   ⟨by unfold SELinuxOptions.fields; rfl⟩
 
-@[reducible] noncomputable def SELinuxOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SELinuxOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SELinuxOptions.fields)
 
-structure WindowsSecurityContextOptions [FfiSyntax] where
+structure WindowsSecurityContextOptions [GooseExts] where
   mk ::
   GMSACredentialSpecName' : Loc
   GMSACredentialSpec' : Loc
   RunAsUserName' : Loc
   HostProcess' : Loc
 
-noncomputable instance WindowsSecurityContextOptions.zero_val [FfiSyntax] : ZeroVal WindowsSecurityContextOptions :=
+noncomputable instance WindowsSecurityContextOptions.zero_val [GooseExts] : ZeroVal WindowsSecurityContextOptions :=
   ⟨WindowsSecurityContextOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def WindowsSecurityContextOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def WindowsSecurityContextOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"GMSACredentialSpecName" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"GMSACredentialSpec" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"RunAsUserName" (go.GoType.PointerType go.string)),
 (go.field_decl.FieldDecl go!"HostProcess" (go.GoType.PointerType go.bool))]
 
-@[irreducible] noncomputable def WindowsSecurityContextOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def WindowsSecurityContextOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WindowsSecurityContextOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_WindowsSecurityContextOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_WindowsSecurityContextOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold WindowsSecurityContextOptions.fields WindowsSecurityContextOptions.fieldsUnsealed :=
   ⟨by unfold WindowsSecurityContextOptions.fields; rfl⟩
 
-@[reducible] noncomputable def WindowsSecurityContextOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WindowsSecurityContextOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType WindowsSecurityContextOptions.fields)
 
-structure RangeAllocation [FfiSyntax] where
+structure RangeAllocation [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Range' : GoString
   Data' : GoSlice
 
-noncomputable instance RangeAllocation.zero_val [FfiSyntax] : ZeroVal RangeAllocation :=
+noncomputable instance RangeAllocation.zero_val [GooseExts] : ZeroVal RangeAllocation :=
   ⟨RangeAllocation.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RangeAllocation.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RangeAllocation.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Range" go.string),
 (go.field_decl.FieldDecl go!"Data" (go.GoType.SliceType go.byte))]
 
-@[irreducible] noncomputable def RangeAllocation.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RangeAllocation.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RangeAllocation.fieldsUnsealed
 
-noncomputable instance equals_unfold_RangeAllocation [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RangeAllocation [GooseExts] [GoGlobalContext] :
     EqualsUnfold RangeAllocation.fields RangeAllocation.fieldsUnsealed :=
   ⟨by unfold RangeAllocation.fields; rfl⟩
 
-@[reducible] noncomputable def RangeAllocation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RangeAllocation.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RangeAllocation.fields)
 
-structure Sysctl [FfiSyntax] where
+structure Sysctl [GooseExts] where
   mk ::
   Name' : GoString
   Value' : GoString
 
-noncomputable instance Sysctl.zero_val [FfiSyntax] : ZeroVal Sysctl :=
+noncomputable instance Sysctl.zero_val [GooseExts] : ZeroVal Sysctl :=
   ⟨Sysctl.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Sysctl.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Sysctl.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"Value" go.string)]
 
-@[irreducible] noncomputable def Sysctl.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Sysctl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Sysctl.fieldsUnsealed
 
-noncomputable instance equals_unfold_Sysctl [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Sysctl [GooseExts] [GoGlobalContext] :
     EqualsUnfold Sysctl.fields Sysctl.fieldsUnsealed :=
   ⟨by unfold Sysctl.fields; rfl⟩
 
-@[reducible] noncomputable def Sysctl.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Sysctl.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Sysctl.fields)
 
-structure PortStatus [FfiSyntax] where
+structure PortStatus [GooseExts] where
   mk ::
   Port' : w32
   Protocol' : Protocol
   Error' : Loc
 
-noncomputable instance PortStatus.zero_val [FfiSyntax] : ZeroVal PortStatus :=
+noncomputable instance PortStatus.zero_val [GooseExts] : ZeroVal PortStatus :=
   ⟨PortStatus.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PortStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PortStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Port" go.int32),
 (go.field_decl.FieldDecl go!"Protocol" Protocol.ty),
 (go.field_decl.FieldDecl go!"Error" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def PortStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PortStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PortStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_PortStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PortStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold PortStatus.fields PortStatus.fieldsUnsealed :=
   ⟨by unfold PortStatus.fields; rfl⟩
 
-@[reducible] noncomputable def PortStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PortStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PortStatus.fields)
 
-abbrev LoadBalancerIPMode [FfiSyntax] : Type := GoString
+abbrev LoadBalancerIPMode [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def LoadBalancerIPMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LoadBalancerIPMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-structure ImageVolumeSource [FfiSyntax] where
+structure ImageVolumeSource [GooseExts] where
   mk ::
   Reference' : GoString
   PullPolicy' : PullPolicy
 
-noncomputable instance ImageVolumeSource.zero_val [FfiSyntax] : ZeroVal ImageVolumeSource :=
+noncomputable instance ImageVolumeSource.zero_val [GooseExts] : ZeroVal ImageVolumeSource :=
   ⟨ImageVolumeSource.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ImageVolumeSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ImageVolumeSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Reference" go.string),
 (go.field_decl.FieldDecl go!"PullPolicy" PullPolicy.ty)]
 
-@[irreducible] noncomputable def ImageVolumeSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ImageVolumeSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ImageVolumeSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_ImageVolumeSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ImageVolumeSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold ImageVolumeSource.fields ImageVolumeSource.fieldsUnsealed :=
   ⟨by unfold ImageVolumeSource.fields; rfl⟩
 
-@[reducible] noncomputable def ImageVolumeSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ImageVolumeSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ImageVolumeSource.fields)
 
-structure NodeAllocatableResourceClaimStatus [FfiSyntax] where
+structure NodeAllocatableResourceClaimStatus [GooseExts] where
   mk ::
   ResourceClaimName' : GoString
   Containers' : GoSlice
   Mapping' : GoSlice
   Overhead' : GoSlice
 
-noncomputable instance NodeAllocatableResourceClaimStatus.zero_val [FfiSyntax] : ZeroVal NodeAllocatableResourceClaimStatus :=
+noncomputable instance NodeAllocatableResourceClaimStatus.zero_val [GooseExts] : ZeroVal NodeAllocatableResourceClaimStatus :=
   ⟨NodeAllocatableResourceClaimStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeAllocatableResourceClaimStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeAllocatableResourceClaimStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ResourceClaimName" go.string),
 (go.field_decl.FieldDecl go!"Containers" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"Mapping" (go.GoType.SliceType NodeAllocatableMappedResources.ty)),
 (go.field_decl.FieldDecl go!"Overhead" (go.GoType.SliceType NodeAllocatableOverheadResources.ty))]
 
-@[irreducible] noncomputable def NodeAllocatableResourceClaimStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeAllocatableResourceClaimStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeAllocatableResourceClaimStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeAllocatableResourceClaimStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeAllocatableResourceClaimStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeAllocatableResourceClaimStatus.fields NodeAllocatableResourceClaimStatus.fieldsUnsealed :=
   ⟨by unfold NodeAllocatableResourceClaimStatus.fields; rfl⟩
 
-@[reducible] noncomputable def NodeAllocatableResourceClaimStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeAllocatableResourceClaimStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeAllocatableResourceClaimStatus.fields)
 
-structure NodeAllocatableMappedResources [FfiSyntax] where
+structure NodeAllocatableMappedResources [GooseExts] where
   mk ::
   Name' : ResourceName
   Quantity' : Loc
 
-noncomputable instance NodeAllocatableMappedResources.zero_val [FfiSyntax] : ZeroVal NodeAllocatableMappedResources :=
+noncomputable instance NodeAllocatableMappedResources.zero_val [GooseExts] : ZeroVal NodeAllocatableMappedResources :=
   ⟨NodeAllocatableMappedResources.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeAllocatableMappedResources.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeAllocatableMappedResources.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" ResourceName.ty),
 (go.field_decl.FieldDecl go!"Quantity" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Quantity.ty))]
 
-@[irreducible] noncomputable def NodeAllocatableMappedResources.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeAllocatableMappedResources.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeAllocatableMappedResources.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeAllocatableMappedResources [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeAllocatableMappedResources [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeAllocatableMappedResources.fields NodeAllocatableMappedResources.fieldsUnsealed :=
   ⟨by unfold NodeAllocatableMappedResources.fields; rfl⟩
 
-@[reducible] noncomputable def NodeAllocatableMappedResources.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeAllocatableMappedResources.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeAllocatableMappedResources.fields)
 
-structure NodeAllocatableOverheadResources [FfiSyntax] where
+structure NodeAllocatableOverheadResources [GooseExts] where
   mk ::
   Name' : ResourceName
   PerPod' : Loc
   PerContainer' : Loc
 
-noncomputable instance NodeAllocatableOverheadResources.zero_val [FfiSyntax] : ZeroVal NodeAllocatableOverheadResources :=
+noncomputable instance NodeAllocatableOverheadResources.zero_val [GooseExts] : ZeroVal NodeAllocatableOverheadResources :=
   ⟨NodeAllocatableOverheadResources.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NodeAllocatableOverheadResources.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NodeAllocatableOverheadResources.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" ResourceName.ty),
 (go.field_decl.FieldDecl go!"PerPod" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Quantity.ty)),
 (go.field_decl.FieldDecl go!"PerContainer" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Quantity.ty))]
 
-@[irreducible] noncomputable def NodeAllocatableOverheadResources.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NodeAllocatableOverheadResources.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeAllocatableOverheadResources.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeAllocatableOverheadResources [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NodeAllocatableOverheadResources [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeAllocatableOverheadResources.fields NodeAllocatableOverheadResources.fieldsUnsealed :=
   ⟨by unfold NodeAllocatableOverheadResources.fields; rfl⟩
 
-@[reducible] noncomputable def NodeAllocatableOverheadResources.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NodeAllocatableOverheadResources.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NodeAllocatableOverheadResources.fields)
 
 end k8s_io.api.core.v1

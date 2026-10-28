@@ -20,7 +20,7 @@ namespace leasing
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -39,6 +39,7 @@ theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG
   icases HLC with ⟨-, ⟨%w, #HWf, #HW⟩, -⟩
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

@@ -26,7 +26,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,7 +48,9 @@ theorem nodeClient.Watch.wp_proof
   simp only [resField]
   wp_auto
   wp_apply (wp_watch s γ cfg Res.nodes L.tn.t go!"" opts dq lo admin) $$ [$Hpkg $Hsrv $Htn $Ho]
-  iapply (au_mono_read γ _ _) $$ [$HΦ]
+  iapply (au_mono_read γ _ _)
+  isplitl [HΦ]
+  · iexact HΦ
   iintro %σ %_ HK %w %err ⟨Ho, Hret⟩
   wp_auto
   iapply HK

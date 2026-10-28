@@ -31,7 +31,7 @@ namespace EtcdGrove
 
 /-- **`sync.Mutex{}` is the zero `Mutex`** (a hypothesis on the semantics in use, see the file
 header): the empty literal at the model's underlying type `go.bool` steps to `false`. -/
-class MutexLitSemantics [FfiSyntax] [GoLocalContext] [GoGlobalContext]
+class MutexLitSemantics [GooseExts] [GoLocalContext] [GoGlobalContext]
     [GoSemanticsFunctions] : Prop where
   composite_literal_bool_empty :
     go.IsGoStepPureDetTagged under (CompositeLiteral go.bool) (LiteralValueV []) (Val #false)

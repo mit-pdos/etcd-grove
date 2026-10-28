@@ -31,7 +31,7 @@ namespace informer
 open apimodel cache
 
 section sync
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- The popped deltas already applied to the store and not yet done (`Pop`'s deferred step). -/
 def apN (pd : List cache.FD) (ap : Bool) : Nat := if ap then pd.length else 0

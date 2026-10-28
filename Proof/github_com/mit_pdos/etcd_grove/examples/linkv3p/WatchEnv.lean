@@ -33,7 +33,7 @@ namespace linkv3p
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section watch
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -111,7 +111,7 @@ theorem watchEnv_memOf₃ (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pf
 
 /-- **The watcher's facts at every connection to the bridges** (see the file header). -/
 theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)

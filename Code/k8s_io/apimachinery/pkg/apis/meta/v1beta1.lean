@@ -20,114 +20,114 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.apis.«meta».v1beta1
 
-noncomputable def PartialObjectMetadataList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PartialObjectMetadataList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.PartialObjectMetadataList" [])
 
 attribute [irreducible] PartialObjectMetadataList.ty
 
-axiom Table [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Table [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TableColumnDefinition [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TableColumnDefinition [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TableRow [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TableRow [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TableRowCondition [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TableRowCondition [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RowConditionType [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RowConditionType [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConditionStatus [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ConditionStatus [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IncludeObjectPolicy [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom IncludeObjectPolicy [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TableOptions [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TableOptions [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PartialObjectMetadata [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PartialObjectMetadata [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PartialObjectMetadataList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PartialObjectMetadataList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [FfiSyntax] [GoGlobalContext] : val
+axiom GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom RowCompleted [FfiSyntax] [GoGlobalContext] : val
+axiom RowCompleted [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionTrue [FfiSyntax] [GoGlobalContext] : val
+axiom ConditionTrue [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionFalse [FfiSyntax] [GoGlobalContext] : val
+axiom ConditionFalse [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionUnknown [FfiSyntax] [GoGlobalContext] : val
+axiom ConditionUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeNone [FfiSyntax] [GoGlobalContext] : val
+axiom IncludeNone [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeMetadata [FfiSyntax] [GoGlobalContext] : val
+axiom IncludeMetadata [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeObject [FfiSyntax] [GoGlobalContext] : val
+axiom IncludeObject [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrIntOverflowGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUnexpectedEndOfGroupGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeGroupVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_PartialObjectMetadataList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_PartialObjectMetadataList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.map_PartialObjectMetadataList"
 
-axiom map_PartialObjectMetadataList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_PartialObjectMetadataList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Convert_Slice_string_To_v1beta1_IncludeObjectPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Convert_Slice_string_To_v1beta1_IncludeObjectPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.Convert_Slice_string_To_v1beta1_IncludeObjectPolicy"
 
-noncomputable def Convert_v1beta1_PartialObjectMetadataList_To_v1_PartialObjectMetadataList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Convert_v1beta1_PartialObjectMetadataList_To_v1_PartialObjectMetadataList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.Convert_v1beta1_PartialObjectMetadataList_To_v1_PartialObjectMetadataList"
 
-noncomputable def Convert_v1_PartialObjectMetadataList_To_v1beta1_PartialObjectMetadataList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Convert_v1_PartialObjectMetadataList_To_v1beta1_PartialObjectMetadataList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.Convert_v1_PartialObjectMetadataList_To_v1beta1_PartialObjectMetadataList"
 
-noncomputable def encodeVarintGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.encodeVarintGenerated"
 
-noncomputable def sovGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sovGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.sovGenerated"
 
-noncomputable def sozGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sozGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.sozGenerated"
 
-noncomputable def valueToStringGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def valueToStringGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.valueToStringGenerated"
 
-noncomputable def skipGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def skipGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.skipGenerated"
 
-noncomputable def Kind [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Kind [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.Kind"
 
-noncomputable def AddMetaToScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddMetaToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.AddMetaToScheme"
 
-noncomputable def RegisterConversions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterConversions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.RegisterConversions"
 
-noncomputable def RegisterDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.RegisterDefaults"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1beta1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -150,16 +150,20 @@ axiom PartialObjectMetadataList : Type
 axiom PartialObjectMetadataList.zero_val : ZeroVal PartialObjectMetadataList
 attribute [instance] PartialObjectMetadataList.zero_val
 
-class PartialObjectMetadataList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PartialObjectMetadataList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PartialObjectMetadataList.underlying PartialObjectMetadataList
   underlying : go.UnderlyingDirectedEq PartialObjectMetadataList.ty PartialObjectMetadataList.underlying
   isUnderlying : go.IsUnderlying PartialObjectMetadataList.underlying PartialObjectMetadataList.underlying
+  method_set : go.MethodSetIs PartialObjectMetadataList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PartialObjectMetadataList.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PartialObjectMetadataList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PartialObjectMetadataList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListInterface" [])]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ShardInfo" []))]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ShardInfo" []))] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PartialObjectMetadataList.TypeAssumptions.type_repr
   PartialObjectMetadataList.TypeAssumptions.underlying
   PartialObjectMetadataList.TypeAssumptions.isUnderlying
+  PartialObjectMetadataList.TypeAssumptions.method_set
+  PartialObjectMetadataList.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PartialObjectMetadataList_instance : PartialObjectMetadataList.TypeAssumptions
 
 attribute [instance] Assumptions.PartialObjectMetadataList_instance

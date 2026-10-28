@@ -61,7 +61,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 abbrev srvApplyWaitAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"applyWait" s
 abbrev srvLeaderChangedAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"leaderChanged" s
@@ -70,7 +70,7 @@ abbrev srvStoppingAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"stopping
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -224,7 +224,7 @@ def txnReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (t 
 
 /-- **A successful writing `Txn` of `t`** (as `Put`'s and `DeleteRange`'s): the request the
 proposed data decode to (`rq'`, whose transaction `t'` is `t` unless a range end is `[0]`,
-`irrWireOf`) was dispatched by the apply thread at the KV state `x` to `x'` and applied
+`irrWireOf`; the request proposed is of the wire transaction `tw` whose model `t` is, E3e) was dispatched by the apply thread at the KV state `x` to `x'` and applied
 (`applied l false`), possibly with header-only ranges (`skip`: `SkipRangeExecution`; the apply
 loops call `IsRegistered` knowing nothing of the id's registration, so the model admits it; at a
 known registration `request_delivered` excludes it unless the registration is gone), the response the
@@ -235,10 +235,10 @@ caller's certificate of the log after (`certOk`) and `Q` of the state of the log
 stage A); and (linkv-txn stage B1) its ranges run (`skip = false`). -/
 def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (resp : Loc) : IProp GF :=
-  iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
+  iprop(∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
       (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
-    ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq' ∧ rq'.txn = some t' ∧
-      (irrNoZeroEnd (irrTxn t) → t' = t) ∧
+    ⌜tw.toModel = t ∧ irrWireOf (apply.withHeader (irrTxn tw) hm) rq' ∧ rq'.txn = some t' ∧
+      (irrNoZeroEnd (irrTxn tw) → t' = t) ∧
       apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧ F <+: x.log ∧
       skip = false⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
@@ -247,17 +247,19 @@ def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnMo
     mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
 
 /-- **A failed writing `Txn` of `t`** (as `Put`'s): the apply thread's error (`appliedErr`), or
-the proposal's (made or not; if made, deposited: it may still be applied). -/
+the proposal's (made or not; if made, deposited: it may still be applied); of the wire
+transaction `tw` whose model `t` is (E3e). -/
 def txnErrOk (E : apply.AEnv GF) (ρ : ReqNames) (F : mvcc.Log) (t : TxnModel) (err : GoInterface) :
     IProp GF :=
-  iprop((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-      ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
-    srvMaybeDeposited ρ (irrTxn t))
+  iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
+    ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
+      ⌜irrWireOf (apply.withHeader (irrTxn tw) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
+    srvMaybeDeposited ρ (irrTxn tw)))
 
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]

@@ -76,6 +76,7 @@ Lean notes:
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRaftlog
 public import Proof.go_etcd_io.raft.v3.InvTracker
 public import Proof.go_etcd_io.raft.v3.InvTrackerC
@@ -95,7 +96,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -131,19 +132,9 @@ snapshot the message holds (`st.snap = some sv`) and its conf state's lists. A q
 stated on the states), whose pointers the slice holds (`msgs.map QMsg.loc`); `outboxRel` owns the
 messages (`msgQ`), so it is **no longer persistent**. -/
 
-/-- A queued message: its pointer and the state it holds (stage R4). -/
-structure QMsg [FfiSyntax] where
-  loc : Loc
-  st : MsgSt
+-- (2026-10-26, raft's signature, stage 1) `QMsg` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- What a queued message holding `st` contributes to the abstract outbox (see above; stage R4:
-pure, over the message's state). -/
-def msgAbs (st : MsgSt) (a : Option Msg) : Prop :=
-  (mtypeOf st.msg.Type' = none ∧ a = none) ∨
-  (∃ ty, mtypeOf st.msg.Type' = some ty ∧ ty ≠ .snap ∧
-    a = some (absMsg ty st.msg st.ents st.ctx)) ∨
-  (∃ sv : SnapshotM, mtypeOf st.msg.Type' = some .snap ∧ st.snap = some sv ∧
-    a = some (absSnap st.msg sv sv.Metadata'.ConfState'.lists))
+-- (2026-10-26, raft's signature, stage 1) `msgAbs` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- A queued message, owned, and its contribution (stage R4). -/
 def msgQ (q : QMsg) (a : Option Msg) : IProp GF :=
@@ -322,56 +313,15 @@ theorem OutTermOk.mono {t t' tc : w64} {m : MessageM}
     (Ht : uint.Z t ≤ uint.Z t') (H : OutTermOk t tc m) : OutTermOk t' tc m :=
   H.elim (fun h => .inl (Int.le_trans h Ht)) .inr
 
-/-- (2026-10-19, D21 M2r) The types a node in the no-transfer mode sends (`SentMsgOk`; from D22 S-a
-to S-c: in both the no-snapshot and the no-transfer modes): replication, election, pre-vote,
-read-index, a forwarded proposal, and (2026-10-20, D22 S-c) a leader's `MsgSnap`; no
-`MsgTimeoutNow` and no `MsgTransferLeader` (leader transfer off, `NGhost.xf`). -/
-def sentTypes : List w32 :=
-  [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
-   MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgSnap]
+-- (2026-10-26, raft's signature, stage 1) `sentTypes` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (2026-10-22, D38a) **The shape of a `MsgApp` raft sends**: no vote, not a rejection, no
-hint, no snapshot, no context, no responses -- the fields the msgappv2 codec's short frame does not
-carry (its decoder sets them to their defaults). Raft's one `MsgApp` (`maybeSendAppend`) sets only
-`To`, `Type`, `Index`, `LogTerm`, `Entries`, `Commit` (and `send`, `From` and `Term`). -/
-def AppShape (st : MsgSt) : Prop :=
-  st.msg.Vote' = W64 0 ∧ st.msg.Reject' = false ∧ st.msg.RejectHint' = W64 0 ∧
-  st.snap = none ∧ st.ctx = [] ∧ st.resps = []
+-- (2026-10-26, raft's signature, stage 1) `AppShape` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (2026-10-19, D21 M2r, D21g (A)) **What a sender in the no-transfer mode promises of a message
-it queues** (from D22 S-a to S-c: in both modes), beyond its protocol abstraction (`isRaftMsg`
-carries it to the receiver): a type of
-`sentTypes`, a nonzero sender, unstamped (`Term = 0`) exactly when a forwarded proposal or
-read-index request, and from a node other than its destination unless it is a read-index request
-(forwarded, it keeps its requester), a vote or pre-vote response, or an accepting `MsgAppResp`
-(the self-addressed responses `acceptReady` steps). What a receiver's `NetMsgOk` needs of a
-message addressed to it (`NetMsgOk.of_sent`, `InvRawnode.lean`). (2026-10-22, D38a) And a `MsgApp`
-of raft's shape (`AppShape`), what rafthttp's msgappv2 codec needs to carry it whole; and no
-message with responses (raft sets them only on its local storage messages), what both of rafthttp's
-codecs need to marshal it (`MsgMarshals`). -/
-def SentMsgOk (st : MsgSt) : Prop :=
-  st.msg.Type' ∈ sentTypes ∧ st.msg.From' ≠ W64 0 ∧
-  (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
-  (¬ (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex) → st.msg.Term' ≠ W64 0) ∧
-  (st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgVoteResp → st.msg.Type' ≠ MsgPreVoteResp →
-     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
-  (st.msg.Type' = MsgApp → AppShape st) ∧
-  st.resps = []
+-- (2026-10-26, raft's signature, stage 1) `SentMsgOk` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (2026-10-22, D38a) `SentMsgOk` carries over to a message with the same scalars and no
-responses, if it is not a `MsgApp` (whose shape reads the rest): e.g. a `MsgSnap` with its
-snapshot replaced. -/
-theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.msg)
-    (hr : st'.resps = []) (hna : st.msg.Type' ≠ MsgApp) : SentMsgOk st' := by
-  obtain ⟨a, b, c, d, e, -, -⟩ := H
-  unfold SentMsgOk; rw [hm]
-  exact ⟨a, b, c, d, e, fun h => absurd h hna, hr⟩
+-- (2026-10-26, raft's signature, stage 1) `SentMsgOk.of_msg` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (2026-10-22, D38a) **A `MsgApp` is from its sender** `id`: `send` stamps `From = r.id` into every
-message but a forwarded read-index or transfer request, and raft's one `MsgApp` (`maybeSendAppend`)
-is the node's own. What rafthttp's msgappv2 codec needs: its frames carry no sender, the decoder
-sets the stream's remote peer (`XfOk`, `isRaftMsg`). -/
-def AppFrom (id : w64) (st : MsgSt) : Prop := st.msg.Type' = MsgApp → st.msg.From' = id
+-- (2026-10-26, raft's signature, stage 1) `AppFrom` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- (2026-10-19, D21 M2r) **The modes' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the
 queued messages `l`): with leader transfer off (`NGhost.xf`) no transferee is recorded and every
@@ -843,13 +793,9 @@ theorem LogNsOk.of_outbox {s : NState} (o : List Msg) (H : LogNsOk s)
 theorem LogNsOk.off {s : NState} (h : s.gh.ns = false) : LogNsOk s :=
   fun h' => absurd (h.symm.trans h') (by decide)
 
-/-- (D21 M3) The no-snapshot mode's cap of the storage (`ownRaftPhys`'s `Hnscap`, at the mode `ns`
-and the log's storage `st`): the storage is never compacted past index `1`. -/
-def NsCap (ns : Bool) (st : Storage) : IProp GF :=
-  iprop(□ (⌜ns = true⌝ -∗ storCap st 1))
+-- (2026-10-26, raft's signature, stage 1) `NsCap` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-instance NsCap_persistent (ns : Bool) (st : Storage) : Persistent (NsCap (GF := GF) ns st) := by
-  unfold NsCap; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `NsCap_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 theorem NsCap.off (st : Storage) : ⊢ NsCap (GF := GF) false st := by
   unfold NsCap
@@ -1242,7 +1188,7 @@ local macro "phys_pure" : tactic =>
   `(tactic| first | assumption | rfl | exact Htick | exact Hout_term | exact Hgh_out | exact Hgh_unst | exact Hvoter | exact Hprok | exact Hnsl | exact Hxf | exact ⟨fun h => ⟨rfl, (Hxf.1 h).2⟩, Hxf.2⟩ | exact ⟨fun h => absurd (Hxo.symm.trans h) (by decide), Hxf.2⟩ | exact ⟨rfl, fun h => Hid_nz h.symm⟩ | exact ⟨rfl, Hx⟩)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1351,7 +1297,7 @@ local macro "split_field_proof " f:ident : tactic =>
                 H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger))
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1519,7 +1465,7 @@ local macro "resealCW " c:term:max s:term:max : tactic =>
                 $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert))
 
 section physC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1622,7 +1568,7 @@ configuration), so the old lemmas keep their own proofs rather than being derive
 `ownRaftPhys_toC` (a derivation per lemma would be longer than the proof). -/
 
 section physCfields
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -2997,7 +2943,7 @@ proof does not see the configuration; its interface is the `C` lemmas' at that c
 configuration. (Until 2026-10-24 it was a second instance of the body, at `ownTracker cfg`.) -/
 
 section physS
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

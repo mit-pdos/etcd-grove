@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -416,7 +416,7 @@ theorem witness.Process.wp_proof
       subst Hp'
       wp_auto
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0» «$res1»
       iexists σ, p, interface.nil, mlw, false
       iframe Hstate Hp HlastError HLbσ resp handled w m
     · -- another error: returned, recorded

@@ -29,7 +29,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-! Which entries `slice` returns, as list facts: each exit's result is a prefix of
 the log from `lo` (`plogFrom`). -/
 section prefix_helpers
-omit ext ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx
+omit [GooseInterp] [GooseSemantics] go_gctx
 variable {A : Type}
 
 private theorem prefix_drop_take (a b : Nat) (l : List A) : (l.take b).drop a <+: l.drop a := by

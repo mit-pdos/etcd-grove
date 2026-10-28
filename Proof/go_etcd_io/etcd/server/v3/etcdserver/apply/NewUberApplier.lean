@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -34,7 +34,7 @@ theorem apply.NewUberApplier.wp_proof
   intro opts RD T z Hbuq
   wp_start as ⟨Hard, #HGet, HT⟩
   wp_auto
-  wp_apply (hN opts RD Hbuq) $$ [Hard] as %base ⟨#Hshape, #Hbase⟩
+  wp_apply (hN opts RD Hbuq) $$ [Hard] as %base ⟨#Hshape, #Hbase, #HbAuth⟩
   · iframe
   ihave ⟨Hu, %Hun⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed Hu
@@ -53,6 +53,7 @@ theorem apply.NewUberApplier.wp_proof
   · ipureintro; rfl
   iintro %E %hRD #Hopts
   ihave #Hb := Hbase $$ %E %hRD Hopts
+  ihave #HbA := HbAuth $$ %E %hRD Hopts
   isplitr
   · iunfold apply.uberIs
     iframe #

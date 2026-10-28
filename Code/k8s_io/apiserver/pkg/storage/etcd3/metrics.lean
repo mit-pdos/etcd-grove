@@ -20,198 +20,198 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.etcd3.metrics
 
-noncomputable def Monitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Monitor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.Monitor" [])
 
 attribute [irreducible] Monitor.ty
 
-noncomputable def StorageMetrics.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageMetrics.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.StorageMetrics" [])
 
 attribute [irreducible] StorageMetrics.ty
 
-noncomputable def monitorCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def monitorCollector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.monitorCollector" [])
 
 attribute [irreducible] monitorCollector.ty
 
-noncomputable def OperationLatencyTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OperationLatencyTracker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.OperationLatencyTracker" [])
 
 attribute [irreducible] OperationLatencyTracker.ty
 
-noncomputable def EtcdMetricsTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EtcdMetricsTracker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.EtcdMetricsTracker" [])
 
 attribute [irreducible] EtcdMetricsTracker.ty
 
-noncomputable def timestampedResourceGaugeCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timestampedResourceGaugeCollector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.timestampedResourceGaugeCollector" [])
 
 attribute [irreducible] timestampedResourceGaugeCollector.ty
 
-noncomputable def timestampedSample.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timestampedSample.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.timestampedSample" [])
 
 attribute [irreducible] timestampedSample.ty
 
-axiom Monitor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Monitor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom monitorCollector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom monitorCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OperationLatencyTracker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom OperationLatencyTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timestampedResourceGaugeCollector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom timestampedResourceGaugeCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timestampedSample.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom timestampedSample.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def ErrTransactionConflict [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTransactionConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.ErrTransactionConflict"
 
-axiom ErrTransactionConflict.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTransactionConflict.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def etcdRequestLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def etcdRequestLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestLatency"
 
-axiom etcdRequestLatency.init [FfiSyntax] [GoGlobalContext] : val
+axiom etcdRequestLatency.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def etcdRequestCounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def etcdRequestCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestCounts"
 
-axiom etcdRequestCounts.init [FfiSyntax] [GoGlobalContext] : val
+axiom etcdRequestCounts.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def etcdRequestErrorCounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def etcdRequestErrorCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestErrorCounts"
 
-axiom etcdRequestErrorCounts.init [FfiSyntax] [GoGlobalContext] : val
+axiom etcdRequestErrorCounts.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def objectCounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def objectCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.objectCounts"
 
-axiom objectCounts.init [FfiSyntax] [GoGlobalContext] : val
+axiom objectCounts.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def resourceSizeEstimateDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resourceSizeEstimateDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceSizeEstimateDesc"
 
-axiom resourceSizeEstimateDesc.init [FfiSyntax] [GoGlobalContext] : val
+axiom resourceSizeEstimateDesc.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def resourceSizeEstimate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resourceSizeEstimate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceSizeEstimate"
 
-axiom resourceSizeEstimate.init [FfiSyntax] [GoGlobalContext] : val
+axiom resourceSizeEstimate.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def resourceObjectsDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resourceObjectsDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceObjectsDesc"
 
-axiom resourceObjectsDesc.init [FfiSyntax] [GoGlobalContext] : val
+axiom resourceObjectsDesc.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def newObjectCounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newObjectCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.newObjectCounts"
 
-axiom newObjectCounts.init [FfiSyntax] [GoGlobalContext] : val
+axiom newObjectCounts.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def storageSizeDescription [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def storageSizeDescription [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.storageSizeDescription"
 
-axiom storageSizeDescription.init [FfiSyntax] [GoGlobalContext] : val
+axiom storageSizeDescription.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def storageMonitor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def storageMonitor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.storageMonitor"
 
-axiom storageMonitor.init [FfiSyntax] [GoGlobalContext] : val
+axiom storageMonitor.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def etcdEventsReceivedCounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def etcdEventsReceivedCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdEventsReceivedCounts"
 
-axiom etcdEventsReceivedCounts.init [FfiSyntax] [GoGlobalContext] : val
+axiom etcdEventsReceivedCounts.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def etcdBookmarkCounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def etcdBookmarkCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdBookmarkCounts"
 
-axiom etcdBookmarkCounts.init [FfiSyntax] [GoGlobalContext] : val
+axiom etcdBookmarkCounts.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def etcdBookmarkTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def etcdBookmarkTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdBookmarkTotal"
 
-axiom etcdBookmarkTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom etcdBookmarkTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def etcdLeaseObjectCounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def etcdLeaseObjectCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdLeaseObjectCounts"
 
-axiom etcdLeaseObjectCounts.init [FfiSyntax] [GoGlobalContext] : val
+axiom etcdLeaseObjectCounts.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def decodeErrorCounts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decodeErrorCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.decodeErrorCounts"
 
-axiom decodeErrorCounts.init [FfiSyntax] [GoGlobalContext] : val
+axiom decodeErrorCounts.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def listLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def listLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.listLatency"
 
-axiom listLatency.init [FfiSyntax] [GoGlobalContext] : val
+axiom listLatency.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def registerMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.registerMetrics"
 
-noncomputable def sinceInSeconds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sinceInSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.sinceInSeconds"
 
-axiom sinceInSeconds.init [FfiSyntax] [GoGlobalContext] : val
+axiom sinceInSeconds.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Register [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.Register"
 
-noncomputable def UpdateStoreStats [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UpdateStoreStats [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.UpdateStoreStats"
 
-noncomputable def DeleteStoreStats [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeleteStoreStats [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.DeleteStoreStats"
 
-noncomputable def RecordEtcdRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordEtcdRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.RecordEtcdRequest"
 
-noncomputable def errorReason [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errorReason [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.errorReason"
 
-noncomputable def RecordListLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordListLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.RecordListLatency"
 
-noncomputable def RecordEtcdEvent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordEtcdEvent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.RecordEtcdEvent"
 
-noncomputable def RecordEtcdBookmark [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordEtcdBookmark [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.RecordEtcdBookmark"
 
-noncomputable def RecordDecodeError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordDecodeError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.RecordDecodeError"
 
-noncomputable def Reset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Reset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.Reset"
 
-noncomputable def SetStorageMonitorGetter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetStorageMonitorGetter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.SetStorageMonitorGetter"
 
-noncomputable def UpdateLeaseObjectCount [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UpdateLeaseObjectCount [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.UpdateLeaseObjectCount"
 
-noncomputable def RecordStorageListMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordStorageListMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.RecordStorageListMetrics"
 
-noncomputable def NewOperationLatencyTracker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewOperationLatencyTracker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.NewOperationLatencyTracker"
 
-noncomputable def NewEtcdMetricsTracker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEtcdMetricsTracker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.NewEtcdMetricsTracker"
 
-noncomputable def newTimestampedResourceGaugeCollector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTimestampedResourceGaugeCollector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.newTimestampedResourceGaugeCollector"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics)) (Lam BAnon
   (App (Val exceptionDo)
@@ -276,130 +276,158 @@ axiom Monitor : Type
 axiom Monitor.zero_val : ZeroVal Monitor
 attribute [instance] Monitor.zero_val
 
-class Monitor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Monitor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Monitor.underlying Monitor
   underlying : go.UnderlyingDirectedEq Monitor.ty Monitor.underlying
   isUnderlying : go.IsUnderlying Monitor.underlying Monitor.underlying
+  method_set : go.MethodSetIs Monitor.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Monitor", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [StorageMetrics.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Monitor.ty) []
 
 attribute [instance] Monitor.TypeAssumptions.type_repr
   Monitor.TypeAssumptions.underlying
   Monitor.TypeAssumptions.isUnderlying
+  Monitor.TypeAssumptions.method_set
+  Monitor.TypeAssumptions.ptr_method_set
 
-structure StorageMetrics [FfiSyntax] where
+structure StorageMetrics [GooseExts] where
   mk ::
   Size' : w64
 
-noncomputable instance StorageMetrics.zero_val [FfiSyntax] : ZeroVal StorageMetrics :=
+noncomputable instance StorageMetrics.zero_val [GooseExts] : ZeroVal StorageMetrics :=
   ⟨StorageMetrics.mk zeroValDef⟩
 
-@[reducible] noncomputable def StorageMetrics.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StorageMetrics.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Size" go.int64)]
 
-@[irreducible] noncomputable def StorageMetrics.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StorageMetrics.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StorageMetrics.fieldsUnsealed
 
-noncomputable instance equals_unfold_StorageMetrics [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StorageMetrics [GooseExts] [GoGlobalContext] :
     EqualsUnfold StorageMetrics.fields StorageMetrics.fieldsUnsealed :=
   ⟨by unfold StorageMetrics.fields; rfl⟩
 
-@[reducible] noncomputable def StorageMetrics.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StorageMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StorageMetrics.fields)
 
-class StorageMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StorageMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StorageMetrics.underlying StorageMetrics
   underlying : go.UnderlyingDirectedEq StorageMetrics.ty StorageMetrics.underlying
   get_Size : ∀ (x : StorageMetrics), go.IsGoStepPureDetTagged under (StructFieldGet StorageMetrics.underlying go!"Size") #x (Val #(x.Size'))
   set_Size : ∀ (x : StorageMetrics) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet StorageMetrics.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : StorageMetrics)))
+  method_set : go.MethodSetIs StorageMetrics.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageMetrics.ty) []
 
 attribute [instance] StorageMetrics.TypeAssumptions.type_repr
   StorageMetrics.TypeAssumptions.underlying
   StorageMetrics.TypeAssumptions.get_Size
   StorageMetrics.TypeAssumptions.set_Size
+  StorageMetrics.TypeAssumptions.method_set
+  StorageMetrics.TypeAssumptions.ptr_method_set
 
 axiom monitorCollector : Type
 axiom monitorCollector.zero_val : ZeroVal monitorCollector
 attribute [instance] monitorCollector.zero_val
 
-class monitorCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class monitorCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying monitorCollector.underlying monitorCollector
   underlying : go.UnderlyingDirectedEq monitorCollector.ty monitorCollector.underlying
   isUnderlying : go.IsUnderlying monitorCollector.underlying monitorCollector.underlying
+  method_set : go.MethodSetIs monitorCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType monitorCollector.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CollectWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"k8s.io/component-base/metrics.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" [])), (go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])] false [go.bool]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"DescribeWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" [])))] false []))), (go!"HiddenMetrics", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.getGetter", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType Monitor.ty), go.error]))]))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.setGetter", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType Monitor.ty), go.error]))] false []))), (go!"k8s.io/component-base/metrics.add", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false []))), (go!"k8s.io/component-base/metrics.init", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])] false []))), (go!"k8s.io/component-base/metrics.trackHiddenDescriptor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false []))), (go!"k8s.io/component-base/metrics.trackRegistrableDescriptor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false [])))]
 
 attribute [instance] monitorCollector.TypeAssumptions.type_repr
   monitorCollector.TypeAssumptions.underlying
   monitorCollector.TypeAssumptions.isUnderlying
+  monitorCollector.TypeAssumptions.method_set
+  monitorCollector.TypeAssumptions.ptr_method_set
 
 axiom OperationLatencyTracker : Type
 axiom OperationLatencyTracker.zero_val : ZeroVal OperationLatencyTracker
 attribute [instance] OperationLatencyTracker.zero_val
 
-class OperationLatencyTracker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class OperationLatencyTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OperationLatencyTracker.underlying OperationLatencyTracker
   underlying : go.UnderlyingDirectedEq OperationLatencyTracker.ty OperationLatencyTracker.underlying
   isUnderlying : go.IsUnderlying OperationLatencyTracker.underlying OperationLatencyTracker.underlying
+  method_set : go.MethodSetIs OperationLatencyTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OperationLatencyTracker.ty) [(go!"Record", (some (go.signature.Signature [go.error, (go.GoType.Named go!"time.Time" [])] false [])))]
 
 attribute [instance] OperationLatencyTracker.TypeAssumptions.type_repr
   OperationLatencyTracker.TypeAssumptions.underlying
   OperationLatencyTracker.TypeAssumptions.isUnderlying
+  OperationLatencyTracker.TypeAssumptions.method_set
+  OperationLatencyTracker.TypeAssumptions.ptr_method_set
 
-structure EtcdMetricsTracker [FfiSyntax] where
+structure EtcdMetricsTracker [GooseExts] where
   mk ::
   Get' : Loc
 
-noncomputable instance EtcdMetricsTracker.zero_val [FfiSyntax] : ZeroVal EtcdMetricsTracker :=
+noncomputable instance EtcdMetricsTracker.zero_val [GooseExts] : ZeroVal EtcdMetricsTracker :=
   ⟨EtcdMetricsTracker.mk zeroValDef⟩
 
-@[reducible] noncomputable def EtcdMetricsTracker.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EtcdMetricsTracker.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Get" (go.GoType.PointerType OperationLatencyTracker.ty))]
 
-@[irreducible] noncomputable def EtcdMetricsTracker.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EtcdMetricsTracker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EtcdMetricsTracker.fieldsUnsealed
 
-noncomputable instance equals_unfold_EtcdMetricsTracker [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EtcdMetricsTracker [GooseExts] [GoGlobalContext] :
     EqualsUnfold EtcdMetricsTracker.fields EtcdMetricsTracker.fieldsUnsealed :=
   ⟨by unfold EtcdMetricsTracker.fields; rfl⟩
 
-@[reducible] noncomputable def EtcdMetricsTracker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EtcdMetricsTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EtcdMetricsTracker.fields)
 
-class EtcdMetricsTracker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EtcdMetricsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdMetricsTracker.underlying EtcdMetricsTracker
   underlying : go.UnderlyingDirectedEq EtcdMetricsTracker.ty EtcdMetricsTracker.underlying
   get_Get : ∀ (x : EtcdMetricsTracker), go.IsGoStepPureDetTagged under (StructFieldGet EtcdMetricsTracker.underlying go!"Get") #x (Val #(x.Get'))
   set_Get : ∀ (x : EtcdMetricsTracker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdMetricsTracker.underlying go!"Get") (PairV #x #y) (Val #(({ x with Get' := y } : EtcdMetricsTracker)))
+  method_set : go.MethodSetIs EtcdMetricsTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdMetricsTracker.ty) []
 
 attribute [instance] EtcdMetricsTracker.TypeAssumptions.type_repr
   EtcdMetricsTracker.TypeAssumptions.underlying
   EtcdMetricsTracker.TypeAssumptions.get_Get
   EtcdMetricsTracker.TypeAssumptions.set_Get
+  EtcdMetricsTracker.TypeAssumptions.method_set
+  EtcdMetricsTracker.TypeAssumptions.ptr_method_set
 
 axiom timestampedResourceGaugeCollector : Type
 axiom timestampedResourceGaugeCollector.zero_val : ZeroVal timestampedResourceGaugeCollector
 attribute [instance] timestampedResourceGaugeCollector.zero_val
 
-class timestampedResourceGaugeCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class timestampedResourceGaugeCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying timestampedResourceGaugeCollector.underlying timestampedResourceGaugeCollector
   underlying : go.UnderlyingDirectedEq timestampedResourceGaugeCollector.ty timestampedResourceGaugeCollector.underlying
   isUnderlying : go.IsUnderlying timestampedResourceGaugeCollector.underlying timestampedResourceGaugeCollector.underlying
+  method_set : go.MethodSetIs timestampedResourceGaugeCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timestampedResourceGaugeCollector.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CollectWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"k8s.io/component-base/metrics.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" [])), (go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])] false [go.bool]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"DescribeWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" [])))] false []))), (go!"HiddenMetrics", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.delete", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupResource" [])] false []))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.set", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupResource" []), go.int64] false []))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.setClock", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/utils/clock.PassiveClock" [])] false []))), (go!"k8s.io/component-base/metrics.add", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false []))), (go!"k8s.io/component-base/metrics.init", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])] false []))), (go!"k8s.io/component-base/metrics.trackHiddenDescriptor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false []))), (go!"k8s.io/component-base/metrics.trackRegistrableDescriptor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false [])))]
 
 attribute [instance] timestampedResourceGaugeCollector.TypeAssumptions.type_repr
   timestampedResourceGaugeCollector.TypeAssumptions.underlying
   timestampedResourceGaugeCollector.TypeAssumptions.isUnderlying
+  timestampedResourceGaugeCollector.TypeAssumptions.method_set
+  timestampedResourceGaugeCollector.TypeAssumptions.ptr_method_set
 
 axiom timestampedSample : Type
 axiom timestampedSample.zero_val : ZeroVal timestampedSample
 attribute [instance] timestampedSample.zero_val
 
-class timestampedSample.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class timestampedSample.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying timestampedSample.underlying timestampedSample
   underlying : go.UnderlyingDirectedEq timestampedSample.ty timestampedSample.underlying
   isUnderlying : go.IsUnderlying timestampedSample.underlying timestampedSample.underlying
+  method_set : go.MethodSetIs timestampedSample.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timestampedSample.ty) []
 
 attribute [instance] timestampedSample.TypeAssumptions.type_repr
   timestampedSample.TypeAssumptions.underlying
   timestampedSample.TypeAssumptions.isUnderlying
+  timestampedSample.TypeAssumptions.method_set
+  timestampedSample.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Monitor_instance : Monitor.TypeAssumptions
   StorageMetrics_instance : StorageMetrics.TypeAssumptions
   monitorCollector_instance : monitorCollector.TypeAssumptions

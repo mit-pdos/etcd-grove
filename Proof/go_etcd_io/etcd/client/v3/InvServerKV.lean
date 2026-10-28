@@ -52,7 +52,7 @@ namespace client
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section defs
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext]
 
 /-- **The `clientv3.KV` interface value of the `*kv` `api`** (what `NewKV` returns). -/
 abbrev kvIfaceOf (api : Loc) : GoInterfaceOk :=
@@ -61,7 +61,7 @@ abbrev kvIfaceOf (api : Loc) : GoInterfaceOk :=
 end defs
 
 section prem
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -78,7 +78,7 @@ instance clientErrsIs_persistent : Persistent (clientErrsIs (GF := GF)) := by
 end prem
 
 section todo
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -201,7 +201,7 @@ end todo
 /-! ## A client that does not track the abstract state (2026-10-15, unit T2) -/
 
 section anyAu
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -211,7 +211,8 @@ theorem commit_rev (σ : KVState) (cs : List mvcc.Change) : σ.rev ≤ (σ.commi
   unfold KVState.commit; split <;> simp [KVState.rev]
 
 theorem kvOpStep_rev (op : KVOp) (σ : KVState) : σ.rev ≤ (kvOpStep op σ).rev := by
-  cases op <;> simp only [kvOpStep] <;> (try split) <;> (first | exact Nat.le_refl _ | exact commit_rev _ _)
+  cases op <;> simp only [kvOpStep] <;> (repeat' split) <;>
+    (first | exact Nat.le_refl _ | exact commit_rev _ _)
 
 /-- **Any operation's update, with the floor of a certified log** (persistent; 2026-10-15, unit
 T2; unit W-M3: the floor): what a client that does not track etcd's abstract state hands the
@@ -350,7 +351,7 @@ theorem kvRangeAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
 end anyAu
 
 section floor
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

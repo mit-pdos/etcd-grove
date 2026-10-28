@@ -34,7 +34,7 @@ open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output Obj item mst
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -47,7 +47,7 @@ abbrev Apply.spec : Prop :=
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     (γ : KNames) (sp : Loc) (c : StoreCfg GF DObj) (g0 : GSt),
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 -∗
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 -∗
     k8s.isStore sp c -∗ ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) -∗ ⌜c.ms ≠ []⌝ -∗

@@ -34,7 +34,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
   go_etcd_io.etcd.server.v3.etcdserver
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of `s.consistIndex`. -/
 abbrev srvCIAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"consistIndex" s
@@ -42,7 +42,7 @@ abbrev srvCIAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"consistIndex" 
 end addrs
 
 section typeRepr
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -70,11 +70,11 @@ instance (priority := high) toApply_typeRepr_u : TypeRepr toApply.underlying toA
 end typeRepr
 
 /-- The interface value of a `*consistentIndex`. -/
-abbrev ciIface [FfiSyntax] [GoGlobalContext] (ci : Loc) : GoInterface :=
+abbrev ciIface [GooseExts] [GoGlobalContext] (ci : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType consistentIndex.ty) #ci
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

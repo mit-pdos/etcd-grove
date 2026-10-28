@@ -20,112 +20,112 @@ end pkg_id
 
 namespace go_etcd_io.bbolt.errors
 
-noncomputable def ErrDatabaseNotOpen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrDatabaseNotOpen [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrDatabaseNotOpen"
 
-axiom ErrDatabaseNotOpen.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrDatabaseNotOpen.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalid [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalid [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrInvalid"
 
-axiom ErrInvalid.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalid.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidMapping [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidMapping [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrInvalidMapping"
 
-axiom ErrInvalidMapping.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidMapping.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrVersionMismatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrVersionMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrVersionMismatch"
 
-axiom ErrVersionMismatch.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrVersionMismatch.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrChecksum [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrChecksum [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrChecksum"
 
-axiom ErrChecksum.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrChecksum.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrTimeout"
 
-axiom ErrTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTxNotWritable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTxNotWritable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrTxNotWritable"
 
-axiom ErrTxNotWritable.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTxNotWritable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTxClosed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTxClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrTxClosed"
 
-axiom ErrTxClosed.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTxClosed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrDatabaseReadOnly [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrDatabaseReadOnly [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrDatabaseReadOnly"
 
-axiom ErrDatabaseReadOnly.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrDatabaseReadOnly.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrFreePagesNotLoaded [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrFreePagesNotLoaded [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrFreePagesNotLoaded"
 
-axiom ErrFreePagesNotLoaded.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrFreePagesNotLoaded.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrBucketNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrBucketNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrBucketNotFound"
 
-axiom ErrBucketNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrBucketNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrBucketExists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrBucketExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrBucketExists"
 
-axiom ErrBucketExists.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrBucketExists.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrBucketNameRequired [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrBucketNameRequired [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrBucketNameRequired"
 
-axiom ErrBucketNameRequired.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrBucketNameRequired.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrKeyRequired [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrKeyRequired [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrKeyRequired"
 
-axiom ErrKeyRequired.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrKeyRequired.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrKeyTooLarge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrKeyTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrKeyTooLarge"
 
-axiom ErrKeyTooLarge.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrKeyTooLarge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrValueTooLarge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrValueTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrValueTooLarge"
 
-axiom ErrValueTooLarge.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrValueTooLarge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMaxSizeReached [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMaxSizeReached [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrMaxSizeReached"
 
-axiom ErrMaxSizeReached.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMaxSizeReached.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrIncompatibleValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIncompatibleValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrIncompatibleValue"
 
-axiom ErrIncompatibleValue.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrIncompatibleValue.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrSameBuckets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrSameBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrSameBuckets"
 
-axiom ErrSameBuckets.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrSameBuckets.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrDifferentDB [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrDifferentDB [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/errors.ErrDifferentDB"
 
-axiom ErrDifferentDB.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrDifferentDB.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.bbolt.errors where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.bbolt.errors)) (Lam BAnon
   (App (Val exceptionDo)
@@ -189,7 +189,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrDatabaseNotOpen.init) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end go_etcd_io.bbolt.errors
 

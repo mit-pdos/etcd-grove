@@ -16,7 +16,7 @@ namespace concurrency
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -28,9 +28,9 @@ theorem NewElection.wp_proof : NewElection.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hs, #Hc⟩
   iapply wp_fupd
   wp_auto
-  wp_alloc e as He
+  irename «$r0» => He
+  generalize «$r0_ptr» = e at *
   iStructNamed He
-  wp_auto
   ipersist session
   ipersist keyPrefix
   imodintro

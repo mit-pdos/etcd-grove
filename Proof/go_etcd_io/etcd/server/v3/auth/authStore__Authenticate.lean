@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -136,7 +136,8 @@ theorem auth.authStore.Authenticate.wp_proof
       wp_if_destruct
       · -- no entry to write
         (try wp_auto)
-        wp_alloc rl as Hrl
+        irename «$r0» => Hrl
+        generalize «$r0_ptr» = rl at *
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
@@ -168,7 +169,8 @@ theorem auth.authStore.Authenticate.wp_proof
         wp_apply h_Write
         · ipureintro; exact Hif
         (try wp_auto)
-        wp_alloc rl as Hrl
+        irename «$r0» => Hrl
+        generalize «$r0_ptr» = rl at *
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
@@ -240,7 +242,8 @@ theorem auth.authStore.Authenticate.wp_proof
       wp_if_destruct
       · -- no entry to write
         (try wp_auto)
-        wp_alloc rl as Hrl
+        irename «$r0» => Hrl
+        generalize «$r0_ptr» = rl at *
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
@@ -272,7 +275,8 @@ theorem auth.authStore.Authenticate.wp_proof
         wp_apply h_Write
         · ipureintro; exact Hif
         (try wp_auto)
-        wp_alloc rl as Hrl
+        irename «$r0» => Hrl
+        generalize «$r0_ptr» = rl at *
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]

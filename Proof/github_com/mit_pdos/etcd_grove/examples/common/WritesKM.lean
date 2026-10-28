@@ -40,12 +40,14 @@ theorem kvOpStep_putKeyOp_changes (k v : GoString) (σ : KVState) :
       σ.changes ++ [[mvcc.Change.put k v (W64 0)]] := by
   have hnp : txn.needsPrev (txn.putOpOf k v (W64 0) false false false) = false := by
     simp [txn.needsPrev, txn.putOpOf]
-  simp only [client.putKeyOp, kvOpStep, hnp, Bool.false_and, Bool.false_eq_true, ↓reduceIte,
+  have hlm : ¬ σ.leaseMissing (txn.putOpOf k v (W64 0) false false false).leaseID := by
+    simp [txn.putOpOf, KVState.leaseMissing]
+  simp only [client.putKeyOp, kvOpStep, hlm, hnp, Bool.false_and, Bool.false_eq_true, ↓reduceIte,
     KVState.commit, List.cons_ne_nil]
   simp [txn.putChangeOf, txn.putValOf, txn.putLeaseOf, txn.putOpOf]
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -28,7 +28,7 @@ open Iris Iris.BI k8s_io.component_helpers.scheduling.corev1.nodeaffinity
 
 section body
 /-- go: nodeaffinity.go:156:6 -/
-noncomputable def extractNodeFields.body [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def extractNodeFields.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Var "n"))
@@ -51,7 +51,7 @@ noncomputable def extractNodeFields.body [FfiSyntax] [GoGlobalContext] : val :=
 end body
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

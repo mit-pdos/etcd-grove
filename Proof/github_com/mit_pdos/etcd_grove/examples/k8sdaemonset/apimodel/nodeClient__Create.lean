@@ -28,7 +28,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -59,7 +59,9 @@ theorem nodeClient.Create.wp_proof
       iframe
       ipureintro; rfl
     · ipureintro; rfl
-  iapply (au_mono γ _ _ _) $$ [$HΦ]
+  iapply (au_mono γ _ _ _)
+  isplitl [HΦ]
+  · iexact HΦ
   iintro %σ0 %σ1 %oc ⟨%HR, %hwf0, %hwf1⟩ HK %x %err ⟨Hx, Hret⟩
   iunfold objAt at Hx
   icases Hx with ⟨%l0, %hl0, Hx⟩

@@ -21,7 +21,7 @@ namespace kv
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,12 +31,13 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.install.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
-    (ap D : List EntryM) (ods : List (Option (List w8))) (mK mA : Loc)
+    (ap D : List LogEntry) (ods : List (Option (List w8))) (mK mA : Loc)
     (K A : GMap (List w8) (List w8)),
-  (∀ k, (K !! k).getD [] = kvFold (firstOcc ods) k) → AppliedOk A (firstOcc ods) →
+  ods = D.map odOf →
+  (∀ k, (K !! k).getD [] = kvFold (histOf ods) k) → AppliedOk A (histOf ods) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isReplica γr γp r id n st ∗ runOwn γr r ap ∗ mK ↦$ K ∗ mA ↦$ A ∗
-      isCommitted γr.raft D ∗ ([∗list] e;o ∈ D;ods, entDataIs γr.raft e o) }}
+      isCommittedLogLb γr.cluster D }}
     (App (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"install")) (Val #mK)) (Val #mA))
   {{ RET #(); runOwn γr r D }}
 

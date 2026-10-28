@@ -23,18 +23,18 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.RoleAdd.wp_tie
+theorem auth.authStore.RoleAdd.wp_tieB
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.RoleAdd.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name b0 sc0
+    auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name b0 sc0 be
   wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok⟩
   icases authErrVar_of_init .roleEmpty $$ Hpkg with ⟨%eRE, #HeRE⟩
   icases authErrVar_of_init .roleAlreadyExist $$ Hpkg with ⟨%eRAE, #HeRAE⟩
@@ -44,12 +44,13 @@ theorem auth.authStore.RoleAdd.wp_tie
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   iunfold roleAddReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
-  iunfold authWRx at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
+  iunfold authWRxB at HWR
+  icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hnl
@@ -61,7 +62,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -125,7 +126,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -161,8 +162,8 @@ theorem auth.authStore.RoleAdd.wp_tie
     · ipureintro; rfl
     · simp only [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #«$r0_ptr»))
-  iapply HPutR $$ %st0 %Post %«$r0_ptr» %rrN [$HL $Hnr]
-  · ipureintro; exact Hlen
+  iapply HPutR $$ %st0 %Post %«$r0_ptr» %rrN %rrN.toRole [$HL $Hnr]
+  · ipureintro; exact ⟨Hlen, List.Perm.refl _⟩
   inext
   iintro ⟨HL, -⟩
   (try wp_auto)
@@ -186,7 +187,8 @@ theorem auth.authStore.RoleAdd.wp_tie
   wp_apply h_Info
   · ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_alloc resp as Hresp
+  irename «$r0» => Hresp
+  generalize «$r0_ptr» = resp at *
   icases typedPointsto_split _ _ _ $$ Hresp with Hresp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
@@ -198,7 +200,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     ipureintro; exact Hl1
   (try wp_auto)
   by_cases hc : b0 = true ∧ sc0 = st0
-  · ihave Hca := cacheAt_congr st sc0 ({ putRole st0 rrN.name rrN.toRole with revision := rev })
+  · ihave Hca := cacheAt_congr st M sc0 ({ putRole st0 rrN.name rrN.toRole with revision := rev })
       (by rw [hc.2]; rfl) (fun u => by
         rw [hc.2]; exact (userPerms_putRole_empty st0 name Hnone u).symm) $$ Hca
     ihave ⟨Hown, #Hsn'⟩ := authSnap_of_own_last M _ _ Hl1 $$ Hown
@@ -207,7 +209,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hsn'; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hsn'; iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
       · ipureintro; intro h; exact absurd rfl h
@@ -229,7 +231,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
       · ipureintro; intro h; exact absurd rfl h
@@ -238,7 +240,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     iright
     iexists st0, (.next (bump (putRole st0 name [])))
     isplitr
-    · ipureintro; exact tieStep_keep' M hs _ b0 sc0 st0 _ Hl0 Hl1 rfl hc
+    · ipureintro; exact tieStep_keep' M hs _ b0 sc0 st0 _ Hl0 Hl1 rfl (permView_putRole_empty st0 name Hnone) hc
     isplitr
     · ipureintro; exact ⟨Hl0, hstep.symm⟩
     simp only [outRes]
@@ -247,6 +249,13 @@ theorem auth.authStore.RoleAdd.wp_tie
       all_goals rfl
     · ipureintro; trivial
 
+
+theorem auth.authStore.RoleAdd.wp_tie
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.RoleAdd.specT (GF := GF) (hG := hG) :=
+  auth.authStore.RoleAdd.specT_of_TB (auth.authStore.RoleAdd.wp_tieB h_commitRevision h_String h_Info)
 
 theorem auth.authStore.RoleAdd.wp_proof
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))

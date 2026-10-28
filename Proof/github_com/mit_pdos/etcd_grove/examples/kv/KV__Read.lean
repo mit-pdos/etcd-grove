@@ -15,7 +15,6 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__Read
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.encode
-public import Spec.go_etcd_io.raft.v3.node__ReadIndex
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
 
 @[expose] public section
@@ -29,7 +28,7 @@ namespace kv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,7 +47,7 @@ theorem KV.Read.wp_proof
   iunfold isReplica at Hrep'
   iNamed Hrep'
   iunfold kvLb at Hlb
-  icases Hlb with ⟨%l0, %ods0, #Hl0, #Hods0, %HL0⟩
+  icases Hlb with ⟨%l0, #Hl0, %HL0⟩
   wp_auto
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
   iNamed HR
@@ -63,9 +62,9 @@ theorem KV.Read.wp_proof
   have Hns : uint.Z ns + 1 < 2 ^ 64 := by
     have : ns ≠ W64 18446744073709551615 := by assumption
     word
-  -- the read's context, minted, with its fresh token for raft's read registry
-  imod kv_mint_read γr id ns key ⊤ CoPset.subseteq_top Hns (by omega) $$ Hinv Hseq
-    with ⟨Hseq, #Hmint, Hrf⟩
+  -- the read's context, minted, and committed to the read seeing what the caller knew committed
+  imod kv_mint_read γr id ns key l0 ⊤ CoPset.subseteq_top Hns (by omega) $$ Hinv Hseq Hl0
+    with ⟨Hseq, #Hmint, #Hrc⟩
   generalize Hc : encodeOp id (ns + W64 1) opReadB key [] = cx
   wp_apply chan.wp_make2 (V := GoString) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
@@ -114,14 +113,15 @@ theorem KV.Read.wp_proof
   imod ownSlice_persist b _ _ $$ Hb with #Hb
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
-  ihave #Hrau := kv_readAu γr $$ Hinv
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-  wp_apply wp_node_ReadIndex γp.node id n b cx (fun _ => iprop(True)) l0 context.backgroundCtxVal
-    bgCd $$ [$Hraftinit $HisNode $Hbg $Hb Hrf Hrdc] as %err ⟨⟨%Lc, %Hl0Lc, #Hrq, -⟩, -⟩
-  · rw [Hraft]; iframe Hrf Hrdc Hrau Hl0
-  -- the answer: a read index of the context, and the value after a committed log at least
-  -- that long, which extends the log of the deposit (`readOk_prefix`) and so `l0`
-  wp_apply wp_handoff_receive (t := go.string) γh ch (readAns γr cx)
+  wp_apply +noauto wp_node_ReadIndex n γr.cluster kvRaftN id b cx
+    (fun ops => iprop(⌜opsOf l0 <+: ops⌝)) context.backgroundCtxVal
+    bgCd $$ [$Hraftinit $HisNode $Hbg $Hb $Hrc $Hrdc] as %err -
+  -- the answer: a read state of the context, and the value after a committed log at least that
+  -- long; the read took effect at a committed log that long (`readStateOk_ctx`), whose
+  -- requested entries extend `l0`'s
+  wp_auto_lc 2
+  wp_apply +noauto wp_handoff_receive (t := go.string) γh ch (readAns γr cx)
     iprop(True) iprop(False) false $$ [$Hho $Hcons] as %v %ok ⟨Hcons, Hgot⟩
   unfold handoffGot
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -132,21 +132,34 @@ theorem KV.Read.wp_proof
   simp only [↓reduceIte]
   icases Hgot with ⟨Hw, -⟩
   iunfold readAns at Hw
-  icases Hw with ⟨%i, %ap, %ods, #Hok, #Hap, #Hods, %Hi⟩
-  rw [Hraft]
-  ihave %Hpre := readOk_prefix γr.raft cx i Lc ap Hi.1 $$ Hok Hrq Hap
-  ihave %Hpre2 := entDataIs_list_prefix _ l0 ap ods0 ods (Hl0Lc.trans Hpre) $$ Hods0 Hods
+  icases Hw with ⟨%i, %ap, #Hok, #Hap, %Hi⟩
+  imod readStateOk_ctx γr.cluster kvRaftN cx i (fun ops => iprop(⌜opsOf l0 <+: ops⌝)) ap
+      ⊤ CoPset.subseteq_top (by have := Hi.1; word) $$ Hok Hrc Hap with ⟨%l, %Hlen, #Hl, HQ⟩
+  imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
+  imod lc_fupd_elim_later $$ Hlc2 HQ with HQ
+  icases HQ with #%HQ
+  wp_auto
+  ihave %Hag := isCommittedLogLb_agree γr.cluster l ap $$ [Hl Hap]
+  · iframe Hl Hap
+  have Hlap : l <+: ap := by
+    rcases Hag with h | h
+    · exact h
+    · have : ap.length ≤ l.length := h.length_le
+      have : l.length = ap.length := by have := Hi.1; rw [Hlen] at *; word
+      exact (h.eq_of_length this.symm) ▸ List.prefix_refl _
   iapply HΦ
-  iexists firstOcc ods
+  iexists logHist ap
   isplitl
   · unfold kvLb
-    iexists ap, ods
-    iframe Hap Hods
+    iexists ap
+    iframe Hap
     ipureintro; rfl
   ipureintro
   rw [HL0]
   have Hdk : dkey cx = key := by rw [← Hc]; exact dkey_encodeOp _ _ _ _ _ (by omega)
-  exact ⟨firstOcc_prefix_of_prefix _ _ Hpre2, Hdk ▸ Hi.2⟩
+  refine ⟨?_, Hdk ▸ Hi.2⟩
+  rw [← logHist_opsOf l0]
+  exact (logHist_prefix _ _ HQ).trans (by rw [logHist_opsOf]; exact logHist_prefix _ _ Hlap)
 
 end proof
 

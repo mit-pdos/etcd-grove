@@ -20,7 +20,7 @@ id V bootLog`, allocated before the call: statically `ownRaftGhost γ id (bootPS
 bootLog` at the configuration index `0`, `raft_dyn_alloc_boot`), which the physical state refines:
 a follower at term `1`, the log `bootLog` from the empty base, committed through it.
 
-The premises are `StartNode.spec`'s on the peers and the bootstrap log (`BootLogOk γ.reCCOk ps
+The premises are `StartNode.spec`'s on the peers and the bootstrap log (`BootLogOk ps
 bootLog`: entry `k` is the `k`-th peer's, which fixes the terms, indices and types the code
 writes), and `bootMarshal` ties `proto.Marshal`'s bytes to `bootLog[k].Data'` (protobuf's
 determinism at these inputs, a trust-boundary premise discharged where the node is composed;
@@ -40,7 +40,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -60,7 +60,7 @@ abbrev RawNode.Bootstrap.spec : Prop :=
   γ.reCfg = GMap.listToSet ps →
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
-  BootLogOk γ.reCCOk ps bootLog →
+  BootLogOk ps bootLog →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       -- the node `NewRawNode` built on an empty conf state, open
       rawNodeFresh rn id si ∅ sdr pre s ∗

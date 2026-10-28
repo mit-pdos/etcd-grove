@@ -1,36 +1,20 @@
 /-
-**`applyAll`'s `msgSnapC` branch, its two calls** (D22 S-h, 2026-10-20; `notes/decisions.md`, "D22
-S-h carried out"): `s.sendMergedSnap(s.createMergedSnapshotMessage(m, ep.appliedt, ep.appliedi,
-ep.confState))` (`server.go`; the `merged` local inlined), over the two proved specs and the
-bundle lemma (`srvMergedBundle`). Lean-first (no Rocq counterpart).
+**`applyAll`'s `msgSnapC` branch: the sender's backend and store contracts** (D22 S-h, 2026-10-20;
+`notes/decisions.md`, "D22 S-h carried out"). Lean-first (no Rocq counterpart).
 
-The branch is dead in the proof until S-l (`isServerApplyAll`'s `msgSnapC` carries nothing);
-`snapBranch_send` is what S-l applies there, after the receive and the `m.GetTerm() ==
-apply.raftTerm` check, with these premises to discharge:
-* the received message owned (`msgOwn m (DFrac.own 1) st`, a `MsgSnap` of raft's with its snapshot
-  `sn0` at most the applied index) with its protocol facts (`isRaftMsg`, `termLB`): since D22 S-l's
-  sender items (2026-10-22) `msgSnapC`'s bag carries exactly these (`rnSnapMsg`, `isRNMsgSnapC`);
-  `sn0`'s bound is still to be stated (raft's storage snapshot, at an applied index); raft's
-  commit invariant;
-* `rnRtBound γ T ai` at the message's term `T = apply.raftTerm` (D22l; `rnRtBound_of_rtOk` from the
-  batch's `rnRtOk`, `rnApP_rtOk`, for `T ≠ 0` and the batch's log reaching `ai`);
-* the applied committed prefix `A` (`|A| = ai`, last term `at`: `kvApplied`'s `srvRLogLb` with
-  S-0's `at' = lastTerm` amendment);
-* the contracts of `s.KV().Commit()` (`srvKVCommitOk_of_kv`, from `store.Commit`, translated and
-  proved since D22 S-l's sender items: the writer's fragment, reader token and a write token,
-  `srvWTPool_take_extra`) and `s.be.Snapshot()` (`srvBeSnapOk_of_backend`) with their resources, and the image
-  certificate from the snapshot's observation (`□ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D)`,
-  `imageAt_of_snap`): since the stored-index window (D22, 2026-10-23, the section below) the
-  index half and the tracked buckets from `Commit()`'s request and the snapshot's observation
-  (`storeReq_freeze`, `srvKVCommitOk_of_kv`, `srvBeSnapOk_window`: `ciObs ai`, `rbData P D = rb`),
-  the apply thread's state back after (`unfreeze`); left: the key half (`keyView`), the
-  compaction keys (`bkNoCmp`), and `rb` the rest model's (`srvRest`);
-* `sendMergedSnap`'s resources (`GoAttach`'s, the started transport of the network whose payload
-  is the server's, `srvNet γ bud`, `s.inflightSnapshots`'s invariant, `s.stopping`).
+The branch is dead: `msgSnapC` carries nothing (`isRNMsgSnapC`'s `rnSnapMsg`, `False` since the
+server's clusters send no snapshot, 2026-10-27). Until 2026-10-27 this file also proved the branch
+itself (`snapBranch_send`, over `SnapSendBundle.lean`'s `srvMergedBundle`, the merged message as the
+network's snapshot bundle) from raft's internals (`isRaftMsg`, `raftCommitInv`, `raftSnapCert`,
+`isCommitted`, `termLB`): deleted with the port onto raft's node API, which has the server send no
+snapshot. What is left are the sender's contracts of `s.KV().Commit()` (`srvKVCommitOk_of_kv`) and
+`s.be.Snapshot()` (`srvBeSnapOk_of_backend`, `srvBeSnapOk_window`: the stored-index window), and the
+sole writer's well-formed log (`soleWriter_idxWf`, the image's).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapSendBundle
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBuild
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvSnapSend
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
@@ -53,61 +37,11 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **The merged snapshot made and sent** (see the file header). -/
-theorem snapBranch_send
-    (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
-    (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
-    (s ml : Loc) (st : MsgSt) (sn0 : SnapshotM) (ai at_ : w64) (cs lg : Loc) (kv be : GoInterface)
-    (dq : DFrac) (RC RC' RS RS' : IProp GF) (Qd : backend.Data → Prop) (γ : RaftNames) (bud : BudgetNames)
-    (A : List EntryM) (id : w64) (stg : Loc) (tr : GoInterface) (γn : NetNames GF) (S : IProp GF)
-    (lid : w64)
-    (sid : w64)
-    (Hty : st.msg.Type' = MsgSnap) (Hsn : st.snap = some sn0)
-    (Hix : uint.Z sn0.Metadata'.Index' ≤ uint.Z ai)
-    (HAlen : (A.length : Int) = uint.Z ai) (HAlast : A.getLast?.map EntryM.Term' = some at_)
-    (HN : γn.N = srvNet γ bud)
-    -- (D22 S-r, 2026-10-21) the cluster admits the merged snapshot's (empty) data
-    (Hsok : γ.reSnapOk A []) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        srvGoRes s ∗ srvLgReader s ∗ srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
-        srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
-        srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
-        msgOwn ml (DFrac.own 1) st ∗ epCsOk cs ∗
-        raftCommitInv γ ∗ isRaftMsg γ sid st ∗ termLB bud st.msg.Term' ∗ rnRtBound γ st.msg.Term' ai ∗
-        isCommitted γ A ∗ □ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D) ∗
-        -- (D22 S-b′3, 2026-10-20) the merged content's configuration certificate, of whatever
-        -- `ep.confState` holds
-        □ (∀ c : ConfStateM, csOpt cs DFrac.discard c -∗
-          raftSnapCert γ ⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave', []⟩) ∗
-        srvMemberIDAddr s ↦□ id ∗ srvInflight s ∗ srvStoppingAddr s ↦□ stg ∗ stopChan stg ∗
-        rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn lid tr S }}
-      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"sendMergedSnap"))
-        (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
-          go!"createMergedSnapshotMessage")) (Val #ml)) (Val #at_)) (Val #ai)) (Val #cs)))
-    {{ RET #(); srvGoRes s ∗ srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be }} := by
-  iintro %Φ ⟨#Hpkg, Hgr, Hlr, #Hlgf, %Hlgnn, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Hcs, #Hinv,
-    #Hrm, #Htlb, #Hbnd, #HA, #Himg, #Hccs, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr⟩ HΦ
-  wp_apply hCM s ml st at_ ai cs lg kv be dq RC RC' RS RS' Qd $$ [Hlr Hkc HRC Hbef Hbs HRS Hm]
-    as %mg ⟨Hlr, HRS', Hbef, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQ⟩
-  · iframe #; iframe
-    ipureintro; exact Hlgnn
-  ihave #HimgD := Himg $$ %D %HQ
-  ihave #Hcc := Hccs $$ %c Hcso
-  imod srvMergedBundle γ sid bud ⊤ ml st sn0 c ai at_ A rc D (by simp) Hty Hsn Hix HAlen HAlast Hsok
-    $$ Hinv Hrm Htlb Hbnd HA Hcc Hml Hrs HimgD with Hbun
-  wp_apply hSMS s mg ml rc lg id stg tr γn S lid $$ [Hgr Hlr Hbun] as ⟨Hgr, Hlr⟩
-  · iframe #; iframe Hgr Hlr
-    isplitr
-    · ipureintro; exact Hlgnn
-    rw [HN]; iexact Hbun
-  iapply HΦ
-  iframe
 
 /-- **The snapshot contract from the backend's** (`backend.Snapshot.spec`): the real backend `bl`'s
 `Snapshot()`, with an open share, a write-back's budget token and the caller's resource `R`, whose
@@ -320,20 +254,24 @@ theorem srvBeSnapOk_window (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG
   iframe Hpkg Hb
   iapply snapObs_window γA γ P hP W F s rb
 
-/-- **The recorded term's commit bound from the batch's** (D22 S-l's sender items; D22l's
-`rnRtOk`, `rnApP_rtOk`): a non-zero raft term recorded with a batch whose log reaches `n`, at least
-the applied index `ai`, has a commit witness at `c ≥ ai` (`rnRtBound`, `snapBranch_send`'s). -/
-theorem rnRtBound_of_rtOk (γ : RNNames) (t ai : w64) (n : Nat) (ht : uint.Z t ≠ 0)
-    (hn : uint.Z ai ≤ (n : Int)) :
-    rnRtOk (GF := GF) γ t n ⊢ rnRtBound γ.node.raft t ai := by
+/-- **The sender's KV log is well formed as a store's committed log** (D22 J7b, 2026-10-26;
+`imageAt_of_snap`'s `hwf`): the apply thread's sole writer (`apply.kvOwn`'s `txn.kvWriter`) at its
+log `log` (the applied `kvModel γk A`, `kvApplied`) knows its certificate's sealed facts
+(`idxSealed_pure`: `LogWf'`, fewer than `2 ^ 63` revisions and changes per revision) and, from its
+budget, that the log has at least two and fewer than `2 ^ 48 + 2` revisions
+(`soleWriter_small'`): `IdxWf log []`, with no change pending. -/
+theorem soleWriter_idxWf (γ : mvcc.StoreNames) (log : mvcc.Log) :
+    txn.soleWriter (GF := GF) γ log ⊢ ⌜mvcc.IdxWf log []⌝ := by
   iintro H
-  iunfold rnRtOk at H
-  icases H with (%Hz | ⟨%c, #Hc, %Hle⟩)
-  · exact absurd Hz ht
-  iunfold rnRtBound
-  iexists c
-  iframe Hc
-  ipureintro; omega
+  ihave ⟨%H2, H⟩ := txn.soleWriter_len' γ log $$ H
+  ihave ⟨H, #Hc⟩ := txn.soleWriter_cert γ log $$ H
+  ihave %Hs := txn.soleWriter_small' γ log $$ H
+  ihave #Hse := mvcc.idxCert_sealed γ.idx log $$ Hc
+  ihave %Hp := mvcc.idxSealed_pure γ.idx log $$ Hse
+  ipureintro
+  obtain ⟨hwf, -, hcs⟩ := Hp
+  have hne : log ≠ [] := by intro h; subst h; simp at H2
+  refine ⟨mvcc.LogWf'.append_nil hwf hne, by omega, by simp, hcs⟩
 
 end proof
 

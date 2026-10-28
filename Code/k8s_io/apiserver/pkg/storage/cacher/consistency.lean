@@ -21,73 +21,73 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.cacher.consistency
 
-noncomputable def Checker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Checker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/consistency.Checker" [])
 
 attribute [irreducible] Checker.ty
 
-noncomputable def cacher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cacher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/consistency.cacher" [])
 
 attribute [irreducible] cacher.ty
 
-noncomputable def getLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def getLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/consistency.getLister" [])
 
 attribute [irreducible] getLister.ty
 
-noncomputable def namespaceNameRV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def namespaceNameRV.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/consistency.namespaceNameRV" [])
 
 attribute [irreducible] namespaceNameRV.ty
 
-noncomputable def diffDetail.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def diffDetail.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/consistency.diffDetail" [])
 
 attribute [irreducible] diffDetail.ty
 
-noncomputable def Digest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Digest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/consistency.Digest" [])
 
 attribute [irreducible] Digest.ty
 
-axiom Checker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Checker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom getLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom getLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def CheckPeriod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckPeriod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.CheckPeriod"
 
-axiom CheckPeriod.init [FfiSyntax] [GoGlobalContext] : val
+axiom CheckPeriod.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def PanicOnCacheInconsistency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PanicOnCacheInconsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.PanicOnCacheInconsistency"
 
-axiom PanicOnCacheInconsistency.init [FfiSyntax] [GoGlobalContext] : val
+axiom PanicOnCacheInconsistency.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def checkerListPageSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkerListPageSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.checkerListPageSize"
 
-axiom checkerListPageSize.init [FfiSyntax] [GoGlobalContext] : val
+axiom checkerListPageSize.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.init.0"
 
-noncomputable def NewChecker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.NewChecker"
 
-noncomputable def addListToDigest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addListToDigest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.addListToDigest"
 
-noncomputable def addObjectToDigest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addObjectToDigest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.addObjectToDigest"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency where
   pkgImportedPkgs := [pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency)) (Lam BAnon
   (App (Val exceptionDo)
@@ -110,63 +110,75 @@ axiom Checker : Type
 axiom Checker.zero_val : ZeroVal Checker
 attribute [instance] Checker.zero_val
 
-class Checker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Checker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Checker.underlying Checker
   underlying : go.UnderlyingDirectedEq Checker.ty Checker.underlying
   isUnderlying : go.IsUnderlying Checker.underlying Checker.underlying
+  method_set : go.MethodSetIs Checker.ty [(go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Checker.ty) [(go!"CalculateDigests", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType Digest.ty), go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher/consistency.calculateStoreDigest", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), getLister.ty, go.string, go.int64, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Object" [])] false []))] false [go.string, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher/consistency.check", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [])))]
 
 attribute [instance] Checker.TypeAssumptions.type_repr
   Checker.TypeAssumptions.underlying
   Checker.TypeAssumptions.isUnderlying
+  Checker.TypeAssumptions.method_set
+  Checker.TypeAssumptions.ptr_method_set
 
-abbrev cacher [FfiSyntax] : Type := GoInterface
+abbrev cacher [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def cacher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MarkConsistent" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"Ready" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm getLister.ty)])])
+@[reducible] noncomputable def cacher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetList" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ListOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.error])), (go.InterfaceElem.MethodElem go!"MarkConsistent" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"Ready" (go.signature.Signature [] false [go.bool]))])
 
-class cacher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cacher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq cacher.ty cacher.underlying
+  method_set : go.MethodSetIs cacher.ty [(go!"GetList", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ListOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.error]))), (go!"MarkConsistent", (some (go.signature.Signature [go.bool] false []))), (go!"Ready", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacher.ty) []
 
 attribute [instance] cacher.TypeAssumptions.underlying
+  cacher.TypeAssumptions.method_set
+  cacher.TypeAssumptions.ptr_method_set
 
 axiom getLister : Type
 axiom getLister.zero_val : ZeroVal getLister
 attribute [instance] getLister.zero_val
 
-class getLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class getLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying getLister.underlying getLister
   underlying : go.UnderlyingDirectedEq getLister.ty getLister.underlying
   isUnderlying : go.IsUnderlying getLister.underlying getLister.underlying
+  method_set : go.MethodSetIs getLister.ty [(go!"GetList", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ListOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType getLister.ty) []
 
 attribute [instance] getLister.TypeAssumptions.type_repr
   getLister.TypeAssumptions.underlying
   getLister.TypeAssumptions.isUnderlying
+  getLister.TypeAssumptions.method_set
+  getLister.TypeAssumptions.ptr_method_set
 
-structure namespaceNameRV [FfiSyntax] where
+structure namespaceNameRV [GooseExts] where
   mk ::
   Namespace' : GoString
   Name' : GoString
   RV' : GoString
 
-noncomputable instance namespaceNameRV.zero_val [FfiSyntax] : ZeroVal namespaceNameRV :=
+noncomputable instance namespaceNameRV.zero_val [GooseExts] : ZeroVal namespaceNameRV :=
   ⟨namespaceNameRV.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def namespaceNameRV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def namespaceNameRV.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Namespace" go.string),
 (go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"RV" go.string)]
 
-@[irreducible] noncomputable def namespaceNameRV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def namespaceNameRV.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   namespaceNameRV.fieldsUnsealed
 
-noncomputable instance equals_unfold_namespaceNameRV [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_namespaceNameRV [GooseExts] [GoGlobalContext] :
     EqualsUnfold namespaceNameRV.fields namespaceNameRV.fieldsUnsealed :=
   ⟨by unfold namespaceNameRV.fields; rfl⟩
 
-@[reducible] noncomputable def namespaceNameRV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def namespaceNameRV.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType namespaceNameRV.fields)
 
-class namespaceNameRV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class namespaceNameRV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying namespaceNameRV.underlying namespaceNameRV
   underlying : go.UnderlyingDirectedEq namespaceNameRV.ty namespaceNameRV.underlying
   get_Namespace : ∀ (x : namespaceNameRV), go.IsGoStepPureDetTagged under (StructFieldGet namespaceNameRV.underlying go!"Namespace") #x (Val #(x.Namespace'))
@@ -175,6 +187,8 @@ class namespaceNameRV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_Name : ∀ (x : namespaceNameRV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namespaceNameRV.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : namespaceNameRV)))
   get_RV : ∀ (x : namespaceNameRV), go.IsGoStepPureDetTagged under (StructFieldGet namespaceNameRV.underlying go!"RV") #x (Val #(x.RV'))
   set_RV : ∀ (x : namespaceNameRV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namespaceNameRV.underlying go!"RV") (PairV #x #y) (Val #(({ x with RV' := y } : namespaceNameRV)))
+  method_set : go.MethodSetIs namespaceNameRV.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType namespaceNameRV.ty) []
 
 attribute [instance] namespaceNameRV.TypeAssumptions.type_repr
   namespaceNameRV.TypeAssumptions.underlying
@@ -184,32 +198,34 @@ attribute [instance] namespaceNameRV.TypeAssumptions.type_repr
   namespaceNameRV.TypeAssumptions.set_Name
   namespaceNameRV.TypeAssumptions.get_RV
   namespaceNameRV.TypeAssumptions.set_RV
+  namespaceNameRV.TypeAssumptions.method_set
+  namespaceNameRV.TypeAssumptions.ptr_method_set
 
-structure diffDetail [FfiSyntax] where
+structure diffDetail [GooseExts] where
   mk ::
   Index' : w64
   CacheItem' : Loc
   EtcdItem' : Loc
 
-noncomputable instance diffDetail.zero_val [FfiSyntax] : ZeroVal diffDetail :=
+noncomputable instance diffDetail.zero_val [GooseExts] : ZeroVal diffDetail :=
   ⟨diffDetail.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def diffDetail.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def diffDetail.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Index" go.int),
 (go.field_decl.FieldDecl go!"CacheItem" (go.GoType.PointerType namespaceNameRV.ty)),
 (go.field_decl.FieldDecl go!"EtcdItem" (go.GoType.PointerType namespaceNameRV.ty))]
 
-@[irreducible] noncomputable def diffDetail.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def diffDetail.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   diffDetail.fieldsUnsealed
 
-noncomputable instance equals_unfold_diffDetail [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_diffDetail [GooseExts] [GoGlobalContext] :
     EqualsUnfold diffDetail.fields diffDetail.fieldsUnsealed :=
   ⟨by unfold diffDetail.fields; rfl⟩
 
-@[reducible] noncomputable def diffDetail.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def diffDetail.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType diffDetail.fields)
 
-class diffDetail.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class diffDetail.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying diffDetail.underlying diffDetail
   underlying : go.UnderlyingDirectedEq diffDetail.ty diffDetail.underlying
   get_Index : ∀ (x : diffDetail), go.IsGoStepPureDetTagged under (StructFieldGet diffDetail.underlying go!"Index") #x (Val #(x.Index'))
@@ -218,6 +234,8 @@ class diffDetail.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_CacheItem : ∀ (x : diffDetail) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet diffDetail.underlying go!"CacheItem") (PairV #x #y) (Val #(({ x with CacheItem' := y } : diffDetail)))
   get_EtcdItem : ∀ (x : diffDetail), go.IsGoStepPureDetTagged under (StructFieldGet diffDetail.underlying go!"EtcdItem") #x (Val #(x.EtcdItem'))
   set_EtcdItem : ∀ (x : diffDetail) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet diffDetail.underlying go!"EtcdItem") (PairV #x #y) (Val #(({ x with EtcdItem' := y } : diffDetail)))
+  method_set : go.MethodSetIs diffDetail.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType diffDetail.ty) []
 
 attribute [instance] diffDetail.TypeAssumptions.type_repr
   diffDetail.TypeAssumptions.underlying
@@ -227,34 +245,36 @@ attribute [instance] diffDetail.TypeAssumptions.type_repr
   diffDetail.TypeAssumptions.set_CacheItem
   diffDetail.TypeAssumptions.get_EtcdItem
   diffDetail.TypeAssumptions.set_EtcdItem
+  diffDetail.TypeAssumptions.method_set
+  diffDetail.TypeAssumptions.ptr_method_set
 
-structure Digest [FfiSyntax] where
+structure Digest [GooseExts] where
   mk ::
   ResourceVersion' : GoString
   CacheDigest' : GoString
   EtcdDigest' : GoString
   DiffDetail' : Loc
 
-noncomputable instance Digest.zero_val [FfiSyntax] : ZeroVal Digest :=
+noncomputable instance Digest.zero_val [GooseExts] : ZeroVal Digest :=
   ⟨Digest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Digest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Digest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ResourceVersion" go.string),
 (go.field_decl.FieldDecl go!"CacheDigest" go.string),
 (go.field_decl.FieldDecl go!"EtcdDigest" go.string),
 (go.field_decl.FieldDecl go!"DiffDetail" (go.GoType.PointerType diffDetail.ty))]
 
-@[irreducible] noncomputable def Digest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Digest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Digest.fieldsUnsealed
 
-noncomputable instance equals_unfold_Digest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Digest [GooseExts] [GoGlobalContext] :
     EqualsUnfold Digest.fields Digest.fieldsUnsealed :=
   ⟨by unfold Digest.fields; rfl⟩
 
-@[reducible] noncomputable def Digest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Digest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Digest.fields)
 
-class Digest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Digest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Digest.underlying Digest
   underlying : go.UnderlyingDirectedEq Digest.ty Digest.underlying
   get_ResourceVersion : ∀ (x : Digest), go.IsGoStepPureDetTagged under (StructFieldGet Digest.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
@@ -265,6 +285,8 @@ class Digest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_EtcdDigest : ∀ (x : Digest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Digest.underlying go!"EtcdDigest") (PairV #x #y) (Val #(({ x with EtcdDigest' := y } : Digest)))
   get_DiffDetail : ∀ (x : Digest), go.IsGoStepPureDetTagged under (StructFieldGet Digest.underlying go!"DiffDetail") #x (Val #(x.DiffDetail'))
   set_DiffDetail : ∀ (x : Digest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Digest.underlying go!"DiffDetail") (PairV #x #y) (Val #(({ x with DiffDetail' := y } : Digest)))
+  method_set : go.MethodSetIs Digest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Digest.ty) []
 
 attribute [instance] Digest.TypeAssumptions.type_repr
   Digest.TypeAssumptions.underlying
@@ -276,8 +298,10 @@ attribute [instance] Digest.TypeAssumptions.type_repr
   Digest.TypeAssumptions.set_EtcdDigest
   Digest.TypeAssumptions.get_DiffDetail
   Digest.TypeAssumptions.set_DiffDetail
+  Digest.TypeAssumptions.method_set
+  Digest.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Checker_instance : Checker.TypeAssumptions
   cacher_instance : cacher.TypeAssumptions
   getLister_instance : getLister.TypeAssumptions

@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -41,7 +41,7 @@ theorem auth.authStore.setRevision.wp_proof :
   iintro Hmask
   inext
   iunfold revInv at Hi
-  icases Hi with ⟨%r, Hr, -, Hc⟩
+  icases Hi with ⟨%r, Hr, -, Hc, Hf⟩
   iexists r
   iframe Hr
   iintro Hr
@@ -68,9 +68,11 @@ theorem auth.authStore.setRevision.wp_proof :
       obtain ⟨hk, hoff⟩ := Hopt x (List.mem_singleton.2 rfl)
       iapply (authOwnF_revCur_append M hs x r rev hk hoff hxr) $$ Hown Hc
   imod Hg with ⟨Hown, Hc, #Hv⟩
+  imod (authOwnF_revFresh M (hs ++ opt) stl r rev (fun γa h => by subst h; exact Hlast)
+    (fun _ _ => Hrev)) $$ Hown Hf with ⟨Hown, Hf⟩
   imod Hmask with -
-  imod Hclose $$ [Hr Hc] with -
-  · inext; iunfold revInv; iexists rev; iframe Hr Hc; iexact Hv
+  imod Hclose $$ [Hr Hc Hf] with -
+  · inext; iunfold revInv; iexists rev; iframe Hr Hc Hf; iexact Hv
   imodintro
   wp_auto
   iapply HΦ

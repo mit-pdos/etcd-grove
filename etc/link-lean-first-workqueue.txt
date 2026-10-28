@@ -21,8 +21,11 @@ Background:
 runtime_HandleCrashWithLogger:
 heap_Init_:
 heap_Pop:
-heap_Push:
-heap_Fix:
+# (container/heap's `Push` and `Fix` proved on `lean`, over `up` and `down`)
+heap_up:
+heap_down:
+heap_Push: heap_up
+heap_Fix: heap_down heap_up
 #
 # k8s.io/apimachinery/pkg/util/sets (`Set[T]`'s methods the queue uses)
 Set__Has:
@@ -32,7 +35,9 @@ Set__Len:
 #
 # the typed queue (`queue.go`)
 queue__Push:
-queue__Pop:
+# (`queue[T].Pop` names only since Perennial edcadb1e5: Goose rejects its `(*q)[0] = *new(T)`,
+# notes/perennial-changes.md, "Goose rejects a store of `*new(T)`")
+queue__Pop: ?
 queue__Len:
 queue__Touch:
 noMetrics__add:

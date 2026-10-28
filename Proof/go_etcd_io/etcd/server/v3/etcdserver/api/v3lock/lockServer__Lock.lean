@@ -26,7 +26,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency concurren
   _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -112,7 +112,8 @@ theorem lockServer.Lock.wp_proof
     (try wp_auto)
     wp_apply wp_string_to_bytes key as %ksl ⟨Hksl, -⟩
     (try wp_auto)
-    wp_alloc r as Hr
+    irename «$r0» => Hr
+    generalize «$r0_ptr» = r at *
     (try wp_auto)
     iapply HΦ
     ileft

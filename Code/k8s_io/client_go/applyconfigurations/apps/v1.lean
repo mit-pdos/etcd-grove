@@ -20,313 +20,313 @@ end pkg_id
 
 namespace k8s_io.client_go.applyconfigurations.apps.v1
 
-noncomputable def ControllerRevisionApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ControllerRevisionApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.ControllerRevisionApplyConfiguration" [])
 
 attribute [irreducible] ControllerRevisionApplyConfiguration.ty
 
-noncomputable def DaemonSetApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetApplyConfiguration" [])
 
 attribute [irreducible] DaemonSetApplyConfiguration.ty
 
-noncomputable def DaemonSetConditionApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetConditionApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetConditionApplyConfiguration" [])
 
 attribute [irreducible] DaemonSetConditionApplyConfiguration.ty
 
-noncomputable def DaemonSetSpecApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetSpecApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetSpecApplyConfiguration" [])
 
 attribute [irreducible] DaemonSetSpecApplyConfiguration.ty
 
-noncomputable def DaemonSetStatusApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetStatusApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetStatusApplyConfiguration" [])
 
 attribute [irreducible] DaemonSetStatusApplyConfiguration.ty
 
-noncomputable def DaemonSetUpdateStrategyApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetUpdateStrategyApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetUpdateStrategyApplyConfiguration" [])
 
 attribute [irreducible] DaemonSetUpdateStrategyApplyConfiguration.ty
 
-noncomputable def DeploymentApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentApplyConfiguration" [])
 
 attribute [irreducible] DeploymentApplyConfiguration.ty
 
-noncomputable def DeploymentConditionApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentConditionApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentConditionApplyConfiguration" [])
 
 attribute [irreducible] DeploymentConditionApplyConfiguration.ty
 
-noncomputable def DeploymentSpecApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentSpecApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentSpecApplyConfiguration" [])
 
 attribute [irreducible] DeploymentSpecApplyConfiguration.ty
 
-noncomputable def DeploymentStatusApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentStatusApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentStatusApplyConfiguration" [])
 
 attribute [irreducible] DeploymentStatusApplyConfiguration.ty
 
-noncomputable def DeploymentStrategyApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentStrategyApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentStrategyApplyConfiguration" [])
 
 attribute [irreducible] DeploymentStrategyApplyConfiguration.ty
 
-noncomputable def ReplicaSetApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.ReplicaSetApplyConfiguration" [])
 
 attribute [irreducible] ReplicaSetApplyConfiguration.ty
 
-noncomputable def ReplicaSetConditionApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetConditionApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.ReplicaSetConditionApplyConfiguration" [])
 
 attribute [irreducible] ReplicaSetConditionApplyConfiguration.ty
 
-noncomputable def ReplicaSetSpecApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetSpecApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.ReplicaSetSpecApplyConfiguration" [])
 
 attribute [irreducible] ReplicaSetSpecApplyConfiguration.ty
 
-noncomputable def ReplicaSetStatusApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetStatusApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.ReplicaSetStatusApplyConfiguration" [])
 
 attribute [irreducible] ReplicaSetStatusApplyConfiguration.ty
 
-noncomputable def RollingUpdateDaemonSetApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RollingUpdateDaemonSetApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.RollingUpdateDaemonSetApplyConfiguration" [])
 
 attribute [irreducible] RollingUpdateDaemonSetApplyConfiguration.ty
 
-noncomputable def RollingUpdateDeploymentApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RollingUpdateDeploymentApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.RollingUpdateDeploymentApplyConfiguration" [])
 
 attribute [irreducible] RollingUpdateDeploymentApplyConfiguration.ty
 
-noncomputable def RollingUpdateStatefulSetStrategyApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RollingUpdateStatefulSetStrategyApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.RollingUpdateStatefulSetStrategyApplyConfiguration" [])
 
 attribute [irreducible] RollingUpdateStatefulSetStrategyApplyConfiguration.ty
 
-noncomputable def StatefulSetApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetApplyConfiguration" [])
 
 attribute [irreducible] StatefulSetApplyConfiguration.ty
 
-noncomputable def StatefulSetConditionApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetConditionApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetConditionApplyConfiguration" [])
 
 attribute [irreducible] StatefulSetConditionApplyConfiguration.ty
 
-noncomputable def StatefulSetOrdinalsApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetOrdinalsApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetOrdinalsApplyConfiguration" [])
 
 attribute [irreducible] StatefulSetOrdinalsApplyConfiguration.ty
 
-noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration" [])
 
 attribute [irreducible] StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty
 
-noncomputable def StatefulSetSpecApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetSpecApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetSpecApplyConfiguration" [])
 
 attribute [irreducible] StatefulSetSpecApplyConfiguration.ty
 
-noncomputable def StatefulSetStatusApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetStatusApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetStatusApplyConfiguration" [])
 
 attribute [irreducible] StatefulSetStatusApplyConfiguration.ty
 
-noncomputable def StatefulSetUpdateStrategyApplyConfiguration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetUpdateStrategyApplyConfiguration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetUpdateStrategyApplyConfiguration" [])
 
 attribute [irreducible] StatefulSetUpdateStrategyApplyConfiguration.ty
 
-axiom ControllerRevisionApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ControllerRevisionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DaemonSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetConditionApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DaemonSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetSpecApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DaemonSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetStatusApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DaemonSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetUpdateStrategyApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DaemonSetUpdateStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeploymentApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentConditionApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeploymentConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentSpecApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeploymentSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentStatusApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeploymentStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentStrategyApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeploymentStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicaSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetConditionApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicaSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetSpecApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicaSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetStatusApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicaSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RollingUpdateDaemonSetApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RollingUpdateDaemonSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RollingUpdateDeploymentApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RollingUpdateDeploymentApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RollingUpdateStatefulSetStrategyApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RollingUpdateStatefulSetStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StatefulSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetConditionApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StatefulSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetOrdinalsApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StatefulSetOrdinalsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetSpecApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StatefulSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetStatusApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StatefulSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetUpdateStrategyApplyConfiguration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StatefulSetUpdateStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def ControllerRevision [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ControllerRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ControllerRevision"
 
-noncomputable def ExtractControllerRevisionFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractControllerRevisionFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractControllerRevisionFrom"
 
-noncomputable def ExtractControllerRevision [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractControllerRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractControllerRevision"
 
-noncomputable def DaemonSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSet"
 
-noncomputable def ExtractDaemonSetFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractDaemonSetFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractDaemonSetFrom"
 
-noncomputable def ExtractDaemonSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractDaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractDaemonSet"
 
-noncomputable def ExtractDaemonSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractDaemonSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractDaemonSetStatus"
 
-noncomputable def DaemonSetCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DaemonSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetCondition"
 
-noncomputable def DaemonSetSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DaemonSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetSpec"
 
-noncomputable def DaemonSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DaemonSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetStatus"
 
-noncomputable def DaemonSetUpdateStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DaemonSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetUpdateStrategy"
 
-noncomputable def Deployment [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Deployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.Deployment"
 
-noncomputable def ExtractDeploymentFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractDeploymentFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractDeploymentFrom"
 
-noncomputable def ExtractDeployment [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractDeployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractDeployment"
 
-noncomputable def ExtractDeploymentScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractDeploymentScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractDeploymentScale"
 
-noncomputable def ExtractDeploymentStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractDeploymentStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractDeploymentStatus"
 
-noncomputable def DeploymentCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeploymentCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentCondition"
 
-noncomputable def DeploymentSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeploymentSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentSpec"
 
-noncomputable def DeploymentStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeploymentStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentStatus"
 
-noncomputable def DeploymentStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeploymentStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.DeploymentStrategy"
 
-noncomputable def ReplicaSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReplicaSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ReplicaSet"
 
-noncomputable def ExtractReplicaSetFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractReplicaSetFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractReplicaSetFrom"
 
-noncomputable def ExtractReplicaSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractReplicaSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractReplicaSet"
 
-noncomputable def ExtractReplicaSetScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractReplicaSetScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractReplicaSetScale"
 
-noncomputable def ExtractReplicaSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractReplicaSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractReplicaSetStatus"
 
-noncomputable def ReplicaSetCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReplicaSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ReplicaSetCondition"
 
-noncomputable def ReplicaSetSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReplicaSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ReplicaSetSpec"
 
-noncomputable def ReplicaSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReplicaSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ReplicaSetStatus"
 
-noncomputable def RollingUpdateDaemonSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RollingUpdateDaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.RollingUpdateDaemonSet"
 
-noncomputable def RollingUpdateDeployment [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RollingUpdateDeployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.RollingUpdateDeployment"
 
-noncomputable def RollingUpdateStatefulSetStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RollingUpdateStatefulSetStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.RollingUpdateStatefulSetStrategy"
 
-noncomputable def StatefulSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatefulSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSet"
 
-noncomputable def ExtractStatefulSetFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractStatefulSetFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractStatefulSetFrom"
 
-noncomputable def ExtractStatefulSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractStatefulSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractStatefulSet"
 
-noncomputable def ExtractStatefulSetScale [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractStatefulSetScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractStatefulSetScale"
 
-noncomputable def ExtractStatefulSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExtractStatefulSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ExtractStatefulSetStatus"
 
-noncomputable def StatefulSetCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatefulSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetCondition"
 
-noncomputable def StatefulSetOrdinals [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatefulSetOrdinals [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetOrdinals"
 
-noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetPersistentVolumeClaimRetentionPolicy"
 
-noncomputable def StatefulSetSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatefulSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetSpec"
 
-noncomputable def StatefulSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatefulSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetStatus"
 
-noncomputable def StatefulSetUpdateStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatefulSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.StatefulSetUpdateStrategy"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.applyconfigurations.apps.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.applyconfigurations.apps.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -337,328 +337,428 @@ axiom ControllerRevisionApplyConfiguration : Type
 axiom ControllerRevisionApplyConfiguration.zero_val : ZeroVal ControllerRevisionApplyConfiguration
 attribute [instance] ControllerRevisionApplyConfiguration.zero_val
 
-class ControllerRevisionApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ControllerRevisionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ControllerRevisionApplyConfiguration.underlying ControllerRevisionApplyConfiguration
   underlying : go.UnderlyingDirectedEq ControllerRevisionApplyConfiguration.ty ControllerRevisionApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying ControllerRevisionApplyConfiguration.underlying ControllerRevisionApplyConfiguration.underlying
+  method_set : go.MethodSetIs ControllerRevisionApplyConfiguration.ty [(go!"IsApplyConfiguration", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ControllerRevisionApplyConfiguration.ty) [(go!"GetAPIVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetKind", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetNamespace", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"IsApplyConfiguration", (some (go.signature.Signature [] false []))), (go!"WithAPIVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithData", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.RawExtension" [])] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithDeletionGracePeriodSeconds", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithDeletionTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithGenerateName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithNamespace", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.OwnerReferenceApplyConfiguration" [])))] true [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithResourceVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithRevision", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"WithUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false [(go.GoType.PointerType ControllerRevisionApplyConfiguration.ty)]))), (go!"k8s.io/client-go/applyconfigurations/apps/v1.ensureObjectMetaApplyConfigurationExists", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ControllerRevisionApplyConfiguration.TypeAssumptions.type_repr
   ControllerRevisionApplyConfiguration.TypeAssumptions.underlying
   ControllerRevisionApplyConfiguration.TypeAssumptions.isUnderlying
+  ControllerRevisionApplyConfiguration.TypeAssumptions.method_set
+  ControllerRevisionApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DaemonSetApplyConfiguration : Type
 axiom DaemonSetApplyConfiguration.zero_val : ZeroVal DaemonSetApplyConfiguration
 attribute [instance] DaemonSetApplyConfiguration.zero_val
 
-class DaemonSetApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetApplyConfiguration.underlying DaemonSetApplyConfiguration
   underlying : go.UnderlyingDirectedEq DaemonSetApplyConfiguration.ty DaemonSetApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DaemonSetApplyConfiguration.underlying DaemonSetApplyConfiguration.underlying
+  method_set : go.MethodSetIs DaemonSetApplyConfiguration.ty [(go!"IsApplyConfiguration", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetApplyConfiguration.ty) [(go!"GetAPIVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetKind", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetNamespace", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"IsApplyConfiguration", (some (go.signature.Signature [] false []))), (go!"WithAPIVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithDeletionGracePeriodSeconds", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithDeletionTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithGenerateName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithNamespace", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.OwnerReferenceApplyConfiguration" [])))] true [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithResourceVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithSpec", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetSpecApplyConfiguration.ty)] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"WithUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false [(go.GoType.PointerType DaemonSetApplyConfiguration.ty)]))), (go!"k8s.io/client-go/applyconfigurations/apps/v1.ensureObjectMetaApplyConfigurationExists", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] DaemonSetApplyConfiguration.TypeAssumptions.type_repr
   DaemonSetApplyConfiguration.TypeAssumptions.underlying
   DaemonSetApplyConfiguration.TypeAssumptions.isUnderlying
+  DaemonSetApplyConfiguration.TypeAssumptions.method_set
+  DaemonSetApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DaemonSetConditionApplyConfiguration : Type
 axiom DaemonSetConditionApplyConfiguration.zero_val : ZeroVal DaemonSetConditionApplyConfiguration
 attribute [instance] DaemonSetConditionApplyConfiguration.zero_val
 
-class DaemonSetConditionApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetConditionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetConditionApplyConfiguration.underlying DaemonSetConditionApplyConfiguration
   underlying : go.UnderlyingDirectedEq DaemonSetConditionApplyConfiguration.ty DaemonSetConditionApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DaemonSetConditionApplyConfiguration.underlying DaemonSetConditionApplyConfiguration.underlying
+  method_set : go.MethodSetIs DaemonSetConditionApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetConditionApplyConfiguration.ty) [(go!"WithLastTransitionTime", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType DaemonSetConditionApplyConfiguration.ty)]))), (go!"WithMessage", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DaemonSetConditionApplyConfiguration.ty)]))), (go!"WithReason", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DaemonSetConditionApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/core/v1.ConditionStatus" [])] false [(go.GoType.PointerType DaemonSetConditionApplyConfiguration.ty)]))), (go!"WithType", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetConditionType" [])] false [(go.GoType.PointerType DaemonSetConditionApplyConfiguration.ty)])))]
 
 attribute [instance] DaemonSetConditionApplyConfiguration.TypeAssumptions.type_repr
   DaemonSetConditionApplyConfiguration.TypeAssumptions.underlying
   DaemonSetConditionApplyConfiguration.TypeAssumptions.isUnderlying
+  DaemonSetConditionApplyConfiguration.TypeAssumptions.method_set
+  DaemonSetConditionApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DaemonSetSpecApplyConfiguration : Type
 axiom DaemonSetSpecApplyConfiguration.zero_val : ZeroVal DaemonSetSpecApplyConfiguration
 attribute [instance] DaemonSetSpecApplyConfiguration.zero_val
 
-class DaemonSetSpecApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetSpecApplyConfiguration.underlying DaemonSetSpecApplyConfiguration
   underlying : go.UnderlyingDirectedEq DaemonSetSpecApplyConfiguration.ty DaemonSetSpecApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DaemonSetSpecApplyConfiguration.underlying DaemonSetSpecApplyConfiguration.underlying
+  method_set : go.MethodSetIs DaemonSetSpecApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetSpecApplyConfiguration.ty) [(go!"WithMinReadySeconds", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetSpecApplyConfiguration.ty)]))), (go!"WithRevisionHistoryLimit", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetSpecApplyConfiguration.ty)]))), (go!"WithSelector", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.LabelSelectorApplyConfiguration" []))] false [(go.GoType.PointerType DaemonSetSpecApplyConfiguration.ty)]))), (go!"WithTemplate", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PodTemplateSpecApplyConfiguration" []))] false [(go.GoType.PointerType DaemonSetSpecApplyConfiguration.ty)]))), (go!"WithUpdateStrategy", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetUpdateStrategyApplyConfiguration.ty)] false [(go.GoType.PointerType DaemonSetSpecApplyConfiguration.ty)])))]
 
 attribute [instance] DaemonSetSpecApplyConfiguration.TypeAssumptions.type_repr
   DaemonSetSpecApplyConfiguration.TypeAssumptions.underlying
   DaemonSetSpecApplyConfiguration.TypeAssumptions.isUnderlying
+  DaemonSetSpecApplyConfiguration.TypeAssumptions.method_set
+  DaemonSetSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DaemonSetStatusApplyConfiguration : Type
 axiom DaemonSetStatusApplyConfiguration.zero_val : ZeroVal DaemonSetStatusApplyConfiguration
 attribute [instance] DaemonSetStatusApplyConfiguration.zero_val
 
-class DaemonSetStatusApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetStatusApplyConfiguration.underlying DaemonSetStatusApplyConfiguration
   underlying : go.UnderlyingDirectedEq DaemonSetStatusApplyConfiguration.ty DaemonSetStatusApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DaemonSetStatusApplyConfiguration.underlying DaemonSetStatusApplyConfiguration.underlying
+  method_set : go.MethodSetIs DaemonSetStatusApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty) [(go!"WithCollisionCount", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithConditions", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType DaemonSetConditionApplyConfiguration.ty))] true [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithCurrentNumberScheduled", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithDesiredNumberScheduled", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithNumberAvailable", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithNumberMisscheduled", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithNumberReady", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithNumberUnavailable", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithObservedGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)]))), (go!"WithUpdatedNumberScheduled", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DaemonSetStatusApplyConfiguration.ty)])))]
 
 attribute [instance] DaemonSetStatusApplyConfiguration.TypeAssumptions.type_repr
   DaemonSetStatusApplyConfiguration.TypeAssumptions.underlying
   DaemonSetStatusApplyConfiguration.TypeAssumptions.isUnderlying
+  DaemonSetStatusApplyConfiguration.TypeAssumptions.method_set
+  DaemonSetStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DaemonSetUpdateStrategyApplyConfiguration : Type
 axiom DaemonSetUpdateStrategyApplyConfiguration.zero_val : ZeroVal DaemonSetUpdateStrategyApplyConfiguration
 attribute [instance] DaemonSetUpdateStrategyApplyConfiguration.zero_val
 
-class DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetUpdateStrategyApplyConfiguration.underlying DaemonSetUpdateStrategyApplyConfiguration
   underlying : go.UnderlyingDirectedEq DaemonSetUpdateStrategyApplyConfiguration.ty DaemonSetUpdateStrategyApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DaemonSetUpdateStrategyApplyConfiguration.underlying DaemonSetUpdateStrategyApplyConfiguration.underlying
+  method_set : go.MethodSetIs DaemonSetUpdateStrategyApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetUpdateStrategyApplyConfiguration.ty) [(go!"WithRollingUpdate", (some (go.signature.Signature [(go.GoType.PointerType RollingUpdateDaemonSetApplyConfiguration.ty)] false [(go.GoType.PointerType DaemonSetUpdateStrategyApplyConfiguration.ty)]))), (go!"WithType", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetUpdateStrategyType" [])] false [(go.GoType.PointerType DaemonSetUpdateStrategyApplyConfiguration.ty)])))]
 
 attribute [instance] DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions.type_repr
   DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions.underlying
   DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions.isUnderlying
+  DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions.method_set
+  DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DeploymentApplyConfiguration : Type
 axiom DeploymentApplyConfiguration.zero_val : ZeroVal DeploymentApplyConfiguration
 attribute [instance] DeploymentApplyConfiguration.zero_val
 
-class DeploymentApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentApplyConfiguration.underlying DeploymentApplyConfiguration
   underlying : go.UnderlyingDirectedEq DeploymentApplyConfiguration.ty DeploymentApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DeploymentApplyConfiguration.underlying DeploymentApplyConfiguration.underlying
+  method_set : go.MethodSetIs DeploymentApplyConfiguration.ty [(go!"IsApplyConfiguration", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentApplyConfiguration.ty) [(go!"GetAPIVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetKind", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetNamespace", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"IsApplyConfiguration", (some (go.signature.Signature [] false []))), (go!"WithAPIVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithDeletionGracePeriodSeconds", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithDeletionTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithGenerateName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithNamespace", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.OwnerReferenceApplyConfiguration" [])))] true [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithResourceVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithSpec", (some (go.signature.Signature [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"WithUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false [(go.GoType.PointerType DeploymentApplyConfiguration.ty)]))), (go!"k8s.io/client-go/applyconfigurations/apps/v1.ensureObjectMetaApplyConfigurationExists", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] DeploymentApplyConfiguration.TypeAssumptions.type_repr
   DeploymentApplyConfiguration.TypeAssumptions.underlying
   DeploymentApplyConfiguration.TypeAssumptions.isUnderlying
+  DeploymentApplyConfiguration.TypeAssumptions.method_set
+  DeploymentApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DeploymentConditionApplyConfiguration : Type
 axiom DeploymentConditionApplyConfiguration.zero_val : ZeroVal DeploymentConditionApplyConfiguration
 attribute [instance] DeploymentConditionApplyConfiguration.zero_val
 
-class DeploymentConditionApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentConditionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentConditionApplyConfiguration.underlying DeploymentConditionApplyConfiguration
   underlying : go.UnderlyingDirectedEq DeploymentConditionApplyConfiguration.ty DeploymentConditionApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DeploymentConditionApplyConfiguration.underlying DeploymentConditionApplyConfiguration.underlying
+  method_set : go.MethodSetIs DeploymentConditionApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentConditionApplyConfiguration.ty) [(go!"WithLastTransitionTime", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType DeploymentConditionApplyConfiguration.ty)]))), (go!"WithLastUpdateTime", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType DeploymentConditionApplyConfiguration.ty)]))), (go!"WithMessage", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DeploymentConditionApplyConfiguration.ty)]))), (go!"WithReason", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType DeploymentConditionApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/core/v1.ConditionStatus" [])] false [(go.GoType.PointerType DeploymentConditionApplyConfiguration.ty)]))), (go!"WithType", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentConditionType" [])] false [(go.GoType.PointerType DeploymentConditionApplyConfiguration.ty)])))]
 
 attribute [instance] DeploymentConditionApplyConfiguration.TypeAssumptions.type_repr
   DeploymentConditionApplyConfiguration.TypeAssumptions.underlying
   DeploymentConditionApplyConfiguration.TypeAssumptions.isUnderlying
+  DeploymentConditionApplyConfiguration.TypeAssumptions.method_set
+  DeploymentConditionApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DeploymentSpecApplyConfiguration : Type
 axiom DeploymentSpecApplyConfiguration.zero_val : ZeroVal DeploymentSpecApplyConfiguration
 attribute [instance] DeploymentSpecApplyConfiguration.zero_val
 
-class DeploymentSpecApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentSpecApplyConfiguration.underlying DeploymentSpecApplyConfiguration
   underlying : go.UnderlyingDirectedEq DeploymentSpecApplyConfiguration.ty DeploymentSpecApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DeploymentSpecApplyConfiguration.underlying DeploymentSpecApplyConfiguration.underlying
+  method_set : go.MethodSetIs DeploymentSpecApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentSpecApplyConfiguration.ty) [(go!"WithMinReadySeconds", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)]))), (go!"WithPaused", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)]))), (go!"WithProgressDeadlineSeconds", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)]))), (go!"WithReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)]))), (go!"WithRevisionHistoryLimit", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)]))), (go!"WithSelector", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.LabelSelectorApplyConfiguration" []))] false [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)]))), (go!"WithStrategy", (some (go.signature.Signature [(go.GoType.PointerType DeploymentStrategyApplyConfiguration.ty)] false [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)]))), (go!"WithTemplate", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PodTemplateSpecApplyConfiguration" []))] false [(go.GoType.PointerType DeploymentSpecApplyConfiguration.ty)])))]
 
 attribute [instance] DeploymentSpecApplyConfiguration.TypeAssumptions.type_repr
   DeploymentSpecApplyConfiguration.TypeAssumptions.underlying
   DeploymentSpecApplyConfiguration.TypeAssumptions.isUnderlying
+  DeploymentSpecApplyConfiguration.TypeAssumptions.method_set
+  DeploymentSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DeploymentStatusApplyConfiguration : Type
 axiom DeploymentStatusApplyConfiguration.zero_val : ZeroVal DeploymentStatusApplyConfiguration
 attribute [instance] DeploymentStatusApplyConfiguration.zero_val
 
-class DeploymentStatusApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentStatusApplyConfiguration.underlying DeploymentStatusApplyConfiguration
   underlying : go.UnderlyingDirectedEq DeploymentStatusApplyConfiguration.ty DeploymentStatusApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DeploymentStatusApplyConfiguration.underlying DeploymentStatusApplyConfiguration.underlying
+  method_set : go.MethodSetIs DeploymentStatusApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentStatusApplyConfiguration.ty) [(go!"WithAvailableReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)]))), (go!"WithCollisionCount", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)]))), (go!"WithConditions", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType DeploymentConditionApplyConfiguration.ty))] true [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)]))), (go!"WithObservedGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)]))), (go!"WithReadyReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)]))), (go!"WithReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)]))), (go!"WithTerminatingReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)]))), (go!"WithUnavailableReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)]))), (go!"WithUpdatedReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType DeploymentStatusApplyConfiguration.ty)])))]
 
 attribute [instance] DeploymentStatusApplyConfiguration.TypeAssumptions.type_repr
   DeploymentStatusApplyConfiguration.TypeAssumptions.underlying
   DeploymentStatusApplyConfiguration.TypeAssumptions.isUnderlying
+  DeploymentStatusApplyConfiguration.TypeAssumptions.method_set
+  DeploymentStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom DeploymentStrategyApplyConfiguration : Type
 axiom DeploymentStrategyApplyConfiguration.zero_val : ZeroVal DeploymentStrategyApplyConfiguration
 attribute [instance] DeploymentStrategyApplyConfiguration.zero_val
 
-class DeploymentStrategyApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentStrategyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentStrategyApplyConfiguration.underlying DeploymentStrategyApplyConfiguration
   underlying : go.UnderlyingDirectedEq DeploymentStrategyApplyConfiguration.ty DeploymentStrategyApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying DeploymentStrategyApplyConfiguration.underlying DeploymentStrategyApplyConfiguration.underlying
+  method_set : go.MethodSetIs DeploymentStrategyApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentStrategyApplyConfiguration.ty) [(go!"WithRollingUpdate", (some (go.signature.Signature [(go.GoType.PointerType RollingUpdateDeploymentApplyConfiguration.ty)] false [(go.GoType.PointerType DeploymentStrategyApplyConfiguration.ty)]))), (go!"WithType", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentStrategyType" [])] false [(go.GoType.PointerType DeploymentStrategyApplyConfiguration.ty)])))]
 
 attribute [instance] DeploymentStrategyApplyConfiguration.TypeAssumptions.type_repr
   DeploymentStrategyApplyConfiguration.TypeAssumptions.underlying
   DeploymentStrategyApplyConfiguration.TypeAssumptions.isUnderlying
+  DeploymentStrategyApplyConfiguration.TypeAssumptions.method_set
+  DeploymentStrategyApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom ReplicaSetApplyConfiguration : Type
 axiom ReplicaSetApplyConfiguration.zero_val : ZeroVal ReplicaSetApplyConfiguration
 attribute [instance] ReplicaSetApplyConfiguration.zero_val
 
-class ReplicaSetApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetApplyConfiguration.underlying ReplicaSetApplyConfiguration
   underlying : go.UnderlyingDirectedEq ReplicaSetApplyConfiguration.ty ReplicaSetApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying ReplicaSetApplyConfiguration.underlying ReplicaSetApplyConfiguration.underlying
+  method_set : go.MethodSetIs ReplicaSetApplyConfiguration.ty [(go!"IsApplyConfiguration", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetApplyConfiguration.ty) [(go!"GetAPIVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetKind", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetNamespace", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"IsApplyConfiguration", (some (go.signature.Signature [] false []))), (go!"WithAPIVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithDeletionGracePeriodSeconds", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithDeletionTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithGenerateName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithNamespace", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.OwnerReferenceApplyConfiguration" [])))] true [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithResourceVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithSpec", (some (go.signature.Signature [(go.GoType.PointerType ReplicaSetSpecApplyConfiguration.ty)] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty)] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"WithUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false [(go.GoType.PointerType ReplicaSetApplyConfiguration.ty)]))), (go!"k8s.io/client-go/applyconfigurations/apps/v1.ensureObjectMetaApplyConfigurationExists", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ReplicaSetApplyConfiguration.TypeAssumptions.type_repr
   ReplicaSetApplyConfiguration.TypeAssumptions.underlying
   ReplicaSetApplyConfiguration.TypeAssumptions.isUnderlying
+  ReplicaSetApplyConfiguration.TypeAssumptions.method_set
+  ReplicaSetApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom ReplicaSetConditionApplyConfiguration : Type
 axiom ReplicaSetConditionApplyConfiguration.zero_val : ZeroVal ReplicaSetConditionApplyConfiguration
 attribute [instance] ReplicaSetConditionApplyConfiguration.zero_val
 
-class ReplicaSetConditionApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetConditionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetConditionApplyConfiguration.underlying ReplicaSetConditionApplyConfiguration
   underlying : go.UnderlyingDirectedEq ReplicaSetConditionApplyConfiguration.ty ReplicaSetConditionApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying ReplicaSetConditionApplyConfiguration.underlying ReplicaSetConditionApplyConfiguration.underlying
+  method_set : go.MethodSetIs ReplicaSetConditionApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetConditionApplyConfiguration.ty) [(go!"WithLastTransitionTime", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType ReplicaSetConditionApplyConfiguration.ty)]))), (go!"WithMessage", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ReplicaSetConditionApplyConfiguration.ty)]))), (go!"WithReason", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ReplicaSetConditionApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/core/v1.ConditionStatus" [])] false [(go.GoType.PointerType ReplicaSetConditionApplyConfiguration.ty)]))), (go!"WithType", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.ReplicaSetConditionType" [])] false [(go.GoType.PointerType ReplicaSetConditionApplyConfiguration.ty)])))]
 
 attribute [instance] ReplicaSetConditionApplyConfiguration.TypeAssumptions.type_repr
   ReplicaSetConditionApplyConfiguration.TypeAssumptions.underlying
   ReplicaSetConditionApplyConfiguration.TypeAssumptions.isUnderlying
+  ReplicaSetConditionApplyConfiguration.TypeAssumptions.method_set
+  ReplicaSetConditionApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom ReplicaSetSpecApplyConfiguration : Type
 axiom ReplicaSetSpecApplyConfiguration.zero_val : ZeroVal ReplicaSetSpecApplyConfiguration
 attribute [instance] ReplicaSetSpecApplyConfiguration.zero_val
 
-class ReplicaSetSpecApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetSpecApplyConfiguration.underlying ReplicaSetSpecApplyConfiguration
   underlying : go.UnderlyingDirectedEq ReplicaSetSpecApplyConfiguration.ty ReplicaSetSpecApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying ReplicaSetSpecApplyConfiguration.underlying ReplicaSetSpecApplyConfiguration.underlying
+  method_set : go.MethodSetIs ReplicaSetSpecApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetSpecApplyConfiguration.ty) [(go!"WithMinReadySeconds", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ReplicaSetSpecApplyConfiguration.ty)]))), (go!"WithReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ReplicaSetSpecApplyConfiguration.ty)]))), (go!"WithSelector", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.LabelSelectorApplyConfiguration" []))] false [(go.GoType.PointerType ReplicaSetSpecApplyConfiguration.ty)]))), (go!"WithTemplate", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PodTemplateSpecApplyConfiguration" []))] false [(go.GoType.PointerType ReplicaSetSpecApplyConfiguration.ty)])))]
 
 attribute [instance] ReplicaSetSpecApplyConfiguration.TypeAssumptions.type_repr
   ReplicaSetSpecApplyConfiguration.TypeAssumptions.underlying
   ReplicaSetSpecApplyConfiguration.TypeAssumptions.isUnderlying
+  ReplicaSetSpecApplyConfiguration.TypeAssumptions.method_set
+  ReplicaSetSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom ReplicaSetStatusApplyConfiguration : Type
 axiom ReplicaSetStatusApplyConfiguration.zero_val : ZeroVal ReplicaSetStatusApplyConfiguration
 attribute [instance] ReplicaSetStatusApplyConfiguration.zero_val
 
-class ReplicaSetStatusApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetStatusApplyConfiguration.underlying ReplicaSetStatusApplyConfiguration
   underlying : go.UnderlyingDirectedEq ReplicaSetStatusApplyConfiguration.ty ReplicaSetStatusApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying ReplicaSetStatusApplyConfiguration.underlying ReplicaSetStatusApplyConfiguration.underlying
+  method_set : go.MethodSetIs ReplicaSetStatusApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty) [(go!"WithAvailableReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty)]))), (go!"WithConditions", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType ReplicaSetConditionApplyConfiguration.ty))] true [(go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty)]))), (go!"WithFullyLabeledReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty)]))), (go!"WithObservedGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty)]))), (go!"WithReadyReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty)]))), (go!"WithReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty)]))), (go!"WithTerminatingReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType ReplicaSetStatusApplyConfiguration.ty)])))]
 
 attribute [instance] ReplicaSetStatusApplyConfiguration.TypeAssumptions.type_repr
   ReplicaSetStatusApplyConfiguration.TypeAssumptions.underlying
   ReplicaSetStatusApplyConfiguration.TypeAssumptions.isUnderlying
+  ReplicaSetStatusApplyConfiguration.TypeAssumptions.method_set
+  ReplicaSetStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom RollingUpdateDaemonSetApplyConfiguration : Type
 axiom RollingUpdateDaemonSetApplyConfiguration.zero_val : ZeroVal RollingUpdateDaemonSetApplyConfiguration
 attribute [instance] RollingUpdateDaemonSetApplyConfiguration.zero_val
 
-class RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RollingUpdateDaemonSetApplyConfiguration.underlying RollingUpdateDaemonSetApplyConfiguration
   underlying : go.UnderlyingDirectedEq RollingUpdateDaemonSetApplyConfiguration.ty RollingUpdateDaemonSetApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying RollingUpdateDaemonSetApplyConfiguration.underlying RollingUpdateDaemonSetApplyConfiguration.underlying
+  method_set : go.MethodSetIs RollingUpdateDaemonSetApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RollingUpdateDaemonSetApplyConfiguration.ty) [(go!"WithMaxSurge", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/intstr.IntOrString" [])] false [(go.GoType.PointerType RollingUpdateDaemonSetApplyConfiguration.ty)]))), (go!"WithMaxUnavailable", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/intstr.IntOrString" [])] false [(go.GoType.PointerType RollingUpdateDaemonSetApplyConfiguration.ty)])))]
 
 attribute [instance] RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions.type_repr
   RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions.underlying
   RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions.isUnderlying
+  RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions.method_set
+  RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom RollingUpdateDeploymentApplyConfiguration : Type
 axiom RollingUpdateDeploymentApplyConfiguration.zero_val : ZeroVal RollingUpdateDeploymentApplyConfiguration
 attribute [instance] RollingUpdateDeploymentApplyConfiguration.zero_val
 
-class RollingUpdateDeploymentApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RollingUpdateDeploymentApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RollingUpdateDeploymentApplyConfiguration.underlying RollingUpdateDeploymentApplyConfiguration
   underlying : go.UnderlyingDirectedEq RollingUpdateDeploymentApplyConfiguration.ty RollingUpdateDeploymentApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying RollingUpdateDeploymentApplyConfiguration.underlying RollingUpdateDeploymentApplyConfiguration.underlying
+  method_set : go.MethodSetIs RollingUpdateDeploymentApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RollingUpdateDeploymentApplyConfiguration.ty) [(go!"WithMaxSurge", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/intstr.IntOrString" [])] false [(go.GoType.PointerType RollingUpdateDeploymentApplyConfiguration.ty)]))), (go!"WithMaxUnavailable", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/intstr.IntOrString" [])] false [(go.GoType.PointerType RollingUpdateDeploymentApplyConfiguration.ty)])))]
 
 attribute [instance] RollingUpdateDeploymentApplyConfiguration.TypeAssumptions.type_repr
   RollingUpdateDeploymentApplyConfiguration.TypeAssumptions.underlying
   RollingUpdateDeploymentApplyConfiguration.TypeAssumptions.isUnderlying
+  RollingUpdateDeploymentApplyConfiguration.TypeAssumptions.method_set
+  RollingUpdateDeploymentApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom RollingUpdateStatefulSetStrategyApplyConfiguration : Type
 axiom RollingUpdateStatefulSetStrategyApplyConfiguration.zero_val : ZeroVal RollingUpdateStatefulSetStrategyApplyConfiguration
 attribute [instance] RollingUpdateStatefulSetStrategyApplyConfiguration.zero_val
 
-class RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RollingUpdateStatefulSetStrategyApplyConfiguration.underlying RollingUpdateStatefulSetStrategyApplyConfiguration
   underlying : go.UnderlyingDirectedEq RollingUpdateStatefulSetStrategyApplyConfiguration.ty RollingUpdateStatefulSetStrategyApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying RollingUpdateStatefulSetStrategyApplyConfiguration.underlying RollingUpdateStatefulSetStrategyApplyConfiguration.underlying
+  method_set : go.MethodSetIs RollingUpdateStatefulSetStrategyApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RollingUpdateStatefulSetStrategyApplyConfiguration.ty) [(go!"WithMaxUnavailable", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/intstr.IntOrString" [])] false [(go.GoType.PointerType RollingUpdateStatefulSetStrategyApplyConfiguration.ty)]))), (go!"WithPartition", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType RollingUpdateStatefulSetStrategyApplyConfiguration.ty)])))]
 
 attribute [instance] RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions.type_repr
   RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions.underlying
   RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions.isUnderlying
+  RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions.method_set
+  RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom StatefulSetApplyConfiguration : Type
 axiom StatefulSetApplyConfiguration.zero_val : ZeroVal StatefulSetApplyConfiguration
 attribute [instance] StatefulSetApplyConfiguration.zero_val
 
-class StatefulSetApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetApplyConfiguration.underlying StatefulSetApplyConfiguration
   underlying : go.UnderlyingDirectedEq StatefulSetApplyConfiguration.ty StatefulSetApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying StatefulSetApplyConfiguration.underlying StatefulSetApplyConfiguration.underlying
+  method_set : go.MethodSetIs StatefulSetApplyConfiguration.ty [(go!"IsApplyConfiguration", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetApplyConfiguration.ty) [(go!"GetAPIVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetKind", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"GetNamespace", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"IsApplyConfiguration", (some (go.signature.Signature [] false []))), (go!"WithAPIVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithDeletionGracePeriodSeconds", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithDeletionTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithGenerateName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithNamespace", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.OwnerReferenceApplyConfiguration" [])))] true [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithResourceVersion", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithSpec", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"WithUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false [(go.GoType.PointerType StatefulSetApplyConfiguration.ty)]))), (go!"k8s.io/client-go/applyconfigurations/apps/v1.ensureObjectMetaApplyConfigurationExists", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] StatefulSetApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetApplyConfiguration.TypeAssumptions.underlying
   StatefulSetApplyConfiguration.TypeAssumptions.isUnderlying
+  StatefulSetApplyConfiguration.TypeAssumptions.method_set
+  StatefulSetApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom StatefulSetConditionApplyConfiguration : Type
 axiom StatefulSetConditionApplyConfiguration.zero_val : ZeroVal StatefulSetConditionApplyConfiguration
 attribute [instance] StatefulSetConditionApplyConfiguration.zero_val
 
-class StatefulSetConditionApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetConditionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetConditionApplyConfiguration.underlying StatefulSetConditionApplyConfiguration
   underlying : go.UnderlyingDirectedEq StatefulSetConditionApplyConfiguration.ty StatefulSetConditionApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying StatefulSetConditionApplyConfiguration.underlying StatefulSetConditionApplyConfiguration.underlying
+  method_set : go.MethodSetIs StatefulSetConditionApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetConditionApplyConfiguration.ty) [(go!"WithLastTransitionTime", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false [(go.GoType.PointerType StatefulSetConditionApplyConfiguration.ty)]))), (go!"WithMessage", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetConditionApplyConfiguration.ty)]))), (go!"WithReason", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetConditionApplyConfiguration.ty)]))), (go!"WithStatus", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/core/v1.ConditionStatus" [])] false [(go.GoType.PointerType StatefulSetConditionApplyConfiguration.ty)]))), (go!"WithType", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetConditionType" [])] false [(go.GoType.PointerType StatefulSetConditionApplyConfiguration.ty)])))]
 
 attribute [instance] StatefulSetConditionApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetConditionApplyConfiguration.TypeAssumptions.underlying
   StatefulSetConditionApplyConfiguration.TypeAssumptions.isUnderlying
+  StatefulSetConditionApplyConfiguration.TypeAssumptions.method_set
+  StatefulSetConditionApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom StatefulSetOrdinalsApplyConfiguration : Type
 axiom StatefulSetOrdinalsApplyConfiguration.zero_val : ZeroVal StatefulSetOrdinalsApplyConfiguration
 attribute [instance] StatefulSetOrdinalsApplyConfiguration.zero_val
 
-class StatefulSetOrdinalsApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetOrdinalsApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetOrdinalsApplyConfiguration.underlying StatefulSetOrdinalsApplyConfiguration
   underlying : go.UnderlyingDirectedEq StatefulSetOrdinalsApplyConfiguration.ty StatefulSetOrdinalsApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying StatefulSetOrdinalsApplyConfiguration.underlying StatefulSetOrdinalsApplyConfiguration.underlying
+  method_set : go.MethodSetIs StatefulSetOrdinalsApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetOrdinalsApplyConfiguration.ty) [(go!"WithStart", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetOrdinalsApplyConfiguration.ty)])))]
 
 attribute [instance] StatefulSetOrdinalsApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetOrdinalsApplyConfiguration.TypeAssumptions.underlying
   StatefulSetOrdinalsApplyConfiguration.TypeAssumptions.isUnderlying
+  StatefulSetOrdinalsApplyConfiguration.TypeAssumptions.method_set
+  StatefulSetOrdinalsApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration : Type
 axiom StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.zero_val : ZeroVal StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration
 attribute [instance] StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.zero_val
 
-class StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.underlying StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration
   underlying : go.UnderlyingDirectedEq StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.underlying StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.underlying
+  method_set : go.MethodSetIs StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty) [(go!"WithWhenDeleted", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.PersistentVolumeClaimRetentionPolicyType" [])] false [(go.GoType.PointerType StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty)]))), (go!"WithWhenScaled", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.PersistentVolumeClaimRetentionPolicyType" [])] false [(go.GoType.PointerType StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty)])))]
 
 attribute [instance] StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions.underlying
   StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions.isUnderlying
+  StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions.method_set
+  StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom StatefulSetSpecApplyConfiguration : Type
 axiom StatefulSetSpecApplyConfiguration.zero_val : ZeroVal StatefulSetSpecApplyConfiguration
 attribute [instance] StatefulSetSpecApplyConfiguration.zero_val
 
-class StatefulSetSpecApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetSpecApplyConfiguration.underlying StatefulSetSpecApplyConfiguration
   underlying : go.UnderlyingDirectedEq StatefulSetSpecApplyConfiguration.ty StatefulSetSpecApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying StatefulSetSpecApplyConfiguration.underlying StatefulSetSpecApplyConfiguration.underlying
+  method_set : go.MethodSetIs StatefulSetSpecApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty) [(go!"WithMinReadySeconds", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithOrdinals", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetOrdinalsApplyConfiguration.ty)] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithPersistentVolumeClaimRetentionPolicy", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.ty)] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithPodManagementPolicy", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.PodManagementPolicyType" [])] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithRevisionHistoryLimit", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithSelector", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/meta/v1.LabelSelectorApplyConfiguration" []))] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithServiceName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithTemplate", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PodTemplateSpecApplyConfiguration" []))] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithUpdateStrategy", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetUpdateStrategyApplyConfiguration.ty)] false [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)]))), (go!"WithVolumeClaimTemplates", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PersistentVolumeClaimApplyConfiguration" [])))] true [(go.GoType.PointerType StatefulSetSpecApplyConfiguration.ty)])))]
 
 attribute [instance] StatefulSetSpecApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetSpecApplyConfiguration.TypeAssumptions.underlying
   StatefulSetSpecApplyConfiguration.TypeAssumptions.isUnderlying
+  StatefulSetSpecApplyConfiguration.TypeAssumptions.method_set
+  StatefulSetSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom StatefulSetStatusApplyConfiguration : Type
 axiom StatefulSetStatusApplyConfiguration.zero_val : ZeroVal StatefulSetStatusApplyConfiguration
 attribute [instance] StatefulSetStatusApplyConfiguration.zero_val
 
-class StatefulSetStatusApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetStatusApplyConfiguration.underlying StatefulSetStatusApplyConfiguration
   underlying : go.UnderlyingDirectedEq StatefulSetStatusApplyConfiguration.ty StatefulSetStatusApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying StatefulSetStatusApplyConfiguration.underlying StatefulSetStatusApplyConfiguration.underlying
+  method_set : go.MethodSetIs StatefulSetStatusApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty) [(go!"WithAvailableReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithCollisionCount", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithConditions", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType StatefulSetConditionApplyConfiguration.ty))] true [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithCurrentReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithCurrentRevision", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithObservedGeneration", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithReadyReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithUpdateRevision", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)]))), (go!"WithUpdatedReplicas", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType StatefulSetStatusApplyConfiguration.ty)])))]
 
 attribute [instance] StatefulSetStatusApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetStatusApplyConfiguration.TypeAssumptions.underlying
   StatefulSetStatusApplyConfiguration.TypeAssumptions.isUnderlying
+  StatefulSetStatusApplyConfiguration.TypeAssumptions.method_set
+  StatefulSetStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom StatefulSetUpdateStrategyApplyConfiguration : Type
 axiom StatefulSetUpdateStrategyApplyConfiguration.zero_val : ZeroVal StatefulSetUpdateStrategyApplyConfiguration
 attribute [instance] StatefulSetUpdateStrategyApplyConfiguration.zero_val
 
-class StatefulSetUpdateStrategyApplyConfiguration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetUpdateStrategyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetUpdateStrategyApplyConfiguration.underlying StatefulSetUpdateStrategyApplyConfiguration
   underlying : go.UnderlyingDirectedEq StatefulSetUpdateStrategyApplyConfiguration.ty StatefulSetUpdateStrategyApplyConfiguration.underlying
   isUnderlying : go.IsUnderlying StatefulSetUpdateStrategyApplyConfiguration.underlying StatefulSetUpdateStrategyApplyConfiguration.underlying
+  method_set : go.MethodSetIs StatefulSetUpdateStrategyApplyConfiguration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetUpdateStrategyApplyConfiguration.ty) [(go!"WithRollingUpdate", (some (go.signature.Signature [(go.GoType.PointerType RollingUpdateStatefulSetStrategyApplyConfiguration.ty)] false [(go.GoType.PointerType StatefulSetUpdateStrategyApplyConfiguration.ty)]))), (go!"WithType", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetUpdateStrategyType" [])] false [(go.GoType.PointerType StatefulSetUpdateStrategyApplyConfiguration.ty)])))]
 
 attribute [instance] StatefulSetUpdateStrategyApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetUpdateStrategyApplyConfiguration.TypeAssumptions.underlying
   StatefulSetUpdateStrategyApplyConfiguration.TypeAssumptions.isUnderlying
+  StatefulSetUpdateStrategyApplyConfiguration.TypeAssumptions.method_set
+  StatefulSetUpdateStrategyApplyConfiguration.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ControllerRevisionApplyConfiguration_instance : ControllerRevisionApplyConfiguration.TypeAssumptions
   DaemonSetApplyConfiguration_instance : DaemonSetApplyConfiguration.TypeAssumptions
   DaemonSetConditionApplyConfiguration_instance : DaemonSetConditionApplyConfiguration.TypeAssumptions

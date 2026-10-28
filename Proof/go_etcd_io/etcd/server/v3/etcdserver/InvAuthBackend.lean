@@ -83,7 +83,7 @@ def revisionOf (D : AuthData) : w64 :=
   | none => W64 0
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -189,7 +189,7 @@ theorem roleOutD_are (st : auth.AuthState) (D : AuthData) (r : Loc) (name : GoSt
     have := hinj _ _ He; subst this
     iexists rr
     iframe H
-    ipureintro; exact ⟨hn, rfl⟩
+    ipureintro; exact ⟨hn, List.Perm.refl _⟩
 
 /-! ## The contracts -/
 
@@ -254,7 +254,7 @@ instance authBE_persistent (bi : GoInterfaceOk) (R : IProp GF) (Held : AuthData 
 end defs
 
 section fields
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `&atx.<f>` (a `*authReadTx`). -/
 abbrev atxF (f : GoString) (atx : Loc) : Loc :=

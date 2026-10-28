@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -27,6 +28,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -60,7 +63,7 @@ theorem HardStateModel.toM_zero_iff (hs : HardStateModel) :
     HardStateModel.mk.injEq]
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -127,7 +130,7 @@ end defs
 `etcdserver.Assumptions` provides them.) -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

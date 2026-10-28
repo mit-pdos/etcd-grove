@@ -27,7 +27,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.read
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -68,7 +68,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     (hFU : strconv.FormatUint.spec (GF := GF) (hG := hG))
     (hLog : traceutil.Trace.LogAllStepsIfLong.spec (GF := GF) (hG := hG)) :
     read.Read.LinearizableReadLoop.spec (GF := GF) (hG := hG) := by
-  intro r γr RQ LR NR
+  intro r γr RQ LR NR F
   wp_start as ⟨#Hpre, HLR, #HNRu⟩
   ihave #Hpre' := Hpre
   iunfold isReadLoopPre at Hpre'
@@ -146,14 +146,14 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     iunfold readMuP at HP
     icases HP with ⟨%nc, %γn, Hpt, Hg⟩
     wp_auto
-    imod read_swap γr nc γn nc' γn' $$ Hinv Hlc3 Hg Hnis' Hown' Hauth' Hlist'
+    imod read_swap γr nc γn nc' γn' F $$ Hinv Hlc3 Hg Hnis' Hown' Hauth' Hlist'
       with ⟨Hg, Hown, %n, %gs, #Hfz, #Hcn, #Hlf, #Hregs⟩
     ihave #Hcomp' := Hcomp
     iunfold readCompose at Hcomp'
     ihave #HRA := Hcomp' $$ %gs Hregs
     wp_apply sync.RWMutex.wp_Unlock_guard (readMuAddr r) (readMuP r γr) $$ [Hwl Hpt Hg]
     · iframe #; iframe Hwl; iunfold readMuP; iexists nc', γn'; iframe Hpt Hg
-    wp_apply hRCI r γr RQ LR NR lcn n (readQs gs) $$ [HLR] as %ci %err ⟨HLR, #HaE, Hci⟩
+    wp_apply hRCI r γr RQ LR NR lcn n (readQs gs) F $$ [HLR] as %ci %err ⟨HLR, #HaE, Hci⟩
     · iframe #; iframe HLR
     wp_apply hStopped err $$ [] as %bst -
     · iframe #

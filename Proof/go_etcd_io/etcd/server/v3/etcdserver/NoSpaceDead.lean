@@ -76,7 +76,7 @@ theorem dispatchStep_start (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Out
     · exact Or.inr ⟨_, rfl⟩
 
 section iris
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -122,7 +122,7 @@ theorem dispatchAnswer_notNoSpace (rq : apply.IRRModel) (log : mvcc.Log) (skip :
       apply.dispatchAnswer rq log skip resp err o -∗
       apply.dispatchAnswer rq log skip resp err o ∗ notNoSpaceErr err := by
   iintro #Hv H
-  icases Hv with ⟨-, -, #HK, #HL, #HF, #HC, #AK, #AL, #AF, #AC⟩
+  icases Hv with ⟨-, -, #HK, #HL, #HF, #HC, #AK, #AL, #AF, #AC, -⟩
   have hnil : ⊢ notNoSpaceErr (GF := GF) GoInterface.nil := by
     iunfold notNoSpaceErr; iintro; ileft; ipureintro; rfl
   unfold plainCover at hp

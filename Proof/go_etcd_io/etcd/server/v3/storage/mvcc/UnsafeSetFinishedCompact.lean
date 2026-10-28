@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -44,7 +44,7 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
   icases Hsi with ⟨⟨%bM, #HMetaG, -⟩, -⟩
   iunfold mvcc.batchTxSpec at Hbt
   iunfold mvcc.batchTxSpecG at Hbt
-  icases Hbt with ⟨-, -, -, -, -, -, -, -, #HPut⟩
+  icases Hbt with ⟨-, -, -, -, -, -, -, -, #HPut, -⟩
   ihave #HPut' := HPut $$ []
   · ipureintro; trivial
   (try wp_auto)

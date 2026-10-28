@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,7 +31,7 @@ theorem EtcdServer.getCommittedIndex.wp_proof : EtcdServer.getCommittedIndex.spe
   iunfold srvCommittedInv at Hl
   wp_auto
   wp_apply_core sync.atomic.Uint64.wp_Load (structFieldRef EtcdServer go!"committedIndex" s)
-    (DFrac.own 1) $$ [] [HΦ Ho]
+    (DFrac.own 1) $$ [] [HΦ Ho «$res0»]
   · iexact Hatomic
   iinv Hl with Hi Hclose
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)

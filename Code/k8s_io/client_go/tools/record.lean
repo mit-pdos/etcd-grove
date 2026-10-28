@@ -26,236 +26,236 @@ end pkg_id
 
 namespace k8s_io.client_go.tools.record
 
-noncomputable def EventSink.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventSink.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventSink" [])
 
 attribute [irreducible] EventSink.ty
 
-noncomputable def CorrelatorOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CorrelatorOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.CorrelatorOptions" [])
 
 attribute [irreducible] CorrelatorOptions.ty
 
-noncomputable def EventRecorder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventRecorder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventRecorder" [])
 
 attribute [irreducible] EventRecorder.ty
 
-noncomputable def EventRecorderLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventRecorderLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventRecorderLogger" [])
 
 attribute [irreducible] EventRecorderLogger.ty
 
-noncomputable def EventBroadcaster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventBroadcaster.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventBroadcaster" [])
 
 attribute [irreducible] EventBroadcaster.ty
 
-noncomputable def EventRecorderAdapter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventRecorderAdapter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventRecorderAdapter" [])
 
 attribute [irreducible] EventRecorderAdapter.ty
 
-noncomputable def BroadcasterOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BroadcasterOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.BroadcasterOption" [])
 
 attribute [irreducible] BroadcasterOption.ty
 
-noncomputable def config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def config.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.config" [])
 
 attribute [irreducible] config.ty
 
-noncomputable def eventBroadcasterImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def eventBroadcasterImpl.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.eventBroadcasterImpl" [])
 
 attribute [irreducible] eventBroadcasterImpl.ty
 
-noncomputable def recorderImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def recorderImpl.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.recorderImpl" [])
 
 attribute [irreducible] recorderImpl.ty
 
-noncomputable def recorderImplLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def recorderImplLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.recorderImplLogger" [])
 
 attribute [irreducible] recorderImplLogger.ty
 
-noncomputable def EventSpamKeyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventSpamKeyFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventSpamKeyFunc" [])
 
 attribute [irreducible] EventSpamKeyFunc.ty
 
-noncomputable def EventFilterFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventFilterFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventFilterFunc" [])
 
 attribute [irreducible] EventFilterFunc.ty
 
-noncomputable def EventSourceObjectSpamFilter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventSourceObjectSpamFilter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventSourceObjectSpamFilter" [])
 
 attribute [irreducible] EventSourceObjectSpamFilter.ty
 
-noncomputable def spamRecord.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def spamRecord.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.spamRecord" [])
 
 attribute [irreducible] spamRecord.ty
 
-noncomputable def EventAggregatorKeyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventAggregatorKeyFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventAggregatorKeyFunc" [])
 
 attribute [irreducible] EventAggregatorKeyFunc.ty
 
-noncomputable def EventAggregatorMessageFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventAggregatorMessageFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventAggregatorMessageFunc" [])
 
 attribute [irreducible] EventAggregatorMessageFunc.ty
 
-noncomputable def EventAggregator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventAggregator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventAggregator" [])
 
 attribute [irreducible] EventAggregator.ty
 
-noncomputable def aggregateRecord.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aggregateRecord.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.aggregateRecord" [])
 
 attribute [irreducible] aggregateRecord.ty
 
-noncomputable def eventLog.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def eventLog.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.eventLog" [])
 
 attribute [irreducible] eventLog.ty
 
-noncomputable def eventLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def eventLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.eventLogger" [])
 
 attribute [irreducible] eventLogger.ty
 
-noncomputable def EventCorrelator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventCorrelator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventCorrelator" [])
 
 attribute [irreducible] EventCorrelator.ty
 
-noncomputable def EventCorrelateResult.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventCorrelateResult.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.EventCorrelateResult" [])
 
 attribute [irreducible] EventCorrelateResult.ty
 
-noncomputable def FakeRecorder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FakeRecorder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/record.FakeRecorder" [])
 
 attribute [irreducible] FakeRecorder.ty
 
-axiom CorrelatorOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CorrelatorOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventRecorderLogger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventRecorderLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom config.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom eventBroadcasterImpl.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom eventBroadcasterImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom recorderImpl.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom recorderImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom recorderImplLogger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom recorderImplLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventSourceObjectSpamFilter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventSourceObjectSpamFilter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom spamRecord.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom spamRecord.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventAggregator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EventAggregator.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aggregateRecord.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom aggregateRecord.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom eventLogger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom eventLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom maxTriesPerEvent [FfiSyntax] [GoGlobalContext] : val
+axiom maxTriesPerEvent [GooseExts] [GoGlobalContext] : val
 
-axiom maxQueuedEvents [FfiSyntax] [GoGlobalContext] : val
+axiom maxQueuedEvents [GooseExts] [GoGlobalContext] : val
 
-axiom maxLruCacheEntries [FfiSyntax] [GoGlobalContext] : val
+axiom maxLruCacheEntries [GooseExts] [GoGlobalContext] : val
 
-axiom defaultAggregateMaxEvents [FfiSyntax] [GoGlobalContext] : val
+axiom defaultAggregateMaxEvents [GooseExts] [GoGlobalContext] : val
 
-axiom defaultAggregateIntervalInSeconds [FfiSyntax] [GoGlobalContext] : val
+axiom defaultAggregateIntervalInSeconds [GooseExts] [GoGlobalContext] : val
 
-axiom defaultSpamBurst [FfiSyntax] [GoGlobalContext] : val
+axiom defaultSpamBurst [GooseExts] [GoGlobalContext] : val
 
-axiom defaultSpamQPS [FfiSyntax] [GoGlobalContext] : val
+axiom defaultSpamQPS [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultSleepDuration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultSleepDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.defaultSleepDuration"
 
-axiom defaultSleepDuration.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultSleepDuration.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewEventRecorderAdapter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEventRecorderAdapter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewEventRecorderAdapter"
 
-noncomputable def NewBroadcaster [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewBroadcaster [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewBroadcaster"
 
-noncomputable def NewBroadcasterForTests [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewBroadcasterForTests [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewBroadcasterForTests"
 
-noncomputable def NewBroadcasterWithCorrelatorOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewBroadcasterWithCorrelatorOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewBroadcasterWithCorrelatorOptions"
 
-noncomputable def WithCorrelatorOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithCorrelatorOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.WithCorrelatorOptions"
 
-noncomputable def WithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.WithContext"
 
-noncomputable def WithSleepDuration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithSleepDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.WithSleepDuration"
 
-noncomputable def recordEvent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def recordEvent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.recordEvent"
 
-noncomputable def getEventKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getEventKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.getEventKey"
 
-noncomputable def getSpamKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getSpamKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.getSpamKey"
 
-noncomputable def NewEventSourceObjectSpamFilter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEventSourceObjectSpamFilter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewEventSourceObjectSpamFilter"
 
-noncomputable def EventAggregatorByReasonFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EventAggregatorByReasonFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.EventAggregatorByReasonFunc"
 
-noncomputable def EventAggregatorByReasonMessageFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EventAggregatorByReasonMessageFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.EventAggregatorByReasonMessageFunc"
 
-noncomputable def NewEventAggregator [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEventAggregator [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewEventAggregator"
 
-noncomputable def newEventLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newEventLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.newEventLogger"
 
-noncomputable def NewEventCorrelator [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEventCorrelator [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewEventCorrelator"
 
-noncomputable def NewEventCorrelatorWithOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEventCorrelatorWithOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewEventCorrelatorWithOptions"
 
-noncomputable def populateDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def populateDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.populateDefaults"
 
-noncomputable def objectString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def objectString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.objectString"
 
-noncomputable def annotationsString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def annotationsString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.annotationsString"
 
-noncomputable def NewFakeRecorder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewFakeRecorder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewFakeRecorder"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.tools.record where
   pkgImportedPkgs := [pkg_id.context, pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.klog.v2]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.tools.record)) (Lam BAnon
   (App (Val exceptionDo)
@@ -292,274 +292,350 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.klog.v2.initialize') (Val #()))))))))
 
-abbrev EventSink [FfiSyntax] : Type := GoInterface
+abbrev EventSink [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def EventSink.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventSink.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Create" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error])), (go.InterfaceElem.MethodElem go!"Patch" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error])), (go.InterfaceElem.MethodElem go!"Update" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))])
 
-class EventSink.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventSink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventSink.ty EventSink.underlying
+  method_set : go.MethodSetIs EventSink.ty [(go!"Create", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventSink.ty) []
 
 attribute [instance] EventSink.TypeAssumptions.underlying
+  EventSink.TypeAssumptions.method_set
+  EventSink.TypeAssumptions.ptr_method_set
 
 axiom CorrelatorOptions : Type
 axiom CorrelatorOptions.zero_val : ZeroVal CorrelatorOptions
 attribute [instance] CorrelatorOptions.zero_val
 
-class CorrelatorOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CorrelatorOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CorrelatorOptions.underlying CorrelatorOptions
   underlying : go.UnderlyingDirectedEq CorrelatorOptions.ty CorrelatorOptions.underlying
   isUnderlying : go.IsUnderlying CorrelatorOptions.underlying CorrelatorOptions.underlying
+  method_set : go.MethodSetIs CorrelatorOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CorrelatorOptions.ty) []
 
 attribute [instance] CorrelatorOptions.TypeAssumptions.type_repr
   CorrelatorOptions.TypeAssumptions.underlying
   CorrelatorOptions.TypeAssumptions.isUnderlying
+  CorrelatorOptions.TypeAssumptions.method_set
+  CorrelatorOptions.TypeAssumptions.ptr_method_set
 
-abbrev EventRecorder [FfiSyntax] : Type := GoInterface
+abbrev EventRecorder [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def EventRecorder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventRecorder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AnnotatedEventf" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])), (go.InterfaceElem.MethodElem go!"Event" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string] false [])), (go.InterfaceElem.MethodElem go!"Eventf" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))])
 
-class EventRecorder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventRecorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventRecorder.ty EventRecorder.underlying
+  method_set : go.MethodSetIs EventRecorder.ty [(go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Event", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string] false []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventRecorder.ty) []
 
 attribute [instance] EventRecorder.TypeAssumptions.underlying
+  EventRecorder.TypeAssumptions.method_set
+  EventRecorder.TypeAssumptions.ptr_method_set
 
 axiom EventRecorderLogger : Type
 axiom EventRecorderLogger.zero_val : ZeroVal EventRecorderLogger
 attribute [instance] EventRecorderLogger.zero_val
 
-class EventRecorderLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventRecorderLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventRecorderLogger.underlying EventRecorderLogger
   underlying : go.UnderlyingDirectedEq EventRecorderLogger.ty EventRecorderLogger.underlying
   isUnderlying : go.IsUnderlying EventRecorderLogger.underlying EventRecorderLogger.underlying
+  method_set : go.MethodSetIs EventRecorderLogger.ty [(go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Event", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string] false []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" [])] false [EventRecorderLogger.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventRecorderLogger.ty) []
 
 attribute [instance] EventRecorderLogger.TypeAssumptions.type_repr
   EventRecorderLogger.TypeAssumptions.underlying
   EventRecorderLogger.TypeAssumptions.isUnderlying
+  EventRecorderLogger.TypeAssumptions.method_set
+  EventRecorderLogger.TypeAssumptions.ptr_method_set
 
-abbrev EventBroadcaster [FfiSyntax] : Type := GoInterface
+abbrev EventBroadcaster [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def EventBroadcaster.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventBroadcaster.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NewRecorder" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Scheme.ty), _root_.Perennial.k8s_io.api.core.v1.EventSource.ty] false [EventRecorderLogger.ty])), (go.InterfaceElem.MethodElem go!"Shutdown" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"StartEventWatcher" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false []))] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty])), (go.InterfaceElem.MethodElem go!"StartLogging" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty])), (go.InterfaceElem.MethodElem go!"StartRecordingToSink" (go.signature.Signature [EventSink.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty])), (go.InterfaceElem.MethodElem go!"StartStructuredLogging" (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Level.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty]))])
 
-class EventBroadcaster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventBroadcaster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventBroadcaster.ty EventBroadcaster.underlying
+  method_set : go.MethodSetIs EventBroadcaster.ty [(go!"NewRecorder", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Scheme.ty), _root_.Perennial.k8s_io.api.core.v1.EventSource.ty] false [EventRecorderLogger.ty]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"StartEventWatcher", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false []))] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty]))), (go!"StartLogging", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty]))), (go!"StartRecordingToSink", (some (go.signature.Signature [EventSink.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty]))), (go!"StartStructuredLogging", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Level.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventBroadcaster.ty) []
 
 attribute [instance] EventBroadcaster.TypeAssumptions.underlying
+  EventBroadcaster.TypeAssumptions.method_set
+  EventBroadcaster.TypeAssumptions.ptr_method_set
 
-structure EventRecorderAdapter [FfiSyntax] where
+structure EventRecorderAdapter [GooseExts] where
   mk ::
   recorder' : EventRecorderLogger
 
-noncomputable instance EventRecorderAdapter.zero_val [FfiSyntax] : ZeroVal EventRecorderAdapter :=
+noncomputable instance EventRecorderAdapter.zero_val [GooseExts] : ZeroVal EventRecorderAdapter :=
   ⟨EventRecorderAdapter.mk zeroValDef⟩
 
-@[reducible] noncomputable def EventRecorderAdapter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EventRecorderAdapter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"recorder" EventRecorderLogger.ty)]
 
-@[irreducible] noncomputable def EventRecorderAdapter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EventRecorderAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventRecorderAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventRecorderAdapter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EventRecorderAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventRecorderAdapter.fields EventRecorderAdapter.fieldsUnsealed :=
   ⟨by unfold EventRecorderAdapter.fields; rfl⟩
 
-@[reducible] noncomputable def EventRecorderAdapter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventRecorderAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EventRecorderAdapter.fields)
 
-class EventRecorderAdapter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventRecorderAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventRecorderAdapter.underlying EventRecorderAdapter
   underlying : go.UnderlyingDirectedEq EventRecorderAdapter.ty EventRecorderAdapter.underlying
   get_recorder : ∀ (x : EventRecorderAdapter), go.IsGoStepPureDetTagged under (StructFieldGet EventRecorderAdapter.underlying go!"recorder") #x (Val #(x.recorder'))
   set_recorder : ∀ (x : EventRecorderAdapter) (y : EventRecorderLogger), go.IsGoStepPureDetTagged under (StructFieldSet EventRecorderAdapter.underlying go!"recorder") (PairV #x #y) (Val #(({ x with recorder' := y } : EventRecorderAdapter)))
+  method_set : go.MethodSetIs EventRecorderAdapter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventRecorderAdapter.ty) [(go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" [])] false [(go.GoType.Named go!"k8s.io/client-go/tools/internal/events.EventRecorderLogger" [])])))]
 
 attribute [instance] EventRecorderAdapter.TypeAssumptions.type_repr
   EventRecorderAdapter.TypeAssumptions.underlying
   EventRecorderAdapter.TypeAssumptions.get_recorder
   EventRecorderAdapter.TypeAssumptions.set_recorder
+  EventRecorderAdapter.TypeAssumptions.method_set
+  EventRecorderAdapter.TypeAssumptions.ptr_method_set
 
-abbrev BroadcasterOption [FfiSyntax] : Type := GoFunc
+abbrev BroadcasterOption [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def BroadcasterOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BroadcasterOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType config.ty)] false []))
 
-class BroadcasterOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BroadcasterOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq BroadcasterOption.ty BroadcasterOption.underlying
+  method_set : go.MethodSetIs BroadcasterOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BroadcasterOption.ty) []
 
 attribute [instance] BroadcasterOption.TypeAssumptions.underlying
+  BroadcasterOption.TypeAssumptions.method_set
+  BroadcasterOption.TypeAssumptions.ptr_method_set
 
 axiom config : Type
 axiom config.zero_val : ZeroVal config
 attribute [instance] config.zero_val
 
-class config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying config.underlying config
   underlying : go.UnderlyingDirectedEq config.ty config.underlying
   isUnderlying : go.IsUnderlying config.underlying config.underlying
+  method_set : go.MethodSetIs config.ty [(go!"Deadline", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" []), go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType config.ty) [(go!"Deadline", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" []), go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
 
 attribute [instance] config.TypeAssumptions.type_repr
   config.TypeAssumptions.underlying
   config.TypeAssumptions.isUnderlying
+  config.TypeAssumptions.method_set
+  config.TypeAssumptions.ptr_method_set
 
 axiom eventBroadcasterImpl : Type
 axiom eventBroadcasterImpl.zero_val : ZeroVal eventBroadcasterImpl
 attribute [instance] eventBroadcasterImpl.zero_val
 
-class eventBroadcasterImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class eventBroadcasterImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eventBroadcasterImpl.underlying eventBroadcasterImpl
   underlying : go.UnderlyingDirectedEq eventBroadcasterImpl.ty eventBroadcasterImpl.underlying
   isUnderlying : go.IsUnderlying eventBroadcasterImpl.underlying eventBroadcasterImpl.underlying
+  method_set : go.MethodSetIs eventBroadcasterImpl.ty [(go!"Action", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ActionOrDrop", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Watch", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"WatchWithPrefix", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/watch.blockQueue", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apimachinery/pkg/watch.closeAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.distribute", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.stopWatching", (some (go.signature.Signature [go.int64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType eventBroadcasterImpl.ty) [(go!"Action", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ActionOrDrop", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"NewRecorder", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Scheme.ty), _root_.Perennial.k8s_io.api.core.v1.EventSource.ty] false [EventRecorderLogger.ty]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"StartEventWatcher", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false []))] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty]))), (go!"StartLogging", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty]))), (go!"StartRecordingToSink", (some (go.signature.Signature [EventSink.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty]))), (go!"StartStructuredLogging", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Level.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty]))), (go!"Watch", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"WatchWithPrefix", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/watch.blockQueue", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apimachinery/pkg/watch.closeAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.distribute", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.stopWatching", (some (go.signature.Signature [go.int64] false []))), (go!"k8s.io/client-go/tools/record.recordToSink", (some (go.signature.Signature [EventSink.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), (go.GoType.PointerType EventCorrelator.ty)] false [])))]
 
 attribute [instance] eventBroadcasterImpl.TypeAssumptions.type_repr
   eventBroadcasterImpl.TypeAssumptions.underlying
   eventBroadcasterImpl.TypeAssumptions.isUnderlying
+  eventBroadcasterImpl.TypeAssumptions.method_set
+  eventBroadcasterImpl.TypeAssumptions.ptr_method_set
 
 axiom recorderImpl : Type
 axiom recorderImpl.zero_val : ZeroVal recorderImpl
 attribute [instance] recorderImpl.zero_val
 
-class recorderImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class recorderImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying recorderImpl.underlying recorderImpl
   underlying : go.UnderlyingDirectedEq recorderImpl.ty recorderImpl.underlying
   isUnderlying : go.IsUnderlying recorderImpl.underlying recorderImpl.underlying
+  method_set : go.MethodSetIs recorderImpl.ty [(go!"Action", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ActionOrDrop", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"WatchWithPrefix", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/watch.blockQueue", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apimachinery/pkg/watch.closeAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.distribute", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.stopWatching", (some (go.signature.Signature [go.int64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType recorderImpl.ty) [(go!"Action", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ActionOrDrop", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Event", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string] false []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"WatchWithPrefix", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/watch.blockQueue", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apimachinery/pkg/watch.closeAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.distribute", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.stopWatching", (some (go.signature.Signature [go.int64] false []))), (go!"k8s.io/client-go/tools/record.generateEvent", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string] false []))), (go!"k8s.io/client-go/tools/record.makeEvent", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ObjectReference.ty), (go.GoType.MapType go.string go.string), go.string, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)])))]
 
 attribute [instance] recorderImpl.TypeAssumptions.type_repr
   recorderImpl.TypeAssumptions.underlying
   recorderImpl.TypeAssumptions.isUnderlying
+  recorderImpl.TypeAssumptions.method_set
+  recorderImpl.TypeAssumptions.ptr_method_set
 
 axiom recorderImplLogger : Type
 axiom recorderImplLogger.zero_val : ZeroVal recorderImplLogger
 attribute [instance] recorderImplLogger.zero_val
 
-class recorderImplLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class recorderImplLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying recorderImplLogger.underlying recorderImplLogger
   underlying : go.UnderlyingDirectedEq recorderImplLogger.ty recorderImplLogger.underlying
   isUnderlying : go.IsUnderlying recorderImplLogger.underlying recorderImplLogger.underlying
+  method_set : go.MethodSetIs recorderImplLogger.ty [(go!"Action", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ActionOrDrop", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Event", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string] false []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"WatchWithPrefix", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" [])] false [EventRecorderLogger.ty]))), (go!"k8s.io/apimachinery/pkg/watch.blockQueue", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apimachinery/pkg/watch.closeAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.distribute", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.stopWatching", (some (go.signature.Signature [go.int64] false []))), (go!"k8s.io/client-go/tools/record.generateEvent", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string] false []))), (go!"k8s.io/client-go/tools/record.makeEvent", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ObjectReference.ty), (go.GoType.MapType go.string go.string), go.string, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType recorderImplLogger.ty) [(go!"Action", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ActionOrDrop", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Event", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string] false []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"WatchWithPrefix", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" [])] false [EventRecorderLogger.ty]))), (go!"k8s.io/apimachinery/pkg/watch.blockQueue", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apimachinery/pkg/watch.closeAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.distribute", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.stopWatching", (some (go.signature.Signature [go.int64] false []))), (go!"k8s.io/client-go/tools/record.generateEvent", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string] false []))), (go!"k8s.io/client-go/tools/record.makeEvent", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ObjectReference.ty), (go.GoType.MapType go.string go.string), go.string, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)])))]
 
 attribute [instance] recorderImplLogger.TypeAssumptions.type_repr
   recorderImplLogger.TypeAssumptions.underlying
   recorderImplLogger.TypeAssumptions.isUnderlying
+  recorderImplLogger.TypeAssumptions.method_set
+  recorderImplLogger.TypeAssumptions.ptr_method_set
 
-abbrev EventSpamKeyFunc [FfiSyntax] : Type := GoFunc
+abbrev EventSpamKeyFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def EventSpamKeyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventSpamKeyFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [go.string]))
 
-class EventSpamKeyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventSpamKeyFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventSpamKeyFunc.ty EventSpamKeyFunc.underlying
+  method_set : go.MethodSetIs EventSpamKeyFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventSpamKeyFunc.ty) []
 
 attribute [instance] EventSpamKeyFunc.TypeAssumptions.underlying
+  EventSpamKeyFunc.TypeAssumptions.method_set
+  EventSpamKeyFunc.TypeAssumptions.ptr_method_set
 
-abbrev EventFilterFunc [FfiSyntax] : Type := GoFunc
+abbrev EventFilterFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def EventFilterFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventFilterFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [go.bool]))
 
-class EventFilterFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventFilterFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventFilterFunc.ty EventFilterFunc.underlying
+  method_set : go.MethodSetIs EventFilterFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventFilterFunc.ty) []
 
 attribute [instance] EventFilterFunc.TypeAssumptions.underlying
+  EventFilterFunc.TypeAssumptions.method_set
+  EventFilterFunc.TypeAssumptions.ptr_method_set
 
 axiom EventSourceObjectSpamFilter : Type
 axiom EventSourceObjectSpamFilter.zero_val : ZeroVal EventSourceObjectSpamFilter
 attribute [instance] EventSourceObjectSpamFilter.zero_val
 
-class EventSourceObjectSpamFilter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventSourceObjectSpamFilter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventSourceObjectSpamFilter.underlying EventSourceObjectSpamFilter
   underlying : go.UnderlyingDirectedEq EventSourceObjectSpamFilter.ty EventSourceObjectSpamFilter.underlying
   isUnderlying : go.IsUnderlying EventSourceObjectSpamFilter.underlying EventSourceObjectSpamFilter.underlying
+  method_set : go.MethodSetIs EventSourceObjectSpamFilter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventSourceObjectSpamFilter.ty) [(go!"Filter", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [go.bool])))]
 
 attribute [instance] EventSourceObjectSpamFilter.TypeAssumptions.type_repr
   EventSourceObjectSpamFilter.TypeAssumptions.underlying
   EventSourceObjectSpamFilter.TypeAssumptions.isUnderlying
+  EventSourceObjectSpamFilter.TypeAssumptions.method_set
+  EventSourceObjectSpamFilter.TypeAssumptions.ptr_method_set
 
 axiom spamRecord : Type
 axiom spamRecord.zero_val : ZeroVal spamRecord
 attribute [instance] spamRecord.zero_val
 
-class spamRecord.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class spamRecord.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying spamRecord.underlying spamRecord
   underlying : go.UnderlyingDirectedEq spamRecord.ty spamRecord.underlying
   isUnderlying : go.IsUnderlying spamRecord.underlying spamRecord.underlying
+  method_set : go.MethodSetIs spamRecord.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType spamRecord.ty) []
 
 attribute [instance] spamRecord.TypeAssumptions.type_repr
   spamRecord.TypeAssumptions.underlying
   spamRecord.TypeAssumptions.isUnderlying
+  spamRecord.TypeAssumptions.method_set
+  spamRecord.TypeAssumptions.ptr_method_set
 
-abbrev EventAggregatorKeyFunc [FfiSyntax] : Type := GoFunc
+abbrev EventAggregatorKeyFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def EventAggregatorKeyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventAggregatorKeyFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [go.string, go.string]))
 
-class EventAggregatorKeyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventAggregatorKeyFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventAggregatorKeyFunc.ty EventAggregatorKeyFunc.underlying
+  method_set : go.MethodSetIs EventAggregatorKeyFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventAggregatorKeyFunc.ty) []
 
 attribute [instance] EventAggregatorKeyFunc.TypeAssumptions.underlying
+  EventAggregatorKeyFunc.TypeAssumptions.method_set
+  EventAggregatorKeyFunc.TypeAssumptions.ptr_method_set
 
-abbrev EventAggregatorMessageFunc [FfiSyntax] : Type := GoFunc
+abbrev EventAggregatorMessageFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def EventAggregatorMessageFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventAggregatorMessageFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [go.string]))
 
-class EventAggregatorMessageFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventAggregatorMessageFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventAggregatorMessageFunc.ty EventAggregatorMessageFunc.underlying
+  method_set : go.MethodSetIs EventAggregatorMessageFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventAggregatorMessageFunc.ty) []
 
 attribute [instance] EventAggregatorMessageFunc.TypeAssumptions.underlying
+  EventAggregatorMessageFunc.TypeAssumptions.method_set
+  EventAggregatorMessageFunc.TypeAssumptions.ptr_method_set
 
 axiom EventAggregator : Type
 axiom EventAggregator.zero_val : ZeroVal EventAggregator
 attribute [instance] EventAggregator.zero_val
 
-class EventAggregator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventAggregator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventAggregator.underlying EventAggregator
   underlying : go.UnderlyingDirectedEq EventAggregator.ty EventAggregator.underlying
   isUnderlying : go.IsUnderlying EventAggregator.underlying EventAggregator.underlying
+  method_set : go.MethodSetIs EventAggregator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventAggregator.ty) [(go!"EventAggregate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.string]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [(go.GoType.Named go!"sync.Locker" [])]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
 
 attribute [instance] EventAggregator.TypeAssumptions.type_repr
   EventAggregator.TypeAssumptions.underlying
   EventAggregator.TypeAssumptions.isUnderlying
+  EventAggregator.TypeAssumptions.method_set
+  EventAggregator.TypeAssumptions.ptr_method_set
 
 axiom aggregateRecord : Type
 axiom aggregateRecord.zero_val : ZeroVal aggregateRecord
 attribute [instance] aggregateRecord.zero_val
 
-class aggregateRecord.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class aggregateRecord.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying aggregateRecord.underlying aggregateRecord
   underlying : go.UnderlyingDirectedEq aggregateRecord.ty aggregateRecord.underlying
   isUnderlying : go.IsUnderlying aggregateRecord.underlying aggregateRecord.underlying
+  method_set : go.MethodSetIs aggregateRecord.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType aggregateRecord.ty) []
 
 attribute [instance] aggregateRecord.TypeAssumptions.type_repr
   aggregateRecord.TypeAssumptions.underlying
   aggregateRecord.TypeAssumptions.isUnderlying
+  aggregateRecord.TypeAssumptions.method_set
+  aggregateRecord.TypeAssumptions.ptr_method_set
 
-structure eventLog [FfiSyntax] where
+structure eventLog [GooseExts] where
   mk ::
   count' : w64
   firstTimestamp' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time
   name' : GoString
   resourceVersion' : GoString
 
-noncomputable instance eventLog.zero_val [FfiSyntax] : ZeroVal eventLog :=
+noncomputable instance eventLog.zero_val [GooseExts] : ZeroVal eventLog :=
   ⟨eventLog.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def eventLog.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def eventLog.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"count" go.uint),
 (go.field_decl.FieldDecl go!"firstTimestamp" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
 (go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"resourceVersion" go.string)]
 
-@[irreducible] noncomputable def eventLog.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def eventLog.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   eventLog.fieldsUnsealed
 
-noncomputable instance equals_unfold_eventLog [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_eventLog [GooseExts] [GoGlobalContext] :
     EqualsUnfold eventLog.fields eventLog.fieldsUnsealed :=
   ⟨by unfold eventLog.fields; rfl⟩
 
-@[reducible] noncomputable def eventLog.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def eventLog.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType eventLog.fields)
 
-class eventLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class eventLog.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eventLog.underlying eventLog
   underlying : go.UnderlyingDirectedEq eventLog.ty eventLog.underlying
   get_count : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"count") #x (Val #(x.count'))
@@ -570,6 +646,8 @@ class eventLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_name : ∀ (x : eventLog) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : eventLog)))
   get_resourceVersion : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
   set_resourceVersion : ∀ (x : eventLog) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : eventLog)))
+  method_set : go.MethodSetIs eventLog.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType eventLog.ty) []
 
 attribute [instance] eventLog.TypeAssumptions.type_repr
   eventLog.TypeAssumptions.underlying
@@ -581,45 +659,51 @@ attribute [instance] eventLog.TypeAssumptions.type_repr
   eventLog.TypeAssumptions.set_name
   eventLog.TypeAssumptions.get_resourceVersion
   eventLog.TypeAssumptions.set_resourceVersion
+  eventLog.TypeAssumptions.method_set
+  eventLog.TypeAssumptions.ptr_method_set
 
 axiom eventLogger : Type
 axiom eventLogger.zero_val : ZeroVal eventLogger
 attribute [instance] eventLogger.zero_val
 
-class eventLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class eventLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eventLogger.underlying eventLogger
   underlying : go.UnderlyingDirectedEq eventLogger.ty eventLogger.underlying
   isUnderlying : go.IsUnderlying eventLogger.underlying eventLogger.underlying
+  method_set : go.MethodSetIs eventLogger.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType eventLogger.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [(go.GoType.Named go!"sync.Locker" [])]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/record.eventObserve", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), (go.GoType.SliceType go.byte), go.error]))), (go!"k8s.io/client-go/tools/record.lastEventObservationFromCache", (some (go.signature.Signature [go.string] false [eventLog.ty]))), (go!"k8s.io/client-go/tools/record.updateState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false []))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
 
 attribute [instance] eventLogger.TypeAssumptions.type_repr
   eventLogger.TypeAssumptions.underlying
   eventLogger.TypeAssumptions.isUnderlying
+  eventLogger.TypeAssumptions.method_set
+  eventLogger.TypeAssumptions.ptr_method_set
 
-structure EventCorrelator [FfiSyntax] where
+structure EventCorrelator [GooseExts] where
   mk ::
   filterFunc' : EventFilterFunc
   aggregator' : Loc
   logger' : Loc
 
-noncomputable instance EventCorrelator.zero_val [FfiSyntax] : ZeroVal EventCorrelator :=
+noncomputable instance EventCorrelator.zero_val [GooseExts] : ZeroVal EventCorrelator :=
   ⟨EventCorrelator.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EventCorrelator.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EventCorrelator.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"filterFunc" EventFilterFunc.ty),
 (go.field_decl.FieldDecl go!"aggregator" (go.GoType.PointerType EventAggregator.ty)),
 (go.field_decl.FieldDecl go!"logger" (go.GoType.PointerType eventLogger.ty))]
 
-@[irreducible] noncomputable def EventCorrelator.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EventCorrelator.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventCorrelator.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventCorrelator [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EventCorrelator [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventCorrelator.fields EventCorrelator.fieldsUnsealed :=
   ⟨by unfold EventCorrelator.fields; rfl⟩
 
-@[reducible] noncomputable def EventCorrelator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventCorrelator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EventCorrelator.fields)
 
-class EventCorrelator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventCorrelator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventCorrelator.underlying EventCorrelator
   underlying : go.UnderlyingDirectedEq EventCorrelator.ty EventCorrelator.underlying
   get_filterFunc : ∀ (x : EventCorrelator), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelator.underlying go!"filterFunc") #x (Val #(x.filterFunc'))
@@ -628,6 +712,8 @@ class EventCorrelator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_aggregator : ∀ (x : EventCorrelator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelator.underlying go!"aggregator") (PairV #x #y) (Val #(({ x with aggregator' := y } : EventCorrelator)))
   get_logger : ∀ (x : EventCorrelator), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelator.underlying go!"logger") #x (Val #(x.logger'))
   set_logger : ∀ (x : EventCorrelator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelator.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : EventCorrelator)))
+  method_set : go.MethodSetIs EventCorrelator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventCorrelator.ty) [(go!"EventCorrelate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType EventCorrelateResult.ty), go.error]))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [])))]
 
 attribute [instance] EventCorrelator.TypeAssumptions.type_repr
   EventCorrelator.TypeAssumptions.underlying
@@ -637,32 +723,34 @@ attribute [instance] EventCorrelator.TypeAssumptions.type_repr
   EventCorrelator.TypeAssumptions.set_aggregator
   EventCorrelator.TypeAssumptions.get_logger
   EventCorrelator.TypeAssumptions.set_logger
+  EventCorrelator.TypeAssumptions.method_set
+  EventCorrelator.TypeAssumptions.ptr_method_set
 
-structure EventCorrelateResult [FfiSyntax] where
+structure EventCorrelateResult [GooseExts] where
   mk ::
   Event' : Loc
   Patch' : GoSlice
   Skip' : Bool
 
-noncomputable instance EventCorrelateResult.zero_val [FfiSyntax] : ZeroVal EventCorrelateResult :=
+noncomputable instance EventCorrelateResult.zero_val [GooseExts] : ZeroVal EventCorrelateResult :=
   ⟨EventCorrelateResult.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EventCorrelateResult.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EventCorrelateResult.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Event" (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)),
 (go.field_decl.FieldDecl go!"Patch" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Skip" go.bool)]
 
-@[irreducible] noncomputable def EventCorrelateResult.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EventCorrelateResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventCorrelateResult.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventCorrelateResult [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EventCorrelateResult [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventCorrelateResult.fields EventCorrelateResult.fieldsUnsealed :=
   ⟨by unfold EventCorrelateResult.fields; rfl⟩
 
-@[reducible] noncomputable def EventCorrelateResult.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventCorrelateResult.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EventCorrelateResult.fields)
 
-class EventCorrelateResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventCorrelateResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventCorrelateResult.underlying EventCorrelateResult
   underlying : go.UnderlyingDirectedEq EventCorrelateResult.ty EventCorrelateResult.underlying
   get_Event : ∀ (x : EventCorrelateResult), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelateResult.underlying go!"Event") #x (Val #(x.Event'))
@@ -671,6 +759,8 @@ class EventCorrelateResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   set_Patch : ∀ (x : EventCorrelateResult) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelateResult.underlying go!"Patch") (PairV #x #y) (Val #(({ x with Patch' := y } : EventCorrelateResult)))
   get_Skip : ∀ (x : EventCorrelateResult), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelateResult.underlying go!"Skip") #x (Val #(x.Skip'))
   set_Skip : ∀ (x : EventCorrelateResult) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelateResult.underlying go!"Skip") (PairV #x #y) (Val #(({ x with Skip' := y } : EventCorrelateResult)))
+  method_set : go.MethodSetIs EventCorrelateResult.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventCorrelateResult.ty) []
 
 attribute [instance] EventCorrelateResult.TypeAssumptions.type_repr
   EventCorrelateResult.TypeAssumptions.underlying
@@ -680,36 +770,40 @@ attribute [instance] EventCorrelateResult.TypeAssumptions.type_repr
   EventCorrelateResult.TypeAssumptions.set_Patch
   EventCorrelateResult.TypeAssumptions.get_Skip
   EventCorrelateResult.TypeAssumptions.set_Skip
+  EventCorrelateResult.TypeAssumptions.method_set
+  EventCorrelateResult.TypeAssumptions.ptr_method_set
 
-structure FakeRecorder [FfiSyntax] where
+structure FakeRecorder [GooseExts] where
   mk ::
   Events' : GoChan
   IncludeObject' : Bool
 
-noncomputable instance FakeRecorder.zero_val [FfiSyntax] : ZeroVal FakeRecorder :=
+noncomputable instance FakeRecorder.zero_val [GooseExts] : ZeroVal FakeRecorder :=
   ⟨FakeRecorder.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def FakeRecorder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FakeRecorder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Events" (go.GoType.ChannelType go.ChanDir.sendrecv go.string)),
 (go.field_decl.FieldDecl go!"IncludeObject" go.bool)]
 
-@[irreducible] noncomputable def FakeRecorder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FakeRecorder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FakeRecorder.fieldsUnsealed
 
-noncomputable instance equals_unfold_FakeRecorder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FakeRecorder [GooseExts] [GoGlobalContext] :
     EqualsUnfold FakeRecorder.fields FakeRecorder.fieldsUnsealed :=
   ⟨by unfold FakeRecorder.fields; rfl⟩
 
-@[reducible] noncomputable def FakeRecorder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FakeRecorder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FakeRecorder.fields)
 
-class FakeRecorder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FakeRecorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeRecorder.underlying FakeRecorder
   underlying : go.UnderlyingDirectedEq FakeRecorder.ty FakeRecorder.underlying
   get_Events : ∀ (x : FakeRecorder), go.IsGoStepPureDetTagged under (StructFieldGet FakeRecorder.underlying go!"Events") #x (Val #(x.Events'))
   set_Events : ∀ (x : FakeRecorder) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet FakeRecorder.underlying go!"Events") (PairV #x #y) (Val #(({ x with Events' := y } : FakeRecorder)))
   get_IncludeObject : ∀ (x : FakeRecorder), go.IsGoStepPureDetTagged under (StructFieldGet FakeRecorder.underlying go!"IncludeObject") #x (Val #(x.IncludeObject'))
   set_IncludeObject : ∀ (x : FakeRecorder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FakeRecorder.underlying go!"IncludeObject") (PairV #x #y) (Val #(({ x with IncludeObject' := y } : FakeRecorder)))
+  method_set : go.MethodSetIs FakeRecorder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeRecorder.ty) [(go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Event", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string] false []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" [])] false [EventRecorderLogger.ty]))), (go!"k8s.io/client-go/tools/record.writeEvent", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
 
 attribute [instance] FakeRecorder.TypeAssumptions.type_repr
   FakeRecorder.TypeAssumptions.underlying
@@ -717,8 +811,10 @@ attribute [instance] FakeRecorder.TypeAssumptions.type_repr
   FakeRecorder.TypeAssumptions.set_Events
   FakeRecorder.TypeAssumptions.get_IncludeObject
   FakeRecorder.TypeAssumptions.set_IncludeObject
+  FakeRecorder.TypeAssumptions.method_set
+  FakeRecorder.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EventSink_instance : EventSink.TypeAssumptions
   CorrelatorOptions_instance : CorrelatorOptions.TypeAssumptions
   EventRecorder_instance : EventRecorder.TypeAssumptions

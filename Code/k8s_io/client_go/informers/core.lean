@@ -22,58 +22,70 @@ end pkg_id
 
 namespace k8s_io.client_go.informers.core
 
-noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/informers/core.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-noncomputable def group.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def group.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/informers/core.group" [])
 
 attribute [irreducible] group.ty
 
-axiom Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/informers/core.New"
 
 /-- New returns a new Interface.
 
     go: interface.go:39:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "namespace"
   (Lam "tweakListOptions"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interface.ty))) (App (Val (GoInstruction (GoZeroVal Interface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "tweakListOptions" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc.ty))) (Var "tweakListOptions"))
   (Let "namespace" (App (Val (GoInstruction (GoAlloc go.string))) (Var "namespace"))
   (Let "f" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory.ty))) (Var "f"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType group.ty) Interface.ty))) (App (Val (GoInstruction (GoAlloc group.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory.ty))) (Var "f"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType group.ty) Interface.ty))) (App (Val (GoInstruction (GoAlloc group.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory.ty))) (Var "f"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc.ty))) (Var "tweakListOptions"))
-  (App (Val (GoInstruction (CompositeLiteral group.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"factory")) (ElementExpression _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"namespace")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"tweakListOptions")) (ElementExpression _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc.ty (Var "$v2")))])))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral group.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"factory")) (ElementExpression _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"namespace")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"tweakListOptions")) (ElementExpression _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc.ty (Var "$v2")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interface.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "$res0")))))))
 
 /-- V1 returns a new v1.Interface.
 
     go: interface.go:44:17 -/
-noncomputable def group.V1.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def group.V1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.informers.core.v1.Interface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.informers.core.v1.Interface.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType group.ty)))) (Var "g"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory.ty))) (App (Val (GoInstruction (StructFieldRef group.ty go!"factory"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType group.ty)))) (Var "g"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory.ty))) (App (Val (GoInstruction (StructFieldRef group.ty go!"factory"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType group.ty)))) (Var "g"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef group.ty go!"namespace"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType group.ty)))) (Var "g"))))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc.ty))) (App (Val (GoInstruction (StructFieldRef group.ty go!"tweakListOptions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType group.ty)))) (Var "g"))))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.informers.core.v1.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.informers.core.v1.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.client_go.informers.core.v1.Interface.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.informers.core.v1.Interface.ty))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.informers.core where
   pkgImportedPkgs := [pkg_id.k8s_io.client_go.informers.core.v1, pkg_id.k8s_io.client_go.informers.internalinterfaces]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.informers.core)) (Lam BAnon
   (App (Val exceptionDo)
@@ -87,40 +99,44 @@ axiom Interface : Type
 axiom Interface.zero_val : ZeroVal Interface
 attribute [instance] Interface.zero_val
 
-class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Interface.underlying Interface
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
   isUnderlying : go.IsUnderlying Interface.underlying Interface.underlying
+  method_set : go.MethodSetIs Interface.ty [(go!"V1", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.core.v1.Interface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.type_repr
   Interface.TypeAssumptions.underlying
   Interface.TypeAssumptions.isUnderlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
-structure group [FfiSyntax] where
+structure group [GooseExts] where
   mk ::
   factory' : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory
   namespace' : GoString
   tweakListOptions' : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc
 
-noncomputable instance group.zero_val [FfiSyntax] : ZeroVal group :=
+noncomputable instance group.zero_val [GooseExts] : ZeroVal group :=
   ⟨group.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def group.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def group.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"factory" _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory.ty),
 (go.field_decl.FieldDecl go!"namespace" go.string),
 (go.field_decl.FieldDecl go!"tweakListOptions" _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc.ty)]
 
-@[irreducible] noncomputable def group.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def group.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   group.fieldsUnsealed
 
-noncomputable instance equals_unfold_group [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_group [GooseExts] [GoGlobalContext] :
     EqualsUnfold group.fields group.fieldsUnsealed :=
   ⟨by unfold group.fields; rfl⟩
 
-@[reducible] noncomputable def group.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def group.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType group.fields)
 
-class group.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class group.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying group.underlying group
   underlying : go.UnderlyingDirectedEq group.ty group.underlying
   get_factory : ∀ (x : group), go.IsGoStepPureDetTagged under (StructFieldGet group.underlying go!"factory") #x (Val #(x.factory'))
@@ -129,6 +145,8 @@ class group.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_namespace : ∀ (x : group) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet group.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : group)))
   get_tweakListOptions : ∀ (x : group), go.IsGoStepPureDetTagged under (StructFieldGet group.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
   set_tweakListOptions : ∀ (x : group) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet group.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : group)))
+  method_set : go.MethodSetIs group.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType group.ty) [(go!"V1", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.core.v1.Interface.ty])))]
   ptr_V1_unfold : MethodUnfold (go.GoType.PointerType group.ty) go!"V1" group.V1.impl
 
 attribute [instance] group.TypeAssumptions.type_repr
@@ -139,9 +157,11 @@ attribute [instance] group.TypeAssumptions.type_repr
   group.TypeAssumptions.set_namespace
   group.TypeAssumptions.get_tweakListOptions
   group.TypeAssumptions.set_tweakListOptions
+  group.TypeAssumptions.method_set
+  group.TypeAssumptions.ptr_method_set
   group.TypeAssumptions.ptr_V1_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Interface_instance : Interface.TypeAssumptions
   group_instance : group.TypeAssumptions
   New_unfold : FuncUnfold New [] New.impl

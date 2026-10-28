@@ -24,7 +24,7 @@ namespace backend
 open Iris Iris.BI Iris.ProofMode
 
 section types
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The part of a bbolt `Options` value that `Open`'s behaviour depends on here: read-only (no
 write transaction then), the page size (a new file's pages: `Open` makes a `4 * PageSize` buffer,
@@ -47,7 +47,7 @@ theorem optsZero_ok : optsZero.ok := ⟨rfl, rfl, rfl⟩
 end types
 
 section preds
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

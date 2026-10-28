@@ -36,7 +36,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -96,7 +96,7 @@ theorem store.deleteOnce.wp_proof
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
   (try wp_auto)
   ihave Hau' := (k8sAusRW_kvAu1 c.ms c (delStep key validate) W Φu
-    (.txn (kubernetes.optDelTxn key s.rev true))
+    (.txn (kubernetes.optDelTxn key s.rev true)) trivial
     (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
       (kubernetes.optDelTxn key s.rev true)).1)
     (stepHand c (delStep key validate))
@@ -120,7 +120,7 @@ theorem store.deleteOnce.wp_proof
   (try wp_auto)
   wp_apply wp_RecordEtcdRequest
   (try wp_auto)
-  icases Hdel with (⟨%Hde, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hde, %Hdce, #Hdse⟩)
+  icases Hdel with (⟨%Hde, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hde, %Hdce, #Hdse, #Hdcl⟩)
   · subst Hde
     ihave Hfs' := Hfs
     iunfold rdFacts at Hfs'
@@ -202,7 +202,7 @@ theorem store.deleteOnce.wp_proof
       iapply HΦ
       ileft
       isplitr
-      · iapply (unkErr_client c _ (by nofun) Hdce)
+      · iapply (unkErr_client c _ (by nofun) Hdce) $$ Hdcl
         iexact Hdse
       iexists o0, rv0
       iexact Hout

@@ -63,7 +63,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3 go_etcd_io.etcd.serve
   go_etcd_io.etcd.api.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -75,7 +75,10 @@ critical-section contract (`P`, `f`), with S4's premises (`stepOk`: the revision
 trees; a new record's name within bbolt's key bound); each gives back `W`, an error the apply
 layer can take, the response (`auth.respOk`), and the step's result (`auth.adminOut`: the
 authority after the step, or a refusal). `AuthEnable`, `AuthDisable` and `UserDelete` are
-relative to the flag the store read (`en`, its verdict `auth.enabledVerdict`). -/
+relative to the flag the store read (`en`, its verdict `auth.enabledVerdict`). `UserAdd` is of a
+request whose password choice cannot fail (`auth.userAddSure`, the server's own form: E2u), so its
+outcome is the step's alone (the auth plan's E3a, 2026-10-26; the apply thread's step is then
+determinate). -/
 def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) (W : IProp GF) :
     IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
@@ -94,13 +97,13 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
           ∃ en : Bool, auth.enabledVerdict M en ∗
             auth.adminOut M hs (auth.stepOf (auth.authDisableF en)) auth.noExtra GoInterface.nil }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
-      {{ auth.userAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ auth.authOwn M hs ∗ W ∗
+      {{ auth.userAddReqIs r name ∗ auth.userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+          auth.authOwn M hs ∗ W ∗
           mvcc.csContract P f Pre Q Post ∗ ⌜auth.stepOk M hs (auth.stepOf (auth.userAddF name))⌝ }}
         (App (Val #(methods ai.ty go!"UserAdd" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserAddResponse resp err ∗
-          auth.adminOut M hs (auth.stepOf (auth.userAddF name))
-            (fun e => e = .noPasswordUser) err }}) ∗
+          auth.adminOut M hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.userDeleteReqIs r name ∗ auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userDeleteF en name))⌝ }}
@@ -192,7 +195,7 @@ instance backendAuthSteps_persistent (E : AEnv GF) (p : Loc) (W : IProp GF) :
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -299,7 +302,7 @@ theorem adminOut_applyErrIs (M : auth.AuthMode) (hs : List auth.AuthState) (R : 
 theorem isAuthSteps_of_authInv
     (hEnable : auth.authStore.AuthEnable.spec (GF := GF) (hG := hG))
     (hDisable : auth.authStore.AuthDisable.spec (GF := GF) (hG := hG))
-    (hUserAdd : auth.authStore.UserAdd.spec (GF := GF) (hG := hG))
+    (hUserAdd : auth.authStore.UserAdd.specSure (GF := GF) (hG := hG))
     (hUserDelete : auth.authStore.UserDelete.spec (GF := GF) (hG := hG))
     (hUserChangePassword : auth.authStore.UserChangePassword.spec (GF := GF) (hG := hG))
     (hRoleAdd : auth.authStore.RoleAdd.spec (GF := GF) (hG := hG))
@@ -336,7 +339,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
     iapply (hUserAdd st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -437,7 +440,7 @@ theorem isAuthSteps_of_authInv
 end proof
 
 section stepSpecs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -452,13 +455,13 @@ abbrev applierV3backend.UserAdd.stepSpec : Prop :=
     auth.stepOk E.authMode hs (auth.stepOf (auth.userAddF name)) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userAddReqIs r name ∗
-        auth.authOwn E.authMode hs ∗ W ∗
+        auth.userAddSure r ∗ auth.authOwn E.authMode hs ∗ W ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOut E.authMode hs (auth.stepOf (auth.userAddF name)) (fun e => e = .noPasswordUser) err }}
+      auth.adminOut E.authMode hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}
 
 /-- **`a.UserDelete(r)` performs the model's step** (see the file header): the store's `UserDelete`
 from the authority at `hs` and the write resource `W` (`isAuthSteps`), the response's header set
@@ -640,7 +643,7 @@ abbrev applierV3backend.AuthDisable.stepSpec : Prop :=
 end stepSpecs
 
 section applier
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -650,7 +653,7 @@ theorem applierV3backend.UserAdd.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserAdd.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs name hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, #Hsure, Ho, HW, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -664,7 +667,7 @@ theorem applierV3backend.UserAdd.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hr Hsure; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
@@ -845,8 +848,8 @@ theorem applierV3backend.AuthEnable.wp_step
   · -- enabled: a fresh response with the header
     wp_auto
     wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
-    wp_alloc l as Hl
-    wp_auto
+    irename «$r0» => Hl
+    generalize «$r0_ptr» = l at *
     iapply HΦ
     iframe
     iframe #
@@ -874,8 +877,8 @@ theorem applierV3backend.AuthDisable.wp_step
   wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HW $Hcs] as ⟨HPP, HW, %en, #Hv, Hout⟩
   · ipureintro; exact hok
   wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
-  wp_alloc l as Hl
-  wp_auto
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iapply HΦ
   iframe
   iframe #

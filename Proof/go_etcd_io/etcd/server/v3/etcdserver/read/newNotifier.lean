@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.read
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -27,15 +27,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 theorem read.newNotifier.wp_proof : read.newNotifier.spec (GF := GF) (hG := hG) := by
   intro γr
   wp_start
+  iapply wp_fupd
+  wp_auto
   imod mono_nat_own_alloc 0 with ⟨%γneed, Hauth, -⟩
   imod mono_list_own_alloc ([] : List GName) with ⟨%γl, Hlist, -⟩
   wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#Hch, -, Hoc⟩
-  wp_alloc nc as Hnc
+  irename «$r0» => Hnc
+  generalize «$r0_ptr» = nc at *
   iStructNamed Hnc
   ipersist c
   imod alloc_broadcast_chan (notified nc ⟨γneed, γl⟩ γr) γ ch $$ Hch Hoc with Hbc
   icases bcast_pending_unknown _ _ _ $$ Hbc with ⟨Hbc, #Hbu⟩
-  wp_auto
+  imodintro
   iapply HΦ
   iexists ⟨γneed, γl⟩
   iframe Hauth Hlist

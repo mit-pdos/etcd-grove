@@ -20,321 +20,321 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.net
 
-noncomputable def RoundTripperWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RoundTripperWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.RoundTripperWrapper" [])
 
 attribute [irreducible] RoundTripperWrapper.ty
 
-noncomputable def DialFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DialFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.DialFunc" [])
 
 attribute [irreducible] DialFunc.ty
 
-noncomputable def TLSClientConfigHolder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TLSClientConfigHolder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.TLSClientConfigHolder" [])
 
 attribute [irreducible] TLSClientConfigHolder.ty
 
-noncomputable def DialerFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DialerFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.DialerFunc" [])
 
 attribute [irreducible] DialerFunc.ty
 
-noncomputable def Dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Dialer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.Dialer" [])
 
 attribute [irreducible] Dialer.ty
 
-noncomputable def WarningHeader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WarningHeader.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.WarningHeader" [])
 
 attribute [irreducible] WarningHeader.ty
 
-noncomputable def AddressFamily.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AddressFamily.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.AddressFamily" [])
 
 attribute [irreducible] AddressFamily.ty
 
-noncomputable def AddressFamilyPreference.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AddressFamilyPreference.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.AddressFamilyPreference" [])
 
 attribute [irreducible] AddressFamilyPreference.ty
 
-noncomputable def Route.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Route.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.Route" [])
 
 attribute [irreducible] Route.ty
 
-noncomputable def RouteFile.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RouteFile.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.RouteFile" [])
 
 attribute [irreducible] RouteFile.ty
 
-noncomputable def noRoutesError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noRoutesError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.noRoutesError" [])
 
 attribute [irreducible] noRoutesError.ty
 
-noncomputable def networkInterfacer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def networkInterfacer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.networkInterfacer" [])
 
 attribute [irreducible] networkInterfacer.ty
 
-noncomputable def networkInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def networkInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.networkInterface" [])
 
 attribute [irreducible] networkInterface.ty
 
-noncomputable def PortRange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PortRange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/net.PortRange" [])
 
 attribute [irreducible] PortRange.ty
 
-axiom RoundTripperWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RoundTripperWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DialFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DialFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TLSClientConfigHolder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TLSClientConfigHolder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DialerFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DialerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Dialer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Route.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Route.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RouteFile.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RouteFile.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom networkInterfacer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom networkInterfacer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom familyIPv4 [FfiSyntax] [GoGlobalContext] : val
+axiom familyIPv4 [GooseExts] [GoGlobalContext] : val
 
-axiom familyIPv6 [FfiSyntax] [GoGlobalContext] : val
+axiom familyIPv6 [GooseExts] [GoGlobalContext] : val
 
-axiom LoopbackInterfaceName [FfiSyntax] [GoGlobalContext] : val
+axiom LoopbackInterfaceName [GooseExts] [GoGlobalContext] : val
 
-axiom ipv4RouteFile [FfiSyntax] [GoGlobalContext] : val
+axiom ipv4RouteFile [GooseExts] [GoGlobalContext] : val
 
-axiom ipv6RouteFile [FfiSyntax] [GoGlobalContext] : val
+axiom ipv6RouteFile [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultTransport [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultTransport [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.defaultTransport"
 
-axiom defaultTransport.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultTransport.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultProxyFuncPointer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultProxyFuncPointer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.defaultProxyFuncPointer"
 
-axiom defaultProxyFuncPointer.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultProxyFuncPointer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def codeMatcher [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def codeMatcher [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.codeMatcher"
 
-axiom codeMatcher.init [FfiSyntax] [GoGlobalContext] : val
+axiom codeMatcher.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def wordDecoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def wordDecoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.wordDecoder"
 
-axiom wordDecoder.init [FfiSyntax] [GoGlobalContext] : val
+axiom wordDecoder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def preferIPv4 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def preferIPv4 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.preferIPv4"
 
-axiom preferIPv4.init [FfiSyntax] [GoGlobalContext] : val
+axiom preferIPv4.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def preferIPv6 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def preferIPv6 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.preferIPv6"
 
-axiom preferIPv6.init [FfiSyntax] [GoGlobalContext] : val
+axiom preferIPv6.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def v4File [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def v4File [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.v4File"
 
-axiom v4File.init [FfiSyntax] [GoGlobalContext] : val
+axiom v4File.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def v6File [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def v6File [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.v6File"
 
-axiom v6File.init [FfiSyntax] [GoGlobalContext] : val
+axiom v6File.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def validSchemes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validSchemes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.validSchemes"
 
-axiom validSchemes.init [FfiSyntax] [GoGlobalContext] : val
+axiom validSchemes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def JoinPreservingTrailingSlash [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def JoinPreservingTrailingSlash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.JoinPreservingTrailingSlash"
 
-noncomputable def IsTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.IsTimeout"
 
-noncomputable def IsProbableEOF [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsProbableEOF [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.IsProbableEOF"
 
-noncomputable def SetOldTransportDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetOldTransportDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.SetOldTransportDefaults"
 
-noncomputable def SetTransportDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetTransportDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.SetTransportDefaults"
 
-noncomputable def readIdleTimeoutSeconds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def readIdleTimeoutSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.readIdleTimeoutSeconds"
 
-noncomputable def pingTimeoutSeconds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pingTimeoutSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.pingTimeoutSeconds"
 
-noncomputable def configureHTTP2Transport [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def configureHTTP2Transport [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.configureHTTP2Transport"
 
-noncomputable def allowsHTTP2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def allowsHTTP2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.allowsHTTP2"
 
-noncomputable def DialerFor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DialerFor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.DialerFor"
 
-noncomputable def CloseIdleConnectionsFor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CloseIdleConnectionsFor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.CloseIdleConnectionsFor"
 
-noncomputable def TLSClientConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TLSClientConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.TLSClientConfig"
 
-noncomputable def FormatURL [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FormatURL [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.FormatURL"
 
-noncomputable def GetHTTPClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetHTTPClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.GetHTTPClient"
 
-noncomputable def SourceIPs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SourceIPs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.SourceIPs"
 
-noncomputable def containsIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def containsIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.containsIP"
 
-noncomputable def GetClientIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetClientIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.GetClientIP"
 
-noncomputable def AppendForwardedForHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AppendForwardedForHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.AppendForwardedForHeader"
 
-noncomputable def isDefault [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isDefault [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.isDefault"
 
-noncomputable def NewProxierWithNoProxyCIDR [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewProxierWithNoProxyCIDR [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.NewProxierWithNoProxyCIDR"
 
-noncomputable def CloneRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CloneRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.CloneRequest"
 
-noncomputable def CloneHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CloneHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.CloneHeader"
 
-noncomputable def ParseWarningHeaders [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseWarningHeaders [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ParseWarningHeaders"
 
-noncomputable def ParseWarningHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseWarningHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ParseWarningHeader"
 
-noncomputable def parseQuotedString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseQuotedString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.parseQuotedString"
 
-noncomputable def NewWarningHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewWarningHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.NewWarningHeader"
 
-noncomputable def hasAnyRunes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hasAnyRunes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.hasAnyRunes"
 
-noncomputable def makeQuotedString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeQuotedString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.makeQuotedString"
 
-noncomputable def IsNoRoutesError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsNoRoutesError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.IsNoRoutesError"
 
-noncomputable def getIPv4DefaultRoutes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getIPv4DefaultRoutes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.getIPv4DefaultRoutes"
 
-noncomputable def getIPv6DefaultRoutes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getIPv6DefaultRoutes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.getIPv6DefaultRoutes"
 
-noncomputable def parseIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.parseIP"
 
-noncomputable def isInterfaceUp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInterfaceUp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.isInterfaceUp"
 
-noncomputable def isLoopbackOrPointToPoint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isLoopbackOrPointToPoint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.isLoopbackOrPointToPoint"
 
-noncomputable def getMatchingGlobalIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getMatchingGlobalIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.getMatchingGlobalIP"
 
-noncomputable def getIPFromInterface [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getIPFromInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.getIPFromInterface"
 
-noncomputable def getIPFromLoopbackInterface [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getIPFromLoopbackInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.getIPFromLoopbackInterface"
 
-noncomputable def memberOf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def memberOf [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.memberOf"
 
-noncomputable def chooseIPFromHostInterfaces [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chooseIPFromHostInterfaces [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.chooseIPFromHostInterfaces"
 
-noncomputable def ChooseHostInterface [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ChooseHostInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ChooseHostInterface"
 
-noncomputable def ChooseHostInterfaceWithLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ChooseHostInterfaceWithLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ChooseHostInterfaceWithLogger"
 
-noncomputable def chooseHostInterface [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chooseHostInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.chooseHostInterface"
 
-noncomputable def getAllDefaultRoutes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getAllDefaultRoutes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.getAllDefaultRoutes"
 
-noncomputable def chooseHostInterfaceFromRoute [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chooseHostInterfaceFromRoute [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.chooseHostInterfaceFromRoute"
 
-noncomputable def ResolveBindAddress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ResolveBindAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ResolveBindAddress"
 
-noncomputable def ResolveBindAddressWithLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ResolveBindAddressWithLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ResolveBindAddressWithLogger"
 
-noncomputable def ChooseBindAddressForInterface [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ChooseBindAddressForInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ChooseBindAddressForInterface"
 
-noncomputable def ChooseBindAddressForInterfaceWithLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ChooseBindAddressForInterfaceWithLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ChooseBindAddressForInterfaceWithLogger"
 
-noncomputable def ParsePortRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParsePortRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ParsePortRange"
 
-noncomputable def ParsePortRangeOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParsePortRangeOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.ParsePortRangeOrDie"
 
-noncomputable def SplitSchemeNamePort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SplitSchemeNamePort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.SplitSchemeNamePort"
 
-noncomputable def JoinSchemeNamePort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def JoinSchemeNamePort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.JoinSchemeNamePort"
 
-noncomputable def IPNetEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IPNetEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.IPNetEqual"
 
-noncomputable def IsConnectionReset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsConnectionReset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.IsConnectionReset"
 
-noncomputable def IsHTTP2ConnectionLost [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsHTTP2ConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.IsHTTP2ConnectionLost"
 
-noncomputable def IsConnectionRefused [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsConnectionRefused [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.IsConnectionRefused"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.net where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.net)) (Lam BAnon
   (App (Val exceptionDo)
@@ -369,92 +369,112 @@ axiom RoundTripperWrapper : Type
 axiom RoundTripperWrapper.zero_val : ZeroVal RoundTripperWrapper
 attribute [instance] RoundTripperWrapper.zero_val
 
-class RoundTripperWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RoundTripperWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RoundTripperWrapper.underlying RoundTripperWrapper
   underlying : go.UnderlyingDirectedEq RoundTripperWrapper.ty RoundTripperWrapper.underlying
   isUnderlying : go.IsUnderlying RoundTripperWrapper.underlying RoundTripperWrapper.underlying
+  method_set : go.MethodSetIs RoundTripperWrapper.ty [(go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.Response" [])), go.error]))), (go!"WrappedRoundTripper", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http.RoundTripper" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RoundTripperWrapper.ty) []
 
 attribute [instance] RoundTripperWrapper.TypeAssumptions.type_repr
   RoundTripperWrapper.TypeAssumptions.underlying
   RoundTripperWrapper.TypeAssumptions.isUnderlying
+  RoundTripperWrapper.TypeAssumptions.method_set
+  RoundTripperWrapper.TypeAssumptions.ptr_method_set
 
 axiom DialFunc : Type
 axiom DialFunc.zero_val : ZeroVal DialFunc
 attribute [instance] DialFunc.zero_val
 
-class DialFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DialFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DialFunc.underlying DialFunc
   underlying : go.UnderlyingDirectedEq DialFunc.ty DialFunc.underlying
   isUnderlying : go.IsUnderlying DialFunc.underlying DialFunc.underlying
+  method_set : go.MethodSetIs DialFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DialFunc.ty) []
 
 attribute [instance] DialFunc.TypeAssumptions.type_repr
   DialFunc.TypeAssumptions.underlying
   DialFunc.TypeAssumptions.isUnderlying
+  DialFunc.TypeAssumptions.method_set
+  DialFunc.TypeAssumptions.ptr_method_set
 
 axiom TLSClientConfigHolder : Type
 axiom TLSClientConfigHolder.zero_val : ZeroVal TLSClientConfigHolder
 attribute [instance] TLSClientConfigHolder.zero_val
 
-class TLSClientConfigHolder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TLSClientConfigHolder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TLSClientConfigHolder.underlying TLSClientConfigHolder
   underlying : go.UnderlyingDirectedEq TLSClientConfigHolder.ty TLSClientConfigHolder.underlying
   isUnderlying : go.IsUnderlying TLSClientConfigHolder.underlying TLSClientConfigHolder.underlying
+  method_set : go.MethodSetIs TLSClientConfigHolder.ty [(go!"TLSClientConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"crypto/tls.Config" []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TLSClientConfigHolder.ty) []
 
 attribute [instance] TLSClientConfigHolder.TypeAssumptions.type_repr
   TLSClientConfigHolder.TypeAssumptions.underlying
   TLSClientConfigHolder.TypeAssumptions.isUnderlying
+  TLSClientConfigHolder.TypeAssumptions.method_set
+  TLSClientConfigHolder.TypeAssumptions.ptr_method_set
 
 axiom DialerFunc : Type
 axiom DialerFunc.zero_val : ZeroVal DialerFunc
 attribute [instance] DialerFunc.zero_val
 
-class DialerFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DialerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DialerFunc.underlying DialerFunc
   underlying : go.UnderlyingDirectedEq DialerFunc.ty DialerFunc.underlying
   isUnderlying : go.IsUnderlying DialerFunc.underlying DialerFunc.underlying
+  method_set : go.MethodSetIs DialerFunc.ty [(go!"Dial", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.Named go!"net.Conn" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DialerFunc.ty) [(go!"Dial", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.Named go!"net.Conn" []), go.error])))]
 
 attribute [instance] DialerFunc.TypeAssumptions.type_repr
   DialerFunc.TypeAssumptions.underlying
   DialerFunc.TypeAssumptions.isUnderlying
+  DialerFunc.TypeAssumptions.method_set
+  DialerFunc.TypeAssumptions.ptr_method_set
 
 axiom Dialer : Type
 axiom Dialer.zero_val : ZeroVal Dialer
 attribute [instance] Dialer.zero_val
 
-class Dialer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Dialer.underlying Dialer
   underlying : go.UnderlyingDirectedEq Dialer.ty Dialer.underlying
   isUnderlying : go.IsUnderlying Dialer.underlying Dialer.underlying
+  method_set : go.MethodSetIs Dialer.ty [(go!"Dial", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.Named go!"net.Conn" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Dialer.ty) []
 
 attribute [instance] Dialer.TypeAssumptions.type_repr
   Dialer.TypeAssumptions.underlying
   Dialer.TypeAssumptions.isUnderlying
+  Dialer.TypeAssumptions.method_set
+  Dialer.TypeAssumptions.ptr_method_set
 
-structure WarningHeader [FfiSyntax] where
+structure WarningHeader [GooseExts] where
   mk ::
   Code' : w64
   Agent' : GoString
   Text' : GoString
 
-noncomputable instance WarningHeader.zero_val [FfiSyntax] : ZeroVal WarningHeader :=
+noncomputable instance WarningHeader.zero_val [GooseExts] : ZeroVal WarningHeader :=
   ⟨WarningHeader.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def WarningHeader.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def WarningHeader.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Code" go.int),
 (go.field_decl.FieldDecl go!"Agent" go.string),
 (go.field_decl.FieldDecl go!"Text" go.string)]
 
-@[irreducible] noncomputable def WarningHeader.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def WarningHeader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WarningHeader.fieldsUnsealed
 
-noncomputable instance equals_unfold_WarningHeader [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_WarningHeader [GooseExts] [GoGlobalContext] :
     EqualsUnfold WarningHeader.fields WarningHeader.fieldsUnsealed :=
   ⟨by unfold WarningHeader.fields; rfl⟩
 
-@[reducible] noncomputable def WarningHeader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WarningHeader.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType WarningHeader.fields)
 
-class WarningHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WarningHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WarningHeader.underlying WarningHeader
   underlying : go.UnderlyingDirectedEq WarningHeader.ty WarningHeader.underlying
   get_Code : ∀ (x : WarningHeader), go.IsGoStepPureDetTagged under (StructFieldGet WarningHeader.underlying go!"Code") #x (Val #(x.Code'))
@@ -463,6 +483,8 @@ class WarningHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_Agent : ∀ (x : WarningHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WarningHeader.underlying go!"Agent") (PairV #x #y) (Val #(({ x with Agent' := y } : WarningHeader)))
   get_Text : ∀ (x : WarningHeader), go.IsGoStepPureDetTagged under (StructFieldGet WarningHeader.underlying go!"Text") #x (Val #(x.Text'))
   set_Text : ∀ (x : WarningHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WarningHeader.underlying go!"Text") (PairV #x #y) (Val #(({ x with Text' := y } : WarningHeader)))
+  method_set : go.MethodSetIs WarningHeader.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WarningHeader.ty) []
 
 attribute [instance] WarningHeader.TypeAssumptions.type_repr
   WarningHeader.TypeAssumptions.underlying
@@ -472,152 +494,184 @@ attribute [instance] WarningHeader.TypeAssumptions.type_repr
   WarningHeader.TypeAssumptions.set_Agent
   WarningHeader.TypeAssumptions.get_Text
   WarningHeader.TypeAssumptions.set_Text
+  WarningHeader.TypeAssumptions.method_set
+  WarningHeader.TypeAssumptions.ptr_method_set
 
-abbrev AddressFamily [FfiSyntax] : Type := w64
+abbrev AddressFamily [GooseExts] : Type := w64
 
-@[reducible] noncomputable def AddressFamily.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AddressFamily.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint
 
-class AddressFamily.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AddressFamily.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AddressFamily.ty AddressFamily.underlying
+  method_set : go.MethodSetIs AddressFamily.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AddressFamily.ty) []
 
 attribute [instance] AddressFamily.TypeAssumptions.underlying
+  AddressFamily.TypeAssumptions.method_set
+  AddressFamily.TypeAssumptions.ptr_method_set
 
-abbrev AddressFamilyPreference [FfiSyntax] : Type := GoSlice
+abbrev AddressFamilyPreference [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def AddressFamilyPreference.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AddressFamilyPreference.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType AddressFamily.ty)
 
-class AddressFamilyPreference.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AddressFamilyPreference.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AddressFamilyPreference.ty AddressFamilyPreference.underlying
+  method_set : go.MethodSetIs AddressFamilyPreference.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AddressFamilyPreference.ty) []
 
 attribute [instance] AddressFamilyPreference.TypeAssumptions.underlying
+  AddressFamilyPreference.TypeAssumptions.method_set
+  AddressFamilyPreference.TypeAssumptions.ptr_method_set
 
 axiom Route : Type
 axiom Route.zero_val : ZeroVal Route
 attribute [instance] Route.zero_val
 
-class Route.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Route.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Route.underlying Route
   underlying : go.UnderlyingDirectedEq Route.ty Route.underlying
   isUnderlying : go.IsUnderlying Route.underlying Route.underlying
+  method_set : go.MethodSetIs Route.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Route.ty) []
 
 attribute [instance] Route.TypeAssumptions.type_repr
   Route.TypeAssumptions.underlying
   Route.TypeAssumptions.isUnderlying
+  Route.TypeAssumptions.method_set
+  Route.TypeAssumptions.ptr_method_set
 
 axiom RouteFile : Type
 axiom RouteFile.zero_val : ZeroVal RouteFile
 attribute [instance] RouteFile.zero_val
 
-class RouteFile.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RouteFile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RouteFile.underlying RouteFile
   underlying : go.UnderlyingDirectedEq RouteFile.ty RouteFile.underlying
   isUnderlying : go.IsUnderlying RouteFile.underlying RouteFile.underlying
+  method_set : go.MethodSetIs RouteFile.ty [(go!"k8s.io/apimachinery/pkg/util/net.extract", (some (go.signature.Signature [] false [(go.GoType.SliceType Route.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RouteFile.ty) [(go!"k8s.io/apimachinery/pkg/util/net.extract", (some (go.signature.Signature [] false [(go.GoType.SliceType Route.ty), go.error])))]
 
 attribute [instance] RouteFile.TypeAssumptions.type_repr
   RouteFile.TypeAssumptions.underlying
   RouteFile.TypeAssumptions.isUnderlying
+  RouteFile.TypeAssumptions.method_set
+  RouteFile.TypeAssumptions.ptr_method_set
 
-structure noRoutesError [FfiSyntax] where
+structure noRoutesError [GooseExts] where
   mk ::
   message' : GoString
 
-noncomputable instance noRoutesError.zero_val [FfiSyntax] : ZeroVal noRoutesError :=
+noncomputable instance noRoutesError.zero_val [GooseExts] : ZeroVal noRoutesError :=
   ⟨noRoutesError.mk zeroValDef⟩
 
-@[reducible] noncomputable def noRoutesError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noRoutesError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"message" go.string)]
 
-@[irreducible] noncomputable def noRoutesError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noRoutesError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noRoutesError.fieldsUnsealed
 
-noncomputable instance equals_unfold_noRoutesError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noRoutesError [GooseExts] [GoGlobalContext] :
     EqualsUnfold noRoutesError.fields noRoutesError.fieldsUnsealed :=
   ⟨by unfold noRoutesError.fields; rfl⟩
 
-@[reducible] noncomputable def noRoutesError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noRoutesError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noRoutesError.fields)
 
-class noRoutesError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noRoutesError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noRoutesError.underlying noRoutesError
   underlying : go.UnderlyingDirectedEq noRoutesError.ty noRoutesError.underlying
   get_message : ∀ (x : noRoutesError), go.IsGoStepPureDetTagged under (StructFieldGet noRoutesError.underlying go!"message") #x (Val #(x.message'))
   set_message : ∀ (x : noRoutesError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet noRoutesError.underlying go!"message") (PairV #x #y) (Val #(({ x with message' := y } : noRoutesError)))
+  method_set : go.MethodSetIs noRoutesError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noRoutesError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] noRoutesError.TypeAssumptions.type_repr
   noRoutesError.TypeAssumptions.underlying
   noRoutesError.TypeAssumptions.get_message
   noRoutesError.TypeAssumptions.set_message
+  noRoutesError.TypeAssumptions.method_set
+  noRoutesError.TypeAssumptions.ptr_method_set
 
 axiom networkInterfacer : Type
 axiom networkInterfacer.zero_val : ZeroVal networkInterfacer
 attribute [instance] networkInterfacer.zero_val
 
-class networkInterfacer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class networkInterfacer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying networkInterfacer.underlying networkInterfacer
   underlying : go.UnderlyingDirectedEq networkInterfacer.ty networkInterfacer.underlying
   isUnderlying : go.IsUnderlying networkInterfacer.underlying networkInterfacer.underlying
+  method_set : go.MethodSetIs networkInterfacer.ty [(go!"Addrs", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net.Interface" []))] false [(go.GoType.SliceType (go.GoType.Named go!"net.Addr" [])), go.error]))), (go!"InterfaceByName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"net.Interface" [])), go.error]))), (go!"Interfaces", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"net.Interface" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType networkInterfacer.ty) []
 
 attribute [instance] networkInterfacer.TypeAssumptions.type_repr
   networkInterfacer.TypeAssumptions.underlying
   networkInterfacer.TypeAssumptions.isUnderlying
+  networkInterfacer.TypeAssumptions.method_set
+  networkInterfacer.TypeAssumptions.ptr_method_set
 
-structure networkInterface [FfiSyntax] where
+structure networkInterface [GooseExts] where
   mk ::
 
-noncomputable instance networkInterface.zero_val [FfiSyntax] : ZeroVal networkInterface :=
+noncomputable instance networkInterface.zero_val [GooseExts] : ZeroVal networkInterface :=
   ⟨networkInterface.mk⟩
 
-@[reducible] noncomputable def networkInterface.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def networkInterface.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def networkInterface.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def networkInterface.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   networkInterface.fieldsUnsealed
 
-noncomputable instance equals_unfold_networkInterface [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_networkInterface [GooseExts] [GoGlobalContext] :
     EqualsUnfold networkInterface.fields networkInterface.fieldsUnsealed :=
   ⟨by unfold networkInterface.fields; rfl⟩
 
-@[reducible] noncomputable def networkInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def networkInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType networkInterface.fields)
 
-class networkInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class networkInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying networkInterface.underlying networkInterface
   underlying : go.UnderlyingDirectedEq networkInterface.ty networkInterface.underlying
+  method_set : go.MethodSetIs networkInterface.ty [(go!"Addrs", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net.Interface" []))] false [(go.GoType.SliceType (go.GoType.Named go!"net.Addr" [])), go.error]))), (go!"InterfaceByName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"net.Interface" [])), go.error]))), (go!"Interfaces", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"net.Interface" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType networkInterface.ty) [(go!"Addrs", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net.Interface" []))] false [(go.GoType.SliceType (go.GoType.Named go!"net.Addr" [])), go.error]))), (go!"InterfaceByName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"net.Interface" [])), go.error]))), (go!"Interfaces", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"net.Interface" [])), go.error])))]
 
 attribute [instance] networkInterface.TypeAssumptions.type_repr
   networkInterface.TypeAssumptions.underlying
+  networkInterface.TypeAssumptions.method_set
+  networkInterface.TypeAssumptions.ptr_method_set
 
-structure PortRange [FfiSyntax] where
+structure PortRange [GooseExts] where
   mk ::
   Base' : w64
   Size' : w64
 
-noncomputable instance PortRange.zero_val [FfiSyntax] : ZeroVal PortRange :=
+noncomputable instance PortRange.zero_val [GooseExts] : ZeroVal PortRange :=
   ⟨PortRange.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PortRange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PortRange.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Base" go.int),
 (go.field_decl.FieldDecl go!"Size" go.int)]
 
-@[irreducible] noncomputable def PortRange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PortRange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PortRange.fieldsUnsealed
 
-noncomputable instance equals_unfold_PortRange [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PortRange [GooseExts] [GoGlobalContext] :
     EqualsUnfold PortRange.fields PortRange.fieldsUnsealed :=
   ⟨by unfold PortRange.fields; rfl⟩
 
-@[reducible] noncomputable def PortRange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PortRange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PortRange.fields)
 
-class PortRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PortRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PortRange.underlying PortRange
   underlying : go.UnderlyingDirectedEq PortRange.ty PortRange.underlying
   get_Base : ∀ (x : PortRange), go.IsGoStepPureDetTagged under (StructFieldGet PortRange.underlying go!"Base") #x (Val #(x.Base'))
   set_Base : ∀ (x : PortRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PortRange.underlying go!"Base") (PairV #x #y) (Val #(({ x with Base' := y } : PortRange)))
   get_Size : ∀ (x : PortRange), go.IsGoStepPureDetTagged under (StructFieldGet PortRange.underlying go!"Size") #x (Val #(x.Size'))
   set_Size : ∀ (x : PortRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PortRange.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : PortRange)))
+  method_set : go.MethodSetIs PortRange.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PortRange.ty) [(go!"Contains", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] PortRange.TypeAssumptions.type_repr
   PortRange.TypeAssumptions.underlying
@@ -625,8 +679,10 @@ attribute [instance] PortRange.TypeAssumptions.type_repr
   PortRange.TypeAssumptions.set_Base
   PortRange.TypeAssumptions.get_Size
   PortRange.TypeAssumptions.set_Size
+  PortRange.TypeAssumptions.method_set
+  PortRange.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RoundTripperWrapper_instance : RoundTripperWrapper.TypeAssumptions
   DialFunc_instance : DialFunc.TypeAssumptions
   TLSClientConfigHolder_instance : TLSClientConfigHolder.TypeAssumptions

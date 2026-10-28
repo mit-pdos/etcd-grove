@@ -110,7 +110,7 @@ def ApplyOut.waived : ApplyOut → Bool
 
 /-- **What `apply.Apply` does to the rest buckets and the cluster's members** (D22, 2026-10-23):
 a dispatched request's `restAfter`; a skipped or rejected one nothing. -/
-def restOut [FfiSyntax] (rq : IRRModel) (v3 : Bool) : ApplyOut → RestM → RestM
+def restOut [GooseExts] (rq : IRRModel) (v3 : Bool) : ApplyOut → RestM → RestM
   | .dispatched _ _, r => restAfter rq v3 r
   | _, r => r
 
@@ -130,7 +130,7 @@ def applyFloorOk (rq : IRRModel) (v3 : Bool) (F log : mvcc.Log) : ApplyOut → P
   | _ => True
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -153,6 +153,21 @@ instance applyAuthRes_persistent (M : auth.AuthMode) (c : Chain) (rq : IRRModel)
 
 /-! ## The uber-applier in the heap -/
 
+/-- **The base applier `a`'s auth layer** (the auth plan's E3k, 2026-10-27; persistent): an
+`*authApplierV3` `pa` (`authIs`) over an applier of the quota-over-backend chain, its `as` and
+`lessor` fields the options' auth store and lessor: what its KV triples at the latest state
+(`applierKVL_auth`, E2y) are built from (`uberKVL_of_base`). -/
+def baseAuth (E : AEnv GF) (opts : ApplierOptions) (a : GoInterface) : IProp GF :=
+  iprop(∃ (pa : Loc) (inner : GoInterface),
+    ⌜a = interface.mkOk (go.GoType.PointerType authApplierV3.ty) #pa⌝ ∗ authIs E pa inner ∗
+    applierSpec E (.quota .backend) inner ∗
+    structFieldRef authApplierV3 go!"as" pa ↦□ opts.AuthStore' ∗
+    structFieldRef authApplierV3 go!"lessor" pa ↦□ opts.Lessor')
+
+instance baseAuth_persistent (E : AEnv GF) (opts : ApplierOptions) (a : GoInterface) :
+    Persistent (baseAuth E opts a) := by
+  unfold baseAuth; infer_instance
+
 /-- **The `*uberApplier` `p`, persistently**: the fields `NewUberApplier` wrote from the options
 `opts` (whose contracts hold in `E`), the base chain's applier (`newApplierV3`'s). -/
 def uberIs (E : AEnv GF) (p : Loc) (opts : ApplierOptions) : IProp GF :=
@@ -162,8 +177,10 @@ def uberIs (E : AEnv GF) (p : Loc) (opts : ApplierOptions) : IProp GF :=
     structFieldRef uberApplier go!"warningApplyDuration" p ↦□ opts.WarningApplyDuration' ∗
     ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
       applierSpec E (baseChain E.authOn) base ∗
-      -- (the auth plan's E2m) its shape, for its admin triples (`applierAdmin_base`)
-      baseShape opts base)
+      -- (the auth plan's E2m) its shape, for its admin triples (`applierAdmin_baseX`)
+      baseShape opts base ∗
+      -- (the auth plan's E3k) its auth layer, for its KV triples at the latest state
+      baseAuth E opts base)
 
 instance uberIs_persistent (E : AEnv GF) (p : Loc) (opts : ApplierOptions) :
     Persistent (uberIs E p opts) := by
@@ -171,7 +188,7 @@ instance uberIs_persistent (E : AEnv GF) (p : Loc) (opts : ApplierOptions) :
 
 /-- **The current applier's shape** (the auth plan's E2o, 2026-10-26; persistent): the chain
 `c` is `restoreAlarms`' for some alarms (`alarmChain`), and the applier `a` is the base applier
-(`applyV3base`) wrapped as those alarms ask (`alarmShape`), what `applierAdmin_cur`
+(`applyV3base`) wrapped as those alarms ask (`alarmShape`), what `applierAdmin_curG`
 (`AdminChain.lean`) needs to lift the base's admin triples to it. `dispatch` never changes the
 current applier (no alarm request is admitted, `rqOk`), so this is fixed after `NewUberApplier`. -/
 def uberShape (E : AEnv GF) (p : Loc) (c : Chain) (a : GoInterface) : IProp GF :=
@@ -219,8 +236,10 @@ instance resultErrOk_persistent (ar : Loc) : Persistent (resultErrOk (GF := GF) 
 
 /-- **The answer in `dispatch`'s result** to `rq` at `log` (`resp`, `err`: the `Result`'s `Resp`
 and `Err`), for the outcome `o`: a KV request's or a revocation's, unit 1's outcome predicates
-at the response's pointer; a request of the first `switch`, no response and no error; the others,
-nothing (the triples of `applierSpec` say nothing of their answers). -/
+at the response's pointer; a request of the first `switch`, no response and no error; an
+admin request the mode `on` admits (`adminKindOk`; E3w, 2026-10-27), a response of its type (what
+its entry point asserts); the others, nothing (the triples of `applierSpec` say nothing of their
+answers). -/
 def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : GoInterface)
     (o : Outcome) : IProp GF :=
   match dispatchKind rq with
@@ -241,6 +260,16 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
       revokeOutcomeIs r err o)
   | .clusterVersionSet | .clusterMemberAttrSet | .downgradeInfoSet | .downgradeVersionTest =>
       iprop(⌜resp = GoInterface.nil ∧ err = GoInterface.nil⌝)
+  | .authEnable => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableResponse.ty) #r⌝)
+  | .authUserAdd => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddResponse.ty) #r⌝)
+  | .authRoleAdd => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddResponse.ty) #r⌝)
+  | .authUserGrantRole => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleResponse.ty) #r⌝)
+  | .authRoleGrantPermission => iprop(∃ r : Loc, ⌜resp =
+      interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r⌝)
   | _ => iprop(True)
 
 /-- **`dispatch`'s result** `ar`: without `v3`, `nil` (but for the first `switch`'s requests);

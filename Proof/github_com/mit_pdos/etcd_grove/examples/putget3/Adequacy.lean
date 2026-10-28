@@ -34,7 +34,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.TrivialExt
 
 @[expose] public section
 
@@ -49,13 +49,12 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 
 /-! ## The ghost-state bundle -/
 
 /-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state, and the disk FFI's
-heap. Every other slot is the unit functor. -/
+invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
 def putget3GF : BundledGFunctors := fun i =>
   match i with
   | 0 => ⟨AllURF, inferInstance⟩
@@ -67,27 +66,23 @@ def putget3GF : BundledGFunctors := fun i =>
   | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
           inferInstance⟩
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 8 => ⟨constOF (HeapView Int (Agree (DiscreteO Block)) (GMap Int)), inferInstance⟩
-  | 9 => ⟨constOF (HeapView Int (Agree (DiscreteO GName)) (GMap Int)), inferInstance⟩
-  | 10 => ⟨constOF MetaUR, inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def putget3GF_allG : AllG putget3GF := ⟨⟨0, rfl⟩⟩
 
-instance putget3GF_gooseGpreS : GooseGpreS disk_model putget3GF where
+instance putget3GF_gooseGpreS : GooseGpreS putget3GF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGFfi := (⟨⟨⟨⟨8, rfl⟩⟩, ⟨⟨9, rfl⟩⟩, ⟨10, rfl⟩⟩⟩ : DiskPreG putget3GF)
+  goosePreGExts := ((), PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putget3GF_allG
 
 /-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
 every instance of the ghost state whose Go local context is the semantics' own). -/
 abbrev heapAt3 (hG : HeapGS .hasLC putget3GF) (lctx : GoLocalContext) : HeapGS .hasLC putget3GF :=
-  ⟨hG.goose_globalGS, ⟨hG.goose_localGS.gooseFfiLocalGS, lctx,
-    hG.goose_localGS.goose_na_heapGS, hG.goose_localGS.goose_go_stateGS⟩⟩
+  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-! ## The closed theorem -/
 
@@ -115,22 +110,20 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.putget3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [ErrorStringNotWriter] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
-    [context.DeadlineExceededIsError] [log.NewModel]
+    [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putget3GF, ContextReadErrs (GF := putget3GF) (hG := heapAt3 hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putget3GF, ContextErrsClient (GF := putget3GF) (hG := heapAt3 hG lctx))
-    (Hms : v3rpc.ServerMethodSets)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : putget3.BootFacts id₁ id₂ id₃ bootLog)
+    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : putget3.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
-      ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ bootLog)
+      ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putget3Program], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
@@ -139,7 +132,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine etcd_adequate (GF := putget3GF) github_com.mit_pdos.etcd_grove.examples.putget3.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.putget3.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) σ g trivial trivial Hlctx Hinit Hthreads HNs HAs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putget3GF := heapAt3 hG lctx
   haveI := Hctx hG
@@ -151,8 +144,8 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   simp only [putget3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Has with ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩
   icases Hps with ⟨Hf₁, Hf₂, Hf₃, -, -⟩
-  have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ bootLog Hbf (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
+  have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ ctxs boot Hbf (by rw [HT]; omega)
+    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok]
   · iframe; iframe #
   ipureintro

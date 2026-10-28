@@ -20,196 +20,196 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.extensions.v1beta1
 
-noncomputable def DaemonSetsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.DaemonSetsGetter" [])
 
 attribute [irreducible] DaemonSetsGetter.ty
 
-noncomputable def DaemonSetInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.DaemonSetInterface" [])
 
 attribute [irreducible] DaemonSetInterface.ty
 
-noncomputable def daemonSets.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def daemonSets.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.daemonSets" [])
 
 attribute [irreducible] daemonSets.ty
 
-noncomputable def DeploymentsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.DeploymentsGetter" [])
 
 attribute [irreducible] DeploymentsGetter.ty
 
-noncomputable def DeploymentInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.DeploymentInterface" [])
 
 attribute [irreducible] DeploymentInterface.ty
 
-noncomputable def deployments.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def deployments.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.deployments" [])
 
 attribute [irreducible] deployments.ty
 
-noncomputable def DeploymentExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.DeploymentExpansion" [])
 
 attribute [irreducible] DeploymentExpansion.ty
 
-noncomputable def ExtensionsV1beta1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionsV1beta1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.ExtensionsV1beta1Interface" [])
 
 attribute [irreducible] ExtensionsV1beta1Interface.ty
 
-noncomputable def ExtensionsV1beta1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionsV1beta1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.ExtensionsV1beta1Client" [])
 
 attribute [irreducible] ExtensionsV1beta1Client.ty
 
-noncomputable def DaemonSetExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.DaemonSetExpansion" [])
 
 attribute [irreducible] DaemonSetExpansion.ty
 
-noncomputable def IngressExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IngressExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.IngressExpansion" [])
 
 attribute [irreducible] IngressExpansion.ty
 
-noncomputable def NetworkPolicyExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NetworkPolicyExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.NetworkPolicyExpansion" [])
 
 attribute [irreducible] NetworkPolicyExpansion.ty
 
-noncomputable def ReplicaSetExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.ReplicaSetExpansion" [])
 
 attribute [irreducible] ReplicaSetExpansion.ty
 
-noncomputable def IngressesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IngressesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.IngressesGetter" [])
 
 attribute [irreducible] IngressesGetter.ty
 
-noncomputable def IngressInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IngressInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.IngressInterface" [])
 
 attribute [irreducible] IngressInterface.ty
 
-noncomputable def ingresses.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ingresses.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.ingresses" [])
 
 attribute [irreducible] ingresses.ty
 
-noncomputable def NetworkPoliciesGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NetworkPoliciesGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.NetworkPoliciesGetter" [])
 
 attribute [irreducible] NetworkPoliciesGetter.ty
 
-noncomputable def NetworkPolicyInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NetworkPolicyInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.NetworkPolicyInterface" [])
 
 attribute [irreducible] NetworkPolicyInterface.ty
 
-noncomputable def networkPolicies.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def networkPolicies.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.networkPolicies" [])
 
 attribute [irreducible] networkPolicies.ty
 
-noncomputable def ReplicaSetsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.ReplicaSetsGetter" [])
 
 attribute [irreducible] ReplicaSetsGetter.ty
 
-noncomputable def ReplicaSetInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.ReplicaSetInterface" [])
 
 attribute [irreducible] ReplicaSetInterface.ty
 
-noncomputable def replicaSets.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def replicaSets.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.replicaSets" [])
 
 attribute [irreducible] replicaSets.ty
 
-axiom DaemonSetsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DaemonSetsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DaemonSetInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom daemonSets.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom daemonSets.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeploymentsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeploymentInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deployments.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom deployments.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeploymentExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionsV1beta1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionsV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionsV1beta1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionsV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DaemonSetExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom IngressExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkPolicyExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom NetworkPolicyExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicaSetExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom IngressesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom IngressInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ingresses.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ingresses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkPoliciesGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom NetworkPoliciesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkPolicyInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom NetworkPolicyInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom networkPolicies.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom networkPolicies.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicaSetsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplicaSetInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom replicaSets.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom replicaSets.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def newDaemonSets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newDaemonSets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.newDaemonSets"
 
-noncomputable def newDeployments [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newDeployments [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.newDeployments"
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.setConfigDefaults"
 
-noncomputable def newIngresses [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newIngresses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.newIngresses"
 
-noncomputable def newNetworkPolicies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newNetworkPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.newNetworkPolicies"
 
-noncomputable def newReplicaSets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newReplicaSets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.newReplicaSets"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.extensions.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.extensions.v1beta1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -220,289 +220,377 @@ axiom DaemonSetsGetter : Type
 axiom DaemonSetsGetter.zero_val : ZeroVal DaemonSetsGetter
 attribute [instance] DaemonSetsGetter.zero_val
 
-class DaemonSetsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetsGetter.underlying DaemonSetsGetter
   underlying : go.UnderlyingDirectedEq DaemonSetsGetter.ty DaemonSetsGetter.underlying
   isUnderlying : go.IsUnderlying DaemonSetsGetter.underlying DaemonSetsGetter.underlying
+  method_set : go.MethodSetIs DaemonSetsGetter.ty [(go!"DaemonSets", (some (go.signature.Signature [go.string] false [DaemonSetInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetsGetter.ty) []
 
 attribute [instance] DaemonSetsGetter.TypeAssumptions.type_repr
   DaemonSetsGetter.TypeAssumptions.underlying
   DaemonSetsGetter.TypeAssumptions.isUnderlying
+  DaemonSetsGetter.TypeAssumptions.method_set
+  DaemonSetsGetter.TypeAssumptions.ptr_method_set
 
 axiom DaemonSetInterface : Type
 axiom DaemonSetInterface.zero_val : ZeroVal DaemonSetInterface
 attribute [instance] DaemonSetInterface.zero_val
 
-class DaemonSetInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetInterface.underlying DaemonSetInterface
   underlying : go.UnderlyingDirectedEq DaemonSetInterface.ty DaemonSetInterface.underlying
   isUnderlying : go.IsUnderlying DaemonSetInterface.underlying DaemonSetInterface.underlying
+  method_set : go.MethodSetIs DaemonSetInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DaemonSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DaemonSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetInterface.ty) []
 
 attribute [instance] DaemonSetInterface.TypeAssumptions.type_repr
   DaemonSetInterface.TypeAssumptions.underlying
   DaemonSetInterface.TypeAssumptions.isUnderlying
+  DaemonSetInterface.TypeAssumptions.method_set
+  DaemonSetInterface.TypeAssumptions.ptr_method_set
 
 axiom daemonSets : Type
 axiom daemonSets.zero_val : ZeroVal daemonSets
 attribute [instance] daemonSets.zero_val
 
-class daemonSets.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class daemonSets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying daemonSets.underlying daemonSets
   underlying : go.UnderlyingDirectedEq daemonSets.ty daemonSets.underlying
   isUnderlying : go.IsUnderlying daemonSets.underlying daemonSets.underlying
+  method_set : go.MethodSetIs daemonSets.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DaemonSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DaemonSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType daemonSets.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DaemonSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DaemonSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DaemonSet" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] daemonSets.TypeAssumptions.type_repr
   daemonSets.TypeAssumptions.underlying
   daemonSets.TypeAssumptions.isUnderlying
+  daemonSets.TypeAssumptions.method_set
+  daemonSets.TypeAssumptions.ptr_method_set
 
 axiom DeploymentsGetter : Type
 axiom DeploymentsGetter.zero_val : ZeroVal DeploymentsGetter
 attribute [instance] DeploymentsGetter.zero_val
 
-class DeploymentsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentsGetter.underlying DeploymentsGetter
   underlying : go.UnderlyingDirectedEq DeploymentsGetter.ty DeploymentsGetter.underlying
   isUnderlying : go.IsUnderlying DeploymentsGetter.underlying DeploymentsGetter.underlying
+  method_set : go.MethodSetIs DeploymentsGetter.ty [(go!"Deployments", (some (go.signature.Signature [go.string] false [DeploymentInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentsGetter.ty) []
 
 attribute [instance] DeploymentsGetter.TypeAssumptions.type_repr
   DeploymentsGetter.TypeAssumptions.underlying
   DeploymentsGetter.TypeAssumptions.isUnderlying
+  DeploymentsGetter.TypeAssumptions.method_set
+  DeploymentsGetter.TypeAssumptions.ptr_method_set
 
 axiom DeploymentInterface : Type
 axiom DeploymentInterface.zero_val : ZeroVal DeploymentInterface
 attribute [instance] DeploymentInterface.zero_val
 
-class DeploymentInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentInterface.underlying DeploymentInterface
   underlying : go.UnderlyingDirectedEq DeploymentInterface.ty DeploymentInterface.underlying
   isUnderlying : go.IsUnderlying DeploymentInterface.underlying DeploymentInterface.underlying
+  method_set : go.MethodSetIs DeploymentInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DeploymentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"ApplyScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ScaleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DeploymentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"GetScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DeploymentList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Rollback", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DeploymentRollback" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"UpdateScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentInterface.ty) []
 
 attribute [instance] DeploymentInterface.TypeAssumptions.type_repr
   DeploymentInterface.TypeAssumptions.underlying
   DeploymentInterface.TypeAssumptions.isUnderlying
+  DeploymentInterface.TypeAssumptions.method_set
+  DeploymentInterface.TypeAssumptions.ptr_method_set
 
 axiom deployments : Type
 axiom deployments.zero_val : ZeroVal deployments
 attribute [instance] deployments.zero_val
 
-class deployments.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class deployments.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deployments.underlying deployments
   underlying : go.UnderlyingDirectedEq deployments.ty deployments.underlying
   isUnderlying : go.IsUnderlying deployments.underlying deployments.underlying
+  method_set : go.MethodSetIs deployments.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DeploymentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DeploymentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DeploymentList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType deployments.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DeploymentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"ApplyScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ScaleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.DeploymentApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DeploymentList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Rollback", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DeploymentRollback" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"UpdateScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Deployment" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] deployments.TypeAssumptions.type_repr
   deployments.TypeAssumptions.underlying
   deployments.TypeAssumptions.isUnderlying
+  deployments.TypeAssumptions.method_set
+  deployments.TypeAssumptions.ptr_method_set
 
 axiom DeploymentExpansion : Type
 axiom DeploymentExpansion.zero_val : ZeroVal DeploymentExpansion
 attribute [instance] DeploymentExpansion.zero_val
 
-class DeploymentExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentExpansion.underlying DeploymentExpansion
   underlying : go.UnderlyingDirectedEq DeploymentExpansion.ty DeploymentExpansion.underlying
   isUnderlying : go.IsUnderlying DeploymentExpansion.underlying DeploymentExpansion.underlying
+  method_set : go.MethodSetIs DeploymentExpansion.ty [(go!"Rollback", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.DeploymentRollback" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentExpansion.ty) []
 
 attribute [instance] DeploymentExpansion.TypeAssumptions.type_repr
   DeploymentExpansion.TypeAssumptions.underlying
   DeploymentExpansion.TypeAssumptions.isUnderlying
+  DeploymentExpansion.TypeAssumptions.method_set
+  DeploymentExpansion.TypeAssumptions.ptr_method_set
 
 axiom ExtensionsV1beta1Interface : Type
 axiom ExtensionsV1beta1Interface.zero_val : ZeroVal ExtensionsV1beta1Interface
 attribute [instance] ExtensionsV1beta1Interface.zero_val
 
-class ExtensionsV1beta1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExtensionsV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExtensionsV1beta1Interface.underlying ExtensionsV1beta1Interface
   underlying : go.UnderlyingDirectedEq ExtensionsV1beta1Interface.ty ExtensionsV1beta1Interface.underlying
   isUnderlying : go.IsUnderlying ExtensionsV1beta1Interface.underlying ExtensionsV1beta1Interface.underlying
+  method_set : go.MethodSetIs ExtensionsV1beta1Interface.ty [(go!"DaemonSets", (some (go.signature.Signature [go.string] false [DaemonSetInterface.ty]))), (go!"Deployments", (some (go.signature.Signature [go.string] false [DeploymentInterface.ty]))), (go!"Ingresses", (some (go.signature.Signature [go.string] false [IngressInterface.ty]))), (go!"NetworkPolicies", (some (go.signature.Signature [go.string] false [NetworkPolicyInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ReplicaSets", (some (go.signature.Signature [go.string] false [ReplicaSetInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExtensionsV1beta1Interface.ty) []
 
 attribute [instance] ExtensionsV1beta1Interface.TypeAssumptions.type_repr
   ExtensionsV1beta1Interface.TypeAssumptions.underlying
   ExtensionsV1beta1Interface.TypeAssumptions.isUnderlying
+  ExtensionsV1beta1Interface.TypeAssumptions.method_set
+  ExtensionsV1beta1Interface.TypeAssumptions.ptr_method_set
 
 axiom ExtensionsV1beta1Client : Type
 axiom ExtensionsV1beta1Client.zero_val : ZeroVal ExtensionsV1beta1Client
 attribute [instance] ExtensionsV1beta1Client.zero_val
 
-class ExtensionsV1beta1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExtensionsV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExtensionsV1beta1Client.underlying ExtensionsV1beta1Client
   underlying : go.UnderlyingDirectedEq ExtensionsV1beta1Client.ty ExtensionsV1beta1Client.underlying
   isUnderlying : go.IsUnderlying ExtensionsV1beta1Client.underlying ExtensionsV1beta1Client.underlying
+  method_set : go.MethodSetIs ExtensionsV1beta1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExtensionsV1beta1Client.ty) [(go!"DaemonSets", (some (go.signature.Signature [go.string] false [DaemonSetInterface.ty]))), (go!"Deployments", (some (go.signature.Signature [go.string] false [DeploymentInterface.ty]))), (go!"Ingresses", (some (go.signature.Signature [go.string] false [IngressInterface.ty]))), (go!"NetworkPolicies", (some (go.signature.Signature [go.string] false [NetworkPolicyInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ReplicaSets", (some (go.signature.Signature [go.string] false [ReplicaSetInterface.ty])))]
 
 attribute [instance] ExtensionsV1beta1Client.TypeAssumptions.type_repr
   ExtensionsV1beta1Client.TypeAssumptions.underlying
   ExtensionsV1beta1Client.TypeAssumptions.isUnderlying
+  ExtensionsV1beta1Client.TypeAssumptions.method_set
+  ExtensionsV1beta1Client.TypeAssumptions.ptr_method_set
 
 axiom DaemonSetExpansion : Type
 axiom DaemonSetExpansion.zero_val : ZeroVal DaemonSetExpansion
 attribute [instance] DaemonSetExpansion.zero_val
 
-class DaemonSetExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetExpansion.underlying DaemonSetExpansion
   underlying : go.UnderlyingDirectedEq DaemonSetExpansion.ty DaemonSetExpansion.underlying
   isUnderlying : go.IsUnderlying DaemonSetExpansion.underlying DaemonSetExpansion.underlying
+  method_set : go.MethodSetIs DaemonSetExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetExpansion.ty) []
 
 attribute [instance] DaemonSetExpansion.TypeAssumptions.type_repr
   DaemonSetExpansion.TypeAssumptions.underlying
   DaemonSetExpansion.TypeAssumptions.isUnderlying
+  DaemonSetExpansion.TypeAssumptions.method_set
+  DaemonSetExpansion.TypeAssumptions.ptr_method_set
 
 axiom IngressExpansion : Type
 axiom IngressExpansion.zero_val : ZeroVal IngressExpansion
 attribute [instance] IngressExpansion.zero_val
 
-class IngressExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class IngressExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressExpansion.underlying IngressExpansion
   underlying : go.UnderlyingDirectedEq IngressExpansion.ty IngressExpansion.underlying
   isUnderlying : go.IsUnderlying IngressExpansion.underlying IngressExpansion.underlying
+  method_set : go.MethodSetIs IngressExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressExpansion.ty) []
 
 attribute [instance] IngressExpansion.TypeAssumptions.type_repr
   IngressExpansion.TypeAssumptions.underlying
   IngressExpansion.TypeAssumptions.isUnderlying
+  IngressExpansion.TypeAssumptions.method_set
+  IngressExpansion.TypeAssumptions.ptr_method_set
 
 axiom NetworkPolicyExpansion : Type
 axiom NetworkPolicyExpansion.zero_val : ZeroVal NetworkPolicyExpansion
 attribute [instance] NetworkPolicyExpansion.zero_val
 
-class NetworkPolicyExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NetworkPolicyExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NetworkPolicyExpansion.underlying NetworkPolicyExpansion
   underlying : go.UnderlyingDirectedEq NetworkPolicyExpansion.ty NetworkPolicyExpansion.underlying
   isUnderlying : go.IsUnderlying NetworkPolicyExpansion.underlying NetworkPolicyExpansion.underlying
+  method_set : go.MethodSetIs NetworkPolicyExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NetworkPolicyExpansion.ty) []
 
 attribute [instance] NetworkPolicyExpansion.TypeAssumptions.type_repr
   NetworkPolicyExpansion.TypeAssumptions.underlying
   NetworkPolicyExpansion.TypeAssumptions.isUnderlying
+  NetworkPolicyExpansion.TypeAssumptions.method_set
+  NetworkPolicyExpansion.TypeAssumptions.ptr_method_set
 
 axiom ReplicaSetExpansion : Type
 axiom ReplicaSetExpansion.zero_val : ZeroVal ReplicaSetExpansion
 attribute [instance] ReplicaSetExpansion.zero_val
 
-class ReplicaSetExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetExpansion.underlying ReplicaSetExpansion
   underlying : go.UnderlyingDirectedEq ReplicaSetExpansion.ty ReplicaSetExpansion.underlying
   isUnderlying : go.IsUnderlying ReplicaSetExpansion.underlying ReplicaSetExpansion.underlying
+  method_set : go.MethodSetIs ReplicaSetExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetExpansion.ty) []
 
 attribute [instance] ReplicaSetExpansion.TypeAssumptions.type_repr
   ReplicaSetExpansion.TypeAssumptions.underlying
   ReplicaSetExpansion.TypeAssumptions.isUnderlying
+  ReplicaSetExpansion.TypeAssumptions.method_set
+  ReplicaSetExpansion.TypeAssumptions.ptr_method_set
 
 axiom IngressesGetter : Type
 axiom IngressesGetter.zero_val : ZeroVal IngressesGetter
 attribute [instance] IngressesGetter.zero_val
 
-class IngressesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class IngressesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressesGetter.underlying IngressesGetter
   underlying : go.UnderlyingDirectedEq IngressesGetter.ty IngressesGetter.underlying
   isUnderlying : go.IsUnderlying IngressesGetter.underlying IngressesGetter.underlying
+  method_set : go.MethodSetIs IngressesGetter.ty [(go!"Ingresses", (some (go.signature.Signature [go.string] false [IngressInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressesGetter.ty) []
 
 attribute [instance] IngressesGetter.TypeAssumptions.type_repr
   IngressesGetter.TypeAssumptions.underlying
   IngressesGetter.TypeAssumptions.isUnderlying
+  IngressesGetter.TypeAssumptions.method_set
+  IngressesGetter.TypeAssumptions.ptr_method_set
 
 axiom IngressInterface : Type
 axiom IngressInterface.zero_val : ZeroVal IngressInterface
 attribute [instance] IngressInterface.zero_val
 
-class IngressInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class IngressInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressInterface.underlying IngressInterface
   underlying : go.UnderlyingDirectedEq IngressInterface.ty IngressInterface.underlying
   isUnderlying : go.IsUnderlying IngressInterface.underlying IngressInterface.underlying
+  method_set : go.MethodSetIs IngressInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.IngressApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.IngressApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.IngressList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressInterface.ty) []
 
 attribute [instance] IngressInterface.TypeAssumptions.type_repr
   IngressInterface.TypeAssumptions.underlying
   IngressInterface.TypeAssumptions.isUnderlying
+  IngressInterface.TypeAssumptions.method_set
+  IngressInterface.TypeAssumptions.ptr_method_set
 
 axiom ingresses : Type
 axiom ingresses.zero_val : ZeroVal ingresses
 attribute [instance] ingresses.zero_val
 
-class ingresses.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ingresses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ingresses.underlying ingresses
   underlying : go.UnderlyingDirectedEq ingresses.ty ingresses.underlying
   isUnderlying : go.IsUnderlying ingresses.underlying ingresses.underlying
+  method_set : go.MethodSetIs ingresses.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.IngressApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.IngressApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.IngressList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ingresses.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.IngressApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.IngressApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.IngressList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Ingress" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] ingresses.TypeAssumptions.type_repr
   ingresses.TypeAssumptions.underlying
   ingresses.TypeAssumptions.isUnderlying
+  ingresses.TypeAssumptions.method_set
+  ingresses.TypeAssumptions.ptr_method_set
 
 axiom NetworkPoliciesGetter : Type
 axiom NetworkPoliciesGetter.zero_val : ZeroVal NetworkPoliciesGetter
 attribute [instance] NetworkPoliciesGetter.zero_val
 
-class NetworkPoliciesGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NetworkPoliciesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NetworkPoliciesGetter.underlying NetworkPoliciesGetter
   underlying : go.UnderlyingDirectedEq NetworkPoliciesGetter.ty NetworkPoliciesGetter.underlying
   isUnderlying : go.IsUnderlying NetworkPoliciesGetter.underlying NetworkPoliciesGetter.underlying
+  method_set : go.MethodSetIs NetworkPoliciesGetter.ty [(go!"NetworkPolicies", (some (go.signature.Signature [go.string] false [NetworkPolicyInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NetworkPoliciesGetter.ty) []
 
 attribute [instance] NetworkPoliciesGetter.TypeAssumptions.type_repr
   NetworkPoliciesGetter.TypeAssumptions.underlying
   NetworkPoliciesGetter.TypeAssumptions.isUnderlying
+  NetworkPoliciesGetter.TypeAssumptions.method_set
+  NetworkPoliciesGetter.TypeAssumptions.ptr_method_set
 
 axiom NetworkPolicyInterface : Type
 axiom NetworkPolicyInterface.zero_val : ZeroVal NetworkPolicyInterface
 attribute [instance] NetworkPolicyInterface.zero_val
 
-class NetworkPolicyInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NetworkPolicyInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NetworkPolicyInterface.underlying NetworkPolicyInterface
   underlying : go.UnderlyingDirectedEq NetworkPolicyInterface.ty NetworkPolicyInterface.underlying
   isUnderlying : go.IsUnderlying NetworkPolicyInterface.underlying NetworkPolicyInterface.underlying
+  method_set : go.MethodSetIs NetworkPolicyInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.NetworkPolicyApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicyList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NetworkPolicyInterface.ty) []
 
 attribute [instance] NetworkPolicyInterface.TypeAssumptions.type_repr
   NetworkPolicyInterface.TypeAssumptions.underlying
   NetworkPolicyInterface.TypeAssumptions.isUnderlying
+  NetworkPolicyInterface.TypeAssumptions.method_set
+  NetworkPolicyInterface.TypeAssumptions.ptr_method_set
 
 axiom networkPolicies : Type
 axiom networkPolicies.zero_val : ZeroVal networkPolicies
 attribute [instance] networkPolicies.zero_val
 
-class networkPolicies.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class networkPolicies.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying networkPolicies.underlying networkPolicies
   underlying : go.UnderlyingDirectedEq networkPolicies.ty networkPolicies.underlying
   isUnderlying : go.IsUnderlying networkPolicies.underlying networkPolicies.underlying
+  method_set : go.MethodSetIs networkPolicies.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.NetworkPolicyApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.NetworkPolicyApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicyList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType networkPolicies.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.NetworkPolicyApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.NetworkPolicyApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicyList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.NetworkPolicy" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] networkPolicies.TypeAssumptions.type_repr
   networkPolicies.TypeAssumptions.underlying
   networkPolicies.TypeAssumptions.isUnderlying
+  networkPolicies.TypeAssumptions.method_set
+  networkPolicies.TypeAssumptions.ptr_method_set
 
 axiom ReplicaSetsGetter : Type
 axiom ReplicaSetsGetter.zero_val : ZeroVal ReplicaSetsGetter
 attribute [instance] ReplicaSetsGetter.zero_val
 
-class ReplicaSetsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetsGetter.underlying ReplicaSetsGetter
   underlying : go.UnderlyingDirectedEq ReplicaSetsGetter.ty ReplicaSetsGetter.underlying
   isUnderlying : go.IsUnderlying ReplicaSetsGetter.underlying ReplicaSetsGetter.underlying
+  method_set : go.MethodSetIs ReplicaSetsGetter.ty [(go!"ReplicaSets", (some (go.signature.Signature [go.string] false [ReplicaSetInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetsGetter.ty) []
 
 attribute [instance] ReplicaSetsGetter.TypeAssumptions.type_repr
   ReplicaSetsGetter.TypeAssumptions.underlying
   ReplicaSetsGetter.TypeAssumptions.isUnderlying
+  ReplicaSetsGetter.TypeAssumptions.method_set
+  ReplicaSetsGetter.TypeAssumptions.ptr_method_set
 
 axiom ReplicaSetInterface : Type
 axiom ReplicaSetInterface.zero_val : ZeroVal ReplicaSetInterface
 attribute [instance] ReplicaSetInterface.zero_val
 
-class ReplicaSetInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetInterface.underlying ReplicaSetInterface
   underlying : go.UnderlyingDirectedEq ReplicaSetInterface.ty ReplicaSetInterface.underlying
   isUnderlying : go.IsUnderlying ReplicaSetInterface.underlying ReplicaSetInterface.underlying
+  method_set : go.MethodSetIs ReplicaSetInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ReplicaSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"ApplyScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ScaleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ReplicaSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"GetScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"UpdateScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetInterface.ty) []
 
 attribute [instance] ReplicaSetInterface.TypeAssumptions.type_repr
   ReplicaSetInterface.TypeAssumptions.underlying
   ReplicaSetInterface.TypeAssumptions.isUnderlying
+  ReplicaSetInterface.TypeAssumptions.method_set
+  ReplicaSetInterface.TypeAssumptions.ptr_method_set
 
 axiom replicaSets : Type
 axiom replicaSets.zero_val : ZeroVal replicaSets
 attribute [instance] replicaSets.zero_val
 
-class replicaSets.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class replicaSets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replicaSets.underlying replicaSets
   underlying : go.UnderlyingDirectedEq replicaSets.ty replicaSets.underlying
   isUnderlying : go.IsUnderlying replicaSets.underlying replicaSets.underlying
+  method_set : go.MethodSetIs replicaSets.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ReplicaSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ReplicaSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replicaSets.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ReplicaSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"ApplyScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ScaleApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/extensions/v1beta1.ReplicaSetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"UpdateScale", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.Scale" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/extensions/v1beta1.ReplicaSet" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] replicaSets.TypeAssumptions.type_repr
   replicaSets.TypeAssumptions.underlying
   replicaSets.TypeAssumptions.isUnderlying
+  replicaSets.TypeAssumptions.method_set
+  replicaSets.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DaemonSetsGetter_instance : DaemonSetsGetter.TypeAssumptions
   DaemonSetInterface_instance : DaemonSetInterface.TypeAssumptions
   daemonSets_instance : daemonSets.TypeAssumptions

@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -99,11 +99,11 @@ theorem wp_Message_GetEntries_field (l : Loc) (dq : DFrac) (es : GoSlice) (Hnn :
 
 /-- A `*pb.ConfChangeV2`'s `Changes` field, lent (`len(cc.AsV2().Changes)`), with the number of
 changes it holds. -/
-theorem ownCCV2_changes (p : Loc) (dq : DFrac) (m : CCV2M) :
-    ownCCV2 (GF := GF) p dq m ⊢
+theorem ownConfChangeV2_changes (p : Loc) (dq : DFrac) (m : ConfChangeV2M) :
+    ownConfChangeV2 (GF := GF) p dq m ⊢
       ∃ (chs : GoSlice), p.[raftpb.ConfChangeV2, go!"Changes"] ↦{dq} chs ∗
         ⌜m.changes.length = sint.nat chs.len ∧ 0 ≤ sint.Z chs.len⌝ ∗
-        (p.[raftpb.ConfChangeV2, go!"Changes"] ↦{dq} chs -∗ ownCCV2 p dq m) := by
+        (p.[raftpb.ConfChangeV2, go!"Changes"] ↦{dq} chs -∗ ownConfChangeV2 p dq m) := by
   iintro H
   iNamed H
   ihave %Hl1 := ownSlice_len _ _ _ $$ Hch
@@ -113,7 +113,7 @@ theorem ownCCV2_changes (p : Loc) (dq : DFrac) (m : CCV2M) :
   isplitr
   · ipureintro; exact ⟨by rw [← Hl2]; exact Hl1.1, Hl1.2⟩
   iintro HCh
-  iunfold ownCCV2
+  iunfold ownConfChangeV2
   iexists pt, chs, ls, cs, uf
   isplitr
   · ipureintro; exact Hnn

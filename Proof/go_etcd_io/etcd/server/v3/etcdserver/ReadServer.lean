@@ -21,6 +21,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NextRequestI
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTimeout
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AppliedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -36,14 +38,15 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`*EtcdServer` meets the read loop's `server` contract** (see the file header). -/
-theorem isReadServer_of_server
+/-- **`*EtcdServer` meets the read loop's `server` contract, in either auth mode** (see the file
+header; the auth plan's E3r: the views and `AppliedIndex` in the mode). -/
+theorem isReadServer_of_serverM (on : Bool)
     (hAW : EtcdServer.ApplyWait.spec (GF := GF) (hG := hG))
     (hDone : EtcdServer.Done.spec (GF := GF) (hG := hG))
     (hStop : EtcdServer.Stopping.spec (GF := GF) (hG := hG))
@@ -51,24 +54,24 @@ theorem isReadServer_of_server
     (hFC : EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG))
     (hNR : EtcdServer.NextRequestID.spec (GF := GF) (hG := hG))
     (hRT : EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG))
-    (hAI : EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AppliedIndex.specM (GF := GF) (hG := hG) on)
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ⊢
+        isServerReqM on s E ρ ∗ isServerReadM on s E γr ⊢
       isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
         (idCred ρ.ids 1) := by
   iintro ⟨#Hpkg, #Hsrv, #Hsrd⟩
-  iunfold isServerReq at Hsrv
+  iunfold isServerReqM at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
-  iunfold srvReqFieldsAt at Hv
+  iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨#Hgenf, #Hgen, -, -, -, -, -, -, -, #Het, #Htm, -, -, #Hdonef, #Hdone, -, -, -, -, -, -,
     #Hm, -, %Hcfg⟩
   iunfold srvMintInv at Hm
   icases Hm with ⟨-, #Hrf⟩
-  iunfold isServerRead at Hsrd
+  iunfold isServerReadM at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
-  iunfold srvReadFieldsAt at Hw
+  iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, #Hainv, -, -, #Hawf, #Haw,
     #Hlcf, #Hfcf, #Hstf, #Hst⟩
   iunfold isReadServer
@@ -182,6 +185,25 @@ theorem isReadServer_of_server
     · iframe #
     iapply HΦ
     itrivial
+
+/-- **`*EtcdServer` meets the read loop's `server` contract** (see the file header; at
+`on = false`). -/
+theorem isReadServer_of_server
+    (hAW : EtcdServer.ApplyWait.spec (GF := GF) (hG := hG))
+    (hDone : EtcdServer.Done.spec (GF := GF) (hG := hG))
+    (hStop : EtcdServer.Stopping.spec (GF := GF) (hG := hG))
+    (hLC : EtcdServer.LeaderChanged.spec (GF := GF) (hG := hG))
+    (hFC : EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG))
+    (hNR : EtcdServer.NextRequestID.spec (GF := GF) (hG := hG))
+    (hRT : EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (hρ : ρ.rd = γr) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ⊢
+      isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
+        (idCred ρ.ids 1) :=
+  isReadServer_of_serverM false hAW hDone hStop hLC hFC hNR hRT hAI hLg s E ρ γr hρ
 
 end proof
 

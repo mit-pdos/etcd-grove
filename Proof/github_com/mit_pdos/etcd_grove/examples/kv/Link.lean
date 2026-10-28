@@ -64,7 +64,7 @@ namespace EtcdGrove
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.kv go_etcd_io.raft.v3 github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine
 
 section links
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -76,7 +76,7 @@ end links
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -249,7 +249,7 @@ theorem kv.quietLogger.wp_Warningf :
 
 theorem kv.wp_StartCluster [KVStor GF] :
     kv.StartCluster.spec (GF := GF) (hG := hG) :=
-  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf wp_RestartNode
+  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf wp_RestartNode MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries
 
 theorem kv.wp_Main :
     kv.Main.spec (GF := GF) (hG := hG) :=

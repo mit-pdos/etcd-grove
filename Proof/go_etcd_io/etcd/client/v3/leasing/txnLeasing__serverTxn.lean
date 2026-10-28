@@ -31,7 +31,7 @@ namespace leasing
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -62,6 +62,7 @@ theorem txnLeasing.serverTxn.wp_proof
   icases Hcso with ⟨%cvs, #Hcv, -, %Hcl, #Hcall⟩
   icases Htso with ⟨%tvs, #Htv, Htcap, %Htl, #Htall⟩
   icases Heso with ⟨%evs, #Hev, -, %Hel, #Heall⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply hws $$ [$Hlkv $Hrd $Hctx] as %err ⟨Hrd, Hw⟩
   unfold sessionReadyQ

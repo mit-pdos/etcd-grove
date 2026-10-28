@@ -21,93 +21,99 @@ end pkg_id
 
 namespace go_etcd_io.etcd.client.pkg.v3.types
 
-noncomputable def ID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" [])
 
 attribute [irreducible] ID.ty
 
-noncomputable def IDSlice.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IDSlice.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.IDSlice" [])
 
 attribute [irreducible] IDSlice.ty
 
-noncomputable def Set'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Set'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.Set" [])
 
 attribute [irreducible] Set'.ty
 
-noncomputable def ThreadsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ThreadsafeSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ThreadsafeSet" [])
 
 attribute [irreducible] ThreadsafeSet.ty
 
-noncomputable def unsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unsafeSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.unsafeSet" [])
 
 attribute [irreducible] unsafeSet.ty
 
-noncomputable def tsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tsafeSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.tsafeSet" [])
 
 attribute [irreducible] tsafeSet.ty
 
-noncomputable def Uint64Slice.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Uint64Slice.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.Uint64Slice" [])
 
 attribute [irreducible] Uint64Slice.ty
 
-noncomputable def URLs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def URLs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.URLs" [])
 
 attribute [irreducible] URLs.ty
 
-noncomputable def URLsMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def URLsMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.URLsMap" [])
 
 attribute [irreducible] URLsMap.ty
 
-axiom tsafeSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom tsafeSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def IDFromString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IDFromString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.IDFromString"
 
-noncomputable def NewUnsafeSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewUnsafeSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.NewUnsafeSet"
 
-noncomputable def NewThreadsafeSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewThreadsafeSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.NewThreadsafeSet"
 
-noncomputable def NewURLs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.NewURLs"
 
-noncomputable def MustNewURLs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustNewURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.MustNewURLs"
 
-noncomputable def NewURLsMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewURLsMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.NewURLsMap"
 
-noncomputable def NewURLsMapFromStringMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewURLsMapFromStringMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.NewURLsMapFromStringMap"
 
-noncomputable def parse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parse [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.parse"
 
 /-- go: urls.go:75:16 -/
-noncomputable def URLs.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def URLs.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "us"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "us" (App (Val (GoInstruction (GoAlloc URLs.ty))) (Var "us"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "us"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [URLs.ty]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "us"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [URLs.ty]))) (Val #())) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.types where
   pkgImportedPkgs := [pkg_id.net.url]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.pkg.v3.types)) (Lam BAnon
   (App (Val exceptionDo)
@@ -120,126 +126,162 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.url.initialize') (Val #()))))))))
 
-abbrev ID [FfiSyntax] : Type := w64
+abbrev ID [GooseExts] : Type := w64
 
-@[reducible] noncomputable def ID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ID.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-class ID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ID.ty ID.underlying
+  method_set : go.MethodSetIs ID.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ID.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ID.TypeAssumptions.underlying
+  ID.TypeAssumptions.method_set
+  ID.TypeAssumptions.ptr_method_set
 
-abbrev IDSlice [FfiSyntax] : Type := GoSlice
+abbrev IDSlice [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def IDSlice.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IDSlice.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType ID.ty)
 
-class IDSlice.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class IDSlice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq IDSlice.ty IDSlice.underlying
+  method_set : go.MethodSetIs IDSlice.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IDSlice.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] IDSlice.TypeAssumptions.underlying
+  IDSlice.TypeAssumptions.method_set
+  IDSlice.TypeAssumptions.ptr_method_set
 
-abbrev Set' [FfiSyntax] : Type := GoInterface
+abbrev Set' [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Set'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Set'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Contains" (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool])), (go.InterfaceElem.MethodElem go!"ContainsAll" (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool])), (go.InterfaceElem.MethodElem go!"Copy" (go.signature.Signature [] false [Set'.ty])), (go.InterfaceElem.MethodElem go!"Equals" (go.signature.Signature [Set'.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Length" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Remove" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Sub" (go.signature.Signature [Set'.ty] false [Set'.ty])), (go.InterfaceElem.MethodElem go!"Values" (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))])
 
-class Set.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Set'.ty Set'.underlying
+  method_set : go.MethodSetIs Set'.ty [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set'.ty]))), (go!"Equals", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) []
 
 attribute [instance] Set.TypeAssumptions.underlying
+  Set.TypeAssumptions.method_set
+  Set.TypeAssumptions.ptr_method_set
 
-abbrev ThreadsafeSet [FfiSyntax] : Type := GoInterface
+abbrev ThreadsafeSet [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ThreadsafeSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Set'.ty)])])
+@[reducible] noncomputable def ThreadsafeSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Contains" (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool])), (go.InterfaceElem.MethodElem go!"ContainsAll" (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool])), (go.InterfaceElem.MethodElem go!"Copy" (go.signature.Signature [] false [Set'.ty])), (go.InterfaceElem.MethodElem go!"Equals" (go.signature.Signature [Set'.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Length" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Remove" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Sub" (go.signature.Signature [Set'.ty] false [Set'.ty])), (go.InterfaceElem.MethodElem go!"Values" (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))])
 
-class ThreadsafeSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ThreadsafeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ThreadsafeSet.ty ThreadsafeSet.underlying
+  method_set : go.MethodSetIs ThreadsafeSet.ty [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set'.ty]))), (go!"Equals", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ThreadsafeSet.ty) []
 
 attribute [instance] ThreadsafeSet.TypeAssumptions.underlying
+  ThreadsafeSet.TypeAssumptions.method_set
+  ThreadsafeSet.TypeAssumptions.ptr_method_set
 
-structure unsafeSet [FfiSyntax] where
+structure unsafeSet [GooseExts] where
   mk ::
   d' : GoMap
 
-noncomputable instance unsafeSet.zero_val [FfiSyntax] : ZeroVal unsafeSet :=
+noncomputable instance unsafeSet.zero_val [GooseExts] : ZeroVal unsafeSet :=
   ⟨unsafeSet.mk zeroValDef⟩
 
-@[reducible] noncomputable def unsafeSet.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def unsafeSet.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"d" (go.GoType.MapType go.string (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def unsafeSet.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def unsafeSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unsafeSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_unsafeSet [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_unsafeSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold unsafeSet.fields unsafeSet.fieldsUnsealed :=
   ⟨by unfold unsafeSet.fields; rfl⟩
 
-@[reducible] noncomputable def unsafeSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def unsafeSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType unsafeSet.fields)
 
-class unsafeSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class unsafeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unsafeSet.underlying unsafeSet
   underlying : go.UnderlyingDirectedEq unsafeSet.ty unsafeSet.underlying
   get_d : ∀ (x : unsafeSet), go.IsGoStepPureDetTagged under (StructFieldGet unsafeSet.underlying go!"d") #x (Val #(x.d'))
   set_d : ∀ (x : unsafeSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet unsafeSet.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : unsafeSet)))
+  method_set : go.MethodSetIs unsafeSet.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unsafeSet.ty) [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set'.ty]))), (go!"Equals", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] unsafeSet.TypeAssumptions.type_repr
   unsafeSet.TypeAssumptions.underlying
   unsafeSet.TypeAssumptions.get_d
   unsafeSet.TypeAssumptions.set_d
+  unsafeSet.TypeAssumptions.method_set
+  unsafeSet.TypeAssumptions.ptr_method_set
 
 axiom tsafeSet : Type
 axiom tsafeSet.zero_val : ZeroVal tsafeSet
 attribute [instance] tsafeSet.zero_val
 
-class tsafeSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class tsafeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tsafeSet.underlying tsafeSet
   underlying : go.UnderlyingDirectedEq tsafeSet.ty tsafeSet.underlying
   isUnderlying : go.IsUnderlying tsafeSet.underlying tsafeSet.underlying
+  method_set : go.MethodSetIs tsafeSet.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tsafeSet.ty) [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set'.ty]))), (go!"Equals", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] tsafeSet.TypeAssumptions.type_repr
   tsafeSet.TypeAssumptions.underlying
   tsafeSet.TypeAssumptions.isUnderlying
+  tsafeSet.TypeAssumptions.method_set
+  tsafeSet.TypeAssumptions.ptr_method_set
 
-abbrev Uint64Slice [FfiSyntax] : Type := GoSlice
+abbrev Uint64Slice [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def Uint64Slice.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Uint64Slice.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.uint64)
 
-class Uint64Slice.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Uint64Slice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Uint64Slice.ty Uint64Slice.underlying
+  method_set : go.MethodSetIs Uint64Slice.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Uint64Slice.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] Uint64Slice.TypeAssumptions.underlying
+  Uint64Slice.TypeAssumptions.method_set
+  Uint64Slice.TypeAssumptions.ptr_method_set
 
-abbrev URLs [FfiSyntax] : Type := GoSlice
+abbrev URLs [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def URLs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def URLs.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType _root_.Perennial.net.url.URL.ty)
 
-class URLs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class URLs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq URLs.ty URLs.underlying
+  method_set : go.MethodSetIs URLs.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"StringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType URLs.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Sort", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"StringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold URLs.ty go!"Len" URLs.Len.impl
   ptr_Len_unfold : MethodUnfold (go.GoType.PointerType URLs.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve URLs.ty go!"Len"))) (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "$r"))))
 
 attribute [instance] URLs.TypeAssumptions.underlying
+  URLs.TypeAssumptions.method_set
+  URLs.TypeAssumptions.ptr_method_set
   URLs.TypeAssumptions.Len_unfold
   URLs.TypeAssumptions.ptr_Len_unfold
 
-abbrev URLsMap [FfiSyntax] : Type := GoMap
+abbrev URLsMap [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def URLsMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def URLsMap.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string URLs.ty)
 
-class URLsMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class URLsMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq URLsMap.ty URLsMap.underlying
+  method_set : go.MethodSetIs URLsMap.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"URLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType URLsMap.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"URLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] URLsMap.TypeAssumptions.underlying
+  URLsMap.TypeAssumptions.method_set
+  URLsMap.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ID_instance : ID.TypeAssumptions
   IDSlice_instance : IDSlice.TypeAssumptions
   Set_instance : Set.TypeAssumptions

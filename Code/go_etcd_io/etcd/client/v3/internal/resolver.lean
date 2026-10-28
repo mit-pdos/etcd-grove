@@ -20,28 +20,28 @@ end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.internal.resolver
 
-noncomputable def EtcdManualResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EtcdManualResolver.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/internal/resolver.EtcdManualResolver" [])
 
 attribute [irreducible] EtcdManualResolver.ty
 
-axiom EtcdManualResolver.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EtcdManualResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def Schema [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Schema [GooseExts] [GoGlobalContext] : val :=
   #(go!"etcd-endpoints")
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/resolver.New"
 
-noncomputable def getCC [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getCC [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/resolver.getCC"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.internal.resolver where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3.internal.resolver)) (Lam BAnon
   (App (Val exceptionDo)
@@ -52,16 +52,20 @@ axiom EtcdManualResolver : Type
 axiom EtcdManualResolver.zero_val : ZeroVal EtcdManualResolver
 attribute [instance] EtcdManualResolver.zero_val
 
-class EtcdManualResolver.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EtcdManualResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdManualResolver.underlying EtcdManualResolver
   underlying : go.UnderlyingDirectedEq EtcdManualResolver.ty EtcdManualResolver.underlying
   isUnderlying : go.IsUnderlying EtcdManualResolver.underlying EtcdManualResolver.underlying
+  method_set : go.MethodSetIs EtcdManualResolver.ty [(go!"CC", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.ClientConn" [])]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"InitialState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false []))), (go!"ResolveNow", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"Scheme", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false []))), (go!"go.etcd.io/etcd/client/v3/internal/resolver.state", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])]))), (go!"go.etcd.io/etcd/client/v3/internal/resolver.updateState", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdManualResolver.ty) [(go!"Build", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.Target" []), (go.GoType.Named go!"google.golang.org/grpc/resolver.ClientConn" []), (go.GoType.Named go!"google.golang.org/grpc/resolver.BuildOptions" [])] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.Resolver" []), go.error]))), (go!"CC", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.ClientConn" [])]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"InitialState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false []))), (go!"ResolveNow", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"Scheme", (some (go.signature.Signature [] false [go.string]))), (go!"SetEndpoints", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false []))), (go!"go.etcd.io/etcd/client/v3/internal/resolver.state", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])]))), (go!"go.etcd.io/etcd/client/v3/internal/resolver.updateState", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] EtcdManualResolver.TypeAssumptions.type_repr
   EtcdManualResolver.TypeAssumptions.underlying
   EtcdManualResolver.TypeAssumptions.isUnderlying
+  EtcdManualResolver.TypeAssumptions.method_set
+  EtcdManualResolver.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EtcdManualResolver_instance : EtcdManualResolver.TypeAssumptions
 
 attribute [instance] Assumptions.EtcdManualResolver_instance

@@ -20,250 +20,250 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.endpoints.request
 
-noncomputable def key.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def key.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.key" [])
 
 attribute [irreducible] key.ty
 
-noncomputable def requestReceivedTimestampKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def requestReceivedTimestampKeyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.requestReceivedTimestampKeyType" [])
 
 attribute [irreducible] requestReceivedTimestampKeyType.ty
 
-noncomputable def LongRunningRequestCheck.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LongRunningRequestCheck.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.LongRunningRequestCheck" [])
 
 attribute [irreducible] LongRunningRequestCheck.ty
 
-noncomputable def RequestInfoResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestInfoResolver.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfoResolver" [])
 
 attribute [irreducible] RequestInfoResolver.ty
 
-noncomputable def RequestInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" [])
 
 attribute [irreducible] RequestInfo.ty
 
-noncomputable def RequestInfoFactory.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestInfoFactory.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfoFactory" [])
 
 attribute [irreducible] RequestInfoFactory.ty
 
-noncomputable def requestInfoKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def requestInfoKeyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.requestInfoKeyType" [])
 
 attribute [irreducible] requestInfoKeyType.ty
 
-noncomputable def serverShutdownSignalKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverShutdownSignalKeyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.serverShutdownSignalKeyType" [])
 
 attribute [irreducible] serverShutdownSignalKeyType.ty
 
-noncomputable def ServerShutdownSignal.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerShutdownSignal.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.ServerShutdownSignal" [])
 
 attribute [irreducible] ServerShutdownSignal.ty
 
-noncomputable def DurationTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DurationTracker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.DurationTracker" [])
 
 attribute [irreducible] DurationTracker.ty
 
-noncomputable def durationTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def durationTracker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.durationTracker" [])
 
 attribute [irreducible] durationTracker.ty
 
-noncomputable def LatencyTrackers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LatencyTrackers.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.LatencyTrackers" [])
 
 attribute [irreducible] LatencyTrackers.ty
 
-noncomputable def latencyTrackersKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def latencyTrackersKeyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.latencyTrackersKeyType" [])
 
 attribute [irreducible] latencyTrackersKeyType.ty
 
-axiom LongRunningRequestCheck.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LongRunningRequestCheck.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RequestInfoResolver.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RequestInfoResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RequestInfoFactory.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RequestInfoFactory.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DurationTracker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DurationTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom durationTracker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom durationTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom namespaceKey [FfiSyntax] [GoGlobalContext] : val
+axiom namespaceKey [GooseExts] [GoGlobalContext] : val
 
-axiom userKey [FfiSyntax] [GoGlobalContext] : val
+axiom userKey [GooseExts] [GoGlobalContext] : val
 
-axiom MethodApply [FfiSyntax] [GoGlobalContext] : val
+axiom MethodApply [GooseExts] [GoGlobalContext] : val
 
-axiom MethodConnect [FfiSyntax] [GoGlobalContext] : val
+axiom MethodConnect [GooseExts] [GoGlobalContext] : val
 
-axiom MethodCreate [FfiSyntax] [GoGlobalContext] : val
+axiom MethodCreate [GooseExts] [GoGlobalContext] : val
 
-axiom MethodDelete [FfiSyntax] [GoGlobalContext] : val
+axiom MethodDelete [GooseExts] [GoGlobalContext] : val
 
-axiom MethodDeleteCollection [FfiSyntax] [GoGlobalContext] : val
+axiom MethodDeleteCollection [GooseExts] [GoGlobalContext] : val
 
-axiom MethodGet [FfiSyntax] [GoGlobalContext] : val
+axiom MethodGet [GooseExts] [GoGlobalContext] : val
 
-axiom MethodHead [FfiSyntax] [GoGlobalContext] : val
+axiom MethodHead [GooseExts] [GoGlobalContext] : val
 
-axiom MethodList [FfiSyntax] [GoGlobalContext] : val
+axiom MethodList [GooseExts] [GoGlobalContext] : val
 
-axiom MethodPatch [FfiSyntax] [GoGlobalContext] : val
+axiom MethodPatch [GooseExts] [GoGlobalContext] : val
 
-axiom MethodPost [FfiSyntax] [GoGlobalContext] : val
+axiom MethodPost [GooseExts] [GoGlobalContext] : val
 
-axiom MethodProxy [FfiSyntax] [GoGlobalContext] : val
+axiom MethodProxy [GooseExts] [GoGlobalContext] : val
 
-axiom MethodPut [FfiSyntax] [GoGlobalContext] : val
+axiom MethodPut [GooseExts] [GoGlobalContext] : val
 
-axiom MethodUpdate [FfiSyntax] [GoGlobalContext] : val
+axiom MethodUpdate [GooseExts] [GoGlobalContext] : val
 
-axiom MethodWatch [FfiSyntax] [GoGlobalContext] : val
+axiom MethodWatch [GooseExts] [GoGlobalContext] : val
 
-axiom MethodWatchList [FfiSyntax] [GoGlobalContext] : val
+axiom MethodWatchList [GooseExts] [GoGlobalContext] : val
 
-axiom requestReceivedTimestampKey [FfiSyntax] [GoGlobalContext] : val
+axiom requestReceivedTimestampKey [GooseExts] [GoGlobalContext] : val
 
-axiom requestInfoKey [FfiSyntax] [GoGlobalContext] : val
+axiom requestInfoKey [GooseExts] [GoGlobalContext] : val
 
-axiom serverShutdownSignalKey [FfiSyntax] [GoGlobalContext] : val
+axiom serverShutdownSignalKey [GooseExts] [GoGlobalContext] : val
 
-axiom latencyTrackersKey [FfiSyntax] [GoGlobalContext] : val
+axiom latencyTrackersKey [GooseExts] [GoGlobalContext] : val
 
-noncomputable def specialVerbs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def specialVerbs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.specialVerbs"
 
-axiom specialVerbs.init [FfiSyntax] [GoGlobalContext] : val
+axiom specialVerbs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def specialVerbsNoSubresources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def specialVerbsNoSubresources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.specialVerbsNoSubresources"
 
-axiom specialVerbsNoSubresources.init [FfiSyntax] [GoGlobalContext] : val
+axiom specialVerbsNoSubresources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def namespaceSubresources [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def namespaceSubresources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.namespaceSubresources"
 
-axiom namespaceSubresources.init [FfiSyntax] [GoGlobalContext] : val
+axiom namespaceSubresources.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def verbsWithSelectors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def verbsWithSelectors [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.verbsWithSelectors"
 
-axiom verbsWithSelectors.init [FfiSyntax] [GoGlobalContext] : val
+axiom verbsWithSelectors.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NamespaceSubResourcesForTest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NamespaceSubResourcesForTest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.NamespaceSubResourcesForTest"
 
-axiom NamespaceSubResourcesForTest.init [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceSubResourcesForTest.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.NewContext"
 
-noncomputable def NewDefaultContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDefaultContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.NewDefaultContext"
 
-noncomputable def WithValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.WithValue"
 
-noncomputable def WithNamespace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithNamespace [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.WithNamespace"
 
-noncomputable def NamespaceFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NamespaceFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.NamespaceFrom"
 
-noncomputable def NamespaceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NamespaceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.NamespaceValue"
 
-noncomputable def WithUser [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithUser [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.WithUser"
 
-noncomputable def UserFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UserFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.UserFrom"
 
-noncomputable def WithReceivedTimestamp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithReceivedTimestamp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.WithReceivedTimestamp"
 
-noncomputable def ReceivedTimestampFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReceivedTimestampFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.ReceivedTimestampFrom"
 
-noncomputable def WithRequestInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithRequestInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.WithRequestInfo"
 
-noncomputable def RequestInfoFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RequestInfoFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfoFrom"
 
-noncomputable def splitPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def splitPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.splitPath"
 
-noncomputable def ServerShutdownSignalFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerShutdownSignalFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.ServerShutdownSignalFrom"
 
-noncomputable def WithServerShutdownSignal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithServerShutdownSignal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.WithServerShutdownSignal"
 
-noncomputable def sumDuration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sumDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.sumDuration"
 
-noncomputable def maxDuration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maxDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.maxDuration"
 
-noncomputable def newSumLatencyTracker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newSumLatencyTracker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.newSumLatencyTracker"
 
-noncomputable def newMaxLatencyTracker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newMaxLatencyTracker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.newMaxLatencyTracker"
 
-noncomputable def WithLatencyTrackers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithLatencyTrackers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.WithLatencyTrackers"
 
-noncomputable def WithLatencyTrackersAndCustomClock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithLatencyTrackersAndCustomClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.WithLatencyTrackersAndCustomClock"
 
-noncomputable def LatencyTrackersFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LatencyTrackersFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.LatencyTrackersFrom"
 
-noncomputable def TrackTransformResponseObjectLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackTransformResponseObjectLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackTransformResponseObjectLatency"
 
-noncomputable def TrackStorageLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackStorageLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackStorageLatency"
 
-noncomputable def TrackSerializeResponseObjectLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackSerializeResponseObjectLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackSerializeResponseObjectLatency"
 
-noncomputable def TrackResponseWriteLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackResponseWriteLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackResponseWriteLatency"
 
-noncomputable def TrackAuthenticationLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackAuthenticationLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackAuthenticationLatency"
 
-noncomputable def TrackAuthorizationLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackAuthorizationLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackAuthorizationLatency"
 
-noncomputable def TrackAPFQueueWaitLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackAPFQueueWaitLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackAPFQueueWaitLatency"
 
-noncomputable def TrackDecodeLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackDecodeLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackDecodeLatency"
 
-noncomputable def TrackImpersonationLatency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TrackImpersonationLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.TrackImpersonationLatency"
 
-noncomputable def AuditAnnotationsFromLatencyTrackers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AuditAnnotationsFromLatencyTrackers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.AuditAnnotationsFromLatencyTrackers"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.endpoints.request where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.endpoints.request)) (Lam BAnon
   (App (Val exceptionDo)
@@ -282,53 +282,69 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val specialVerbs.init) (Val #()))))))))
 
-abbrev key [FfiSyntax] : Type := w64
+abbrev key [GooseExts] : Type := w64
 
-@[reducible] noncomputable def key.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def key.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class key.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class key.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq key.ty key.underlying
+  method_set : go.MethodSetIs key.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType key.ty) []
 
 attribute [instance] key.TypeAssumptions.underlying
+  key.TypeAssumptions.method_set
+  key.TypeAssumptions.ptr_method_set
 
-abbrev requestReceivedTimestampKeyType [FfiSyntax] : Type := w64
+abbrev requestReceivedTimestampKeyType [GooseExts] : Type := w64
 
-@[reducible] noncomputable def requestReceivedTimestampKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def requestReceivedTimestampKeyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class requestReceivedTimestampKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class requestReceivedTimestampKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq requestReceivedTimestampKeyType.ty requestReceivedTimestampKeyType.underlying
+  method_set : go.MethodSetIs requestReceivedTimestampKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestReceivedTimestampKeyType.ty) []
 
 attribute [instance] requestReceivedTimestampKeyType.TypeAssumptions.underlying
+  requestReceivedTimestampKeyType.TypeAssumptions.method_set
+  requestReceivedTimestampKeyType.TypeAssumptions.ptr_method_set
 
 axiom LongRunningRequestCheck : Type
 axiom LongRunningRequestCheck.zero_val : ZeroVal LongRunningRequestCheck
 attribute [instance] LongRunningRequestCheck.zero_val
 
-class LongRunningRequestCheck.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LongRunningRequestCheck.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LongRunningRequestCheck.underlying LongRunningRequestCheck
   underlying : go.UnderlyingDirectedEq LongRunningRequestCheck.ty LongRunningRequestCheck.underlying
   isUnderlying : go.IsUnderlying LongRunningRequestCheck.underlying LongRunningRequestCheck.underlying
+  method_set : go.MethodSetIs LongRunningRequestCheck.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LongRunningRequestCheck.ty) []
 
 attribute [instance] LongRunningRequestCheck.TypeAssumptions.type_repr
   LongRunningRequestCheck.TypeAssumptions.underlying
   LongRunningRequestCheck.TypeAssumptions.isUnderlying
+  LongRunningRequestCheck.TypeAssumptions.method_set
+  LongRunningRequestCheck.TypeAssumptions.ptr_method_set
 
 axiom RequestInfoResolver : Type
 axiom RequestInfoResolver.zero_val : ZeroVal RequestInfoResolver
 attribute [instance] RequestInfoResolver.zero_val
 
-class RequestInfoResolver.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestInfoResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestInfoResolver.underlying RequestInfoResolver
   underlying : go.UnderlyingDirectedEq RequestInfoResolver.ty RequestInfoResolver.underlying
   isUnderlying : go.IsUnderlying RequestInfoResolver.underlying RequestInfoResolver.underlying
+  method_set : go.MethodSetIs RequestInfoResolver.ty [(go!"NewRequestInfo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType RequestInfo.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfoResolver.ty) []
 
 attribute [instance] RequestInfoResolver.TypeAssumptions.type_repr
   RequestInfoResolver.TypeAssumptions.underlying
   RequestInfoResolver.TypeAssumptions.isUnderlying
+  RequestInfoResolver.TypeAssumptions.method_set
+  RequestInfoResolver.TypeAssumptions.ptr_method_set
 
-structure RequestInfo [FfiSyntax] where
+structure RequestInfo [GooseExts] where
   mk ::
   IsResourceRequest' : Bool
   Path' : GoString
@@ -344,10 +360,10 @@ structure RequestInfo [FfiSyntax] where
   FieldSelector' : GoString
   LabelSelector' : GoString
 
-noncomputable instance RequestInfo.zero_val [FfiSyntax] : ZeroVal RequestInfo :=
+noncomputable instance RequestInfo.zero_val [GooseExts] : ZeroVal RequestInfo :=
   ⟨RequestInfo.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RequestInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RequestInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IsResourceRequest" go.bool),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"Verb" go.string),
@@ -362,17 +378,17 @@ noncomputable instance RequestInfo.zero_val [FfiSyntax] : ZeroVal RequestInfo :=
 (go.field_decl.FieldDecl go!"FieldSelector" go.string),
 (go.field_decl.FieldDecl go!"LabelSelector" go.string)]
 
-@[irreducible] noncomputable def RequestInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RequestInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RequestInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_RequestInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RequestInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold RequestInfo.fields RequestInfo.fieldsUnsealed :=
   ⟨by unfold RequestInfo.fields; rfl⟩
 
-@[reducible] noncomputable def RequestInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RequestInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RequestInfo.fields)
 
-class RequestInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestInfo.underlying RequestInfo
   underlying : go.UnderlyingDirectedEq RequestInfo.ty RequestInfo.underlying
   get_IsResourceRequest : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"IsResourceRequest") #x (Val #(x.IsResourceRequest'))
@@ -401,6 +417,8 @@ class RequestInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_FieldSelector : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"FieldSelector") (PairV #x #y) (Val #(({ x with FieldSelector' := y } : RequestInfo)))
   get_LabelSelector : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"LabelSelector") #x (Val #(x.LabelSelector'))
   set_LabelSelector : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"LabelSelector") (PairV #x #y) (Val #(({ x with LabelSelector' := y } : RequestInfo)))
+  method_set : go.MethodSetIs RequestInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfo.ty) []
 
 attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.underlying
@@ -430,77 +448,103 @@ attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.set_FieldSelector
   RequestInfo.TypeAssumptions.get_LabelSelector
   RequestInfo.TypeAssumptions.set_LabelSelector
+  RequestInfo.TypeAssumptions.method_set
+  RequestInfo.TypeAssumptions.ptr_method_set
 
 axiom RequestInfoFactory : Type
 axiom RequestInfoFactory.zero_val : ZeroVal RequestInfoFactory
 attribute [instance] RequestInfoFactory.zero_val
 
-class RequestInfoFactory.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestInfoFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestInfoFactory.underlying RequestInfoFactory
   underlying : go.UnderlyingDirectedEq RequestInfoFactory.ty RequestInfoFactory.underlying
   isUnderlying : go.IsUnderlying RequestInfoFactory.underlying RequestInfoFactory.underlying
+  method_set : go.MethodSetIs RequestInfoFactory.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfoFactory.ty) [(go!"NewRequestInfo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType RequestInfo.ty), go.error])))]
 
 attribute [instance] RequestInfoFactory.TypeAssumptions.type_repr
   RequestInfoFactory.TypeAssumptions.underlying
   RequestInfoFactory.TypeAssumptions.isUnderlying
+  RequestInfoFactory.TypeAssumptions.method_set
+  RequestInfoFactory.TypeAssumptions.ptr_method_set
 
-abbrev requestInfoKeyType [FfiSyntax] : Type := w64
+abbrev requestInfoKeyType [GooseExts] : Type := w64
 
-@[reducible] noncomputable def requestInfoKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def requestInfoKeyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class requestInfoKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class requestInfoKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq requestInfoKeyType.ty requestInfoKeyType.underlying
+  method_set : go.MethodSetIs requestInfoKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestInfoKeyType.ty) []
 
 attribute [instance] requestInfoKeyType.TypeAssumptions.underlying
+  requestInfoKeyType.TypeAssumptions.method_set
+  requestInfoKeyType.TypeAssumptions.ptr_method_set
 
-abbrev serverShutdownSignalKeyType [FfiSyntax] : Type := w64
+abbrev serverShutdownSignalKeyType [GooseExts] : Type := w64
 
-@[reducible] noncomputable def serverShutdownSignalKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serverShutdownSignalKeyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class serverShutdownSignalKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverShutdownSignalKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq serverShutdownSignalKeyType.ty serverShutdownSignalKeyType.underlying
+  method_set : go.MethodSetIs serverShutdownSignalKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverShutdownSignalKeyType.ty) []
 
 attribute [instance] serverShutdownSignalKeyType.TypeAssumptions.underlying
+  serverShutdownSignalKeyType.TypeAssumptions.method_set
+  serverShutdownSignalKeyType.TypeAssumptions.ptr_method_set
 
-abbrev ServerShutdownSignal [FfiSyntax] : Type := GoInterface
+abbrev ServerShutdownSignal [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServerShutdownSignal.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerShutdownSignal.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ShuttingDown" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))])
 
-class ServerShutdownSignal.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerShutdownSignal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerShutdownSignal.ty ServerShutdownSignal.underlying
+  method_set : go.MethodSetIs ServerShutdownSignal.ty [(go!"ShuttingDown", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerShutdownSignal.ty) []
 
 attribute [instance] ServerShutdownSignal.TypeAssumptions.underlying
+  ServerShutdownSignal.TypeAssumptions.method_set
+  ServerShutdownSignal.TypeAssumptions.ptr_method_set
 
 axiom DurationTracker : Type
 axiom DurationTracker.zero_val : ZeroVal DurationTracker
 attribute [instance] DurationTracker.zero_val
 
-class DurationTracker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DurationTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DurationTracker.underlying DurationTracker
   underlying : go.UnderlyingDirectedEq DurationTracker.ty DurationTracker.underlying
   isUnderlying : go.IsUnderlying DurationTracker.underlying DurationTracker.underlying
+  method_set : go.MethodSetIs DurationTracker.ty [(go!"GetLatency", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"Track", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"TrackDuration", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DurationTracker.ty) []
 
 attribute [instance] DurationTracker.TypeAssumptions.type_repr
   DurationTracker.TypeAssumptions.underlying
   DurationTracker.TypeAssumptions.isUnderlying
+  DurationTracker.TypeAssumptions.method_set
+  DurationTracker.TypeAssumptions.ptr_method_set
 
 axiom durationTracker : Type
 axiom durationTracker.zero_val : ZeroVal durationTracker
 attribute [instance] durationTracker.zero_val
 
-class durationTracker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class durationTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying durationTracker.underlying durationTracker
   underlying : go.UnderlyingDirectedEq durationTracker.ty durationTracker.underlying
   isUnderlying : go.IsUnderlying durationTracker.underlying durationTracker.underlying
+  method_set : go.MethodSetIs durationTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType durationTracker.ty) [(go!"GetLatency", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"Track", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"TrackDuration", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [])))]
 
 attribute [instance] durationTracker.TypeAssumptions.type_repr
   durationTracker.TypeAssumptions.underlying
   durationTracker.TypeAssumptions.isUnderlying
+  durationTracker.TypeAssumptions.method_set
+  durationTracker.TypeAssumptions.ptr_method_set
 
-structure LatencyTrackers [FfiSyntax] where
+structure LatencyTrackers [GooseExts] where
   mk ::
   MutatingWebhookTracker' : DurationTracker
   ValidatingWebhookTracker' : DurationTracker
@@ -514,10 +558,10 @@ structure LatencyTrackers [FfiSyntax] where
   DecodeTracker' : DurationTracker
   ImpersonationTracker' : DurationTracker
 
-noncomputable instance LatencyTrackers.zero_val [FfiSyntax] : ZeroVal LatencyTrackers :=
+noncomputable instance LatencyTrackers.zero_val [GooseExts] : ZeroVal LatencyTrackers :=
   ⟨LatencyTrackers.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LatencyTrackers.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LatencyTrackers.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MutatingWebhookTracker" DurationTracker.ty),
 (go.field_decl.FieldDecl go!"ValidatingWebhookTracker" DurationTracker.ty),
 (go.field_decl.FieldDecl go!"AuthenticationTracker" DurationTracker.ty),
@@ -530,17 +574,17 @@ noncomputable instance LatencyTrackers.zero_val [FfiSyntax] : ZeroVal LatencyTra
 (go.field_decl.FieldDecl go!"DecodeTracker" DurationTracker.ty),
 (go.field_decl.FieldDecl go!"ImpersonationTracker" DurationTracker.ty)]
 
-@[irreducible] noncomputable def LatencyTrackers.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LatencyTrackers.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LatencyTrackers.fieldsUnsealed
 
-noncomputable instance equals_unfold_LatencyTrackers [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LatencyTrackers [GooseExts] [GoGlobalContext] :
     EqualsUnfold LatencyTrackers.fields LatencyTrackers.fieldsUnsealed :=
   ⟨by unfold LatencyTrackers.fields; rfl⟩
 
-@[reducible] noncomputable def LatencyTrackers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LatencyTrackers.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LatencyTrackers.fields)
 
-class LatencyTrackers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LatencyTrackers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LatencyTrackers.underlying LatencyTrackers
   underlying : go.UnderlyingDirectedEq LatencyTrackers.ty LatencyTrackers.underlying
   get_MutatingWebhookTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"MutatingWebhookTracker") #x (Val #(x.MutatingWebhookTracker'))
@@ -565,6 +609,8 @@ class LatencyTrackers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_DecodeTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"DecodeTracker") (PairV #x #y) (Val #(({ x with DecodeTracker' := y } : LatencyTrackers)))
   get_ImpersonationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"ImpersonationTracker") #x (Val #(x.ImpersonationTracker'))
   set_ImpersonationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"ImpersonationTracker") (PairV #x #y) (Val #(({ x with ImpersonationTracker' := y } : LatencyTrackers)))
+  method_set : go.MethodSetIs LatencyTrackers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LatencyTrackers.ty) []
 
 attribute [instance] LatencyTrackers.TypeAssumptions.type_repr
   LatencyTrackers.TypeAssumptions.underlying
@@ -590,18 +636,24 @@ attribute [instance] LatencyTrackers.TypeAssumptions.type_repr
   LatencyTrackers.TypeAssumptions.set_DecodeTracker
   LatencyTrackers.TypeAssumptions.get_ImpersonationTracker
   LatencyTrackers.TypeAssumptions.set_ImpersonationTracker
+  LatencyTrackers.TypeAssumptions.method_set
+  LatencyTrackers.TypeAssumptions.ptr_method_set
 
-abbrev latencyTrackersKeyType [FfiSyntax] : Type := w64
+abbrev latencyTrackersKeyType [GooseExts] : Type := w64
 
-@[reducible] noncomputable def latencyTrackersKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def latencyTrackersKeyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class latencyTrackersKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class latencyTrackersKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq latencyTrackersKeyType.ty latencyTrackersKeyType.underlying
+  method_set : go.MethodSetIs latencyTrackersKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType latencyTrackersKeyType.ty) []
 
 attribute [instance] latencyTrackersKeyType.TypeAssumptions.underlying
+  latencyTrackersKeyType.TypeAssumptions.method_set
+  latencyTrackersKeyType.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   key_instance : key.TypeAssumptions
   requestReceivedTimestampKeyType_instance : requestReceivedTimestampKeyType.TypeAssumptions
   LongRunningRequestCheck_instance : LongRunningRequestCheck.TypeAssumptions

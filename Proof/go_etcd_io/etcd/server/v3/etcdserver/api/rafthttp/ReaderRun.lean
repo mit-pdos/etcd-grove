@@ -32,7 +32,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -62,6 +62,8 @@ def srCfg (Rh : RaftHttp GF) (pid : w64) (ty : StreamTy) (cr : Loc) : IProp GF :
     tr.[rafthttp.Transport, go!"ClusterID"] ↦□ cid ∗
     tr.[rafthttp.Transport, go!"streamRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
     tr.[rafthttp.Transport, go!"ErrorC"] ↦□ ec ∗
+    -- (D22 J-T, W8) the transport's configured peer URLs, its member's
+    (∃ lidT : w64, tr.[rafthttp.Transport, go!"ID"] ↦□ lidT ∗ ⌜trURLsOk Rh lidT uvs⌝) ∗
     streamRegInv Rh ∗ pipeReg Rh pid ∗
     -- (stage 5e-3) the stream endpoints' prefix, `streamType.endpoint`'s premise (stage 6)
     globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream")
@@ -116,7 +118,7 @@ def srDoneRight (cr : Loc) : IProp GF :=
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

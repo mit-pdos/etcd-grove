@@ -28,7 +28,7 @@ open Iris Iris.BI k8s_io.kubernetes.pkg.controller.daemon
 
 section body
 /-- go: daemon_controller.go:1281:34 -/
-noncomputable def DaemonSetsController.syncDaemonSet.body [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DaemonSetsController.syncDaemonSet.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "dsc"
   (Lam "ctx"
   (Lam "key"
@@ -343,7 +343,7 @@ noncomputable def DaemonSetsController.syncDaemonSet.body [FfiSyntax] [GoGlobalC
 end body
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

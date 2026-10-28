@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -39,7 +39,9 @@ abbrev apply.newApplierV3.spec : Prop :=
       -- (the auth plan's E2m) its shape: auth over quota over the backend with `opts`
       apply.baseShape opts a ∗
       □ (∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗
-        apply.applierSpec E (apply.baseChain E.authOn) a) }}
+        apply.applierSpec E (apply.baseChain E.authOn) a) ∗
+      -- (the auth plan's E3k) its auth layer (`baseAuth`)
+      □ (∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗ apply.baseAuth E opts a) }}
 
 end spec
 

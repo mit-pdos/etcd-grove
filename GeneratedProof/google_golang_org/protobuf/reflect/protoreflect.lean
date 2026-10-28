@@ -20,7 +20,7 @@ namespace google_golang_org.protobuf.reflect.protoreflect
 namespace doNotImplement
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -39,7 +39,7 @@ end doNotImplement
 namespace FieldNumbers
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -58,7 +58,7 @@ end FieldNumbers
 namespace FieldRanges
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -77,7 +77,7 @@ end FieldRanges
 namespace SourceLocation
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -253,7 +253,7 @@ end SourceLocation
 namespace FileImport
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -327,7 +327,7 @@ end FileImport
 namespace FieldDescriptor
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -346,7 +346,7 @@ end FieldDescriptor
 namespace FieldDescriptors
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -365,7 +365,7 @@ end FieldDescriptors
 namespace Message
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -384,7 +384,7 @@ end Message
 namespace value
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -403,7 +403,7 @@ end value
 namespace ifaceHeader
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
@@ -411,7 +411,7 @@ variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumpt
 noncomputable instance ifaceHeader_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.ifaceHeader where
   typedPointstoDef l v dq := iprop(
-    "_0" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_0" l) v._0' dq ∗
+    "«_#0»" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_#0" l) v.«_#0'» dq ∗
     "Type'" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Type" l) v.Type' dq ∗
     "Data" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Data" l) v.Data' dq ∗
     "_" ∷ True)
@@ -423,19 +423,19 @@ noncomputable instance ifaceHeader_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.ifaceHeader google_golang_org.protobuf.reflect.protoreflect.ifaceHeader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ifaceHeader_access_load__0 (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (dq : DFrac) :
+noncomputable instance «ifaceHeader_access_load__#0» (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_0" l) v._0' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_0" l) v._0' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_#0" l) v.«_#0'» dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_#0" l) v.«_#0'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance ifaceHeader_access_store__0 (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (_0' : (GoArray GoInterface 0)) :
+noncomputable instance «ifaceHeader_access_store__#0» (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) («_#0'» : (GoArray GoInterface 0)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_0" l) v._0' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_0" l) _0' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _0' := _0' } : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_#0" l) v.«_#0'» (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_#0" l) «_#0'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#0'» := «_#0'» } : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

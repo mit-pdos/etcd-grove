@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -41,7 +41,6 @@ theorem WithFirstKey.wp_proof (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG :=
   (try wp_auto)
   ipersist target
   wp_apply wp_WithLimit as %f2 #H2
-  simp only [recv_eq_func_mk]
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl

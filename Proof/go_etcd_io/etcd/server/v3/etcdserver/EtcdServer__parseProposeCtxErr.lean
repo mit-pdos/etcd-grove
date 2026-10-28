@@ -28,7 +28,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -67,7 +67,8 @@ local macro "ppce_tail" : tactic => `(tactic| (
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-theorem EtcdServer.parseProposeCtxErr.wp_proof
+/-- **In either auth mode** (E3b): the proof reads none of the mode's rows. -/
+theorem EtcdServer.parseProposeCtxErr.wp_proofM (on : Bool)
     (hIs : errors.IsCtxErr.spec (GF := GF) (hG := hG))
     (hAfter : time.Time.After.spec (GF := GF) (hG := hG))
     (hGL : EtcdServer.getLead.spec (GF := GF) (hG := hG))
@@ -75,12 +76,12 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
     (hQ : isConnectedToQuorumSince.spec (GF := GF) (hG := hG))
     (hC : isConnectedSince.spec (GF := GF) (hG := hG)) :
-    EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) := by
+    EtcdServer.parseProposeCtxErr.specM (GF := GF) (hG := hG) on := by
   intro s E ρ err start Herr
   wp_start as ⟨#Hsrv, Hrd, #Herrv⟩
-  iunfold isServerReq at Hsrv
+  iunfold isServerReqM at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
-  iunfold srvReqFieldsAt at Hv
+  iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr,
     #Hpeers, -, -, -, -⟩
   iunfold srvPeersOk at Hpeers
@@ -149,6 +150,17 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
     (try wp_auto)
     iapply HΦ; iframe Hrd; isplitr; · ipureintro; simp
     iexact HaCan
+
+theorem EtcdServer.parseProposeCtxErr.wp_proof
+    (hIs : errors.IsCtxErr.spec (GF := GF) (hG := hG))
+    (hAfter : time.Time.After.spec (GF := GF) (hG := hG))
+    (hGL : EtcdServer.getLead.spec (GF := GF) (hG := hG))
+    (hMid : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
+    (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
+    (hQ : isConnectedToQuorumSince.spec (GF := GF) (hG := hG))
+    (hC : isConnectedSince.spec (GF := GF) (hG := hG)) :
+    EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) :=
+  EtcdServer.parseProposeCtxErr.wp_proofM false hIs hAfter hGL hMid hMem hQ hC
 
 end proof
 

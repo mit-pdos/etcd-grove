@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -27,14 +27,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.metricsTxnWrite.DeleteRange.wp_proof
     (hDel : mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ ilog pend puts deletes putSize key endk k e crev Z
-  wp_start as ⟨Htx, #Hkey, #Hend⟩
+  intro trace mw s γ ilog pend puts deletes putSize key endk k e L crev Z
+  wp_start as ⟨Htx, #Hkey, #Hend, Hown⟩
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
   (try wp_auto)
-  wp_apply (hDel trace tw s γ ilog pend key endk k e crev Z) $$ [$Htw $Hkey $Hend] as %n %rev ⟨Htw, %Hnr⟩
+  wp_apply (hDel trace tw s γ ilog pend key endk k e L crev Z) $$ [$Htw $Hkey $Hend $Hown]
+    as %n %rev ⟨Htw, Hown, %Hnr⟩
   (try wp_auto)
   iapply HΦ
+  iframe Hown
   isplitl [Hmw Htw Htrc]
   · iunfold mvcc.isTxnWrite
     iexists tw, ranges

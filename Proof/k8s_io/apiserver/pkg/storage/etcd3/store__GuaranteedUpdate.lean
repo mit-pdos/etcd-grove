@@ -48,7 +48,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -110,6 +110,7 @@ theorem store.GuaranteedUpdate.wp_proof
   ihave %Hptr := c.S.objAt_ptr dest o0 rv0 $$ Hout
   obtain ⟨p, hp, rfl⟩ := Hptr
   ihave %Hdn := c.S.objAt_ne_nil _ o0 rv0 $$ Hout
+  wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

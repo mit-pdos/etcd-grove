@@ -23,7 +23,7 @@ namespace linkv3p
 open github_com.mit_pdos.etcd_grove.examples.linkv3p
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The program's structs (`kv`, `event`, `putRec`), by short names. -/
 abbrev wkv := common.wkv

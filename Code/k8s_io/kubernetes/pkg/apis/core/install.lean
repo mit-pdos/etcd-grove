@@ -20,25 +20,25 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.apis.core.install
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/install.init.0"
 
-noncomputable def Install [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Install [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/install.Install"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.apis.core.install where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.kubernetes.pkg.apis.core.install)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.kubernetes.pkg.apis.core.install
 

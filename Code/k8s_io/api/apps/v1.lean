@@ -24,468 +24,468 @@ end pkg_id
 
 namespace k8s_io.api.apps.v1
 
-noncomputable def StatefulSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSet" [])
 
 attribute [irreducible] StatefulSet.ty
 
-noncomputable def PodManagementPolicyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodManagementPolicyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.PodManagementPolicyType" [])
 
 attribute [irreducible] PodManagementPolicyType.ty
 
-noncomputable def StatefulSetUpdateStrategy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetUpdateStrategy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetUpdateStrategy" [])
 
 attribute [irreducible] StatefulSetUpdateStrategy.ty
 
-noncomputable def StatefulSetUpdateStrategyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetUpdateStrategyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetUpdateStrategyType" [])
 
 attribute [irreducible] StatefulSetUpdateStrategyType.ty
 
-noncomputable def RollingUpdateStatefulSetStrategy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RollingUpdateStatefulSetStrategy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.RollingUpdateStatefulSetStrategy" [])
 
 attribute [irreducible] RollingUpdateStatefulSetStrategy.ty
 
-noncomputable def PersistentVolumeClaimRetentionPolicyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PersistentVolumeClaimRetentionPolicyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.PersistentVolumeClaimRetentionPolicyType" [])
 
 attribute [irreducible] PersistentVolumeClaimRetentionPolicyType.ty
 
-noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetPersistentVolumeClaimRetentionPolicy" [])
 
 attribute [irreducible] StatefulSetPersistentVolumeClaimRetentionPolicy.ty
 
-noncomputable def StatefulSetOrdinals.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetOrdinals.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetOrdinals" [])
 
 attribute [irreducible] StatefulSetOrdinals.ty
 
-noncomputable def StatefulSetSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetSpec" [])
 
 attribute [irreducible] StatefulSetSpec.ty
 
-noncomputable def StatefulSetStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetStatus" [])
 
 attribute [irreducible] StatefulSetStatus.ty
 
-noncomputable def StatefulSetConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetConditionType" [])
 
 attribute [irreducible] StatefulSetConditionType.ty
 
-noncomputable def StatefulSetCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetCondition" [])
 
 attribute [irreducible] StatefulSetCondition.ty
 
-noncomputable def StatefulSetList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatefulSetList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.StatefulSetList" [])
 
 attribute [irreducible] StatefulSetList.ty
 
-noncomputable def Deployment.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Deployment.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.Deployment" [])
 
 attribute [irreducible] Deployment.ty
 
-noncomputable def DeploymentSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentSpec" [])
 
 attribute [irreducible] DeploymentSpec.ty
 
-noncomputable def DeploymentStrategy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentStrategy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentStrategy" [])
 
 attribute [irreducible] DeploymentStrategy.ty
 
-noncomputable def DeploymentStrategyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentStrategyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentStrategyType" [])
 
 attribute [irreducible] DeploymentStrategyType.ty
 
-noncomputable def RollingUpdateDeployment.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RollingUpdateDeployment.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.RollingUpdateDeployment" [])
 
 attribute [irreducible] RollingUpdateDeployment.ty
 
-noncomputable def DeploymentStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentStatus" [])
 
 attribute [irreducible] DeploymentStatus.ty
 
-noncomputable def DeploymentConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentConditionType" [])
 
 attribute [irreducible] DeploymentConditionType.ty
 
-noncomputable def DeploymentCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentCondition" [])
 
 attribute [irreducible] DeploymentCondition.ty
 
-noncomputable def DeploymentList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeploymentList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DeploymentList" [])
 
 attribute [irreducible] DeploymentList.ty
 
-noncomputable def DaemonSetUpdateStrategy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetUpdateStrategy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetUpdateStrategy" [])
 
 attribute [irreducible] DaemonSetUpdateStrategy.ty
 
-noncomputable def DaemonSetUpdateStrategyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetUpdateStrategyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetUpdateStrategyType" [])
 
 attribute [irreducible] DaemonSetUpdateStrategyType.ty
 
-noncomputable def RollingUpdateDaemonSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RollingUpdateDaemonSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.RollingUpdateDaemonSet" [])
 
 attribute [irreducible] RollingUpdateDaemonSet.ty
 
-noncomputable def DaemonSetSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetSpec" [])
 
 attribute [irreducible] DaemonSetSpec.ty
 
-noncomputable def DaemonSetStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetStatus" [])
 
 attribute [irreducible] DaemonSetStatus.ty
 
-noncomputable def DaemonSetConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetConditionType" [])
 
 attribute [irreducible] DaemonSetConditionType.ty
 
-noncomputable def DaemonSetCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetCondition" [])
 
 attribute [irreducible] DaemonSetCondition.ty
 
-noncomputable def DaemonSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSet" [])
 
 attribute [irreducible] DaemonSet.ty
 
-noncomputable def DaemonSetList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DaemonSetList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.DaemonSetList" [])
 
 attribute [irreducible] DaemonSetList.ty
 
-noncomputable def ReplicaSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.ReplicaSet" [])
 
 attribute [irreducible] ReplicaSet.ty
 
-noncomputable def ReplicaSetList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.ReplicaSetList" [])
 
 attribute [irreducible] ReplicaSetList.ty
 
-noncomputable def ReplicaSetSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.ReplicaSetSpec" [])
 
 attribute [irreducible] ReplicaSetSpec.ty
 
-noncomputable def ReplicaSetStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.ReplicaSetStatus" [])
 
 attribute [irreducible] ReplicaSetStatus.ty
 
-noncomputable def ReplicaSetConditionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.ReplicaSetConditionType" [])
 
 attribute [irreducible] ReplicaSetConditionType.ty
 
-noncomputable def ReplicaSetCondition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplicaSetCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.ReplicaSetCondition" [])
 
 attribute [irreducible] ReplicaSetCondition.ty
 
-noncomputable def ControllerRevision.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ControllerRevision.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.ControllerRevision" [])
 
 attribute [irreducible] ControllerRevision.ty
 
-noncomputable def ControllerRevisionList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ControllerRevisionList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/apps/v1.ControllerRevisionList" [])
 
 attribute [irreducible] ControllerRevisionList.ty
 
-axiom GroupName [FfiSyntax] [GoGlobalContext] : val
+axiom GroupName [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def ControllerRevisionHashLabelKey [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ControllerRevisionHashLabelKey [GooseExts] [GoGlobalContext] : val :=
   #(go!"controller-revision-hash")
 
-axiom StatefulSetRevisionLabel [FfiSyntax] [GoGlobalContext] : val
+axiom StatefulSetRevisionLabel [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedRollbackTo [FfiSyntax] [GoGlobalContext] : val
+axiom DeprecatedRollbackTo [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def DeprecatedTemplateGeneration [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DeprecatedTemplateGeneration [GooseExts] [GoGlobalContext] : val :=
   #(go!"deprecated.daemonset.template.generation")
 
-axiom StatefulSetPodNameLabel [FfiSyntax] [GoGlobalContext] : val
+axiom StatefulSetPodNameLabel [GooseExts] [GoGlobalContext] : val
 
-axiom PodIndexLabel [FfiSyntax] [GoGlobalContext] : val
+axiom PodIndexLabel [GooseExts] [GoGlobalContext] : val
 
-axiom OrderedReadyPodManagement [FfiSyntax] [GoGlobalContext] : val
+axiom OrderedReadyPodManagement [GooseExts] [GoGlobalContext] : val
 
-axiom ParallelPodManagement [FfiSyntax] [GoGlobalContext] : val
+axiom ParallelPodManagement [GooseExts] [GoGlobalContext] : val
 
-axiom RollingUpdateStatefulSetStrategyType [FfiSyntax] [GoGlobalContext] : val
+axiom RollingUpdateStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom OnDeleteStatefulSetStrategyType [FfiSyntax] [GoGlobalContext] : val
+axiom OnDeleteStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom RecreateStatefulSetStrategyType [FfiSyntax] [GoGlobalContext] : val
+axiom RecreateStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom RetainPersistentVolumeClaimRetentionPolicyType [FfiSyntax] [GoGlobalContext] : val
+axiom RetainPersistentVolumeClaimRetentionPolicyType [GooseExts] [GoGlobalContext] : val
 
-axiom DeletePersistentVolumeClaimRetentionPolicyType [FfiSyntax] [GoGlobalContext] : val
+axiom DeletePersistentVolumeClaimRetentionPolicyType [GooseExts] [GoGlobalContext] : val
 
-axiom StatefulSetProgressing [FfiSyntax] [GoGlobalContext] : val
+axiom StatefulSetProgressing [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultDeploymentUniqueLabelKey [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultDeploymentUniqueLabelKey [GooseExts] [GoGlobalContext] : val
 
-axiom RecreateDeploymentStrategyType [FfiSyntax] [GoGlobalContext] : val
+axiom RecreateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom RollingUpdateDeploymentStrategyType [FfiSyntax] [GoGlobalContext] : val
+axiom RollingUpdateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentAvailable [FfiSyntax] [GoGlobalContext] : val
+axiom DeploymentAvailable [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentProgressing [FfiSyntax] [GoGlobalContext] : val
+axiom DeploymentProgressing [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentReplicaFailure [FfiSyntax] [GoGlobalContext] : val
+axiom DeploymentReplicaFailure [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def RollingUpdateDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RollingUpdateDaemonSetStrategyType [GooseExts] [GoGlobalContext] : val :=
   #(go!"RollingUpdate")
 
-@[reducible] noncomputable def OnDeleteDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def OnDeleteDaemonSetStrategyType [GooseExts] [GoGlobalContext] : val :=
   #(go!"OnDelete")
 
-@[reducible] noncomputable def DefaultDaemonSetUniqueLabelKey [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultDaemonSetUniqueLabelKey [GooseExts] [GoGlobalContext] : val :=
   #(go!"controller-revision-hash")
 
-axiom ReplicaSetReplicaFailure [FfiSyntax] [GoGlobalContext] : val
+axiom ReplicaSetReplicaFailure [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrIntOverflowGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUnexpectedEndOfGroupGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeGroupVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SchemeBuilder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [FfiSyntax] [GoGlobalContext] : val
+axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def localSchemeBuilder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [FfiSyntax] [GoGlobalContext] : val
+axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AddToScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.AddToScheme"
 
-axiom AddToScheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ControllerRevision [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ControllerRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ControllerRevision"
 
-axiom map_ControllerRevision.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ControllerRevision.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ControllerRevisionList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ControllerRevisionList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ControllerRevisionList"
 
-axiom map_ControllerRevisionList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ControllerRevisionList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DaemonSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSet"
 
-axiom map_DaemonSet.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DaemonSet.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DaemonSetCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DaemonSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetCondition"
 
-axiom map_DaemonSetCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DaemonSetCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DaemonSetList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DaemonSetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetList"
 
-axiom map_DaemonSetList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DaemonSetList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DaemonSetSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DaemonSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetSpec"
 
-axiom map_DaemonSetSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DaemonSetSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DaemonSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DaemonSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetStatus"
 
-axiom map_DaemonSetStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DaemonSetStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DaemonSetUpdateStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DaemonSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetUpdateStrategy"
 
-axiom map_DaemonSetUpdateStrategy.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DaemonSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_Deployment [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_Deployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_Deployment"
 
-axiom map_Deployment.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_Deployment.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DeploymentCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DeploymentCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentCondition"
 
-axiom map_DeploymentCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DeploymentCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DeploymentList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DeploymentList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentList"
 
-axiom map_DeploymentList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DeploymentList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DeploymentSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DeploymentSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentSpec"
 
-axiom map_DeploymentSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DeploymentSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DeploymentStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DeploymentStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentStatus"
 
-axiom map_DeploymentStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DeploymentStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_DeploymentStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_DeploymentStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentStrategy"
 
-axiom map_DeploymentStrategy.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_DeploymentStrategy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicaSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicaSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSet"
 
-axiom map_ReplicaSet.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicaSet.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicaSetCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicaSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSetCondition"
 
-axiom map_ReplicaSetCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicaSetCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicaSetList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicaSetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSetList"
 
-axiom map_ReplicaSetList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicaSetList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicaSetSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicaSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSetSpec"
 
-axiom map_ReplicaSetSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicaSetSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_ReplicaSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_ReplicaSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSetStatus"
 
-axiom map_ReplicaSetStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_ReplicaSetStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_RollingUpdateDaemonSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_RollingUpdateDaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_RollingUpdateDaemonSet"
 
-axiom map_RollingUpdateDaemonSet.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_RollingUpdateDaemonSet.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_RollingUpdateDeployment [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_RollingUpdateDeployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_RollingUpdateDeployment"
 
-axiom map_RollingUpdateDeployment.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_RollingUpdateDeployment.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_RollingUpdateStatefulSetStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_RollingUpdateStatefulSetStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_RollingUpdateStatefulSetStrategy"
 
-axiom map_RollingUpdateStatefulSetStrategy.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_RollingUpdateStatefulSetStrategy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StatefulSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StatefulSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSet"
 
-axiom map_StatefulSet.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StatefulSet.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StatefulSetCondition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StatefulSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetCondition"
 
-axiom map_StatefulSetCondition.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StatefulSetCondition.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StatefulSetList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StatefulSetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetList"
 
-axiom map_StatefulSetList.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StatefulSetList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StatefulSetOrdinals [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StatefulSetOrdinals [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetOrdinals"
 
-axiom map_StatefulSetOrdinals.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StatefulSetOrdinals.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StatefulSetPersistentVolumeClaimRetentionPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StatefulSetPersistentVolumeClaimRetentionPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetPersistentVolumeClaimRetentionPolicy"
 
-axiom map_StatefulSetPersistentVolumeClaimRetentionPolicy.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StatefulSetPersistentVolumeClaimRetentionPolicy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StatefulSetSpec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StatefulSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetSpec"
 
-axiom map_StatefulSetSpec.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StatefulSetSpec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StatefulSetStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StatefulSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetStatus"
 
-axiom map_StatefulSetStatus.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StatefulSetStatus.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def map_StatefulSetUpdateStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def map_StatefulSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetUpdateStrategy"
 
-axiom map_StatefulSetUpdateStrategy.init [FfiSyntax] [GoGlobalContext] : val
+axiom map_StatefulSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def encodeVarintGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.encodeVarintGenerated"
 
-noncomputable def sovGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sovGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.sovGenerated"
 
-noncomputable def sozGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sozGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.sozGenerated"
 
-noncomputable def valueToStringGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def valueToStringGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.valueToStringGenerated"
 
-noncomputable def skipGenerated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def skipGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.skipGenerated"
 
-noncomputable def Resource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Resource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.Resource"
 
-noncomputable def addKnownTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.addKnownTypes"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.apps.v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.util.intstr, pkg_id.k8s_io.apimachinery.pkg.runtime]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.api.apps.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -612,55 +612,65 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.initialize') (Val #()))))))))
 
-abbrev PodManagementPolicyType [FfiSyntax] : Type := GoString
+abbrev PodManagementPolicyType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PodManagementPolicyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PodManagementPolicyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class PodManagementPolicyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodManagementPolicyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodManagementPolicyType.ty PodManagementPolicyType.underlying
+  method_set : go.MethodSetIs PodManagementPolicyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodManagementPolicyType.ty) []
 
 attribute [instance] PodManagementPolicyType.TypeAssumptions.underlying
+  PodManagementPolicyType.TypeAssumptions.method_set
+  PodManagementPolicyType.TypeAssumptions.ptr_method_set
 
-abbrev StatefulSetUpdateStrategyType [FfiSyntax] : Type := GoString
+abbrev StatefulSetUpdateStrategyType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def StatefulSetUpdateStrategyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetUpdateStrategyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class StatefulSetUpdateStrategyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetUpdateStrategyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StatefulSetUpdateStrategyType.ty StatefulSetUpdateStrategyType.underlying
+  method_set : go.MethodSetIs StatefulSetUpdateStrategyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetUpdateStrategyType.ty) []
 
 attribute [instance] StatefulSetUpdateStrategyType.TypeAssumptions.underlying
+  StatefulSetUpdateStrategyType.TypeAssumptions.method_set
+  StatefulSetUpdateStrategyType.TypeAssumptions.ptr_method_set
 
-structure StatefulSetUpdateStrategy [FfiSyntax] where
+structure StatefulSetUpdateStrategy [GooseExts] where
   mk ::
   Type' : StatefulSetUpdateStrategyType
   RollingUpdate' : Loc
 
-noncomputable instance StatefulSetUpdateStrategy.zero_val [FfiSyntax] : ZeroVal StatefulSetUpdateStrategy :=
+noncomputable instance StatefulSetUpdateStrategy.zero_val [GooseExts] : ZeroVal StatefulSetUpdateStrategy :=
   ⟨StatefulSetUpdateStrategy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StatefulSetUpdateStrategy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatefulSetUpdateStrategy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" StatefulSetUpdateStrategyType.ty),
 (go.field_decl.FieldDecl go!"RollingUpdate" (go.GoType.PointerType RollingUpdateStatefulSetStrategy.ty))]
 
-@[irreducible] noncomputable def StatefulSetUpdateStrategy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatefulSetUpdateStrategy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatefulSetUpdateStrategy.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatefulSetUpdateStrategy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatefulSetUpdateStrategy [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatefulSetUpdateStrategy.fields StatefulSetUpdateStrategy.fieldsUnsealed :=
   ⟨by unfold StatefulSetUpdateStrategy.fields; rfl⟩
 
-@[reducible] noncomputable def StatefulSetUpdateStrategy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetUpdateStrategy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatefulSetUpdateStrategy.fields)
 
-class StatefulSetUpdateStrategy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetUpdateStrategy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetUpdateStrategy.underlying StatefulSetUpdateStrategy
   underlying : go.UnderlyingDirectedEq StatefulSetUpdateStrategy.ty StatefulSetUpdateStrategy.underlying
   get_Type : ∀ (x : StatefulSetUpdateStrategy), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetUpdateStrategy.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : StatefulSetUpdateStrategy) (y : StatefulSetUpdateStrategyType), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetUpdateStrategy.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : StatefulSetUpdateStrategy)))
   get_RollingUpdate : ∀ (x : StatefulSetUpdateStrategy), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetUpdateStrategy.underlying go!"RollingUpdate") #x (Val #(x.RollingUpdate'))
   set_RollingUpdate : ∀ (x : StatefulSetUpdateStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetUpdateStrategy.underlying go!"RollingUpdate") (PairV #x #y) (Val #(({ x with RollingUpdate' := y } : StatefulSetUpdateStrategy)))
+  method_set : go.MethodSetIs StatefulSetUpdateStrategy.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetUpdateStrategy.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType StatefulSetUpdateStrategy.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetUpdateStrategy.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] StatefulSetUpdateStrategy.TypeAssumptions.type_repr
   StatefulSetUpdateStrategy.TypeAssumptions.underlying
@@ -668,8 +678,10 @@ attribute [instance] StatefulSetUpdateStrategy.TypeAssumptions.type_repr
   StatefulSetUpdateStrategy.TypeAssumptions.set_Type
   StatefulSetUpdateStrategy.TypeAssumptions.get_RollingUpdate
   StatefulSetUpdateStrategy.TypeAssumptions.set_RollingUpdate
+  StatefulSetUpdateStrategy.TypeAssumptions.method_set
+  StatefulSetUpdateStrategy.TypeAssumptions.ptr_method_set
 
-structure StatefulSetSpec [FfiSyntax] where
+structure StatefulSetSpec [GooseExts] where
   mk ::
   Replicas' : Loc
   Selector' : Loc
@@ -683,10 +695,10 @@ structure StatefulSetSpec [FfiSyntax] where
   PersistentVolumeClaimRetentionPolicy' : Loc
   Ordinals' : Loc
 
-noncomputable instance StatefulSetSpec.zero_val [FfiSyntax] : ZeroVal StatefulSetSpec :=
+noncomputable instance StatefulSetSpec.zero_val [GooseExts] : ZeroVal StatefulSetSpec :=
   ⟨StatefulSetSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StatefulSetSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatefulSetSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Replicas" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"Selector" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)),
 (go.field_decl.FieldDecl go!"Template" _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty),
@@ -699,17 +711,17 @@ noncomputable instance StatefulSetSpec.zero_val [FfiSyntax] : ZeroVal StatefulSe
 (go.field_decl.FieldDecl go!"PersistentVolumeClaimRetentionPolicy" (go.GoType.PointerType StatefulSetPersistentVolumeClaimRetentionPolicy.ty)),
 (go.field_decl.FieldDecl go!"Ordinals" (go.GoType.PointerType StatefulSetOrdinals.ty))]
 
-@[irreducible] noncomputable def StatefulSetSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatefulSetSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatefulSetSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatefulSetSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatefulSetSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatefulSetSpec.fields StatefulSetSpec.fieldsUnsealed :=
   ⟨by unfold StatefulSetSpec.fields; rfl⟩
 
-@[reducible] noncomputable def StatefulSetSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatefulSetSpec.fields)
 
-class StatefulSetSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetSpec.underlying StatefulSetSpec
   underlying : go.UnderlyingDirectedEq StatefulSetSpec.ty StatefulSetSpec.underlying
   get_Replicas : ∀ (x : StatefulSetSpec), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetSpec.underlying go!"Replicas") #x (Val #(x.Replicas'))
@@ -734,6 +746,8 @@ class StatefulSetSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_PersistentVolumeClaimRetentionPolicy : ∀ (x : StatefulSetSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetSpec.underlying go!"PersistentVolumeClaimRetentionPolicy") (PairV #x #y) (Val #(({ x with PersistentVolumeClaimRetentionPolicy' := y } : StatefulSetSpec)))
   get_Ordinals : ∀ (x : StatefulSetSpec), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetSpec.underlying go!"Ordinals") #x (Val #(x.Ordinals'))
   set_Ordinals : ∀ (x : StatefulSetSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetSpec.underlying go!"Ordinals") (PairV #x #y) (Val #(({ x with Ordinals' := y } : StatefulSetSpec)))
+  method_set : go.MethodSetIs StatefulSetSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType StatefulSetSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] StatefulSetSpec.TypeAssumptions.type_repr
   StatefulSetSpec.TypeAssumptions.underlying
@@ -759,8 +773,10 @@ attribute [instance] StatefulSetSpec.TypeAssumptions.type_repr
   StatefulSetSpec.TypeAssumptions.set_PersistentVolumeClaimRetentionPolicy
   StatefulSetSpec.TypeAssumptions.get_Ordinals
   StatefulSetSpec.TypeAssumptions.set_Ordinals
+  StatefulSetSpec.TypeAssumptions.method_set
+  StatefulSetSpec.TypeAssumptions.ptr_method_set
 
-structure StatefulSetStatus [FfiSyntax] where
+structure StatefulSetStatus [GooseExts] where
   mk ::
   ObservedGeneration' : w64
   Replicas' : w32
@@ -773,10 +789,10 @@ structure StatefulSetStatus [FfiSyntax] where
   Conditions' : GoSlice
   AvailableReplicas' : w32
 
-noncomputable instance StatefulSetStatus.zero_val [FfiSyntax] : ZeroVal StatefulSetStatus :=
+noncomputable instance StatefulSetStatus.zero_val [GooseExts] : ZeroVal StatefulSetStatus :=
   ⟨StatefulSetStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StatefulSetStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatefulSetStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ObservedGeneration" go.int64),
 (go.field_decl.FieldDecl go!"Replicas" go.int32),
 (go.field_decl.FieldDecl go!"ReadyReplicas" go.int32),
@@ -788,17 +804,17 @@ noncomputable instance StatefulSetStatus.zero_val [FfiSyntax] : ZeroVal Stateful
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType StatefulSetCondition.ty)),
 (go.field_decl.FieldDecl go!"AvailableReplicas" go.int32)]
 
-@[irreducible] noncomputable def StatefulSetStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatefulSetStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatefulSetStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatefulSetStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatefulSetStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatefulSetStatus.fields StatefulSetStatus.fieldsUnsealed :=
   ⟨by unfold StatefulSetStatus.fields; rfl⟩
 
-@[reducible] noncomputable def StatefulSetStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatefulSetStatus.fields)
 
-class StatefulSetStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetStatus.underlying StatefulSetStatus
   underlying : go.UnderlyingDirectedEq StatefulSetStatus.ty StatefulSetStatus.underlying
   get_ObservedGeneration : ∀ (x : StatefulSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
@@ -821,6 +837,8 @@ class StatefulSetStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_Conditions : ∀ (x : StatefulSetStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : StatefulSetStatus)))
   get_AvailableReplicas : ∀ (x : StatefulSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetStatus.underlying go!"AvailableReplicas") #x (Val #(x.AvailableReplicas'))
   set_AvailableReplicas : ∀ (x : StatefulSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetStatus.underlying go!"AvailableReplicas") (PairV #x #y) (Val #(({ x with AvailableReplicas' := y } : StatefulSetStatus)))
+  method_set : go.MethodSetIs StatefulSetStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType StatefulSetStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] StatefulSetStatus.TypeAssumptions.type_repr
   StatefulSetStatus.TypeAssumptions.underlying
@@ -844,34 +862,36 @@ attribute [instance] StatefulSetStatus.TypeAssumptions.type_repr
   StatefulSetStatus.TypeAssumptions.set_Conditions
   StatefulSetStatus.TypeAssumptions.get_AvailableReplicas
   StatefulSetStatus.TypeAssumptions.set_AvailableReplicas
+  StatefulSetStatus.TypeAssumptions.method_set
+  StatefulSetStatus.TypeAssumptions.ptr_method_set
 
-structure StatefulSet [FfiSyntax] where
+structure StatefulSet [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : StatefulSetSpec
   Status' : StatefulSetStatus
 
-noncomputable instance StatefulSet.zero_val [FfiSyntax] : ZeroVal StatefulSet :=
+noncomputable instance StatefulSet.zero_val [GooseExts] : ZeroVal StatefulSet :=
   ⟨StatefulSet.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StatefulSet.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatefulSet.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" StatefulSetSpec.ty),
 (go.field_decl.FieldDecl go!"Status" StatefulSetStatus.ty)]
 
-@[irreducible] noncomputable def StatefulSet.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatefulSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatefulSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatefulSet [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatefulSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatefulSet.fields StatefulSet.fieldsUnsealed :=
   ⟨by unfold StatefulSet.fields; rfl⟩
 
-@[reducible] noncomputable def StatefulSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatefulSet.fields)
 
-class StatefulSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSet.underlying StatefulSet
   underlying : go.UnderlyingDirectedEq StatefulSet.ty StatefulSet.underlying
   get_TypeMeta : ∀ (x : StatefulSet), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSet.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -882,6 +902,8 @@ class StatefulSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Spec : ∀ (x : StatefulSet) (y : StatefulSetSpec), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSet.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : StatefulSet)))
   get_Status : ∀ (x : StatefulSet), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSet.underlying go!"Status") #x (Val #(x.Status'))
   set_Status : ∀ (x : StatefulSet) (y : StatefulSetStatus), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSet.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : StatefulSet)))
+  method_set : go.MethodSetIs StatefulSet.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSet.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType StatefulSet.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType StatefulSet.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] StatefulSet.TypeAssumptions.type_repr
   StatefulSet.TypeAssumptions.underlying
@@ -893,36 +915,40 @@ attribute [instance] StatefulSet.TypeAssumptions.type_repr
   StatefulSet.TypeAssumptions.set_Spec
   StatefulSet.TypeAssumptions.get_Status
   StatefulSet.TypeAssumptions.set_Status
+  StatefulSet.TypeAssumptions.method_set
+  StatefulSet.TypeAssumptions.ptr_method_set
 
-structure RollingUpdateStatefulSetStrategy [FfiSyntax] where
+structure RollingUpdateStatefulSetStrategy [GooseExts] where
   mk ::
   Partition' : Loc
   MaxUnavailable' : Loc
 
-noncomputable instance RollingUpdateStatefulSetStrategy.zero_val [FfiSyntax] : ZeroVal RollingUpdateStatefulSetStrategy :=
+noncomputable instance RollingUpdateStatefulSetStrategy.zero_val [GooseExts] : ZeroVal RollingUpdateStatefulSetStrategy :=
   ⟨RollingUpdateStatefulSetStrategy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RollingUpdateStatefulSetStrategy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RollingUpdateStatefulSetStrategy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Partition" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"MaxUnavailable" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty))]
 
-@[irreducible] noncomputable def RollingUpdateStatefulSetStrategy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RollingUpdateStatefulSetStrategy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RollingUpdateStatefulSetStrategy.fieldsUnsealed
 
-noncomputable instance equals_unfold_RollingUpdateStatefulSetStrategy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RollingUpdateStatefulSetStrategy [GooseExts] [GoGlobalContext] :
     EqualsUnfold RollingUpdateStatefulSetStrategy.fields RollingUpdateStatefulSetStrategy.fieldsUnsealed :=
   ⟨by unfold RollingUpdateStatefulSetStrategy.fields; rfl⟩
 
-@[reducible] noncomputable def RollingUpdateStatefulSetStrategy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RollingUpdateStatefulSetStrategy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RollingUpdateStatefulSetStrategy.fields)
 
-class RollingUpdateStatefulSetStrategy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RollingUpdateStatefulSetStrategy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RollingUpdateStatefulSetStrategy.underlying RollingUpdateStatefulSetStrategy
   underlying : go.UnderlyingDirectedEq RollingUpdateStatefulSetStrategy.ty RollingUpdateStatefulSetStrategy.underlying
   get_Partition : ∀ (x : RollingUpdateStatefulSetStrategy), go.IsGoStepPureDetTagged under (StructFieldGet RollingUpdateStatefulSetStrategy.underlying go!"Partition") #x (Val #(x.Partition'))
   set_Partition : ∀ (x : RollingUpdateStatefulSetStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RollingUpdateStatefulSetStrategy.underlying go!"Partition") (PairV #x #y) (Val #(({ x with Partition' := y } : RollingUpdateStatefulSetStrategy)))
   get_MaxUnavailable : ∀ (x : RollingUpdateStatefulSetStrategy), go.IsGoStepPureDetTagged under (StructFieldGet RollingUpdateStatefulSetStrategy.underlying go!"MaxUnavailable") #x (Val #(x.MaxUnavailable'))
   set_MaxUnavailable : ∀ (x : RollingUpdateStatefulSetStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RollingUpdateStatefulSetStrategy.underlying go!"MaxUnavailable") (PairV #x #y) (Val #(({ x with MaxUnavailable' := y } : RollingUpdateStatefulSetStrategy)))
+  method_set : go.MethodSetIs RollingUpdateStatefulSetStrategy.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RollingUpdateStatefulSetStrategy.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType RollingUpdateStatefulSetStrategy.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType RollingUpdateStatefulSetStrategy.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] RollingUpdateStatefulSetStrategy.TypeAssumptions.type_repr
   RollingUpdateStatefulSetStrategy.TypeAssumptions.underlying
@@ -930,46 +956,54 @@ attribute [instance] RollingUpdateStatefulSetStrategy.TypeAssumptions.type_repr
   RollingUpdateStatefulSetStrategy.TypeAssumptions.set_Partition
   RollingUpdateStatefulSetStrategy.TypeAssumptions.get_MaxUnavailable
   RollingUpdateStatefulSetStrategy.TypeAssumptions.set_MaxUnavailable
+  RollingUpdateStatefulSetStrategy.TypeAssumptions.method_set
+  RollingUpdateStatefulSetStrategy.TypeAssumptions.ptr_method_set
 
-abbrev PersistentVolumeClaimRetentionPolicyType [FfiSyntax] : Type := GoString
+abbrev PersistentVolumeClaimRetentionPolicyType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def PersistentVolumeClaimRetentionPolicyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PersistentVolumeClaimRetentionPolicyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class PersistentVolumeClaimRetentionPolicyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PersistentVolumeClaimRetentionPolicyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimRetentionPolicyType.ty PersistentVolumeClaimRetentionPolicyType.underlying
+  method_set : go.MethodSetIs PersistentVolumeClaimRetentionPolicyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimRetentionPolicyType.ty) []
 
 attribute [instance] PersistentVolumeClaimRetentionPolicyType.TypeAssumptions.underlying
+  PersistentVolumeClaimRetentionPolicyType.TypeAssumptions.method_set
+  PersistentVolumeClaimRetentionPolicyType.TypeAssumptions.ptr_method_set
 
-structure StatefulSetPersistentVolumeClaimRetentionPolicy [FfiSyntax] where
+structure StatefulSetPersistentVolumeClaimRetentionPolicy [GooseExts] where
   mk ::
   WhenDeleted' : PersistentVolumeClaimRetentionPolicyType
   WhenScaled' : PersistentVolumeClaimRetentionPolicyType
 
-noncomputable instance StatefulSetPersistentVolumeClaimRetentionPolicy.zero_val [FfiSyntax] : ZeroVal StatefulSetPersistentVolumeClaimRetentionPolicy :=
+noncomputable instance StatefulSetPersistentVolumeClaimRetentionPolicy.zero_val [GooseExts] : ZeroVal StatefulSetPersistentVolumeClaimRetentionPolicy :=
   ⟨StatefulSetPersistentVolumeClaimRetentionPolicy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"WhenDeleted" PersistentVolumeClaimRetentionPolicyType.ty),
 (go.field_decl.FieldDecl go!"WhenScaled" PersistentVolumeClaimRetentionPolicyType.ty)]
 
-@[irreducible] noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatefulSetPersistentVolumeClaimRetentionPolicy.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatefulSetPersistentVolumeClaimRetentionPolicy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatefulSetPersistentVolumeClaimRetentionPolicy [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatefulSetPersistentVolumeClaimRetentionPolicy.fields StatefulSetPersistentVolumeClaimRetentionPolicy.fieldsUnsealed :=
   ⟨by unfold StatefulSetPersistentVolumeClaimRetentionPolicy.fields; rfl⟩
 
-@[reducible] noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetPersistentVolumeClaimRetentionPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatefulSetPersistentVolumeClaimRetentionPolicy.fields)
 
-class StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetPersistentVolumeClaimRetentionPolicy.underlying StatefulSetPersistentVolumeClaimRetentionPolicy
   underlying : go.UnderlyingDirectedEq StatefulSetPersistentVolumeClaimRetentionPolicy.ty StatefulSetPersistentVolumeClaimRetentionPolicy.underlying
   get_WhenDeleted : ∀ (x : StatefulSetPersistentVolumeClaimRetentionPolicy), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetPersistentVolumeClaimRetentionPolicy.underlying go!"WhenDeleted") #x (Val #(x.WhenDeleted'))
   set_WhenDeleted : ∀ (x : StatefulSetPersistentVolumeClaimRetentionPolicy) (y : PersistentVolumeClaimRetentionPolicyType), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetPersistentVolumeClaimRetentionPolicy.underlying go!"WhenDeleted") (PairV #x #y) (Val #(({ x with WhenDeleted' := y } : StatefulSetPersistentVolumeClaimRetentionPolicy)))
   get_WhenScaled : ∀ (x : StatefulSetPersistentVolumeClaimRetentionPolicy), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetPersistentVolumeClaimRetentionPolicy.underlying go!"WhenScaled") #x (Val #(x.WhenScaled'))
   set_WhenScaled : ∀ (x : StatefulSetPersistentVolumeClaimRetentionPolicy) (y : PersistentVolumeClaimRetentionPolicyType), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetPersistentVolumeClaimRetentionPolicy.underlying go!"WhenScaled") (PairV #x #y) (Val #(({ x with WhenScaled' := y } : StatefulSetPersistentVolumeClaimRetentionPolicy)))
+  method_set : go.MethodSetIs StatefulSetPersistentVolumeClaimRetentionPolicy.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetPersistentVolumeClaimRetentionPolicy.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType StatefulSetPersistentVolumeClaimRetentionPolicy.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetPersistentVolumeClaimRetentionPolicy.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions.type_repr
   StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions.underlying
@@ -977,49 +1011,59 @@ attribute [instance] StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumpt
   StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions.set_WhenDeleted
   StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions.get_WhenScaled
   StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions.set_WhenScaled
+  StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions.method_set
+  StatefulSetPersistentVolumeClaimRetentionPolicy.TypeAssumptions.ptr_method_set
 
-structure StatefulSetOrdinals [FfiSyntax] where
+structure StatefulSetOrdinals [GooseExts] where
   mk ::
   Start' : w32
 
-noncomputable instance StatefulSetOrdinals.zero_val [FfiSyntax] : ZeroVal StatefulSetOrdinals :=
+noncomputable instance StatefulSetOrdinals.zero_val [GooseExts] : ZeroVal StatefulSetOrdinals :=
   ⟨StatefulSetOrdinals.mk zeroValDef⟩
 
-@[reducible] noncomputable def StatefulSetOrdinals.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatefulSetOrdinals.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Start" go.int32)]
 
-@[irreducible] noncomputable def StatefulSetOrdinals.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatefulSetOrdinals.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatefulSetOrdinals.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatefulSetOrdinals [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatefulSetOrdinals [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatefulSetOrdinals.fields StatefulSetOrdinals.fieldsUnsealed :=
   ⟨by unfold StatefulSetOrdinals.fields; rfl⟩
 
-@[reducible] noncomputable def StatefulSetOrdinals.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetOrdinals.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatefulSetOrdinals.fields)
 
-class StatefulSetOrdinals.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetOrdinals.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetOrdinals.underlying StatefulSetOrdinals
   underlying : go.UnderlyingDirectedEq StatefulSetOrdinals.ty StatefulSetOrdinals.underlying
   get_Start : ∀ (x : StatefulSetOrdinals), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetOrdinals.underlying go!"Start") #x (Val #(x.Start'))
   set_Start : ∀ (x : StatefulSetOrdinals) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetOrdinals.underlying go!"Start") (PairV #x #y) (Val #(({ x with Start' := y } : StatefulSetOrdinals)))
+  method_set : go.MethodSetIs StatefulSetOrdinals.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetOrdinals.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType StatefulSetOrdinals.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetOrdinals.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] StatefulSetOrdinals.TypeAssumptions.type_repr
   StatefulSetOrdinals.TypeAssumptions.underlying
   StatefulSetOrdinals.TypeAssumptions.get_Start
   StatefulSetOrdinals.TypeAssumptions.set_Start
+  StatefulSetOrdinals.TypeAssumptions.method_set
+  StatefulSetOrdinals.TypeAssumptions.ptr_method_set
 
-abbrev StatefulSetConditionType [FfiSyntax] : Type := GoString
+abbrev StatefulSetConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def StatefulSetConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class StatefulSetConditionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetConditionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StatefulSetConditionType.ty StatefulSetConditionType.underlying
+  method_set : go.MethodSetIs StatefulSetConditionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetConditionType.ty) []
 
 attribute [instance] StatefulSetConditionType.TypeAssumptions.underlying
+  StatefulSetConditionType.TypeAssumptions.method_set
+  StatefulSetConditionType.TypeAssumptions.ptr_method_set
 
-structure StatefulSetCondition [FfiSyntax] where
+structure StatefulSetCondition [GooseExts] where
   mk ::
   Type' : StatefulSetConditionType
   Status' : _root_.Perennial.k8s_io.api.core.v1.ConditionStatus
@@ -1027,27 +1071,27 @@ structure StatefulSetCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance StatefulSetCondition.zero_val [FfiSyntax] : ZeroVal StatefulSetCondition :=
+noncomputable instance StatefulSetCondition.zero_val [GooseExts] : ZeroVal StatefulSetCondition :=
   ⟨StatefulSetCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StatefulSetCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatefulSetCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" StatefulSetConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"LastTransitionTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def StatefulSetCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatefulSetCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatefulSetCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatefulSetCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatefulSetCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatefulSetCondition.fields StatefulSetCondition.fieldsUnsealed :=
   ⟨by unfold StatefulSetCondition.fields; rfl⟩
 
-@[reducible] noncomputable def StatefulSetCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatefulSetCondition.fields)
 
-class StatefulSetCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetCondition.underlying StatefulSetCondition
   underlying : go.UnderlyingDirectedEq StatefulSetCondition.ty StatefulSetCondition.underlying
   get_Type : ∀ (x : StatefulSetCondition), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetCondition.underlying go!"Type") #x (Val #(x.Type'))
@@ -1060,6 +1104,8 @@ class StatefulSetCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   set_Reason : ∀ (x : StatefulSetCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : StatefulSetCondition)))
   get_Message : ∀ (x : StatefulSetCondition), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetCondition.underlying go!"Message") #x (Val #(x.Message'))
   set_Message : ∀ (x : StatefulSetCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : StatefulSetCondition)))
+  method_set : go.MethodSetIs StatefulSetCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType StatefulSetCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] StatefulSetCondition.TypeAssumptions.type_repr
   StatefulSetCondition.TypeAssumptions.underlying
@@ -1073,32 +1119,34 @@ attribute [instance] StatefulSetCondition.TypeAssumptions.type_repr
   StatefulSetCondition.TypeAssumptions.set_Reason
   StatefulSetCondition.TypeAssumptions.get_Message
   StatefulSetCondition.TypeAssumptions.set_Message
+  StatefulSetCondition.TypeAssumptions.method_set
+  StatefulSetCondition.TypeAssumptions.ptr_method_set
 
-structure StatefulSetList [FfiSyntax] where
+structure StatefulSetList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance StatefulSetList.zero_val [FfiSyntax] : ZeroVal StatefulSetList :=
+noncomputable instance StatefulSetList.zero_val [GooseExts] : ZeroVal StatefulSetList :=
   ⟨StatefulSetList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StatefulSetList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StatefulSetList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType StatefulSet.ty))]
 
-@[irreducible] noncomputable def StatefulSetList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StatefulSetList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatefulSetList.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatefulSetList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StatefulSetList [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatefulSetList.fields StatefulSetList.fieldsUnsealed :=
   ⟨by unfold StatefulSetList.fields; rfl⟩
 
-@[reducible] noncomputable def StatefulSetList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StatefulSetList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StatefulSetList.fields)
 
-class StatefulSetList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StatefulSetList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatefulSetList.underlying StatefulSetList
   underlying : go.UnderlyingDirectedEq StatefulSetList.ty StatefulSetList.underlying
   get_TypeMeta : ∀ (x : StatefulSetList), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -1107,6 +1155,8 @@ class StatefulSetList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_ListMeta : ∀ (x : StatefulSetList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : StatefulSetList)))
   get_Items : ∀ (x : StatefulSetList), go.IsGoStepPureDetTagged under (StructFieldGet StatefulSetList.underlying go!"Items") #x (Val #(x.Items'))
   set_Items : ∀ (x : StatefulSetList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet StatefulSetList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : StatefulSetList)))
+  method_set : go.MethodSetIs StatefulSetList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatefulSetList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType StatefulSetList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType StatefulSetList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] StatefulSetList.TypeAssumptions.type_repr
   StatefulSetList.TypeAssumptions.underlying
@@ -1116,46 +1166,54 @@ attribute [instance] StatefulSetList.TypeAssumptions.type_repr
   StatefulSetList.TypeAssumptions.set_ListMeta
   StatefulSetList.TypeAssumptions.get_Items
   StatefulSetList.TypeAssumptions.set_Items
+  StatefulSetList.TypeAssumptions.method_set
+  StatefulSetList.TypeAssumptions.ptr_method_set
 
-abbrev DeploymentStrategyType [FfiSyntax] : Type := GoString
+abbrev DeploymentStrategyType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def DeploymentStrategyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeploymentStrategyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class DeploymentStrategyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentStrategyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DeploymentStrategyType.ty DeploymentStrategyType.underlying
+  method_set : go.MethodSetIs DeploymentStrategyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentStrategyType.ty) []
 
 attribute [instance] DeploymentStrategyType.TypeAssumptions.underlying
+  DeploymentStrategyType.TypeAssumptions.method_set
+  DeploymentStrategyType.TypeAssumptions.ptr_method_set
 
-structure DeploymentStrategy [FfiSyntax] where
+structure DeploymentStrategy [GooseExts] where
   mk ::
   Type' : DeploymentStrategyType
   RollingUpdate' : Loc
 
-noncomputable instance DeploymentStrategy.zero_val [FfiSyntax] : ZeroVal DeploymentStrategy :=
+noncomputable instance DeploymentStrategy.zero_val [GooseExts] : ZeroVal DeploymentStrategy :=
   ⟨DeploymentStrategy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DeploymentStrategy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DeploymentStrategy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" DeploymentStrategyType.ty),
 (go.field_decl.FieldDecl go!"RollingUpdate" (go.GoType.PointerType RollingUpdateDeployment.ty))]
 
-@[irreducible] noncomputable def DeploymentStrategy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DeploymentStrategy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeploymentStrategy.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeploymentStrategy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DeploymentStrategy [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeploymentStrategy.fields DeploymentStrategy.fieldsUnsealed :=
   ⟨by unfold DeploymentStrategy.fields; rfl⟩
 
-@[reducible] noncomputable def DeploymentStrategy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeploymentStrategy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DeploymentStrategy.fields)
 
-class DeploymentStrategy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentStrategy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentStrategy.underlying DeploymentStrategy
   underlying : go.UnderlyingDirectedEq DeploymentStrategy.ty DeploymentStrategy.underlying
   get_Type : ∀ (x : DeploymentStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStrategy.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : DeploymentStrategy) (y : DeploymentStrategyType), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStrategy.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : DeploymentStrategy)))
   get_RollingUpdate : ∀ (x : DeploymentStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStrategy.underlying go!"RollingUpdate") #x (Val #(x.RollingUpdate'))
   set_RollingUpdate : ∀ (x : DeploymentStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStrategy.underlying go!"RollingUpdate") (PairV #x #y) (Val #(({ x with RollingUpdate' := y } : DeploymentStrategy)))
+  method_set : go.MethodSetIs DeploymentStrategy.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentStrategy.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DeploymentStrategy.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DeploymentStrategy.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DeploymentStrategy.TypeAssumptions.type_repr
   DeploymentStrategy.TypeAssumptions.underlying
@@ -1163,8 +1221,10 @@ attribute [instance] DeploymentStrategy.TypeAssumptions.type_repr
   DeploymentStrategy.TypeAssumptions.set_Type
   DeploymentStrategy.TypeAssumptions.get_RollingUpdate
   DeploymentStrategy.TypeAssumptions.set_RollingUpdate
+  DeploymentStrategy.TypeAssumptions.method_set
+  DeploymentStrategy.TypeAssumptions.ptr_method_set
 
-structure DeploymentSpec [FfiSyntax] where
+structure DeploymentSpec [GooseExts] where
   mk ::
   Replicas' : Loc
   Selector' : Loc
@@ -1175,10 +1235,10 @@ structure DeploymentSpec [FfiSyntax] where
   Paused' : Bool
   ProgressDeadlineSeconds' : Loc
 
-noncomputable instance DeploymentSpec.zero_val [FfiSyntax] : ZeroVal DeploymentSpec :=
+noncomputable instance DeploymentSpec.zero_val [GooseExts] : ZeroVal DeploymentSpec :=
   ⟨DeploymentSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DeploymentSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DeploymentSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Replicas" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"Selector" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)),
 (go.field_decl.FieldDecl go!"Template" _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty),
@@ -1188,17 +1248,17 @@ noncomputable instance DeploymentSpec.zero_val [FfiSyntax] : ZeroVal DeploymentS
 (go.field_decl.FieldDecl go!"Paused" go.bool),
 (go.field_decl.FieldDecl go!"ProgressDeadlineSeconds" (go.GoType.PointerType go.int32))]
 
-@[irreducible] noncomputable def DeploymentSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DeploymentSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeploymentSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeploymentSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DeploymentSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeploymentSpec.fields DeploymentSpec.fieldsUnsealed :=
   ⟨by unfold DeploymentSpec.fields; rfl⟩
 
-@[reducible] noncomputable def DeploymentSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeploymentSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DeploymentSpec.fields)
 
-class DeploymentSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentSpec.underlying DeploymentSpec
   underlying : go.UnderlyingDirectedEq DeploymentSpec.ty DeploymentSpec.underlying
   get_Replicas : ∀ (x : DeploymentSpec), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentSpec.underlying go!"Replicas") #x (Val #(x.Replicas'))
@@ -1217,6 +1277,8 @@ class DeploymentSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_Paused : ∀ (x : DeploymentSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentSpec.underlying go!"Paused") (PairV #x #y) (Val #(({ x with Paused' := y } : DeploymentSpec)))
   get_ProgressDeadlineSeconds : ∀ (x : DeploymentSpec), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentSpec.underlying go!"ProgressDeadlineSeconds") #x (Val #(x.ProgressDeadlineSeconds'))
   set_ProgressDeadlineSeconds : ∀ (x : DeploymentSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentSpec.underlying go!"ProgressDeadlineSeconds") (PairV #x #y) (Val #(({ x with ProgressDeadlineSeconds' := y } : DeploymentSpec)))
+  method_set : go.MethodSetIs DeploymentSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DeploymentSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DeploymentSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DeploymentSpec.TypeAssumptions.type_repr
   DeploymentSpec.TypeAssumptions.underlying
@@ -1236,8 +1298,10 @@ attribute [instance] DeploymentSpec.TypeAssumptions.type_repr
   DeploymentSpec.TypeAssumptions.set_Paused
   DeploymentSpec.TypeAssumptions.get_ProgressDeadlineSeconds
   DeploymentSpec.TypeAssumptions.set_ProgressDeadlineSeconds
+  DeploymentSpec.TypeAssumptions.method_set
+  DeploymentSpec.TypeAssumptions.ptr_method_set
 
-structure DeploymentStatus [FfiSyntax] where
+structure DeploymentStatus [GooseExts] where
   mk ::
   ObservedGeneration' : w64
   Replicas' : w32
@@ -1249,10 +1313,10 @@ structure DeploymentStatus [FfiSyntax] where
   Conditions' : GoSlice
   CollisionCount' : Loc
 
-noncomputable instance DeploymentStatus.zero_val [FfiSyntax] : ZeroVal DeploymentStatus :=
+noncomputable instance DeploymentStatus.zero_val [GooseExts] : ZeroVal DeploymentStatus :=
   ⟨DeploymentStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DeploymentStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DeploymentStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ObservedGeneration" go.int64),
 (go.field_decl.FieldDecl go!"Replicas" go.int32),
 (go.field_decl.FieldDecl go!"UpdatedReplicas" go.int32),
@@ -1263,17 +1327,17 @@ noncomputable instance DeploymentStatus.zero_val [FfiSyntax] : ZeroVal Deploymen
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType DeploymentCondition.ty)),
 (go.field_decl.FieldDecl go!"CollisionCount" (go.GoType.PointerType go.int32))]
 
-@[irreducible] noncomputable def DeploymentStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DeploymentStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeploymentStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeploymentStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DeploymentStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeploymentStatus.fields DeploymentStatus.fieldsUnsealed :=
   ⟨by unfold DeploymentStatus.fields; rfl⟩
 
-@[reducible] noncomputable def DeploymentStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeploymentStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DeploymentStatus.fields)
 
-class DeploymentStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentStatus.underlying DeploymentStatus
   underlying : go.UnderlyingDirectedEq DeploymentStatus.ty DeploymentStatus.underlying
   get_ObservedGeneration : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
@@ -1294,6 +1358,8 @@ class DeploymentStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_Conditions : ∀ (x : DeploymentStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : DeploymentStatus)))
   get_CollisionCount : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"CollisionCount") #x (Val #(x.CollisionCount'))
   set_CollisionCount : ∀ (x : DeploymentStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"CollisionCount") (PairV #x #y) (Val #(({ x with CollisionCount' := y } : DeploymentStatus)))
+  method_set : go.MethodSetIs DeploymentStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DeploymentStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DeploymentStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DeploymentStatus.TypeAssumptions.type_repr
   DeploymentStatus.TypeAssumptions.underlying
@@ -1315,34 +1381,36 @@ attribute [instance] DeploymentStatus.TypeAssumptions.type_repr
   DeploymentStatus.TypeAssumptions.set_Conditions
   DeploymentStatus.TypeAssumptions.get_CollisionCount
   DeploymentStatus.TypeAssumptions.set_CollisionCount
+  DeploymentStatus.TypeAssumptions.method_set
+  DeploymentStatus.TypeAssumptions.ptr_method_set
 
-structure Deployment [FfiSyntax] where
+structure Deployment [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : DeploymentSpec
   Status' : DeploymentStatus
 
-noncomputable instance Deployment.zero_val [FfiSyntax] : ZeroVal Deployment :=
+noncomputable instance Deployment.zero_val [GooseExts] : ZeroVal Deployment :=
   ⟨Deployment.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Deployment.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Deployment.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" DeploymentSpec.ty),
 (go.field_decl.FieldDecl go!"Status" DeploymentStatus.ty)]
 
-@[irreducible] noncomputable def Deployment.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Deployment.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Deployment.fieldsUnsealed
 
-noncomputable instance equals_unfold_Deployment [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Deployment [GooseExts] [GoGlobalContext] :
     EqualsUnfold Deployment.fields Deployment.fieldsUnsealed :=
   ⟨by unfold Deployment.fields; rfl⟩
 
-@[reducible] noncomputable def Deployment.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Deployment.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Deployment.fields)
 
-class Deployment.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Deployment.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Deployment.underlying Deployment
   underlying : go.UnderlyingDirectedEq Deployment.ty Deployment.underlying
   get_TypeMeta : ∀ (x : Deployment), go.IsGoStepPureDetTagged under (StructFieldGet Deployment.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -1353,6 +1421,8 @@ class Deployment.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_Spec : ∀ (x : Deployment) (y : DeploymentSpec), go.IsGoStepPureDetTagged under (StructFieldSet Deployment.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : Deployment)))
   get_Status : ∀ (x : Deployment), go.IsGoStepPureDetTagged under (StructFieldGet Deployment.underlying go!"Status") #x (Val #(x.Status'))
   set_Status : ∀ (x : Deployment) (y : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldSet Deployment.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : Deployment)))
+  method_set : go.MethodSetIs Deployment.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Deployment.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Deployment.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Deployment.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] Deployment.TypeAssumptions.type_repr
   Deployment.TypeAssumptions.underlying
@@ -1364,36 +1434,40 @@ attribute [instance] Deployment.TypeAssumptions.type_repr
   Deployment.TypeAssumptions.set_Spec
   Deployment.TypeAssumptions.get_Status
   Deployment.TypeAssumptions.set_Status
+  Deployment.TypeAssumptions.method_set
+  Deployment.TypeAssumptions.ptr_method_set
 
-structure RollingUpdateDeployment [FfiSyntax] where
+structure RollingUpdateDeployment [GooseExts] where
   mk ::
   MaxUnavailable' : Loc
   MaxSurge' : Loc
 
-noncomputable instance RollingUpdateDeployment.zero_val [FfiSyntax] : ZeroVal RollingUpdateDeployment :=
+noncomputable instance RollingUpdateDeployment.zero_val [GooseExts] : ZeroVal RollingUpdateDeployment :=
   ⟨RollingUpdateDeployment.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RollingUpdateDeployment.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RollingUpdateDeployment.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxUnavailable" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty)),
 (go.field_decl.FieldDecl go!"MaxSurge" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty))]
 
-@[irreducible] noncomputable def RollingUpdateDeployment.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RollingUpdateDeployment.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RollingUpdateDeployment.fieldsUnsealed
 
-noncomputable instance equals_unfold_RollingUpdateDeployment [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RollingUpdateDeployment [GooseExts] [GoGlobalContext] :
     EqualsUnfold RollingUpdateDeployment.fields RollingUpdateDeployment.fieldsUnsealed :=
   ⟨by unfold RollingUpdateDeployment.fields; rfl⟩
 
-@[reducible] noncomputable def RollingUpdateDeployment.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RollingUpdateDeployment.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RollingUpdateDeployment.fields)
 
-class RollingUpdateDeployment.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RollingUpdateDeployment.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RollingUpdateDeployment.underlying RollingUpdateDeployment
   underlying : go.UnderlyingDirectedEq RollingUpdateDeployment.ty RollingUpdateDeployment.underlying
   get_MaxUnavailable : ∀ (x : RollingUpdateDeployment), go.IsGoStepPureDetTagged under (StructFieldGet RollingUpdateDeployment.underlying go!"MaxUnavailable") #x (Val #(x.MaxUnavailable'))
   set_MaxUnavailable : ∀ (x : RollingUpdateDeployment) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RollingUpdateDeployment.underlying go!"MaxUnavailable") (PairV #x #y) (Val #(({ x with MaxUnavailable' := y } : RollingUpdateDeployment)))
   get_MaxSurge : ∀ (x : RollingUpdateDeployment), go.IsGoStepPureDetTagged under (StructFieldGet RollingUpdateDeployment.underlying go!"MaxSurge") #x (Val #(x.MaxSurge'))
   set_MaxSurge : ∀ (x : RollingUpdateDeployment) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RollingUpdateDeployment.underlying go!"MaxSurge") (PairV #x #y) (Val #(({ x with MaxSurge' := y } : RollingUpdateDeployment)))
+  method_set : go.MethodSetIs RollingUpdateDeployment.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RollingUpdateDeployment.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType RollingUpdateDeployment.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType RollingUpdateDeployment.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] RollingUpdateDeployment.TypeAssumptions.type_repr
   RollingUpdateDeployment.TypeAssumptions.underlying
@@ -1401,18 +1475,24 @@ attribute [instance] RollingUpdateDeployment.TypeAssumptions.type_repr
   RollingUpdateDeployment.TypeAssumptions.set_MaxUnavailable
   RollingUpdateDeployment.TypeAssumptions.get_MaxSurge
   RollingUpdateDeployment.TypeAssumptions.set_MaxSurge
+  RollingUpdateDeployment.TypeAssumptions.method_set
+  RollingUpdateDeployment.TypeAssumptions.ptr_method_set
 
-abbrev DeploymentConditionType [FfiSyntax] : Type := GoString
+abbrev DeploymentConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def DeploymentConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeploymentConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class DeploymentConditionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentConditionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DeploymentConditionType.ty DeploymentConditionType.underlying
+  method_set : go.MethodSetIs DeploymentConditionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentConditionType.ty) []
 
 attribute [instance] DeploymentConditionType.TypeAssumptions.underlying
+  DeploymentConditionType.TypeAssumptions.method_set
+  DeploymentConditionType.TypeAssumptions.ptr_method_set
 
-structure DeploymentCondition [FfiSyntax] where
+structure DeploymentCondition [GooseExts] where
   mk ::
   Type' : DeploymentConditionType
   Status' : _root_.Perennial.k8s_io.api.core.v1.ConditionStatus
@@ -1421,10 +1501,10 @@ structure DeploymentCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance DeploymentCondition.zero_val [FfiSyntax] : ZeroVal DeploymentCondition :=
+noncomputable instance DeploymentCondition.zero_val [GooseExts] : ZeroVal DeploymentCondition :=
   ⟨DeploymentCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DeploymentCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DeploymentCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" DeploymentConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"LastUpdateTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
@@ -1432,17 +1512,17 @@ noncomputable instance DeploymentCondition.zero_val [FfiSyntax] : ZeroVal Deploy
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def DeploymentCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DeploymentCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeploymentCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeploymentCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DeploymentCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeploymentCondition.fields DeploymentCondition.fieldsUnsealed :=
   ⟨by unfold DeploymentCondition.fields; rfl⟩
 
-@[reducible] noncomputable def DeploymentCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeploymentCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DeploymentCondition.fields)
 
-class DeploymentCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentCondition.underlying DeploymentCondition
   underlying : go.UnderlyingDirectedEq DeploymentCondition.ty DeploymentCondition.underlying
   get_Type : ∀ (x : DeploymentCondition), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentCondition.underlying go!"Type") #x (Val #(x.Type'))
@@ -1457,6 +1537,8 @@ class DeploymentCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   set_Reason : ∀ (x : DeploymentCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : DeploymentCondition)))
   get_Message : ∀ (x : DeploymentCondition), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentCondition.underlying go!"Message") #x (Val #(x.Message'))
   set_Message : ∀ (x : DeploymentCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : DeploymentCondition)))
+  method_set : go.MethodSetIs DeploymentCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DeploymentCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DeploymentCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DeploymentCondition.TypeAssumptions.type_repr
   DeploymentCondition.TypeAssumptions.underlying
@@ -1472,32 +1554,34 @@ attribute [instance] DeploymentCondition.TypeAssumptions.type_repr
   DeploymentCondition.TypeAssumptions.set_Reason
   DeploymentCondition.TypeAssumptions.get_Message
   DeploymentCondition.TypeAssumptions.set_Message
+  DeploymentCondition.TypeAssumptions.method_set
+  DeploymentCondition.TypeAssumptions.ptr_method_set
 
-structure DeploymentList [FfiSyntax] where
+structure DeploymentList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance DeploymentList.zero_val [FfiSyntax] : ZeroVal DeploymentList :=
+noncomputable instance DeploymentList.zero_val [GooseExts] : ZeroVal DeploymentList :=
   ⟨DeploymentList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DeploymentList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DeploymentList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Deployment.ty))]
 
-@[irreducible] noncomputable def DeploymentList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DeploymentList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeploymentList.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeploymentList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DeploymentList [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeploymentList.fields DeploymentList.fieldsUnsealed :=
   ⟨by unfold DeploymentList.fields; rfl⟩
 
-@[reducible] noncomputable def DeploymentList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeploymentList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DeploymentList.fields)
 
-class DeploymentList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeploymentList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentList.underlying DeploymentList
   underlying : go.UnderlyingDirectedEq DeploymentList.ty DeploymentList.underlying
   get_TypeMeta : ∀ (x : DeploymentList), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -1506,6 +1590,8 @@ class DeploymentList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_ListMeta : ∀ (x : DeploymentList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : DeploymentList)))
   get_Items : ∀ (x : DeploymentList), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentList.underlying go!"Items") #x (Val #(x.Items'))
   set_Items : ∀ (x : DeploymentList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : DeploymentList)))
+  method_set : go.MethodSetIs DeploymentList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DeploymentList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DeploymentList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DeploymentList.TypeAssumptions.type_repr
   DeploymentList.TypeAssumptions.underlying
@@ -1515,46 +1601,54 @@ attribute [instance] DeploymentList.TypeAssumptions.type_repr
   DeploymentList.TypeAssumptions.set_ListMeta
   DeploymentList.TypeAssumptions.get_Items
   DeploymentList.TypeAssumptions.set_Items
+  DeploymentList.TypeAssumptions.method_set
+  DeploymentList.TypeAssumptions.ptr_method_set
 
-abbrev DaemonSetUpdateStrategyType [FfiSyntax] : Type := GoString
+abbrev DaemonSetUpdateStrategyType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def DaemonSetUpdateStrategyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonSetUpdateStrategyType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class DaemonSetUpdateStrategyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetUpdateStrategyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DaemonSetUpdateStrategyType.ty DaemonSetUpdateStrategyType.underlying
+  method_set : go.MethodSetIs DaemonSetUpdateStrategyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetUpdateStrategyType.ty) []
 
 attribute [instance] DaemonSetUpdateStrategyType.TypeAssumptions.underlying
+  DaemonSetUpdateStrategyType.TypeAssumptions.method_set
+  DaemonSetUpdateStrategyType.TypeAssumptions.ptr_method_set
 
-structure DaemonSetUpdateStrategy [FfiSyntax] where
+structure DaemonSetUpdateStrategy [GooseExts] where
   mk ::
   Type' : DaemonSetUpdateStrategyType
   RollingUpdate' : Loc
 
-noncomputable instance DaemonSetUpdateStrategy.zero_val [FfiSyntax] : ZeroVal DaemonSetUpdateStrategy :=
+noncomputable instance DaemonSetUpdateStrategy.zero_val [GooseExts] : ZeroVal DaemonSetUpdateStrategy :=
   ⟨DaemonSetUpdateStrategy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DaemonSetUpdateStrategy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DaemonSetUpdateStrategy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" DaemonSetUpdateStrategyType.ty),
 (go.field_decl.FieldDecl go!"RollingUpdate" (go.GoType.PointerType RollingUpdateDaemonSet.ty))]
 
-@[irreducible] noncomputable def DaemonSetUpdateStrategy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DaemonSetUpdateStrategy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSetUpdateStrategy.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSetUpdateStrategy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DaemonSetUpdateStrategy [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSetUpdateStrategy.fields DaemonSetUpdateStrategy.fieldsUnsealed :=
   ⟨by unfold DaemonSetUpdateStrategy.fields; rfl⟩
 
-@[reducible] noncomputable def DaemonSetUpdateStrategy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonSetUpdateStrategy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DaemonSetUpdateStrategy.fields)
 
-class DaemonSetUpdateStrategy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetUpdateStrategy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetUpdateStrategy.underlying DaemonSetUpdateStrategy
   underlying : go.UnderlyingDirectedEq DaemonSetUpdateStrategy.ty DaemonSetUpdateStrategy.underlying
   get_Type : ∀ (x : DaemonSetUpdateStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetUpdateStrategy.underlying go!"Type") #x (Val #(x.Type'))
   set_Type : ∀ (x : DaemonSetUpdateStrategy) (y : DaemonSetUpdateStrategyType), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetUpdateStrategy.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : DaemonSetUpdateStrategy)))
   get_RollingUpdate : ∀ (x : DaemonSetUpdateStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetUpdateStrategy.underlying go!"RollingUpdate") #x (Val #(x.RollingUpdate'))
   set_RollingUpdate : ∀ (x : DaemonSetUpdateStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetUpdateStrategy.underlying go!"RollingUpdate") (PairV #x #y) (Val #(({ x with RollingUpdate' := y } : DaemonSetUpdateStrategy)))
+  method_set : go.MethodSetIs DaemonSetUpdateStrategy.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetUpdateStrategy.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DaemonSetUpdateStrategy.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetUpdateStrategy.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DaemonSetUpdateStrategy.TypeAssumptions.type_repr
   DaemonSetUpdateStrategy.TypeAssumptions.underlying
@@ -1562,36 +1656,40 @@ attribute [instance] DaemonSetUpdateStrategy.TypeAssumptions.type_repr
   DaemonSetUpdateStrategy.TypeAssumptions.set_Type
   DaemonSetUpdateStrategy.TypeAssumptions.get_RollingUpdate
   DaemonSetUpdateStrategy.TypeAssumptions.set_RollingUpdate
+  DaemonSetUpdateStrategy.TypeAssumptions.method_set
+  DaemonSetUpdateStrategy.TypeAssumptions.ptr_method_set
 
-structure RollingUpdateDaemonSet [FfiSyntax] where
+structure RollingUpdateDaemonSet [GooseExts] where
   mk ::
   MaxUnavailable' : Loc
   MaxSurge' : Loc
 
-noncomputable instance RollingUpdateDaemonSet.zero_val [FfiSyntax] : ZeroVal RollingUpdateDaemonSet :=
+noncomputable instance RollingUpdateDaemonSet.zero_val [GooseExts] : ZeroVal RollingUpdateDaemonSet :=
   ⟨RollingUpdateDaemonSet.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RollingUpdateDaemonSet.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RollingUpdateDaemonSet.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxUnavailable" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty)),
 (go.field_decl.FieldDecl go!"MaxSurge" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty))]
 
-@[irreducible] noncomputable def RollingUpdateDaemonSet.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RollingUpdateDaemonSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RollingUpdateDaemonSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_RollingUpdateDaemonSet [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RollingUpdateDaemonSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold RollingUpdateDaemonSet.fields RollingUpdateDaemonSet.fieldsUnsealed :=
   ⟨by unfold RollingUpdateDaemonSet.fields; rfl⟩
 
-@[reducible] noncomputable def RollingUpdateDaemonSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RollingUpdateDaemonSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RollingUpdateDaemonSet.fields)
 
-class RollingUpdateDaemonSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RollingUpdateDaemonSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RollingUpdateDaemonSet.underlying RollingUpdateDaemonSet
   underlying : go.UnderlyingDirectedEq RollingUpdateDaemonSet.ty RollingUpdateDaemonSet.underlying
   get_MaxUnavailable : ∀ (x : RollingUpdateDaemonSet), go.IsGoStepPureDetTagged under (StructFieldGet RollingUpdateDaemonSet.underlying go!"MaxUnavailable") #x (Val #(x.MaxUnavailable'))
   set_MaxUnavailable : ∀ (x : RollingUpdateDaemonSet) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RollingUpdateDaemonSet.underlying go!"MaxUnavailable") (PairV #x #y) (Val #(({ x with MaxUnavailable' := y } : RollingUpdateDaemonSet)))
   get_MaxSurge : ∀ (x : RollingUpdateDaemonSet), go.IsGoStepPureDetTagged under (StructFieldGet RollingUpdateDaemonSet.underlying go!"MaxSurge") #x (Val #(x.MaxSurge'))
   set_MaxSurge : ∀ (x : RollingUpdateDaemonSet) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RollingUpdateDaemonSet.underlying go!"MaxSurge") (PairV #x #y) (Val #(({ x with MaxSurge' := y } : RollingUpdateDaemonSet)))
+  method_set : go.MethodSetIs RollingUpdateDaemonSet.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RollingUpdateDaemonSet.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType RollingUpdateDaemonSet.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType RollingUpdateDaemonSet.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] RollingUpdateDaemonSet.TypeAssumptions.type_repr
   RollingUpdateDaemonSet.TypeAssumptions.underlying
@@ -1599,8 +1697,10 @@ attribute [instance] RollingUpdateDaemonSet.TypeAssumptions.type_repr
   RollingUpdateDaemonSet.TypeAssumptions.set_MaxUnavailable
   RollingUpdateDaemonSet.TypeAssumptions.get_MaxSurge
   RollingUpdateDaemonSet.TypeAssumptions.set_MaxSurge
+  RollingUpdateDaemonSet.TypeAssumptions.method_set
+  RollingUpdateDaemonSet.TypeAssumptions.ptr_method_set
 
-structure DaemonSetSpec [FfiSyntax] where
+structure DaemonSetSpec [GooseExts] where
   mk ::
   Selector' : Loc
   Template' : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec
@@ -1608,27 +1708,27 @@ structure DaemonSetSpec [FfiSyntax] where
   MinReadySeconds' : w32
   RevisionHistoryLimit' : Loc
 
-noncomputable instance DaemonSetSpec.zero_val [FfiSyntax] : ZeroVal DaemonSetSpec :=
+noncomputable instance DaemonSetSpec.zero_val [GooseExts] : ZeroVal DaemonSetSpec :=
   ⟨DaemonSetSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DaemonSetSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DaemonSetSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Selector" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)),
 (go.field_decl.FieldDecl go!"Template" _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty),
 (go.field_decl.FieldDecl go!"UpdateStrategy" DaemonSetUpdateStrategy.ty),
 (go.field_decl.FieldDecl go!"MinReadySeconds" go.int32),
 (go.field_decl.FieldDecl go!"RevisionHistoryLimit" (go.GoType.PointerType go.int32))]
 
-@[irreducible] noncomputable def DaemonSetSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DaemonSetSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSetSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSetSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DaemonSetSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSetSpec.fields DaemonSetSpec.fieldsUnsealed :=
   ⟨by unfold DaemonSetSpec.fields; rfl⟩
 
-@[reducible] noncomputable def DaemonSetSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonSetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DaemonSetSpec.fields)
 
-class DaemonSetSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetSpec.underlying DaemonSetSpec
   underlying : go.UnderlyingDirectedEq DaemonSetSpec.ty DaemonSetSpec.underlying
   get_Selector : ∀ (x : DaemonSetSpec), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetSpec.underlying go!"Selector") #x (Val #(x.Selector'))
@@ -1641,6 +1741,8 @@ class DaemonSetSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_MinReadySeconds : ∀ (x : DaemonSetSpec) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetSpec.underlying go!"MinReadySeconds") (PairV #x #y) (Val #(({ x with MinReadySeconds' := y } : DaemonSetSpec)))
   get_RevisionHistoryLimit : ∀ (x : DaemonSetSpec), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetSpec.underlying go!"RevisionHistoryLimit") #x (Val #(x.RevisionHistoryLimit'))
   set_RevisionHistoryLimit : ∀ (x : DaemonSetSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetSpec.underlying go!"RevisionHistoryLimit") (PairV #x #y) (Val #(({ x with RevisionHistoryLimit' := y } : DaemonSetSpec)))
+  method_set : go.MethodSetIs DaemonSetSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DaemonSetSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DaemonSetSpec.TypeAssumptions.type_repr
   DaemonSetSpec.TypeAssumptions.underlying
@@ -1654,8 +1756,10 @@ attribute [instance] DaemonSetSpec.TypeAssumptions.type_repr
   DaemonSetSpec.TypeAssumptions.set_MinReadySeconds
   DaemonSetSpec.TypeAssumptions.get_RevisionHistoryLimit
   DaemonSetSpec.TypeAssumptions.set_RevisionHistoryLimit
+  DaemonSetSpec.TypeAssumptions.method_set
+  DaemonSetSpec.TypeAssumptions.ptr_method_set
 
-structure DaemonSetStatus [FfiSyntax] where
+structure DaemonSetStatus [GooseExts] where
   mk ::
   CurrentNumberScheduled' : w32
   NumberMisscheduled' : w32
@@ -1668,10 +1772,10 @@ structure DaemonSetStatus [FfiSyntax] where
   CollisionCount' : Loc
   Conditions' : GoSlice
 
-noncomputable instance DaemonSetStatus.zero_val [FfiSyntax] : ZeroVal DaemonSetStatus :=
+noncomputable instance DaemonSetStatus.zero_val [GooseExts] : ZeroVal DaemonSetStatus :=
   ⟨DaemonSetStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DaemonSetStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DaemonSetStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"CurrentNumberScheduled" go.int32),
 (go.field_decl.FieldDecl go!"NumberMisscheduled" go.int32),
 (go.field_decl.FieldDecl go!"DesiredNumberScheduled" go.int32),
@@ -1683,17 +1787,17 @@ noncomputable instance DaemonSetStatus.zero_val [FfiSyntax] : ZeroVal DaemonSetS
 (go.field_decl.FieldDecl go!"CollisionCount" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType DaemonSetCondition.ty))]
 
-@[irreducible] noncomputable def DaemonSetStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DaemonSetStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSetStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSetStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DaemonSetStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSetStatus.fields DaemonSetStatus.fieldsUnsealed :=
   ⟨by unfold DaemonSetStatus.fields; rfl⟩
 
-@[reducible] noncomputable def DaemonSetStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonSetStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DaemonSetStatus.fields)
 
-class DaemonSetStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetStatus.underlying DaemonSetStatus
   underlying : go.UnderlyingDirectedEq DaemonSetStatus.ty DaemonSetStatus.underlying
   get_CurrentNumberScheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"CurrentNumberScheduled") #x (Val #(x.CurrentNumberScheduled'))
@@ -1716,6 +1820,8 @@ class DaemonSetStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_CollisionCount : ∀ (x : DaemonSetStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"CollisionCount") (PairV #x #y) (Val #(({ x with CollisionCount' := y } : DaemonSetStatus)))
   get_Conditions : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
   set_Conditions : ∀ (x : DaemonSetStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : DaemonSetStatus)))
+  method_set : go.MethodSetIs DaemonSetStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DaemonSetStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DaemonSetStatus.TypeAssumptions.type_repr
   DaemonSetStatus.TypeAssumptions.underlying
@@ -1739,18 +1845,24 @@ attribute [instance] DaemonSetStatus.TypeAssumptions.type_repr
   DaemonSetStatus.TypeAssumptions.set_CollisionCount
   DaemonSetStatus.TypeAssumptions.get_Conditions
   DaemonSetStatus.TypeAssumptions.set_Conditions
+  DaemonSetStatus.TypeAssumptions.method_set
+  DaemonSetStatus.TypeAssumptions.ptr_method_set
 
-abbrev DaemonSetConditionType [FfiSyntax] : Type := GoString
+abbrev DaemonSetConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def DaemonSetConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonSetConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class DaemonSetConditionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetConditionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DaemonSetConditionType.ty DaemonSetConditionType.underlying
+  method_set : go.MethodSetIs DaemonSetConditionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetConditionType.ty) []
 
 attribute [instance] DaemonSetConditionType.TypeAssumptions.underlying
+  DaemonSetConditionType.TypeAssumptions.method_set
+  DaemonSetConditionType.TypeAssumptions.ptr_method_set
 
-structure DaemonSetCondition [FfiSyntax] where
+structure DaemonSetCondition [GooseExts] where
   mk ::
   Type' : DaemonSetConditionType
   Status' : _root_.Perennial.k8s_io.api.core.v1.ConditionStatus
@@ -1758,27 +1870,27 @@ structure DaemonSetCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance DaemonSetCondition.zero_val [FfiSyntax] : ZeroVal DaemonSetCondition :=
+noncomputable instance DaemonSetCondition.zero_val [GooseExts] : ZeroVal DaemonSetCondition :=
   ⟨DaemonSetCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DaemonSetCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DaemonSetCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" DaemonSetConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"LastTransitionTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def DaemonSetCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DaemonSetCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSetCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSetCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DaemonSetCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSetCondition.fields DaemonSetCondition.fieldsUnsealed :=
   ⟨by unfold DaemonSetCondition.fields; rfl⟩
 
-@[reducible] noncomputable def DaemonSetCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonSetCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DaemonSetCondition.fields)
 
-class DaemonSetCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetCondition.underlying DaemonSetCondition
   underlying : go.UnderlyingDirectedEq DaemonSetCondition.ty DaemonSetCondition.underlying
   get_Type : ∀ (x : DaemonSetCondition), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetCondition.underlying go!"Type") #x (Val #(x.Type'))
@@ -1791,6 +1903,8 @@ class DaemonSetCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_Reason : ∀ (x : DaemonSetCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : DaemonSetCondition)))
   get_Message : ∀ (x : DaemonSetCondition), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetCondition.underlying go!"Message") #x (Val #(x.Message'))
   set_Message : ∀ (x : DaemonSetCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : DaemonSetCondition)))
+  method_set : go.MethodSetIs DaemonSetCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DaemonSetCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DaemonSetCondition.TypeAssumptions.type_repr
   DaemonSetCondition.TypeAssumptions.underlying
@@ -1804,34 +1918,36 @@ attribute [instance] DaemonSetCondition.TypeAssumptions.type_repr
   DaemonSetCondition.TypeAssumptions.set_Reason
   DaemonSetCondition.TypeAssumptions.get_Message
   DaemonSetCondition.TypeAssumptions.set_Message
+  DaemonSetCondition.TypeAssumptions.method_set
+  DaemonSetCondition.TypeAssumptions.ptr_method_set
 
-structure DaemonSet [FfiSyntax] where
+structure DaemonSet [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : DaemonSetSpec
   Status' : DaemonSetStatus
 
-noncomputable instance DaemonSet.zero_val [FfiSyntax] : ZeroVal DaemonSet :=
+noncomputable instance DaemonSet.zero_val [GooseExts] : ZeroVal DaemonSet :=
   ⟨DaemonSet.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DaemonSet.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DaemonSet.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" DaemonSetSpec.ty),
 (go.field_decl.FieldDecl go!"Status" DaemonSetStatus.ty)]
 
-@[irreducible] noncomputable def DaemonSet.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DaemonSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSet [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DaemonSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSet.fields DaemonSet.fieldsUnsealed :=
   ⟨by unfold DaemonSet.fields; rfl⟩
 
-@[reducible] noncomputable def DaemonSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DaemonSet.fields)
 
-class DaemonSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSet.underlying DaemonSet
   underlying : go.UnderlyingDirectedEq DaemonSet.ty DaemonSet.underlying
   get_TypeMeta : ∀ (x : DaemonSet), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSet.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -1842,6 +1958,8 @@ class DaemonSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_Spec : ∀ (x : DaemonSet) (y : DaemonSetSpec), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSet.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : DaemonSet)))
   get_Status : ∀ (x : DaemonSet), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSet.underlying go!"Status") #x (Val #(x.Status'))
   set_Status : ∀ (x : DaemonSet) (y : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSet.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : DaemonSet)))
+  method_set : go.MethodSetIs DaemonSet.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSet.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DaemonSet.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DaemonSet.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetAnnotations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetAnnotations"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
   ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetCreationTimestamp" (LamV "$r"
@@ -1919,6 +2037,8 @@ attribute [instance] DaemonSet.TypeAssumptions.type_repr
   DaemonSet.TypeAssumptions.set_Spec
   DaemonSet.TypeAssumptions.get_Status
   DaemonSet.TypeAssumptions.set_Status
+  DaemonSet.TypeAssumptions.method_set
+  DaemonSet.TypeAssumptions.ptr_method_set
   DaemonSet.TypeAssumptions.ptr_GetAnnotations_unfold
   DaemonSet.TypeAssumptions.ptr_GetCreationTimestamp_unfold
   DaemonSet.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
@@ -1953,31 +2073,31 @@ attribute [instance] DaemonSet.TypeAssumptions.type_repr
   DaemonSet.TypeAssumptions.ptr_SetSelfLink_unfold
   DaemonSet.TypeAssumptions.ptr_SetUID_unfold
 
-structure DaemonSetList [FfiSyntax] where
+structure DaemonSetList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance DaemonSetList.zero_val [FfiSyntax] : ZeroVal DaemonSetList :=
+noncomputable instance DaemonSetList.zero_val [GooseExts] : ZeroVal DaemonSetList :=
   ⟨DaemonSetList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DaemonSetList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DaemonSetList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType DaemonSet.ty))]
 
-@[irreducible] noncomputable def DaemonSetList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DaemonSetList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSetList.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSetList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DaemonSetList [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSetList.fields DaemonSetList.fieldsUnsealed :=
   ⟨by unfold DaemonSetList.fields; rfl⟩
 
-@[reducible] noncomputable def DaemonSetList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DaemonSetList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DaemonSetList.fields)
 
-class DaemonSetList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DaemonSetList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetList.underlying DaemonSetList
   underlying : go.UnderlyingDirectedEq DaemonSetList.ty DaemonSetList.underlying
   get_TypeMeta : ∀ (x : DaemonSetList), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -1986,6 +2106,8 @@ class DaemonSetList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_ListMeta : ∀ (x : DaemonSetList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : DaemonSetList)))
   get_Items : ∀ (x : DaemonSetList), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetList.underlying go!"Items") #x (Val #(x.Items'))
   set_Items : ∀ (x : DaemonSetList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : DaemonSetList)))
+  method_set : go.MethodSetIs DaemonSetList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DaemonSetList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DaemonSetList.TypeAssumptions.type_repr
   DaemonSetList.TypeAssumptions.underlying
@@ -1995,34 +2117,36 @@ attribute [instance] DaemonSetList.TypeAssumptions.type_repr
   DaemonSetList.TypeAssumptions.set_ListMeta
   DaemonSetList.TypeAssumptions.get_Items
   DaemonSetList.TypeAssumptions.set_Items
+  DaemonSetList.TypeAssumptions.method_set
+  DaemonSetList.TypeAssumptions.ptr_method_set
 
-structure ReplicaSetSpec [FfiSyntax] where
+structure ReplicaSetSpec [GooseExts] where
   mk ::
   Replicas' : Loc
   MinReadySeconds' : w32
   Selector' : Loc
   Template' : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec
 
-noncomputable instance ReplicaSetSpec.zero_val [FfiSyntax] : ZeroVal ReplicaSetSpec :=
+noncomputable instance ReplicaSetSpec.zero_val [GooseExts] : ZeroVal ReplicaSetSpec :=
   ⟨ReplicaSetSpec.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicaSetSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicaSetSpec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Replicas" (go.GoType.PointerType go.int32)),
 (go.field_decl.FieldDecl go!"MinReadySeconds" go.int32),
 (go.field_decl.FieldDecl go!"Selector" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty)),
 (go.field_decl.FieldDecl go!"Template" _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty)]
 
-@[irreducible] noncomputable def ReplicaSetSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicaSetSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicaSetSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicaSetSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicaSetSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicaSetSpec.fields ReplicaSetSpec.fieldsUnsealed :=
   ⟨by unfold ReplicaSetSpec.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicaSetSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicaSetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicaSetSpec.fields)
 
-class ReplicaSetSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetSpec.underlying ReplicaSetSpec
   underlying : go.UnderlyingDirectedEq ReplicaSetSpec.ty ReplicaSetSpec.underlying
   get_Replicas : ∀ (x : ReplicaSetSpec), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetSpec.underlying go!"Replicas") #x (Val #(x.Replicas'))
@@ -2033,6 +2157,8 @@ class ReplicaSetSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_Selector : ∀ (x : ReplicaSetSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetSpec.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : ReplicaSetSpec)))
   get_Template : ∀ (x : ReplicaSetSpec), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetSpec.underlying go!"Template") #x (Val #(x.Template'))
   set_Template : ∀ (x : ReplicaSetSpec) (y : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetSpec.underlying go!"Template") (PairV #x #y) (Val #(({ x with Template' := y } : ReplicaSetSpec)))
+  method_set : go.MethodSetIs ReplicaSetSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ReplicaSetSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ReplicaSetSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ReplicaSetSpec.TypeAssumptions.type_repr
   ReplicaSetSpec.TypeAssumptions.underlying
@@ -2044,8 +2170,10 @@ attribute [instance] ReplicaSetSpec.TypeAssumptions.type_repr
   ReplicaSetSpec.TypeAssumptions.set_Selector
   ReplicaSetSpec.TypeAssumptions.get_Template
   ReplicaSetSpec.TypeAssumptions.set_Template
+  ReplicaSetSpec.TypeAssumptions.method_set
+  ReplicaSetSpec.TypeAssumptions.ptr_method_set
 
-structure ReplicaSetStatus [FfiSyntax] where
+structure ReplicaSetStatus [GooseExts] where
   mk ::
   Replicas' : w32
   FullyLabeledReplicas' : w32
@@ -2055,10 +2183,10 @@ structure ReplicaSetStatus [FfiSyntax] where
   ObservedGeneration' : w64
   Conditions' : GoSlice
 
-noncomputable instance ReplicaSetStatus.zero_val [FfiSyntax] : ZeroVal ReplicaSetStatus :=
+noncomputable instance ReplicaSetStatus.zero_val [GooseExts] : ZeroVal ReplicaSetStatus :=
   ⟨ReplicaSetStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicaSetStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicaSetStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Replicas" go.int32),
 (go.field_decl.FieldDecl go!"FullyLabeledReplicas" go.int32),
 (go.field_decl.FieldDecl go!"ReadyReplicas" go.int32),
@@ -2067,17 +2195,17 @@ noncomputable instance ReplicaSetStatus.zero_val [FfiSyntax] : ZeroVal ReplicaSe
 (go.field_decl.FieldDecl go!"ObservedGeneration" go.int64),
 (go.field_decl.FieldDecl go!"Conditions" (go.GoType.SliceType ReplicaSetCondition.ty))]
 
-@[irreducible] noncomputable def ReplicaSetStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicaSetStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicaSetStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicaSetStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicaSetStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicaSetStatus.fields ReplicaSetStatus.fieldsUnsealed :=
   ⟨by unfold ReplicaSetStatus.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicaSetStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicaSetStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicaSetStatus.fields)
 
-class ReplicaSetStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetStatus.underlying ReplicaSetStatus
   underlying : go.UnderlyingDirectedEq ReplicaSetStatus.ty ReplicaSetStatus.underlying
   get_Replicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"Replicas") #x (Val #(x.Replicas'))
@@ -2094,6 +2222,8 @@ class ReplicaSetStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_ObservedGeneration : ∀ (x : ReplicaSetStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : ReplicaSetStatus)))
   get_Conditions : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
   set_Conditions : ∀ (x : ReplicaSetStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : ReplicaSetStatus)))
+  method_set : go.MethodSetIs ReplicaSetStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ReplicaSetStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ReplicaSetStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ReplicaSetStatus.TypeAssumptions.type_repr
   ReplicaSetStatus.TypeAssumptions.underlying
@@ -2111,34 +2241,36 @@ attribute [instance] ReplicaSetStatus.TypeAssumptions.type_repr
   ReplicaSetStatus.TypeAssumptions.set_ObservedGeneration
   ReplicaSetStatus.TypeAssumptions.get_Conditions
   ReplicaSetStatus.TypeAssumptions.set_Conditions
+  ReplicaSetStatus.TypeAssumptions.method_set
+  ReplicaSetStatus.TypeAssumptions.ptr_method_set
 
-structure ReplicaSet [FfiSyntax] where
+structure ReplicaSet [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Spec' : ReplicaSetSpec
   Status' : ReplicaSetStatus
 
-noncomputable instance ReplicaSet.zero_val [FfiSyntax] : ZeroVal ReplicaSet :=
+noncomputable instance ReplicaSet.zero_val [GooseExts] : ZeroVal ReplicaSet :=
   ⟨ReplicaSet.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicaSet.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicaSet.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Spec" ReplicaSetSpec.ty),
 (go.field_decl.FieldDecl go!"Status" ReplicaSetStatus.ty)]
 
-@[irreducible] noncomputable def ReplicaSet.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicaSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicaSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicaSet [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicaSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicaSet.fields ReplicaSet.fieldsUnsealed :=
   ⟨by unfold ReplicaSet.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicaSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicaSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicaSet.fields)
 
-class ReplicaSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSet.underlying ReplicaSet
   underlying : go.UnderlyingDirectedEq ReplicaSet.ty ReplicaSet.underlying
   get_TypeMeta : ∀ (x : ReplicaSet), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSet.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -2149,6 +2281,8 @@ class ReplicaSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_Spec : ∀ (x : ReplicaSet) (y : ReplicaSetSpec), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSet.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : ReplicaSet)))
   get_Status : ∀ (x : ReplicaSet), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSet.underlying go!"Status") #x (Val #(x.Status'))
   set_Status : ∀ (x : ReplicaSet) (y : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSet.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : ReplicaSet)))
+  method_set : go.MethodSetIs ReplicaSet.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSet.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ReplicaSet.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ReplicaSet.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ReplicaSet.TypeAssumptions.type_repr
   ReplicaSet.TypeAssumptions.underlying
@@ -2160,32 +2294,34 @@ attribute [instance] ReplicaSet.TypeAssumptions.type_repr
   ReplicaSet.TypeAssumptions.set_Spec
   ReplicaSet.TypeAssumptions.get_Status
   ReplicaSet.TypeAssumptions.set_Status
+  ReplicaSet.TypeAssumptions.method_set
+  ReplicaSet.TypeAssumptions.ptr_method_set
 
-structure ReplicaSetList [FfiSyntax] where
+structure ReplicaSetList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance ReplicaSetList.zero_val [FfiSyntax] : ZeroVal ReplicaSetList :=
+noncomputable instance ReplicaSetList.zero_val [GooseExts] : ZeroVal ReplicaSetList :=
   ⟨ReplicaSetList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicaSetList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicaSetList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType ReplicaSet.ty))]
 
-@[irreducible] noncomputable def ReplicaSetList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicaSetList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicaSetList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicaSetList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicaSetList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicaSetList.fields ReplicaSetList.fieldsUnsealed :=
   ⟨by unfold ReplicaSetList.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicaSetList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicaSetList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicaSetList.fields)
 
-class ReplicaSetList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetList.underlying ReplicaSetList
   underlying : go.UnderlyingDirectedEq ReplicaSetList.ty ReplicaSetList.underlying
   get_TypeMeta : ∀ (x : ReplicaSetList), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -2194,6 +2330,8 @@ class ReplicaSetList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_ListMeta : ∀ (x : ReplicaSetList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : ReplicaSetList)))
   get_Items : ∀ (x : ReplicaSetList), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetList.underlying go!"Items") #x (Val #(x.Items'))
   set_Items : ∀ (x : ReplicaSetList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ReplicaSetList)))
+  method_set : go.MethodSetIs ReplicaSetList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ReplicaSetList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ReplicaSetList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ReplicaSetList.TypeAssumptions.type_repr
   ReplicaSetList.TypeAssumptions.underlying
@@ -2203,18 +2341,24 @@ attribute [instance] ReplicaSetList.TypeAssumptions.type_repr
   ReplicaSetList.TypeAssumptions.set_ListMeta
   ReplicaSetList.TypeAssumptions.get_Items
   ReplicaSetList.TypeAssumptions.set_Items
+  ReplicaSetList.TypeAssumptions.method_set
+  ReplicaSetList.TypeAssumptions.ptr_method_set
 
-abbrev ReplicaSetConditionType [FfiSyntax] : Type := GoString
+abbrev ReplicaSetConditionType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def ReplicaSetConditionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicaSetConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class ReplicaSetConditionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetConditionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ReplicaSetConditionType.ty ReplicaSetConditionType.underlying
+  method_set : go.MethodSetIs ReplicaSetConditionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetConditionType.ty) []
 
 attribute [instance] ReplicaSetConditionType.TypeAssumptions.underlying
+  ReplicaSetConditionType.TypeAssumptions.method_set
+  ReplicaSetConditionType.TypeAssumptions.ptr_method_set
 
-structure ReplicaSetCondition [FfiSyntax] where
+structure ReplicaSetCondition [GooseExts] where
   mk ::
   Type' : ReplicaSetConditionType
   Status' : _root_.Perennial.k8s_io.api.core.v1.ConditionStatus
@@ -2222,27 +2366,27 @@ structure ReplicaSetCondition [FfiSyntax] where
   Reason' : GoString
   Message' : GoString
 
-noncomputable instance ReplicaSetCondition.zero_val [FfiSyntax] : ZeroVal ReplicaSetCondition :=
+noncomputable instance ReplicaSetCondition.zero_val [GooseExts] : ZeroVal ReplicaSetCondition :=
   ⟨ReplicaSetCondition.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ReplicaSetCondition.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReplicaSetCondition.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" ReplicaSetConditionType.ty),
 (go.field_decl.FieldDecl go!"Status" _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty),
 (go.field_decl.FieldDecl go!"LastTransitionTime" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty),
 (go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"Message" go.string)]
 
-@[irreducible] noncomputable def ReplicaSetCondition.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReplicaSetCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicaSetCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicaSetCondition [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReplicaSetCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicaSetCondition.fields ReplicaSetCondition.fieldsUnsealed :=
   ⟨by unfold ReplicaSetCondition.fields; rfl⟩
 
-@[reducible] noncomputable def ReplicaSetCondition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReplicaSetCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReplicaSetCondition.fields)
 
-class ReplicaSetCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplicaSetCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetCondition.underlying ReplicaSetCondition
   underlying : go.UnderlyingDirectedEq ReplicaSetCondition.ty ReplicaSetCondition.underlying
   get_Type : ∀ (x : ReplicaSetCondition), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetCondition.underlying go!"Type") #x (Val #(x.Type'))
@@ -2255,6 +2399,8 @@ class ReplicaSetCondition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   set_Reason : ∀ (x : ReplicaSetCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : ReplicaSetCondition)))
   get_Message : ∀ (x : ReplicaSetCondition), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetCondition.underlying go!"Message") #x (Val #(x.Message'))
   set_Message : ∀ (x : ReplicaSetCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ReplicaSetCondition)))
+  method_set : go.MethodSetIs ReplicaSetCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ReplicaSetCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ReplicaSetCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ReplicaSetCondition.TypeAssumptions.type_repr
   ReplicaSetCondition.TypeAssumptions.underlying
@@ -2268,34 +2414,36 @@ attribute [instance] ReplicaSetCondition.TypeAssumptions.type_repr
   ReplicaSetCondition.TypeAssumptions.set_Reason
   ReplicaSetCondition.TypeAssumptions.get_Message
   ReplicaSetCondition.TypeAssumptions.set_Message
+  ReplicaSetCondition.TypeAssumptions.method_set
+  ReplicaSetCondition.TypeAssumptions.ptr_method_set
 
-structure ControllerRevision [FfiSyntax] where
+structure ControllerRevision [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta
   Data' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension
   Revision' : w64
 
-noncomputable instance ControllerRevision.zero_val [FfiSyntax] : ZeroVal ControllerRevision :=
+noncomputable instance ControllerRevision.zero_val [GooseExts] : ZeroVal ControllerRevision :=
   ⟨ControllerRevision.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ControllerRevision.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ControllerRevision.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ObjectMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty),
 (go.field_decl.FieldDecl go!"Data" _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension.ty),
 (go.field_decl.FieldDecl go!"Revision" go.int64)]
 
-@[irreducible] noncomputable def ControllerRevision.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ControllerRevision.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ControllerRevision.fieldsUnsealed
 
-noncomputable instance equals_unfold_ControllerRevision [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ControllerRevision [GooseExts] [GoGlobalContext] :
     EqualsUnfold ControllerRevision.fields ControllerRevision.fieldsUnsealed :=
   ⟨by unfold ControllerRevision.fields; rfl⟩
 
-@[reducible] noncomputable def ControllerRevision.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ControllerRevision.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ControllerRevision.fields)
 
-class ControllerRevision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ControllerRevision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ControllerRevision.underlying ControllerRevision
   underlying : go.UnderlyingDirectedEq ControllerRevision.ty ControllerRevision.underlying
   get_TypeMeta : ∀ (x : ControllerRevision), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevision.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -2306,6 +2454,8 @@ class ControllerRevision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_Data : ∀ (x : ControllerRevision) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevision.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : ControllerRevision)))
   get_Revision : ∀ (x : ControllerRevision), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevision.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : ControllerRevision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevision.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : ControllerRevision)))
+  method_set : go.MethodSetIs ControllerRevision.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ControllerRevision.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ControllerRevision.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ControllerRevision.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetAnnotations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetAnnotations"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
   ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetCreationTimestamp" (LamV "$r"
@@ -2383,6 +2533,8 @@ attribute [instance] ControllerRevision.TypeAssumptions.type_repr
   ControllerRevision.TypeAssumptions.set_Data
   ControllerRevision.TypeAssumptions.get_Revision
   ControllerRevision.TypeAssumptions.set_Revision
+  ControllerRevision.TypeAssumptions.method_set
+  ControllerRevision.TypeAssumptions.ptr_method_set
   ControllerRevision.TypeAssumptions.ptr_GetAnnotations_unfold
   ControllerRevision.TypeAssumptions.ptr_GetCreationTimestamp_unfold
   ControllerRevision.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
@@ -2417,31 +2569,31 @@ attribute [instance] ControllerRevision.TypeAssumptions.type_repr
   ControllerRevision.TypeAssumptions.ptr_SetSelfLink_unfold
   ControllerRevision.TypeAssumptions.ptr_SetUID_unfold
 
-structure ControllerRevisionList [FfiSyntax] where
+structure ControllerRevisionList [GooseExts] where
   mk ::
   TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta
   ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta
   Items' : GoSlice
 
-noncomputable instance ControllerRevisionList.zero_val [FfiSyntax] : ZeroVal ControllerRevisionList :=
+noncomputable instance ControllerRevisionList.zero_val [GooseExts] : ZeroVal ControllerRevisionList :=
   ⟨ControllerRevisionList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ControllerRevisionList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ControllerRevisionList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType ControllerRevision.ty))]
 
-@[irreducible] noncomputable def ControllerRevisionList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ControllerRevisionList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ControllerRevisionList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ControllerRevisionList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ControllerRevisionList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ControllerRevisionList.fields ControllerRevisionList.fieldsUnsealed :=
   ⟨by unfold ControllerRevisionList.fields; rfl⟩
 
-@[reducible] noncomputable def ControllerRevisionList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ControllerRevisionList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ControllerRevisionList.fields)
 
-class ControllerRevisionList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ControllerRevisionList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ControllerRevisionList.underlying ControllerRevisionList
   underlying : go.UnderlyingDirectedEq ControllerRevisionList.ty ControllerRevisionList.underlying
   get_TypeMeta : ∀ (x : ControllerRevisionList), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevisionList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
@@ -2450,6 +2602,8 @@ class ControllerRevisionList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLo
   set_ListMeta : ∀ (x : ControllerRevisionList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevisionList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : ControllerRevisionList)))
   get_Items : ∀ (x : ControllerRevisionList), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevisionList.underlying go!"Items") #x (Val #(x.Items'))
   set_Items : ∀ (x : ControllerRevisionList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevisionList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ControllerRevisionList)))
+  method_set : go.MethodSetIs ControllerRevisionList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ControllerRevisionList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ControllerRevisionList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ControllerRevisionList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ControllerRevisionList.TypeAssumptions.type_repr
   ControllerRevisionList.TypeAssumptions.underlying
@@ -2459,8 +2613,10 @@ attribute [instance] ControllerRevisionList.TypeAssumptions.type_repr
   ControllerRevisionList.TypeAssumptions.set_ListMeta
   ControllerRevisionList.TypeAssumptions.get_Items
   ControllerRevisionList.TypeAssumptions.set_Items
+  ControllerRevisionList.TypeAssumptions.method_set
+  ControllerRevisionList.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   StatefulSet_instance : StatefulSet.TypeAssumptions
   PodManagementPolicyType_instance : PodManagementPolicyType.TypeAssumptions
   StatefulSetUpdateStrategy_instance : StatefulSetUpdateStrategy.TypeAssumptions

@@ -20,68 +20,68 @@ end pkg_id
 
 namespace k8s_io.component_base.metrics.legacyregistry
 
-noncomputable def defaultRegistry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.defaultRegistry"
 
-axiom defaultRegistry.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultRegistry.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultGatherer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultGatherer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.DefaultGatherer"
 
-axiom DefaultGatherer.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultGatherer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Reset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Reset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.Reset"
 
-axiom Reset.init [FfiSyntax] [GoGlobalContext] : val
+axiom Reset.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MustRegister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustRegister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.MustRegister"
 
-axiom MustRegister.init [FfiSyntax] [GoGlobalContext] : val
+axiom MustRegister.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def RawMustRegister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RawMustRegister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.RawMustRegister"
 
-axiom RawMustRegister.init [FfiSyntax] [GoGlobalContext] : val
+axiom RawMustRegister.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Register [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.Register"
 
-axiom Register.init [FfiSyntax] [GoGlobalContext] : val
+axiom Register.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Registerer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Registerer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.Registerer"
 
-axiom Registerer.init [FfiSyntax] [GoGlobalContext] : val
+axiom Registerer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def processStart [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def processStart [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.processStart"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.init.0"
 
-noncomputable def Handler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.Handler"
 
-noncomputable def HandlerWithReset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandlerWithReset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.HandlerWithReset"
 
-noncomputable def CustomRegister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CustomRegister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.CustomRegister"
 
-noncomputable def CustomMustRegister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CustomMustRegister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.CustomMustRegister"
 
-noncomputable def GetProcessStart [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetProcessStart [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.GetProcessStart"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.metrics.legacyregistry where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.component_base.metrics.legacyregistry)) (Lam BAnon
   (App (Val exceptionDo)
@@ -109,7 +109,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultRegistry.init) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.component_base.metrics.legacyregistry
 

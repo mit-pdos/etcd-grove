@@ -35,7 +35,7 @@ namespace EtcdGrove
 
 /-- **Go's `int64(f)` of a `float64` `f`** (a hypothesis on the semantics in use, see the file
 header): it steps purely to `float64ToInt64 f`, an uninterpreted function of `f`'s bits. -/
-class Float64ToInt64Semantics [FfiSyntax] [GoLocalContext] [GoGlobalContext]
+class Float64ToInt64Semantics [GooseExts] [GoLocalContext] [GoGlobalContext]
     [GoSemanticsFunctions] where
   /-- `int64(f)` of the `float64` with bits `f`: uninterpreted. -/
   float64ToInt64 : w64 → w64

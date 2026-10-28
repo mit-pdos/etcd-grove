@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.pkg.v3 go_etcd_io.raft.v3 go_etcd_io.etcd.api.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -32,14 +32,14 @@ decode, so each case takes the bytes' decoding as a premise (the caller's: the e
 marshalled it).
 * `ConfChange` (`&cc`, the bytes `bs` of a committed conf-change entry, the encoding of a
   `ConfChange`: `isConfChangeEncoding`, which `entriesFrom` states): `cc` holds some change
-  (raft's `ownCCV1`, owned: its cells, its context bytes read-only, its hidden fields in the
+  (raft's `ownConfChange`, owned: its cells, its context bytes read-only, its hidden fields in the
   `protobuf` invariant, as raft's `proto.Unmarshal` axiom hands a decoded message out), whose
   content is what raft's decoder makes of the bytes (`ccDecodeV1 bs = some m`; stage R8b of the
   raft v3.7 retarget, 2026-10-16: until then an opaque id `ccIdOf bs`, now the decoded `id`,
   `ccIdOf_of_decode`; 2026-10-12, the request path's unit 2: the decoding is a function of the
   bytes; the apply loop's premise `entryWaitOk` names the id). Until stage R6 of the retarget
   the struct value with its `Id` cell only (`optU64`), the shape the server's own getter spec
-  read; raft's `GetId` reads `ownCCV1`.
+  read; raft's `GetId` reads `ownConfChange`.
 * `InternalRaftRequest` (`&raftReq`, the bytes of a committed normal entry, which decode to `rq`:
   `irrDecode`, opaque): the struct holds `rq` (`internalRaftRequestIs`, read-only from then on).
 -/
@@ -49,7 +49,7 @@ abbrev pbutil.MustUnmarshalMessage.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ cc ↦ v ∗ d ↦*{dq} bs }}
     (App (App (Val (@! pbutil.MustUnmarshalMessage))
       (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc))) (Val #d))
-  {{ RET #(); (∃ m : CCV1M, ownCCV1 cc (DFrac.own 1) m ∗ ⌜ccDecodeV1 bs = some m⌝) ∗
+  {{ RET #(); (∃ m : ConfChangeM, ownConfChange cc (DFrac.own 1) m ∗ ⌜ccDecodeV1 bs = some m⌝) ∗
       d ↦*{dq} bs }}) ∧
   (∀ (p : Loc) (x : etcdserverpb.InternalRaftRequest) (d : GoSlice) (bs : List w8) (dq : DFrac)
     (rq : apply.IRRModel),

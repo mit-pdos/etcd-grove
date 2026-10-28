@@ -20,101 +20,103 @@ end pkg_id
 
 namespace k8s_io.utils.trace
 
-noncomputable def Field.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Field.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/trace.Field" [])
 
 attribute [irreducible] Field.ty
 
-noncomputable def traceItem.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def traceItem.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/trace.traceItem" [])
 
 attribute [irreducible] traceItem.ty
 
-noncomputable def traceStep.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def traceStep.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/trace.traceStep" [])
 
 attribute [irreducible] traceStep.ty
 
-noncomputable def Trace.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Trace.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/trace.Trace" [])
 
 attribute [irreducible] Trace.ty
 
-noncomputable def ContextTraceKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContextTraceKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/trace.ContextTraceKey" [])
 
 attribute [irreducible] ContextTraceKey.ty
 
-axiom traceItem.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom traceItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom traceStep.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom traceStep.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Trace.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Trace.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def klogV [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def klogV [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.klogV"
 
-axiom klogV.init [FfiSyntax] [GoGlobalContext] : val
+axiom klogV.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def writeFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def writeFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.writeFields"
 
-noncomputable def writeTraceItemSummary [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def writeTraceItemSummary [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.writeTraceItemSummary"
 
-noncomputable def durationToMilliseconds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def durationToMilliseconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.durationToMilliseconds"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.New"
 
-noncomputable def FromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.FromContext"
 
-noncomputable def ContextWithTrace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ContextWithTrace [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.ContextWithTrace"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.trace where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.utils.trace)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val klogV.init) (Val #())))))))
 
-structure Field [FfiSyntax] where
+structure Field [GooseExts] where
   mk ::
   Key' : GoString
   Value' : GoInterface
 
-noncomputable instance Field.zero_val [FfiSyntax] : ZeroVal Field :=
+noncomputable instance Field.zero_val [GooseExts] : ZeroVal Field :=
   ⟨Field.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Field.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Field.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Value" (go.GoType.InterfaceType []))]
 
-@[irreducible] noncomputable def Field.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Field.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Field.fieldsUnsealed
 
-noncomputable instance equals_unfold_Field [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Field [GooseExts] [GoGlobalContext] :
     EqualsUnfold Field.fields Field.fieldsUnsealed :=
   ⟨by unfold Field.fields; rfl⟩
 
-@[reducible] noncomputable def Field.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Field.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Field.fields)
 
-class Field.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Field.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Field.underlying Field
   underlying : go.UnderlyingDirectedEq Field.ty Field.underlying
   get_Key : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Key") #x (Val #(x.Key'))
   set_Key : ∀ (x : Field) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Field)))
   get_Value : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Value") #x (Val #(x.Value'))
   set_Value : ∀ (x : Field) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Field)))
+  method_set : go.MethodSetIs Field.ty [(go!"k8s.io/utils/trace.format", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Field.ty) [(go!"k8s.io/utils/trace.format", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.underlying
@@ -122,73 +124,91 @@ attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.set_Key
   Field.TypeAssumptions.get_Value
   Field.TypeAssumptions.set_Value
+  Field.TypeAssumptions.method_set
+  Field.TypeAssumptions.ptr_method_set
 
 axiom traceItem : Type
 axiom traceItem.zero_val : ZeroVal traceItem
 attribute [instance] traceItem.zero_val
 
-class traceItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class traceItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying traceItem.underlying traceItem
   underlying : go.UnderlyingDirectedEq traceItem.ty traceItem.underlying
   isUnderlying : go.IsUnderlying traceItem.underlying traceItem.underlying
+  method_set : go.MethodSetIs traceItem.ty [(go!"k8s.io/utils/trace.rLock", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.rUnlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.time", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])]))), (go!"k8s.io/utils/trace.writeItem", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" [])), go.string, (go.GoType.Named go!"time.Time" []), (go.GoType.PointerType (go.GoType.Named go!"time.Duration" []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceItem.ty) []
 
 attribute [instance] traceItem.TypeAssumptions.type_repr
   traceItem.TypeAssumptions.underlying
   traceItem.TypeAssumptions.isUnderlying
+  traceItem.TypeAssumptions.method_set
+  traceItem.TypeAssumptions.ptr_method_set
 
 axiom traceStep : Type
 axiom traceStep.zero_val : ZeroVal traceStep
 attribute [instance] traceStep.zero_val
 
-class traceStep.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class traceStep.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying traceStep.underlying traceStep
   underlying : go.UnderlyingDirectedEq traceStep.ty traceStep.underlying
   isUnderlying : go.IsUnderlying traceStep.underlying traceStep.underlying
+  method_set : go.MethodSetIs traceStep.ty [(go!"k8s.io/utils/trace.rLock", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.rUnlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.time", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])]))), (go!"k8s.io/utils/trace.writeItem", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" [])), go.string, (go.GoType.Named go!"time.Time" []), (go.GoType.PointerType (go.GoType.Named go!"time.Duration" []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceStep.ty) [(go!"k8s.io/utils/trace.rLock", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.rUnlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.time", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])]))), (go!"k8s.io/utils/trace.writeItem", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" [])), go.string, (go.GoType.Named go!"time.Time" []), (go.GoType.PointerType (go.GoType.Named go!"time.Duration" []))] false [])))]
 
 attribute [instance] traceStep.TypeAssumptions.type_repr
   traceStep.TypeAssumptions.underlying
   traceStep.TypeAssumptions.isUnderlying
+  traceStep.TypeAssumptions.method_set
+  traceStep.TypeAssumptions.ptr_method_set
 
 axiom Trace : Type
 axiom Trace.zero_val : ZeroVal Trace
 attribute [instance] Trace.zero_val
 
-class Trace.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Trace.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Trace.underlying Trace
   underlying : go.UnderlyingDirectedEq Trace.ty Trace.underlying
   isUnderlying : go.IsUnderlying Trace.underlying Trace.underlying
+  method_set : go.MethodSetIs Trace.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Trace.ty) [(go!"Log", (some (go.signature.Signature [] false []))), (go!"LogIfLong", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false []))), (go!"Nest", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true [(go.GoType.PointerType Trace.ty)]))), (go!"Step", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"TotalTime", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"k8s.io/utils/trace.calculateStepThreshold", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"time.Duration" []))]))), (go!"k8s.io/utils/trace.durationIsWithinThreshold", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/utils/trace.logTrace", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.rLock", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.rUnlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/utils/trace.time", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])]))), (go!"k8s.io/utils/trace.writeItem", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" [])), go.string, (go.GoType.Named go!"time.Time" []), (go.GoType.PointerType (go.GoType.Named go!"time.Duration" []))] false []))), (go!"k8s.io/utils/trace.writeTraceSteps", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" [])), go.string, (go.GoType.PointerType (go.GoType.Named go!"time.Duration" []))] false [])))]
 
 attribute [instance] Trace.TypeAssumptions.type_repr
   Trace.TypeAssumptions.underlying
   Trace.TypeAssumptions.isUnderlying
+  Trace.TypeAssumptions.method_set
+  Trace.TypeAssumptions.ptr_method_set
 
-structure ContextTraceKey [FfiSyntax] where
+structure ContextTraceKey [GooseExts] where
   mk ::
 
-noncomputable instance ContextTraceKey.zero_val [FfiSyntax] : ZeroVal ContextTraceKey :=
+noncomputable instance ContextTraceKey.zero_val [GooseExts] : ZeroVal ContextTraceKey :=
   ⟨ContextTraceKey.mk⟩
 
-@[reducible] noncomputable def ContextTraceKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContextTraceKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def ContextTraceKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContextTraceKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContextTraceKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContextTraceKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContextTraceKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContextTraceKey.fields ContextTraceKey.fieldsUnsealed :=
   ⟨by unfold ContextTraceKey.fields; rfl⟩
 
-@[reducible] noncomputable def ContextTraceKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContextTraceKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContextTraceKey.fields)
 
-class ContextTraceKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ContextTraceKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ContextTraceKey.underlying ContextTraceKey
   underlying : go.UnderlyingDirectedEq ContextTraceKey.ty ContextTraceKey.underlying
+  method_set : go.MethodSetIs ContextTraceKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContextTraceKey.ty) []
 
 attribute [instance] ContextTraceKey.TypeAssumptions.type_repr
   ContextTraceKey.TypeAssumptions.underlying
+  ContextTraceKey.TypeAssumptions.method_set
+  ContextTraceKey.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Field_instance : Field.TypeAssumptions
   traceItem_instance : traceItem.TypeAssumptions
   traceStep_instance : traceStep.TypeAssumptions

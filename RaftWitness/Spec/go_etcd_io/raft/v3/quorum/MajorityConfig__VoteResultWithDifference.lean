@@ -23,7 +23,7 @@ def votesToWin (s : GSet w64) (votes : GMap w64 Bool) : Nat :=
   else GMap.size s / 2 + 1 - GMap.size (granted votes ∩ s)
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

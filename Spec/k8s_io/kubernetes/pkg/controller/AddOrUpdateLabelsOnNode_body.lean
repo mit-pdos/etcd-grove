@@ -28,7 +28,7 @@ open Iris Iris.BI k8s_io.kubernetes.pkg.controller
 
 section body
 /-- go: controller_utils.go:1416:6 -/
-noncomputable def AddOrUpdateLabelsOnNode.body [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def AddOrUpdateLabelsOnNode.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "kubeClient"
   (Lam "nodeName"
   (Lam "labelsToUpdate"
@@ -216,7 +216,7 @@ noncomputable def AddOrUpdateLabelsOnNode.body [FfiSyntax] [GoGlobalContext] : v
 end body
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

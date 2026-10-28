@@ -5,7 +5,6 @@ Lean-first (no Rocq counterpart), 2026-10-13.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__TransferLeadership
-public import Spec.go_etcd_io.raft.v3.node__TransferLeadership
 
 @[expose] public section
 
@@ -18,7 +17,7 @@ namespace kv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -39,8 +38,8 @@ theorem KV.TransferLeadership.wp_proof
   wp_auto
   wp_apply context.wp_Background
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-  wp_apply wp_node_TransferLeadership γp.node id n id to context.backgroundCtxVal bgCd Hns
-    $$ [$Hraftinit $HisNode $Hbg]
+  wp_apply wp_node_TransferLeadership n γr.cluster kvRaftN id id to context.backgroundCtxVal bgCd
+    $$ [$Hraftinit $HisNode $Hbg $Hxfer]
   iapply HΦ
   itrivial
 

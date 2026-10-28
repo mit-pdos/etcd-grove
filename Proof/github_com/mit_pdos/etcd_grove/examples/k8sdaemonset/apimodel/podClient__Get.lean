@@ -26,7 +26,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,7 +48,9 @@ theorem podClient.Get.wp_proof
   simp only [resField]
   wp_auto
   wp_apply (wp_get s γ cfg Res.pods L.tp.t ns name admin) $$ [$Hpkg $Hsrv $Htp]
-  iapply (au_mono_read γ _ _) $$ [$HΦ]
+  iapply (au_mono_read γ _ _)
+  isplitl [HΦ]
+  · iexact HΦ
   iintro %σ %hwf HK %x %err Hret
   iunfold getRet at Hret
   icases Hret with (⟨⟨%hm, %hx⟩, #He⟩ | Hr)

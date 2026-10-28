@@ -20,108 +20,113 @@ end pkg_id
 
 namespace internal.bytealg
 
-axiom offsetPPC64HasPOWER9 [FfiSyntax] [GoGlobalContext] : val
+axiom offsetPPC64HasPOWER9 [GooseExts] [GoGlobalContext] : val
 
-axiom offsetRISCV64HasV [FfiSyntax] [GoGlobalContext] : val
+axiom offsetRISCV64HasV [GooseExts] [GoGlobalContext] : val
 
-axiom offsetLOONG64HasLSX [FfiSyntax] [GoGlobalContext] : val
+axiom offsetLOONG64HasLSX [GooseExts] [GoGlobalContext] : val
 
-axiom offsetLOONG64HasLASX [FfiSyntax] [GoGlobalContext] : val
+axiom offsetLOONG64HasLASX [GooseExts] [GoGlobalContext] : val
 
-axiom offsetS390xHasVX [FfiSyntax] [GoGlobalContext] : val
+axiom offsetS390xHasVX [GooseExts] [GoGlobalContext] : val
 
-axiom offsetX86HasSSE42 [FfiSyntax] [GoGlobalContext] : val
+axiom offsetX86HasSSE42 [GooseExts] [GoGlobalContext] : val
 
-axiom offsetX86HasAVX2 [FfiSyntax] [GoGlobalContext] : val
+axiom offsetX86HasAVX2 [GooseExts] [GoGlobalContext] : val
 
-axiom offsetX86HasPOPCNT [FfiSyntax] [GoGlobalContext] : val
+axiom offsetX86HasPOPCNT [GooseExts] [GoGlobalContext] : val
 
-axiom primeRK [FfiSyntax] [GoGlobalContext] : val
+axiom primeRK [GooseExts] [GoGlobalContext] : val
 
-axiom MaxBruteForce [FfiSyntax] [GoGlobalContext] : val
+axiom MaxBruteForce [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MaxLen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.MaxLen"
 
-noncomputable def hashStr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hashStr [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.hashStr"
 
-noncomputable def hashStrRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hashStrRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.hashStrRev"
 
-noncomputable def IndexRabinKarp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IndexRabinKarp [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.IndexRabinKarp"
 
-noncomputable def LastIndexRabinKarp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LastIndexRabinKarp [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.LastIndexRabinKarp"
 
-noncomputable def MakeNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MakeNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.MakeNoZero"
 
-noncomputable def Compare [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Compare [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.Compare"
 
-noncomputable def CompareString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CompareString [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.CompareString"
 
-noncomputable def abigen_runtime_cmpstring [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def abigen_runtime_cmpstring [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.abigen_runtime_cmpstring"
 
-noncomputable def Count [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Count [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.Count"
 
-noncomputable def CountString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CountString [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.CountString"
 
-noncomputable def countGeneric [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def countGeneric [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.countGeneric"
 
-noncomputable def countGenericString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def countGenericString [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.countGenericString"
 
-noncomputable def Equal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Equal [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.Equal"
 
-noncomputable def abigen_runtime_memequal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def abigen_runtime_memequal [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.abigen_runtime_memequal"
 
-noncomputable def abigen_runtime_memequal_varlen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def abigen_runtime_memequal_varlen [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.abigen_runtime_memequal_varlen"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.init.0"
 
-noncomputable def Cutover [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Cutover [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.Cutover"
 
-noncomputable def Index' [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Index' [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.Index"
 
-noncomputable def IndexString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IndexString [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.IndexString"
 
-noncomputable def IndexByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IndexByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.IndexByte"
 
-noncomputable def IndexByteString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IndexByteString [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.IndexByteString"
 
-noncomputable def LastIndexByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LastIndexByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.LastIndexByte"
 
-noncomputable def LastIndexByteString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LastIndexByteString [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.LastIndexByteString"
 
 /-- go: lastindexbyte_generic.go:16:6 -/
-noncomputable def LastIndexByteString.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LastIndexByteString.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "c"))
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -129,29 +134,34 @@ noncomputable def LastIndexByteString.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.internal.bytealg where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.internal.bytealg)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   LastIndexByteString_unfold : FuncUnfold LastIndexByteString [] LastIndexByteString.impl
 
 attribute [instance] Assumptions.LastIndexByteString_unfold

@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -29,7 +29,6 @@ theorem WithLease.wp_proof : WithLease.spec (GF := GF) (hG := hG) := by
   wp_auto
   ipersist leaseID
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold optSpec
   imodintro

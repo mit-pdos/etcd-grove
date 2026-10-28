@@ -22,41 +22,42 @@ end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.pbutil
 
-noncomputable def Marshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Marshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/pbutil.Marshaler" [])
 
 attribute [irreducible] Marshaler.ty
 
-noncomputable def Unmarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Unmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/pbutil.Unmarshaler" [])
 
 attribute [irreducible] Unmarshaler.ty
 
-noncomputable def MustMarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustMarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.MustMarshal"
 
-noncomputable def MustUnmarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustUnmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.MustUnmarshal"
 
-noncomputable def MaybeUnmarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaybeUnmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.MaybeUnmarshal"
 
-noncomputable def MustMarshalMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustMarshalMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.MustMarshalMessage"
 
-noncomputable def MustUnmarshalMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustUnmarshalMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.MustUnmarshalMessage"
 
-noncomputable def GetBool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetBool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.GetBool"
 
-noncomputable def Boolp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Boolp [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.Boolp"
 
 /-- go: pbutil.go:53:6 -/
-noncomputable def MustMarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MustMarshalMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "m"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "m"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Marshal []))) (Val #())) (Var "$a0")))
@@ -69,8 +70,12 @@ noncomputable def MustMarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "d"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "d")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"marshal should never fail (%v)"))
@@ -83,18 +88,16 @@ noncomputable def MustMarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "d") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "d") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))
 
 /-- go: pbutil.go:61:6 -/
-noncomputable def MustUnmarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MustUnmarshalMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "um"
   (Lam "data"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
   (Let "um" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "um"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "um"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Unmarshal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -110,14 +113,15 @@ noncomputable def MustUnmarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.pbutil where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.google_golang_org.protobuf.proto]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.pkg.v3.pbutil)) (Lam BAnon
   (App (Val exceptionDo)
@@ -127,27 +131,35 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.proto.initialize') (Val #()))))))))
 
-abbrev Marshaler [FfiSyntax] : Type := GoInterface
+abbrev Marshaler [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Marshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Marshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Marshal" (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))])
 
-class Marshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Marshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Marshaler.ty Marshaler.underlying
+  method_set : go.MethodSetIs Marshaler.ty [(go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Marshaler.ty) []
 
 attribute [instance] Marshaler.TypeAssumptions.underlying
+  Marshaler.TypeAssumptions.method_set
+  Marshaler.TypeAssumptions.ptr_method_set
 
-abbrev Unmarshaler [FfiSyntax] : Type := GoInterface
+abbrev Unmarshaler [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Unmarshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Unmarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Unmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))])
 
-class Unmarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Unmarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Unmarshaler.ty Unmarshaler.underlying
+  method_set : go.MethodSetIs Unmarshaler.ty [(go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Unmarshaler.ty) []
 
 attribute [instance] Unmarshaler.TypeAssumptions.underlying
+  Unmarshaler.TypeAssumptions.method_set
+  Unmarshaler.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Marshaler_instance : Marshaler.TypeAssumptions
   Unmarshaler_instance : Unmarshaler.TypeAssumptions
   MustMarshalMessage_unfold : FuncUnfold MustMarshalMessage [] MustMarshalMessage.impl

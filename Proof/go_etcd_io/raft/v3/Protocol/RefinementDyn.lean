@@ -43,7 +43,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section dyn
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The dynamic configurations of a decoder and an initial configuration with `CfgOk`. -/
 def DynCfg.ofFold (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) : DynCfg where
@@ -202,7 +202,7 @@ theorem noApp0 {dec : CCDec} {c0 : CCState} :
 end dyn
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- A node's ghost state in the dynamic mode, with its reconfiguration state (see the file
@@ -290,7 +290,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     StepR (AdmS dec c0 S) dec id B r recv r' →
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ regsOwn γ -∗ (□ ∀ (fp : List EntryM), ⌜S fp⌝ -∗ logRecs (GF := GF) γ base0 fp) -∗
       ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗
-      ownRaftGhostR γ dec c0 id r ={⊤ \ ↑raftRegN}=∗
+      ownRaftGhostR γ dec c0 id r ={⊤ \ ↑(raftRegN γ)}=∗
       regsOwn γ ∗ ownRaftGhostR γ dec c0 id r' := by
   intro Hstep
   induction Hstep with

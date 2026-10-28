@@ -30,13 +30,13 @@ namespace cache
 open Iris Iris.BI k8s_io.client_go.tools.cache
 
 /-- A handler event. -/
-inductive Ev [FfiSyntax] where
+inductive Ev [GooseExts] where
   | add (o : GoInterface) (b : Bool)
   | update (old new : GoInterface)
   | delete (o : GoInterface)
 
 section model
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- The tombstone of the key `k` whose last known object is `o` (`DeletedFinalStateUnknown`). -/
 def tombstone (k : GoString) (o : GoInterface) : GoInterface :=
@@ -118,7 +118,7 @@ def FD.kindOk : FD → Prop
 end model
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

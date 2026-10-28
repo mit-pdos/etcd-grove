@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -59,10 +59,8 @@ theorem raftpb.ConfChange.AsV2.wp_proof
   ihave Hsl := slice_array tmp_ptr 1 (array.mk 1 [q]) (by simp) $$ tmp
   iNamed Hm
   wp_auto
-  wp_alloc_auto
-  rename_i v
-  irename : (v ↦ ({ state' := zeroValDef, Transition' := null, Changes' := slice.mk tmp_ptr (W64 1) (W64 1), Context' := cs, unknownFields' := slice.nil, sizeCache' := 0 } : raftpb.ConfChangeV2) : IProp GF) => Hv
-  wp_auto
+  generalize «$r0_ptr» = v at *
+  irename «$r0» => Hv
   -- freeze the fresh cells and objects
   imod cellRO_alloc _ _ $$ Hpt with #cty
   imod cellRO_alloc _ _ $$ «$v1» with #cnd
@@ -74,13 +72,13 @@ theorem raftpb.ConfChange.AsV2.wp_proof
     iframe
     iframe cty cnd
   ihave #cnull := cellRO_null (GF := GF) (V := w32)
-  imod ownCCV2_of_struct v
+  imod ownConfChangeV2_of_struct v
     { state' := zeroValDef, Transition' := null, Changes' := slice.mk tmp_ptr (W64 1) (W64 1),
       Context' := cs, unknownFields' := slice.nil, sizeCache' := 0 }
     m.asV2 [q] ⊤ rfl $$ [Hv Hsl] with Hv2
   · dsimp only
     iframe
-    dsimp only [CCV1M.asV2]
+    dsimp only [ConfChangeM.asV2]
     rw [show W32 0 = zero_val w32 from rfl]
     iframe cnull Hcs
     iapply BigSepL2.bigSepL2_singleton.2
@@ -88,7 +86,7 @@ theorem raftpb.ConfChange.AsV2.wp_proof
   imodintro
   iapply HΦ
   iframe
-  iunfold ownCCV1
+  iunfold ownConfChange
   iexists pt, pn, pi, cs, uf
   isplitr
   · ipureintro; exact Hnn

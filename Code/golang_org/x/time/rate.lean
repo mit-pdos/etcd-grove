@@ -20,104 +20,120 @@ end pkg_id
 
 namespace golang_org.x.time.rate
 
-noncomputable def Limit.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Limit.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Limit" [])
 
 attribute [irreducible] Limit.ty
 
-noncomputable def Limiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Limiter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Limiter" [])
 
 attribute [irreducible] Limiter.ty
 
-noncomputable def Reservation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Reservation.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Reservation" [])
 
 attribute [irreducible] Reservation.ty
 
-noncomputable def Sometimes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Sometimes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Sometimes" [])
 
 attribute [irreducible] Sometimes.ty
 
-axiom Limiter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Limiter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Reservation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Reservation.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Sometimes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Sometimes.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Inf [FfiSyntax] [GoGlobalContext] : val
+axiom Inf [GooseExts] [GoGlobalContext] : val
 
-axiom InfDuration [FfiSyntax] [GoGlobalContext] : val
+axiom InfDuration [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Every [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Every [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/time/rate.Every"
 
-noncomputable def NewLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/time/rate.NewLimiter"
 
 noncomputable instance info' : PkgInfo pkg_id.golang_org.x.time.rate where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.golang_org.x.time.rate)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-abbrev Limit [FfiSyntax] : Type := w64
+abbrev Limit [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Limit.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Limit.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.float64
 
-class Limit.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Limit.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Limit.ty Limit.underlying
+  method_set : go.MethodSetIs Limit.ty [(go!"golang.org/x/time/rate.durationFromTokens", (some (go.signature.Signature [go.float64] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"golang.org/x/time/rate.tokensFromDuration", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.float64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limit.ty) [(go!"golang.org/x/time/rate.durationFromTokens", (some (go.signature.Signature [go.float64] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"golang.org/x/time/rate.tokensFromDuration", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.float64])))]
 
 attribute [instance] Limit.TypeAssumptions.underlying
+  Limit.TypeAssumptions.method_set
+  Limit.TypeAssumptions.ptr_method_set
 
 axiom Limiter : Type
 axiom Limiter.zero_val : ZeroVal Limiter
 attribute [instance] Limiter.zero_val
 
-class Limiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Limiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Limiter.underlying Limiter
   underlying : go.UnderlyingDirectedEq Limiter.ty Limiter.underlying
   isUnderlying : go.IsUnderlying Limiter.underlying Limiter.underlying
+  method_set : go.MethodSetIs Limiter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limiter.ty) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Limit", (some (go.signature.Signature [] false [Limit.ty]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.int] false [(go.GoType.PointerType Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.int] false [go.error]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.int, (go.GoType.Named go!"time.Duration" [])] false [Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.int, (go.GoType.Named go!"time.Time" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" [])), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
 
 attribute [instance] Limiter.TypeAssumptions.type_repr
   Limiter.TypeAssumptions.underlying
   Limiter.TypeAssumptions.isUnderlying
+  Limiter.TypeAssumptions.method_set
+  Limiter.TypeAssumptions.ptr_method_set
 
 axiom Reservation : Type
 axiom Reservation.zero_val : ZeroVal Reservation
 attribute [instance] Reservation.zero_val
 
-class Reservation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Reservation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Reservation.underlying Reservation
   underlying : go.UnderlyingDirectedEq Reservation.ty Reservation.underlying
   isUnderlying : go.IsUnderlying Reservation.underlying Reservation.underlying
+  method_set : go.MethodSetIs Reservation.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Reservation.ty) [(go!"Cancel", (some (go.signature.Signature [] false []))), (go!"CancelAt", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false []))), (go!"Delay", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"DelayFrom", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"OK", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] Reservation.TypeAssumptions.type_repr
   Reservation.TypeAssumptions.underlying
   Reservation.TypeAssumptions.isUnderlying
+  Reservation.TypeAssumptions.method_set
+  Reservation.TypeAssumptions.ptr_method_set
 
 axiom Sometimes : Type
 axiom Sometimes.zero_val : ZeroVal Sometimes
 attribute [instance] Sometimes.zero_val
 
-class Sometimes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Sometimes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Sometimes.underlying Sometimes
   underlying : go.UnderlyingDirectedEq Sometimes.ty Sometimes.underlying
   isUnderlying : go.IsUnderlying Sometimes.underlying Sometimes.underlying
+  method_set : go.MethodSetIs Sometimes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Sometimes.ty) [(go!"Do", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])))]
 
 attribute [instance] Sometimes.TypeAssumptions.type_repr
   Sometimes.TypeAssumptions.underlying
   Sometimes.TypeAssumptions.isUnderlying
+  Sometimes.TypeAssumptions.method_set
+  Sometimes.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Limit_instance : Limit.TypeAssumptions
   Limiter_instance : Limiter.TypeAssumptions
   Reservation_instance : Reservation.TypeAssumptions

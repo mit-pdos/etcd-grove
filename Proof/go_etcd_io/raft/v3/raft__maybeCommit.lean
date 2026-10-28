@@ -18,13 +18,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit ext ffi [FfiSemantics ext ffi] [GoGlobalContext] [FfiInterp ffi] in
+omit [GooseSemantics] [GoGlobalContext] [GooseInterp] in
 /-- `ProgressTracker.Committed`'s quorum, stated over the voter set with
 `pvsMatchAt` (`InvTracker.lean`), as the model's `ackedBy` states it,
 over the `Match` map: a voter whose `Match` is at least a non-zero `N`
@@ -95,6 +95,7 @@ theorem raft.maybeCommit.wp_proof
   intro c r id s Hlead
   wp_start as H
   iNamed H
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩

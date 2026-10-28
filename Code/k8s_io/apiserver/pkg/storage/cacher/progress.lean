@@ -30,36 +30,33 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.cacher.progress
 
-noncomputable def WatchProgressRequester.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchProgressRequester.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/progress.WatchProgressRequester" [])
 
 attribute [irreducible] WatchProgressRequester.ty
 
-noncomputable def TickerFactory.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TickerFactory.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/progress.TickerFactory" [])
 
 attribute [irreducible] TickerFactory.ty
 
-noncomputable def ConditionalProgressRequester.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConditionalProgressRequester.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/progress.ConditionalProgressRequester" [])
 
 attribute [irreducible] ConditionalProgressRequester.ty
 
-axiom progressRequestPeriod [FfiSyntax] [GoGlobalContext] : val
+axiom progressRequestPeriod [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewConditionalProgressRequester [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConditionalProgressRequester [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/progress.NewConditionalProgressRequester"
 
 /-- go: watch_progress.go:122:41 -/
-noncomputable def ConditionalProgressRequester.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConditionalProgressRequester.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -74,18 +71,16 @@ noncomputable def ConditionalProgressRequester.Add.impl [FfiSyntax] [GoGlobalCon
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConditionalProgressRequester.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConditionalProgressRequester.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr")))) (Val #())))))))
+  (Val #()))))
 
 /-- go: watch_progress.go:129:41 -/
-noncomputable def ConditionalProgressRequester.Remove.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConditionalProgressRequester.Remove.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -97,14 +92,15 @@ noncomputable def ConditionalProgressRequester.Remove.impl [FfiSyntax] [GoGlobal
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConditionalProgressRequester.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConditionalProgressRequester.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr")))) (Val #())))))))
+  (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.progress where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.google_golang_org.grpc.metadata, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.storage.feature, pkg_id.k8s_io.klog.v2, pkg_id.k8s_io.utils.clock]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.cacher.progress)) (Lam BAnon
   (App (Val exceptionDo)
@@ -138,27 +134,35 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.utils.clock.initialize') (Val #()))))))))
 
-abbrev WatchProgressRequester [FfiSyntax] : Type := GoFunc
+abbrev WatchProgressRequester [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def WatchProgressRequester.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WatchProgressRequester.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))
 
-class WatchProgressRequester.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchProgressRequester.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchProgressRequester.ty WatchProgressRequester.underlying
+  method_set : go.MethodSetIs WatchProgressRequester.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchProgressRequester.ty) []
 
 attribute [instance] WatchProgressRequester.TypeAssumptions.underlying
+  WatchProgressRequester.TypeAssumptions.method_set
+  WatchProgressRequester.TypeAssumptions.ptr_method_set
 
-abbrev TickerFactory [FfiSyntax] : Type := GoInterface
+abbrev TickerFactory [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def TickerFactory.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TickerFactory.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NewTimer" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))])
 
-class TickerFactory.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TickerFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TickerFactory.ty TickerFactory.underlying
+  method_set : go.MethodSetIs TickerFactory.ty [(go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TickerFactory.ty) []
 
 attribute [instance] TickerFactory.TypeAssumptions.underlying
+  TickerFactory.TypeAssumptions.method_set
+  TickerFactory.TypeAssumptions.ptr_method_set
 
-structure ConditionalProgressRequester [FfiSyntax] where
+structure ConditionalProgressRequester [GooseExts] where
   mk ::
   clock' : TickerFactory
   requestWatchProgress' : WatchProgressRequester
@@ -168,10 +172,10 @@ structure ConditionalProgressRequester [FfiSyntax] where
   waiting' : w64
   stopped' : Bool
 
-noncomputable instance ConditionalProgressRequester.zero_val [FfiSyntax] : ZeroVal ConditionalProgressRequester :=
+noncomputable instance ConditionalProgressRequester.zero_val [GooseExts] : ZeroVal ConditionalProgressRequester :=
   ⟨ConditionalProgressRequester.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConditionalProgressRequester.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConditionalProgressRequester.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"clock" TickerFactory.ty),
 (go.field_decl.FieldDecl go!"requestWatchProgress" WatchProgressRequester.ty),
 (go.field_decl.FieldDecl go!"contextMetadata" _root_.Perennial.google_golang_org.grpc.metadata.MD.ty),
@@ -180,17 +184,17 @@ noncomputable instance ConditionalProgressRequester.zero_val [FfiSyntax] : ZeroV
 (go.field_decl.FieldDecl go!"waiting" go.int),
 (go.field_decl.FieldDecl go!"stopped" go.bool)]
 
-@[irreducible] noncomputable def ConditionalProgressRequester.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConditionalProgressRequester.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConditionalProgressRequester.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConditionalProgressRequester [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConditionalProgressRequester [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConditionalProgressRequester.fields ConditionalProgressRequester.fieldsUnsealed :=
   ⟨by unfold ConditionalProgressRequester.fields; rfl⟩
 
-@[reducible] noncomputable def ConditionalProgressRequester.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConditionalProgressRequester.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConditionalProgressRequester.fields)
 
-class ConditionalProgressRequester.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConditionalProgressRequester.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConditionalProgressRequester.underlying ConditionalProgressRequester
   underlying : go.UnderlyingDirectedEq ConditionalProgressRequester.ty ConditionalProgressRequester.underlying
   get_clock : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"clock") #x (Val #(x.clock'))
@@ -207,6 +211,8 @@ class ConditionalProgressRequester.TypeAssumptions [FfiSyntax] [GoGlobalContext]
   set_waiting : ∀ (x : ConditionalProgressRequester) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : ConditionalProgressRequester)))
   get_stopped : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"stopped") #x (Val #(x.stopped'))
   set_stopped : ∀ (x : ConditionalProgressRequester) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : ConditionalProgressRequester)))
+  method_set : go.MethodSetIs ConditionalProgressRequester.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionalProgressRequester.ty) [(go!"Add", (some (go.signature.Signature [] false []))), (go!"Remove", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ConditionalProgressRequester.ty) go!"Add" ConditionalProgressRequester.Add.impl
   ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType ConditionalProgressRequester.ty) go!"Remove" ConditionalProgressRequester.Remove.impl
 
@@ -226,10 +232,12 @@ attribute [instance] ConditionalProgressRequester.TypeAssumptions.type_repr
   ConditionalProgressRequester.TypeAssumptions.set_waiting
   ConditionalProgressRequester.TypeAssumptions.get_stopped
   ConditionalProgressRequester.TypeAssumptions.set_stopped
+  ConditionalProgressRequester.TypeAssumptions.method_set
+  ConditionalProgressRequester.TypeAssumptions.ptr_method_set
   ConditionalProgressRequester.TypeAssumptions.ptr_Add_unfold
   ConditionalProgressRequester.TypeAssumptions.ptr_Remove_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   WatchProgressRequester_instance : WatchProgressRequester.TypeAssumptions
   TickerFactory_instance : TickerFactory.TypeAssumptions
   ConditionalProgressRequester_instance : ConditionalProgressRequester.TypeAssumptions

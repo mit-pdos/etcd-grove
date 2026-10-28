@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -30,7 +30,7 @@ theorem EtcdServer.getLead.wp_proof : EtcdServer.getLead.spec (GF := GF) (hG := 
   · iPkgInit
   iunfold srvLeadInv at Hl
   wp_auto
-  wp_apply_core sync.atomic.Uint64.wp_Load (srvLeadAddr s) (DFrac.own 1) $$ [] [HΦ]
+  wp_apply_core sync.atomic.Uint64.wp_Load (srvLeadAddr s) (DFrac.own 1) $$ [] [HΦ «$res0»]
   · iexact Hatomic
   iinv Hl with Hi Hclose
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)

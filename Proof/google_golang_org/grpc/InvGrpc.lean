@@ -7,7 +7,8 @@ type, in the predicate-transformer style of Grove's urpc (`is_urpc_spec_pred`,
 
 **Messages** (`ProtoMsg`): a protobuf message type `T` (passed as `*T`) with the model `M` of its
 wire content; `send l m`: the sender's `*T` holding `m`, what the codec needs to marshal it (it
-comes back); `recv l m` (persistent): a decoded `*T` holding `m`, read-only; `blank l`: a zero `*T`
+comes back); `recv l m` (persistent): a decoded `*T` holding `m`, read-only, and `recvOwn l m` what else of it
+the receiver owns (nothing but for a request its handler writes); `blank l`: a zero `*T`
 the receiver owns, into which a reply is decoded. That the codec's copy of a message `send` holds
 at `m` is one `recv` holds at `m` is what an instance asserts: each instance is a trusted wire
 model of its Go type (read it against the type's fields).
@@ -58,7 +59,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -74,6 +75,10 @@ structure ProtoMsg (GF : BundledGFunctors) where
   /-- A decoded `*T` holding `m` (read-only). -/
   recv : Loc → M → IProp GF
   recv_persistent : ∀ l m, Persistent (recv l m)
+  /-- What else of a decoded `*T` holding `m` the receiver owns (exclusive; the auth plan's E3za:
+  a handler that writes the decoded request, etcd's `UserAdd` replacing its password by the
+  hash). Nothing by default. -/
+  recvOwn : Loc → M → IProp GF := fun _ _ => iprop(True)
   /-- A zero `*T` the receiver owns. -/
   blank : Loc → IProp GF
   /-- A `*T` the receiver owns, at any content (unit P3a: what a failed attempt leaves of the
@@ -122,6 +127,33 @@ def grpcHandlerOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcS
 instance grpcHandlerOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpec Req Rep) : Persistent (grpcHandlerOk h S Spec) := by
   unfold grpcHandlerOk; infer_instance
+
+/-- **A service method `h` that writes its request meets `Spec` with `S`** (persistent; the auth
+plan's E3za): as `grpcHandlerOk`, also given what the run owns of the decoded request
+(`Req.recvOwn r m`). -/
+def grpcHandlerOwnOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
+    IProp GF :=
+  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF)) (r : Loc),
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗ Spec m Φ }}
+      (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }})
+
+instance grpcHandlerOwnOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
+    (Spec : GrpcSpec Req Rep) : Persistent (grpcHandlerOwnOk h S Spec) := by
+  unfold grpcHandlerOwnOk; infer_instance
+
+/-- A method that does not write its request meets the spec of one that may. -/
+theorem grpcHandlerOk_own {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
+    (Spec : GrpcSpec Req Rep) :
+    grpcHandlerOk h S Spec ⊢ grpcHandlerOwnOk h S Spec := by
+  iintro #Hh
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, -, HSpec⟩ HΨ
+  iunfold grpcHandlerOk at Hh
+  iapply Hh $$ %m %Φ %ci %cd %r [HS HSpec] HΨ
+  iframe; iframe #
 
 /-- A service method meeting `Spec` with `S` meets it with more (`S ∗ R`, `R` given back). -/
 theorem grpcHandlerOk_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
@@ -197,12 +229,12 @@ instance grpcSrvChain_persistent (ics : List GoFunc) (ui : GoFunc) :
 /-- **grpc's `dec` for a call whose request is at `m`** (persistent; part of the trusted
 runtime: the codec's unmarshaling of the request's bytes): called on a zero `*T` the caller owns
 (`Req.blank`) of the method's request type, it decodes the request into it (`Req.recv l m`: the
-decoded copy, read-only) or fails. -/
+decoded copy, read-only; `Req.recvOwn l m`: what the caller still owns of it) or fails. -/
 def grpcDecOk (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) : IProp GF :=
   iprop(∀ l : Loc, {{ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #l : GoInterface)))
     {{ (err : GoInterface), RET #err;
-        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m) ∨ ⌜err ≠ GoInterface.nil⌝ }})
+        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨ ⌜err ≠ GoInterface.nil⌝ }})
 
 instance grpcDecOk_persistent (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) :
     Persistent (grpcDecOk dec Req m) := by
@@ -214,7 +246,7 @@ theorem grpcDecOk_ty (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) (T : go.GoTy
     grpcDecOk (GF := GF) dec Req m ⊢ iprop(∀ l : Loc, {{ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType T) #l : GoInterface)))
     {{ (err : GoInterface), RET #err;
-        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m) ∨ ⌜err ≠ GoInterface.nil⌝ }}) := by
+        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨ ⌜err ≠ GoInterface.nil⌝ }}) := by
   subst hT; unfold grpcDecOk; exact .rfl
 
 /-- **The method handler `mh` with the service `srv`, under the chain `ics`, meets `Spec` with
@@ -383,16 +415,16 @@ order), `regs` the `(full method name, MethodDesc.Handler, service value)` of ev
 of the `ServiceDesc`s registered with `RegisterService`. Established by the server's unverified
 construction (etcd's `v3rpc.Server`, `grpc.NewServer`, the `Register*Server` calls, `Serve`): a
 premise of the server's results. -/
-axiom grpcServerAt {GF : BundledGFunctors} [FfiSyntax] (addr : GoString) (ics : List GoFunc)
+axiom grpcServerAt {GF : BundledGFunctors} [GooseExts] (addr : GoString) (ics : List GoFunc)
   (regs : List (GoString × val × GoInterface)) : IProp GF
 
 /-- **The server at `addr` runs the method handler `mh` with the service `srv` and the chain
 `ics` for the method `name`, with the per-run resource `S`** (persistent; an axiomatized
 predicate, introduced only by `grpc.serve`). -/
-axiom grpcServes {GF : BundledGFunctors} [FfiSyntax] (addr name : GoString) (mh : val)
+axiom grpcServes {GF : BundledGFunctors} [GooseExts] (addr name : GoString) (mh : val)
   (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) : IProp GF
 
-axiom grpcServes_persistent {GF : BundledGFunctors} [FfiSyntax] (addr name : GoString) (mh : val)
+axiom grpcServes_persistent {GF : BundledGFunctors} [GooseExts] (addr name : GoString) (mh : val)
   (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) :
   Persistent (grpcServes addr name mh srv ics S)
 
@@ -405,10 +437,10 @@ grpc's `*ClientConn` dialed to a resolver of the addresses `addrs`; unit P3a, it
 `notes/decisions.md` D27: each attempt goes to one of them, grpc's balancer's choice). `ics` is the chain `grpc.NewClient`/`Dial` compose
 (`chainUnaryClientInterceptors`: `WithUnaryInterceptor`'s, then `WithChainUnaryInterceptor`'s, in
 order), `dopts` the `WithDefaultCallOptions`. -/
-axiom grpcConn {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (addrs : List GoString)
+axiom grpcConn {GF : BundledGFunctors} [GooseExts] (conn : Loc) (addrs : List GoString)
   (ics : List GoFunc) (dopts : List GoInterface) : IProp GF
 
-axiom grpcConn_persistent {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (addrs : List GoString)
+axiom grpcConn_persistent {GF : BundledGFunctors} [GooseExts] (conn : Loc) (addrs : List GoString)
     (ics : List GoFunc) (dopts : List GoInterface) :
   Persistent (grpcConn (GF := GF) conn addrs ics dopts)
 
@@ -417,14 +449,14 @@ attribute [instance] grpcConn_persistent
 /-- **`v` is grpc's call option `grpc.Peer(p)`** (an axiomatized property, introduced only by
 `grpc.Peer`'s spec, `Spec/google_golang_org/grpc/Peer.lean`): after the call, the attempt's peer
 is written to `*p`. -/
-axiom grpcPeerOpt [FfiSyntax] (v : GoInterface) (p : Loc) : Prop
+axiom grpcPeerOpt [GooseExts] (v : GoInterface) (p : Loc) : Prop
 
 /-- **`pv` is a peer grpc's transport writes** for a call (an axiomatized property: its addresses
 are `net`'s, its auth info grpc's credentials', so its `String()` returns). -/
-axiom grpcWrotePeer [FfiSyntax] (pv : google_golang_org.grpc.peer.Peer) : Prop
+axiom grpcWrotePeer [GooseExts] (pv : google_golang_org.grpc.peer.Peer) : Prop
 
 section reg
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

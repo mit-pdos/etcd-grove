@@ -24,53 +24,65 @@ end pkg_id
 
 namespace k8s_io.component_helpers.scheduling.corev1
 
-noncomputable def taintsFilterFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def taintsFilterFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-helpers/scheduling/corev1.taintsFilterFunc" [])
 
 attribute [irreducible] taintsFilterFunc.ty
 
-noncomputable def PodPriority [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PodPriority [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1.PodPriority"
 
-noncomputable def MatchNodeSelectorTerms [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MatchNodeSelectorTerms [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1.MatchNodeSelectorTerms"
 
-noncomputable def GetAvoidPodsFromNodeAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetAvoidPodsFromNodeAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1.GetAvoidPodsFromNodeAnnotations"
 
-noncomputable def TolerationsTolerateTaint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TolerationsTolerateTaint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1.TolerationsTolerateTaint"
 
-noncomputable def FindMatchingUntoleratedTaint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FindMatchingUntoleratedTaint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1.FindMatchingUntoleratedTaint"
 
-noncomputable def getFilteredTaints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getFilteredTaints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-helpers/scheduling/corev1.getFilteredTaints"
 
 /-- PodPriority returns priority of the given pod.
 
     go: helpers.go:28:6 -/
-noncomputable def PodPriority.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def PodPriority.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pod"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int32))) (App (Val (GoInstruction (GoZeroVal go.int32))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pod" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W32 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W32 0)))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.int32)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int32)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"Priority"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.int32)))) (Val UntypedNil))))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int32)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"Priority"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod")))))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))
+  (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.int32)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int32)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"Priority"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.int32)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int32)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"Priority"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res0")))))
 
 /-- MatchNodeSelectorTerms checks whether the node labels and fields match node selector terms in ORed;
     nil or empty term matches no objects.
 
     go: helpers.go:40:6 -/
-noncomputable def MatchNodeSelectorTerms.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MatchNodeSelectorTerms.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "node"
   (Lam "nodeSelector"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "nodeSelector" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeSelector.ty)))) (Var "nodeSelector"))
   (Let "node" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Var "node"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -80,26 +92,53 @@ noncomputable def MatchNodeSelectorTerms.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NewLazyErrorNodeSelector []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Var "node")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Val UntypedNil)))))
-  (App (Val doReturn)
-  (Pair (Val #false) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Var "node")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- GetAvoidPodsFromNodeAnnotations scans the list of annotations and
     returns the pods that needs to be avoided for this node from scheduling
 
     go: helpers.go:52:6 -/
-noncomputable def GetAvoidPodsFromNodeAnnotations.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def GetAvoidPodsFromNodeAnnotations.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "annotations"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "annotations" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "annotations"))
   (Let "avoidPods" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Var "avoidPods"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Var "avoidPods")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "annotations"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.string go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "annotations"))) (Val _root_.Perennial.k8s_io.api.core.v1.PreferAvoidPodsAnnotationKey)) (Val #(go!""))))) (Val #false)))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "annotations"))) (Val _root_.Perennial.k8s_io.api.core.v1.PreferAvoidPodsAnnotationKey)))
@@ -108,31 +147,45 @@ noncomputable def GetAvoidPodsFromNodeAnnotations.impl [FfiSyntax] [GoGlobalCont
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Var "avoidPods"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Var "avoidPods")) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #()))))))))
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.AvoidPods.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
 /-- TolerationsTolerateTaint checks if taint is tolerated by any of the tolerations.
 
     go: helpers.go:64:6 -/
-noncomputable def TolerationsTolerateTaint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def TolerationsTolerateTaint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "logger"
   (Lam "tolerations"
   (Lam "taint"
   (Lam "enableComparisonOperators"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "enableComparisonOperators" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "enableComparisonOperators"))
   (Let "taint" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "taint"))
   (Let "tolerations" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Toleration.ty)))) (Var "tolerations"))
   (Let "logger" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Var "logger"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Toleration.ty)))) (Var "tolerations"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange _root_.Perennial.k8s_io.api.core.v1.Toleration.ty)) (Var "$range"))
@@ -143,12 +196,17 @@ noncomputable def TolerationsTolerateTaint.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "taint"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.bool))) (Var "enableComparisonOperators"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Toleration.ty) go!"ToleratesTaint"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Toleration.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Toleration.ty)))) (Var "tolerations")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key"))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key"))))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))))
 
 /-- FindMatchingUntoleratedTaint checks if the given tolerations tolerates
     all the filtered taints, and returns the first taint without a toleration
@@ -156,13 +214,15 @@ noncomputable def TolerationsTolerateTaint.impl [FfiSyntax] [GoGlobalContext] : 
     Returns false if all taints are tolerated
 
     go: helpers.go:79:6 -/
-noncomputable def FindMatchingUntoleratedTaint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def FindMatchingUntoleratedTaint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "logger"
   (Lam "taints"
   (Lam "tolerations"
   (Lam "inclusionFilter"
   (Lam "enableComparisonOperators"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "enableComparisonOperators" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "enableComparisonOperators"))
   (Let "inclusionFilter" (App (Val (GoInstruction (GoAlloc taintsFilterFunc.ty))) (Var "inclusionFilter"))
   (Let "tolerations" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Toleration.ty)))) (Var "tolerations"))
@@ -174,8 +234,16 @@ noncomputable def FindMatchingUntoleratedTaint.impl [FfiSyntax] [GoGlobalContext
   (Let "filteredTaints" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (LiteralValue []))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (LiteralValue [])) (Val #false)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "filteredTaints"))
   (App (App (Val (slice.forRange _root_.Perennial.k8s_io.api.core.v1.Taint.ty)) (Var "$range"))
   (Lam "$key"
@@ -187,22 +255,32 @@ noncomputable def FindMatchingUntoleratedTaint.impl [FfiSyntax] [GoGlobalContext
   (Let "$a2" (Var "taint")
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.bool))) (Var "enableComparisonOperators"))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve TolerationsTolerateTaint []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (Var "taint"))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (Var "taint")) (Val #true)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (Var "$key")))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Pair (Var "filteredTaints") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Pair (Var "filteredTaints") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.Taint.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))))))
 
 /-- getFilteredTaints returns a list of taints satisfying the filter predicate
 
     go: helpers.go:90:6 -/
-noncomputable def getFilteredTaints.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def getFilteredTaints.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "taints"
   (Lam "inclusionFilter"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "inclusionFilter" (App (Val (GoInstruction (GoAlloc taintsFilterFunc.ty))) (Var "inclusionFilter"))
   (Let "taints" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "taints"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -210,8 +288,12 @@ noncomputable def getFilteredTaints.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "filteredTaints" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "filteredTaints"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "filteredTaints")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "taints"))
   (App (App (Val (slice.forRange _root_.Perennial.k8s_io.api.core.v1.Taint.ty)) (Var "$range"))
   (Lam "$key"
@@ -235,15 +317,20 @@ noncomputable def getFilteredTaints.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Pair (Var "filteredTaints") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals taintsFilterFunc.ty))) (Pair (App (Val (GoInstruction (GoLoad taintsFilterFunc.ty))) (Var "inclusionFilter")) (App (Val (GoInstruction (Convert go.untypedNil taintsFilterFunc.ty))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "taints"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "taints")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_helpers.scheduling.corev1 where
   pkgImportedPkgs := [pkg_id.encoding.json, pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.component_helpers.scheduling.corev1.nodeaffinity, pkg_id.k8s_io.klog.v2]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.component_helpers.scheduling.corev1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -259,17 +346,21 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.klog.v2.initialize') (Val #()))))))))
 
-abbrev taintsFilterFunc [FfiSyntax] : Type := GoFunc
+abbrev taintsFilterFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def taintsFilterFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def taintsFilterFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Taint.ty)] false [go.bool]))
 
-class taintsFilterFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class taintsFilterFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq taintsFilterFunc.ty taintsFilterFunc.underlying
+  method_set : go.MethodSetIs taintsFilterFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType taintsFilterFunc.ty) []
 
 attribute [instance] taintsFilterFunc.TypeAssumptions.underlying
+  taintsFilterFunc.TypeAssumptions.method_set
+  taintsFilterFunc.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   taintsFilterFunc_instance : taintsFilterFunc.TypeAssumptions
   PodPriority_unfold : FuncUnfold PodPriority [] PodPriority.impl
   MatchNodeSelectorTerms_unfold : FuncUnfold MatchNodeSelectorTerms [] MatchNodeSelectorTerms.impl

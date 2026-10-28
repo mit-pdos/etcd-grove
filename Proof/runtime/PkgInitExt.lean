@@ -34,6 +34,7 @@ public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.io
+public import Perennial.Code.iter
 public import Perennial.Code.log
 public import Perennial.Code.math
 public import Perennial.Code.os
@@ -57,7 +58,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 /-- The initializers of the packages whose `wp_initialize'` is not generated here. -/
-inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop where
+inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop where
   | bytes : ExternalInit pkg_id.bytes _root_.Perennial.bytes.initialize'
   | cmp : ExternalInit pkg_id.cmp _root_.Perennial.cmp.initialize'
   | context : ExternalInit pkg_id.context _root_.Perennial.context.initialize'
@@ -69,6 +70,7 @@ inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop
   | go_etcd_io_raft_v3_raftpb : ExternalInit pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
+  | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'
   | k8s_io_utils_third_party_forked_golang_btree : ExternalInit pkg_id.k8s_io.utils.third_party.forked.golang.btree _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.initialize'
   | log : ExternalInit pkg_id.log _root_.Perennial.log.initialize'
   | math : ExternalInit pkg_id.math _root_.Perennial.math.initialize'
@@ -82,7 +84,7 @@ inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop
   | time : ExternalInit pkg_id.time _root_.Perennial.time.initialize'
 
 section ax
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

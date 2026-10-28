@@ -20,103 +20,103 @@ end pkg_id
 
 namespace k8s_io.client_go.kubernetes.typed.policy.v1
 
-noncomputable def EvictionsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EvictionsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.EvictionsGetter" [])
 
 attribute [irreducible] EvictionsGetter.ty
 
-noncomputable def EvictionInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EvictionInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.EvictionInterface" [])
 
 attribute [irreducible] EvictionInterface.ty
 
-noncomputable def evictions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def evictions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.evictions" [])
 
 attribute [irreducible] evictions.ty
 
-noncomputable def EvictionExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EvictionExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.EvictionExpansion" [])
 
 attribute [irreducible] EvictionExpansion.ty
 
-noncomputable def PodDisruptionBudgetExpansion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDisruptionBudgetExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.PodDisruptionBudgetExpansion" [])
 
 attribute [irreducible] PodDisruptionBudgetExpansion.ty
 
-noncomputable def PodDisruptionBudgetsGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDisruptionBudgetsGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.PodDisruptionBudgetsGetter" [])
 
 attribute [irreducible] PodDisruptionBudgetsGetter.ty
 
-noncomputable def PodDisruptionBudgetInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PodDisruptionBudgetInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.PodDisruptionBudgetInterface" [])
 
 attribute [irreducible] PodDisruptionBudgetInterface.ty
 
-noncomputable def podDisruptionBudgets.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def podDisruptionBudgets.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.podDisruptionBudgets" [])
 
 attribute [irreducible] podDisruptionBudgets.ty
 
-noncomputable def PolicyV1Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PolicyV1Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.PolicyV1Interface" [])
 
 attribute [irreducible] PolicyV1Interface.ty
 
-noncomputable def PolicyV1Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PolicyV1Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.PolicyV1Client" [])
 
 attribute [irreducible] PolicyV1Client.ty
 
-axiom EvictionsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EvictionsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EvictionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom evictions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom evictions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EvictionExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetExpansion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodDisruptionBudgetExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetsGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodDisruptionBudgetsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PodDisruptionBudgetInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom podDisruptionBudgets.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom podDisruptionBudgets.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PolicyV1Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PolicyV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PolicyV1Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PolicyV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def newEvictions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newEvictions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/policy/v1.newEvictions"
 
-noncomputable def newPodDisruptionBudgets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newPodDisruptionBudgets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/policy/v1.newPodDisruptionBudgets"
 
-noncomputable def NewForConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/policy/v1.NewForConfig"
 
-noncomputable def NewForConfigAndClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigAndClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/policy/v1.NewForConfigAndClient"
 
-noncomputable def NewForConfigOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewForConfigOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/policy/v1.NewForConfigOrDie"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/policy/v1.New"
 
-noncomputable def setConfigDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/policy/v1.setConfigDefaults"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.policy.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.kubernetes.typed.policy.v1)) (Lam BAnon
   (App (Val exceptionDo)
@@ -127,133 +127,173 @@ axiom EvictionsGetter : Type
 axiom EvictionsGetter.zero_val : ZeroVal EvictionsGetter
 attribute [instance] EvictionsGetter.zero_val
 
-class EvictionsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EvictionsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EvictionsGetter.underlying EvictionsGetter
   underlying : go.UnderlyingDirectedEq EvictionsGetter.ty EvictionsGetter.underlying
   isUnderlying : go.IsUnderlying EvictionsGetter.underlying EvictionsGetter.underlying
+  method_set : go.MethodSetIs EvictionsGetter.ty [(go!"Evictions", (some (go.signature.Signature [go.string] false [EvictionInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EvictionsGetter.ty) []
 
 attribute [instance] EvictionsGetter.TypeAssumptions.type_repr
   EvictionsGetter.TypeAssumptions.underlying
   EvictionsGetter.TypeAssumptions.isUnderlying
+  EvictionsGetter.TypeAssumptions.method_set
+  EvictionsGetter.TypeAssumptions.ptr_method_set
 
 axiom EvictionInterface : Type
 axiom EvictionInterface.zero_val : ZeroVal EvictionInterface
 attribute [instance] EvictionInterface.zero_val
 
-class EvictionInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EvictionInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EvictionInterface.underlying EvictionInterface
   underlying : go.UnderlyingDirectedEq EvictionInterface.ty EvictionInterface.underlying
   isUnderlying : go.IsUnderlying EvictionInterface.underlying EvictionInterface.underlying
+  method_set : go.MethodSetIs EvictionInterface.ty [(go!"Evict", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EvictionInterface.ty) []
 
 attribute [instance] EvictionInterface.TypeAssumptions.type_repr
   EvictionInterface.TypeAssumptions.underlying
   EvictionInterface.TypeAssumptions.isUnderlying
+  EvictionInterface.TypeAssumptions.method_set
+  EvictionInterface.TypeAssumptions.ptr_method_set
 
 axiom evictions : Type
 axiom evictions.zero_val : ZeroVal evictions
 attribute [instance] evictions.zero_val
 
-class evictions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class evictions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying evictions.underlying evictions
   underlying : go.UnderlyingDirectedEq evictions.ty evictions.underlying
   isUnderlying : go.IsUnderlying evictions.underlying evictions.underlying
+  method_set : go.MethodSetIs evictions.ty [(go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType evictions.ty) [(go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Evict", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" []))] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] evictions.TypeAssumptions.type_repr
   evictions.TypeAssumptions.underlying
   evictions.TypeAssumptions.isUnderlying
+  evictions.TypeAssumptions.method_set
+  evictions.TypeAssumptions.ptr_method_set
 
 axiom EvictionExpansion : Type
 axiom EvictionExpansion.zero_val : ZeroVal EvictionExpansion
 attribute [instance] EvictionExpansion.zero_val
 
-class EvictionExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EvictionExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EvictionExpansion.underlying EvictionExpansion
   underlying : go.UnderlyingDirectedEq EvictionExpansion.ty EvictionExpansion.underlying
   isUnderlying : go.IsUnderlying EvictionExpansion.underlying EvictionExpansion.underlying
+  method_set : go.MethodSetIs EvictionExpansion.ty [(go!"Evict", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EvictionExpansion.ty) []
 
 attribute [instance] EvictionExpansion.TypeAssumptions.type_repr
   EvictionExpansion.TypeAssumptions.underlying
   EvictionExpansion.TypeAssumptions.isUnderlying
+  EvictionExpansion.TypeAssumptions.method_set
+  EvictionExpansion.TypeAssumptions.ptr_method_set
 
 axiom PodDisruptionBudgetExpansion : Type
 axiom PodDisruptionBudgetExpansion.zero_val : ZeroVal PodDisruptionBudgetExpansion
 attribute [instance] PodDisruptionBudgetExpansion.zero_val
 
-class PodDisruptionBudgetExpansion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDisruptionBudgetExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDisruptionBudgetExpansion.underlying PodDisruptionBudgetExpansion
   underlying : go.UnderlyingDirectedEq PodDisruptionBudgetExpansion.ty PodDisruptionBudgetExpansion.underlying
   isUnderlying : go.IsUnderlying PodDisruptionBudgetExpansion.underlying PodDisruptionBudgetExpansion.underlying
+  method_set : go.MethodSetIs PodDisruptionBudgetExpansion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDisruptionBudgetExpansion.ty) []
 
 attribute [instance] PodDisruptionBudgetExpansion.TypeAssumptions.type_repr
   PodDisruptionBudgetExpansion.TypeAssumptions.underlying
   PodDisruptionBudgetExpansion.TypeAssumptions.isUnderlying
+  PodDisruptionBudgetExpansion.TypeAssumptions.method_set
+  PodDisruptionBudgetExpansion.TypeAssumptions.ptr_method_set
 
 axiom PodDisruptionBudgetsGetter : Type
 axiom PodDisruptionBudgetsGetter.zero_val : ZeroVal PodDisruptionBudgetsGetter
 attribute [instance] PodDisruptionBudgetsGetter.zero_val
 
-class PodDisruptionBudgetsGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDisruptionBudgetsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDisruptionBudgetsGetter.underlying PodDisruptionBudgetsGetter
   underlying : go.UnderlyingDirectedEq PodDisruptionBudgetsGetter.ty PodDisruptionBudgetsGetter.underlying
   isUnderlying : go.IsUnderlying PodDisruptionBudgetsGetter.underlying PodDisruptionBudgetsGetter.underlying
+  method_set : go.MethodSetIs PodDisruptionBudgetsGetter.ty [(go!"PodDisruptionBudgets", (some (go.signature.Signature [go.string] false [PodDisruptionBudgetInterface.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDisruptionBudgetsGetter.ty) []
 
 attribute [instance] PodDisruptionBudgetsGetter.TypeAssumptions.type_repr
   PodDisruptionBudgetsGetter.TypeAssumptions.underlying
   PodDisruptionBudgetsGetter.TypeAssumptions.isUnderlying
+  PodDisruptionBudgetsGetter.TypeAssumptions.method_set
+  PodDisruptionBudgetsGetter.TypeAssumptions.ptr_method_set
 
 axiom PodDisruptionBudgetInterface : Type
 axiom PodDisruptionBudgetInterface.zero_val : ZeroVal PodDisruptionBudgetInterface
 attribute [instance] PodDisruptionBudgetInterface.zero_val
 
-class PodDisruptionBudgetInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PodDisruptionBudgetInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodDisruptionBudgetInterface.underlying PodDisruptionBudgetInterface
   underlying : go.UnderlyingDirectedEq PodDisruptionBudgetInterface.ty PodDisruptionBudgetInterface.underlying
   isUnderlying : go.IsUnderlying PodDisruptionBudgetInterface.underlying PodDisruptionBudgetInterface.underlying
+  method_set : go.MethodSetIs PodDisruptionBudgetInterface.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/policy/v1.PodDisruptionBudgetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/policy/v1.PodDisruptionBudgetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudgetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDisruptionBudgetInterface.ty) []
 
 attribute [instance] PodDisruptionBudgetInterface.TypeAssumptions.type_repr
   PodDisruptionBudgetInterface.TypeAssumptions.underlying
   PodDisruptionBudgetInterface.TypeAssumptions.isUnderlying
+  PodDisruptionBudgetInterface.TypeAssumptions.method_set
+  PodDisruptionBudgetInterface.TypeAssumptions.ptr_method_set
 
 axiom podDisruptionBudgets : Type
 axiom podDisruptionBudgets.zero_val : ZeroVal podDisruptionBudgets
 attribute [instance] podDisruptionBudgets.zero_val
 
-class podDisruptionBudgets.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class podDisruptionBudgets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying podDisruptionBudgets.underlying podDisruptionBudgets
   underlying : go.UnderlyingDirectedEq podDisruptionBudgets.ty podDisruptionBudgets.underlying
   isUnderlying : go.IsUnderlying podDisruptionBudgets.underlying podDisruptionBudgets.underlying
+  method_set : go.MethodSetIs podDisruptionBudgets.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/policy/v1.PodDisruptionBudgetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/policy/v1.PodDisruptionBudgetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudgetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType podDisruptionBudgets.ty) [(go!"Apply", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/policy/v1.PodDisruptionBudgetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/policy/v1.PodDisruptionBudgetApplyConfiguration" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ApplyOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Create", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIResult" []), go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"GetClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudgetList" [])), go.error]))), (go!"Patch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/types.PatchType" []), (go.GoType.SliceType go.byte), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.PodDisruptionBudget" [])), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] podDisruptionBudgets.TypeAssumptions.type_repr
   podDisruptionBudgets.TypeAssumptions.underlying
   podDisruptionBudgets.TypeAssumptions.isUnderlying
+  podDisruptionBudgets.TypeAssumptions.method_set
+  podDisruptionBudgets.TypeAssumptions.ptr_method_set
 
 axiom PolicyV1Interface : Type
 axiom PolicyV1Interface.zero_val : ZeroVal PolicyV1Interface
 attribute [instance] PolicyV1Interface.zero_val
 
-class PolicyV1Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PolicyV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PolicyV1Interface.underlying PolicyV1Interface
   underlying : go.UnderlyingDirectedEq PolicyV1Interface.ty PolicyV1Interface.underlying
   isUnderlying : go.IsUnderlying PolicyV1Interface.underlying PolicyV1Interface.underlying
+  method_set : go.MethodSetIs PolicyV1Interface.ty [(go!"Evictions", (some (go.signature.Signature [go.string] false [EvictionInterface.ty]))), (go!"PodDisruptionBudgets", (some (go.signature.Signature [go.string] false [PodDisruptionBudgetInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PolicyV1Interface.ty) []
 
 attribute [instance] PolicyV1Interface.TypeAssumptions.type_repr
   PolicyV1Interface.TypeAssumptions.underlying
   PolicyV1Interface.TypeAssumptions.isUnderlying
+  PolicyV1Interface.TypeAssumptions.method_set
+  PolicyV1Interface.TypeAssumptions.ptr_method_set
 
 axiom PolicyV1Client : Type
 axiom PolicyV1Client.zero_val : ZeroVal PolicyV1Client
 attribute [instance] PolicyV1Client.zero_val
 
-class PolicyV1Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PolicyV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PolicyV1Client.underlying PolicyV1Client
   underlying : go.UnderlyingDirectedEq PolicyV1Client.ty PolicyV1Client.underlying
   isUnderlying : go.IsUnderlying PolicyV1Client.underlying PolicyV1Client.underlying
+  method_set : go.MethodSetIs PolicyV1Client.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PolicyV1Client.ty) [(go!"Evictions", (some (go.signature.Signature [go.string] false [EvictionInterface.ty]))), (go!"PodDisruptionBudgets", (some (go.signature.Signature [go.string] false [PodDisruptionBudgetInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])])))]
 
 attribute [instance] PolicyV1Client.TypeAssumptions.type_repr
   PolicyV1Client.TypeAssumptions.underlying
   PolicyV1Client.TypeAssumptions.isUnderlying
+  PolicyV1Client.TypeAssumptions.method_set
+  PolicyV1Client.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EvictionsGetter_instance : EvictionsGetter.TypeAssumptions
   EvictionInterface_instance : EvictionInterface.TypeAssumptions
   evictions_instance : evictions.TypeAssumptions

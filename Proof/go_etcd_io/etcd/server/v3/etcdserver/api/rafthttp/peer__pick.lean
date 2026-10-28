@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -53,6 +53,7 @@ theorem rafthttp.peer.pick.wp_proof
   ihave #Hph' := Hph
   iunfold pipeHandleOk at Hph'
   icases Hph' with ⟨-, %ps', %fs', %r', %id', %γd', %mc, %γm, -, -, -, -, -, #Hmc, #Hbag⟩
+  simp only [rafthttp.pipelineMsg, rafthttp.streamMsg, rafthttp.streamAppV2]
   wp_auto
   wp_apply hIsSnap ml st $$ []
   · iframe #

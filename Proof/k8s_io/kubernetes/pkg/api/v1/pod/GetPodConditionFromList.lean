@@ -18,7 +18,7 @@ namespace dsctl
 open Iris Iris.BI Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -49,7 +49,7 @@ theorem GetPodConditionFromList.wp_proof : GetPodConditionFromList.spec (GF := G
         ∀ (k : Nat) (c : kd.core.PodCondition), k < sint.nat j → cs[k]? = some c → c.Type' ≠ t⌝ ∗
       "Hsl" ∷ s ↦*{dq} vs ∗ "Hl" ∷ ([∗list] x;e ∈ vs;cs, kd.core.PodCondition.own x dq e) ∗
       "conditionType" ∷ conditionType_ptr ↦ t ∗ "conditions" ∷ conditions_ptr ↦ s : IProp GF)
-    $$ [-HΦ]
+    $$ [-HΦ «$res0» «$res1»]
   · iexists W64 0, _
     iframe
     ipureintro

@@ -22,7 +22,7 @@ namespace dsctl
 open Iris Iris.BI Iris.ProofMode apimodel
 
 /-- **A pod create's object is a pod, written.** -/
-theorem CreateOut_ok_pod [FfiSyntax] {cfgFail admin : Bool} {ns : GoString} {d : kd.core.Pod}
+theorem CreateOut_ok_pod [GooseExts] {cfgFail admin : Bool} {ns : GoString} {d : kd.core.Pod}
     {σ σ' : St} {w : Bool} {o : Obj}
     (h : CreateOut cfgFail admin .pods ns (.pod d) σ (.ok (w, o)) σ') :
     w = true ∧ ∃ dp, o = .pod dp := by
@@ -39,7 +39,7 @@ theorem CreateOut_ok_pod [FfiSyntax] {cfgFail admin : Bool} {ns : GoString} {d :
     | cr _ => rw [ho] at hres; cases hres
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

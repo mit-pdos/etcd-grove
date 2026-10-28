@@ -24,7 +24,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -57,6 +57,9 @@ theorem txn.txn.wp_proof
   · iunfold respsSkel at Hresps
     icases Hresps with ⟨%sl, %ps, #Hsl, -⟩
     iexists sl; iexact Hsl
+  ihave Hown : (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L (mvcc.pendItems ilog [])) $$ [Hown]
+  · rw [show mvcc.pendItems ilog [] = mvcc.leaseItemsOf (mvcc.stateAfter ilog) from rfl]
+    iexact Hown
   wp_apply (hExec trace ctx cd nd lg s γ (GoInterface.ok twi) ro ilog [] rt t pl [] resp skip L)
     $$ [$Htw $Hctx $Hct $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown] as %n2 %err Hres
   · ipureintro

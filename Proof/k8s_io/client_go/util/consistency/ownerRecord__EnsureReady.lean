@@ -22,7 +22,7 @@ namespace consistency
 open Iris Iris.BI Iris.ProofMode k8s_io.client_go.util.consistency resourceversion
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -92,11 +92,11 @@ theorem ownerRecord.EnsureReady.wp_proof
       "Htok" ∷ ensTok γ s.owner ⟨r, V', false⟩ ∗ "HAU" ∷ auEns γ S G s.owner K ∗
       "Hlocked" ∷ sync.ownMutex (structFieldRef ownerRecord go!"versionsLock" r) ∗
       "Hg" ∷ ghostVar s.γv (1 : Qp).half V' ∗ "c" ∷ c_ptr ↦ c ∗
-      "defer" ∷ defer ↦ dv ∗
+      "defer" ∷ defer ↦ dv ∗ "res0" ∷ «$res0_ptr» ↦ GoInterface.nil ∗
       "#Hready" ∷ □ (∀ k wrv, ⌜k ∈ keys.take i.toNat ∧ V' !! k = some wrv⌝ -∗
         readyOne S G k wrv))) $$ Hvmap
   iintro %keys %Hkeys
-  isplitl [gr wroteRV Htok HAU Hlocked Hg c defer]
+  isplitl [gr wroteRV Htok HAU Hlocked Hg c defer «$res0»]
   · iexists _, _; iframe
     iintro !> %k %wrv ⟨%hk, -⟩
     simp at hk

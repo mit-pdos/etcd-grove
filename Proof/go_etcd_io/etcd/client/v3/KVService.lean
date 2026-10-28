@@ -132,7 +132,7 @@ theorem txnWireOf_plain (t : TxnModel) (h : TxnModel.plain t) : TxnModel.plain (
     exact opWire_plain op0 (h.2 op0 h0)
 
 section reply
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -166,10 +166,10 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
       (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
       (if txn.txnSerializable t then iprop(True) else □ Q (kvStateOf log)))
   else
-    iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
+    iprop(∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
         (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
-      ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq' ∧ rq'.txn = some t' ∧
-        (irrNoZeroEnd (irrTxn t) → t' = t) ∧
+      ⌜tw.toModel = t ∧ irrWireOf (apply.withHeader (irrTxn tw) hm) rq' ∧ rq'.txn = some t' ∧
+        (irrNoZeroEnd (irrTxn tw) → t' = t) ∧
         apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧
         m.hdr.revision = W64 (mvcc.writeRev x.log
           (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int) ∧
@@ -211,7 +211,7 @@ def etcdTxnSpec (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
 end reply
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -393,7 +393,7 @@ end defs
 
 /-- **A member as its client sees it**: its client address and what etcd's specs it registers
 there are at (`etcd_kv_started`'s): its apply environment, read names, cluster and member ids. -/
-structure SrvAt (GF : BundledGFunctors) [FfiSyntax] where
+structure SrvAt (GF : BundledGFunctors) [GooseExts] where
   addr : GoString
   E : apply.AEnv GF
   γr : ReadNames
@@ -401,7 +401,7 @@ structure SrvAt (GF : BundledGFunctors) [FfiSyntax] where
   mid : w64
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -510,7 +510,7 @@ theorem srvsAt_rpcs {Req Rep : ProtoMsg GF} (addr : List GoString) (E : apply.AE
 end defs
 
 section members
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -941,7 +941,7 @@ log it met with the write's changes committed (as `ServerKVPut.lean`'s `put_appl
 that log, so a write's reply gives that it is a well-formed small log's, too. -/
 
 section applied
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 
 /-- An applied outcome without the quota's `ErrNoSpace` passes through every layer of a chain:
@@ -1026,9 +1026,9 @@ theorem kvs_delete_applied_log (op op' : OpFull) (hm : apply.HeaderModel) (rq' :
   rfl
 
 /-- **A transaction's log**: its run's changes committed. -/
-theorem kvs_txn_applied_log (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
+theorem kvs_txn_applied_log (tw : txn.TxnModelW) (t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
     (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool)
-    (hw : irrWireOf (apply.withHeader (irrTxn t) hm) rq') (ht : rq'.txn = some t')
+    (hw : irrWireOf (apply.withHeader (irrTxn tw) hm) rq') (ht : rq'.txn = some t')
     (h : apply.applyStep rq' true x x' (.dispatched (.applied l false) skip)) :
     x'.log = mvcc.commitLog x.log
       (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 := by
@@ -1086,7 +1086,7 @@ server (certificates, the revision's token, the applied index's witness) is the 
 which the results about the server's own model use (`ServerKV*.lean`). -/
 
 section abstract
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1424,11 +1424,12 @@ theorem irrNoZeroEnd_delete (o : OpFull) (hz : o.base.rangeEnd ≠ [W8 0]) :
   exact hz
 
 /-- A transaction with no range end `[0]` is read as itself. -/
-theorem irrNoZeroEnd_txn (t : TxnModel) (hz : txnNoZeroEnd t) : irrNoZeroEnd (irrTxn t) := by
+theorem irrNoZeroEnd_txn (tw : txn.TxnModelW) (t : TxnModel) (htw : tw.toModel = t)
+    (hz : txnNoZeroEnd t) : irrNoZeroEnd (irrTxn tw) := by
   refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
     fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
-  simp only [irrTxn, Option.some.injEq] at h
-  subst h
+  simp only [irrTxn_txn, Option.some.injEq] at h
+  subst h htw
   exact hz
 
 open Iris.ProofMode in
@@ -1471,6 +1472,8 @@ theorem putAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
   · -- (D48) the state after the put: the log after it
     have hlog := kvs_put_applied_log o hm y y' l skip hst
     simp only [kvOpStep]
+    split
+    · exact kvLogOk_of_step hst hlen Hl
     split
     · exact kvLogOk_of_step hst hlen Hl
     · rw [kvStateOf_kvs]
@@ -1533,7 +1536,7 @@ theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
   have hop : op' = o := Hz (irrNoZeroEnd_delete o hz)
   subst hop
   have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
-  have hs := kvStateOf_kvs y.log
+  have hs := kvStateOf_kvs y.log (lt := [])
   iexists kvStateOf y.log
   iframe HQ
   ipureintro
@@ -1562,15 +1565,15 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
   cases hro : txn.txnReadonly t
   · -- writing
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, -, HQ⟩
+    icases H with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, -, HQ⟩
     ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
-    obtain ⟨hw, ht', Hz, hst, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
+    obtain ⟨htw, hw, ht', Hz, hst, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
     have hlog := kvs_txn_applied_log _ _ hm rq' y y' l skip hw ht' hst
-    have ht : t' = t := Hz (irrNoZeroEnd_txn t (hz hro))
+    have ht : t' = t := Hz (irrNoZeroEnd_txn tw t htw (hz hro))
     subst ht hsk
     have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
     have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := kvStateOf_rev_succ _ hlen
-    have hs := kvStateOf_kvs y.log
+    have hs := kvStateOf_kvs y.log (lt := [])
     iexists kvStateOf y.log
     iframe HQ
     ipureintro
@@ -1587,7 +1590,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
     ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
     obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
     have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
-    have hs := kvStateOf_kvs log
+    have hs := kvStateOf_kvs log (lt := [])
     iexists kvStateOf log
     iframe HQ
     ipureintro
@@ -1788,7 +1791,7 @@ theorem txnObjAt_conn (tp api : Loc) (addr addr' : List GoString) (ci : GoInterf
 end abstract
 
 section start_alloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

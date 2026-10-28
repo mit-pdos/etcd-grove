@@ -20,7 +20,7 @@ namespace recipes
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -39,6 +39,7 @@ theorem WaitEvents.wp_proof (wp_WithRev : EtcdGrove.WithRev.spec (GF := GF) (hG 
   ihave #Hcl' := Hcl
   iunfold isEtcdRecipesClient at Hcl'
   icases Hcl' with ⟨%kv, %w, -, #HWf, -, #HW⟩
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

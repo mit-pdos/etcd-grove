@@ -33,18 +33,17 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 set_option hygiene false in
 /-- The loop continues past the frame `(w, bs)`, the tokens moved past it (`Hrd`). -/
 local macro "dl_next" : tactic => `(tactic| (
   wp_for_post
-  iframe HΦ
+  iframe HΦ «$res0»
   iexists _, fr ++ [(w, bs)], s'
   simp only [named, chainBytes_append, chainBytes_cons, chainBytes_nil, List.append_nil,
     List.length_append, List.length_singleton]

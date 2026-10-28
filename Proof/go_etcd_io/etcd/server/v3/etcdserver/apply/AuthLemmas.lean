@@ -26,7 +26,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -96,7 +96,7 @@ def apply.txnPermT (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
       txn.txnRequestIs rt t -∗
-    (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
+    (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
         ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
         (∀ _ : err = GoInterface.nil, apply.txnClass on info t) -∗ Φ #err) -∗
     WP (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission))
@@ -119,7 +119,7 @@ theorem apply.checkTxnReqs_of
       reqs ↦*□ ps ∗ txn.requestOpsIs ps ops ∗ apply.txnPermT st le γ P f RD on RW ai info dq }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.opsClass on info ops) }} := by
   intro st le γ P f RD on RW ai info dq reqs ps ops
@@ -191,7 +191,7 @@ theorem apply.checkTxnReqs_of
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
     · -- a put
       ihave #Hr' := Hr
       iunfold txn.putRequestIs at Hr'
@@ -220,7 +220,7 @@ theorem apply.checkTxnReqs_of
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
     · -- a delete
       iunfold txn.deleteRangeRequestIs at Hr
       icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, %Ho, %Hkb⟩
@@ -256,7 +256,7 @@ theorem apply.checkTxnReqs_of
         | ok e' =>
           wp_auto
           wp_for_post
-          iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+          iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
       wp_auto
       wp_apply HRange $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hai Hrd] as %err ⟨Hai, -, -, Hrd, #HeI4, %Hof4, #Hv4⟩
       · iframe; iframe #; try (ipureintro; exact Hkb)
@@ -264,7 +264,7 @@ theorem apply.checkTxnReqs_of
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
       | nil =>
       wp_auto
       wp_apply HDel $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hai Hrd] as %err ⟨Hai, -, -, Hrd, #HeI5, %Hof5, #Hv5⟩
@@ -297,7 +297,7 @@ theorem apply.checkTxnReqs_of
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
     · -- a nested transaction
       ihave #Hr' := Hr
       iunfold txn.txnRequestIs at Hr'
@@ -328,8 +328,8 @@ theorem apply.checkTxnReqs_of
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
-  iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl))
+        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+  iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl))
   iintro %_
   ihave %Hpl := txn.requestOpsIs_length ps ops $$ Hops
   have hle : ops.length ≤ sint.nat n := by unfold sint.nat at *; word
@@ -409,16 +409,16 @@ theorem apply.checkTxnPermission_loeb
     | ok e' =>
       wp_auto
       wp_for_post
-      iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+      iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
   wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on RW ai info dq ssl sps t.thenOps) $$ [$Hst $Hle $Hai $Hrd $Hssl $Hss $IHT] as %err ⟨Hai, Hrd, #HeI8, %Hof8, #Hcls8⟩
   cases err with
   | ok e' =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+    iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
   | nil =>
   wp_auto
   wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on RW ai info dq fsl fps t.elseOps) $$ [$Hst $Hle $Hai $Hrd $Hfsl $Hfs $IHT] as %err ⟨Hai, Hrd, #HeI9, %Hof9, #Hcls9⟩
-  iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl))
+  iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl))
   iintro %Herr
   try subst Herr
   unfold apply.txnClass

@@ -27,7 +27,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The mode-`on` model is monotone in the raft log** (`kvRaftOf_prefix`'s counterpart). -/
 theorem kvRaftOfOn_prefix (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
@@ -40,7 +40,7 @@ theorem kvRaftOfOn_prefix (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -114,10 +114,13 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
       ⌜l.length ≤ (kvModelOn γk st₀ L).length⌝) $$ [HL Hcase]
   · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
     · imodintro; iframe HL; ipureintro; unfold kvModelOn; simp only at hlen; omega
-    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, -, %Hp⟩
+    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, %Hp⟩
+      ihave %HAi := srvRLogLb_idx γ A $$ HA
       imodintro; iframe HL; ipureintro
-      have := (kvRaftOfOn_prefix γk.c0 γk.ch0 (st₀, γk.log0) A L Hp).length_le
-      unfold kvModelOn at hA ⊢; rw [← hA]; exact this
+      obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γ γk.c0 γk.ch0 (st₀, γk.log0) A L Hok'.2.2.2.1
+        HAi Hp.1 Hp.2.1 Hp.2.2
+      have := (kvRaftOfOn_prefix γk.c0 γk.ch0 (st₀, γk.log0) L' L hL').length_le
+      unfold kvModelOn at hA ⊢; rw [← hA, hAL]; exact this
   imod Hp with ⟨HL, %Hle⟩
   imod Hclose $$ [HL Hσ'] with -
   · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'
@@ -134,7 +137,7 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
 end lemmas
 
 section commit
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -145,17 +148,16 @@ state after `L`), and its index the next. -/
 theorem kvInvOn_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (L : List EntryModel) (e : EntryModel)
     (hok : plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
-      uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+      uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [])
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e]))
     (hc : commitOkOn γk.c0 γk.ch0 (st₀, γk.log0) L e) :
     plainLogOn (L ++ [e]) ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (L ++ [e]) ∧
-      srvIdxOkW γ.ai0 (L ++ [e]) ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + (L ++ [e]).length ∧
+      srvIdxOkW γ.ai0 (L ++ [e]) ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] := by
   obtain ⟨hp, hd, -, hc0, hch, h0⟩ := hok
   obtain ⟨hp', hd'⟩ := logOn_snoc γk.c0 γk.ch0 (st₀, γk.log0) L e hp hd hc
-  refine ⟨hp', hd', hidx', ?_, hch, h0⟩
-  simp only [List.length_append, List.length_singleton]; push_cast; omega
+  exact ⟨hp', hd', hidx', hc0, hch, h0⟩
 
 /-- **A granted plain write's commit fires its client's update** (the ghost step at the commit, in
 the mode `on`): the invariant's half of the state's ghost variable at the committed log `L`'s model
@@ -167,7 +169,7 @@ theorem kvInvOn_commit_granted (γk : KVNames) (st₀ : auth.AuthState) (L : Lis
     (h0 : γk.log0 ≠ []) (ht : e.typ = W32 0) (hd : e.data ≠ [])
     (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
     (hna : apply.needAdminPermission rq = false)
-    (hg : kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq) :
+    (hg : kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq) (hpc : plainCover rq) :
     ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) -∗ etcdKV γk σ ==∗
       ⌜σ = kvStateOf (kvModelOn γk st₀ L)⌝ ∗
       ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ (L ++ [e]))) ∗
@@ -175,7 +177,7 @@ theorem kvInvOn_commit_granted (γk : KVNames) (st₀ : auth.AuthState) (L : Lis
   iintro Hσ Hc
   iunfold etcdKV at Hc
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
-  have hst := kvModelOn_snoc_granted γk st₀ L e rq hch h0 ht hd hdec hidx hna hg
+  have hst := kvModelOn_snoc_granted γk st₀ L e rq hch h0 ht hd hdec hidx hna hg hpc
   imod ghostVar_update_halves (kvReqStep rq σ) γk.st _ _ $$ Hσ Hc with ⟨Hσ, Hc⟩
   imodintro
   isplitr

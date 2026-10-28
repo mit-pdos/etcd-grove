@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -29,7 +29,8 @@ theorem traceutil.newTrace.wp_proof : traceutil.newTrace.spec (GF := GF) (hG := 
   wp_auto
   wp_apply time.wp_Now as %now -
   (try wp_auto)
-  wp_alloc t as Ht
+  irename «$r0» => Ht
+  generalize «$r0_ptr» = t at *
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Ht
   (try wp_auto)
   iapply HΦ

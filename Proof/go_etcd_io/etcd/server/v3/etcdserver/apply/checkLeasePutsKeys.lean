@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -39,7 +39,7 @@ theorem apply.checkLeasePutsKeys.wp_proof :
   | nil =>
     wp_auto
     iapply HΦ; iframe Hai Hrd; isplitl []
-    · iexact HeI1
+    · iapply authApplyErrIs_nil
     · ipureintro; intro _; rfl
   | ok e =>
   wp_auto
@@ -88,7 +88,7 @@ theorem apply.checkLeasePutsKeys.wp_proof :
       · first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
       · ipureintro; intro h; cases Hoff h
   iapply HΦ; iframe Hai Hrd; isplitl []
-  · first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+  · first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply authApplyErrIs_nil
   · ipureintro; intro h; cases Hoff h
 
 end proof

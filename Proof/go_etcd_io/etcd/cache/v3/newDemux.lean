@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,6 +31,7 @@ theorem newDemux.wp_proof
     newDemux.spec (GF := GF) (hG := hG) := by
   intro C h ri
   wp_start as %Hh
+  iapply wp_fupd
   wp_auto
   wp_apply (wp_map_make1 (K := Loc) (V := w64) (go.GoType.PointerType watcher.ty) go.int64)
     as %a Ha
@@ -72,7 +73,8 @@ theorem newDemux.wp_proof
   iNamed Hr
   wp_auto
   wp_apply wp_newNotifier as %n %γn ⟨#Hlb0, Hnh⟩
-  wp_alloc d as Hd
+  irename «$r0» => Hd
+  generalize «$r0_ptr» = d at *
   iStructNamed Hd
   ipersist resyncInterval
   ipersist resynced
@@ -116,7 +118,7 @@ theorem newDemux.wp_proof
     ipureintro
     refine ⟨Hinv0, ⟨fun w => by simp, fun w v hv => by simp at hv, fun w v hv => by simp at hv⟩,
       RegsStart.unmapped (fun w ri hr => by simp at hr) (fun w v hv => by simp at hv)⟩
-  wp_auto
+  imodintro
   obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
     ⟨_, (Nat.succ_pred_eq_of_pos (by have := sync.actualMaxReaders_pos; omega)).symm⟩
   rw [hm, List.replicate_succ, Nat.add_sub_cancel]

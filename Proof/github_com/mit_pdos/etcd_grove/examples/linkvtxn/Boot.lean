@@ -28,18 +28,18 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 namespace linkv
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A bootstrap log's entries change no KV state: they are conf changes. -/
 theorem kvRaftOf_boot (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log)
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
-    (hb : BootLogOk ccOk ps bootLog) : kvRaftOf c₀ ch log₀ (bootEntries bootLog) = log₀ := by
+    (hb : srvBootLogOk ps bootLog) : kvRaftOf c₀ ch log₀ (bootEntries bootLog) = log₀ := by
   obtain ⟨-, -, he⟩ := hb
-  unfold kvRaftOf bootEntries
+  unfold kvRaftOf kvRaftSt bootEntries
   rw [List.foldl_map]
   suffices h : ∀ (l : List EntryM), (∀ e ∈ l, e.Type' = W32 1) →
-      l.foldl (fun log e => kvEntry c₀ ch log (EntryModel.ofM e)) log₀ = log₀ by
-    apply h
+      l.foldl (fun s e => kvEntrySt c₀ ch s (EntryModel.ofM e)) (log₀, []) = (log₀, []) by
+    rw [h]
     intro e hm
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hm
     exact (he k _ (List.getElem?_eq_getElem hk)).2.2.1
@@ -50,8 +50,8 @@ theorem kvRaftOf_boot (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log)
     intro hl
     rw [List.foldl_cons]
     have ht : e.Type' = W32 1 := hl e (List.mem_cons_self ..)
-    have : kvEntry c₀ ch log₀ (EntryModel.ofM e) = log₀ := by
-      unfold kvEntry
+    have : kvEntrySt c₀ ch (log₀, []) (EntryModel.ofM e) = (log₀, []) := by
+      unfold kvEntrySt kvEntry kvTable
       simp only [EntryModel.ofM, ht]
       rfl
     rw [this]
@@ -64,7 +64,7 @@ end linkv
 namespace linkvtxn
 
 section alloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -73,12 +73,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 /-- **`linkvInv_alloc` at a new member's start state** (see the file header). -/
 theorem linkvInv_alloc_boot (γk : KVNames) (hlog : γk.log0 = [[], []])
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
-    (hb : BootLogOk ccOk ps bootLog) (Em : CoPset) :
-    etcdKV (GF := GF) γk (kvStateOf (kvModel γk (bootEntries bootLog))) ⊢
+    (hb : srvBootLogOk ps bootLog) (Em : CoPset) :
+    etcdKV (GF := GF) γk (kvModelSt γk (bootEntries bootLog)) ⊢
       |={Em}=> ∃ γ : LinkvNames, linkvInv γ γk ∗ linkvState γ (linkv.pInit TS) := by
   have h : kvModel γk (bootEntries bootLog) = [[], []] := by
     unfold kvModel
     rw [linkv.kvRaftOf_boot _ _ _ ccOk ps bootLog hb, hlog]
+  unfold kvModelSt
   exact linkvInv_alloc γk _ (goodKV_empty _ (by rw [h, kvStateOf_kvs]; rfl))
     (linkv.absSt_init _ (by rw [h, kvStateOf_kvs]; rfl) (by rw [h, kvStateOf_rev]; rfl)) Em
 

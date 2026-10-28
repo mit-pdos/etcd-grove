@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -241,7 +241,8 @@ theorem txn.executeTxn.wp_proof
         (srvOps s0 r st (ops.take (sint.nat n))).2 ∗
       "#Hknown" ∷ (if ro then iprop(True) else leasesKnown L
         (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1)) ∗
-      "Hown" ∷ (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
+      "Hown" ∷ (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L
+        (mvcc.pendItems ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1))) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ops.length⌝) $$ [i iv req txns txnPath err Htw Hskel Hown]
   · iexists W64 0, _, _, pl, ok, GoInterface.nil
     simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero, srvOps_nil,
@@ -315,15 +316,17 @@ theorem txn.executeTxn.wp_proof
           (⌜v = executeVal⌝ ∗ ∃ (rr0 : Loc) (e1 : GoInterface), resp_ptr ↦ rr0 ∗ err_ptr ↦ e1 ∗
           txnWrite_ptr ↦ GoInterface.ok twi ∗ ctx_ptr ↦ GoInterface.ok ctx ∗ lg_ptr ↦ lg ∗
           tv_ptr ↦ w' ∗
+          txns_ptr ↦ (W64 ((opsPath s0 (ops.take (sint.nat n))).length : Int) : w64) ∗
           txnWriteIs (GoInterface.ok twi) s γ trace ro ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) ∗
           ∃ rev : w64, if skip then rangeResponseIs rr0 rev [] false (W64 0)
             else ∃ (kvs : List EtcdKv) (more : Bool),
               rangeResponseIs rr0 rev kvs more (W64 ((rangeIn stn o).length : Int)) ∗
               ⌜∃ kvs', rangeKvsOk o (rangeSel stn o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨
-          (∃ e' : GoInterface, ⌜v = returnVal (PairV #(W64 0) #e')⌝ ∗ ⌜nd = false⌝ ∗
+          (∃ e' : GoInterface, ⌜v = returnVal #()⌝ ∗ ⌜nd = false⌝ ∗
+            txns_ptr ↦ (W64 0 : w64) ∗ err_ptr ↦ e' ∗
             mvcc.errorfIs e' ∗ ∃ pend' : List mvcc.Change,
               txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend')))
-        with [resp err txnWrite ctx lg tv Htw]
+        with [resp err txnWrite ctx lg tv txns Htw]
       · -- the range, at the transaction's state
         icases txnWriteIs_kind _ s γ ro ilog _ $$ Htw with ⟨%kind, Hv, %Hk⟩
         obtain ⟨hkis, hkok, hkst, hne, hlen⟩ := Hk
@@ -371,7 +374,7 @@ theorem txn.executeTxn.wp_proof
           · ipureintro; rfl
           isplitr
           · ipureintro; exact hndf
-          iframe He'
+          iframe He' txns err
           iexists _
           iapply txnWriteIs_of_view _ s γ ro ilog _ kind hkis $$ Hv
         subst Herr
@@ -379,7 +382,7 @@ theorem txn.executeTxn.wp_proof
         ileft
         isplitl []; · ipureintro; rfl
         iexists resp, GoInterface.nil
-        iframe resp err txnWrite ctx lg tv
+        iframe resp err txnWrite ctx lg tv txns
         isplitl [Hv]
         · iapply txnWriteIs_of_view _ s γ ro ilog _ kind hkis $$ Hv
         iexists kind.readRev
@@ -408,7 +411,7 @@ theorem txn.executeTxn.wp_proof
         ileft
         isplitl []; · itrivial
         iexists «$r0_ptr», e
-        iframe resp err txnWrite ctx lg tv Htw
+        iframe resp err txnWrite ctx lg tv txns Htw
         iexists rv
         iunfold rangeResponseIs
         isplitl []; · ipureintro; exact Hrn
@@ -418,7 +421,7 @@ theorem txn.executeTxn.wp_proof
         isplitl []; · ipureintro; exact Hhn
         isplitl []; · iapply ownSlice_nil
         iapply kvsIs_nil
-      iintro (⟨%Hv0, %rr0, %e1, resp, err, txnWrite, ctx, lg, tv, Htw, %rev1, Hrr0⟩ | ⟨%e', %Hv0, %Hndf, #He', %pend', Htw⟩)
+      iintro (⟨%Hv0, %rr0, %e1, resp, err, txnWrite, ctx, lg, tv, txns, Htw, %rev1, Hrr0⟩ | ⟨%e', %Hv0, %Hndf, txns, err, #He', %pend', Htw⟩)
       rotate_left
       · -- the context error, returned, with the responses so far (read-only: `roRespsRd`)
         subst Hv0
@@ -523,11 +526,13 @@ theorem txn.executeTxn.wp_proof
           puts deletes putSize $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       wp_auto
-      wp_apply (hDel trace ctx cd true mw s γ ilog _ puts deletes putSize dr o _ _)
-        $$ [$Hctx $Htx $Hwr $Hdr] as %dresp %derr Hout
+      icases Hown with (%Hro | Hown)
+      · cases Hro
+      wp_apply (hDel trace ctx cd true mw s γ ilog _ puts deletes putSize dr o L _ _)
+        $$ [$Hctx $Htx $Hwr $Hdr $Hown] as %dresp %derr Hout
       · simp only [↓reduceIte]; iexact Hnd
       rw [hps]
-      icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hdresp, -⟩ | ⟨%Hc, -⟩)
+      icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hdresp, -, Hown⟩ | ⟨%Hc, -⟩)
       rotate_left
       · exact Hc.elim
       subst Herr
@@ -571,6 +576,8 @@ theorem txn.executeTxn.wp_proof
         iexact Hdresp
       isplitl []
       · iapply leasesKnown_delete $$ Hknown
+      isplitl [Hown]
+      · iright; try simp only [List.append_assoc]; iexact Hown
       ipureintro; exact ⟨by word, by omega⟩
     | txn cs ts es =>
       iunfold txn.opSkel at Hp
@@ -684,6 +691,13 @@ theorem txn.executeTxn.wp_proof
           from fun A B => by rw [List.append_assoc, pendState_append, hr, hst]]
         simp only [TxnModel.branch, txnOk]
         iexact Hknown'
+      isplitl [Hown]
+      · icases Hown with (%Hc | Hown)
+        · cases Hc
+        iright
+        try simp only [List.append_assoc]
+        simp only [TxnModel.branch, txnOk]
+        iexact Hown
       ipureintro; exact ⟨by word, by omega⟩
     | _ =>
       -- a put (of any of the three kinds): `putTxnOp o`
@@ -807,7 +821,7 @@ theorem txn.executeTxn.wp_proof
         iapply leasesKnown_put $$ [Hknown Hlo]
         iframe Hknown Hlo
       isplitl [Hown]
-      · iright; iexact Hown
+      · iright; try simp only [List.append_assoc]; iexact Hown
       ipureintro; exact ⟨by word, by omega⟩
   · -- the end of the loop: every operation done
     have hge : ¬ sint.Z n < sint.Z bsl.len := by simpa using Hif

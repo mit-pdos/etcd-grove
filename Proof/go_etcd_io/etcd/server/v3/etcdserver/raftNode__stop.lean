@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
   intro E γ r
-  wp_start as #Hr
+  wp_start as ⟨#Hr, HST⟩
   iunfold isRaftNode at Hr
   iNamed Hr
-  iunfold isUnitBag at Hstci
+  iunfold rnStopBag at Hstci
   icases Hstci with ⟨%γs, #Hbag⟩
   ihave #Hdch := ownBroadcastChan_is_chan _ _ _ _ $$ Hdnci
   wp_auto_lc 4
@@ -43,8 +43,8 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply is_bag_is_chan $$ Hbag
-    iapply bag_send_au γs stc (fun _ => iprop(True)) () _ $$ [$Hlc1 $Hlc2] Hbag []
-    · itrivial
+    iapply bag_send_au γs stc (fun _ => E.ST) () _ $$ [$Hlc1 $Hlc2] Hbag [HST]
+    · iexact HST
     inext
     wp_auto
     wp_apply_core chan.wp_receive dnc γ.done $$ Hdch

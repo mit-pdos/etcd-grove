@@ -24,7 +24,7 @@ namespace consistency
 open Iris resourceversion
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- Deleting a key a map lacks. -/
 theorem delete_none {K V : Type} [DecidableEq K] (m : GMap K V) (k : K) (h : m !! k = none) :

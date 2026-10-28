@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -39,8 +39,8 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     omega
   wp_apply HLastIndex $$ [$HStorage] as %li ⟨%Hli, HStorage⟩
   · ipureintro; exact Hpe
-  wp_alloc l as Hl
-  wp_auto
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iapply HΦ
   isplitr
   rotate_left

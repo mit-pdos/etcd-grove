@@ -15,7 +15,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The pending requests released at the commit index (before the heartbeats). -/
 def releasedState (id : w64) (s : NState) : NState :=
@@ -43,7 +43,7 @@ def ReleaseResult (c : CfgM) (id : w64) (s s' : NState) : Prop :=
 end results
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

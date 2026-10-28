@@ -31,7 +31,7 @@ namespace linkvtxn
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -39,12 +39,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
-    (N : Nat) (id : w64) (bootLog : List EntryM)
+    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64),
-  putget.BootFacts id bootLog →
+  putget.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   storage.dbOpensOk → v3rpc.ServerMethodSets →
@@ -52,7 +52,7 @@ abbrev Main.spec : Prop :=
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23796" ∗ threadTok ∗ premises N id bootLog }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23796" ∗ threadTok ∗ premises N id ctxs boot }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.Main)) (Val #clients))
       (Val #ops))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

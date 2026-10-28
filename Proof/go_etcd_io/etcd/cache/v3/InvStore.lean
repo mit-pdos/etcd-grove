@@ -571,10 +571,10 @@ structure StoreNames where
   tree : GName
 
 /-- The Go type of the store's btree items, `*kvItem`. -/
-abbrev kvItemPtrT [FfiSyntax] [GoGlobalContext] : go.GoType := go.GoType.PointerType kvItem.ty
+abbrev kvItemPtrT [GooseExts] [GoGlobalContext] : go.GoType := go.GoType.PointerType kvItem.ty
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of `s.latest.rev`. -/
 abbrev storeLatestRevAddr (s : Loc) : Loc :=
@@ -593,7 +593,7 @@ abbrev storeMuAddr (s : Loc) : Loc := structFieldRef store go!"mu" s
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
