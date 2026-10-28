@@ -501,7 +501,9 @@ Found while writing it:
   reached in a full cluster: raft panics in `applyConfChange` (1 of 17 rounds on the pinned raft).
   With the issue's fix ported to the fork (`issues/raft-conf-lag-model/fork-v3.7-applied-snap-config.patch`,
   `patch -p1` on `raft37-goose-lean-a1`; raft's tests and the fix's regression test pass), 15 rounds
-  passed. Not yet a fork branch, and the raft pin is unchanged (moving it is the user's decision).
+  passed. A local fork branch, `raft37-goose-lean-a2` (`565c2bd`, on `c8217eb9`), in a checkout
+  at `.lake/raft-fork` of the worktree (not pushed; the patch is its `format-patch`); the raft pin is
+  unchanged (`etc/goose.py --src raft=.lake/raft-fork` translates from it).
 - [issues/raft-snapshot-without-recipient-livelock](../issues/raft-snapshot-without-recipient-livelock.md):
   a newcomer added after the storage's latest snapshot is sent it forever once the log is
   compacted (with random snapshots, a later one ends it).
