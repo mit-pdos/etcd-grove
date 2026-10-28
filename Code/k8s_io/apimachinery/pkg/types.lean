@@ -95,6 +95,8 @@ class NamespacedName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_Namespace : ∀ (x : NamespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamespacedName.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : NamespacedName)))
   get_Name : ∀ (x : NamespacedName), go.IsGoStepPureDetTagged under (StructFieldGet NamespacedName.underlying go!"Name") #x (Val #(x.Name'))
   set_Name : ∀ (x : NamespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamespacedName.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : NamespacedName)))
+  method_set : go.MethodSetIs NamespacedName.ty [(go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NamespacedName.ty) [(go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] NamespacedName.TypeAssumptions.type_repr
   NamespacedName.TypeAssumptions.underlying
@@ -102,6 +104,8 @@ attribute [instance] NamespacedName.TypeAssumptions.type_repr
   NamespacedName.TypeAssumptions.set_Namespace
   NamespacedName.TypeAssumptions.get_Name
   NamespacedName.TypeAssumptions.set_Name
+  NamespacedName.TypeAssumptions.method_set
+  NamespacedName.TypeAssumptions.ptr_method_set
 
 abbrev NodeName [GooseExts] : Type := GoString
 
@@ -110,8 +114,12 @@ abbrev NodeName [GooseExts] : Type := GoString
 
 class NodeName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NodeName.ty NodeName.underlying
+  method_set : go.MethodSetIs NodeName.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeName.ty) []
 
 attribute [instance] NodeName.TypeAssumptions.underlying
+  NodeName.TypeAssumptions.method_set
+  NodeName.TypeAssumptions.ptr_method_set
 
 abbrev PatchType [GooseExts] : Type := GoString
 
@@ -120,8 +128,12 @@ abbrev PatchType [GooseExts] : Type := GoString
 
 class PatchType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PatchType.ty PatchType.underlying
+  method_set : go.MethodSetIs PatchType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PatchType.ty) []
 
 attribute [instance] PatchType.TypeAssumptions.underlying
+  PatchType.TypeAssumptions.method_set
+  PatchType.TypeAssumptions.ptr_method_set
 
 abbrev UID [GooseExts] : Type := GoString
 
@@ -130,8 +142,12 @@ abbrev UID [GooseExts] : Type := GoString
 
 class UID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UID.ty UID.underlying
+  method_set : go.MethodSetIs UID.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UID.ty) []
 
 attribute [instance] UID.TypeAssumptions.underlying
+  UID.TypeAssumptions.method_set
+  UID.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   NamespacedName_instance : NamespacedName.TypeAssumptions

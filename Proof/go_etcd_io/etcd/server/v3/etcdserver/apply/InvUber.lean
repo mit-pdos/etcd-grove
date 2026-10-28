@@ -236,8 +236,10 @@ instance resultErrOk_persistent (ar : Loc) : Persistent (resultErrOk (GF := GF) 
 
 /-- **The answer in `dispatch`'s result** to `rq` at `log` (`resp`, `err`: the `Result`'s `Resp`
 and `Err`), for the outcome `o`: a KV request's or a revocation's, unit 1's outcome predicates
-at the response's pointer; a request of the first `switch`, no response and no error; the others,
-nothing (the triples of `applierSpec` say nothing of their answers). -/
+at the response's pointer; a request of the first `switch`, no response and no error; an
+admin request the mode `on` admits (`adminKindOk`; E3w, 2026-10-27), a response of its type (what
+its entry point asserts); the others, nothing (the triples of `applierSpec` say nothing of their
+answers). -/
 def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : GoInterface)
     (o : Outcome) : IProp GF :=
   match dispatchKind rq with
@@ -258,6 +260,16 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
       revokeOutcomeIs r err o)
   | .clusterVersionSet | .clusterMemberAttrSet | .downgradeInfoSet | .downgradeVersionTest =>
       iprop(⌜resp = GoInterface.nil ∧ err = GoInterface.nil⌝)
+  | .authEnable => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableResponse.ty) #r⌝)
+  | .authUserAdd => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddResponse.ty) #r⌝)
+  | .authRoleAdd => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddResponse.ty) #r⌝)
+  | .authUserGrantRole => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleResponse.ty) #r⌝)
+  | .authRoleGrantPermission => iprop(∃ r : Loc, ⌜resp =
+      interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r⌝)
   | _ => iprop(True)
 
 /-- **`dispatch`'s result** `ar`: without `v3`, `nil` (but for the first `switch`'s requests);

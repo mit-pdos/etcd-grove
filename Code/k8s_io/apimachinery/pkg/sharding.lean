@@ -78,8 +78,12 @@ abbrev Selector [GooseExts] : Type := GoInterface
 
 class Selector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Selector.ty Selector.underlying
+  method_set : go.MethodSetIs Selector.ty [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Requirements", (some (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Selector.ty) []
 
 attribute [instance] Selector.TypeAssumptions.underlying
+  Selector.TypeAssumptions.method_set
+  Selector.TypeAssumptions.ptr_method_set
 
 structure everythingSelector [GooseExts] where
   mk ::
@@ -103,9 +107,13 @@ noncomputable instance equals_unfold_everythingSelector [GooseExts] [GoGlobalCon
 class everythingSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying everythingSelector.underlying everythingSelector
   underlying : go.UnderlyingDirectedEq everythingSelector.ty everythingSelector.underlying
+  method_set : go.MethodSetIs everythingSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType everythingSelector.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Requirements", (some (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] everythingSelector.TypeAssumptions.type_repr
   everythingSelector.TypeAssumptions.underlying
+  everythingSelector.TypeAssumptions.method_set
+  everythingSelector.TypeAssumptions.ptr_method_set
 
 structure shardSelector [GooseExts] where
   mk ::
@@ -132,11 +140,15 @@ class shardSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq shardSelector.ty shardSelector.underlying
   get_requirements : ∀ (x : shardSelector), go.IsGoStepPureDetTagged under (StructFieldGet shardSelector.underlying go!"requirements") #x (Val #(x.requirements'))
   set_requirements : ∀ (x : shardSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet shardSelector.underlying go!"requirements") (PairV #x #y) (Val #(({ x with requirements' := y } : shardSelector)))
+  method_set : go.MethodSetIs shardSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType shardSelector.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Requirements", (some (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] shardSelector.TypeAssumptions.type_repr
   shardSelector.TypeAssumptions.underlying
   shardSelector.TypeAssumptions.get_requirements
   shardSelector.TypeAssumptions.set_requirements
+  shardSelector.TypeAssumptions.method_set
+  shardSelector.TypeAssumptions.ptr_method_set
 
 structure ShardRangeRequirement [GooseExts] where
   mk ::
@@ -171,6 +183,8 @@ class ShardRangeRequirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   set_Start : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"Start") (PairV #x #y) (Val #(({ x with Start' := y } : ShardRangeRequirement)))
   get_End : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"End") #x (Val #(x.End'))
   set_End : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"End") (PairV #x #y) (Val #(({ x with End' := y } : ShardRangeRequirement)))
+  method_set : go.MethodSetIs ShardRangeRequirement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ShardRangeRequirement.ty) []
 
 attribute [instance] ShardRangeRequirement.TypeAssumptions.type_repr
   ShardRangeRequirement.TypeAssumptions.underlying
@@ -180,6 +194,8 @@ attribute [instance] ShardRangeRequirement.TypeAssumptions.type_repr
   ShardRangeRequirement.TypeAssumptions.set_Start
   ShardRangeRequirement.TypeAssumptions.get_End
   ShardRangeRequirement.TypeAssumptions.set_End
+  ShardRangeRequirement.TypeAssumptions.method_set
+  ShardRangeRequirement.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Selector_instance : Selector.TypeAssumptions

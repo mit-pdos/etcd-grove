@@ -261,10 +261,14 @@ class keepaliveListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying keepaliveListener.underlying keepaliveListener
   underlying : go.UnderlyingDirectedEq keepaliveListener.ty keepaliveListener.underlying
   isUnderlying : go.IsUnderlying keepaliveListener.underlying keepaliveListener.underlying
+  method_set : go.MethodSetIs keepaliveListener.ty [(go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keepaliveListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] keepaliveListener.TypeAssumptions.type_repr
   keepaliveListener.TypeAssumptions.underlying
   keepaliveListener.TypeAssumptions.isUnderlying
+  keepaliveListener.TypeAssumptions.method_set
+  keepaliveListener.TypeAssumptions.ptr_method_set
 
 axiom keepAliveConn : Type
 axiom keepAliveConn.zero_val : ZeroVal keepAliveConn
@@ -274,10 +278,14 @@ class keepAliveConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying keepAliveConn.underlying keepAliveConn
   underlying : go.UnderlyingDirectedEq keepAliveConn.ty keepAliveConn.underlying
   isUnderlying : go.IsUnderlying keepAliveConn.underlying keepAliveConn.underlying
+  method_set : go.MethodSetIs keepAliveConn.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [(go.GoType.Named go!"net.KeepAliveConfig" [])] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net.Buffers" []))] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keepAliveConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [(go.GoType.Named go!"net.KeepAliveConfig" [])] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net.Buffers" []))] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
 
 attribute [instance] keepAliveConn.TypeAssumptions.type_repr
   keepAliveConn.TypeAssumptions.underlying
   keepAliveConn.TypeAssumptions.isUnderlying
+  keepAliveConn.TypeAssumptions.method_set
+  keepAliveConn.TypeAssumptions.ptr_method_set
 
 axiom tlsKeepaliveListener : Type
 axiom tlsKeepaliveListener.zero_val : ZeroVal tlsKeepaliveListener
@@ -287,10 +295,14 @@ class tlsKeepaliveListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying tlsKeepaliveListener.underlying tlsKeepaliveListener
   underlying : go.UnderlyingDirectedEq tlsKeepaliveListener.ty tlsKeepaliveListener.underlying
   isUnderlying : go.IsUnderlying tlsKeepaliveListener.underlying tlsKeepaliveListener.underlying
+  method_set : go.MethodSetIs tlsKeepaliveListener.ty [(go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tlsKeepaliveListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] tlsKeepaliveListener.TypeAssumptions.type_repr
   tlsKeepaliveListener.TypeAssumptions.underlying
   tlsKeepaliveListener.TypeAssumptions.isUnderlying
+  tlsKeepaliveListener.TypeAssumptions.method_set
+  tlsKeepaliveListener.TypeAssumptions.ptr_method_set
 
 axiom limitListener : Type
 axiom limitListener.zero_val : ZeroVal limitListener
@@ -300,10 +312,14 @@ class limitListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying limitListener.underlying limitListener
   underlying : go.UnderlyingDirectedEq limitListener.ty limitListener.underlying
   isUnderlying : go.IsUnderlying limitListener.underlying limitListener.underlying
+  method_set : go.MethodSetIs limitListener.ty [(go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.acquire", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.release", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] limitListener.TypeAssumptions.type_repr
   limitListener.TypeAssumptions.underlying
   limitListener.TypeAssumptions.isUnderlying
+  limitListener.TypeAssumptions.method_set
+  limitListener.TypeAssumptions.ptr_method_set
 
 axiom limitListenerConn : Type
 axiom limitListenerConn.zero_val : ZeroVal limitListenerConn
@@ -313,10 +329,14 @@ class limitListenerConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying limitListenerConn.underlying limitListenerConn
   underlying : go.UnderlyingDirectedEq limitListenerConn.ty limitListenerConn.underlying
   isUnderlying : go.IsUnderlying limitListenerConn.underlying limitListenerConn.underlying
+  method_set : go.MethodSetIs limitListenerConn.ty [(go!"LocalAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitListenerConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] limitListenerConn.TypeAssumptions.type_repr
   limitListenerConn.TypeAssumptions.underlying
   limitListenerConn.TypeAssumptions.isUnderlying
+  limitListenerConn.TypeAssumptions.method_set
+  limitListenerConn.TypeAssumptions.ptr_method_set
 
 structure TLSInfo [GooseExts] where
   mk ::
@@ -431,6 +451,8 @@ class TLSInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_EmptyCN : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"EmptyCN") (PairV #x #y) (Val #(({ x with EmptyCN' := y } : TLSInfo)))
   get_LocalAddr : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"LocalAddr") #x (Val #(x.LocalAddr'))
   set_LocalAddr : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"LocalAddr") (PairV #x #y) (Val #(({ x with LocalAddr' := y } : TLSInfo)))
+  method_set : go.MethodSetIs TLSInfo.ty [(go!"ClientConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"ConfigureCRLVerification", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)] false []))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"ServerConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.baseConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.cafiles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TLSInfo.ty) [(go!"ClientConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"ConfigureCRLVerification", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)] false []))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"ServerConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.baseConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.cafiles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] TLSInfo.TypeAssumptions.type_repr
   TLSInfo.TypeAssumptions.underlying
@@ -480,6 +502,8 @@ attribute [instance] TLSInfo.TypeAssumptions.type_repr
   TLSInfo.TypeAssumptions.set_EmptyCN
   TLSInfo.TypeAssumptions.get_LocalAddr
   TLSInfo.TypeAssumptions.set_LocalAddr
+  TLSInfo.TypeAssumptions.method_set
+  TLSInfo.TypeAssumptions.ptr_method_set
 
 axiom ListenerOptions : Type
 axiom ListenerOptions.zero_val : ZeroVal ListenerOptions
@@ -489,10 +513,14 @@ class ListenerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying ListenerOptions.underlying ListenerOptions
   underlying : go.UnderlyingDirectedEq ListenerOptions.ty ListenerOptions.underlying
   isUnderlying : go.IsUnderlying ListenerOptions.underlying ListenerOptions.underlying
+  method_set : go.MethodSetIs ListenerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListenerOptions.ty) [(go!"IsSocketOpts", (some (go.signature.Signature [] false [go.bool]))), (go!"IsTLS", (some (go.signature.Signature [] false [go.bool]))), (go!"IsTimeout", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType ListenerOption.ty)] false [])))]
 
 attribute [instance] ListenerOptions.TypeAssumptions.type_repr
   ListenerOptions.TypeAssumptions.underlying
   ListenerOptions.TypeAssumptions.isUnderlying
+  ListenerOptions.TypeAssumptions.method_set
+  ListenerOptions.TypeAssumptions.ptr_method_set
 
 abbrev ListenerOption [GooseExts] : Type := GoFunc
 
@@ -501,8 +529,12 @@ abbrev ListenerOption [GooseExts] : Type := GoFunc
 
 class ListenerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ListenerOption.ty ListenerOption.underlying
+  method_set : go.MethodSetIs ListenerOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListenerOption.ty) []
 
 attribute [instance] ListenerOption.TypeAssumptions.underlying
+  ListenerOption.TypeAssumptions.method_set
+  ListenerOption.TypeAssumptions.ptr_method_set
 
 axiom tlsListener : Type
 axiom tlsListener.zero_val : ZeroVal tlsListener
@@ -512,10 +544,14 @@ class tlsListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying tlsListener.underlying tlsListener
   underlying : go.UnderlyingDirectedEq tlsListener.ty tlsListener.underlying
   isUnderlying : go.IsUnderlying tlsListener.underlying tlsListener.underlying
+  method_set : go.MethodSetIs tlsListener.ty [(go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tlsListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.acceptLoop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] tlsListener.TypeAssumptions.type_repr
   tlsListener.TypeAssumptions.underlying
   tlsListener.TypeAssumptions.isUnderlying
+  tlsListener.TypeAssumptions.method_set
+  tlsListener.TypeAssumptions.ptr_method_set
 
 axiom tlsCheckFunc : Type
 axiom tlsCheckFunc.zero_val : ZeroVal tlsCheckFunc
@@ -525,10 +561,14 @@ class tlsCheckFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying tlsCheckFunc.underlying tlsCheckFunc
   underlying : go.UnderlyingDirectedEq tlsCheckFunc.ty tlsCheckFunc.underlying
   isUnderlying : go.IsUnderlying tlsCheckFunc.underlying tlsCheckFunc.underlying
+  method_set : go.MethodSetIs tlsCheckFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tlsCheckFunc.ty) []
 
 attribute [instance] tlsCheckFunc.TypeAssumptions.type_repr
   tlsCheckFunc.TypeAssumptions.underlying
   tlsCheckFunc.TypeAssumptions.isUnderlying
+  tlsCheckFunc.TypeAssumptions.method_set
+  tlsCheckFunc.TypeAssumptions.ptr_method_set
 
 axiom Controls : Type
 axiom Controls.zero_val : ZeroVal Controls
@@ -538,10 +578,14 @@ class Controls.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Controls.underlying Controls
   underlying : go.UnderlyingDirectedEq Controls.ty Controls.underlying
   isUnderlying : go.IsUnderlying Controls.underlying Controls.underlying
+  method_set : go.MethodSetIs Controls.ty [(go!"Control", (some (go.signature.Signature [go.string, go.string, (go.GoType.Named go!"syscall.RawConn" [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Controls.ty) [(go!"Control", (some (go.signature.Signature [go.string, go.string, (go.GoType.Named go!"syscall.RawConn" [])] false [go.error])))]
 
 attribute [instance] Controls.TypeAssumptions.type_repr
   Controls.TypeAssumptions.underlying
   Controls.TypeAssumptions.isUnderlying
+  Controls.TypeAssumptions.method_set
+  Controls.TypeAssumptions.ptr_method_set
 
 structure SocketOpts [GooseExts] where
   mk ::
@@ -572,6 +616,8 @@ class SocketOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_ReusePort : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReusePort") (PairV #x #y) (Val #(({ x with ReusePort' := y } : SocketOpts)))
   get_ReuseAddress : ∀ (x : SocketOpts), go.IsGoStepPureDetTagged under (StructFieldGet SocketOpts.underlying go!"ReuseAddress") #x (Val #(x.ReuseAddress'))
   set_ReuseAddress : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReuseAddress") (PairV #x #y) (Val #(({ x with ReuseAddress' := y } : SocketOpts)))
+  method_set : go.MethodSetIs SocketOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SocketOpts.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] SocketOpts.TypeAssumptions.type_repr
   SocketOpts.TypeAssumptions.underlying
@@ -579,6 +625,8 @@ attribute [instance] SocketOpts.TypeAssumptions.type_repr
   SocketOpts.TypeAssumptions.set_ReusePort
   SocketOpts.TypeAssumptions.get_ReuseAddress
   SocketOpts.TypeAssumptions.set_ReuseAddress
+  SocketOpts.TypeAssumptions.method_set
+  SocketOpts.TypeAssumptions.ptr_method_set
 
 axiom timeoutConn : Type
 axiom timeoutConn.zero_val : ZeroVal timeoutConn
@@ -588,10 +636,14 @@ class timeoutConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying timeoutConn.underlying timeoutConn
   underlying : go.UnderlyingDirectedEq timeoutConn.ty timeoutConn.underlying
   isUnderlying : go.IsUnderlying timeoutConn.underlying timeoutConn.underlying
+  method_set : go.MethodSetIs timeoutConn.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] timeoutConn.TypeAssumptions.type_repr
   timeoutConn.TypeAssumptions.underlying
   timeoutConn.TypeAssumptions.isUnderlying
+  timeoutConn.TypeAssumptions.method_set
+  timeoutConn.TypeAssumptions.ptr_method_set
 
 axiom rwTimeoutDialer : Type
 axiom rwTimeoutDialer.zero_val : ZeroVal rwTimeoutDialer
@@ -601,10 +653,14 @@ class rwTimeoutDialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying rwTimeoutDialer.underlying rwTimeoutDialer
   underlying : go.UnderlyingDirectedEq rwTimeoutDialer.ty rwTimeoutDialer.underlying
   isUnderlying : go.IsUnderlying rwTimeoutDialer.underlying rwTimeoutDialer.underlying
+  method_set : go.MethodSetIs rwTimeoutDialer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rwTimeoutDialer.ty) [(go!"Dial", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"DialContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"DialIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.Addr" []), (go.GoType.Named go!"net/netip.Addr" [])] false [(go.GoType.PointerType (go.GoType.Named go!"net.IPConn" [])), go.error]))), (go!"DialTCP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.AddrPort" []), (go.GoType.Named go!"net/netip.AddrPort" [])] false [(go.GoType.PointerType (go.GoType.Named go!"net.TCPConn" [])), go.error]))), (go!"DialUDP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.AddrPort" []), (go.GoType.Named go!"net/netip.AddrPort" [])] false [(go.GoType.PointerType (go.GoType.Named go!"net.UDPConn" [])), go.error]))), (go!"DialUnix", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType (go.GoType.Named go!"net.UnixAddr" [])), (go.GoType.PointerType (go.GoType.Named go!"net.UnixAddr" []))] false [(go.GoType.PointerType (go.GoType.Named go!"net.UnixConn" [])), go.error]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool]))), (go!"SetMultipathTCP", (some (go.signature.Signature [go.bool] false []))), (go!"net.deadline", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"time.Time" [])] false [(go.GoType.Named go!"time.Time" [])]))), (go!"net.dialCtx", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"context.CancelFunc" [])]))), (go!"net.dualStack", (some (go.signature.Signature [] false [go.bool]))), (go!"net.fallbackDelay", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"net.resolver", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"net.Resolver" []))])))]
 
 attribute [instance] rwTimeoutDialer.TypeAssumptions.type_repr
   rwTimeoutDialer.TypeAssumptions.underlying
   rwTimeoutDialer.TypeAssumptions.isUnderlying
+  rwTimeoutDialer.TypeAssumptions.method_set
+  rwTimeoutDialer.TypeAssumptions.ptr_method_set
 
 axiom rwTimeoutListener : Type
 axiom rwTimeoutListener.zero_val : ZeroVal rwTimeoutListener
@@ -614,10 +670,14 @@ class rwTimeoutListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying rwTimeoutListener.underlying rwTimeoutListener
   underlying : go.UnderlyingDirectedEq rwTimeoutListener.ty rwTimeoutListener.underlying
   isUnderlying : go.IsUnderlying rwTimeoutListener.underlying rwTimeoutListener.underlying
+  method_set : go.MethodSetIs rwTimeoutListener.ty [(go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rwTimeoutListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] rwTimeoutListener.TypeAssumptions.type_repr
   rwTimeoutListener.TypeAssumptions.underlying
   rwTimeoutListener.TypeAssumptions.isUnderlying
+  rwTimeoutListener.TypeAssumptions.method_set
+  rwTimeoutListener.TypeAssumptions.ptr_method_set
 
 axiom unixTransport : Type
 axiom unixTransport.zero_val : ZeroVal unixTransport
@@ -627,10 +687,14 @@ class unixTransport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying unixTransport.underlying unixTransport
   underlying : go.UnderlyingDirectedEq unixTransport.ty unixTransport.underlying
   isUnderlying : go.IsUnderlying unixTransport.underlying unixTransport.underlying
+  method_set : go.MethodSetIs unixTransport.ty [(go!"CancelRequest", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.Transport" []))]))), (go!"CloseIdleConnections", (some (go.signature.Signature [] false []))), (go!"NewClientConn", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.ClientConn" [])), go.error]))), (go!"RegisterProtocol", (some (go.signature.Signature [go.string, (go.GoType.Named go!"net/http.RoundTripper" [])] false []))), (go!"net/http.alternateRoundTripper", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.Named go!"net/http.RoundTripper" [])]))), (go!"net/http.configureHTTP2", (some (go.signature.Signature [(go.GoType.Named go!"net/http.Protocols" [])] false []))), (go!"net/http.connectMethodForRequest", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.transportRequest" []))] false [(go.GoType.Named go!"net/http.connectMethod" []), go.error]))), (go!"net/http.customDialTLS", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"net/http.decConnsPerHost", (some (go.signature.Signature [(go.GoType.Named go!"net/http.connectMethodKey" [])] false []))), (go!"net/http.dial", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"net/http.dialConn", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"net/http.connectMethod" []), go.bool, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" [])), go.error]))), (go!"net/http.dialConnFor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.wantConn" []))] false []))), (go!"net/http.getConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.transportRequest" [])), (go.GoType.Named go!"net/http.connectMethod" [])] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" [])), go.error]))), (go!"net/http.hasCustomTLSDialer", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http2AddConn", (some (go.signature.Signature [go.string, go.string, (go.GoType.Named go!"net.Conn" [])] false [(go.GoType.Named go!"net/http.RoundTripper" []), go.error]))), (go!"net/http.http2ExternalDial", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"net/http.connectMethod" [])] false [(go.GoType.Named go!"net/http.RoundTripper" []), go.error]))), (go!"net/http.http2NewClientConn", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [(go.GoType.Named go!"net/http.genericClientConn" []), go.error]))), (go!"net/http.http2NewClientConnFromContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.ClientConn" [])), go.error]))), (go!"net/http.maxHeaderResponseSize", (some (go.signature.Signature [] false [go.int64]))), (go!"net/http.maxIdleConnsPerHost", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.onceSetNextProtoDefaults", (some (go.signature.Signature [] false []))), (go!"net/http.prepareTransportCancel", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" [])), (go.GoType.Named go!"context.CancelCauseFunc" [])] false [(go.GoType.Named go!"context.CancelCauseFunc" [])]))), (go!"net/http.protocols", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http.Protocols" [])]))), (go!"net/http.putOrCloseIdleConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" []))] false []))), (go!"net/http.queueForDial", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.wantConn" []))] false []))), (go!"net/http.queueForIdleConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.wantConn" []))] false [go.bool]))), (go!"net/http.readBufferSize", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.registerProtocol", (some (go.signature.Signature [go.string, (go.GoType.Named go!"net/http.RoundTripper" [])] false [go.error]))), (go!"net/http.removeIdleConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" []))] false [go.bool]))), (go!"net/http.removeIdleConnLocked", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" []))] false [go.bool]))), (go!"net/http.roundTrip", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.Response" [])), go.error]))), (go!"net/http.startDialConnForLocked", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.wantConn" []))] false []))), (go!"net/http.tryPutIdleConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" []))] false [go.error]))), (go!"net/http.useRegisteredProtocol", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [go.bool]))), (go!"net/http.writeBufferSize", (some (go.signature.Signature [] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unixTransport.ty) [(go!"CancelRequest", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.Transport" []))]))), (go!"CloseIdleConnections", (some (go.signature.Signature [] false []))), (go!"NewClientConn", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.ClientConn" [])), go.error]))), (go!"RegisterProtocol", (some (go.signature.Signature [go.string, (go.GoType.Named go!"net/http.RoundTripper" [])] false []))), (go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.Response" [])), go.error]))), (go!"net/http.alternateRoundTripper", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.Named go!"net/http.RoundTripper" [])]))), (go!"net/http.configureHTTP2", (some (go.signature.Signature [(go.GoType.Named go!"net/http.Protocols" [])] false []))), (go!"net/http.connectMethodForRequest", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.transportRequest" []))] false [(go.GoType.Named go!"net/http.connectMethod" []), go.error]))), (go!"net/http.customDialTLS", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"net/http.decConnsPerHost", (some (go.signature.Signature [(go.GoType.Named go!"net/http.connectMethodKey" [])] false []))), (go!"net/http.dial", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"net/http.dialConn", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"net/http.connectMethod" []), go.bool, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" [])), go.error]))), (go!"net/http.dialConnFor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.wantConn" []))] false []))), (go!"net/http.getConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.transportRequest" [])), (go.GoType.Named go!"net/http.connectMethod" [])] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" [])), go.error]))), (go!"net/http.hasCustomTLSDialer", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http2AddConn", (some (go.signature.Signature [go.string, go.string, (go.GoType.Named go!"net.Conn" [])] false [(go.GoType.Named go!"net/http.RoundTripper" []), go.error]))), (go!"net/http.http2ExternalDial", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"net/http.connectMethod" [])] false [(go.GoType.Named go!"net/http.RoundTripper" []), go.error]))), (go!"net/http.http2NewClientConn", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [(go.GoType.Named go!"net/http.genericClientConn" []), go.error]))), (go!"net/http.http2NewClientConnFromContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.ClientConn" [])), go.error]))), (go!"net/http.maxHeaderResponseSize", (some (go.signature.Signature [] false [go.int64]))), (go!"net/http.maxIdleConnsPerHost", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.onceSetNextProtoDefaults", (some (go.signature.Signature [] false []))), (go!"net/http.prepareTransportCancel", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" [])), (go.GoType.Named go!"context.CancelCauseFunc" [])] false [(go.GoType.Named go!"context.CancelCauseFunc" [])]))), (go!"net/http.protocols", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http.Protocols" [])]))), (go!"net/http.putOrCloseIdleConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" []))] false []))), (go!"net/http.queueForDial", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.wantConn" []))] false []))), (go!"net/http.queueForIdleConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.wantConn" []))] false [go.bool]))), (go!"net/http.readBufferSize", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.registerProtocol", (some (go.signature.Signature [go.string, (go.GoType.Named go!"net/http.RoundTripper" [])] false [go.error]))), (go!"net/http.removeIdleConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" []))] false [go.bool]))), (go!"net/http.removeIdleConnLocked", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" []))] false [go.bool]))), (go!"net/http.roundTrip", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType (go.GoType.Named go!"net/http.Response" [])), go.error]))), (go!"net/http.startDialConnForLocked", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.wantConn" []))] false []))), (go!"net/http.tryPutIdleConn", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.persistConn" []))] false [go.error]))), (go!"net/http.useRegisteredProtocol", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [go.bool]))), (go!"net/http.writeBufferSize", (some (go.signature.Signature [] false [go.int])))]
 
 attribute [instance] unixTransport.TypeAssumptions.type_repr
   unixTransport.TypeAssumptions.underlying
   unixTransport.TypeAssumptions.isUnderlying
+  unixTransport.TypeAssumptions.method_set
+  unixTransport.TypeAssumptions.ptr_method_set
 
 axiom unixListener : Type
 axiom unixListener.zero_val : ZeroVal unixListener
@@ -640,10 +704,14 @@ class unixListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying unixListener.underlying unixListener
   underlying : go.UnderlyingDirectedEq unixListener.ty unixListener.underlying
   isUnderlying : go.IsUnderlying unixListener.underlying unixListener.underlying
+  method_set : go.MethodSetIs unixListener.ty [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unixListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] unixListener.TypeAssumptions.type_repr
   unixListener.TypeAssumptions.underlying
   unixListener.TypeAssumptions.isUnderlying
+  unixListener.TypeAssumptions.method_set
+  unixListener.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   keepaliveListener_instance : keepaliveListener.TypeAssumptions

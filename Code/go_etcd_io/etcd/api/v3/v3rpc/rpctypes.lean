@@ -1213,6 +1213,8 @@ class EtcdError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_code : ∀ (x : EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : EtcdError)))
   get_desc : ∀ (x : EtcdError), go.IsGoStepPureDetTagged under (StructFieldGet EtcdError.underlying go!"desc") #x (Val #(x.desc'))
   set_desc : ∀ (x : EtcdError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : EtcdError)))
+  method_set : go.MethodSetIs EtcdError.ty [(go!"Code", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.codes.Code.ty]))), (go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdError.ty) [(go!"Code", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.codes.Code.ty]))), (go!"Error", (some (go.signature.Signature [] false [go.string])))]
   Code_unfold : MethodUnfold EtcdError.ty go!"Code" EtcdError.Code.impl
   Error_unfold : MethodUnfold EtcdError.ty go!"Error" EtcdError.Error.impl
   ptr_Code_unfold : MethodUnfold (go.GoType.PointerType EtcdError.ty) go!"Code" (LamV "$r"
@@ -1226,6 +1228,8 @@ attribute [instance] EtcdError.TypeAssumptions.type_repr
   EtcdError.TypeAssumptions.set_code
   EtcdError.TypeAssumptions.get_desc
   EtcdError.TypeAssumptions.set_desc
+  EtcdError.TypeAssumptions.method_set
+  EtcdError.TypeAssumptions.ptr_method_set
   EtcdError.TypeAssumptions.Code_unfold
   EtcdError.TypeAssumptions.Error_unfold
   EtcdError.TypeAssumptions.ptr_Code_unfold
@@ -1253,9 +1257,13 @@ noncomputable instance equals_unfold_TokenFieldNameGRPCKey [GooseExts] [GoGlobal
 class TokenFieldNameGRPCKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TokenFieldNameGRPCKey.underlying TokenFieldNameGRPCKey
   underlying : go.UnderlyingDirectedEq TokenFieldNameGRPCKey.ty TokenFieldNameGRPCKey.underlying
+  method_set : go.MethodSetIs TokenFieldNameGRPCKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TokenFieldNameGRPCKey.ty) []
 
 attribute [instance] TokenFieldNameGRPCKey.TypeAssumptions.type_repr
   TokenFieldNameGRPCKey.TypeAssumptions.underlying
+  TokenFieldNameGRPCKey.TypeAssumptions.method_set
+  TokenFieldNameGRPCKey.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EtcdError_instance : EtcdError.TypeAssumptions

@@ -15,6 +15,14 @@ links:
   ([etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md)), so
   `Then(OpDelete(k, WithFromKey()), OpPut(k, v))` is accepted. Also reachable through mvcc's own
   API (`store.Write`: `DeleteRange` then `Put` of a key in one write transaction).
+- **Through auto-compaction** (2026-10-27, by reading `server/etcdserver/api/v3compactor`, not
+  reproduced): with `--auto-compaction-retention` set, no client needs to call `Compact`. The
+  revision compactor compacts at `Rev() - retention` every 5 minutes (`revision.go`), the periodic
+  one at a revision `Rev()` returned one retention period earlier (`periodic.go`'s `revs[0]`). So
+  the transaction below, at revision `X`, is compacted at exactly `X` when `X` is the store's
+  revision at the sampled instant: in revision mode, when `retention` more writes follow it; in
+  periodic mode, when it is the last write before a sample (a quiet cluster). The live value is
+  then lost on every member without any administrative action.
 - **Through the gRPC API** (2026-10-14, a single-member cluster built from upstream `main`
   f061acd09, `etcd` and `etcdctl` from `server/` and `etcdctl/`):
 

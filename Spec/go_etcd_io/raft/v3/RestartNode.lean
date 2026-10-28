@@ -1,28 +1,14 @@
 /- Lean-first (no Rocq counterpart).
 
-## `RestartNode(c)` (node.go:281)
+## `RestartNode`
 
-`NewRawNode(c)` (its premises: a node of a new cluster, `Spec/NewRawNode.lean`) in a
-`node` whose goroutine `run` it starts, for the cluster's term budget `bud`
-(`budget_alloc`, `InvNode.lean`). It returns the node (`isNode`, persistent: what
-`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriver`, at
-the empty committed log: what `node_ready_receive` and `Advance` take). Since 2026-10-10
-also the cluster's proposed slices (`propDataInv`, allocated once with the raft ghost
-state), which `isNode` keeps with the commit invariant. Since 2026-10-15 (stage N) in either
-mode (`md`, `NewRawNode`'s `rnInit`: statically `ownRaftGhost` at the initial state, dynamically
-B5's `ownRaftGhostR` at `rinit c0`), and with the driver's view of the configuration
-(`nodeCfg`, at index `0` and the initial configuration) for `ApplyConfChange` and `Advance`.
-
-raft v3.7 (2026-10-16, stage R5): `NewRawNode`'s premises as they are now (the storage's
-`InitialState` in `newRaft`'s D7 shape, the conf state's record `csm`; 2026-10-16, stage R6b: the
-conf state's `AutoLeave` cell set or not, `csPts cs □ csm al`); **no proposed slices'
-invariant** (D6: an entry's data is its bytes; until then `inv propDataN (propDataInv γ)`, which
-`isNode` kept).
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `RestartNode.specRaw`.)
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
-public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
 
@@ -40,72 +26,44 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- **`RestartNode(c)`**: starts node `cv.ID'` of a static cluster of voters `vs`
+(`cluster_alloc_static`) from its boot token, on a fresh storage whose `InitialState` gives the
+voters' conf state, and whose certificates are the cluster's (`storageCertLink`). Today's premises,
+with the ghost ones (`rnInit`, `isCommitted γ []`, the term budget, `certLink`, the mode and
+`snapIn`) replaced by `nodeRestartBoot` and `storageCertLink`. -/
 abbrev RestartNode.spec : Prop :=
-  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
-    (lok si : GoInterfaceOk)
-    (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (sn : Bool),
-  -- `NewRawNode`'s premises
+  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (σ : StorState) (hs : HardStateM) (csm : ConfStateM),
+  -- `NewRawNode`'s premises (unchanged)
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
   cv.DisableProposalForwarding' = false →
-  -- `ReadOnlySafe` (2026-10-12)
   cv.ReadOnlyOption' = W64 0 →
-  -- conf-change validation on (2026-10-13; `newRaft`'s premise)
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
-  -- (2026-10-25, T-M M2b: pre-vote either way; 2026-10-17 to 2026-10-25 off in the dynamic mode,
-  -- which did not model pre-candidates; until then off in either mode)
   cv.Applied' = W64 0 →
-  σ.prev = entryID.mk (W64 0) (W64 0) →
-  σ.ents = [] →
-  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] →
-  HsEmpty hs →
-  -- (2026-10-16, stage R5) the conf state's record `csm`, as `NewRawNode`'s
-  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
-  (csm.Voters'.length : Int) ≤ 2 ^ 62 →
-  csm.VotersOutgoing' = [] →
-  csm.Learners' = [] →
-  csm.LearnersNext' = [] →
+  -- an empty storage, the voters' conf state (unchanged)
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] → HsEmpty hs →
+  csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
-  γ.reCfg = GMap.listToSet csm.Voters' →
-  cv.ID' ∈ csm.Voters' →
-  -- (2026-10-25, T-M M2c: `StepDownOnRemoval` either way; 2026-10-15 to 2026-10-25 on in the dynamic
-  -- mode)
-  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
+  cv.ID' ∈ vs →
   σ.fl = W64 0 →
-  -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
-  -- outside the no-snapshot mode and in the static mode
-  (sn = true → γ.reNoSnap = false ∧ md = .static) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
             hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      -- (2026-10-15, stage N) the ghost state in the mode `md` (`NewRawNode`'s `rnInit`; until
-      -- then `ownRaftGhost γ cv.ID' initPState`, the static mode's)
-      rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
-      -- the cluster's term budget
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) ∗
-      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
-      -- no-snapshot mode)
-      certLink γ (interface.ok si) }}
+      nodeRestartBoot γ N vs cv.ID' ∗ storageCertLink γ N (interface.ok si) }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (γn : NodeNames) (n : Loc),
-        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
-         γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
-        -- (2026-10-15, stage N) the driver's view of the configuration: the initial one
-        nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
+      ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
 
 end spec
 

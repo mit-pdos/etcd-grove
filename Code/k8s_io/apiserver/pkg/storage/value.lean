@@ -176,10 +176,14 @@ class gRPCError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying gRPCError.underlying gRPCError
   underlying : go.UnderlyingDirectedEq gRPCError.ty gRPCError.underlying
   isUnderlying : go.IsUnderlying gRPCError.underlying gRPCError.underlying
+  method_set : go.MethodSetIs gRPCError.ty [(go!"GRPCStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gRPCError.ty) []
 
 attribute [instance] gRPCError.TypeAssumptions.type_repr
   gRPCError.TypeAssumptions.underlying
   gRPCError.TypeAssumptions.isUnderlying
+  gRPCError.TypeAssumptions.method_set
+  gRPCError.TypeAssumptions.ptr_method_set
 
 abbrev Context [GooseExts] : Type := GoInterface
 
@@ -188,8 +192,12 @@ abbrev Context [GooseExts] : Type := GoInterface
 
 class Context.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Context.ty Context.underlying
+  method_set : go.MethodSetIs Context.ty [(go!"AuthenticatedData", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Context.ty) []
 
 attribute [instance] Context.TypeAssumptions.underlying
+  Context.TypeAssumptions.method_set
+  Context.TypeAssumptions.ptr_method_set
 
 axiom Read : Type
 axiom Read.zero_val : ZeroVal Read
@@ -199,10 +207,14 @@ class Read.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Read.underlying Read
   underlying : go.UnderlyingDirectedEq Read.ty Read.underlying
   isUnderlying : go.IsUnderlying Read.underlying Read.underlying
+  method_set : go.MethodSetIs Read.ty [(go!"TransformFromStorage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Read.ty) []
 
 attribute [instance] Read.TypeAssumptions.type_repr
   Read.TypeAssumptions.underlying
   Read.TypeAssumptions.isUnderlying
+  Read.TypeAssumptions.method_set
+  Read.TypeAssumptions.ptr_method_set
 
 axiom Write : Type
 axiom Write.zero_val : ZeroVal Write
@@ -212,20 +224,28 @@ class Write.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Write.underlying Write
   underlying : go.UnderlyingDirectedEq Write.ty Write.underlying
   isUnderlying : go.IsUnderlying Write.underlying Write.underlying
+  method_set : go.MethodSetIs Write.ty [(go!"TransformToStorage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Write.ty) []
 
 attribute [instance] Write.TypeAssumptions.type_repr
   Write.TypeAssumptions.underlying
   Write.TypeAssumptions.isUnderlying
+  Write.TypeAssumptions.method_set
+  Write.TypeAssumptions.ptr_method_set
 
 abbrev Transformer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Transformer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Read.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Write.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"TransformFromStorage" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error])), (go.InterfaceElem.MethodElem go!"TransformToStorage" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.error]))])
 
 class Transformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Transformer.ty Transformer.underlying
+  method_set : go.MethodSetIs Transformer.ty [(go!"TransformFromStorage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transformer.ty) []
 
 attribute [instance] Transformer.TypeAssumptions.underlying
+  Transformer.TypeAssumptions.method_set
+  Transformer.TypeAssumptions.ptr_method_set
 
 axiom ResourceTransformers : Type
 axiom ResourceTransformers.zero_val : ZeroVal ResourceTransformers
@@ -235,10 +255,14 @@ class ResourceTransformers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying ResourceTransformers.underlying ResourceTransformers
   underlying : go.UnderlyingDirectedEq ResourceTransformers.ty ResourceTransformers.underlying
   isUnderlying : go.IsUnderlying ResourceTransformers.underlying ResourceTransformers.underlying
+  method_set : go.MethodSetIs ResourceTransformers.ty [(go!"TransformerForResource", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupResource" [])] false [Transformer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceTransformers.ty) []
 
 attribute [instance] ResourceTransformers.TypeAssumptions.type_repr
   ResourceTransformers.TypeAssumptions.underlying
   ResourceTransformers.TypeAssumptions.isUnderlying
+  ResourceTransformers.TypeAssumptions.method_set
+  ResourceTransformers.TypeAssumptions.ptr_method_set
 
 abbrev DefaultContext [GooseExts] : Type := GoSlice
 
@@ -247,8 +271,12 @@ abbrev DefaultContext [GooseExts] : Type := GoSlice
 
 class DefaultContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DefaultContext.ty DefaultContext.underlying
+  method_set : go.MethodSetIs DefaultContext.ty [(go!"AuthenticatedData", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DefaultContext.ty) [(go!"AuthenticatedData", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])))]
 
 attribute [instance] DefaultContext.TypeAssumptions.underlying
+  DefaultContext.TypeAssumptions.method_set
+  DefaultContext.TypeAssumptions.ptr_method_set
 
 structure PrefixTransformer [GooseExts] where
   mk ::
@@ -279,6 +307,8 @@ class PrefixTransformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_Prefix : ∀ (x : PrefixTransformer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PrefixTransformer.underlying go!"Prefix") (PairV #x #y) (Val #(({ x with Prefix' := y } : PrefixTransformer)))
   get_Transformer : ∀ (x : PrefixTransformer), go.IsGoStepPureDetTagged under (StructFieldGet PrefixTransformer.underlying go!"Transformer") #x (Val #(x.Transformer'))
   set_Transformer : ∀ (x : PrefixTransformer) (y : Transformer), go.IsGoStepPureDetTagged under (StructFieldSet PrefixTransformer.underlying go!"Transformer") (PairV #x #y) (Val #(({ x with Transformer' := y } : PrefixTransformer)))
+  method_set : go.MethodSetIs PrefixTransformer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PrefixTransformer.ty) []
 
 attribute [instance] PrefixTransformer.TypeAssumptions.type_repr
   PrefixTransformer.TypeAssumptions.underlying
@@ -286,6 +316,8 @@ attribute [instance] PrefixTransformer.TypeAssumptions.type_repr
   PrefixTransformer.TypeAssumptions.set_Prefix
   PrefixTransformer.TypeAssumptions.get_Transformer
   PrefixTransformer.TypeAssumptions.set_Transformer
+  PrefixTransformer.TypeAssumptions.method_set
+  PrefixTransformer.TypeAssumptions.ptr_method_set
 
 structure prefixTransformers [GooseExts] where
   mk ::
@@ -316,6 +348,8 @@ class prefixTransformers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_transformers : ∀ (x : prefixTransformers) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet prefixTransformers.underlying go!"transformers") (PairV #x #y) (Val #(({ x with transformers' := y } : prefixTransformers)))
   get_err : ∀ (x : prefixTransformers), go.IsGoStepPureDetTagged under (StructFieldGet prefixTransformers.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : prefixTransformers) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet prefixTransformers.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : prefixTransformers)))
+  method_set : go.MethodSetIs prefixTransformers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType prefixTransformers.ty) [(go!"TransformFromStorage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
 
 attribute [instance] prefixTransformers.TypeAssumptions.type_repr
   prefixTransformers.TypeAssumptions.underlying
@@ -323,6 +357,8 @@ attribute [instance] prefixTransformers.TypeAssumptions.type_repr
   prefixTransformers.TypeAssumptions.set_transformers
   prefixTransformers.TypeAssumptions.get_err
   prefixTransformers.TypeAssumptions.set_err
+  prefixTransformers.TypeAssumptions.method_set
+  prefixTransformers.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   gRPCError_instance : gRPCError.TypeAssumptions

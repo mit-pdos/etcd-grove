@@ -34,15 +34,20 @@ theorem rafthttp.Transport.RemovePeer.wp_proof
     (hZString : zap.String.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.RemovePeer.spec (GF := GF) (hG := hG) := by
   intro γn t c rs id
-  wp_start_folded as Hl
+  wp_start_folded as ⟨Hl, Htk⟩
   iunfold trLive at Hl
   icases Hl with ⟨#Hst, Hg⟩
   ihave #Hst' := Hst
   iunfold trState at Hst'
   icases Hst' with ⟨#Hfix, #Hprb, #Hstp, #Hgd, -⟩
   wp_apply (rafthttp.Transport.RemovePeer_core hPeerStop hIDStringPtr hInfo hWarn hZString (netRh γn) t c.lid
-      c.γd c.R c.γs c.γr c.L rs id) $$ [Hg] as Hg
+      c.γd c.R c.γs c.γr c.L c.γk c.γo rs id) $$ [Hg Htk] as Hg
   · iframe; iframe #
+    iunfold trNoRemOr at Htk; iunfold trNoRem at Htk
+    icases Htk with (%Hn | (%Hn | Htok))
+    · ileft; ipureintro; exact Or.inr Hn
+    · ileft; ipureintro; exact Or.inl Hn
+    · iright; iexact Htok
   iapply HΦ
   iunfold trLive
   iframe #

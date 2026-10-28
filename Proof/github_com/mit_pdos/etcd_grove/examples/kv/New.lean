@@ -27,8 +27,8 @@ variable [KVStor GF]
 
 theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro γr γn id n st send c0
-  wp_start as ⟨#Hinv, Hdrv, %Hraft, %Hmd, Hncfg, %Hstor, #Hsrec, #Hc0, Hseq, Hrs, #Hsend⟩
+  intro γr id n st send
+  wp_start as ⟨#Hinv, #HisNode, Hdrv, #Hstatic, #Hxfer, #Hsrec, Hseq, Hrs, #Hsend⟩
   wp_auto
   wp_apply wp_map_make1 (K := List w8) (V := List w8) as %mK HK
   wp_apply wp_map_make1 (K := List w8) (V := List w8) as %mA HA
@@ -38,7 +38,7 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
   ipersist id
   ipersist node
   ipersist storage
-  imod sync.init_Mutex (lockInv γr ⟨γn⟩ id «$r0_ptr») ⊤
+  imod sync.init_Mutex (lockInv γr ⟨⟩ id «$r0_ptr») ⊤
     («$r0_ptr».[RKV, go!"mu"]) $$ mu [nextSeq waiters HW Hseq reads HRd] with #Hmu
   · inext
     unfold lockInv
@@ -60,38 +60,30 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
     · ipureintro; intro s ch Hs; cases Hs
     iapply BigSepM.bigSepM_empty.2
     itrivial
-  icases nodeDriver_isNode _ _ _ _ _ $$ Hdrv with ⟨Hdrv, #HisNode⟩
-  ihave #Hrep : isReplica γr ⟨γn⟩ «$r0_ptr» id n st $$ []
+  ihave #Hrep : isReplica γr ⟨⟩ «$r0_ptr» id n st $$ []
   · unfold isReplica
     simp only [named]
     iframe #
-    ipureintro; exact ⟨Hraft, Hstor, Hmd.2.2.1⟩
-  wp_apply wp_fork $$ [Hdrv kv HK applied HA Hncfg Hrs]
-  · wp_apply wp_run γr ⟨γn⟩ «$r0_ptr» id n st send c0
-      $$ [$Hpkg $Hrep Hdrv kv HK applied HA Hncfg Hrs]
+  ihave #Hc0 := isCommittedLogLb_nil (GF := GF) γr.cluster
+  wp_apply wp_fork $$ [Hdrv kv HK applied HA Hrs]
+  · wp_apply wp_run γr ⟨⟩ «$r0_ptr» id n st send
+      $$ [$Hpkg $Hrep Hdrv kv HK applied HA Hrs]
     · iframe #
       iframe Hrs
-      isplitr
-      · ipureintro; exact Hmd
-      iframe Hncfg
       iframe Hdrv
       unfold runOwn
       iexists mK, ∅, mA, ∅, []
       simp only [named]
       iframe kv HK applied HA Hc0
-      isplitl []
-      · iapply BigSepL2.bigSepL2_nil.2; itrivial
       ipureintro
-      refine ⟨?_, ?_⟩
-      · intro k; simp [firstOcc, kvFold, kvEmpty]
+      refine ⟨rfl, ?_, ?_⟩
+      · intro k; simp [histOf, kvFold, kvEmpty]
       · refine ⟨fun d => ?_, fun d v h => ?_⟩
-        · simp [firstOcc]
+        · simp [histOf]
         · simp at h
     itrivial
   iapply HΦ
-  iexists ⟨γn⟩
-  isplitr
-  · ipureintro; rfl
+  iexists ⟨⟩
   unfold isKV
   iexists id, n, st
   iexact Hrep

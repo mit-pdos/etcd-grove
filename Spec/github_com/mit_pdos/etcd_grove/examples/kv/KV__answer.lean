@@ -32,16 +32,16 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.answer.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
-    (ap : List EntryM) (psl : GoSlice) (ps : List ReadState) (dq : DFrac) (applied : w64),
+    (ap : List LogEntry) (psl : GoSlice) (ps : List ReadState) (dq : DFrac) (applied : w64),
   uint.Z applied ≤ (ap.length : Int) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isReplica γr γp r id n st ∗ runOwn γr r ap ∗
-      psl ↦*{dq} ps ∗ [∗list] v ∈ ps, rsOk γr.raft v }}
+      psl ↦*{dq} ps ∗ [∗list] v ∈ ps, rsOk γr.cluster v }}
     (App (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"answer")) (Val #psl))
       (Val #applied))
   {{ (rest : GoSlice), RET #rest; runOwn γr r ap ∗
       ∃ ps' : List ReadState, rest ↦* ps' ∗ ownSliceCap ReadState rest (DFrac.own 1) ∗
-        [∗list] v ∈ ps', rsOk γr.raft v }}
+        [∗list] v ∈ ps', rsOk γr.cluster v }}
 
 end spec
 

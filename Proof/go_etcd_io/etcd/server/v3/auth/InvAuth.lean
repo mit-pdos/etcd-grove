@@ -843,10 +843,10 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val) (
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
       {{ RET #(); Lk (delUser st name) X }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec),
-      {{ Lk st X ∗ ownRole r rr ∗ ⌜rr.name.length ≤ backend.maxKeySize⌝ }}
+    □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role),
+      {{ Lk st X ∗ ownRole r rr ∗ ⌜rr.name.length ≤ backend.maxKeySize ∧ rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
-      {{ RET #(); Lk (putRole st rr.name rr.toRole) X ∗ ownRole r rr }}) ∗
+      {{ RET #(); Lk (putRole st rr.name ps) X ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
       {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X }}) ∗
@@ -898,10 +898,10 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val) 
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
       {{ RET #(); Lk (delUser st name) X }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec),
-      {{ Lk st X ∗ ownRole r rr ∗ ⌜rr.name.length ≤ backend.maxKeySize⌝ }}
+    □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role),
+      {{ Lk st X ∗ ownRole r rr ∗ ⌜rr.name.length ≤ backend.maxKeySize ∧ rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
-      {{ RET #(); Lk (putRole st rr.name rr.toRole) X ∗ ownRole r rr }}) ∗
+      {{ RET #(); Lk (putRole st rr.name ps) X ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
       {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X }}) ∗
@@ -1625,7 +1625,7 @@ theorem roleOut_null (st : AuthState) (name : GoString) :
 /-- `UnsafeGetRole(name)` returned a message: the state's role. -/
 theorem roleOut_some (r : Loc) (st : AuthState) (name : GoString) (hnn : r ≠ null) :
     roleOut (GF := GF) r st name ⊢ ∃ (ps : Role) (rr : RoleRec),
-      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole = ps⌝ ∗ ownRole r rr := by
+      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRole r rr := by
   unfold roleOut
   cases h : st.roles !! name with
   | none => iintro %Hn; exact absurd Hn hnn

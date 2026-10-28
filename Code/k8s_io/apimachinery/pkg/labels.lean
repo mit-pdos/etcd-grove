@@ -256,8 +256,12 @@ abbrev Labels [GooseExts] : Type := GoInterface
 
 class Labels.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Labels.ty Labels.underlying
+  method_set : go.MethodSetIs Labels.ty [(go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Labels.ty) []
 
 attribute [instance] Labels.TypeAssumptions.underlying
+  Labels.TypeAssumptions.method_set
+  Labels.TypeAssumptions.ptr_method_set
 
 abbrev Set' [GooseExts] : Type := GoMap
 
@@ -266,8 +270,12 @@ abbrev Set' [GooseExts] : Type := GoMap
 
 class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Set'.ty Set'.underlying
+  method_set : go.MethodSetIs Set'.ty [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Set.TypeAssumptions.underlying
+  Set.TypeAssumptions.method_set
+  Set.TypeAssumptions.ptr_method_set
 
 abbrev Requirements [GooseExts] : Type := GoSlice
 
@@ -276,8 +284,12 @@ abbrev Requirements [GooseExts] : Type := GoSlice
 
 class Requirements.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Requirements.ty Requirements.underlying
+  method_set : go.MethodSetIs Requirements.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Requirements.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Requirements.TypeAssumptions.underlying
+  Requirements.TypeAssumptions.method_set
+  Requirements.TypeAssumptions.ptr_method_set
 
 abbrev Selector [GooseExts] : Type := GoInterface
 
@@ -286,8 +298,12 @@ abbrev Selector [GooseExts] : Type := GoInterface
 
 class Selector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Selector.ty Selector.underlying
+  method_set : go.MethodSetIs Selector.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Selector.ty) []
 
 attribute [instance] Selector.TypeAssumptions.underlying
+  Selector.TypeAssumptions.method_set
+  Selector.TypeAssumptions.ptr_method_set
 
 structure nothingSelector [GooseExts] where
   mk ::
@@ -311,9 +327,13 @@ noncomputable instance equals_unfold_nothingSelector [GooseExts] [GoGlobalContex
 class nothingSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nothingSelector.underlying nothingSelector
   underlying : go.UnderlyingDirectedEq nothingSelector.ty nothingSelector.underlying
+  method_set : go.MethodSetIs nothingSelector.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nothingSelector.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] nothingSelector.TypeAssumptions.type_repr
   nothingSelector.TypeAssumptions.underlying
+  nothingSelector.TypeAssumptions.method_set
+  nothingSelector.TypeAssumptions.ptr_method_set
 
 abbrev internalSelector [GooseExts] : Type := GoSlice
 
@@ -322,8 +342,12 @@ abbrev internalSelector [GooseExts] : Type := GoSlice
 
 class internalSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq internalSelector.ty internalSelector.underlying
+  method_set : go.MethodSetIs internalSelector.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopy", (some (go.signature.Signature [] false [internalSelector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType internalSelector.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopy", (some (go.signature.Signature [] false [internalSelector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] internalSelector.TypeAssumptions.underlying
+  internalSelector.TypeAssumptions.method_set
+  internalSelector.TypeAssumptions.ptr_method_set
 
 abbrev ByKey [GooseExts] : Type := GoSlice
 
@@ -332,8 +356,12 @@ abbrev ByKey [GooseExts] : Type := GoSlice
 
 class ByKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ByKey.ty ByKey.underlying
+  method_set : go.MethodSetIs ByKey.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ByKey.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] ByKey.TypeAssumptions.underlying
+  ByKey.TypeAssumptions.method_set
+  ByKey.TypeAssumptions.ptr_method_set
 
 axiom Requirement : Type
 axiom Requirement.zero_val : ZeroVal Requirement
@@ -343,10 +371,14 @@ class Requirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Requirement.underlying Requirement
   underlying : go.UnderlyingDirectedEq Requirement.ty Requirement.underlying
   isUnderlying : go.IsUnderlying Requirement.underlying Requirement.underlying
+  method_set : go.MethodSetIs Requirement.ty [(go!"Equal", (some (go.signature.Signature [Requirement.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Requirement.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Requirement.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Requirement.ty)] false []))), (go!"Equal", (some (go.signature.Signature [Requirement.ty] false [go.bool]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Operator", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/selection.Operator" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.String" [])]))), (go!"ValuesUnsorted", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"k8s.io/apimachinery/pkg/labels.hasValue", (some (go.signature.Signature [go.string] false [go.bool])))]
 
 attribute [instance] Requirement.TypeAssumptions.type_repr
   Requirement.TypeAssumptions.underlying
   Requirement.TypeAssumptions.isUnderlying
+  Requirement.TypeAssumptions.method_set
+  Requirement.TypeAssumptions.ptr_method_set
 
 abbrev Token [GooseExts] : Type := w64
 
@@ -355,8 +387,12 @@ abbrev Token [GooseExts] : Type := w64
 
 class Token.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Token.ty Token.underlying
+  method_set : go.MethodSetIs Token.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Token.ty) []
 
 attribute [instance] Token.TypeAssumptions.underlying
+  Token.TypeAssumptions.method_set
+  Token.TypeAssumptions.ptr_method_set
 
 structure ScannedItem [GooseExts] where
   mk ::
@@ -387,6 +423,8 @@ class ScannedItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_tok : ∀ (x : ScannedItem) (y : Token), go.IsGoStepPureDetTagged under (StructFieldSet ScannedItem.underlying go!"tok") (PairV #x #y) (Val #(({ x with tok' := y } : ScannedItem)))
   get_literal : ∀ (x : ScannedItem), go.IsGoStepPureDetTagged under (StructFieldGet ScannedItem.underlying go!"literal") #x (Val #(x.literal'))
   set_literal : ∀ (x : ScannedItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ScannedItem.underlying go!"literal") (PairV #x #y) (Val #(({ x with literal' := y } : ScannedItem)))
+  method_set : go.MethodSetIs ScannedItem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScannedItem.ty) []
 
 attribute [instance] ScannedItem.TypeAssumptions.type_repr
   ScannedItem.TypeAssumptions.underlying
@@ -394,6 +432,8 @@ attribute [instance] ScannedItem.TypeAssumptions.type_repr
   ScannedItem.TypeAssumptions.set_tok
   ScannedItem.TypeAssumptions.get_literal
   ScannedItem.TypeAssumptions.set_literal
+  ScannedItem.TypeAssumptions.method_set
+  ScannedItem.TypeAssumptions.ptr_method_set
 
 structure Lexer [GooseExts] where
   mk ::
@@ -424,6 +464,8 @@ class Lexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_s : ∀ (x : Lexer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Lexer.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Lexer)))
   get_pos : ∀ (x : Lexer), go.IsGoStepPureDetTagged under (StructFieldGet Lexer.underlying go!"pos") #x (Val #(x.pos'))
   set_pos : ∀ (x : Lexer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lexer.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : Lexer)))
+  method_set : go.MethodSetIs Lexer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lexer.ty) [(go!"Lex", (some (go.signature.Signature [] false [Token.ty, go.string]))), (go!"k8s.io/apimachinery/pkg/labels.read", (some (go.signature.Signature [] false [go.byte]))), (go!"k8s.io/apimachinery/pkg/labels.scanIDOrKeyword", (some (go.signature.Signature [] false [Token.ty, go.string]))), (go!"k8s.io/apimachinery/pkg/labels.scanSpecialSymbol", (some (go.signature.Signature [] false [Token.ty, go.string]))), (go!"k8s.io/apimachinery/pkg/labels.skipWhiteSpaces", (some (go.signature.Signature [go.byte] false [go.byte]))), (go!"k8s.io/apimachinery/pkg/labels.unread", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Lexer.TypeAssumptions.type_repr
   Lexer.TypeAssumptions.underlying
@@ -431,6 +473,8 @@ attribute [instance] Lexer.TypeAssumptions.type_repr
   Lexer.TypeAssumptions.set_s
   Lexer.TypeAssumptions.get_pos
   Lexer.TypeAssumptions.set_pos
+  Lexer.TypeAssumptions.method_set
+  Lexer.TypeAssumptions.ptr_method_set
 
 axiom Parser : Type
 axiom Parser.zero_val : ZeroVal Parser
@@ -440,10 +484,14 @@ class Parser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Parser.underlying Parser
   underlying : go.UnderlyingDirectedEq Parser.ty Parser.underlying
   isUnderlying : go.IsUnderlying Parser.underlying Parser.underlying
+  method_set : go.MethodSetIs Parser.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Parser.ty) [(go!"k8s.io/apimachinery/pkg/labels.consume", (some (go.signature.Signature [ParserContext.ty] false [Token.ty, go.string]))), (go!"k8s.io/apimachinery/pkg/labels.lookahead", (some (go.signature.Signature [ParserContext.ty] false [Token.ty, go.string]))), (go!"k8s.io/apimachinery/pkg/labels.parse", (some (go.signature.Signature [] false [internalSelector.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/labels.parseExactValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.String" []), go.error]))), (go!"k8s.io/apimachinery/pkg/labels.parseIdentifiersList", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.String" []), go.error]))), (go!"k8s.io/apimachinery/pkg/labels.parseKeyAndInferOperator", (some (go.signature.Signature [] false [go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/selection.Operator" []), go.error]))), (go!"k8s.io/apimachinery/pkg/labels.parseOperator", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/selection.Operator" []), go.error]))), (go!"k8s.io/apimachinery/pkg/labels.parseRequirement", (some (go.signature.Signature [] false [(go.GoType.PointerType Requirement.ty), go.error]))), (go!"k8s.io/apimachinery/pkg/labels.parseValues", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.String" []), go.error]))), (go!"k8s.io/apimachinery/pkg/labels.scan", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Parser.TypeAssumptions.type_repr
   Parser.TypeAssumptions.underlying
   Parser.TypeAssumptions.isUnderlying
+  Parser.TypeAssumptions.method_set
+  Parser.TypeAssumptions.ptr_method_set
 
 abbrev ParserContext [GooseExts] : Type := w64
 
@@ -452,8 +500,12 @@ abbrev ParserContext [GooseExts] : Type := w64
 
 class ParserContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ParserContext.ty ParserContext.underlying
+  method_set : go.MethodSetIs ParserContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ParserContext.ty) []
 
 attribute [instance] ParserContext.TypeAssumptions.underlying
+  ParserContext.TypeAssumptions.method_set
+  ParserContext.TypeAssumptions.ptr_method_set
 
 abbrev ValidatedSetSelector [GooseExts] : Type := Set'
 
@@ -462,8 +514,12 @@ abbrev ValidatedSetSelector [GooseExts] : Type := Set'
 
 class ValidatedSetSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ValidatedSetSelector.ty ValidatedSetSelector.underlying
+  method_set : go.MethodSetIs ValidatedSetSelector.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/apimachinery/pkg/labels.toFullSelector", (some (go.signature.Signature [] false [Selector.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValidatedSetSelector.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/apimachinery/pkg/labels.toFullSelector", (some (go.signature.Signature [] false [Selector.ty])))]
 
 attribute [instance] ValidatedSetSelector.TypeAssumptions.underlying
+  ValidatedSetSelector.TypeAssumptions.method_set
+  ValidatedSetSelector.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Labels_instance : Labels.TypeAssumptions

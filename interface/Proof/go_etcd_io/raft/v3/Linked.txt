@@ -41,8 +41,8 @@ theorem RaftLink.MemoryStorage.wp_FirstIndex [package_sem : Assumptions] :
 
 theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
   -- `Perennial.EtcdGrove.RestartNode.spec`, unfolded:
-  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (sn : Bool),
+  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState)
+    (hs : HardStateM) (csm : ConfStateM),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -58,82 +58,63 @@ theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
                             uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev →
                               σ.pend = [] →
                                 HsEmpty hs →
-                                  csm.Voters' ≠ [] →
-                                    csm.Voters'.Nodup →
-                                      ¬W64 0 ∈ csm.Voters' →
-                                        ↑csm.Voters'.length ≤ 2 ^ 62 →
-                                          csm.VotersOutgoing' = [] →
-                                            csm.Learners' = [] →
-                                              csm.LearnersNext' = [] →
-                                                csm.AutoLeave' = false →
-                                                  γ.reCfg = listToSet csm.Voters' →
-                                                    cv.ID' ∈ csm.Voters' →
-                                                      σ.fl = W64 0 →
-                                                        (sn = true → γ.reNoSnap = false ∧ md = RNMode.static) →
-                                                          ⊢
-                                                            ∀ Φ,
-                                                              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                                                  typedPointsto c cv (DFrac.own 1) ∗
-                                                                    isLogger lok ∗
-                                                                      isStorage (GoInterface.ok si) ∗
-                                                                        ownStorage (GoInterface.ok si) σ ∗
-                                                                          (□
-                                                                              ∀ Φ ss',
-                                                                                ownStorage (GoInterface.ok si)
-                                                                                    { prev := σ.prev, ents := σ.ents,
-                                                                                      ss := ss', pend := σ.pend,
-                                                                                      scs := σ.scs, sal := σ.sal,
-                                                                                      sdat := σ.sdat, fl := σ.fl } -∗
-                                                                                  (∀ hp cs al,
-                                                                                      ownStorage (GoInterface.ok si)
-                                                                                          { prev := σ.prev,
-                                                                                            ents := σ.ents, ss := ss',
-                                                                                            pend := σ.pend, scs := σ.scs,
-                                                                                            sal := σ.sal, sdat := σ.sdat,
-                                                                                            fl := σ.fl } -∗
-                                                                                        hsOpt hp hs -∗
-                                                                                          csPts cs DFrac.discard csm al -∗
-                                                                                            Φ
-                                                                                              ((intoVal hp, intoVal cs),
-                                                                                                intoVal
-                                                                                                  GoInterface.nil)) -∗
-                                                                                    WP
-                                                                                      ((intoVal
-                                                                                          (methods si.ty
-                                                                                            go!"InitialState"
-                                                                                            si.v))
-                                                                                        (intoVal ()))
-                                                                                      {{ Φ }}) ∗
-                                                                            rnInit γ md cv.ID' (listToSet csm.Voters') ∗
-                                                                              isCommitted γ [] ∗
-                                                                                inv budgetN (budgetInv bud) ∗
-                                                                                  termLB bud (W64 0) ∗
-                                                                                    certLink γ (GoInterface.ok si) -∗
-                                                                (▷
-                                                                    ∀ nd,
-                                                                      (∃ γn n,
-                                                                          ⌜γn.raft = γ ∧
-                                                                                γn.bud = bud ∧
-                                                                                  γn.stor = GoInterface.ok si ∧
-                                                                                    γn.mode = md ∧
-                                                                                      γn.snapIn = sn ∧
-                                                                                        nd =
-                                                                                          interface.mkOk
-                                                                                            node.ty.PointerType
-                                                                                            (intoVal n)⌝ ∗
-                                                                            isNode γn cv.ID' n ∗
-                                                                              nodeDriver γn cv.ID' n [] hsZero ∗
-                                                                                nodeCfg γn 0
-                                                                                  (cfgState (listToSet csm.Voters') ∅)) -∗
-                                                                        Φ (intoVal nd)) -∗
-                                                                  WP ((intoVal (functions RestartNode [])) (intoVal c))
-                                                                    {{ Φ }}
+                                  csm.Voters' = vs →
+                                    csm.VotersOutgoing' = [] →
+                                      csm.Learners' = [] →
+                                        csm.LearnersNext' = [] →
+                                          csm.AutoLeave' = false →
+                                            cv.ID' ∈ vs →
+                                              σ.fl = W64 0 →
+                                                ⊢
+                                                  ∀ Φ,
+                                                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                                        typedPointsto c cv (DFrac.own 1) ∗
+                                                          isLogger lok ∗
+                                                            isStorage (GoInterface.ok si) ∗
+                                                              ownStorage (GoInterface.ok si) σ ∗
+                                                                (□
+                                                                    ∀ Φ ss',
+                                                                      ownStorage (GoInterface.ok si)
+                                                                          { prev := σ.prev, ents := σ.ents, ss := ss',
+                                                                            pend := σ.pend, scs := σ.scs, sal := σ.sal,
+                                                                            sdat := σ.sdat, fl := σ.fl } -∗
+                                                                        (∀ hp cs al,
+                                                                            ownStorage (GoInterface.ok si)
+                                                                                { prev := σ.prev, ents := σ.ents,
+                                                                                  ss := ss', pend := σ.pend, scs := σ.scs,
+                                                                                  sal := σ.sal, sdat := σ.sdat,
+                                                                                  fl := σ.fl } -∗
+                                                                              hsOpt hp hs -∗
+                                                                                csPts cs DFrac.discard csm al -∗
+                                                                                  Φ
+                                                                                    ((intoVal hp, intoVal cs),
+                                                                                      intoVal GoInterface.nil)) -∗
+                                                                          WP
+                                                                            ((intoVal
+                                                                                (methods si.ty
+                                                                                  go!"InitialState"
+                                                                                  si.v))
+                                                                              (intoVal ()))
+                                                                            {{ Φ }}) ∗
+                                                                  nodeRestartBoot γ N vs cv.ID' ∗
+                                                                    storageCertLink γ N (GoInterface.ok si) -∗
+                                                      (▷
+                                                          ∀ nd,
+                                                            (∃ n,
+                                                                ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                                  isNode n γ N cv.ID' ∗
+                                                                    nodeDriver n γ N
+                                                                      (NodeDriverState.init (GoInterface.ok si))) -∗
+                                                              Φ (intoVal nd)) -∗
+                                                        WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
+
+theorem RaftLink.wp_StartNode_dynamic [package_sem : Assumptions] : StartNode.dynamicSpec
 
 theorem RaftLink.wp_StartNode [package_sem : Assumptions] : StartNode.spec
   -- `Perennial.EtcdGrove.StartNode.spec`, unfolded:
-  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64)
-    (ctxs : List (List w8)) (bootLog : List EntryM) (sn : Bool),
+  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState) (hs : HardStateM)
+    (csm : ConfStateM) (R : IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64)
+    (ctxs : List (List w8)),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -160,94 +141,61 @@ theorem RaftLink.wp_StartNode [package_sem : Assumptions] : StartNode.spec
                                                   ¬W64 0 ∈ ps →
                                                     ↑ps.length ≤ 2 ^ 62 →
                                                       cv.ID' ∈ ps →
-                                                        γ.reCfg = listToSet ps →
-                                                          γ.reBoot = bootLog →
-                                                            BootLogOk γ.reCCOk ps bootLog →
-                                                              σ.fl = W64 0 →
-                                                                (sn = true → γ.reNoSnap = false ∧ md = RNMode.static) →
-                                                                  ⊢
-                                                                    ∀ Φ,
-                                                                      isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                                                          typedPointsto c cv (DFrac.own 1) ∗
-                                                                            isLogger lok ∗
-                                                                              isStorage (GoInterface.ok si) ∗
-                                                                                ownStorage (GoInterface.ok si) σ ∗
-                                                                                  (∀ Φ ss',
-                                                                                      ownStorage (GoInterface.ok si)
-                                                                                          { prev := σ.prev,
-                                                                                            ents := σ.ents, ss := ss',
-                                                                                            pend := σ.pend, scs := σ.scs,
-                                                                                            sal := σ.sal, sdat := σ.sdat,
-                                                                                            fl := σ.fl } -∗
-                                                                                        (∀ hp cs al,
-                                                                                            ownStorage (GoInterface.ok si)
-                                                                                                { prev := σ.prev,
-                                                                                                  ents := σ.ents,
-                                                                                                  ss := ss',
-                                                                                                  pend := σ.pend,
-                                                                                                  scs := σ.scs,
-                                                                                                  sal := σ.sal,
-                                                                                                  sdat := σ.sdat,
-                                                                                                  fl := σ.fl } -∗
-                                                                                              R -∗
-                                                                                                hsOpt hp hs -∗
-                                                                                                  csPts cs DFrac.discard
-                                                                                                      csm al -∗
-                                                                                                    Φ
-                                                                                                      ((intoVal hp,
-                                                                                                          intoVal cs),
-                                                                                                        intoVal
-                                                                                                          GoInterface.nil)) -∗
-                                                                                          WP
-                                                                                            ((intoVal
-                                                                                                (methods si.ty
-                                                                                                  go!"InitialState"
-                                                                                                  si.v))
-                                                                                              (intoVal ()))
-                                                                                            {{ Φ }}) ∗
-                                                                                    ownSlice peers pv dq ∗
-                                                                                      peersCtx pv ctxs ∗
-                                                                                        bootMarshal ps ctxs bootLog ∗
-                                                                                          bootInit γ md cv.ID'
-                                                                                              (listToSet ps) bootLog ∗
-                                                                                            isCommitted γ bootLog ∗
-                                                                                              inv budgetN
-                                                                                                  (budgetInv bud) ∗
-                                                                                                termLB bud (W64 1) ∗
-                                                                                                  NsCap γ.reNoSnap
-                                                                                                      (GoInterface.ok
-                                                                                                        si) ∗
-                                                                                                    certLink γ
-                                                                                                      (GoInterface.ok
-                                                                                                        si) -∗
-                                                                        (▷
-                                                                            ∀ nd,
-                                                                              (R ∗
-                                                                                  ∃ γn n,
-                                                                                    ⌜γn.raft = γ ∧
-                                                                                          γn.bud = bud ∧
-                                                                                            γn.stor = GoInterface.ok si ∧
-                                                                                              γn.mode = md ∧
-                                                                                                γn.snapIn = sn ∧
-                                                                                                  nd =
-                                                                                                    interface.mkOk
-                                                                                                      node.ty.PointerType
-                                                                                                      (intoVal n)⌝ ∗
-                                                                                      ⌜md = RNMode.static ↔
-                                                                                            γ.reDyn = none⌝ ∗
-                                                                                        isNode γn cv.ID' n ∗
-                                                                                          nodeDriver γn cv.ID' n []
-                                                                                              hsZero ∗
-                                                                                            nodeCfg γn 0
-                                                                                                (cfgState (listToSet ps)
-                                                                                                  ∅) ∗
-                                                                                              ownSlice peers pv dq) -∗
-                                                                                Φ (intoVal nd)) -∗
-                                                                          WP
-                                                                            (((intoVal (functions StartNode []))
-                                                                                (intoVal c))
-                                                                              (intoVal peers))
-                                                                            {{ Φ }}
+                                                        σ.fl = W64 0 →
+                                                          ⊢
+                                                            ∀ Φ,
+                                                              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                                                  typedPointsto c cv (DFrac.own 1) ∗
+                                                                    isLogger lok ∗
+                                                                      isStorage (GoInterface.ok si) ∗
+                                                                        ownStorage (GoInterface.ok si) σ ∗
+                                                                          (∀ Φ ss',
+                                                                              ownStorage (GoInterface.ok si)
+                                                                                  { prev := σ.prev, ents := σ.ents,
+                                                                                    ss := ss', pend := σ.pend,
+                                                                                    scs := σ.scs, sal := σ.sal,
+                                                                                    sdat := σ.sdat, fl := σ.fl } -∗
+                                                                                (∀ hp cs al,
+                                                                                    ownStorage (GoInterface.ok si)
+                                                                                        { prev := σ.prev, ents := σ.ents,
+                                                                                          ss := ss', pend := σ.pend,
+                                                                                          scs := σ.scs, sal := σ.sal,
+                                                                                          sdat := σ.sdat, fl := σ.fl } -∗
+                                                                                      R -∗
+                                                                                        hsOpt hp hs -∗
+                                                                                          csPts cs DFrac.discard csm al -∗
+                                                                                            Φ
+                                                                                              ((intoVal hp, intoVal cs),
+                                                                                                intoVal
+                                                                                                  GoInterface.nil)) -∗
+                                                                                  WP
+                                                                                    ((intoVal
+                                                                                        (methods si.ty
+                                                                                          go!"InitialState"
+                                                                                          si.v))
+                                                                                      (intoVal ()))
+                                                                                    {{ Φ }}) ∗
+                                                                            ownSlice peers pv dq ∗
+                                                                              peersCtx pv ctxs ∗
+                                                                                nodeBoot γ N ps ctxs cv.ID' ∗
+                                                                                  storageCertLink γ N
+                                                                                    (GoInterface.ok si) -∗
+                                                                (▷
+                                                                    ∀ nd,
+                                                                      (R ∗
+                                                                          ∃ n,
+                                                                            ⌜nd =
+                                                                                  interface.mkOk node.ty.PointerType
+                                                                                    (intoVal n)⌝ ∗
+                                                                              isNode n γ N cv.ID' ∗
+                                                                                nodeDriver n γ N
+                                                                                  (NodeDriverState.init
+                                                                                    (GoInterface.ok si))) -∗
+                                                                        Φ (intoVal nd)) -∗
+                                                                  WP
+                                                                    (((intoVal (functions StartNode [])) (intoVal c))
+                                                                      (intoVal peers))
+                                                                    {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_LastIndex [package_sem : Assumptions] :
     MemoryStorage.LastIndex.spec
@@ -301,6 +249,9 @@ theorem RaftLink.MemoryStorage.wp_Entries [package_sem : Assumptions] : MemorySt
                 (intoVal maxSize))
               {{ Φ }}
 
+theorem RaftLink.node.wp_ApplyConfChange_dynamic [package_sem : Assumptions] :
+    node.ApplyConfChange.dynamicSpec
+
 theorem RaftLink.wp_IsEmptySnap [package_sem : Assumptions] : IsEmptySnap.spec
   -- `Perennial.EtcdGrove.IsEmptySnap.spec`, unfolded:
   ∀ (sp : Loc) (dq : DFrac) (o : Option SnapshotM),
@@ -309,6 +260,8 @@ theorem RaftLink.wp_IsEmptySnap [package_sem : Assumptions] : IsEmptySnap.spec
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hsp" ∷ snapOpt sp dq o -∗
           (▷ ∀ b, ⌜b = o.elim true fun sv => decide (sv.Metadata'.Index' = W64 0)⌝ ∗ snapOpt sp dq o -∗ Φ (intoVal b)) -∗
             WP ((intoVal (functions IsEmptySnap [])) (intoVal sp)) {{ Φ }}
+
+theorem RaftLink.node.wp_Advance_dynamic [package_sem : Assumptions] : node.Advance.dynamicSpec
 
 theorem RaftLink.wp_NewMemoryStorage [package_sem : Assumptions] : NewMemoryStorage.spec
   -- `Perennial.EtcdGrove.NewMemoryStorage.spec`, unfolded:

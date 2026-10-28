@@ -30,7 +30,7 @@ theorem raftNode.onStop.wp_proof :
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI⟩
+  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI, -⟩
   subst Hnieq
   iunfold isRNTicker at Htki
   icases Htki with ⟨%c, #Hc, #Hcc, #HtkStop⟩
@@ -38,7 +38,7 @@ theorem raftNode.onStop.wp_proof :
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
   subst Htieq
   iunfold isRNWal at Hsti
-  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose⟩
+  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, -, -⟩
   subst Hsieq
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', #Hdnc', Hbc⟩

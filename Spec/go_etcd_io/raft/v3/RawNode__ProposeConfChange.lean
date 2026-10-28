@@ -18,8 +18,16 @@ The entry's data is recorded as a proposed slice (`isPropData`, with its decodin
 proposal's protocol message carries it (`isMessage`, `entData`), so that a leader the
 proposal is forwarded to can read the bytes back (`node.run`, from the proposed slices'
 invariant, `propData_ccEnts`). The caller provides the recording (`"#Hreg"`: what
-`propData_register` gives with the invariant, `InvNode.lean`). A conf-change entry is no
-client operation: its data is outside the client log (`entDataIs`, `none`).
+`propData_register` gives with the invariant, `InvNode.lean`).
+
+**Tracked (2026-10-27).** A conf-change entry is a proposal like a normal one, registered under
+its key `entKey ty bs` (its type and bytes): the caller hands in `ccPropArg γ o`, which, once the
+change is marshaled to `bs`, gives the key's registration (`propIs`) and the update `propAu1` for
+it -- deposited before the proposal leaves (`cc_propose_ghost`), its ticket travelling with the
+proposal, fired at most once when the entry commits -- or nothing, when the entry is a filler (an
+empty `ConfChangeV2`). A refused change's ticket is dropped with it (`stepLeader` appends an empty
+normal entry in its place, a filler), and its update never fires. Until 2026-10-27 a conf-change
+entry was no client operation (`entDataIs`, `none`, by the cluster's policy `CCAllowed`).
 (2026-10-16, stage R5, D6: the entry's record holds its bytes, so the protocol message carries
 them and a leader decodes them from the record (`entData_cc`, `ccEntsOk_cc`, pure); the
 recording and `"#Hreg"` are gone.)
@@ -74,34 +82,45 @@ theorem ccData_decodes (o : ConfChangeIM) (bs : List w8) (H : MarshalsConfChange
   · refine ⟨fun h => ?_, fun _ => ⟨m, H⟩⟩
     exfalso; revert h; simp only [confChangeEntryType]; word
 
--- (2026-10-26, raft's signature, stage 1) `CCAllowed` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
-
-omit [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
-/-- A conf change's entry is no client operation: its data are bytes that decode.
-(2026-10-16, stage R5, D6: over the entry's record `ccEntryM`, which holds the bytes; until then
-over a proposed slice, `isPropData`.) -/
-theorem entData_cc (γ : RaftNames) (o : ConfChangeIM) (bs : List w8)
-    (H : MarshalsConfChange (some o) bs) (Hok : γ.reCCOk (confChangeEntryType (some o)) bs) :
-    ⊢ propData (GF := GF) γ (ccEntryM (some o) bs) := by
-  unfold propData
-  iexists none
-  unfold propDataIs
-  iright
-  ipureintro
-  refine ⟨?_, ccData_decodes o bs H, Hok⟩
-  show confChangeEntryType (some o) ≠ W32 0
-  rcases confChangeEntryType_some o with h | h <;> rw [h] <;> word
-
-omit [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
-/-- A conf change's entry carries no ticket (D21 M6). -/
-theorem entTk_cc (γ : RaftNames) (o : ConfChangeIM) (bs : List w8) :
-    ⊢ entTk (GF := GF) γ (ccEntryM (some o) bs) := by
-  unfold entTk
-  rw [if_neg]
-  · iempintro
-  · intro h
-    have h1 : confChangeEntryType (some o) = W32 0 := h.1
-    rcases confChangeEntryType_some o with h' | h' <;> rw [h'] at h1 <;> revert h1 <;> word
+/-- **A conf change's proposal, tracked** (2026-10-27): once `o` is marshaled to `bs`, the caller's
+`ccPropArg` gives either a filler entry (an empty `ConfChangeV2`: no data to track, no ticket) or
+the key's registration and update, which is deposited (`prop_deposit`) and whose ticket the entry
+carries. (Until 2026-10-27 a conf change's entry was no client operation, its data `none` by the
+cluster's policy: `entData_cc`, `entTk_cc`.) -/
+theorem cc_propose_ghost (γ : RaftNames) (o : ConfChangeIM) (bs : List w8)
+    (H : MarshalsConfChange (some o) bs) :
+    ⊢ raftCommitInv γ -∗ ccPropArg γ o ={⊤}=∗
+      propData (GF := GF) γ (ccEntryM (some o) bs) ∗ entTk γ (ccEntryM (some o) bs) := by
+  iintro #Hinv Harg
+  have Hdec := ccData_decodes o bs H
+  by_cases Hf : Filler (confChangeEntryType (some o)) bs
+  · iclear Harg
+    imodintro
+    isplitr
+    · unfold propData
+      iexists none
+      unfold propDataIs
+      ipureintro; exact ⟨Hf, Hdec⟩
+    · unfold entTk
+      rw [if_pos (show Filler (ccEntryM (some o) bs).Type' (ccEntryM (some o) bs).Data' from Hf)]
+      iempintro
+  iunfold ccPropArg at Harg
+  imod Harg $$ %bs %H with (%Hf' | ⟨%Q, #Hpi, Hau⟩)
+  · exact absurd Hf' Hf
+  ihave #Hdep := propIs_deposited $$ Hpi
+  imod prop_deposit γ ⊤ _ Q CoPset.subseteq_top $$ Hinv Hpi Hau with Htk
+  imodintro
+  isplitr
+  · unfold propData
+    iexists some (entKey (confChangeEntryType (some o)) bs)
+    unfold propDataIs
+    isplitr
+    · ipureintro; exact ⟨rfl, Hf, Hdec⟩
+    · iexact Hdep
+  · unfold entTk
+    rw [if_neg (show ¬ Filler (ccEntryM (some o) bs).Type' (ccEntryM (some o) bs).Data' from Hf)]
+    simp only [ccEntryM]
+    iexact Htk
 
 omit [GooseInterp] [GooseSemantics] go_gctx hG [StorageModel GF] sem package_sem in
 /-- What `Step` needs of the conf change's entry: its bytes decode (pure since D6). -/
@@ -122,11 +141,12 @@ theorem ccEntsOk_cc (o : ConfChangeIM) (bs : List w8) (H : MarshalsConfChange (s
 abbrev RawNode.ProposeConfChange.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : ConfChangeIM)
     (dq : DFrac),
-  -- (2026-10-15, stage N) a change the cluster admits
-  CCAllowed γ o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
-      "Hc" ∷ ownConfChangeI c dq (some o) }}
+      "Hc" ∷ ownConfChangeI c dq (some o) ∗
+      -- (2026-10-27) the proposal tracked under its key (until then `CCAllowed γ o`, a change the
+      -- cluster's policy admits)
+      "Harg" ∷ ccPropArg γ o }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ProposeConfChange")) (Val #c))
   {{ (err : GoInterface), RET #err;
       "Hrn" ∷ ownRawNode γ rn id rs ∗

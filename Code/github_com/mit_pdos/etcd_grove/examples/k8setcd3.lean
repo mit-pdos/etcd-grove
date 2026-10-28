@@ -2718,6 +2718,8 @@ class Obj.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   set_Value : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Obj)))
   get_ResourceVersion : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
   set_ResourceVersion : ∀ (x : Obj) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : Obj)))
+  method_set : go.MethodSetIs Obj.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Obj.ty) [(go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty])))]
   ptr_DeepCopyObject_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"DeepCopyObject" Obj.DeepCopyObject.impl
   ptr_GetObjectKind_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetObjectKind" Obj.GetObjectKind.impl
 
@@ -2729,6 +2731,8 @@ attribute [instance] Obj.TypeAssumptions.type_repr
   Obj.TypeAssumptions.set_Value
   Obj.TypeAssumptions.get_ResourceVersion
   Obj.TypeAssumptions.set_ResourceVersion
+  Obj.TypeAssumptions.method_set
+  Obj.TypeAssumptions.ptr_method_set
   Obj.TypeAssumptions.ptr_DeepCopyObject_unfold
   Obj.TypeAssumptions.ptr_GetObjectKind_unfold
 
@@ -2754,6 +2758,8 @@ noncomputable instance equals_unfold_codec [GooseExts] [GoGlobalContext] :
 class codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying codec.underlying codec
   underlying : go.UnderlyingDirectedEq codec.ty codec.underlying
+  method_set : go.MethodSetIs codec.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codec.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty])))]
   Decode_unfold : MethodUnfold codec.ty go!"Decode" codec.Decode.impl
   Encode_unfold : MethodUnfold codec.ty go!"Encode" codec.Encode.impl
   Identifier_unfold : MethodUnfold codec.ty go!"Identifier" codec.Identifier.impl
@@ -2766,6 +2772,8 @@ class codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] codec.TypeAssumptions.type_repr
   codec.TypeAssumptions.underlying
+  codec.TypeAssumptions.method_set
+  codec.TypeAssumptions.ptr_method_set
   codec.TypeAssumptions.Decode_unfold
   codec.TypeAssumptions.Encode_unfold
   codec.TypeAssumptions.Identifier_unfold
@@ -2795,6 +2803,8 @@ noncomputable instance equals_unfold_versioner [GooseExts] [GoGlobalContext] :
 class versioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying versioner.underlying versioner
   underlying : go.UnderlyingDirectedEq versioner.ty versioner.underlying
+  method_set : go.MethodSetIs versioner.ty [(go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType versioner.ty) [(go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
   ObjectResourceVersion_unfold : MethodUnfold versioner.ty go!"ObjectResourceVersion" versioner.ObjectResourceVersion.impl
   ParseResourceVersion_unfold : MethodUnfold versioner.ty go!"ParseResourceVersion" versioner.ParseResourceVersion.impl
   PrepareObjectForStorage_unfold : MethodUnfold versioner.ty go!"PrepareObjectForStorage" versioner.PrepareObjectForStorage.impl
@@ -2813,6 +2823,8 @@ class versioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] versioner.TypeAssumptions.type_repr
   versioner.TypeAssumptions.underlying
+  versioner.TypeAssumptions.method_set
+  versioner.TypeAssumptions.ptr_method_set
   versioner.TypeAssumptions.ObjectResourceVersion_unfold
   versioner.TypeAssumptions.ParseResourceVersion_unfold
   versioner.TypeAssumptions.PrepareObjectForStorage_unfold
@@ -2846,6 +2858,8 @@ noncomputable instance equals_unfold_decoder [GooseExts] [GoGlobalContext] :
 class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decoder.underlying decoder
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
+  method_set : go.MethodSetIs decoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.int64] false [go.error]))), (go!"DecodeListItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), go.uint64, (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.int64] false [go.error]))), (go!"DecodeListItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), go.uint64, (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error])))]
   Decode_unfold : MethodUnfold decoder.ty go!"Decode" decoder.Decode.impl
   DecodeListItem_unfold : MethodUnfold decoder.ty go!"DecodeListItem" decoder.DecodeListItem.impl
   ptr_Decode_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"Decode" (LamV "$r"
@@ -2855,6 +2869,8 @@ class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.underlying
+  decoder.TypeAssumptions.method_set
+  decoder.TypeAssumptions.ptr_method_set
   decoder.TypeAssumptions.Decode_unfold
   decoder.TypeAssumptions.DecodeListItem_unfold
   decoder.TypeAssumptions.ptr_Decode_unfold
@@ -2882,6 +2898,8 @@ noncomputable instance equals_unfold_identity [GooseExts] [GoGlobalContext] :
 class identity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying identity.underlying identity
   underlying : go.UnderlyingDirectedEq identity.ty identity.underlying
+  method_set : go.MethodSetIs identity.ty [(go!"TransformFromStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType identity.ty) [(go!"TransformFromStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
   TransformFromStorage_unfold : MethodUnfold identity.ty go!"TransformFromStorage" identity.TransformFromStorage.impl
   TransformToStorage_unfold : MethodUnfold identity.ty go!"TransformToStorage" identity.TransformToStorage.impl
   ptr_TransformFromStorage_unfold : MethodUnfold (go.GoType.PointerType identity.ty) go!"TransformFromStorage" (LamV "$r"
@@ -2891,6 +2909,8 @@ class identity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] identity.TypeAssumptions.type_repr
   identity.TypeAssumptions.underlying
+  identity.TypeAssumptions.method_set
+  identity.TypeAssumptions.ptr_method_set
   identity.TypeAssumptions.TransformFromStorage_unfold
   identity.TypeAssumptions.TransformToStorage_unfold
   identity.TypeAssumptions.ptr_TransformFromStorage_unfold
@@ -2918,12 +2938,16 @@ noncomputable instance equals_unfold_noCompactor [GooseExts] [GoGlobalContext] :
 class noCompactor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noCompactor.underlying noCompactor
   underlying : go.UnderlyingDirectedEq noCompactor.ty noCompactor.underlying
+  method_set : go.MethodSetIs noCompactor.ty [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noCompactor.ty) [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64])))]
   CompactRevision_unfold : MethodUnfold noCompactor.ty go!"CompactRevision" noCompactor.CompactRevision.impl
   ptr_CompactRevision_unfold : MethodUnfold (go.GoType.PointerType noCompactor.ty) go!"CompactRevision" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve noCompactor.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad noCompactor.ty))) (Var "$r"))))
 
 attribute [instance] noCompactor.TypeAssumptions.type_repr
   noCompactor.TypeAssumptions.underlying
+  noCompactor.TypeAssumptions.method_set
+  noCompactor.TypeAssumptions.ptr_method_set
   noCompactor.TypeAssumptions.CompactRevision_unfold
   noCompactor.TypeAssumptions.ptr_CompactRevision_unfold
 
@@ -2972,6 +2996,8 @@ class Input.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_NoOp : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"NoOp") (PairV #x #y) (Val #(({ x with NoOp' := y } : Input)))
   get_IgnoreNotFound : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"IgnoreNotFound") #x (Val #(x.IgnoreNotFound'))
   set_IgnoreNotFound : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"IgnoreNotFound") (PairV #x #y) (Val #(({ x with IgnoreNotFound' := y } : Input)))
+  method_set : go.MethodSetIs Input.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Input.ty) []
 
 attribute [instance] Input.TypeAssumptions.type_repr
   Input.TypeAssumptions.underlying
@@ -2987,6 +3013,8 @@ attribute [instance] Input.TypeAssumptions.type_repr
   Input.TypeAssumptions.set_NoOp
   Input.TypeAssumptions.get_IgnoreNotFound
   Input.TypeAssumptions.set_IgnoreNotFound
+  Input.TypeAssumptions.method_set
+  Input.TypeAssumptions.ptr_method_set
 
 structure Output [GooseExts] where
   mk ::
@@ -3033,6 +3061,8 @@ class Output.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_Value : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Output)))
   get_RV : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"RV") #x (Val #(x.RV'))
   set_RV : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"RV") (PairV #x #y) (Val #(({ x with RV' := y } : Output)))
+  method_set : go.MethodSetIs Output.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Output.ty) []
 
 attribute [instance] Output.TypeAssumptions.type_repr
   Output.TypeAssumptions.underlying
@@ -3048,6 +3078,8 @@ attribute [instance] Output.TypeAssumptions.type_repr
   Output.TypeAssumptions.set_Value
   Output.TypeAssumptions.get_RV
   Output.TypeAssumptions.set_RV
+  Output.TypeAssumptions.method_set
+  Output.TypeAssumptions.ptr_method_set
 
 structure item [GooseExts] where
   mk ::
@@ -3082,6 +3114,8 @@ class item.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_obj : ∀ (x : item) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : item)))
   get_canon : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"canon") #x (Val #(x.canon'))
   set_canon : ∀ (x : item) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"canon") (PairV #x #y) (Val #(({ x with canon' := y } : item)))
+  method_set : go.MethodSetIs item.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType item.ty) []
 
 attribute [instance] item.TypeAssumptions.type_repr
   item.TypeAssumptions.underlying
@@ -3091,6 +3125,8 @@ attribute [instance] item.TypeAssumptions.type_repr
   item.TypeAssumptions.set_obj
   item.TypeAssumptions.get_canon
   item.TypeAssumptions.set_canon
+  item.TypeAssumptions.method_set
+  item.TypeAssumptions.ptr_method_set
 
 structure mstore [GooseExts] where
   mk ::
@@ -3121,6 +3157,8 @@ class mstore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_items : ∀ (x : mstore) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mstore.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : mstore)))
   get_rv : ∀ (x : mstore), go.IsGoStepPureDetTagged under (StructFieldGet mstore.underlying go!"rv") #x (Val #(x.rv'))
   set_rv : ∀ (x : mstore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet mstore.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : mstore)))
+  method_set : go.MethodSetIs mstore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mstore.ty) []
 
 attribute [instance] mstore.TypeAssumptions.type_repr
   mstore.TypeAssumptions.underlying
@@ -3128,6 +3166,8 @@ attribute [instance] mstore.TypeAssumptions.type_repr
   mstore.TypeAssumptions.set_items
   mstore.TypeAssumptions.get_rv
   mstore.TypeAssumptions.set_rv
+  mstore.TypeAssumptions.method_set
+  mstore.TypeAssumptions.ptr_method_set
 
 structure mcfg [GooseExts] where
   mk ::
@@ -3158,6 +3198,8 @@ class mcfg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_st : ∀ (x : mcfg) (y : mstore), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : mcfg)))
   get_pend : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"pend") #x (Val #(x.pend'))
   set_pend : ∀ (x : mcfg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"pend") (PairV #x #y) (Val #(({ x with pend' := y } : mcfg)))
+  method_set : go.MethodSetIs mcfg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mcfg.ty) []
 
 attribute [instance] mcfg.TypeAssumptions.type_repr
   mcfg.TypeAssumptions.underlying
@@ -3165,6 +3207,8 @@ attribute [instance] mcfg.TypeAssumptions.type_repr
   mcfg.TypeAssumptions.set_st
   mcfg.TypeAssumptions.get_pend
   mcfg.TypeAssumptions.set_pend
+  mcfg.TypeAssumptions.method_set
+  mcfg.TypeAssumptions.ptr_method_set
 
 abbrev state [GooseExts] : Type := GoSlice
 
@@ -3173,8 +3217,12 @@ abbrev state [GooseExts] : Type := GoSlice
 
 class state.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq state.ty state.underlying
+  method_set : go.MethodSetIs state.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType state.ty) []
 
 attribute [instance] state.TypeAssumptions.underlying
+  state.TypeAssumptions.method_set
+  state.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Obj_instance : Obj.TypeAssumptions

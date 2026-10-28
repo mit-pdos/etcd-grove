@@ -88,18 +88,26 @@ abbrev MessageCountMap [GooseExts] : Type := GoMap
 
 class MessageCountMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MessageCountMap.ty MessageCountMap.underlying
+  method_set : go.MethodSetIs MessageCountMap.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MessageCountMap.ty) []
 
 attribute [instance] MessageCountMap.TypeAssumptions.underlying
+  MessageCountMap.TypeAssumptions.method_set
+  MessageCountMap.TypeAssumptions.ptr_method_set
 
 abbrev Aggregate [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Aggregate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Errors" (go.signature.Signature [] false [(go.GoType.SliceType go.error)])), (go.InterfaceElem.MethodElem go!"Is" (go.signature.Signature [go.error] false [go.bool])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm go.error)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Error" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Errors" (go.signature.Signature [] false [(go.GoType.SliceType go.error)])), (go.InterfaceElem.MethodElem go!"Is" (go.signature.Signature [go.error] false [go.bool]))])
 
 class Aggregate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Aggregate.ty Aggregate.underlying
+  method_set : go.MethodSetIs Aggregate.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Aggregate.ty) []
 
 attribute [instance] Aggregate.TypeAssumptions.underlying
+  Aggregate.TypeAssumptions.method_set
+  Aggregate.TypeAssumptions.ptr_method_set
 
 abbrev aggregate [GooseExts] : Type := GoSlice
 
@@ -108,8 +116,12 @@ abbrev aggregate [GooseExts] : Type := GoSlice
 
 class aggregate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq aggregate.ty aggregate.underlying
+  method_set : go.MethodSetIs aggregate.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/util/errors.visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType aggregate.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/util/errors.visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))] false [go.bool])))]
 
 attribute [instance] aggregate.TypeAssumptions.underlying
+  aggregate.TypeAssumptions.method_set
+  aggregate.TypeAssumptions.ptr_method_set
 
 abbrev Matcher [GooseExts] : Type := GoFunc
 
@@ -118,8 +130,12 @@ abbrev Matcher [GooseExts] : Type := GoFunc
 
 class Matcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Matcher.ty Matcher.underlying
+  method_set : go.MethodSetIs Matcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Matcher.ty) []
 
 attribute [instance] Matcher.TypeAssumptions.underlying
+  Matcher.TypeAssumptions.method_set
+  Matcher.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   MessageCountMap_instance : MessageCountMap.TypeAssumptions

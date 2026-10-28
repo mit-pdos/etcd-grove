@@ -427,11 +427,14 @@ theorem auth.getMergedPerms.wp_proof
               ipureintro
               have hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by
                 have := Hrl.1; have := Hrl.2; word
-              have hall : (rr.perms.take (sint.nat m)).filterMap permOfWire = ps := by
-                rw [hmlen, Hplen, List.take_length, ← Hrrps]; rfl
-              rw [hall] at Hm
+              have hall : ((rr.perms.take (sint.nat m)).filterMap permOfWire).Perm ps := by
+                rw [hmlen, Hplen, List.take_length]; exact Hrrps
+              have hiv : ∀ op, (ivlsOf op (userPerms st (ur.roles.take (sint.nat n)) ++
+                  (rr.perms.take (sint.nat m)).filterMap permOfWire)).Perm
+                  (ivlsOf op (userPerms st (ur.roles.take (sint.nat n)) ++ ps)) := fun op =>
+                ((hall.append_left _).filter _).map _
               rw [hsucc, userPerms_take_succ st ur.roles (sint.nat n) rn' hrn, hps, Option.getD_some]
-              exact ⟨by word, by omega, Hm.2.2.1, Hm.2.2.2⟩
+              exact ⟨by word, by omega, Hm.2.2.1.trans (hiv _), Hm.2.2.2.trans (hiv _)⟩
       · have hge : ¬ sint.Z n < sint.Z rs.len := by
           first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
         ihave %Hrl := ownSlice_len _ _ _ $$ Hroles

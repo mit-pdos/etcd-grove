@@ -4601,6 +4601,8 @@ class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_ProgressRequestInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProgressRequestInterval") (PairV #x #y) (Val #(({ x with ProgressRequestInterval' := y } : Config)))
   get_ProgressNotifyInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProgressNotifyInterval") #x (Val #(x.ProgressNotifyInterval'))
   set_ProgressNotifyInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProgressNotifyInterval") (PairV #x #y) (Val #(({ x with ProgressNotifyInterval' := y } : Config)))
+  method_set : go.MethodSetIs Config.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
@@ -4624,16 +4626,22 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.set_ProgressRequestInterval
   Config.TypeAssumptions.get_ProgressNotifyInterval
   Config.TypeAssumptions.set_ProgressNotifyInterval
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
 
 abbrev progressRequestor [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def progressRequestor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"add" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"remove" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"run" (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/cache/v3.add" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/cache/v3.remove" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/cache/v3.run" (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))])
 
 class progressRequestor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq progressRequestor.ty progressRequestor.underlying
+  method_set : go.MethodSetIs progressRequestor.ty [(go!"go.etcd.io/etcd/cache/v3.add", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.remove", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.run", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType progressRequestor.ty) []
 
 attribute [instance] progressRequestor.TypeAssumptions.underlying
+  progressRequestor.TypeAssumptions.method_set
+  progressRequestor.TypeAssumptions.ptr_method_set
 
 abbrev Clock [GooseExts] : Type := GoInterface
 
@@ -4642,8 +4650,12 @@ abbrev Clock [GooseExts] : Type := GoInterface
 
 class Clock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Clock.ty Clock.underlying
+  method_set : go.MethodSetIs Clock.ty [(go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Clock.ty) []
 
 attribute [instance] Clock.TypeAssumptions.underlying
+  Clock.TypeAssumptions.method_set
+  Clock.TypeAssumptions.ptr_method_set
 
 structure Cache [GooseExts] where
   mk ::
@@ -4714,6 +4726,8 @@ class Cache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_progressRequestor : ∀ (x : Cache) (y : progressRequestor), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"progressRequestor") (PairV #x #y) (Val #(({ x with progressRequestor' := y } : Cache)))
   get_clock : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"clock") #x (Val #(x.clock'))
   set_clock : ∀ (x : Cache) (y : Clock), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Cache)))
+  method_set : go.MethodSetIs Cache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cache.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error]))), (go!"Ready", (some (go.signature.Signature [] false [go.bool]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitForNextResync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitForRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [go.error]))), (go!"WaitReady", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty]))), (go!"go.etcd.io/etcd/cache/v3.applyStorage", (some (go.signature.Signature [(go.GoType.PointerType watcher.ty)] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error]))), (go!"go.etcd.io/etcd/cache/v3.getWatch", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.getWatchLoop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.serverRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.int64, go.error]))), (go!"go.etcd.io/etcd/cache/v3.validateGet", (some (go.signature.Signature [go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [KeyPredicate.ty, go.error]))), (go!"go.etcd.io/etcd/cache/v3.validateRange", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.validateWatch", (some (go.signature.Signature [go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [KeyPredicate.ty, go.error]))), (go!"go.etcd.io/etcd/cache/v3.waitTillRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.watch", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.watchEvents", (some (go.signature.Signature [go.int64, (go.GoType.ChannelType go.ChanDir.recvonly go.error), (go.GoType.PointerType _root_.Perennial.sync.Once.ty)] false [go.error])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Close" Cache.Close.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Get" Cache.Get.impl
   ptr_Ready_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Ready" Cache.Ready.impl
@@ -4760,6 +4774,8 @@ attribute [instance] Cache.TypeAssumptions.type_repr
   Cache.TypeAssumptions.set_progressRequestor
   Cache.TypeAssumptions.get_clock
   Cache.TypeAssumptions.set_clock
+  Cache.TypeAssumptions.method_set
+  Cache.TypeAssumptions.ptr_method_set
   Cache.TypeAssumptions.ptr_Close_unfold
   Cache.TypeAssumptions.ptr_Get_unfold
   Cache.TypeAssumptions.ptr_Ready_unfold
@@ -4787,8 +4803,12 @@ abbrev Timer [GooseExts] : Type := GoInterface
 
 class Timer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Timer.ty Timer.underlying
+  method_set : go.MethodSetIs Timer.ty [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"Stop", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Timer.ty) []
 
 attribute [instance] Timer.TypeAssumptions.underlying
+  Timer.TypeAssumptions.method_set
+  Timer.TypeAssumptions.ptr_method_set
 
 structure realClock [GooseExts] where
   mk ::
@@ -4812,12 +4832,16 @@ noncomputable instance equals_unfold_realClock [GooseExts] [GoGlobalContext] :
 class realClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realClock.underlying realClock
   underlying : go.UnderlyingDirectedEq realClock.ty realClock.underlying
+  method_set : go.MethodSetIs realClock.ty [(go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType realClock.ty) [(go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty])))]
   NewTimer_unfold : MethodUnfold realClock.ty go!"NewTimer" realClock.NewTimer.impl
   ptr_NewTimer_unfold : MethodUnfold (go.GoType.PointerType realClock.ty) go!"NewTimer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve realClock.ty go!"NewTimer"))) (App (Val (GoInstruction (GoLoad realClock.ty))) (Var "$r"))))
 
 attribute [instance] realClock.TypeAssumptions.type_repr
   realClock.TypeAssumptions.underlying
+  realClock.TypeAssumptions.method_set
+  realClock.TypeAssumptions.ptr_method_set
   realClock.TypeAssumptions.NewTimer_unfold
   realClock.TypeAssumptions.ptr_NewTimer_unfold
 
@@ -4846,6 +4870,8 @@ class realTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq realTimer.ty realTimer.underlying
   get_timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"timer") #x (Val #(x.timer'))
   set_timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : realTimer)))
+  method_set : go.MethodSetIs realTimer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType realTimer.ty) [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"Stop", (some (go.signature.Signature [] false [go.bool])))]
   ptr_Chan_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Chan" realTimer.Chan.impl
   ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Reset" realTimer.Reset.impl
   ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Stop" realTimer.Stop.impl
@@ -4854,6 +4880,8 @@ attribute [instance] realTimer.TypeAssumptions.type_repr
   realTimer.TypeAssumptions.underlying
   realTimer.TypeAssumptions.get_timer
   realTimer.TypeAssumptions.set_timer
+  realTimer.TypeAssumptions.method_set
+  realTimer.TypeAssumptions.ptr_method_set
   realTimer.TypeAssumptions.ptr_Chan_unfold
   realTimer.TypeAssumptions.ptr_Reset_unfold
   realTimer.TypeAssumptions.ptr_Stop_unfold
@@ -4865,8 +4893,12 @@ abbrev Option [GooseExts] : Type := GoFunc
 
 class Option.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Option.ty Option.underlying
+  method_set : go.MethodSetIs Option.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Option.ty) []
 
 attribute [instance] Option.TypeAssumptions.underlying
+  Option.TypeAssumptions.method_set
+  Option.TypeAssumptions.ptr_method_set
 
 abbrev RevisionOf [GooseExts] (T : Type) : Type := GoFunc
 
@@ -4875,8 +4907,12 @@ abbrev RevisionOf [GooseExts] (T : Type) : Type := GoFunc
 
 class RevisionOf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (RevisionOf.ty T) (RevisionOf.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (RevisionOf.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (RevisionOf.ty T)) []
 
 attribute [instance] RevisionOf.TypeAssumptions.underlying
+  RevisionOf.TypeAssumptions.method_set
+  RevisionOf.TypeAssumptions.ptr_method_set
 
 structure ringBuffer [GooseExts] (T : Type) where
   mk ::
@@ -4919,6 +4955,8 @@ class ringBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_size : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T) go!"size") (PairV #x #y) (Val #(({ x with size' := y } : (ringBuffer T'))))
   get_revisionOf : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T) go!"revisionOf") #x (Val #(x.revisionOf'))
   set_revisionOf : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')) (y : (RevisionOf T')), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T) go!"revisionOf") (PairV #x #y) (Val #(({ x with revisionOf' := y } : (ringBuffer T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (ringBuffer.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ringBuffer.ty T)) [(go!"Append", (some (go.signature.Signature [T] false []))), (go!"AscendGreaterOrEqual", (some (go.signature.Signature [go.int64, (IterFunc.ty T)] false []))), (go!"AscendLessThan", (some (go.signature.Signature [go.int64, (IterFunc.ty T)] false []))), (go!"DescendGreaterThan", (some (go.signature.Signature [go.int64, (IterFunc.ty T)] false []))), (go!"DescendLessOrEqual", (some (go.signature.Signature [go.int64, (IterFunc.ty T)] false []))), (go!"PeekLatest", (some (go.signature.Signature [] false [go.int64]))), (go!"PeekOldest", (some (go.signature.Signature [] false [go.int64]))), (go!"RebaseHistory", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.at", (some (go.signature.Signature [go.int] false [(entry.ty T)]))), (go!"go.etcd.io/etcd/cache/v3.findFirstIndexGreaterOrEqual", (some (go.signature.Signature [go.int64] false [go.int]))), (go!"go.etcd.io/etcd/cache/v3.findLastIndexLessOrEqual", (some (go.signature.Signature [go.int64] false [go.int]))), (go!"go.etcd.io/etcd/cache/v3.full", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/cache/v3.moduloIndex", (some (go.signature.Signature [go.int] false [go.int])))]
   ptr_Append_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"Append" (ringBuffer.Append.impl T)
   ptr_AscendGreaterOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"AscendGreaterOrEqual" (ringBuffer.AscendGreaterOrEqual.impl T)
   ptr_AscendLessThan_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"AscendLessThan" (ringBuffer.AscendLessThan.impl T)
@@ -4945,6 +4983,8 @@ attribute [instance] ringBuffer.TypeAssumptions.type_repr
   ringBuffer.TypeAssumptions.set_size
   ringBuffer.TypeAssumptions.get_revisionOf
   ringBuffer.TypeAssumptions.set_revisionOf
+  ringBuffer.TypeAssumptions.method_set
+  ringBuffer.TypeAssumptions.ptr_method_set
   ringBuffer.TypeAssumptions.ptr_Append_unfold
   ringBuffer.TypeAssumptions.ptr_AscendGreaterOrEqual_unfold
   ringBuffer.TypeAssumptions.ptr_AscendLessThan_unfold
@@ -5012,6 +5052,8 @@ class demux.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_history : ∀ (x : demux) (y : (ringBuffer GoSlice)), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"history") (PairV #x #y) (Val #(({ x with history' := y } : demux)))
   get_resynced : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"resynced") #x (Val #(x.resynced'))
   set_resynced : ∀ (x : demux) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"resynced") (PairV #x #y) (Val #(({ x with resynced' := y } : demux)))
+  method_set : go.MethodSetIs demux.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType demux.ty) [(go!"Broadcast", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false [go.error]))), (go!"BroadcastProgress", (some (go.signature.Signature [] false []))), (go!"BroadcastProgressTo", (some (go.signature.Signature [(go.GoType.PointerType watcher.ty)] false []))), (go!"Compact", (some (go.signature.Signature [go.int64] false []))), (go!"Init", (some (go.signature.Signature [go.int64] false []))), (go!"LatestRev", (some (go.signature.Signature [] false [go.int64]))), (go!"Purge", (some (go.signature.Signature [] false []))), (go!"Register", (some (go.signature.Signature [(go.GoType.PointerType watcher.ty), go.int64] false []))), (go!"Unregister", (some (go.signature.Signature [(go.GoType.PointerType watcher.ty)] false []))), (go!"WaitForNextResync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.broadcastEventsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))] false []))), (go!"go.etcd.io/etcd/cache/v3.broadcastLocked", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false []))), (go!"go.etcd.io/etcd/cache/v3.broadcastProgressLocked", (some (go.signature.Signature [go.int64] false []))), (go!"go.etcd.io/etcd/cache/v3.purge", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.resyncLaggingWatchers", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.resyncLoop", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"go.etcd.io/etcd/cache/v3.updateStoreLocked", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false [])))]
   ptr_Broadcast_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"Broadcast" demux.Broadcast.impl
   ptr_BroadcastProgress_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"BroadcastProgress" demux.BroadcastProgress.impl
   ptr_BroadcastProgressTo_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"BroadcastProgressTo" demux.BroadcastProgressTo.impl
@@ -5048,6 +5090,8 @@ attribute [instance] demux.TypeAssumptions.type_repr
   demux.TypeAssumptions.set_history
   demux.TypeAssumptions.get_resynced
   demux.TypeAssumptions.set_resynced
+  demux.TypeAssumptions.method_set
+  demux.TypeAssumptions.ptr_method_set
   demux.TypeAssumptions.ptr_Broadcast_unfold
   demux.TypeAssumptions.ptr_BroadcastProgress_unfold
   demux.TypeAssumptions.ptr_BroadcastProgressTo_unfold
@@ -5095,6 +5139,8 @@ class notifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_mu : ∀ (x : notifier) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : notifier)))
   get_ch : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"ch") #x (Val #(x.ch'))
   set_ch : ∀ (x : notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : notifier)))
+  method_set : go.MethodSetIs notifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notifier.ty) [(go!"go.etcd.io/etcd/cache/v3.notify", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
   ptr_notify_unfold : MethodUnfold (go.GoType.PointerType notifier.ty) go!"notify" notifier.notify.impl
   ptr_wait_unfold : MethodUnfold (go.GoType.PointerType notifier.ty) go!"wait" notifier.wait.impl
 
@@ -5104,6 +5150,8 @@ attribute [instance] notifier.TypeAssumptions.type_repr
   notifier.TypeAssumptions.set_mu
   notifier.TypeAssumptions.get_ch
   notifier.TypeAssumptions.set_ch
+  notifier.TypeAssumptions.method_set
+  notifier.TypeAssumptions.ptr_method_set
   notifier.TypeAssumptions.ptr_notify_unfold
   notifier.TypeAssumptions.ptr_wait_unfold
 
@@ -5114,11 +5162,15 @@ abbrev Prefix [GooseExts] : Type := GoString
 
 class Prefix.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Prefix.ty Prefix.underlying
+  method_set : go.MethodSetIs Prefix.ty [(go!"Match", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Prefix.ty) [(go!"Match", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
   Match_unfold : MethodUnfold Prefix.ty go!"Match" Prefix.Match.impl
   ptr_Match_unfold : MethodUnfold (go.GoType.PointerType Prefix.ty) go!"Match" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Prefix.ty go!"Match"))) (App (Val (GoInstruction (GoLoad Prefix.ty))) (Var "$r"))))
 
 attribute [instance] Prefix.TypeAssumptions.underlying
+  Prefix.TypeAssumptions.method_set
+  Prefix.TypeAssumptions.ptr_method_set
   Prefix.TypeAssumptions.Match_unfold
   Prefix.TypeAssumptions.ptr_Match_unfold
 
@@ -5129,8 +5181,12 @@ abbrev progressNotifier [GooseExts] : Type := GoInterface
 
 class progressNotifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq progressNotifier.ty progressNotifier.underlying
+  method_set : go.MethodSetIs progressNotifier.ty [(go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType progressNotifier.ty) []
 
 attribute [instance] progressNotifier.TypeAssumptions.underlying
+  progressNotifier.TypeAssumptions.method_set
+  progressNotifier.TypeAssumptions.ptr_method_set
 
 structure conditionalProgressRequestor [GooseExts] where
   mk ::
@@ -5181,6 +5237,8 @@ class conditionalProgressRequestor.TypeAssumptions [GooseExts] [GoGlobalContext]
   set_requestInterval : ∀ (x : conditionalProgressRequestor) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"requestInterval") (PairV #x #y) (Val #(({ x with requestInterval' := y } : conditionalProgressRequestor)))
   get_clock : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"clock") #x (Val #(x.clock'))
   set_clock : ∀ (x : conditionalProgressRequestor) (y : Clock), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : conditionalProgressRequestor)))
+  method_set : go.MethodSetIs conditionalProgressRequestor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType conditionalProgressRequestor.ty) [(go!"go.etcd.io/etcd/cache/v3.add", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.remove", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.run", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])))]
   ptr_add_unfold : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"add" conditionalProgressRequestor.add.impl
   ptr_remove_unfold : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"remove" conditionalProgressRequestor.remove.impl
   ptr_run_unfold : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"run" conditionalProgressRequestor.run.impl
@@ -5201,6 +5259,8 @@ attribute [instance] conditionalProgressRequestor.TypeAssumptions.type_repr
   conditionalProgressRequestor.TypeAssumptions.set_requestInterval
   conditionalProgressRequestor.TypeAssumptions.get_clock
   conditionalProgressRequestor.TypeAssumptions.set_clock
+  conditionalProgressRequestor.TypeAssumptions.method_set
+  conditionalProgressRequestor.TypeAssumptions.ptr_method_set
   conditionalProgressRequestor.TypeAssumptions.ptr_add_unfold
   conditionalProgressRequestor.TypeAssumptions.ptr_remove_unfold
   conditionalProgressRequestor.TypeAssumptions.ptr_run_unfold
@@ -5238,6 +5298,8 @@ class ready.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_isReady : ∀ (x : ready) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"isReady") (PairV #x #y) (Val #(({ x with isReady' := y } : ready)))
   get_stateCh : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"stateCh") #x (Val #(x.stateCh'))
   set_stateCh : ∀ (x : ready) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"stateCh") (PairV #x #y) (Val #(({ x with stateCh' := y } : ready)))
+  method_set : go.MethodSetIs ready.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ready.ty) [(go!"Ready", (some (go.signature.Signature [] false [go.bool]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [] false []))), (go!"WaitNotReady", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitReady", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.waitForState", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))] false [go.error])))]
   ptr_Ready_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"Ready" ready.Ready.impl
   ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"Reset" ready.Reset.impl
   ptr_Set_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"Set" ready.Set.impl
@@ -5253,6 +5315,8 @@ attribute [instance] ready.TypeAssumptions.type_repr
   ready.TypeAssumptions.set_isReady
   ready.TypeAssumptions.get_stateCh
   ready.TypeAssumptions.set_stateCh
+  ready.TypeAssumptions.method_set
+  ready.TypeAssumptions.ptr_method_set
   ready.TypeAssumptions.ptr_Ready_unfold
   ready.TypeAssumptions.ptr_Reset_unfold
   ready.TypeAssumptions.ptr_Set_unfold
@@ -5289,6 +5353,8 @@ class entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_revision : ∀ (T : go.GoType) (T' : Type) (x : (entry T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying T) go!"revision") (PairV #x #y) (Val #(({ x with revision' := y } : (entry T'))))
   get_item : ∀ (T : go.GoType) (T' : Type) (x : (entry T')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying T) go!"item") #x (Val #(x.item'))
   set_item : ∀ (T : go.GoType) (T' : Type) (x : (entry T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying T) go!"item") (PairV #x #y) (Val #(({ x with item' := y } : (entry T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (entry.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (entry.ty T)) []
 
 attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.underlying
@@ -5296,6 +5362,8 @@ attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.set_revision
   entry.TypeAssumptions.get_item
   entry.TypeAssumptions.set_item
+  entry.TypeAssumptions.method_set
+  entry.TypeAssumptions.ptr_method_set
 
 abbrev IterFunc [GooseExts] (T : Type) : Type := GoFunc
 
@@ -5304,8 +5372,12 @@ abbrev IterFunc [GooseExts] (T : Type) : Type := GoFunc
 
 class IterFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (IterFunc.ty T) (IterFunc.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (IterFunc.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (IterFunc.ty T)) []
 
 attribute [instance] IterFunc.TypeAssumptions.underlying
+  IterFunc.TypeAssumptions.method_set
+  IterFunc.TypeAssumptions.ptr_method_set
 
 structure snapshot [GooseExts] where
   mk ::
@@ -5336,6 +5408,8 @@ class snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_rev : ∀ (x : snapshot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : snapshot)))
   get_tree : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"tree") #x (Val #(x.tree'))
   set_tree : ∀ (x : snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : snapshot)))
+  method_set : go.MethodSetIs snapshot.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshot.ty) [(go!"Range", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))])))]
   ptr_Range_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"Range" snapshot.Range.impl
 
 attribute [instance] snapshot.TypeAssumptions.type_repr
@@ -5344,6 +5418,8 @@ attribute [instance] snapshot.TypeAssumptions.type_repr
   snapshot.TypeAssumptions.set_rev
   snapshot.TypeAssumptions.get_tree
   snapshot.TypeAssumptions.set_tree
+  snapshot.TypeAssumptions.method_set
+  snapshot.TypeAssumptions.ptr_method_set
   snapshot.TypeAssumptions.ptr_Range_unfold
 
 structure store [GooseExts] where
@@ -5387,6 +5463,8 @@ class store.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_latest : ∀ (x : store) (y : snapshot), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"latest") (PairV #x #y) (Val #(({ x with latest' := y } : store)))
   get_history : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"history") #x (Val #(x.history'))
   set_history : ∀ (x : store) (y : (ringBuffer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"history") (PairV #x #y) (Val #(({ x with history' := y } : store)))
+  method_set : go.MethodSetIs store.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType store.ty) [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)), go.int64, go.error]))), (go!"LatestRev", (some (go.signature.Signature [] false [go.int64]))), (go!"Restore", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)), go.int64] false []))), (go!"go.etcd.io/etcd/cache/v3.applyEventsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.applyProgressNotifyLocked", (some (go.signature.Signature [go.int64] false []))), (go!"go.etcd.io/etcd/cache/v3.getSnapshot", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType snapshot.ty), go.int64, go.error])))]
   ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Apply" store.Apply.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Get" store.Get.impl
   ptr_LatestRev_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"LatestRev" store.LatestRev.impl
@@ -5407,6 +5485,8 @@ attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.set_latest
   store.TypeAssumptions.get_history
   store.TypeAssumptions.set_history
+  store.TypeAssumptions.method_set
+  store.TypeAssumptions.ptr_method_set
   store.TypeAssumptions.ptr_Apply_unfold
   store.TypeAssumptions.ptr_Get_unfold
   store.TypeAssumptions.ptr_LatestRev_unfold
@@ -5444,6 +5524,8 @@ class kvItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_key : ∀ (x : kvItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet kvItem.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : kvItem)))
   get_kv : ∀ (x : kvItem), go.IsGoStepPureDetTagged under (StructFieldGet kvItem.underlying go!"kv") #x (Val #(x.kv'))
   set_kv : ∀ (x : kvItem) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvItem.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : kvItem)))
+  method_set : go.MethodSetIs kvItem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvItem.ty) []
 
 attribute [instance] kvItem.TypeAssumptions.type_repr
   kvItem.TypeAssumptions.underlying
@@ -5451,6 +5533,8 @@ attribute [instance] kvItem.TypeAssumptions.type_repr
   kvItem.TypeAssumptions.set_key
   kvItem.TypeAssumptions.get_kv
   kvItem.TypeAssumptions.set_kv
+  kvItem.TypeAssumptions.method_set
+  kvItem.TypeAssumptions.ptr_method_set
 
 structure watcher [GooseExts] where
   mk ::
@@ -5489,6 +5573,8 @@ class watcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_keyPred : ∀ (x : watcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"keyPred") (PairV #x #y) (Val #(({ x with keyPred' := y } : watcher)))
   get_stopOnce : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"stopOnce") #x (Val #(x.stopOnce'))
   set_stopOnce : ∀ (x : watcher) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"stopOnce") (PairV #x #y) (Val #(({ x with stopOnce' := y } : watcher)))
+  method_set : go.MethodSetIs watcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watcher.ty) [(go!"Compact", (some (go.signature.Signature [go.int64] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.enqueueResponse", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false [go.bool])))]
   ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Compact" watcher.Compact.impl
   ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Stop" watcher.Stop.impl
   ptr_enqueueResponse_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"enqueueResponse" watcher.enqueueResponse.impl
@@ -5503,6 +5589,8 @@ attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.set_keyPred
   watcher.TypeAssumptions.get_stopOnce
   watcher.TypeAssumptions.set_stopOnce
+  watcher.TypeAssumptions.method_set
+  watcher.TypeAssumptions.ptr_method_set
   watcher.TypeAssumptions.ptr_Compact_unfold
   watcher.TypeAssumptions.ptr_Stop_unfold
   watcher.TypeAssumptions.ptr_enqueueResponse_unfold

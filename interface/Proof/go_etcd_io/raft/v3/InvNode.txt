@@ -2,388 +2,398 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def isReadyChan (γ : NodeNames) (ch : Loc) : IProp GF :=
-  isHandshake γ.readyc ch (readyP γ) iprop(True)
+def (sealed) isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF
 
-def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop(propIs γ d Q ∗ propAu1 γ d Q)
+def (sealed) leaderTransferOn (γ : Cluster) (N : Namespace) : IProp GF
 
-def (sealed) nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
+def (sealed) nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF
+
+theorem snapshotCert_data [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (vs : List w64)
+    (snapOk : List LogEntry → List w8 → Prop) (k : SnapTrip) : isStaticCluster γ N vs snapOk ∗
+    snapshotCert γ N k ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat k.sid.index' ∧ snapOk l
+    k.dat⌝
+
+theorem snapshotCert_static [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (vs : List
+    w64) (snapOk : List LogEntry → List w8 → Prop) (l : List LogEntry) (i : w64) (d : List w8) : (∀
+    (t : w64), SnapListsOk { sid := { term' := t, index' := i }, cl := { voters := vs, learners :=
+    [], outgoing := [], learnersNext := [] }, al := false, dat := d }) → l.length = uint.nat i →
+    snapOk l d → isStaticCluster γ N vs snapOk ∗ isCommittedLogLb γ l ⊢ □ ∀ t, snapshotCert γ N {
+    sid := { term' := t, index' := i }, cl := { voters := vs, learners := [], outgoing := [],
+    learnersNext := [] }, al := false, dat := d }
+
+theorem tickCredit_intro [package_sem : Assumptions] (γ : Cluster) (n : Nat) : ⧗n ⊢ tickCredit γ n
+
+theorem ccShrink_addVoter (cfg : GSet w64) (cm : ConfChangeM) (ht : cm.type = W32 0) (hk' : ∃ k, k ∈
+    cfg ∧ (cm.nodeId = k ∨ cm.nodeId = W64 0)) : CCShrink cfg (ccV2Of (ConfChangeIM.v1 cm)).fst
+    (ccV2Of (ConfChangeIM.v1 cm)).snd
+
+theorem isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) : Timeless (isCommittedLogLb γ
+    l)
+
+theorem cluster_alloc_static [package_sem : Assumptions] (N : Namespace) (vs : List w64) (snapOk :
+    List LogEntry → List w8 → Prop) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup
+    → ¬W64 0 ∈ vs → ↑vs.length ≤ 2 ^ 62 → ⊢ |={E}=> ∃ γ, ownCommittedOps γ [] ∗ ownReadCtxs γ ∅ ∗
+    readCredits γ (2 ^ 64 - 2) ∗ isStaticCluster γ N vs snapOk ∗ leaderTransferOn γ N ∗ [∗list] id ∈
+    vs, nodeRestartBoot γ N vs id
+
+def (sealed) isReadCtx (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp GF) :
     IProp GF
 
-theorem tickCred_split (bud : BudgetNames) (a b : Nat) : tickCred bud (a + b) ⊣⊢ tickCred bud a ∗
-    tickCred bud b
+theorem storageCert_registerAny [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (γs :
+    MemStorNames) (i : w64) (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) : ↑N ⊆ E → ⊢
+    storageCertInv γ N γs -∗ (□ ∀ t, snapshotCert γ N { sid := { term' := t, index' := i }, cl :=
+    cl, al := al, dat := d }) ={E}=∗ □ ∀ t, memStorCert γs { sid := { term' := t, index' := i }, cl
+    := cl, al := al, dat := d }
 
-theorem isNode_id [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) : isNode γ id n ⊢
-    ⌜γ.id = id⌝
+def (sealed) storageCertInv (γ : Cluster) (N : Namespace) (γs : MemStorNames) : IProp GF
 
-structure BudgetNames : Type where
-  bound : GName
+theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) : ownCommittedOps γ ops ⊢
+    ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝
 
-theorem budget_alloc_boot (Hb : receiptBound GF ≤ 2 ^ 64 - 2) (E : CoPset) : ⊢ |={E}=> ∃ bud, inv
-    budgetN (budgetInv bud) ∗ termLB bud (W64 1)
+theorem committedAtTerm_committed [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (t c :
+    w64) : committedAtTerm γ N t c ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝
 
-def reqOf (L : Option SnapLoan) (ds : List EntryM) : Option Nat :=
-  match L with
-  | none => some ds.length
-  | some val => none
+def (sealed) stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF
 
-theorem readyP_take [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready)
-    (ds : List EntryM) (p : HardStateM) : ⊢ readyP γ rd -∗ nodeDriver γ id n ds p -∗ ∃ ce es ms p'
-    L, readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗ dlvLb
-    γ (dlvAfter ds ce L)
+def (sealed) msgCredits (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF
 
-theorem budget_alloc (Hb : receiptBound GF ≤ 2 ^ 64 - 2) (E : CoPset) : ⊢ |={E}=> ∃ bud, inv budgetN
-    (budgetInv bud) ∗ termLB bud (W64 0)
+theorem snapshotCert_persistent (γ : Cluster) (N : Namespace) (k : SnapTrip) : Persistent
+    (snapshotCert γ N k)
 
-def confstateS (γ : NodeNames) (c : ConfStateM) : Prop :=
-  c.Voters'.Perm (elements γ.raft.reCfg) ∧
-    (∀ (k : w64), k ∈ c.Learners' → ¬k ∈ γ.raft.reCfg) ∧
-      c.VotersOutgoing' = [] ∧ c.LearnersNext' = [] ∧ c.AutoLeave' = false
+theorem readStateOk_ctx [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (c : List w8) (idx
+    : w64) (Q : List LogEntry → IProp GF) (l' : List LogEntry) (E : CoPset) : ↑N ⊆ E → uint.nat idx
+    ≤ l'.length → ⊢ readStateOk γ N c idx -∗ isReadCtx γ N c Q -∗ isCommittedLogLb γ l' ={E}=∗ ∃ l,
+    ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ ▷ □ Q (opsOf l)
 
-theorem dlvLb_persistent (γ : NodeNames) (ds : List EntryM) : Persistent (dlvLb γ ds)
+def (sealed) nodeDynamicBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
+    (id : w64) : IProp GF
 
-def (sealed) confcP (γ : NodeNames) (v : Loc) : IProp GF
+theorem storageCertInv_alloc [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (γs :
+    MemStorNames) (E : CoPset) : ⊢ memCertAuth γs ={E}=∗ storageCertInv γ N γs
 
-def tickN : Namespace :=
-  nroot.@"raft_tick"
+def (sealed) isDynamicCluster (γ : Cluster) (N : Namespace) (c0 : Membership) (decode :
+    ConfChangeDecoder) : IProp GF
 
-def stepP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
-  iprop(netP γ id ml ∨ fwdP γ ml)
+theorem sentMsg_appFrom [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64) (st :
+    MsgSt) : sentMsg γ N src st ⊢ ⌜AppFrom src st⌝
 
-theorem nodeDriver_isNode [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (ds :
-    List EntryM) (p : HardStateM) : nodeDriver γ id n ds p ⊢ nodeDriver γ id n ds p ∗ isNode γ id n
+def (sealed) leaderTransferOff (γ : Cluster) (N : Namespace) : IProp GF
 
-theorem node_readState_data [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (st :
-    ReadStateM) (E : CoPset) : ⊢ isNode γ id n -∗ readStateOk γ.raft st ={E}=∗ readOk γ.raft
-    st.RequestCtx' st.Index'
+theorem deliveredLogLb_committed [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace)
+    (l : List LogEntry) : deliveredLogLb n γ N l ⊢ isCommittedLogLb γ l
 
-syntax tacticOpen_node_
+def (sealed) readCredits (γ : Cluster) (n : Nat) : IProp GF
 
-def (sealed) isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF
+theorem isCommittedLogLb_nil (γ : Cluster) : ⊢ isCommittedLogLb γ []
 
-theorem isReadyChan_persistent (γ : NodeNames) (ch : Loc) : Persistent (isReadyChan γ ch)
+def (sealed) bootedCluster (γ : Cluster) : IProp GF
 
-def dlvAfter (d ce : List EntryM) : Option SnapLoan → List EntryM :=
+def (sealed) Membership.applyChange (o : ConfChangeIM) (m : Membership) : Option Membership
+
+theorem storageCertInv_persistent (γ : Cluster) (N : Namespace) (γs : MemStorNames) : Persistent
+    (storageCertInv γ N γs)
+
+theorem storageCert_read [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (γs :
+    MemStorNames) (k : SnapTrip) (E : CoPset) : ↑N ⊆ E → ⊢ storageCertInv γ N γs -∗ memStorCert γs k
+    ={E}=∗ snapshotCert γ N k
+
+theorem isCommittedLogLb_agree (γ : Cluster) (l1 l2 : List LogEntry) : isCommittedLogLb γ l1 ∗
+    isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝
+
+theorem node.wp_readyRecv [package_sem : Assumptions] (n ch : Loc) (γ : Cluster) (N : Namespace) (id
+    : w64) (st : NodeDriverState) : st.handling = none → ⊢ ∀ Φ, isReadyChan n γ N ch ∗ isNode n γ N
+    id ∗ nodeDriver n γ N st -∗ (▷ ∀ rd, (∃ ce es h L, committedEntriesAt rd.CommittedEntries'
+    st.delivered.length ce ∗ isCommittedLogLb γ (st.delivered ++ ce) ∗ (∃ rs, readStatesPts
+    rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗ readyRest γ N id
+    rd st ce es h L ∗ nodeDriver n γ N (match L with | none => { storage := st.storage, delivered :=
+    st.delivered ++ ce, hardState := phsNext st.hardState h, handling := some (es, none) } | some l
+    => { storage := st.storage, delivered := strip l.dlv, hardState := phsNext st.hardState h,
+    handling := some (es, some l) })) -∗ Φ (intoVal rd, intoVal true)) -∗ WP ((chan.receive
+    Ready.ty) (intoVal ch)) {{ Φ }}
+
+def (sealed) readCtxAfter (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) : IProp
+    GF
+
+theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : List w64) (ctxs : List (List
+    w8)) (boot : List LogEntry) (snapOk : List LogEntry → List w8 → Prop) (transfer : Bool) (E :
+    CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 → BootLog ps
+    ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ⊢ bootMarshal ps ctxs (LogEntry.toEntries boot 0)
+    ={E}=∗ ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+    isStaticCluster γ N ps snapOk ∗ (if transfer = true then leaderTransferOn γ N else
+    leaderTransferOff γ N) ∗ readyFits γ N ∗ [∗list] id ∈ ps, nodeBoot γ N ps ctxs id
+
+def (sealed) ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF
+
+theorem Membership.applyChange_addVoter (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 0 →
+    cm.nodeId ∈ vs → (Membership.simple vs).Valid → Membership.applyChange (ConfChangeIM.v1 cm)
+    (Membership.simple vs) = some (Membership.simple vs)
+
+def (sealed) isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF
+
+theorem isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : Persistent
+    (isReadyChan n γ N ch)
+
+def (sealed) Cluster : Type 1
+
+theorem sentMsg_dynamic_notSnapshot [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (c0 :
+    Membership) (decode : ConfChangeDecoder) (src : w64) (st : MsgSt) : isDynamicCluster γ N c0
+    decode ∗ sentMsg γ N src st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝
+
+theorem isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : Persistent (isNode n
+    γ N id)
+
+theorem nodeBoot_booted [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (ps : List w64)
+    (ctxs : List (List w8)) (id : w64) : ps ≠ [] → nodeBoot γ N ps ctxs id ⊢ nodeBoot γ N ps ctxs id
+    ∗ bootedCluster γ
+
+theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (l0 : List
+    LogEntry) : readStateOk γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝
+
+theorem storageCert_register [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (γs :
+    MemStorNames) (k : SnapTrip) (E : CoPset) : ↑N ⊆ E → ⊢ storageCertInv γ N γs -∗ snapshotCert γ N
+    k ={E}=∗ memStorCert γs k
+
+def (sealed) Cluster.bootLen (γ : Cluster) : Nat
+
+def (sealed) nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (id :
+    w64) : IProp GF
+
+theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) : ownCommittedOps γ ops ∗
+    isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝
+
+def (sealed) nodeRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF
+
+theorem Membership.simple_valid (vs : GSet w64) : vs ≠ ∅ → ¬W64 0 ∈ vs → GMap.size vs < 2 ^ 62 →
+    (Membership.simple vs).Valid
+
+theorem bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster γ)
+
+def (sealed) readStateOk (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : IProp GF
+
+theorem isCommittedLogLb_persistent (γ : Cluster) (l : List LogEntry) : Persistent (isCommittedLogLb
+    γ l)
+
+theorem isStaticCluster_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List
+    LogEntry → List w8 → Prop) : Persistent (isStaticCluster γ N vs snapOk)
+
+theorem ownReadCtxs_timeless (γ : Cluster) (U : GSet (List w8)) : Timeless (ownReadCtxs γ U)
+
+def (sealed) deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) : IProp GF
+
+def (sealed) committedAtTerm (γ : Cluster) (N : Namespace) (t c : w64) : IProp GF
+
+def (sealed) ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF
+
+def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState) (ce :
+    List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) : IProp GF :=
+  iprop(∃ ms,
+      entsRO rd.Entries' es ∗
+        ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
+          ([∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st)) ∗
+            hsOpt rd.HardState' h ∗
+              softStateRO rd.SoftState' ∗
+                ⌜∃ Lx,
+                      Lx < 2 ^ 64 ∧
+                        (∀ (e0 : EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ Lx + 1) ∧
+                          ↑(st.delivered ++ ce).length ≤ Lx ∧ Lx < ↑(receiptBound GF) + ↑γ.bootLen⌝ ∗
+                  readySnap γ N rd st ce es L)
+
+theorem leaderTransferOff_persistent (γ : Cluster) (N : Namespace) : Persistent (leaderTransferOff γ
+    N)
+
+def (sealed) tickCredit (γ : Cluster) (n : Nat) : IProp GF
+
+theorem Membership.applyChange_nodeZero (vs : GSet w64) (cm : ConfChangeM) : cm.nodeId = W64 0 →
+    (Membership.simple vs).Valid → Membership.applyChange (ConfChangeIM.v1 cm) (Membership.simple
+    vs) = some (Membership.simple vs)
+
+def (sealed) snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF
+
+theorem readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits γ n)
+
+theorem isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp
+    GF) : Persistent (isReadCtx γ N c Q)
+
+theorem sentMsg_transferOff [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64)
+    (st : MsgSt) : leaderTransferOff γ N ∗ sentMsg γ N src st ⊢ ⌜SentMsgOk st⌝
+
+theorem nodeDriver_deliveredLogLb [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
+    Namespace) (st : NodeDriverState) : nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n
+    γ N st.delivered
+
+theorem isReadyChan_recvAu [package_sem : Assumptions] (n ch : Loc) (γ : Cluster) (N : Namespace)
+    (id : w64) (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) : st.handling = none → ⊢
+    isReadyChan n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗ ∃ γc, isChan ch γc Ready ∗ (£
+    1 ∗ £ 1 -∗ (▷ ∀ rd, (∃ ce es h L, committedEntriesAt rd.CommittedEntries' st.delivered.length ce
+    ∗ isCommittedLogLb γ (st.delivered ++ ce) ∗ (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈
+    rs, readStateOk γ N s.RequestCtx' s.Index') ∗ readyRest γ N id rd st ce es h L ∗ nodeDriver n γ
+    N (match L with | none => { storage := st.storage, delivered := st.delivered ++ ce, hardState :=
+    phsNext st.hardState h, handling := some (es, none) } | some l => { storage := st.storage,
+    delivered := strip l.dlv, hardState := phsNext st.hardState h, handling := some (es, some l) }))
+    -∗ Φ rd true) -∗ recvAu γc Ready Φ)
+
+theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : st.msg.Type' =
+    MsgSnap → sentMsg γ N src st ⊢ ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv
+    sv.Metadata'.ConfState'.lists)
+
+theorem ownCommittedOps_timeless (γ : Cluster) (ops : List LogEntry) : Timeless (ownCommittedOps γ
+    ops)
+
+def (sealed) readyFits (γ : Cluster) (_N : Namespace) : IProp GF
+
+theorem readCredits_split (γ : Cluster) (a b : Nat) : readCredits γ (a + b) ⊣⊢ readCredits γ a ∗
+    readCredits γ b
+
+theorem readyFits_persistent (γ : Cluster) (N : Namespace) : Persistent (readyFits γ N)
+
+theorem readCredit_eq (γ : Cluster) : readCredit γ ⊣⊢ readCredits γ 1
+
+def (sealed) nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF
+
+theorem sentMsg_replaceSnapshot [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src :
+    w64) (st : MsgSt) (sv sv' : SnapshotM) (c : w64) (l : List LogEntry) (E : CoPset) : ↑N ⊆ E →
+    st.msg.Type' = MsgSnap → st.snap = some sv → uint.Z sv.Metadata'.Index' ≤ uint.Z
+    sv'.Metadata'.Index' → uint.Z sv'.Metadata'.Index' ≤ uint.Z c → l.length = uint.nat
+    sv'.Metadata'.Index' → Option.map LogEntry.term l.getLast? = some sv'.Metadata'.Term' → ⊢
+    sentMsg γ N src st -∗ committedAtTerm γ N st.msg.Term' c -∗ isCommittedLogLb γ l -∗ snapshotCert
+    γ N (snapTrip sv' sv'.Metadata'.ConfState'.lists) ={E}=∗ sentMsg γ N src { msg := st.msg, ents
+    := st.ents, snap := some sv', ctx := st.ctx, resps := st.resps }
+
+def (sealed) storageCertLink (γ : Cluster) (N : Namespace) (st : Storage) : IProp GF
+
+theorem readCtxAfter_persistent (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) :
+    Persistent (readCtxAfter γ N c l0)
+
+theorem deliveredLogLb_mono [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (l1
+    l2 : List LogEntry) : l1 <+: l2 → deliveredLogLb n γ N l2 ⊢ deliveredLogLb n γ N l1
+
+theorem leaderTransferOn_persistent (γ : Cluster) (N : Namespace) : Persistent (leaderTransferOn γ
+    N)
+
+def (sealed) Membership.Valid (m : Membership) : Prop
+
+theorem nodeDynamicBoot_booted [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (ps : List
+    w64) (ctxs : List (List w8)) (id : w64) : ps ≠ [] → nodeDynamicBoot γ N ps ctxs id ⊢
+    nodeDynamicBoot γ N ps ctxs id ∗ bootedCluster γ
+
+theorem readyRest_fits [go.Semantics] (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st :
+    NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
+    : readyFits γ N ∗ readyRest γ N id rd st ce es h L ⊢ readyRest γ N id rd st ce es h L ∗ ⌜∀ (e0 :
+    EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ 2 ^ 61⌝
+
+theorem readCtx_commit_after (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8) (Q :
+    List LogEntry → IProp GF) (l0 : List LogEntry) : ¬c ∈ U → ownReadCtxs γ U ∗ isCommittedLogLb γ
+    l0 ∗ □ AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ownCommittedOps γ ops, COMM □ Q ops
+    }> ⊢ |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q ∗ readCtxAfter γ N c l0)
+
+theorem dynamicCluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : List w64) (ctxs :
+    List (List w8)) (boot : List LogEntry) (decode : ConfChangeDecoder) (transfer : Bool) (E :
+    CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 → BootLog ps
+    ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ↑ps.length ≤ 2 ^ 62 → ⊢ bootMarshal ps ctxs
+    (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ
+    (2 ^ 64 - 2) ∗ isDynamicCluster γ N (Membership.simple (listToSet ps)) decode ∗ (if transfer =
+    true then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗ [∗list] id ∈ ps,
+    nodeDynamicBoot γ N ps ctxs id
+
+theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
+    (src : w64) (st : MsgSt) : (st.msg.Type' ≠ MsgProp → NetMsgOk id { msg := st.msg, ents :=
+    st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∧ st.msg.Type' ≠ MsgTransferLeader) →
+    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
+    st.msg.To' = id → (⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ) ∗ sentMsg γ N src st ∗ msgPtsC
+    ml (DFrac.own 1) (DFrac.own 1) true { msg := st.msg, ents := st.ents, snap := st.snap, ctx :=
+    st.ctx, resps := [] } ∗ msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1
+    else 0) ⊢ |==> stepIn γ N id ml
+
+theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
+    LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜↑l.length + 1 < 2 ^ 64⌝
+
+def (sealed) isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF
+
+theorem readStateOk_persistent (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : Persistent
+    (readStateOk γ N c idx)
+
+def (sealed) sentMsg (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : IProp GF
+
+theorem deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    Persistent (deliveredLogLb n γ N l)
+
+theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (U : GSet (List
+    w8)) : readStateOk γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝
+
+theorem Membership.applyChange_valid (o : ConfChangeIM) (m m' : Membership) : m.Valid →
+    Membership.applyChange o m = some m' → m'.Valid
+
+theorem isCommittedLogLb_mono (γ : Cluster) (l1 l2 : List LogEntry) : l1 <+: l2 → isCommittedLogLb γ
+    l2 ⊢ isCommittedLogLb γ l1
+
+theorem storageCertLink_persistent (γ : Cluster) (N : Namespace) (st : Storage) : Persistent
+    (storageCertLink γ N st)
+
+theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 1 →
+    cm.nodeId ≠ W64 0 → ¬cm.nodeId ∈ vs → (Membership.simple vs).Valid → Membership.applyChange
+    (ConfChangeIM.v1 cm) (Membership.simple vs) = some (Membership.simple vs)
+
+def (sealed) readCredit (γ : Cluster) : IProp GF
+
+theorem committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) : Persistent
+    (committedAtTerm γ N t c)
+
+theorem tickCredit_zero [package_sem : Assumptions] (γ : Cluster) : ⊢ |==> tickCredit γ 0
+
+theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8) (Q : List
+    LogEntry → IProp GF) : ¬c ∈ U → ownReadCtxs γ U ∗ □ AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \
+    ↑N, ∅ <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢ |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ
+    N c Q)
+
+theorem storageCertLink_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st :
+    Storage) : ((□ ∀ k E, ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗ snapshotCert γ N k) ∗ □ ∀ k E, ⌜↑N ⊆ E⌝
+    -∗ snapshotCert γ N k ={E}=∗ storCert st k) ⊢ storageCertLink γ N st
+
+theorem Membership.applyChange_removeVoter (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 1 →
+    cm.nodeId ≠ W64 0 → cm.nodeId ∈ vs → GMap.delete cm.nodeId vs ≠ ∅ → (Membership.simple vs).Valid
+    → Membership.applyChange (ConfChangeIM.v1 cm) (Membership.simple vs) = some (Membership.simple
+    (GMap.delete cm.nodeId vs))
+
+def (sealed) isStaticCluster (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List LogEntry →
+    List w8 → Prop) : IProp GF
+
+theorem readySnap_dynamic [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (c0 :
+    Membership) (decode : ConfChangeDecoder) (rd : Ready) (st : NodeDriverState) (ce : List
+    LogEntry) (es : List EntryM) (l : SnapLoan) : isDynamicCluster γ N c0 decode ∗ readySnap γ N rd
+    st ce es (some l) ⊢ False
+
+theorem msgCredits_snapshot [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    st.msg.Type' = MsgSnap → ⊢ |==> msgCredits γ N st
+
+theorem msgCredits_none (γ : Cluster) (N : Namespace) (st : MsgSt) : st.msg.Type' ≠ MsgReadIndex →
+    st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits γ N st
+
+theorem sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : Persistent
+    (sentMsg γ N src st)
+
+theorem nodeDriver_hardStateCommitted [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
+    Namespace) (c0 : Membership) (decode : ConfChangeDecoder) (st : NodeDriverState) :
+    isDynamicCluster γ N c0 decode ∗ nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ (⌜st.hardState =
+    hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗ ⌜↑st.delivered.length ≤
+    uint.Z st.hardState.Commit'⌝)
+
+def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry)
+    (es : List EntryM) : Option SnapLoan → IProp GF :=
   match x✝ with
-  | none => d ++ ce
-  | some l => l.dlv
+  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es)
+  | some l =>
+    iprop(⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧
+            l.ptr = rd.Snapshot' ∧
+              ce = [] ∧
+                st.delivered <+: strip l.dlv ∧
+                  st.delivered.length < l.dlv.length ∧
+                    l.dlv.length = uint.nat l.snap.Metadata'.Index' ∧
+                      0 < uint.Z l.snap.Metadata'.Index' ∧
+                        uint.Z l.snap.Metadata'.Index' < 2 ^ 61 ∧
+                          uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es⌝ ∗
+        ownSnapS l.ptr (DFrac.own (Qp.half 1)) l.snap ∗
+          isCommittedLogLb γ (strip l.dlv) ∗
+            snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗ readyOut st.storage es (some l))
 
-def tickCred (_bud : BudgetNames) (n : Nat) : IProp GF :=
-  ⧗n
-
-theorem isNode_persistent (γ : NodeNames) (id : w64) (n : Loc) : Persistent (isNode γ id n)
-
-def confstateOk (c : ConfStateM) (cfg : CfgM) : Prop :=
-  c.Voters'.Perm (elements cfg.incoming) ∧
-    c.VotersOutgoing'.Perm (elements cfg.outgoing) ∧
-      c.Learners'.Perm (elements cfg.learners) ∧
-        c.LearnersNext'.Perm (elements cfg.learnersNext) ∧ c.AutoLeave' = cfg.autoLeave
-
-theorem budget_alloc_at (m : Nat) (hm : m ≤ 1) (Hb : receiptBound GF ≤ 2 ^ 64 - 2) (E : CoPset) : ⊢
-    |={E}=> ∃ bud, inv budgetN (budgetInv bud) ∗ monoNatLbOwn bud.bound m
-
-theorem node_read_deposit [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (c : List
-    w8) (Qr : List EntryM → IProp GF) (L0 : List EntryM) : ⊢ isNode γ id n -∗ rdFresh γ.raft c -∗
-    readAu γ.raft Qr -∗ isCommitted γ.raft L0 ={⊤}=∗ ∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗
-    isRead γ.raft c Qr
-
-theorem isNode_commitInv [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) : isNode γ
-    id n ⊢ raftCommitInv γ.raft
-
-def reqWit (γ : NodeNames) : Option Nat → IProp GF :=
-  match x✝ with
-  | none => iprop(True)
-  | some k => iprop(∃ x, storFloor γ.stor x ∗ ⌜↑k ≤ uint.Z x⌝)
-
-def (sealed) tickInv (γ : NodeNames) : IProp GF
-
-def ready_countable : Pos.Countable Ready :=
-  countableOfLeftInverse
-    (fun r =>
-      (r.SoftState', r.HardState', r.ReadStates', r.Entries', r.Snapshot', r.CommittedEntries', r.Messages', r.MustSync'))
-    (fun p =>
-      { SoftState' := p.fst, HardState' := p.snd.fst, ReadStates' := p.snd.snd.fst, Entries' := p.snd.snd.snd.fst,
-        Snapshot' := p.snd.snd.snd.snd.fst, CommittedEntries' := p.snd.snd.snd.snd.snd.fst,
-        Messages' := p.snd.snd.snd.snd.snd.snd.fst, MustSync' := p.snd.snd.snd.snd.snd.snd.snd })
-    ⋯
-
-def snapLoan_countable : Pos.Countable SnapLoan :=
-  Pos.Countable.ofInjective
-    (fun l =>
-      Pos.Countable.encode
-        ((((((((((l.ptr, l.snap.Data'), l.snap.Metadata'.ConfState'.Voters'), l.snap.Metadata'.ConfState'.Learners'),
-                      l.snap.Metadata'.ConfState'.VotersOutgoing'),
-                    l.snap.Metadata'.ConfState'.LearnersNext'),
-                  l.snap.Metadata'.ConfState'.AutoLeave'),
-                l.snap.Metadata'.Index'),
-              l.snap.Metadata'.Term'),
-            l.fl),
-          l.dlv))
-    ⋯
-
-def (sealed) readyP (γ : NodeNames) (rd : Ready) : IProp GF
-
-theorem handshake_send_au_upd [package_sem : Assumptions] {V : Type} [Pos.Countable V] [ZeroVal V]
-    [TypedPointsto V] {t : go.GoType} [IntoValTyped V t] (γc : ChanNames) (ch : Loc) (v : V) (P : V
-    → IProp GF) (Q Φ : IProp GF) : ⊢ £ 1 ∗ £ 1 ∗ £ 1 -∗ isHandshake γc ch P Q -∗ |==> (P v ∗ ▷ (Q -∗
-    Φ)) -∗ sendAu γc v Φ
-
-def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
-  iprop(∃ st,
-      msgIn ml (DFrac.own 1) st ∗
-        ⌜st.msg.Type' = MsgProp ∧ st.resps = []⌝ ∗
-          isMessage γ.raft (absMsg MsgType.propose st.msg st.ents) ∗ [∗list] e ∈ st.ents, entTk γ.raft e)
-
-def cfgM_countable : Pos.Countable CfgM :=
-  countableOfLeftInverse (fun c => (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave))
-    (fun p =>
-      { incoming := p.fst, outgoing := p.snd.fst, learners := p.snd.snd.fst, learnersNext := p.snd.snd.snd.fst,
-        autoLeave := p.snd.snd.snd.snd })
-    cfgM_countable._proof_1
-
-theorem node_propose_ghost [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (data :
-    List w8) (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑raftN ⊆ E) (Hne : data ≠ []) : ⊢
-    isNode γ id n -∗ propArg γ.raft data Q ={E}=∗ propData γ.raft (propEntryM data) ∗ entTk γ.raft
-    (propEntryM data)
-
-def advN : Namespace :=
-  nroot.@"raft_advancec"
-
-theorem tickCred_zero (bud : BudgetNames) : ⊢ |==> tickCred bud 0
-
-def (sealed) nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) (p' :
-    HardStateM) (L : Option SnapLoan := none) : IProp GF
-
-theorem budgetInv_timeless (bud : BudgetNames) : Timeless (budgetInv bud)
-
-theorem termLB_bound (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN ⊆ E) : ⊢ inv budgetN
-    (budgetInv bud) -∗ termLB bud t ={E}=∗ ⌜uint.Z t < 2 ^ 64 - 1⌝
-
-theorem readyDataL_none [package_sem : Assumptions] (γ : NodeNames) (rd : Ready) (d ce es : List
-    EntryM) (ms : List QMsg) (p p' : HardStateM) (L : Option SnapLoan) (H : γ.raft.reNoSnap = true ∨
-    γ.mode.isDyn = true ∨ γ.snapIn = false) : readyDataL γ rd d ce es ms p p' L ⊢ ⌜L = none⌝ ∗
-    readyData γ rd d ce es ms p p'
-
-theorem reqWit_none [package_sem : Assumptions] (γ : NodeNames) (ds : List EntryM) (_H :
-    γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) : reqWit γ (reqOf none ds) ⊢ ∃
-    x, storFloor γ.stor x ∗ ⌜↑ds.length ≤ uint.Z x⌝
-
-theorem termLB_zero (bud : BudgetNames) : ⊢ |==> termLB bud (W64 0)
-
-def rsDlv (rs : RNState) : List EntryM :=
-  match rs.slent with
-  | none => rs.delivered
-  | some l => l.dlv
-
-def budgetInv (bud : BudgetNames) : IProp GF :=
-  iprop(∃ M k, monoNatAuthOwn bud.bound 1 M ∗ ⧗k ∗ ⌜M ≤ k + 1 ∧ receiptBound GF ≤ 2 ^ 64 - 2⌝)
-
-theorem node_ready_receive_ns [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n ch : Loc)
-    (ds : List EntryM) (p : HardStateM) (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn
-    = false) : ⊢ ∀ Φ, isReadyChan γ ch ∗ nodeDriver γ id n ds p -∗ (▷ ∀ rd, (∃ ce es ms p',
-    readyData γ rd ds ce es ms p p' ∗ nodeDriverBusy γ id n (ds ++ ce) es p') -∗ Φ (intoVal rd,
-    intoVal true)) -∗ WP ((chan.receive Ready.ty) (intoVal ch)) {{ Φ }}
-
-def (sealed) propP (γ : NodeNames) (pm : msgWithResult) : IProp GF
-
-def msgWithResult_countable : Pos.Countable msgWithResult :=
-  countableOfLeftInverse (fun m => (m.m', m.result')) (fun p => { m' := p.fst, result' := p.snd }) ⋯
-
-def budgetN : Namespace :=
-  nroot.@"raft_budget"
-
-theorem budget_spend (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN ⊆ E) : ⊢ inv budgetN
-    (budgetInv bud) -∗ tickCred bud 1 -∗ termLB bud t ={E}=∗ ⌜uint.Z t + 1 < 2 ^ 64 - 1⌝ ∗ termLB
-    bud (t + W64 1)
-
-theorem termLB_le (bud : BudgetNames) (t t' : w64) (h : uint.Z t' ≤ uint.Z t) : ⊢ termLB bud t -∗
-    termLB bud t'
-
-theorem nodeDriverBusy_lb [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (ds es :
-    List EntryM) (p' : HardStateM) (L : Option SnapLoan := none) : ⊢ nodeDriverBusy γ id n ds es p'
-    L -∗ dlvLb γ ds
-
-theorem node_prop_register [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (d :
-    List w8) (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑raftN ⊆ E) : ⊢ isNode γ id n -∗
-    propFresh γ.raft d ={E}=∗ propIs γ.raft d Q
-
-theorem netP_local [package_sem : Assumptions] (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
-    (Hty : st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgForgetLeader ∨ st.msg.Type' =
-    MsgUnreachable ∨ st.msg.Type' = MsgSnapStatus) (Ht : st.msg.Term' = W64 0) (He : st.ents = [])
-    (Hc : st.ctx = []) (Hr : st.resps = []) (Hxt : st.msg.Type' = MsgTransferLeader →
-    γ.raft.reNoXfer = false) : ⊢ msgIn ml DFrac.discard st -∗ termLB γ.bud (W64 0) -∗ rdCred γ.raft
-    0 -∗ tickCred γ.bud 0 -∗ netP γ id ml
-
-theorem isHandshake_isChan {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto V] (γc :
-    ChanNames) (ch : Loc) (P : V → IProp GF) (Q : IProp GF) : ⊢ isHandshake γc ch P Q -∗ isChan ch
-    γc V
-
-theorem node_committed_data [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (l :
-    List EntryM) (E : CoPset) (HE : ↑raftN ⊆ E) : ⊢ isNode γ id n -∗ isCommitted γ.raft l ={E}=∗ ∃
-    ods, [∗list] e;o ∈ l;ods, entDataIs γ.raft e o
-
-def (sealed) runCfg (γ : NodeNames) (rs : RNState) : IProp GF
-
-def (sealed) advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF
-
-theorem readyP_take_ns [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready)
-    (ds : List EntryM) (p : HardStateM) (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn
-    = false) : ⊢ readyP γ rd -∗ nodeDriver γ id n ds p -∗ ∃ ce es ms p', readyData γ rd ds ce es ms
-    p p' ∗ nodeDriverBusy γ id n (ds ++ ce) es p' ∗ dlvLb γ (ds ++ ce)
-
-def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QMsg) (p p' :
-    HardStateM) (l : SnapLoan) : IProp GF :=
-  iprop(entsRO rd.CommittedEntries' ce ∗
-      isCommitted γ.raft (d ++ ce) ∗
-        entsRO rd.Entries' es ∗
-          ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
-            ([∗list] q ∈ ms,
-                iprop(msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗ termLB γ.bud q.st.msg.Term')) ∗
-              ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
-                ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
-                  (∃ sts, readStatesPts rd.ReadStates' sts ∗ [∗list] st ∈ sts, readStateOk γ.raft st) ∗
-                    (∃ h, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
-                      hsWit γ.raft p' (d ++ ce).length ∗
-                        softStateRO rd.SoftState' ∗
-                          readyIdx γ.raft d ce es ∗
-                            ⌜γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ γ.mode = RNMode.static⌝ ∗
-                              ownSnapS l.ptr (DFrac.own (Qp.half 1)) l.snap ∗
-                                isCommitted γ.raft l.dlv ∗
-                                  snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
-                                    ⌜l.ptr = rd.Snapshot' ∧
-                                          ce = [] ∧
-                                            d <+: l.dlv ∧
-                                              d.length < l.dlv.length ∧
-                                                l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
-                                                  0 < uint.Z l.snap.Metadata'.Index' ∧
-                                                    uint.Z l.snap.Metadata'.Index' < 2 ^ 61 ∧
-                                                      uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧
-                                                        LogIndicesOk (snapId l.snap) es⌝ ∗
-                                      readyOut γ.stor es (some l))
-
-theorem readyP_none [package_sem : Assumptions] (γ : NodeNames) (rd : Ready) (H : γ.raft.reNoSnap =
-    true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) : readyP γ rd ⊢ ∃ d ce es ms p p', dghostVar
-    γ.dlv (DFrac.own (Qp.half 1)) (d, p) ∗ dghostVar γ.rof (DFrac.own (Qp.half 1)) (d, ce, es, p',
-    none) ∗ readyData γ rd d ce es ms p p' ∗ monoListLbOwn γ.dlm (d ++ ce)
-
-def (sealed) dlvLb (γ : NodeNames) (ds : List EntryM) : IProp GF
-
-theorem reqWit_persistent (γ : NodeNames) (q : Option Nat) : Persistent (reqWit γ q)
-
-def advReceipt (st : Storage) (es : List EntryM) : Option SnapLoan → IProp GF :=
-  match x✝ with
-  | none => appendReceipt st es
-  | some l => snapReceipt st l es
-
-theorem rsDlv_none {rs : RNState} (h : rs.slent = none) : rsDlv rs = rs.delivered
-
-def (sealed) advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF
-
-def readyDataL (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QMsg) (p p' :
-    HardStateM) : Option SnapLoan → IProp GF :=
-  match x✝ with
-  | none => readyData γ rd d ce es ms p p'
-  | some l => readySnapData γ rd d ce es ms p p' l
-
-def ccState_countable : Pos.Countable CCState :=
-  countableOfLeftInverse (fun c => (c.cfg, c.prs)) (fun p => { cfg := p.fst, prs := p.snd }) ccState_countable._proof_1
-
-def termLB (bud : BudgetNames) (t : w64) : IProp GF :=
-  monoNatLbOwn bud.bound (uint.nat t)
-
-structure NodeNames : Type 1 where
-  raft : RaftNames
-  bud : BudgetNames
-  stor : Storage
-  propc : ChanNames
-  recvc : ChanNames
-  confc : ChanNames
-  confstatec : ChanNames
-  readyc : ChanNames
-  advancec : ChanNames
-  tick : ChanNames
-  done : ChanNames
-  stop : ChanNames
-  status : ChanNames
-  dlv : GName
-  rof : GName
-  mode : RNMode
-  dlm : GName
-  cap : GName
-  ccq : GName
-  cam : GName
-  req : GName
-  id : w64
-  snapIn : Bool
-
-def (sealed) advInv (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF
-
-def (sealed) confstateP (γ : NodeNames) (cs : Loc) : IProp GF
-
-theorem runCfg_congr [package_sem : Assumptions] (γ : NodeNames) {rs rs' : RNState} (hm : rs'.mode =
-    rs.mode) (hc : rs'.capplied = rs.capplied) (hd : rs'.delivered = rs.delivered) (hf : rs'.flw =
-    rs.flw) (hp : rs'.psnap = rs.psnap) (hs : rs'.slent = rs.slent) (hcfg : rs'.cfg = rs.cfg) :
-    runCfg γ rs ⊢ runCfg γ rs'
-
-theorem handshake_false_recv_au {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto V] (γc :
-    ChanNames) (ch : Loc) (Φ : V → Bool → IProp GF) : ⊢ £ 1 ∗ £ 1 -∗ isHandshake γc ch (fun x =>
-    iprop(False)) iprop(True) -∗ recvAu γc V Φ
-
-theorem termLB_persistent (bud : BudgetNames) (t : w64) : Persistent (termLB bud t)
-
-def (sealed) isAdvChan (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) : IProp GF
-
-theorem node_ready_receive [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n ch : Loc) (ds :
-    List EntryM) (p : HardStateM) : ⊢ ∀ Φ, isReadyChan γ ch ∗ nodeDriver γ id n ds p -∗ (▷ ∀ rd, (∃
-    ce es ms p' L, readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es
-    p' L) -∗ Φ (intoVal rd, intoVal true)) -∗ WP ((chan.receive Ready.ty) (intoVal ch)) {{ Φ }}
-
-def (sealed) advanceP (γ : NodeNames) (L : Option SnapLoan) : IProp GF
-
-def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QMsg) (p p' :
-    HardStateM) : IProp GF :=
-  iprop(entsRO rd.CommittedEntries' ce ∗
-      isCommitted γ.raft (d ++ ce) ∗
-        entsRO rd.Entries' es ∗
-          appendRight γ.stor es ∗
-            ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
-              ([∗list] q ∈ ms,
-                  iprop(msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗ termLB γ.bud q.st.msg.Term')) ∗
-                ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
-                  ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
-                    (∃ sts, readStatesPts rd.ReadStates' sts ∗ [∗list] st ∈ sts, readStateOk γ.raft st) ∗
-                      (∃ h, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
-                        hsWit γ.raft p' (d ++ ce).length ∗
-                          softStateRO rd.SoftState' ∗ ⌜rd.Snapshot' = null⌝ ∗ readyIdx γ.raft d ce es)
-
-theorem budget_step (bud : BudgetNames) (t1 t2 : w64) (P : Prop) [Decidable P] (E : CoPset) (HE :
-    ↑budgetN ⊆ E) : ⊢ inv budgetN (budgetInv bud) -∗ termLB bud t1 -∗ termLB bud t2 -∗ tickCred bud
-    (if P then 1 else 0) ={E}=∗ ⌜uint.Z t1 + 1 < 2 ^ 64 ∧ uint.Z t2 + 1 < 2 ^ 64⌝ ∗ ∃ tb, termLB bud
-    tb ∗ ⌜(max (uint.Z t1) (uint.Z t2) + if P then 1 else 0) ≤ uint.Z tb⌝
-
-def (sealed) nodeCfg (γ : NodeNames) (ca : Nat) (cfg : CCState) : IProp GF
-
-theorem isAdvChan_persistent (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) : Persistent
-    (isAdvChan γ rn id ch)
-
-def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st,
-      msgIn ml DFrac.discard st ∗
-        ⌜NetMsgOk id st⌝ ∗
-          ⌜(st.msg.Type' = MsgPreVote → γ.raft.reBoot ≠ []) ∧
-                (st.msg.Type' = MsgTransferLeader → γ.raft.reNoXfer = false) ∧
-                  (st.msg.Type' = MsgSnap → γ.snapIn = true)⌝ ∗
-            (□
-                ∀ ty,
-                  ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
-                    ⌜ty ≠ MsgType.snap⌝ -∗ isMessage γ.raft (absMsg ty st.msg st.ents st.ctx)) ∗
-              □
-                  (⌜st.msg.Type' = MsgSnap⌝ -∗
-                    ∃ sv scfg,
-                      ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
-                        isMessageC γ.raft (absSnap st.msg sv scfg) ∗
-                          snapDataOk γ.raft sv.Metadata'.Index' sv.Data' ∗ snapLocal γ.raft id sv.Metadata'.Index') ∗
-                termLB γ.bud st.msg.Term' ∗
-                  rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
-                    tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0))
+theorem isDynamicCluster_persistent (γ : Cluster) (N : Namespace) (c0 : Membership) (decode :
+    ConfChangeDecoder) : Persistent (isDynamicCluster γ N c0 decode)

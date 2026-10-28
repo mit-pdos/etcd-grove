@@ -36,7 +36,7 @@ namespace EtcdGrove
 namespace linkv3p
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open putget3 (httpURL ccOk commonPremises)
+open putget3 (httpURL commonPremises)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -53,7 +53,7 @@ theorem Main.wp_proof
     (wp_partitioner : partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE CRE CEC PP N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
+  intro CS CRE CEC N id₁ id₂ id₃ ctxs boot clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
     Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -67,7 +67,7 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the cluster, its clients' watch environment unused
-  wp_apply (wp_startCluster N id₁ id₂ id₃ bootLog lg [] Hbf
+  wp_apply (wp_startCluster N id₁ id₂ id₃ ctxs boot lg [] Hbf
       Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
@@ -121,14 +121,14 @@ theorem Main.wp_proof
     iapply BigSepL.bigSepL_nil.2
     itrivial
   wp_apply wp_fork $$ [Hobs Hmem]
-  · wp_apply (wp_partitioner PP γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs Hmem]
+  · wp_apply (wp_partitioner inferInstance γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs Hmem]
     all_goals (try (iframe #))
     all_goals (try iframe)
     ipureintro; exact isPanic_intoVal ()
   (try wp_auto)
   -- the instance's invariant, at the cluster's start store (empty), for every member's names
-  imod (linkvtxn.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃)
-      bootLog Hbf.boot ⊤) $$ Hetcd
+  imod (linkvtxn.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (fun _ _ => True) (ids id₁ id₂ id₃)
+      (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   ihave #Hlinv₂ : linkvtxn.linkvInv γl ρ₂.rd.kv $$ []
   · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂]; iexact Hlinv

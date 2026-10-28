@@ -290,7 +290,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     StepR (AdmS dec c0 S) dec id B r recv r' →
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ regsOwn γ -∗ (□ ∀ (fp : List EntryM), ⌜S fp⌝ -∗ logRecs (GF := GF) γ base0 fp) -∗
       ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗
-      ownRaftGhostR γ dec c0 id r ={⊤ \ ↑raftRegN}=∗
+      ownRaftGhostR γ dec c0 id r ={⊤ \ ↑(raftRegN γ)}=∗
       regsOwn γ ∗ ownRaftGhostR γ dec c0 id r' := by
   intro Hstep
   induction Hstep with

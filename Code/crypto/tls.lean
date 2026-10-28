@@ -1788,8 +1788,12 @@ abbrev AlertError [GooseExts] : Type := w8
 
 class AlertError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlertError.ty AlertError.underlying
+  method_set : go.MethodSetIs AlertError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlertError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] AlertError.TypeAssumptions.underlying
+  AlertError.TypeAssumptions.method_set
+  AlertError.TypeAssumptions.ptr_method_set
 
 abbrev alert [GooseExts] : Type := w8
 
@@ -1798,8 +1802,12 @@ abbrev alert [GooseExts] : Type := w8
 
 class alert.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq alert.ty alert.underlying
+  method_set : go.MethodSetIs alert.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType alert.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] alert.TypeAssumptions.underlying
+  alert.TypeAssumptions.method_set
+  alert.TypeAssumptions.ptr_method_set
 
 axiom weakCertCache : Type
 axiom weakCertCache.zero_val : ZeroVal weakCertCache
@@ -1809,10 +1817,14 @@ class weakCertCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying weakCertCache.underlying weakCertCache
   underlying : go.UnderlyingDirectedEq weakCertCache.ty weakCertCache.underlying
   isUnderlying : go.IsUnderlying weakCertCache.underlying weakCertCache.underlying
+  method_set : go.MethodSetIs weakCertCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType weakCertCache.ty) [(go!"Clear", (some (go.signature.Signature [] false []))), (go!"CompareAndDelete", (some (go.signature.Signature [go.any, go.any] false [go.bool]))), (go!"CompareAndSwap", (some (go.signature.Signature [go.any, go.any, go.any] false [go.bool]))), (go!"Delete", (some (go.signature.Signature [go.any] false []))), (go!"Load", (some (go.signature.Signature [go.any] false [go.any, go.bool]))), (go!"LoadAndDelete", (some (go.signature.Signature [go.any] false [go.any, go.bool]))), (go!"LoadOrStore", (some (go.signature.Signature [go.any, go.any] false [go.any, go.bool]))), (go!"Range", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.bool]))] false []))), (go!"Store", (some (go.signature.Signature [go.any, go.any] false []))), (go!"Swap", (some (go.signature.Signature [go.any, go.any] false [go.any, go.bool]))), (go!"crypto/tls.newCert", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" [])), go.error])))]
 
 attribute [instance] weakCertCache.TypeAssumptions.type_repr
   weakCertCache.TypeAssumptions.underlying
   weakCertCache.TypeAssumptions.isUnderlying
+  weakCertCache.TypeAssumptions.method_set
+  weakCertCache.TypeAssumptions.ptr_method_set
 
 structure CipherSuite [GooseExts] where
   mk ::
@@ -1851,6 +1863,8 @@ class CipherSuite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_SupportedVersions : ∀ (x : CipherSuite) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"SupportedVersions") (PairV #x #y) (Val #(({ x with SupportedVersions' := y } : CipherSuite)))
   get_Insecure : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"Insecure") #x (Val #(x.Insecure'))
   set_Insecure : ∀ (x : CipherSuite) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"Insecure") (PairV #x #y) (Val #(({ x with Insecure' := y } : CipherSuite)))
+  method_set : go.MethodSetIs CipherSuite.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CipherSuite.ty) []
 
 attribute [instance] CipherSuite.TypeAssumptions.type_repr
   CipherSuite.TypeAssumptions.underlying
@@ -1862,6 +1876,8 @@ attribute [instance] CipherSuite.TypeAssumptions.type_repr
   CipherSuite.TypeAssumptions.set_SupportedVersions
   CipherSuite.TypeAssumptions.get_Insecure
   CipherSuite.TypeAssumptions.set_Insecure
+  CipherSuite.TypeAssumptions.method_set
+  CipherSuite.TypeAssumptions.ptr_method_set
 
 axiom cipherSuite : Type
 axiom cipherSuite.zero_val : ZeroVal cipherSuite
@@ -1871,10 +1887,14 @@ class cipherSuite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying cipherSuite.underlying cipherSuite
   underlying : go.UnderlyingDirectedEq cipherSuite.ty cipherSuite.underlying
   isUnderlying : go.IsUnderlying cipherSuite.underlying cipherSuite.underlying
+  method_set : go.MethodSetIs cipherSuite.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cipherSuite.ty) []
 
 attribute [instance] cipherSuite.TypeAssumptions.type_repr
   cipherSuite.TypeAssumptions.underlying
   cipherSuite.TypeAssumptions.isUnderlying
+  cipherSuite.TypeAssumptions.method_set
+  cipherSuite.TypeAssumptions.ptr_method_set
 
 axiom cipherSuiteTLS13 : Type
 axiom cipherSuiteTLS13.zero_val : ZeroVal cipherSuiteTLS13
@@ -1884,10 +1904,14 @@ class cipherSuiteTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying cipherSuiteTLS13.underlying cipherSuiteTLS13
   underlying : go.UnderlyingDirectedEq cipherSuiteTLS13.ty cipherSuiteTLS13.underlying
   isUnderlying : go.IsUnderlying cipherSuiteTLS13.underlying cipherSuiteTLS13.underlying
+  method_set : go.MethodSetIs cipherSuiteTLS13.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cipherSuiteTLS13.ty) [(go!"crypto/tls.exportKeyingMaterial", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"crypto/internal/fips140/tls13.MasterSecret" [])), (go.GoType.Named go!"hash.Hash" [])] false [(go.GoType.FunctionType (go.signature.Signature [go.string, (go.GoType.SliceType go.byte), go.int] false [(go.GoType.SliceType go.byte), go.error]))]))), (go!"crypto/tls.finishedHash", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"hash.Hash" [])] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.nextTrafficSecret", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.trafficKey", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)])))]
 
 attribute [instance] cipherSuiteTLS13.TypeAssumptions.type_repr
   cipherSuiteTLS13.TypeAssumptions.underlying
   cipherSuiteTLS13.TypeAssumptions.isUnderlying
+  cipherSuiteTLS13.TypeAssumptions.method_set
+  cipherSuiteTLS13.TypeAssumptions.ptr_method_set
 
 axiom aead : Type
 axiom aead.zero_val : ZeroVal aead
@@ -1897,10 +1921,14 @@ class aead.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying aead.underlying aead
   underlying : go.UnderlyingDirectedEq aead.ty aead.underlying
   isUnderlying : go.IsUnderlying aead.underlying aead.underlying
+  method_set : go.MethodSetIs aead.ty [(go!"NonceSize", (some (go.signature.Signature [] false [go.int]))), (go!"Open", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Overhead", (some (go.signature.Signature [] false [go.int]))), (go!"Seal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.explicitNonceLen", (some (go.signature.Signature [] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType aead.ty) []
 
 attribute [instance] aead.TypeAssumptions.type_repr
   aead.TypeAssumptions.underlying
   aead.TypeAssumptions.isUnderlying
+  aead.TypeAssumptions.method_set
+  aead.TypeAssumptions.ptr_method_set
 
 axiom prefixNonceAEAD : Type
 axiom prefixNonceAEAD.zero_val : ZeroVal prefixNonceAEAD
@@ -1910,10 +1938,14 @@ class prefixNonceAEAD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying prefixNonceAEAD.underlying prefixNonceAEAD
   underlying : go.UnderlyingDirectedEq prefixNonceAEAD.ty prefixNonceAEAD.underlying
   isUnderlying : go.IsUnderlying prefixNonceAEAD.underlying prefixNonceAEAD.underlying
+  method_set : go.MethodSetIs prefixNonceAEAD.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType prefixNonceAEAD.ty) [(go!"NonceSize", (some (go.signature.Signature [] false [go.int]))), (go!"Open", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Overhead", (some (go.signature.Signature [] false [go.int]))), (go!"Seal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.explicitNonceLen", (some (go.signature.Signature [] false [go.int])))]
 
 attribute [instance] prefixNonceAEAD.TypeAssumptions.type_repr
   prefixNonceAEAD.TypeAssumptions.underlying
   prefixNonceAEAD.TypeAssumptions.isUnderlying
+  prefixNonceAEAD.TypeAssumptions.method_set
+  prefixNonceAEAD.TypeAssumptions.ptr_method_set
 
 axiom xorNonceAEAD : Type
 axiom xorNonceAEAD.zero_val : ZeroVal xorNonceAEAD
@@ -1923,10 +1955,14 @@ class xorNonceAEAD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying xorNonceAEAD.underlying xorNonceAEAD
   underlying : go.UnderlyingDirectedEq xorNonceAEAD.ty xorNonceAEAD.underlying
   isUnderlying : go.IsUnderlying xorNonceAEAD.underlying xorNonceAEAD.underlying
+  method_set : go.MethodSetIs xorNonceAEAD.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType xorNonceAEAD.ty) [(go!"NonceSize", (some (go.signature.Signature [] false [go.int]))), (go!"Open", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Overhead", (some (go.signature.Signature [] false [go.int]))), (go!"Seal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.explicitNonceLen", (some (go.signature.Signature [] false [go.int])))]
 
 attribute [instance] xorNonceAEAD.TypeAssumptions.type_repr
   xorNonceAEAD.TypeAssumptions.underlying
   xorNonceAEAD.TypeAssumptions.isUnderlying
+  xorNonceAEAD.TypeAssumptions.method_set
+  xorNonceAEAD.TypeAssumptions.ptr_method_set
 
 axiom constantTimeHash : Type
 axiom constantTimeHash.zero_val : ZeroVal constantTimeHash
@@ -1936,10 +1972,14 @@ class constantTimeHash.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying constantTimeHash.underlying constantTimeHash
   underlying : go.UnderlyingDirectedEq constantTimeHash.ty constantTimeHash.underlying
   isUnderlying : go.IsUnderlying constantTimeHash.underlying constantTimeHash.underlying
+  method_set : go.MethodSetIs constantTimeHash.ty [(go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"ConstantTimeSum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType constantTimeHash.ty) []
 
 attribute [instance] constantTimeHash.TypeAssumptions.type_repr
   constantTimeHash.TypeAssumptions.underlying
   constantTimeHash.TypeAssumptions.isUnderlying
+  constantTimeHash.TypeAssumptions.method_set
+  constantTimeHash.TypeAssumptions.ptr_method_set
 
 structure cthWrapper [GooseExts] where
   mk ::
@@ -1966,11 +2006,15 @@ class cthWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq cthWrapper.ty cthWrapper.underlying
   get_h : ∀ (x : cthWrapper), go.IsGoStepPureDetTagged under (StructFieldGet cthWrapper.underlying go!"h") #x (Val #(x.h'))
   set_h : ∀ (x : cthWrapper) (y : constantTimeHash), go.IsGoStepPureDetTagged under (StructFieldSet cthWrapper.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : cthWrapper)))
+  method_set : go.MethodSetIs cthWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cthWrapper.ty) [(go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] cthWrapper.TypeAssumptions.type_repr
   cthWrapper.TypeAssumptions.underlying
   cthWrapper.TypeAssumptions.get_h
   cthWrapper.TypeAssumptions.set_h
+  cthWrapper.TypeAssumptions.method_set
+  cthWrapper.TypeAssumptions.ptr_method_set
 
 abbrev recordType [GooseExts] : Type := w8
 
@@ -1979,8 +2023,12 @@ abbrev recordType [GooseExts] : Type := w8
 
 class recordType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq recordType.ty recordType.underlying
+  method_set : go.MethodSetIs recordType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType recordType.ty) []
 
 attribute [instance] recordType.TypeAssumptions.underlying
+  recordType.TypeAssumptions.method_set
+  recordType.TypeAssumptions.ptr_method_set
 
 abbrev CurveID [GooseExts] : Type := w16
 
@@ -1989,8 +2037,12 @@ abbrev CurveID [GooseExts] : Type := w16
 
 class CurveID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CurveID.ty CurveID.underlying
+  method_set : go.MethodSetIs CurveID.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CurveID.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] CurveID.TypeAssumptions.underlying
+  CurveID.TypeAssumptions.method_set
+  CurveID.TypeAssumptions.ptr_method_set
 
 structure keyShare [GooseExts] where
   mk ::
@@ -2021,6 +2073,8 @@ class keyShare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_group : ∀ (x : keyShare) (y : CurveID), go.IsGoStepPureDetTagged under (StructFieldSet keyShare.underlying go!"group") (PairV #x #y) (Val #(({ x with group' := y } : keyShare)))
   get_data : ∀ (x : keyShare), go.IsGoStepPureDetTagged under (StructFieldGet keyShare.underlying go!"data") #x (Val #(x.data'))
   set_data : ∀ (x : keyShare) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keyShare.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : keyShare)))
+  method_set : go.MethodSetIs keyShare.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keyShare.ty) []
 
 attribute [instance] keyShare.TypeAssumptions.type_repr
   keyShare.TypeAssumptions.underlying
@@ -2028,6 +2082,8 @@ attribute [instance] keyShare.TypeAssumptions.type_repr
   keyShare.TypeAssumptions.set_group
   keyShare.TypeAssumptions.get_data
   keyShare.TypeAssumptions.set_data
+  keyShare.TypeAssumptions.method_set
+  keyShare.TypeAssumptions.ptr_method_set
 
 structure pskIdentity [GooseExts] where
   mk ::
@@ -2058,6 +2114,8 @@ class pskIdentity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_label : ∀ (x : pskIdentity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet pskIdentity.underlying go!"label") (PairV #x #y) (Val #(({ x with label' := y } : pskIdentity)))
   get_obfuscatedTicketAge : ∀ (x : pskIdentity), go.IsGoStepPureDetTagged under (StructFieldGet pskIdentity.underlying go!"obfuscatedTicketAge") #x (Val #(x.obfuscatedTicketAge'))
   set_obfuscatedTicketAge : ∀ (x : pskIdentity) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet pskIdentity.underlying go!"obfuscatedTicketAge") (PairV #x #y) (Val #(({ x with obfuscatedTicketAge' := y } : pskIdentity)))
+  method_set : go.MethodSetIs pskIdentity.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pskIdentity.ty) []
 
 attribute [instance] pskIdentity.TypeAssumptions.type_repr
   pskIdentity.TypeAssumptions.underlying
@@ -2065,6 +2123,8 @@ attribute [instance] pskIdentity.TypeAssumptions.type_repr
   pskIdentity.TypeAssumptions.set_label
   pskIdentity.TypeAssumptions.get_obfuscatedTicketAge
   pskIdentity.TypeAssumptions.set_obfuscatedTicketAge
+  pskIdentity.TypeAssumptions.method_set
+  pskIdentity.TypeAssumptions.ptr_method_set
 
 axiom ConnectionState : Type
 axiom ConnectionState.zero_val : ZeroVal ConnectionState
@@ -2074,10 +2134,14 @@ class ConnectionState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying ConnectionState.underlying ConnectionState
   underlying : go.UnderlyingDirectedEq ConnectionState.ty ConnectionState.underlying
   isUnderlying : go.IsUnderlying ConnectionState.underlying ConnectionState.underlying
+  method_set : go.MethodSetIs ConnectionState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConnectionState.ty) [(go!"ExportKeyingMaterial", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte), go.int] false [(go.GoType.SliceType go.byte), go.error])))]
 
 attribute [instance] ConnectionState.TypeAssumptions.type_repr
   ConnectionState.TypeAssumptions.underlying
   ConnectionState.TypeAssumptions.isUnderlying
+  ConnectionState.TypeAssumptions.method_set
+  ConnectionState.TypeAssumptions.ptr_method_set
 
 abbrev ClientAuthType [GooseExts] : Type := w64
 
@@ -2086,8 +2150,12 @@ abbrev ClientAuthType [GooseExts] : Type := w64
 
 class ClientAuthType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClientAuthType.ty ClientAuthType.underlying
+  method_set : go.MethodSetIs ClientAuthType.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientAuthType.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ClientAuthType.TypeAssumptions.underlying
+  ClientAuthType.TypeAssumptions.method_set
+  ClientAuthType.TypeAssumptions.ptr_method_set
 
 abbrev ClientSessionCache [GooseExts] : Type := GoInterface
 
@@ -2096,8 +2164,12 @@ abbrev ClientSessionCache [GooseExts] : Type := GoInterface
 
 class ClientSessionCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClientSessionCache.ty ClientSessionCache.underlying
+  method_set : go.MethodSetIs ClientSessionCache.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ClientSessionState.ty), go.bool]))), (go!"Put", (some (go.signature.Signature [go.string, (go.GoType.PointerType ClientSessionState.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientSessionCache.ty) []
 
 attribute [instance] ClientSessionCache.TypeAssumptions.underlying
+  ClientSessionCache.TypeAssumptions.method_set
+  ClientSessionCache.TypeAssumptions.ptr_method_set
 
 abbrev SignatureScheme [GooseExts] : Type := w16
 
@@ -2106,8 +2178,12 @@ abbrev SignatureScheme [GooseExts] : Type := w16
 
 class SignatureScheme.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SignatureScheme.ty SignatureScheme.underlying
+  method_set : go.MethodSetIs SignatureScheme.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SignatureScheme.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] SignatureScheme.TypeAssumptions.underlying
+  SignatureScheme.TypeAssumptions.method_set
+  SignatureScheme.TypeAssumptions.ptr_method_set
 
 axiom ClientHelloInfo : Type
 axiom ClientHelloInfo.zero_val : ZeroVal ClientHelloInfo
@@ -2117,10 +2193,14 @@ class ClientHelloInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying ClientHelloInfo.underlying ClientHelloInfo
   underlying : go.UnderlyingDirectedEq ClientHelloInfo.ty ClientHelloInfo.underlying
   isUnderlying : go.IsUnderlying ClientHelloInfo.underlying ClientHelloInfo.underlying
+  method_set : go.MethodSetIs ClientHelloInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientHelloInfo.ty) [(go!"Context", (some (go.signature.Signature [] false [(go.GoType.Named go!"context.Context" [])]))), (go!"SupportsCertificate", (some (go.signature.Signature [(go.GoType.PointerType Certificate.ty)] false [go.error])))]
 
 attribute [instance] ClientHelloInfo.TypeAssumptions.type_repr
   ClientHelloInfo.TypeAssumptions.underlying
   ClientHelloInfo.TypeAssumptions.isUnderlying
+  ClientHelloInfo.TypeAssumptions.method_set
+  ClientHelloInfo.TypeAssumptions.ptr_method_set
 
 axiom CertificateRequestInfo : Type
 axiom CertificateRequestInfo.zero_val : ZeroVal CertificateRequestInfo
@@ -2130,10 +2210,14 @@ class CertificateRequestInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   type_repr : go.TypeReprUnderlying CertificateRequestInfo.underlying CertificateRequestInfo
   underlying : go.UnderlyingDirectedEq CertificateRequestInfo.ty CertificateRequestInfo.underlying
   isUnderlying : go.IsUnderlying CertificateRequestInfo.underlying CertificateRequestInfo.underlying
+  method_set : go.MethodSetIs CertificateRequestInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CertificateRequestInfo.ty) [(go!"Context", (some (go.signature.Signature [] false [(go.GoType.Named go!"context.Context" [])]))), (go!"SupportsCertificate", (some (go.signature.Signature [(go.GoType.PointerType Certificate.ty)] false [go.error])))]
 
 attribute [instance] CertificateRequestInfo.TypeAssumptions.type_repr
   CertificateRequestInfo.TypeAssumptions.underlying
   CertificateRequestInfo.TypeAssumptions.isUnderlying
+  CertificateRequestInfo.TypeAssumptions.method_set
+  CertificateRequestInfo.TypeAssumptions.ptr_method_set
 
 abbrev RenegotiationSupport [GooseExts] : Type := w64
 
@@ -2142,8 +2226,12 @@ abbrev RenegotiationSupport [GooseExts] : Type := w64
 
 class RenegotiationSupport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RenegotiationSupport.ty RenegotiationSupport.underlying
+  method_set : go.MethodSetIs RenegotiationSupport.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RenegotiationSupport.ty) []
 
 attribute [instance] RenegotiationSupport.TypeAssumptions.underlying
+  RenegotiationSupport.TypeAssumptions.method_set
+  RenegotiationSupport.TypeAssumptions.ptr_method_set
 
 axiom Config : Type
 axiom Config.zero_val : ZeroVal Config
@@ -2153,10 +2241,14 @@ class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
   isUnderlying : go.IsUnderlying Config.underlying Config.underlying
+  method_set : go.MethodSetIs Config.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"BuildNameToCertificate", (some (go.signature.Signature [] false []))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Config.ty)]))), (go!"DecryptTicket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), ConnectionState.ty] false [(go.GoType.PointerType SessionState.ty), go.error]))), (go!"EncryptTicket", (some (go.signature.Signature [ConnectionState.ty, (go.GoType.PointerType SessionState.ty)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"SetSessionTicketKeys", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.ArrayType 32 go.byte))] false []))), (go!"crypto/tls.cipherSuites", (some (go.signature.Signature [go.bool] false [(go.GoType.SliceType go.uint16)]))), (go!"crypto/tls.curvePreferences", (some (go.signature.Signature [go.uint16] false [(go.GoType.SliceType CurveID.ty)]))), (go!"crypto/tls.decryptTicket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType ticketKey.ty)] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.encryptTicket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType ticketKey.ty)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.getCertificate", (some (go.signature.Signature [(go.GoType.PointerType ClientHelloInfo.ty)] false [(go.GoType.PointerType Certificate.ty), go.error]))), (go!"crypto/tls.initLegacySessionTicketKeyRLocked", (some (go.signature.Signature [] false []))), (go!"crypto/tls.maxSupportedVersion", (some (go.signature.Signature [go.bool, go.bool] false [go.uint16]))), (go!"crypto/tls.mutualVersion", (some (go.signature.Signature [go.bool, go.bool, (go.GoType.SliceType go.uint16)] false [go.uint16, go.bool]))), (go!"crypto/tls.rand", (some (go.signature.Signature [] false [(go.GoType.Named go!"io.Reader" [])]))), (go!"crypto/tls.supportedCipherSuites", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint16)]))), (go!"crypto/tls.supportedVersions", (some (go.signature.Signature [go.bool, go.bool] false [(go.GoType.SliceType go.uint16)]))), (go!"crypto/tls.supportsCurve", (some (go.signature.Signature [go.uint16, CurveID.ty] false [go.bool]))), (go!"crypto/tls.ticketKeyFromBytes", (some (go.signature.Signature [(go.GoType.ArrayType 32 go.byte)] false [ticketKey.ty]))), (go!"crypto/tls.ticketKeys", (some (go.signature.Signature [(go.GoType.PointerType Config.ty)] false [(go.GoType.SliceType ticketKey.ty)]))), (go!"crypto/tls.time", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])]))), (go!"crypto/tls.writeKeyLog", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
   Config.TypeAssumptions.isUnderlying
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
 
 structure EncryptedClientHelloKey [GooseExts] where
   mk ::
@@ -2191,6 +2283,8 @@ class EncryptedClientHelloKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   set_PrivateKey : ∀ (x : EncryptedClientHelloKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EncryptedClientHelloKey.underlying go!"PrivateKey") (PairV #x #y) (Val #(({ x with PrivateKey' := y } : EncryptedClientHelloKey)))
   get_SendAsRetry : ∀ (x : EncryptedClientHelloKey), go.IsGoStepPureDetTagged under (StructFieldGet EncryptedClientHelloKey.underlying go!"SendAsRetry") #x (Val #(x.SendAsRetry'))
   set_SendAsRetry : ∀ (x : EncryptedClientHelloKey) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EncryptedClientHelloKey.underlying go!"SendAsRetry") (PairV #x #y) (Val #(({ x with SendAsRetry' := y } : EncryptedClientHelloKey)))
+  method_set : go.MethodSetIs EncryptedClientHelloKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EncryptedClientHelloKey.ty) []
 
 attribute [instance] EncryptedClientHelloKey.TypeAssumptions.type_repr
   EncryptedClientHelloKey.TypeAssumptions.underlying
@@ -2200,6 +2294,8 @@ attribute [instance] EncryptedClientHelloKey.TypeAssumptions.type_repr
   EncryptedClientHelloKey.TypeAssumptions.set_PrivateKey
   EncryptedClientHelloKey.TypeAssumptions.get_SendAsRetry
   EncryptedClientHelloKey.TypeAssumptions.set_SendAsRetry
+  EncryptedClientHelloKey.TypeAssumptions.method_set
+  EncryptedClientHelloKey.TypeAssumptions.ptr_method_set
 
 axiom ticketKey : Type
 axiom ticketKey.zero_val : ZeroVal ticketKey
@@ -2209,10 +2305,14 @@ class ticketKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying ticketKey.underlying ticketKey
   underlying : go.UnderlyingDirectedEq ticketKey.ty ticketKey.underlying
   isUnderlying : go.IsUnderlying ticketKey.underlying ticketKey.underlying
+  method_set : go.MethodSetIs ticketKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ticketKey.ty) []
 
 attribute [instance] ticketKey.TypeAssumptions.type_repr
   ticketKey.TypeAssumptions.underlying
   ticketKey.TypeAssumptions.isUnderlying
+  ticketKey.TypeAssumptions.method_set
+  ticketKey.TypeAssumptions.ptr_method_set
 
 axiom Certificate : Type
 axiom Certificate.zero_val : ZeroVal Certificate
@@ -2222,30 +2322,42 @@ class Certificate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Certificate.underlying Certificate
   underlying : go.UnderlyingDirectedEq Certificate.ty Certificate.underlying
   isUnderlying : go.IsUnderlying Certificate.underlying Certificate.underlying
+  method_set : go.MethodSetIs Certificate.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Certificate.ty) [(go!"crypto/tls.leaf", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" [])), go.error])))]
 
 attribute [instance] Certificate.TypeAssumptions.type_repr
   Certificate.TypeAssumptions.underlying
   Certificate.TypeAssumptions.isUnderlying
+  Certificate.TypeAssumptions.method_set
+  Certificate.TypeAssumptions.ptr_method_set
 
 abbrev handshakeMessage [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def handshakeMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"marshal" (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])), (go.InterfaceElem.MethodElem go!"unmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"crypto/tls.marshal" (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])), (go.InterfaceElem.MethodElem go!"crypto/tls.unmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool]))])
 
 class handshakeMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq handshakeMessage.ty handshakeMessage.underlying
+  method_set : go.MethodSetIs handshakeMessage.ty [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType handshakeMessage.ty) []
 
 attribute [instance] handshakeMessage.TypeAssumptions.underlying
+  handshakeMessage.TypeAssumptions.method_set
+  handshakeMessage.TypeAssumptions.ptr_method_set
 
 abbrev handshakeMessageWithOriginalBytes [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def handshakeMessageWithOriginalBytes.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"originalBytes" (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm handshakeMessage.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"crypto/tls.marshal" (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])), (go.InterfaceElem.MethodElem go!"crypto/tls.originalBytes" (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])), (go.InterfaceElem.MethodElem go!"crypto/tls.unmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool]))])
 
 class handshakeMessageWithOriginalBytes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq handshakeMessageWithOriginalBytes.ty handshakeMessageWithOriginalBytes.underlying
+  method_set : go.MethodSetIs handshakeMessageWithOriginalBytes.ty [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.originalBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType handshakeMessageWithOriginalBytes.ty) []
 
 attribute [instance] handshakeMessageWithOriginalBytes.TypeAssumptions.underlying
+  handshakeMessageWithOriginalBytes.TypeAssumptions.method_set
+  handshakeMessageWithOriginalBytes.TypeAssumptions.ptr_method_set
 
 axiom lruSessionCache : Type
 axiom lruSessionCache.zero_val : ZeroVal lruSessionCache
@@ -2255,10 +2367,14 @@ class lruSessionCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying lruSessionCache.underlying lruSessionCache
   underlying : go.UnderlyingDirectedEq lruSessionCache.ty lruSessionCache.underlying
   isUnderlying : go.IsUnderlying lruSessionCache.underlying lruSessionCache.underlying
+  method_set : go.MethodSetIs lruSessionCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lruSessionCache.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ClientSessionState.ty), go.bool]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Put", (some (go.signature.Signature [go.string, (go.GoType.PointerType ClientSessionState.ty)] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] lruSessionCache.TypeAssumptions.type_repr
   lruSessionCache.TypeAssumptions.underlying
   lruSessionCache.TypeAssumptions.isUnderlying
+  lruSessionCache.TypeAssumptions.method_set
+  lruSessionCache.TypeAssumptions.ptr_method_set
 
 structure lruSessionCacheEntry [GooseExts] where
   mk ::
@@ -2289,6 +2405,8 @@ class lruSessionCacheEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_sessionKey : ∀ (x : lruSessionCacheEntry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lruSessionCacheEntry.underlying go!"sessionKey") (PairV #x #y) (Val #(({ x with sessionKey' := y } : lruSessionCacheEntry)))
   get_state : ∀ (x : lruSessionCacheEntry), go.IsGoStepPureDetTagged under (StructFieldGet lruSessionCacheEntry.underlying go!"state") #x (Val #(x.state'))
   set_state : ∀ (x : lruSessionCacheEntry) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lruSessionCacheEntry.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : lruSessionCacheEntry)))
+  method_set : go.MethodSetIs lruSessionCacheEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lruSessionCacheEntry.ty) []
 
 attribute [instance] lruSessionCacheEntry.TypeAssumptions.type_repr
   lruSessionCacheEntry.TypeAssumptions.underlying
@@ -2296,6 +2414,8 @@ attribute [instance] lruSessionCacheEntry.TypeAssumptions.type_repr
   lruSessionCacheEntry.TypeAssumptions.set_sessionKey
   lruSessionCacheEntry.TypeAssumptions.get_state
   lruSessionCacheEntry.TypeAssumptions.set_state
+  lruSessionCacheEntry.TypeAssumptions.method_set
+  lruSessionCacheEntry.TypeAssumptions.ptr_method_set
 
 axiom CertificateVerificationError : Type
 axiom CertificateVerificationError.zero_val : ZeroVal CertificateVerificationError
@@ -2305,10 +2425,14 @@ class CertificateVerificationError.TypeAssumptions [GooseExts] [GoGlobalContext]
   type_repr : go.TypeReprUnderlying CertificateVerificationError.underlying CertificateVerificationError
   underlying : go.UnderlyingDirectedEq CertificateVerificationError.ty CertificateVerificationError.underlying
   isUnderlying : go.IsUnderlying CertificateVerificationError.underlying CertificateVerificationError.underlying
+  method_set : go.MethodSetIs CertificateVerificationError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CertificateVerificationError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] CertificateVerificationError.TypeAssumptions.type_repr
   CertificateVerificationError.TypeAssumptions.underlying
   CertificateVerificationError.TypeAssumptions.isUnderlying
+  CertificateVerificationError.TypeAssumptions.method_set
+  CertificateVerificationError.TypeAssumptions.ptr_method_set
 
 axiom Conn : Type
 axiom Conn.zero_val : ZeroVal Conn
@@ -2318,10 +2442,14 @@ class Conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Conn.underlying Conn
   underlying : go.UnderlyingDirectedEq Conn.ty Conn.underlying
   isUnderlying : go.IsUnderlying Conn.underlying Conn.underlying
+  method_set : go.MethodSetIs Conn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Conn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"ConnectionState", (some (go.signature.Signature [] false [ConnectionState.ty]))), (go!"Handshake", (some (go.signature.Signature [] false [go.error]))), (go!"HandshakeContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"NetConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" [])]))), (go!"OCSPResponse", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"VerifyHostname", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"crypto/tls.clientHandshake", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"crypto/tls.clientSessionCacheKey", (some (go.signature.Signature [] false [go.string]))), (go!"crypto/tls.closeNotify", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.connectionStateLocked", (some (go.signature.Signature [] false [ConnectionState.ty]))), (go!"crypto/tls.flush", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"crypto/tls.getClientCertificate", (some (go.signature.Signature [(go.GoType.PointerType CertificateRequestInfo.ty)] false [(go.GoType.PointerType Certificate.ty), go.error]))), (go!"crypto/tls.handleKeyUpdate", (some (go.signature.Signature [(go.GoType.PointerType keyUpdateMsg.ty)] false [go.error]))), (go!"crypto/tls.handleNewSessionTicket", (some (go.signature.Signature [(go.GoType.PointerType newSessionTicketMsgTLS13.ty)] false [go.error]))), (go!"crypto/tls.handlePostHandshakeMessage", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.handleRenegotiation", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.handshakeContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"crypto/tls.loadSession", (some (go.signature.Signature [(go.GoType.PointerType clientHelloMsg.ty)] false [(go.GoType.PointerType SessionState.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/internal/fips140/tls13.EarlySecret" [])), (go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.makeClientHello", (some (go.signature.Signature [] false [(go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.PointerType echClientContext.ty), go.error]))), (go!"crypto/tls.maxPayloadSizeForWrite", (some (go.signature.Signature [recordType.ty] false [go.int]))), (go!"crypto/tls.newRecordHeaderError", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), go.string] false [RecordHeaderError.ty]))), (go!"crypto/tls.pickTLSVersion", (some (go.signature.Signature [(go.GoType.PointerType serverHelloMsg.ty)] false [go.error]))), (go!"crypto/tls.processCertsFromClient", (some (go.signature.Signature [Certificate.ty] false [go.error]))), (go!"crypto/tls.processECHClientHello", (some (go.signature.Signature [(go.GoType.PointerType clientHelloMsg.ty), (go.GoType.SliceType EncryptedClientHelloKey.ty)] false [(go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType echServerContext.ty), go.error]))), (go!"crypto/tls.quicGetTransportParameters", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.quicHandshakeComplete", (some (go.signature.Signature [] false []))), (go!"crypto/tls.quicReadHandshakeBytes", (some (go.signature.Signature [go.int] false [go.error]))), (go!"crypto/tls.quicRejectedEarlyData", (some (go.signature.Signature [] false []))), (go!"crypto/tls.quicResumeSession", (some (go.signature.Signature [(go.GoType.PointerType SessionState.ty)] false [go.error]))), (go!"crypto/tls.quicSetReadSecret", (some (go.signature.Signature [QUICEncryptionLevel.ty, go.uint16, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"crypto/tls.quicSetTransportParameters", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"crypto/tls.quicSetWriteSecret", (some (go.signature.Signature [QUICEncryptionLevel.ty, go.uint16, (go.GoType.SliceType go.byte)] false []))), (go!"crypto/tls.quicStoreSession", (some (go.signature.Signature [(go.GoType.PointerType SessionState.ty)] false []))), (go!"crypto/tls.quicWaitForSignal", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.quicWriteCryptoData", (some (go.signature.Signature [QUICEncryptionLevel.ty, (go.GoType.SliceType go.byte)] false []))), (go!"crypto/tls.readChangeCipherSpec", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.readClientHello", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType echServerContext.ty), go.error]))), (go!"crypto/tls.readFromUntil", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" []), go.int] false [go.error]))), (go!"crypto/tls.readHandshake", (some (go.signature.Signature [transcriptHash.ty] false [go.any, go.error]))), (go!"crypto/tls.readHandshakeBytes", (some (go.signature.Signature [go.int] false [go.error]))), (go!"crypto/tls.readRecord", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.readRecordOrCCS", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"crypto/tls.retryReadRecord", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"crypto/tls.sendAlert", (some (go.signature.Signature [alert.ty] false [go.error]))), (go!"crypto/tls.sendAlertLocked", (some (go.signature.Signature [alert.ty] false [go.error]))), (go!"crypto/tls.sendSessionTicket", (some (go.signature.Signature [go.bool, (go.GoType.SliceType (go.GoType.SliceType go.byte))] false [go.error]))), (go!"crypto/tls.serverHandshake", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"crypto/tls.sessionState", (some (go.signature.Signature [] false [(go.GoType.PointerType SessionState.ty)]))), (go!"crypto/tls.setReadTrafficSecret", (some (go.signature.Signature [(go.GoType.PointerType cipherSuiteTLS13.ty), QUICEncryptionLevel.ty, (go.GoType.SliceType go.byte), go.bool] false [go.error]))), (go!"crypto/tls.setWriteTrafficSecret", (some (go.signature.Signature [(go.GoType.PointerType cipherSuiteTLS13.ty), QUICEncryptionLevel.ty, (go.GoType.SliceType go.byte)] false []))), (go!"crypto/tls.unmarshalHandshakeMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), transcriptHash.ty] false [handshakeMessage.ty, go.error]))), (go!"crypto/tls.verifyServerCertificate", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.SliceType go.byte))] false [go.error]))), (go!"crypto/tls.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"crypto/tls.writeChangeCipherRecord", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.writeHandshakeRecord", (some (go.signature.Signature [handshakeMessage.ty, transcriptHash.ty] false [go.int, go.error]))), (go!"crypto/tls.writeRecordLocked", (some (go.signature.Signature [recordType.ty, (go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] Conn.TypeAssumptions.type_repr
   Conn.TypeAssumptions.underlying
   Conn.TypeAssumptions.isUnderlying
+  Conn.TypeAssumptions.method_set
+  Conn.TypeAssumptions.ptr_method_set
 
 axiom halfConn : Type
 axiom halfConn.zero_val : ZeroVal halfConn
@@ -2331,10 +2459,14 @@ class halfConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying halfConn.underlying halfConn
   underlying : go.UnderlyingDirectedEq halfConn.ty halfConn.underlying
   isUnderlying : go.IsUnderlying halfConn.underlying halfConn.underlying
+  method_set : go.MethodSetIs halfConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType halfConn.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"crypto/tls.changeCipherSpec", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.decrypt", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), recordType.ty, go.error]))), (go!"crypto/tls.encrypt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"io.Reader" [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.explicitNonceLen", (some (go.signature.Signature [] false [go.int]))), (go!"crypto/tls.incSeq", (some (go.signature.Signature [] false []))), (go!"crypto/tls.prepareCipherSpec", (some (go.signature.Signature [go.uint16, go.any, (go.GoType.Named go!"hash.Hash" [])] false []))), (go!"crypto/tls.setErrorLocked", (some (go.signature.Signature [go.error] false [go.error]))), (go!"crypto/tls.setTrafficSecret", (some (go.signature.Signature [(go.GoType.PointerType cipherSuiteTLS13.ty), QUICEncryptionLevel.ty, (go.GoType.SliceType go.byte)] false [])))]
 
 attribute [instance] halfConn.TypeAssumptions.type_repr
   halfConn.TypeAssumptions.underlying
   halfConn.TypeAssumptions.isUnderlying
+  halfConn.TypeAssumptions.method_set
+  halfConn.TypeAssumptions.ptr_method_set
 
 axiom permanentError : Type
 axiom permanentError.zero_val : ZeroVal permanentError
@@ -2344,10 +2476,14 @@ class permanentError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying permanentError.underlying permanentError
   underlying : go.UnderlyingDirectedEq permanentError.ty permanentError.underlying
   isUnderlying : go.IsUnderlying permanentError.underlying permanentError.underlying
+  method_set : go.MethodSetIs permanentError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType permanentError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] permanentError.TypeAssumptions.type_repr
   permanentError.TypeAssumptions.underlying
   permanentError.TypeAssumptions.isUnderlying
+  permanentError.TypeAssumptions.method_set
+  permanentError.TypeAssumptions.ptr_method_set
 
 axiom cbcMode : Type
 axiom cbcMode.zero_val : ZeroVal cbcMode
@@ -2357,10 +2493,14 @@ class cbcMode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying cbcMode.underlying cbcMode
   underlying : go.UnderlyingDirectedEq cbcMode.ty cbcMode.underlying
   isUnderlying : go.IsUnderlying cbcMode.underlying cbcMode.underlying
+  method_set : go.MethodSetIs cbcMode.ty [(go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"CryptBlocks", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"SetIV", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cbcMode.ty) []
 
 attribute [instance] cbcMode.TypeAssumptions.type_repr
   cbcMode.TypeAssumptions.underlying
   cbcMode.TypeAssumptions.isUnderlying
+  cbcMode.TypeAssumptions.method_set
+  cbcMode.TypeAssumptions.ptr_method_set
 
 axiom RecordHeaderError : Type
 axiom RecordHeaderError.zero_val : ZeroVal RecordHeaderError
@@ -2370,10 +2510,14 @@ class RecordHeaderError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying RecordHeaderError.underlying RecordHeaderError
   underlying : go.UnderlyingDirectedEq RecordHeaderError.ty RecordHeaderError.underlying
   isUnderlying : go.IsUnderlying RecordHeaderError.underlying RecordHeaderError.underlying
+  method_set : go.MethodSetIs RecordHeaderError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RecordHeaderError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RecordHeaderError.TypeAssumptions.type_repr
   RecordHeaderError.TypeAssumptions.underlying
   RecordHeaderError.TypeAssumptions.isUnderlying
+  RecordHeaderError.TypeAssumptions.method_set
+  RecordHeaderError.TypeAssumptions.ptr_method_set
 
 structure echCipher [GooseExts] where
   mk ::
@@ -2404,6 +2548,8 @@ class echCipher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_KDFID : ∀ (x : echCipher) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echCipher.underlying go!"KDFID") (PairV #x #y) (Val #(({ x with KDFID' := y } : echCipher)))
   get_AEADID : ∀ (x : echCipher), go.IsGoStepPureDetTagged under (StructFieldGet echCipher.underlying go!"AEADID") #x (Val #(x.AEADID'))
   set_AEADID : ∀ (x : echCipher) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echCipher.underlying go!"AEADID") (PairV #x #y) (Val #(({ x with AEADID' := y } : echCipher)))
+  method_set : go.MethodSetIs echCipher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType echCipher.ty) []
 
 attribute [instance] echCipher.TypeAssumptions.type_repr
   echCipher.TypeAssumptions.underlying
@@ -2411,6 +2557,8 @@ attribute [instance] echCipher.TypeAssumptions.type_repr
   echCipher.TypeAssumptions.set_KDFID
   echCipher.TypeAssumptions.get_AEADID
   echCipher.TypeAssumptions.set_AEADID
+  echCipher.TypeAssumptions.method_set
+  echCipher.TypeAssumptions.ptr_method_set
 
 structure echExtension [GooseExts] where
   mk ::
@@ -2441,6 +2589,8 @@ class echExtension.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_Type : ∀ (x : echExtension) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echExtension.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : echExtension)))
   get_Data : ∀ (x : echExtension), go.IsGoStepPureDetTagged under (StructFieldGet echExtension.underlying go!"Data") #x (Val #(x.Data'))
   set_Data : ∀ (x : echExtension) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echExtension.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : echExtension)))
+  method_set : go.MethodSetIs echExtension.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType echExtension.ty) []
 
 attribute [instance] echExtension.TypeAssumptions.type_repr
   echExtension.TypeAssumptions.underlying
@@ -2448,6 +2598,8 @@ attribute [instance] echExtension.TypeAssumptions.type_repr
   echExtension.TypeAssumptions.set_Type
   echExtension.TypeAssumptions.get_Data
   echExtension.TypeAssumptions.set_Data
+  echExtension.TypeAssumptions.method_set
+  echExtension.TypeAssumptions.ptr_method_set
 
 structure echConfig [GooseExts] where
   mk ::
@@ -2510,6 +2662,8 @@ class echConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_PublicName : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"PublicName") (PairV #x #y) (Val #(({ x with PublicName' := y } : echConfig)))
   get_Extensions : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"Extensions") #x (Val #(x.Extensions'))
   set_Extensions : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"Extensions") (PairV #x #y) (Val #(({ x with Extensions' := y } : echConfig)))
+  method_set : go.MethodSetIs echConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType echConfig.ty) []
 
 attribute [instance] echConfig.TypeAssumptions.type_repr
   echConfig.TypeAssumptions.underlying
@@ -2533,6 +2687,8 @@ attribute [instance] echConfig.TypeAssumptions.type_repr
   echConfig.TypeAssumptions.set_PublicName
   echConfig.TypeAssumptions.get_Extensions
   echConfig.TypeAssumptions.set_Extensions
+  echConfig.TypeAssumptions.method_set
+  echConfig.TypeAssumptions.ptr_method_set
 
 structure echConfigErr [GooseExts] where
   mk ::
@@ -2559,11 +2715,15 @@ class echConfigErr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq echConfigErr.ty echConfigErr.underlying
   get_field : ∀ (x : echConfigErr), go.IsGoStepPureDetTagged under (StructFieldGet echConfigErr.underlying go!"field") #x (Val #(x.field'))
   set_field : ∀ (x : echConfigErr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet echConfigErr.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : echConfigErr)))
+  method_set : go.MethodSetIs echConfigErr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType echConfigErr.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] echConfigErr.TypeAssumptions.type_repr
   echConfigErr.TypeAssumptions.underlying
   echConfigErr.TypeAssumptions.get_field
   echConfigErr.TypeAssumptions.set_field
+  echConfigErr.TypeAssumptions.method_set
+  echConfigErr.TypeAssumptions.ptr_method_set
 
 structure rawExtension [GooseExts] where
   mk ::
@@ -2594,6 +2754,8 @@ class rawExtension.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_extType : ∀ (x : rawExtension) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet rawExtension.underlying go!"extType") (PairV #x #y) (Val #(({ x with extType' := y } : rawExtension)))
   get_data : ∀ (x : rawExtension), go.IsGoStepPureDetTagged under (StructFieldGet rawExtension.underlying go!"data") #x (Val #(x.data'))
   set_data : ∀ (x : rawExtension) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet rawExtension.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : rawExtension)))
+  method_set : go.MethodSetIs rawExtension.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawExtension.ty) []
 
 attribute [instance] rawExtension.TypeAssumptions.type_repr
   rawExtension.TypeAssumptions.underlying
@@ -2601,6 +2763,8 @@ attribute [instance] rawExtension.TypeAssumptions.type_repr
   rawExtension.TypeAssumptions.set_extType
   rawExtension.TypeAssumptions.get_data
   rawExtension.TypeAssumptions.set_data
+  rawExtension.TypeAssumptions.method_set
+  rawExtension.TypeAssumptions.ptr_method_set
 
 structure ECHRejectionError [GooseExts] where
   mk ::
@@ -2627,11 +2791,15 @@ class ECHRejectionError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   underlying : go.UnderlyingDirectedEq ECHRejectionError.ty ECHRejectionError.underlying
   get_RetryConfigList : ∀ (x : ECHRejectionError), go.IsGoStepPureDetTagged under (StructFieldGet ECHRejectionError.underlying go!"RetryConfigList") #x (Val #(x.RetryConfigList'))
   set_RetryConfigList : ∀ (x : ECHRejectionError) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ECHRejectionError.underlying go!"RetryConfigList") (PairV #x #y) (Val #(({ x with RetryConfigList' := y } : ECHRejectionError)))
+  method_set : go.MethodSetIs ECHRejectionError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ECHRejectionError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ECHRejectionError.TypeAssumptions.type_repr
   ECHRejectionError.TypeAssumptions.underlying
   ECHRejectionError.TypeAssumptions.get_RetryConfigList
   ECHRejectionError.TypeAssumptions.set_RetryConfigList
+  ECHRejectionError.TypeAssumptions.method_set
+  ECHRejectionError.TypeAssumptions.ptr_method_set
 
 abbrev echExtType [GooseExts] : Type := w8
 
@@ -2640,8 +2808,12 @@ abbrev echExtType [GooseExts] : Type := w8
 
 class echExtType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq echExtType.ty echExtType.underlying
+  method_set : go.MethodSetIs echExtType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType echExtType.ty) []
 
 attribute [instance] echExtType.TypeAssumptions.underlying
+  echExtType.TypeAssumptions.method_set
+  echExtType.TypeAssumptions.ptr_method_set
 
 axiom clientHandshakeState : Type
 axiom clientHandshakeState.zero_val : ZeroVal clientHandshakeState
@@ -2651,10 +2823,14 @@ class clientHandshakeState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying clientHandshakeState.underlying clientHandshakeState
   underlying : go.UnderlyingDirectedEq clientHandshakeState.ty clientHandshakeState.underlying
   isUnderlying : go.IsUnderlying clientHandshakeState.underlying clientHandshakeState.underlying
+  method_set : go.MethodSetIs clientHandshakeState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientHandshakeState.ty) [(go!"crypto/tls.doFullHandshake", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.establishKeys", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.handshake", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.pickCipherSuite", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.processServerHello", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"crypto/tls.readFinished", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"crypto/tls.readSessionTicket", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.saveSessionTicket", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.sendFinished", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"crypto/tls.serverResumedSession", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] clientHandshakeState.TypeAssumptions.type_repr
   clientHandshakeState.TypeAssumptions.underlying
   clientHandshakeState.TypeAssumptions.isUnderlying
+  clientHandshakeState.TypeAssumptions.method_set
+  clientHandshakeState.TypeAssumptions.ptr_method_set
 
 axiom echClientContext : Type
 axiom echClientContext.zero_val : ZeroVal echClientContext
@@ -2664,10 +2840,14 @@ class echClientContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying echClientContext.underlying echClientContext
   underlying : go.UnderlyingDirectedEq echClientContext.ty echClientContext.underlying
   isUnderlying : go.IsUnderlying echClientContext.underlying echClientContext.underlying
+  method_set : go.MethodSetIs echClientContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType echClientContext.ty) []
 
 attribute [instance] echClientContext.TypeAssumptions.type_repr
   echClientContext.TypeAssumptions.underlying
   echClientContext.TypeAssumptions.isUnderlying
+  echClientContext.TypeAssumptions.method_set
+  echClientContext.TypeAssumptions.ptr_method_set
 
 axiom clientHandshakeStateTLS13 : Type
 axiom clientHandshakeStateTLS13.zero_val : ZeroVal clientHandshakeStateTLS13
@@ -2677,10 +2857,14 @@ class clientHandshakeStateTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [G
   type_repr : go.TypeReprUnderlying clientHandshakeStateTLS13.underlying clientHandshakeStateTLS13
   underlying : go.UnderlyingDirectedEq clientHandshakeStateTLS13.ty clientHandshakeStateTLS13.underlying
   isUnderlying : go.IsUnderlying clientHandshakeStateTLS13.underlying clientHandshakeStateTLS13.underlying
+  method_set : go.MethodSetIs clientHandshakeStateTLS13.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientHandshakeStateTLS13.ty) [(go!"crypto/tls.checkServerHelloOrHRR", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.establishHandshakeKeys", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.handshake", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.processHelloRetryRequest", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.processServerHello", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.readServerCertificate", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.readServerFinished", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.readServerParameters", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.sendClientCertificate", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.sendClientFinished", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.sendDummyChangeCipherSpec", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] clientHandshakeStateTLS13.TypeAssumptions.type_repr
   clientHandshakeStateTLS13.TypeAssumptions.underlying
   clientHandshakeStateTLS13.TypeAssumptions.isUnderlying
+  clientHandshakeStateTLS13.TypeAssumptions.method_set
+  clientHandshakeStateTLS13.TypeAssumptions.ptr_method_set
 
 axiom marshalingFunction : Type
 axiom marshalingFunction.zero_val : ZeroVal marshalingFunction
@@ -2690,10 +2874,14 @@ class marshalingFunction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying marshalingFunction.underlying marshalingFunction
   underlying : go.UnderlyingDirectedEq marshalingFunction.ty marshalingFunction.underlying
   isUnderlying : go.IsUnderlying marshalingFunction.underlying marshalingFunction.underlying
+  method_set : go.MethodSetIs marshalingFunction.ty [(go!"Marshal", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"vendor/golang.org/x/crypto/cryptobyte.Builder" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType marshalingFunction.ty) [(go!"Marshal", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"vendor/golang.org/x/crypto/cryptobyte.Builder" []))] false [go.error])))]
 
 attribute [instance] marshalingFunction.TypeAssumptions.type_repr
   marshalingFunction.TypeAssumptions.underlying
   marshalingFunction.TypeAssumptions.isUnderlying
+  marshalingFunction.TypeAssumptions.method_set
+  marshalingFunction.TypeAssumptions.ptr_method_set
 
 structure clientHelloMsg [GooseExts] where
   mk ::
@@ -2832,6 +3020,8 @@ class clientHelloMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_encryptedClientHello : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"encryptedClientHello") (PairV #x #y) (Val #(({ x with encryptedClientHello' := y } : clientHelloMsg)))
   get_extensions : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"extensions") #x (Val #(x.extensions'))
   set_extensions : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"extensions") (PairV #x #y) (Val #(({ x with extensions' := y } : clientHelloMsg)))
+  method_set : go.MethodSetIs clientHelloMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientHelloMsg.ty) [(go!"crypto/tls.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType clientHelloMsg.ty)]))), (go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.marshalMsg", (some (go.signature.Signature [go.bool] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.marshalWithoutBinders", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.originalBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool]))), (go!"crypto/tls.updateBinders", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.SliceType go.byte))] false [go.error])))]
 
 attribute [instance] clientHelloMsg.TypeAssumptions.type_repr
   clientHelloMsg.TypeAssumptions.underlying
@@ -2893,6 +3083,8 @@ attribute [instance] clientHelloMsg.TypeAssumptions.type_repr
   clientHelloMsg.TypeAssumptions.set_encryptedClientHello
   clientHelloMsg.TypeAssumptions.get_extensions
   clientHelloMsg.TypeAssumptions.set_extensions
+  clientHelloMsg.TypeAssumptions.method_set
+  clientHelloMsg.TypeAssumptions.ptr_method_set
 
 structure serverHelloMsg [GooseExts] where
   mk ::
@@ -3003,6 +3195,8 @@ class serverHelloMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_cookie : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"cookie") (PairV #x #y) (Val #(({ x with cookie' := y } : serverHelloMsg)))
   get_selectedGroup : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"selectedGroup") #x (Val #(x.selectedGroup'))
   set_selectedGroup : ∀ (x : serverHelloMsg) (y : CurveID), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"selectedGroup") (PairV #x #y) (Val #(({ x with selectedGroup' := y } : serverHelloMsg)))
+  method_set : go.MethodSetIs serverHelloMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverHelloMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.originalBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] serverHelloMsg.TypeAssumptions.type_repr
   serverHelloMsg.TypeAssumptions.underlying
@@ -3050,6 +3244,8 @@ attribute [instance] serverHelloMsg.TypeAssumptions.type_repr
   serverHelloMsg.TypeAssumptions.set_cookie
   serverHelloMsg.TypeAssumptions.get_selectedGroup
   serverHelloMsg.TypeAssumptions.set_selectedGroup
+  serverHelloMsg.TypeAssumptions.method_set
+  serverHelloMsg.TypeAssumptions.ptr_method_set
 
 structure encryptedExtensionsMsg [GooseExts] where
   mk ::
@@ -3092,6 +3288,8 @@ class encryptedExtensionsMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   set_echRetryConfigs : ∀ (x : encryptedExtensionsMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"echRetryConfigs") (PairV #x #y) (Val #(({ x with echRetryConfigs' := y } : encryptedExtensionsMsg)))
   get_serverNameAck : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"serverNameAck") #x (Val #(x.serverNameAck'))
   set_serverNameAck : ∀ (x : encryptedExtensionsMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"serverNameAck") (PairV #x #y) (Val #(({ x with serverNameAck' := y } : encryptedExtensionsMsg)))
+  method_set : go.MethodSetIs encryptedExtensionsMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encryptedExtensionsMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] encryptedExtensionsMsg.TypeAssumptions.type_repr
   encryptedExtensionsMsg.TypeAssumptions.underlying
@@ -3105,6 +3303,8 @@ attribute [instance] encryptedExtensionsMsg.TypeAssumptions.type_repr
   encryptedExtensionsMsg.TypeAssumptions.set_echRetryConfigs
   encryptedExtensionsMsg.TypeAssumptions.get_serverNameAck
   encryptedExtensionsMsg.TypeAssumptions.set_serverNameAck
+  encryptedExtensionsMsg.TypeAssumptions.method_set
+  encryptedExtensionsMsg.TypeAssumptions.ptr_method_set
 
 structure endOfEarlyDataMsg [GooseExts] where
   mk ::
@@ -3128,9 +3328,13 @@ noncomputable instance equals_unfold_endOfEarlyDataMsg [GooseExts] [GoGlobalCont
 class endOfEarlyDataMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying endOfEarlyDataMsg.underlying endOfEarlyDataMsg
   underlying : go.UnderlyingDirectedEq endOfEarlyDataMsg.ty endOfEarlyDataMsg.underlying
+  method_set : go.MethodSetIs endOfEarlyDataMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType endOfEarlyDataMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] endOfEarlyDataMsg.TypeAssumptions.type_repr
   endOfEarlyDataMsg.TypeAssumptions.underlying
+  endOfEarlyDataMsg.TypeAssumptions.method_set
+  endOfEarlyDataMsg.TypeAssumptions.ptr_method_set
 
 structure keyUpdateMsg [GooseExts] where
   mk ::
@@ -3157,11 +3361,15 @@ class keyUpdateMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq keyUpdateMsg.ty keyUpdateMsg.underlying
   get_updateRequested : ∀ (x : keyUpdateMsg), go.IsGoStepPureDetTagged under (StructFieldGet keyUpdateMsg.underlying go!"updateRequested") #x (Val #(x.updateRequested'))
   set_updateRequested : ∀ (x : keyUpdateMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet keyUpdateMsg.underlying go!"updateRequested") (PairV #x #y) (Val #(({ x with updateRequested' := y } : keyUpdateMsg)))
+  method_set : go.MethodSetIs keyUpdateMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keyUpdateMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] keyUpdateMsg.TypeAssumptions.type_repr
   keyUpdateMsg.TypeAssumptions.underlying
   keyUpdateMsg.TypeAssumptions.get_updateRequested
   keyUpdateMsg.TypeAssumptions.set_updateRequested
+  keyUpdateMsg.TypeAssumptions.method_set
+  keyUpdateMsg.TypeAssumptions.ptr_method_set
 
 structure newSessionTicketMsgTLS13 [GooseExts] where
   mk ::
@@ -3204,6 +3412,8 @@ class newSessionTicketMsgTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [Go
   set_label : ∀ (x : newSessionTicketMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"label") (PairV #x #y) (Val #(({ x with label' := y } : newSessionTicketMsgTLS13)))
   get_maxEarlyData : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"maxEarlyData") #x (Val #(x.maxEarlyData'))
   set_maxEarlyData : ∀ (x : newSessionTicketMsgTLS13) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"maxEarlyData") (PairV #x #y) (Val #(({ x with maxEarlyData' := y } : newSessionTicketMsgTLS13)))
+  method_set : go.MethodSetIs newSessionTicketMsgTLS13.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType newSessionTicketMsgTLS13.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] newSessionTicketMsgTLS13.TypeAssumptions.type_repr
   newSessionTicketMsgTLS13.TypeAssumptions.underlying
@@ -3217,6 +3427,8 @@ attribute [instance] newSessionTicketMsgTLS13.TypeAssumptions.type_repr
   newSessionTicketMsgTLS13.TypeAssumptions.set_label
   newSessionTicketMsgTLS13.TypeAssumptions.get_maxEarlyData
   newSessionTicketMsgTLS13.TypeAssumptions.set_maxEarlyData
+  newSessionTicketMsgTLS13.TypeAssumptions.method_set
+  newSessionTicketMsgTLS13.TypeAssumptions.ptr_method_set
 
 structure certificateRequestMsgTLS13 [GooseExts] where
   mk ::
@@ -3259,6 +3471,8 @@ class certificateRequestMsgTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [
   set_supportedSignatureAlgorithmsCert : ∀ (x : certificateRequestMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithmsCert") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithmsCert' := y } : certificateRequestMsgTLS13)))
   get_certificateAuthorities : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"certificateAuthorities") #x (Val #(x.certificateAuthorities'))
   set_certificateAuthorities : ∀ (x : certificateRequestMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"certificateAuthorities") (PairV #x #y) (Val #(({ x with certificateAuthorities' := y } : certificateRequestMsgTLS13)))
+  method_set : go.MethodSetIs certificateRequestMsgTLS13.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateRequestMsgTLS13.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateRequestMsgTLS13.TypeAssumptions.type_repr
   certificateRequestMsgTLS13.TypeAssumptions.underlying
@@ -3272,6 +3486,8 @@ attribute [instance] certificateRequestMsgTLS13.TypeAssumptions.type_repr
   certificateRequestMsgTLS13.TypeAssumptions.set_supportedSignatureAlgorithmsCert
   certificateRequestMsgTLS13.TypeAssumptions.get_certificateAuthorities
   certificateRequestMsgTLS13.TypeAssumptions.set_certificateAuthorities
+  certificateRequestMsgTLS13.TypeAssumptions.method_set
+  certificateRequestMsgTLS13.TypeAssumptions.ptr_method_set
 
 structure certificateMsg [GooseExts] where
   mk ::
@@ -3298,11 +3514,15 @@ class certificateMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq certificateMsg.ty certificateMsg.underlying
   get_certificates : ∀ (x : certificateMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsg.underlying go!"certificates") #x (Val #(x.certificates'))
   set_certificates : ∀ (x : certificateMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsg.underlying go!"certificates") (PairV #x #y) (Val #(({ x with certificates' := y } : certificateMsg)))
+  method_set : go.MethodSetIs certificateMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateMsg.TypeAssumptions.type_repr
   certificateMsg.TypeAssumptions.underlying
   certificateMsg.TypeAssumptions.get_certificates
   certificateMsg.TypeAssumptions.set_certificates
+  certificateMsg.TypeAssumptions.method_set
+  certificateMsg.TypeAssumptions.ptr_method_set
 
 structure certificateMsgTLS13 [GooseExts] where
   mk ::
@@ -3337,6 +3557,8 @@ class certificateMsgTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_ocspStapling : ∀ (x : certificateMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsgTLS13.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : certificateMsgTLS13)))
   get_scts : ∀ (x : certificateMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsgTLS13.underlying go!"scts") #x (Val #(x.scts'))
   set_scts : ∀ (x : certificateMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsgTLS13.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : certificateMsgTLS13)))
+  method_set : go.MethodSetIs certificateMsgTLS13.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateMsgTLS13.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateMsgTLS13.TypeAssumptions.type_repr
   certificateMsgTLS13.TypeAssumptions.underlying
@@ -3346,6 +3568,8 @@ attribute [instance] certificateMsgTLS13.TypeAssumptions.type_repr
   certificateMsgTLS13.TypeAssumptions.set_ocspStapling
   certificateMsgTLS13.TypeAssumptions.get_scts
   certificateMsgTLS13.TypeAssumptions.set_scts
+  certificateMsgTLS13.TypeAssumptions.method_set
+  certificateMsgTLS13.TypeAssumptions.ptr_method_set
 
 structure serverKeyExchangeMsg [GooseExts] where
   mk ::
@@ -3372,11 +3596,15 @@ class serverKeyExchangeMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   underlying : go.UnderlyingDirectedEq serverKeyExchangeMsg.ty serverKeyExchangeMsg.underlying
   get_key : ∀ (x : serverKeyExchangeMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverKeyExchangeMsg.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : serverKeyExchangeMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverKeyExchangeMsg.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : serverKeyExchangeMsg)))
+  method_set : go.MethodSetIs serverKeyExchangeMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverKeyExchangeMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] serverKeyExchangeMsg.TypeAssumptions.type_repr
   serverKeyExchangeMsg.TypeAssumptions.underlying
   serverKeyExchangeMsg.TypeAssumptions.get_key
   serverKeyExchangeMsg.TypeAssumptions.set_key
+  serverKeyExchangeMsg.TypeAssumptions.method_set
+  serverKeyExchangeMsg.TypeAssumptions.ptr_method_set
 
 structure certificateStatusMsg [GooseExts] where
   mk ::
@@ -3403,11 +3631,15 @@ class certificateStatusMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   underlying : go.UnderlyingDirectedEq certificateStatusMsg.ty certificateStatusMsg.underlying
   get_response : ∀ (x : certificateStatusMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateStatusMsg.underlying go!"response") #x (Val #(x.response'))
   set_response : ∀ (x : certificateStatusMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateStatusMsg.underlying go!"response") (PairV #x #y) (Val #(({ x with response' := y } : certificateStatusMsg)))
+  method_set : go.MethodSetIs certificateStatusMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateStatusMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateStatusMsg.TypeAssumptions.type_repr
   certificateStatusMsg.TypeAssumptions.underlying
   certificateStatusMsg.TypeAssumptions.get_response
   certificateStatusMsg.TypeAssumptions.set_response
+  certificateStatusMsg.TypeAssumptions.method_set
+  certificateStatusMsg.TypeAssumptions.ptr_method_set
 
 structure serverHelloDoneMsg [GooseExts] where
   mk ::
@@ -3431,9 +3663,13 @@ noncomputable instance equals_unfold_serverHelloDoneMsg [GooseExts] [GoGlobalCon
 class serverHelloDoneMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverHelloDoneMsg.underlying serverHelloDoneMsg
   underlying : go.UnderlyingDirectedEq serverHelloDoneMsg.ty serverHelloDoneMsg.underlying
+  method_set : go.MethodSetIs serverHelloDoneMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverHelloDoneMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] serverHelloDoneMsg.TypeAssumptions.type_repr
   serverHelloDoneMsg.TypeAssumptions.underlying
+  serverHelloDoneMsg.TypeAssumptions.method_set
+  serverHelloDoneMsg.TypeAssumptions.ptr_method_set
 
 structure clientKeyExchangeMsg [GooseExts] where
   mk ::
@@ -3460,11 +3696,15 @@ class clientKeyExchangeMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   underlying : go.UnderlyingDirectedEq clientKeyExchangeMsg.ty clientKeyExchangeMsg.underlying
   get_ciphertext : ∀ (x : clientKeyExchangeMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientKeyExchangeMsg.underlying go!"ciphertext") #x (Val #(x.ciphertext'))
   set_ciphertext : ∀ (x : clientKeyExchangeMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientKeyExchangeMsg.underlying go!"ciphertext") (PairV #x #y) (Val #(({ x with ciphertext' := y } : clientKeyExchangeMsg)))
+  method_set : go.MethodSetIs clientKeyExchangeMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientKeyExchangeMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] clientKeyExchangeMsg.TypeAssumptions.type_repr
   clientKeyExchangeMsg.TypeAssumptions.underlying
   clientKeyExchangeMsg.TypeAssumptions.get_ciphertext
   clientKeyExchangeMsg.TypeAssumptions.set_ciphertext
+  clientKeyExchangeMsg.TypeAssumptions.method_set
+  clientKeyExchangeMsg.TypeAssumptions.ptr_method_set
 
 structure finishedMsg [GooseExts] where
   mk ::
@@ -3491,11 +3731,15 @@ class finishedMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq finishedMsg.ty finishedMsg.underlying
   get_verifyData : ∀ (x : finishedMsg), go.IsGoStepPureDetTagged under (StructFieldGet finishedMsg.underlying go!"verifyData") #x (Val #(x.verifyData'))
   set_verifyData : ∀ (x : finishedMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet finishedMsg.underlying go!"verifyData") (PairV #x #y) (Val #(({ x with verifyData' := y } : finishedMsg)))
+  method_set : go.MethodSetIs finishedMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType finishedMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] finishedMsg.TypeAssumptions.type_repr
   finishedMsg.TypeAssumptions.underlying
   finishedMsg.TypeAssumptions.get_verifyData
   finishedMsg.TypeAssumptions.set_verifyData
+  finishedMsg.TypeAssumptions.method_set
+  finishedMsg.TypeAssumptions.ptr_method_set
 
 structure certificateRequestMsg [GooseExts] where
   mk ::
@@ -3534,6 +3778,8 @@ class certificateRequestMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   set_supportedSignatureAlgorithms : ∀ (x : certificateRequestMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"supportedSignatureAlgorithms") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithms' := y } : certificateRequestMsg)))
   get_certificateAuthorities : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"certificateAuthorities") #x (Val #(x.certificateAuthorities'))
   set_certificateAuthorities : ∀ (x : certificateRequestMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"certificateAuthorities") (PairV #x #y) (Val #(({ x with certificateAuthorities' := y } : certificateRequestMsg)))
+  method_set : go.MethodSetIs certificateRequestMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateRequestMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateRequestMsg.TypeAssumptions.type_repr
   certificateRequestMsg.TypeAssumptions.underlying
@@ -3545,6 +3791,8 @@ attribute [instance] certificateRequestMsg.TypeAssumptions.type_repr
   certificateRequestMsg.TypeAssumptions.set_supportedSignatureAlgorithms
   certificateRequestMsg.TypeAssumptions.get_certificateAuthorities
   certificateRequestMsg.TypeAssumptions.set_certificateAuthorities
+  certificateRequestMsg.TypeAssumptions.method_set
+  certificateRequestMsg.TypeAssumptions.ptr_method_set
 
 structure certificateVerifyMsg [GooseExts] where
   mk ::
@@ -3579,6 +3827,8 @@ class certificateVerifyMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_signatureAlgorithm : ∀ (x : certificateVerifyMsg) (y : SignatureScheme), go.IsGoStepPureDetTagged under (StructFieldSet certificateVerifyMsg.underlying go!"signatureAlgorithm") (PairV #x #y) (Val #(({ x with signatureAlgorithm' := y } : certificateVerifyMsg)))
   get_signature : ∀ (x : certificateVerifyMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateVerifyMsg.underlying go!"signature") #x (Val #(x.signature'))
   set_signature : ∀ (x : certificateVerifyMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateVerifyMsg.underlying go!"signature") (PairV #x #y) (Val #(({ x with signature' := y } : certificateVerifyMsg)))
+  method_set : go.MethodSetIs certificateVerifyMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateVerifyMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateVerifyMsg.TypeAssumptions.type_repr
   certificateVerifyMsg.TypeAssumptions.underlying
@@ -3588,6 +3838,8 @@ attribute [instance] certificateVerifyMsg.TypeAssumptions.type_repr
   certificateVerifyMsg.TypeAssumptions.set_signatureAlgorithm
   certificateVerifyMsg.TypeAssumptions.get_signature
   certificateVerifyMsg.TypeAssumptions.set_signature
+  certificateVerifyMsg.TypeAssumptions.method_set
+  certificateVerifyMsg.TypeAssumptions.ptr_method_set
 
 structure newSessionTicketMsg [GooseExts] where
   mk ::
@@ -3614,11 +3866,15 @@ class newSessionTicketMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   underlying : go.UnderlyingDirectedEq newSessionTicketMsg.ty newSessionTicketMsg.underlying
   get_ticket : ∀ (x : newSessionTicketMsg), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsg.underlying go!"ticket") #x (Val #(x.ticket'))
   set_ticket : ∀ (x : newSessionTicketMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsg.underlying go!"ticket") (PairV #x #y) (Val #(({ x with ticket' := y } : newSessionTicketMsg)))
+  method_set : go.MethodSetIs newSessionTicketMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType newSessionTicketMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] newSessionTicketMsg.TypeAssumptions.type_repr
   newSessionTicketMsg.TypeAssumptions.underlying
   newSessionTicketMsg.TypeAssumptions.get_ticket
   newSessionTicketMsg.TypeAssumptions.set_ticket
+  newSessionTicketMsg.TypeAssumptions.method_set
+  newSessionTicketMsg.TypeAssumptions.ptr_method_set
 
 structure helloRequestMsg [GooseExts] where
   mk ::
@@ -3642,9 +3898,13 @@ noncomputable instance equals_unfold_helloRequestMsg [GooseExts] [GoGlobalContex
 class helloRequestMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying helloRequestMsg.underlying helloRequestMsg
   underlying : go.UnderlyingDirectedEq helloRequestMsg.ty helloRequestMsg.underlying
+  method_set : go.MethodSetIs helloRequestMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType helloRequestMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] helloRequestMsg.TypeAssumptions.type_repr
   helloRequestMsg.TypeAssumptions.underlying
+  helloRequestMsg.TypeAssumptions.method_set
+  helloRequestMsg.TypeAssumptions.ptr_method_set
 
 abbrev transcriptHash [GooseExts] : Type := GoInterface
 
@@ -3653,8 +3913,12 @@ abbrev transcriptHash [GooseExts] : Type := GoInterface
 
 class transcriptHash.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq transcriptHash.ty transcriptHash.underlying
+  method_set : go.MethodSetIs transcriptHash.ty [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType transcriptHash.ty) []
 
 attribute [instance] transcriptHash.TypeAssumptions.underlying
+  transcriptHash.TypeAssumptions.method_set
+  transcriptHash.TypeAssumptions.ptr_method_set
 
 axiom serverHandshakeState : Type
 axiom serverHandshakeState.zero_val : ZeroVal serverHandshakeState
@@ -3664,10 +3928,14 @@ class serverHandshakeState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying serverHandshakeState.underlying serverHandshakeState
   underlying : go.UnderlyingDirectedEq serverHandshakeState.ty serverHandshakeState.underlying
   isUnderlying : go.IsUnderlying serverHandshakeState.underlying serverHandshakeState.underlying
+  method_set : go.MethodSetIs serverHandshakeState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverHandshakeState.ty) [(go!"crypto/tls.checkForResumption", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.cipherSuiteOk", (some (go.signature.Signature [(go.GoType.PointerType cipherSuite.ty)] false [go.bool]))), (go!"crypto/tls.doFullHandshake", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.doResumeHandshake", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.establishKeys", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.handshake", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.pickCipherSuite", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.processClientHello", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.readFinished", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"crypto/tls.sendFinished", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"crypto/tls.sendSessionTicket", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] serverHandshakeState.TypeAssumptions.type_repr
   serverHandshakeState.TypeAssumptions.underlying
   serverHandshakeState.TypeAssumptions.isUnderlying
+  serverHandshakeState.TypeAssumptions.method_set
+  serverHandshakeState.TypeAssumptions.ptr_method_set
 
 axiom echServerContext : Type
 axiom echServerContext.zero_val : ZeroVal echServerContext
@@ -3677,10 +3945,14 @@ class echServerContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying echServerContext.underlying echServerContext
   underlying : go.UnderlyingDirectedEq echServerContext.ty echServerContext.underlying
   isUnderlying : go.IsUnderlying echServerContext.underlying echServerContext.underlying
+  method_set : go.MethodSetIs echServerContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType echServerContext.ty) []
 
 attribute [instance] echServerContext.TypeAssumptions.type_repr
   echServerContext.TypeAssumptions.underlying
   echServerContext.TypeAssumptions.isUnderlying
+  echServerContext.TypeAssumptions.method_set
+  echServerContext.TypeAssumptions.ptr_method_set
 
 axiom serverHandshakeStateTLS13 : Type
 axiom serverHandshakeStateTLS13.zero_val : ZeroVal serverHandshakeStateTLS13
@@ -3690,10 +3962,14 @@ class serverHandshakeStateTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [G
   type_repr : go.TypeReprUnderlying serverHandshakeStateTLS13.underlying serverHandshakeStateTLS13
   underlying : go.UnderlyingDirectedEq serverHandshakeStateTLS13.ty serverHandshakeStateTLS13.underlying
   isUnderlying : go.IsUnderlying serverHandshakeStateTLS13.underlying serverHandshakeStateTLS13.underlying
+  method_set : go.MethodSetIs serverHandshakeStateTLS13.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverHandshakeStateTLS13.ty) [(go!"crypto/tls.checkForResumption", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.doHelloRetryRequest", (some (go.signature.Signature [CurveID.ty] false [(go.GoType.PointerType keyShare.ty), go.error]))), (go!"crypto/tls.handshake", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.pickCertificate", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.processClientHello", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.readClientCertificate", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.readClientFinished", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.requestClientCert", (some (go.signature.Signature [] false [go.bool]))), (go!"crypto/tls.sendDummyChangeCipherSpec", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.sendServerCertificate", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.sendServerFinished", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.sendServerParameters", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.sendSessionTickets", (some (go.signature.Signature [] false [go.error]))), (go!"crypto/tls.shouldSendSessionTickets", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] serverHandshakeStateTLS13.TypeAssumptions.type_repr
   serverHandshakeStateTLS13.TypeAssumptions.underlying
   serverHandshakeStateTLS13.TypeAssumptions.isUnderlying
+  serverHandshakeStateTLS13.TypeAssumptions.method_set
+  serverHandshakeStateTLS13.TypeAssumptions.ptr_method_set
 
 axiom keyAgreement : Type
 axiom keyAgreement.zero_val : ZeroVal keyAgreement
@@ -3703,10 +3979,14 @@ class keyAgreement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying keyAgreement.underlying keyAgreement
   underlying : go.UnderlyingDirectedEq keyAgreement.ty keyAgreement.underlying
   isUnderlying : go.IsUnderlying keyAgreement.underlying keyAgreement.underlying
+  method_set : go.MethodSetIs keyAgreement.ty [(go!"crypto/tls.generateClientKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" []))] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType clientKeyExchangeMsg.ty), go.error]))), (go!"crypto/tls.generateServerKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType Certificate.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType serverHelloMsg.ty)] false [(go.GoType.PointerType serverKeyExchangeMsg.ty), go.error]))), (go!"crypto/tls.processClientKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType Certificate.ty), (go.GoType.PointerType clientKeyExchangeMsg.ty), go.uint16] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.processServerKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType serverHelloMsg.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" [])), (go.GoType.PointerType serverKeyExchangeMsg.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keyAgreement.ty) []
 
 attribute [instance] keyAgreement.TypeAssumptions.type_repr
   keyAgreement.TypeAssumptions.underlying
   keyAgreement.TypeAssumptions.isUnderlying
+  keyAgreement.TypeAssumptions.method_set
+  keyAgreement.TypeAssumptions.ptr_method_set
 
 structure rsaKeyAgreement [GooseExts] where
   mk ::
@@ -3730,9 +4010,13 @@ noncomputable instance equals_unfold_rsaKeyAgreement [GooseExts] [GoGlobalContex
 class rsaKeyAgreement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rsaKeyAgreement.underlying rsaKeyAgreement
   underlying : go.UnderlyingDirectedEq rsaKeyAgreement.ty rsaKeyAgreement.underlying
+  method_set : go.MethodSetIs rsaKeyAgreement.ty [(go!"crypto/tls.generateClientKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" []))] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType clientKeyExchangeMsg.ty), go.error]))), (go!"crypto/tls.generateServerKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType Certificate.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType serverHelloMsg.ty)] false [(go.GoType.PointerType serverKeyExchangeMsg.ty), go.error]))), (go!"crypto/tls.processClientKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType Certificate.ty), (go.GoType.PointerType clientKeyExchangeMsg.ty), go.uint16] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.processServerKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType serverHelloMsg.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" [])), (go.GoType.PointerType serverKeyExchangeMsg.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rsaKeyAgreement.ty) [(go!"crypto/tls.generateClientKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" []))] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType clientKeyExchangeMsg.ty), go.error]))), (go!"crypto/tls.generateServerKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType Certificate.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType serverHelloMsg.ty)] false [(go.GoType.PointerType serverKeyExchangeMsg.ty), go.error]))), (go!"crypto/tls.processClientKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType Certificate.ty), (go.GoType.PointerType clientKeyExchangeMsg.ty), go.uint16] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.processServerKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType serverHelloMsg.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" [])), (go.GoType.PointerType serverKeyExchangeMsg.ty)] false [go.error])))]
 
 attribute [instance] rsaKeyAgreement.TypeAssumptions.type_repr
   rsaKeyAgreement.TypeAssumptions.underlying
+  rsaKeyAgreement.TypeAssumptions.method_set
+  rsaKeyAgreement.TypeAssumptions.ptr_method_set
 
 axiom ecdheKeyAgreement : Type
 axiom ecdheKeyAgreement.zero_val : ZeroVal ecdheKeyAgreement
@@ -3742,10 +4026,14 @@ class ecdheKeyAgreement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying ecdheKeyAgreement.underlying ecdheKeyAgreement
   underlying : go.UnderlyingDirectedEq ecdheKeyAgreement.ty ecdheKeyAgreement.underlying
   isUnderlying : go.IsUnderlying ecdheKeyAgreement.underlying ecdheKeyAgreement.underlying
+  method_set : go.MethodSetIs ecdheKeyAgreement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ecdheKeyAgreement.ty) [(go!"crypto/tls.generateClientKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" []))] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType clientKeyExchangeMsg.ty), go.error]))), (go!"crypto/tls.generateServerKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType Certificate.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType serverHelloMsg.ty)] false [(go.GoType.PointerType serverKeyExchangeMsg.ty), go.error]))), (go!"crypto/tls.processClientKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType Certificate.ty), (go.GoType.PointerType clientKeyExchangeMsg.ty), go.uint16] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.processServerKeyExchange", (some (go.signature.Signature [(go.GoType.PointerType Config.ty), (go.GoType.PointerType clientHelloMsg.ty), (go.GoType.PointerType serverHelloMsg.ty), (go.GoType.PointerType (go.GoType.Named go!"crypto/x509.Certificate" [])), (go.GoType.PointerType serverKeyExchangeMsg.ty)] false [go.error])))]
 
 attribute [instance] ecdheKeyAgreement.TypeAssumptions.type_repr
   ecdheKeyAgreement.TypeAssumptions.underlying
   ecdheKeyAgreement.TypeAssumptions.isUnderlying
+  ecdheKeyAgreement.TypeAssumptions.method_set
+  ecdheKeyAgreement.TypeAssumptions.ptr_method_set
 
 axiom keySharePrivateKeys : Type
 axiom keySharePrivateKeys.zero_val : ZeroVal keySharePrivateKeys
@@ -3755,10 +4043,14 @@ class keySharePrivateKeys.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying keySharePrivateKeys.underlying keySharePrivateKeys
   underlying : go.UnderlyingDirectedEq keySharePrivateKeys.ty keySharePrivateKeys.underlying
   isUnderlying : go.IsUnderlying keySharePrivateKeys.underlying keySharePrivateKeys.underlying
+  method_set : go.MethodSetIs keySharePrivateKeys.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keySharePrivateKeys.ty) []
 
 attribute [instance] keySharePrivateKeys.TypeAssumptions.type_repr
   keySharePrivateKeys.TypeAssumptions.underlying
   keySharePrivateKeys.TypeAssumptions.isUnderlying
+  keySharePrivateKeys.TypeAssumptions.method_set
+  keySharePrivateKeys.TypeAssumptions.ptr_method_set
 
 axiom keyExchange : Type
 axiom keyExchange.zero_val : ZeroVal keyExchange
@@ -3768,10 +4060,14 @@ class keyExchange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying keyExchange.underlying keyExchange
   underlying : go.UnderlyingDirectedEq keyExchange.ty keyExchange.underlying
   isUnderlying : go.IsUnderlying keyExchange.underlying keyExchange.underlying
+  method_set : go.MethodSetIs keyExchange.ty [(go!"crypto/tls.clientSharedSecret", (some (go.signature.Signature [(go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.keyShares", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [(go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.SliceType keyShare.ty), go.error]))), (go!"crypto/tls.serverSharedSecret", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" []), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), keyShare.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keyExchange.ty) []
 
 attribute [instance] keyExchange.TypeAssumptions.type_repr
   keyExchange.TypeAssumptions.underlying
   keyExchange.TypeAssumptions.isUnderlying
+  keyExchange.TypeAssumptions.method_set
+  keyExchange.TypeAssumptions.ptr_method_set
 
 structure mlkem1024KeyExchange [GooseExts] where
   mk ::
@@ -3795,9 +4091,13 @@ noncomputable instance equals_unfold_mlkem1024KeyExchange [GooseExts] [GoGlobalC
 class mlkem1024KeyExchange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mlkem1024KeyExchange.underlying mlkem1024KeyExchange
   underlying : go.UnderlyingDirectedEq mlkem1024KeyExchange.ty mlkem1024KeyExchange.underlying
+  method_set : go.MethodSetIs mlkem1024KeyExchange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mlkem1024KeyExchange.ty) [(go!"crypto/tls.clientSharedSecret", (some (go.signature.Signature [(go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.keyShares", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [(go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.SliceType keyShare.ty), go.error]))), (go!"crypto/tls.serverSharedSecret", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" []), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), keyShare.ty, go.error])))]
 
 attribute [instance] mlkem1024KeyExchange.TypeAssumptions.type_repr
   mlkem1024KeyExchange.TypeAssumptions.underlying
+  mlkem1024KeyExchange.TypeAssumptions.method_set
+  mlkem1024KeyExchange.TypeAssumptions.ptr_method_set
 
 axiom ecdhKeyExchange : Type
 axiom ecdhKeyExchange.zero_val : ZeroVal ecdhKeyExchange
@@ -3807,10 +4107,14 @@ class ecdhKeyExchange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying ecdhKeyExchange.underlying ecdhKeyExchange
   underlying : go.UnderlyingDirectedEq ecdhKeyExchange.ty ecdhKeyExchange.underlying
   isUnderlying : go.IsUnderlying ecdhKeyExchange.underlying ecdhKeyExchange.underlying
+  method_set : go.MethodSetIs ecdhKeyExchange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ecdhKeyExchange.ty) [(go!"crypto/tls.clientSharedSecret", (some (go.signature.Signature [(go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.keyShares", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [(go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.SliceType keyShare.ty), go.error]))), (go!"crypto/tls.serverSharedSecret", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" []), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), keyShare.ty, go.error])))]
 
 attribute [instance] ecdhKeyExchange.TypeAssumptions.type_repr
   ecdhKeyExchange.TypeAssumptions.underlying
   ecdhKeyExchange.TypeAssumptions.isUnderlying
+  ecdhKeyExchange.TypeAssumptions.method_set
+  ecdhKeyExchange.TypeAssumptions.ptr_method_set
 
 axiom hybridKeyExchange : Type
 axiom hybridKeyExchange.zero_val : ZeroVal hybridKeyExchange
@@ -3820,10 +4124,14 @@ class hybridKeyExchange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying hybridKeyExchange.underlying hybridKeyExchange
   underlying : go.UnderlyingDirectedEq hybridKeyExchange.ty hybridKeyExchange.underlying
   isUnderlying : go.IsUnderlying hybridKeyExchange.underlying hybridKeyExchange.underlying
+  method_set : go.MethodSetIs hybridKeyExchange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hybridKeyExchange.ty) [(go!"crypto/tls.clientSharedSecret", (some (go.signature.Signature [(go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.keyShares", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [(go.GoType.PointerType keySharePrivateKeys.ty), (go.GoType.SliceType keyShare.ty), go.error]))), (go!"crypto/tls.serverSharedSecret", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" []), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), keyShare.ty, go.error])))]
 
 attribute [instance] hybridKeyExchange.TypeAssumptions.type_repr
   hybridKeyExchange.TypeAssumptions.underlying
   hybridKeyExchange.TypeAssumptions.isUnderlying
+  hybridKeyExchange.TypeAssumptions.method_set
+  hybridKeyExchange.TypeAssumptions.ptr_method_set
 
 abbrev prfFunc [GooseExts] : Type := GoFunc
 
@@ -3832,8 +4140,12 @@ abbrev prfFunc [GooseExts] : Type := GoFunc
 
 class prfFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq prfFunc.ty prfFunc.underlying
+  method_set : go.MethodSetIs prfFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType prfFunc.ty) []
 
 attribute [instance] prfFunc.TypeAssumptions.underlying
+  prfFunc.TypeAssumptions.method_set
+  prfFunc.TypeAssumptions.ptr_method_set
 
 axiom finishedHash : Type
 axiom finishedHash.zero_val : ZeroVal finishedHash
@@ -3843,10 +4155,14 @@ class finishedHash.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying finishedHash.underlying finishedHash
   underlying : go.UnderlyingDirectedEq finishedHash.ty finishedHash.underlying
   isUnderlying : go.IsUnderlying finishedHash.underlying finishedHash.underlying
+  method_set : go.MethodSetIs finishedHash.ty [(go!"Sum", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.clientSum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.hashForClientCertificate", (some (go.signature.Signature [go.uint8] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.serverSum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType finishedHash.ty) [(go!"Sum", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"crypto/tls.clientSum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.discardHandshakeBuffer", (some (go.signature.Signature [] false []))), (go!"crypto/tls.hashForClientCertificate", (some (go.signature.Signature [go.uint8] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.serverSum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)])))]
 
 attribute [instance] finishedHash.TypeAssumptions.type_repr
   finishedHash.TypeAssumptions.underlying
   finishedHash.TypeAssumptions.isUnderlying
+  finishedHash.TypeAssumptions.method_set
+  finishedHash.TypeAssumptions.ptr_method_set
 
 abbrev QUICEncryptionLevel [GooseExts] : Type := w64
 
@@ -3855,8 +4171,12 @@ abbrev QUICEncryptionLevel [GooseExts] : Type := w64
 
 class QUICEncryptionLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq QUICEncryptionLevel.ty QUICEncryptionLevel.underlying
+  method_set : go.MethodSetIs QUICEncryptionLevel.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICEncryptionLevel.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] QUICEncryptionLevel.TypeAssumptions.underlying
+  QUICEncryptionLevel.TypeAssumptions.method_set
+  QUICEncryptionLevel.TypeAssumptions.ptr_method_set
 
 structure QUICConn [GooseExts] where
   mk ::
@@ -3887,6 +4207,8 @@ class QUICConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_conn : ∀ (x : QUICConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet QUICConn.underlying go!"conn") (PairV #x #y) (Val #(({ x with conn' := y } : QUICConn)))
   get_sessionTicketSent : ∀ (x : QUICConn), go.IsGoStepPureDetTagged under (StructFieldGet QUICConn.underlying go!"sessionTicketSent") #x (Val #(x.sessionTicketSent'))
   set_sessionTicketSent : ∀ (x : QUICConn) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet QUICConn.underlying go!"sessionTicketSent") (PairV #x #y) (Val #(({ x with sessionTicketSent' := y } : QUICConn)))
+  method_set : go.MethodSetIs QUICConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"ConnectionState", (some (go.signature.Signature [] false [ConnectionState.ty]))), (go!"HandleData", (some (go.signature.Signature [QUICEncryptionLevel.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"NextEvent", (some (go.signature.Signature [] false [QUICEvent.ty]))), (go!"SendSessionTicket", (some (go.signature.Signature [QUICSessionTicketOptions.ty] false [go.error]))), (go!"SetTransportParameters", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"Start", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"StoreSession", (some (go.signature.Signature [(go.GoType.PointerType SessionState.ty)] false [go.error])))]
 
 attribute [instance] QUICConn.TypeAssumptions.type_repr
   QUICConn.TypeAssumptions.underlying
@@ -3894,6 +4216,8 @@ attribute [instance] QUICConn.TypeAssumptions.type_repr
   QUICConn.TypeAssumptions.set_conn
   QUICConn.TypeAssumptions.get_sessionTicketSent
   QUICConn.TypeAssumptions.set_sessionTicketSent
+  QUICConn.TypeAssumptions.method_set
+  QUICConn.TypeAssumptions.ptr_method_set
 
 axiom QUICConfig : Type
 axiom QUICConfig.zero_val : ZeroVal QUICConfig
@@ -3903,10 +4227,14 @@ class QUICConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying QUICConfig.underlying QUICConfig
   underlying : go.UnderlyingDirectedEq QUICConfig.ty QUICConfig.underlying
   isUnderlying : go.IsUnderlying QUICConfig.underlying QUICConfig.underlying
+  method_set : go.MethodSetIs QUICConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICConfig.ty) []
 
 attribute [instance] QUICConfig.TypeAssumptions.type_repr
   QUICConfig.TypeAssumptions.underlying
   QUICConfig.TypeAssumptions.isUnderlying
+  QUICConfig.TypeAssumptions.method_set
+  QUICConfig.TypeAssumptions.ptr_method_set
 
 abbrev QUICEventKind [GooseExts] : Type := w64
 
@@ -3915,8 +4243,12 @@ abbrev QUICEventKind [GooseExts] : Type := w64
 
 class QUICEventKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq QUICEventKind.ty QUICEventKind.underlying
+  method_set : go.MethodSetIs QUICEventKind.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICEventKind.ty) []
 
 attribute [instance] QUICEventKind.TypeAssumptions.underlying
+  QUICEventKind.TypeAssumptions.method_set
+  QUICEventKind.TypeAssumptions.ptr_method_set
 
 structure QUICEvent [GooseExts] where
   mk ::
@@ -3963,6 +4295,8 @@ class QUICEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_SessionState : ∀ (x : QUICEvent) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"SessionState") (PairV #x #y) (Val #(({ x with SessionState' := y } : QUICEvent)))
   get_Err : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Err") #x (Val #(x.Err'))
   set_Err : ∀ (x : QUICEvent) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : QUICEvent)))
+  method_set : go.MethodSetIs QUICEvent.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICEvent.ty) []
 
 attribute [instance] QUICEvent.TypeAssumptions.type_repr
   QUICEvent.TypeAssumptions.underlying
@@ -3978,6 +4312,8 @@ attribute [instance] QUICEvent.TypeAssumptions.type_repr
   QUICEvent.TypeAssumptions.set_SessionState
   QUICEvent.TypeAssumptions.get_Err
   QUICEvent.TypeAssumptions.set_Err
+  QUICEvent.TypeAssumptions.method_set
+  QUICEvent.TypeAssumptions.ptr_method_set
 
 axiom quicState : Type
 axiom quicState.zero_val : ZeroVal quicState
@@ -3987,10 +4323,14 @@ class quicState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying quicState.underlying quicState
   underlying : go.UnderlyingDirectedEq quicState.ty quicState.underlying
   isUnderlying : go.IsUnderlying quicState.underlying quicState.underlying
+  method_set : go.MethodSetIs quicState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType quicState.ty) []
 
 attribute [instance] quicState.TypeAssumptions.type_repr
   quicState.TypeAssumptions.underlying
   quicState.TypeAssumptions.isUnderlying
+  quicState.TypeAssumptions.method_set
+  quicState.TypeAssumptions.ptr_method_set
 
 structure QUICSessionTicketOptions [GooseExts] where
   mk ::
@@ -4021,6 +4361,8 @@ class QUICSessionTicketOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [Go
   set_EarlyData : ∀ (x : QUICSessionTicketOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet QUICSessionTicketOptions.underlying go!"EarlyData") (PairV #x #y) (Val #(({ x with EarlyData' := y } : QUICSessionTicketOptions)))
   get_Extra : ∀ (x : QUICSessionTicketOptions), go.IsGoStepPureDetTagged under (StructFieldGet QUICSessionTicketOptions.underlying go!"Extra") #x (Val #(x.Extra'))
   set_Extra : ∀ (x : QUICSessionTicketOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet QUICSessionTicketOptions.underlying go!"Extra") (PairV #x #y) (Val #(({ x with Extra' := y } : QUICSessionTicketOptions)))
+  method_set : go.MethodSetIs QUICSessionTicketOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICSessionTicketOptions.ty) []
 
 attribute [instance] QUICSessionTicketOptions.TypeAssumptions.type_repr
   QUICSessionTicketOptions.TypeAssumptions.underlying
@@ -4028,6 +4370,8 @@ attribute [instance] QUICSessionTicketOptions.TypeAssumptions.type_repr
   QUICSessionTicketOptions.TypeAssumptions.set_EarlyData
   QUICSessionTicketOptions.TypeAssumptions.get_Extra
   QUICSessionTicketOptions.TypeAssumptions.set_Extra
+  QUICSessionTicketOptions.TypeAssumptions.method_set
+  QUICSessionTicketOptions.TypeAssumptions.ptr_method_set
 
 axiom SessionState : Type
 axiom SessionState.zero_val : ZeroVal SessionState
@@ -4037,10 +4381,14 @@ class SessionState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying SessionState.underlying SessionState
   underlying : go.UnderlyingDirectedEq SessionState.ty SessionState.underlying
   isUnderlying : go.IsUnderlying SessionState.underlying SessionState.underlying
+  method_set : go.MethodSetIs SessionState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SessionState.ty) [(go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])))]
 
 attribute [instance] SessionState.TypeAssumptions.type_repr
   SessionState.TypeAssumptions.underlying
   SessionState.TypeAssumptions.isUnderlying
+  SessionState.TypeAssumptions.method_set
+  SessionState.TypeAssumptions.ptr_method_set
 
 structure ClientSessionState [GooseExts] where
   mk ::
@@ -4067,11 +4415,15 @@ class ClientSessionState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   underlying : go.UnderlyingDirectedEq ClientSessionState.ty ClientSessionState.underlying
   get_session : ∀ (x : ClientSessionState), go.IsGoStepPureDetTagged under (StructFieldGet ClientSessionState.underlying go!"session") #x (Val #(x.session'))
   set_session : ∀ (x : ClientSessionState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientSessionState.underlying go!"session") (PairV #x #y) (Val #(({ x with session' := y } : ClientSessionState)))
+  method_set : go.MethodSetIs ClientSessionState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientSessionState.ty) [(go!"ResumptionState", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType SessionState.ty), go.error])))]
 
 attribute [instance] ClientSessionState.TypeAssumptions.type_repr
   ClientSessionState.TypeAssumptions.underlying
   ClientSessionState.TypeAssumptions.get_session
   ClientSessionState.TypeAssumptions.set_session
+  ClientSessionState.TypeAssumptions.method_set
+  ClientSessionState.TypeAssumptions.ptr_method_set
 
 axiom listener : Type
 axiom listener.zero_val : ZeroVal listener
@@ -4081,10 +4433,14 @@ class listener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying listener.underlying listener
   underlying : go.UnderlyingDirectedEq listener.ty listener.underlying
   isUnderlying : go.IsUnderlying listener.underlying listener.underlying
+  method_set : go.MethodSetIs listener.ty [(go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listener.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] listener.TypeAssumptions.type_repr
   listener.TypeAssumptions.underlying
   listener.TypeAssumptions.isUnderlying
+  listener.TypeAssumptions.method_set
+  listener.TypeAssumptions.ptr_method_set
 
 structure timeoutError [GooseExts] where
   mk ::
@@ -4108,9 +4464,13 @@ noncomputable instance equals_unfold_timeoutError [GooseExts] [GoGlobalContext] 
 class timeoutError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying timeoutError.underlying timeoutError
   underlying : go.UnderlyingDirectedEq timeoutError.ty timeoutError.underlying
+  method_set : go.MethodSetIs timeoutError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] timeoutError.TypeAssumptions.type_repr
   timeoutError.TypeAssumptions.underlying
+  timeoutError.TypeAssumptions.method_set
+  timeoutError.TypeAssumptions.ptr_method_set
 
 axiom Dialer : Type
 axiom Dialer.zero_val : ZeroVal Dialer
@@ -4120,10 +4480,14 @@ class Dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Dialer.underlying Dialer
   underlying : go.UnderlyingDirectedEq Dialer.ty Dialer.underlying
   isUnderlying : go.IsUnderlying Dialer.underlying Dialer.underlying
+  method_set : go.MethodSetIs Dialer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Dialer.ty) [(go!"Dial", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"DialContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"crypto/tls.netDialer", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"net.Dialer" []))])))]
 
 attribute [instance] Dialer.TypeAssumptions.type_repr
   Dialer.TypeAssumptions.underlying
   Dialer.TypeAssumptions.isUnderlying
+  Dialer.TypeAssumptions.method_set
+  Dialer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   AlertError_instance : AlertError.TypeAssumptions

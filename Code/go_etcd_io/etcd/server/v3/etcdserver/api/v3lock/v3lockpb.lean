@@ -290,6 +290,8 @@ class LockRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_unknownFields : ∀ (x : LockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LockRequest)))
   get_sizeCache : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : LockRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LockRequest)))
+  method_set : go.MethodSetIs LockRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LockRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetLease_unfold : MethodUnfold (go.GoType.PointerType LockRequest.ty) go!"GetLease" LockRequest.GetLease.impl
   ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType LockRequest.ty) go!"GetName" LockRequest.GetName.impl
 
@@ -305,6 +307,8 @@ attribute [instance] LockRequest.TypeAssumptions.type_repr
   LockRequest.TypeAssumptions.set_unknownFields
   LockRequest.TypeAssumptions.get_sizeCache
   LockRequest.TypeAssumptions.set_sizeCache
+  LockRequest.TypeAssumptions.method_set
+  LockRequest.TypeAssumptions.ptr_method_set
   LockRequest.TypeAssumptions.ptr_GetLease_unfold
   LockRequest.TypeAssumptions.ptr_GetName_unfold
 
@@ -349,6 +353,8 @@ class LockResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_unknownFields : ∀ (x : LockResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LockResponse)))
   get_sizeCache : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : LockResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LockResponse)))
+  method_set : go.MethodSetIs LockResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LockResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType LockResponse.ty) go!"GetHeader" LockResponse.GetHeader.impl
   ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType LockResponse.ty) go!"GetKey" LockResponse.GetKey.impl
 
@@ -364,6 +370,8 @@ attribute [instance] LockResponse.TypeAssumptions.type_repr
   LockResponse.TypeAssumptions.set_unknownFields
   LockResponse.TypeAssumptions.get_sizeCache
   LockResponse.TypeAssumptions.set_sizeCache
+  LockResponse.TypeAssumptions.method_set
+  LockResponse.TypeAssumptions.ptr_method_set
   LockResponse.TypeAssumptions.ptr_GetHeader_unfold
   LockResponse.TypeAssumptions.ptr_GetKey_unfold
 
@@ -404,6 +412,8 @@ class UnlockRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_unknownFields : ∀ (x : UnlockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UnlockRequest)))
   get_sizeCache : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : UnlockRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UnlockRequest)))
+  method_set : go.MethodSetIs UnlockRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnlockRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType UnlockRequest.ty) go!"GetKey" UnlockRequest.GetKey.impl
 
 attribute [instance] UnlockRequest.TypeAssumptions.type_repr
@@ -416,6 +426,8 @@ attribute [instance] UnlockRequest.TypeAssumptions.type_repr
   UnlockRequest.TypeAssumptions.set_unknownFields
   UnlockRequest.TypeAssumptions.get_sizeCache
   UnlockRequest.TypeAssumptions.set_sizeCache
+  UnlockRequest.TypeAssumptions.method_set
+  UnlockRequest.TypeAssumptions.ptr_method_set
   UnlockRequest.TypeAssumptions.ptr_GetKey_unfold
 
 structure UnlockResponse [GooseExts] where
@@ -455,6 +467,8 @@ class UnlockResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_unknownFields : ∀ (x : UnlockResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UnlockResponse)))
   get_sizeCache : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : UnlockResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UnlockResponse)))
+  method_set : go.MethodSetIs UnlockResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnlockResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType UnlockResponse.ty) go!"GetHeader" UnlockResponse.GetHeader.impl
 
 attribute [instance] UnlockResponse.TypeAssumptions.type_repr
@@ -467,6 +481,8 @@ attribute [instance] UnlockResponse.TypeAssumptions.type_repr
   UnlockResponse.TypeAssumptions.set_unknownFields
   UnlockResponse.TypeAssumptions.get_sizeCache
   UnlockResponse.TypeAssumptions.set_sizeCache
+  UnlockResponse.TypeAssumptions.method_set
+  UnlockResponse.TypeAssumptions.ptr_method_set
   UnlockResponse.TypeAssumptions.ptr_GetHeader_unfold
 
 axiom LockClient : Type
@@ -477,10 +493,14 @@ class LockClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying LockClient.underlying LockClient
   underlying : go.UnderlyingDirectedEq LockClient.ty LockClient.underlying
   isUnderlying : go.IsUnderlying LockClient.underlying LockClient.underlying
+  method_set : go.MethodSetIs LockClient.ty [(go!"Lock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LockRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType LockResponse.ty), go.error]))), (go!"Unlock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnlockRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType UnlockResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LockClient.ty) []
 
 attribute [instance] LockClient.TypeAssumptions.type_repr
   LockClient.TypeAssumptions.underlying
   LockClient.TypeAssumptions.isUnderlying
+  LockClient.TypeAssumptions.method_set
+  LockClient.TypeAssumptions.ptr_method_set
 
 axiom lockClient : Type
 axiom lockClient.zero_val : ZeroVal lockClient
@@ -490,20 +510,28 @@ class lockClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying lockClient.underlying lockClient
   underlying : go.UnderlyingDirectedEq lockClient.ty lockClient.underlying
   isUnderlying : go.IsUnderlying lockClient.underlying lockClient.underlying
+  method_set : go.MethodSetIs lockClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lockClient.ty) [(go!"Lock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LockRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType LockResponse.ty), go.error]))), (go!"Unlock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnlockRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType UnlockResponse.ty), go.error])))]
 
 attribute [instance] lockClient.TypeAssumptions.type_repr
   lockClient.TypeAssumptions.underlying
   lockClient.TypeAssumptions.isUnderlying
+  lockClient.TypeAssumptions.method_set
+  lockClient.TypeAssumptions.ptr_method_set
 
 abbrev LockServer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def LockServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LockRequest.ty)] false [(go.GoType.PointerType LockResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType UnlockRequest.ty)] false [(go.GoType.PointerType UnlockResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedLockServer" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LockRequest.ty)] false [(go.GoType.PointerType LockResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnlockRequest.ty)] false [(go.GoType.PointerType UnlockResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer" (go.signature.Signature [] false []))])
 
 class LockServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LockServer.ty LockServer.underlying
+  method_set : go.MethodSetIs LockServer.ty [(go!"Lock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LockRequest.ty)] false [(go.GoType.PointerType LockResponse.ty), go.error]))), (go!"Unlock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnlockRequest.ty)] false [(go.GoType.PointerType UnlockResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LockServer.ty) []
 
 attribute [instance] LockServer.TypeAssumptions.underlying
+  LockServer.TypeAssumptions.method_set
+  LockServer.TypeAssumptions.ptr_method_set
 
 structure UnimplementedLockServer [GooseExts] where
   mk ::
@@ -527,19 +555,27 @@ noncomputable instance equals_unfold_UnimplementedLockServer [GooseExts] [GoGlob
 class UnimplementedLockServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedLockServer.underlying UnimplementedLockServer
   underlying : go.UnderlyingDirectedEq UnimplementedLockServer.ty UnimplementedLockServer.underlying
+  method_set : go.MethodSetIs UnimplementedLockServer.ty [(go!"Lock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LockRequest.ty)] false [(go.GoType.PointerType LockResponse.ty), go.error]))), (go!"Unlock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnlockRequest.ty)] false [(go.GoType.PointerType UnlockResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedLockServer.ty) [(go!"Lock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LockRequest.ty)] false [(go.GoType.PointerType LockResponse.ty), go.error]))), (go!"Unlock", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnlockRequest.ty)] false [(go.GoType.PointerType UnlockResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] UnimplementedLockServer.TypeAssumptions.type_repr
   UnimplementedLockServer.TypeAssumptions.underlying
+  UnimplementedLockServer.TypeAssumptions.method_set
+  UnimplementedLockServer.TypeAssumptions.ptr_method_set
 
 abbrev UnsafeLockServer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def UnsafeLockServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedLockServer" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer" (go.signature.Signature [] false []))])
 
 class UnsafeLockServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeLockServer.ty UnsafeLockServer.underlying
+  method_set : go.MethodSetIs UnsafeLockServer.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeLockServer.ty) []
 
 attribute [instance] UnsafeLockServer.TypeAssumptions.underlying
+  UnsafeLockServer.TypeAssumptions.method_set
+  UnsafeLockServer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   LockRequest_instance : LockRequest.TypeAssumptions

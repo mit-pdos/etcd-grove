@@ -28,7 +28,7 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   `cfg`'s fields as the caller gave them, both halves of `applyc` with `cum` at `[[]]`, and the
   right to close `done`. The names `γ` are the wrapper's (`RNNames`): `newRaftNode` allocates
   `ap`, `cum` and `done`, the rest are the caller's.
-* `srvIdxOk_boot`: the bootstrap log (`BootLogOk`) passes the server's `srvIdxOk` at the applied
+* `srvIdxOk_boot`: the bootstrap log (`srvBootLogOk`) passes the server's `srvIdxOk` at the applied
   index `0` (its entries are v1 conf changes whose bytes decode: `isConfChangeEncoding`).
 -/
 module
@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 
 @[expose] public section
 
@@ -112,13 +113,20 @@ def rnRaftStatusOk : IProp GF :=
 instance rnRaftStatusOk_persistent : Persistent (rnRaftStatusOk (GF := GF)) := by
   unfold rnRaftStatusOk; infer_instance
 
+/-- (D22 J1a, 2026-10-26) **The storage `st` is a `*storage` made over the snapshotter `ss`**
+(`storage.storageSnap`): what `storage.Release`'s axiom names the snapshot directory by. -/
+def rnStorageOf (st : GoInterface) (ss : Loc) : Prop :=
+  ∃ p : Loc, st = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p ∧
+    storage.storageSnap p ss
+
 /-- **`serverstorage.NewStorage(lg, w, ss)`** (names-only): the WAL as the raft loop uses it
-(`isRNWal`). -/
+(`isRNWal`); (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`NewStorage` returns
+`&storage{lg: lg, w: w, s: s}`, `storage.go`). -/
 def rnNewStorageOk : IProp GF :=
   iprop(□ ∀ (lg w ss : Loc), {{ True }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #w))
       (Val #ss))
-    {{ (st : GoInterface), RET #st; isRNWal st }})
+    {{ (st : GoInterface), RET #st; isRNWal st ∗ ⌜rnStorageOf st ss⌝ }})
 
 instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
   unfold rnNewStorageOk; infer_instance

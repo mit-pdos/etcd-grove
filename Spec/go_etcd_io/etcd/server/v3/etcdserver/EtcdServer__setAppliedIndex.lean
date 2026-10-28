@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 
 @[expose] public section
 
@@ -31,6 +32,19 @@ abbrev EtcdServer.setAppliedIndex.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAppliedInv s E γr ∗ srvAppliedPre γr v v' L ∗ mvcc.idxCert E.γ.idx L }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setAppliedIndex")) (Val #v'))
+  {{ RET #(); srvAppliedOwn γr v' ∗ appliedAtLeast γr v' ∗ appliedLogAt γr v' L }}
+
+
+/-- **`spec` in the auth mode `on`** (the auth plan's E3p, 2026-10-27): the applied index's
+invariant over the mode's KV model (`srvAppliedInvM on`), and (E3u) in the mode `on` the auth state
+at the log through `v'` published (`appliedPubM`, which the invariant keeps of the current applied
+index; `True` at `false`, so `spec` is `specM false` up to it). -/
+abbrev EtcdServer.setAppliedIndex.specM (on : Bool) : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvAppliedInvM on s E γr ∗ srvAppliedPre γr v v' L ∗ mvcc.idxCert E.γ.idx L ∗
+      appliedPubM on E γr v' }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setAppliedIndex")) (Val #v'))
   {{ RET #(); srvAppliedOwn γr v' ∗ appliedAtLeast γr v' ∗ appliedLogAt γr v' L }}
 

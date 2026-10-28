@@ -20,10 +20,14 @@ class Metadata.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Metadata.underlying Metadata
   underlying : go.UnderlyingDirectedEq Metadata.ty Metadata.underlying
   isUnderlying : go.IsUnderlying Metadata.underlying Metadata.underlying
+  method_set : go.MethodSetIs Metadata.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Metadata.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetNodeID", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Metadata.TypeAssumptions.type_repr
   Metadata.TypeAssumptions.underlying
   Metadata.TypeAssumptions.isUnderlying
+  Metadata.TypeAssumptions.method_set
+  Metadata.TypeAssumptions.ptr_method_set
 
 class RequestHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestHeader.underlying RequestHeader
@@ -40,6 +44,8 @@ class RequestHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_unknownFields : ∀ (x : RequestHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RequestHeader.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RequestHeader)))
   get_sizeCache : ∀ (x : RequestHeader), go.IsGoStepPureDetTagged under (StructFieldGet RequestHeader.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : RequestHeader) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RequestHeader.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RequestHeader)))
+  method_set : go.MethodSetIs RequestHeader.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestHeader.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetAuthRevision", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetUsername", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RequestHeader.TypeAssumptions.type_repr
   RequestHeader.TypeAssumptions.underlying
@@ -55,6 +61,8 @@ attribute [instance] RequestHeader.TypeAssumptions.type_repr
   RequestHeader.TypeAssumptions.set_unknownFields
   RequestHeader.TypeAssumptions.get_sizeCache
   RequestHeader.TypeAssumptions.set_sizeCache
+  RequestHeader.TypeAssumptions.method_set
+  RequestHeader.TypeAssumptions.ptr_method_set
 
 class InternalRaftRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalRaftRequest.underlying InternalRaftRequest
@@ -129,6 +137,8 @@ class InternalRaftRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_unknownFields : ∀ (x : InternalRaftRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : InternalRaftRequest)))
   get_sizeCache : ∀ (x : InternalRaftRequest), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : InternalRaftRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : InternalRaftRequest)))
+  method_set : go.MethodSetIs InternalRaftRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InternalRaftRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetAlarm", (some (go.signature.Signature [] false [(go.GoType.PointerType AlarmRequest.ty)]))), (go!"GetAuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthDisableRequest.ty)]))), (go!"GetAuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthEnableRequest.ty)]))), (go!"GetAuthRoleAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthRoleAddRequest.ty)]))), (go!"GetAuthRoleDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthRoleDeleteRequest.ty)]))), (go!"GetAuthRoleGet", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthRoleGetRequest.ty)]))), (go!"GetAuthRoleGrantPermission", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthRoleGrantPermissionRequest.ty)]))), (go!"GetAuthRoleList", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthRoleListRequest.ty)]))), (go!"GetAuthRoleRevokePermission", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthRoleRevokePermissionRequest.ty)]))), (go!"GetAuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthStatusRequest.ty)]))), (go!"GetAuthUserAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthUserAddRequest.ty)]))), (go!"GetAuthUserChangePassword", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthUserChangePasswordRequest.ty)]))), (go!"GetAuthUserDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthUserDeleteRequest.ty)]))), (go!"GetAuthUserGet", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthUserGetRequest.ty)]))), (go!"GetAuthUserGrantRole", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthUserGrantRoleRequest.ty)]))), (go!"GetAuthUserList", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthUserListRequest.ty)]))), (go!"GetAuthUserRevokeRole", (some (go.signature.Signature [] false [(go.GoType.PointerType AuthUserRevokeRoleRequest.ty)]))), (go!"GetAuthenticate", (some (go.signature.Signature [] false [(go.GoType.PointerType InternalAuthenticateRequest.ty)]))), (go!"GetClusterMemberAttrSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty)]))), (go!"GetClusterVersionSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty)]))), (go!"GetCompaction", (some (go.signature.Signature [] false [(go.GoType.PointerType CompactionRequest.ty)]))), (go!"GetDeleteRange", (some (go.signature.Signature [] false [(go.GoType.PointerType DeleteRangeRequest.ty)]))), (go!"GetDowngradeInfoSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty)]))), (go!"GetDowngradeVersionTest", (some (go.signature.Signature [] false [(go.GoType.PointerType DowngradeVersionTestRequest.ty)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType RequestHeader.ty)]))), (go!"GetID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaseCheckpoint", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaseCheckpointRequest.ty)]))), (go!"GetLeaseGrant", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaseGrantRequest.ty)]))), (go!"GetLeaseRevoke", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaseRevokeRequest.ty)]))), (go!"GetPut", (some (go.signature.Signature [] false [(go.GoType.PointerType PutRequest.ty)]))), (go!"GetRange", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeRequest.ty)]))), (go!"GetTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType TxnRequest.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InternalRaftRequest.TypeAssumptions.type_repr
   InternalRaftRequest.TypeAssumptions.underlying
@@ -202,15 +212,21 @@ attribute [instance] InternalRaftRequest.TypeAssumptions.type_repr
   InternalRaftRequest.TypeAssumptions.set_unknownFields
   InternalRaftRequest.TypeAssumptions.get_sizeCache
   InternalRaftRequest.TypeAssumptions.set_sizeCache
+  InternalRaftRequest.TypeAssumptions.method_set
+  InternalRaftRequest.TypeAssumptions.ptr_method_set
 
 class EmptyResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyResponse.underlying EmptyResponse
   underlying : go.UnderlyingDirectedEq EmptyResponse.ty EmptyResponse.underlying
   isUnderlying : go.IsUnderlying EmptyResponse.underlying EmptyResponse.underlying
+  method_set : go.MethodSetIs EmptyResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EmptyResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] EmptyResponse.TypeAssumptions.type_repr
   EmptyResponse.TypeAssumptions.underlying
   EmptyResponse.TypeAssumptions.isUnderlying
+  EmptyResponse.TypeAssumptions.method_set
+  EmptyResponse.TypeAssumptions.ptr_method_set
 
 class InternalAuthenticateRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalAuthenticateRequest.underlying InternalAuthenticateRequest
@@ -227,6 +243,8 @@ class InternalAuthenticateRequest.TypeAssumptions [GooseExts] [GoGlobalContext] 
   set_unknownFields : ∀ (x : InternalAuthenticateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet InternalAuthenticateRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : InternalAuthenticateRequest)))
   get_sizeCache : ∀ (x : InternalAuthenticateRequest), go.IsGoStepPureDetTagged under (StructFieldGet InternalAuthenticateRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : InternalAuthenticateRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet InternalAuthenticateRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : InternalAuthenticateRequest)))
+  method_set : go.MethodSetIs InternalAuthenticateRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InternalAuthenticateRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetPassword", (some (go.signature.Signature [] false [go.string]))), (go!"GetSimpleToken", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InternalAuthenticateRequest.TypeAssumptions.type_repr
   InternalAuthenticateRequest.TypeAssumptions.underlying
@@ -242,49 +260,71 @@ attribute [instance] InternalAuthenticateRequest.TypeAssumptions.type_repr
   InternalAuthenticateRequest.TypeAssumptions.set_unknownFields
   InternalAuthenticateRequest.TypeAssumptions.get_sizeCache
   InternalAuthenticateRequest.TypeAssumptions.set_sizeCache
+  InternalAuthenticateRequest.TypeAssumptions.method_set
+  InternalAuthenticateRequest.TypeAssumptions.ptr_method_set
 
 class InternalRaftStringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalRaftStringer.underlying InternalRaftStringer
   underlying : go.UnderlyingDirectedEq InternalRaftStringer.ty InternalRaftStringer.underlying
   get_Request : ∀ (x : InternalRaftStringer), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftStringer.underlying go!"Request") #x (Val #(x.Request'))
   set_Request : ∀ (x : InternalRaftStringer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftStringer.underlying go!"Request") (PairV #x #y) (Val #(({ x with Request' := y } : InternalRaftStringer)))
+  method_set : go.MethodSetIs InternalRaftStringer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InternalRaftStringer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InternalRaftStringer.TypeAssumptions.type_repr
   InternalRaftStringer.TypeAssumptions.underlying
   InternalRaftStringer.TypeAssumptions.get_Request
   InternalRaftStringer.TypeAssumptions.set_Request
+  InternalRaftStringer.TypeAssumptions.method_set
+  InternalRaftStringer.TypeAssumptions.ptr_method_set
 
 class txnRequestStringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txnRequestStringer.underlying txnRequestStringer
   underlying : go.UnderlyingDirectedEq txnRequestStringer.ty txnRequestStringer.underlying
   get_Request : ∀ (x : txnRequestStringer), go.IsGoStepPureDetTagged under (StructFieldGet txnRequestStringer.underlying go!"Request") #x (Val #(x.Request'))
   set_Request : ∀ (x : txnRequestStringer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet txnRequestStringer.underlying go!"Request") (PairV #x #y) (Val #(({ x with Request' := y } : txnRequestStringer)))
+  method_set : go.MethodSetIs txnRequestStringer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType txnRequestStringer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] txnRequestStringer.TypeAssumptions.type_repr
   txnRequestStringer.TypeAssumptions.underlying
   txnRequestStringer.TypeAssumptions.get_Request
   txnRequestStringer.TypeAssumptions.set_Request
+  txnRequestStringer.TypeAssumptions.method_set
+  txnRequestStringer.TypeAssumptions.ptr_method_set
 
 class requestOpStringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying requestOpStringer.underlying requestOpStringer
   underlying : go.UnderlyingDirectedEq requestOpStringer.ty requestOpStringer.underlying
   get_Op : ∀ (x : requestOpStringer), go.IsGoStepPureDetTagged under (StructFieldGet requestOpStringer.underlying go!"Op") #x (Val #(x.Op'))
   set_Op : ∀ (x : requestOpStringer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet requestOpStringer.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : requestOpStringer)))
+  method_set : go.MethodSetIs requestOpStringer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestOpStringer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] requestOpStringer.TypeAssumptions.type_repr
   requestOpStringer.TypeAssumptions.underlying
   requestOpStringer.TypeAssumptions.get_Op
   requestOpStringer.TypeAssumptions.set_Op
+  requestOpStringer.TypeAssumptions.method_set
+  requestOpStringer.TypeAssumptions.ptr_method_set
 
 class Compare_CompareResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Compare_CompareResult.ty Compare_CompareResult.underlying
+  method_set : go.MethodSetIs Compare_CompareResult.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Compare_CompareResult.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compare_CompareResult.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Compare_CompareResult.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] Compare_CompareResult.TypeAssumptions.underlying
+  Compare_CompareResult.TypeAssumptions.method_set
+  Compare_CompareResult.TypeAssumptions.ptr_method_set
 
 class Compare_CompareTarget.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Compare_CompareTarget.ty Compare_CompareTarget.underlying
+  method_set : go.MethodSetIs Compare_CompareTarget.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Compare_CompareTarget.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compare_CompareTarget.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Compare_CompareTarget.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] Compare_CompareTarget.TypeAssumptions.underlying
+  Compare_CompareTarget.TypeAssumptions.method_set
+  Compare_CompareTarget.TypeAssumptions.ptr_method_set
 
 class loggableValueCompare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying loggableValueCompare.underlying loggableValueCompare
@@ -299,6 +339,8 @@ class loggableValueCompare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_ValueSize : ∀ (x : loggableValueCompare) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet loggableValueCompare.underlying go!"ValueSize") (PairV #x #y) (Val #(({ x with ValueSize' := y } : loggableValueCompare)))
   get_RangeEnd : ∀ (x : loggableValueCompare), go.IsGoStepPureDetTagged under (StructFieldGet loggableValueCompare.underlying go!"RangeEnd") #x (Val #(x.RangeEnd'))
   set_RangeEnd : ∀ (x : loggableValueCompare) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet loggableValueCompare.underlying go!"RangeEnd") (PairV #x #y) (Val #(({ x with RangeEnd' := y } : loggableValueCompare)))
+  method_set : go.MethodSetIs loggableValueCompare.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType loggableValueCompare.ty) [(go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] loggableValueCompare.TypeAssumptions.type_repr
   loggableValueCompare.TypeAssumptions.underlying
@@ -312,6 +354,8 @@ attribute [instance] loggableValueCompare.TypeAssumptions.type_repr
   loggableValueCompare.TypeAssumptions.set_ValueSize
   loggableValueCompare.TypeAssumptions.get_RangeEnd
   loggableValueCompare.TypeAssumptions.set_RangeEnd
+  loggableValueCompare.TypeAssumptions.method_set
+  loggableValueCompare.TypeAssumptions.ptr_method_set
 
 class loggablePutRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying loggablePutRequest.underlying loggablePutRequest
@@ -328,6 +372,8 @@ class loggablePutRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_IgnoreValue : ∀ (x : loggablePutRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet loggablePutRequest.underlying go!"IgnoreValue") (PairV #x #y) (Val #(({ x with IgnoreValue' := y } : loggablePutRequest)))
   get_IgnoreLease : ∀ (x : loggablePutRequest), go.IsGoStepPureDetTagged under (StructFieldGet loggablePutRequest.underlying go!"IgnoreLease") #x (Val #(x.IgnoreLease'))
   set_IgnoreLease : ∀ (x : loggablePutRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet loggablePutRequest.underlying go!"IgnoreLease") (PairV #x #y) (Val #(({ x with IgnoreLease' := y } : loggablePutRequest)))
+  method_set : go.MethodSetIs loggablePutRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType loggablePutRequest.ty) [(go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] loggablePutRequest.TypeAssumptions.type_repr
   loggablePutRequest.TypeAssumptions.underlying
@@ -343,36 +389,62 @@ attribute [instance] loggablePutRequest.TypeAssumptions.type_repr
   loggablePutRequest.TypeAssumptions.set_IgnoreValue
   loggablePutRequest.TypeAssumptions.get_IgnoreLease
   loggablePutRequest.TypeAssumptions.set_IgnoreLease
+  loggablePutRequest.TypeAssumptions.method_set
+  loggablePutRequest.TypeAssumptions.ptr_method_set
 
 class AlarmType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlarmType.ty AlarmType.underlying
+  method_set : go.MethodSetIs AlarmType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType AlarmType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType AlarmType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] AlarmType.TypeAssumptions.underlying
+  AlarmType.TypeAssumptions.method_set
+  AlarmType.TypeAssumptions.ptr_method_set
 
 class RangeRequest_SortOrder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RangeRequest_SortOrder.ty RangeRequest_SortOrder.underlying
+  method_set : go.MethodSetIs RangeRequest_SortOrder.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeRequest_SortOrder.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RangeRequest_SortOrder.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeRequest_SortOrder.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] RangeRequest_SortOrder.TypeAssumptions.underlying
+  RangeRequest_SortOrder.TypeAssumptions.method_set
+  RangeRequest_SortOrder.TypeAssumptions.ptr_method_set
 
 class RangeRequest_SortTarget.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RangeRequest_SortTarget.ty RangeRequest_SortTarget.underlying
+  method_set : go.MethodSetIs RangeRequest_SortTarget.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeRequest_SortTarget.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RangeRequest_SortTarget.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeRequest_SortTarget.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] RangeRequest_SortTarget.TypeAssumptions.underlying
+  RangeRequest_SortTarget.TypeAssumptions.method_set
+  RangeRequest_SortTarget.TypeAssumptions.ptr_method_set
 
 class WatchCreateRequest_FilterType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchCreateRequest_FilterType.ty WatchCreateRequest_FilterType.underlying
+  method_set : go.MethodSetIs WatchCreateRequest_FilterType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType WatchCreateRequest_FilterType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchCreateRequest_FilterType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType WatchCreateRequest_FilterType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] WatchCreateRequest_FilterType.TypeAssumptions.underlying
+  WatchCreateRequest_FilterType.TypeAssumptions.method_set
+  WatchCreateRequest_FilterType.TypeAssumptions.ptr_method_set
 
 class AlarmRequest_AlarmAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlarmRequest_AlarmAction.ty AlarmRequest_AlarmAction.underlying
+  method_set : go.MethodSetIs AlarmRequest_AlarmAction.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType AlarmRequest_AlarmAction.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmRequest_AlarmAction.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType AlarmRequest_AlarmAction.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] AlarmRequest_AlarmAction.TypeAssumptions.underlying
+  AlarmRequest_AlarmAction.TypeAssumptions.method_set
+  AlarmRequest_AlarmAction.TypeAssumptions.ptr_method_set
 
 class DowngradeRequest_DowngradeAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DowngradeRequest_DowngradeAction.ty DowngradeRequest_DowngradeAction.underlying
+  method_set : go.MethodSetIs DowngradeRequest_DowngradeAction.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType DowngradeRequest_DowngradeAction.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeRequest_DowngradeAction.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType DowngradeRequest_DowngradeAction.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] DowngradeRequest_DowngradeAction.TypeAssumptions.underlying
+  DowngradeRequest_DowngradeAction.TypeAssumptions.method_set
+  DowngradeRequest_DowngradeAction.TypeAssumptions.ptr_method_set
 
 class ResponseHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseHeader.underlying ResponseHeader
@@ -393,6 +465,8 @@ class ResponseHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_unknownFields : ∀ (x : ResponseHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResponseHeader.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResponseHeader)))
   get_sizeCache : ∀ (x : ResponseHeader), go.IsGoStepPureDetTagged under (StructFieldGet ResponseHeader.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ResponseHeader) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResponseHeader.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResponseHeader)))
+  method_set : go.MethodSetIs ResponseHeader.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseHeader.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetClusterId_unfold : MethodUnfold (go.GoType.PointerType ResponseHeader.ty) go!"GetClusterId" ResponseHeader.GetClusterId.impl
   ptr_GetLeaderId_unfold : MethodUnfold (go.GoType.PointerType ResponseHeader.ty) go!"GetLeaderId" ResponseHeader.GetLeaderId.impl
   ptr_GetMemberId_unfold : MethodUnfold (go.GoType.PointerType ResponseHeader.ty) go!"GetMemberId" ResponseHeader.GetMemberId.impl
@@ -417,6 +491,8 @@ attribute [instance] ResponseHeader.TypeAssumptions.type_repr
   ResponseHeader.TypeAssumptions.set_unknownFields
   ResponseHeader.TypeAssumptions.get_sizeCache
   ResponseHeader.TypeAssumptions.set_sizeCache
+  ResponseHeader.TypeAssumptions.method_set
+  ResponseHeader.TypeAssumptions.ptr_method_set
   ResponseHeader.TypeAssumptions.ptr_GetClusterId_unfold
   ResponseHeader.TypeAssumptions.ptr_GetLeaderId_unfold
   ResponseHeader.TypeAssumptions.ptr_GetMemberId_unfold
@@ -458,6 +534,8 @@ class RangeRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_unknownFields : ∀ (x : RangeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RangeRequest)))
   get_sizeCache : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : RangeRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RangeRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RangeRequest)))
+  method_set : go.MethodSetIs RangeRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RangeRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCountOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetKeysOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"GetLimit", (some (go.signature.Signature [] false [go.int64]))), (go!"GetMaxCreateRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetMaxModRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetMinCreateRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetMinModRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetRangeEnd", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetSerializable", (some (go.signature.Signature [] false [go.bool]))), (go!"GetSortOrder", (some (go.signature.Signature [] false [RangeRequest_SortOrder.ty]))), (go!"GetSortTarget", (some (go.signature.Signature [] false [RangeRequest_SortTarget.ty]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetCountOnly_unfold : MethodUnfold (go.GoType.PointerType RangeRequest.ty) go!"GetCountOnly" RangeRequest.GetCountOnly.impl
   ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType RangeRequest.ty) go!"GetKey" RangeRequest.GetKey.impl
   ptr_GetKeysOnly_unfold : MethodUnfold (go.GoType.PointerType RangeRequest.ty) go!"GetKeysOnly" RangeRequest.GetKeysOnly.impl
@@ -499,6 +577,8 @@ attribute [instance] RangeRequest.TypeAssumptions.type_repr
   RangeRequest.TypeAssumptions.set_unknownFields
   RangeRequest.TypeAssumptions.get_sizeCache
   RangeRequest.TypeAssumptions.set_sizeCache
+  RangeRequest.TypeAssumptions.method_set
+  RangeRequest.TypeAssumptions.ptr_method_set
   RangeRequest.TypeAssumptions.ptr_GetCountOnly_unfold
   RangeRequest.TypeAssumptions.ptr_GetKey_unfold
   RangeRequest.TypeAssumptions.ptr_GetKeysOnly_unfold
@@ -523,6 +603,8 @@ class RangeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_unknownFields : ∀ (x : RangeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RangeResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RangeResponse)))
   get_sizeCache : ∀ (x : RangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : RangeResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RangeResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RangeResponse)))
+  method_set : go.MethodSetIs RangeResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RangeResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCount", (some (go.signature.Signature [] false [go.int64]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"GetKvs", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))), (go!"GetMore", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetKvs_unfold : MethodUnfold (go.GoType.PointerType RangeResponse.ty) go!"GetKvs" RangeResponse.GetKvs.impl
 
 attribute [instance] RangeResponse.TypeAssumptions.type_repr
@@ -541,6 +623,8 @@ attribute [instance] RangeResponse.TypeAssumptions.type_repr
   RangeResponse.TypeAssumptions.set_unknownFields
   RangeResponse.TypeAssumptions.get_sizeCache
   RangeResponse.TypeAssumptions.set_sizeCache
+  RangeResponse.TypeAssumptions.method_set
+  RangeResponse.TypeAssumptions.ptr_method_set
   RangeResponse.TypeAssumptions.ptr_GetKvs_unfold
 
 class PutRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -564,6 +648,8 @@ class PutRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_unknownFields : ∀ (x : PutRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : PutRequest)))
   get_sizeCache : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : PutRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet PutRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : PutRequest)))
+  method_set : go.MethodSetIs PutRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetIgnoreLease", (some (go.signature.Signature [] false [go.bool]))), (go!"GetIgnoreValue", (some (go.signature.Signature [] false [go.bool]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetPrevKv", (some (go.signature.Signature [] false [go.bool]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType PutRequest.ty) go!"GetKey" PutRequest.GetKey.impl
   ptr_GetLease_unfold : MethodUnfold (go.GoType.PointerType PutRequest.ty) go!"GetLease" PutRequest.GetLease.impl
 
@@ -587,6 +673,8 @@ attribute [instance] PutRequest.TypeAssumptions.type_repr
   PutRequest.TypeAssumptions.set_unknownFields
   PutRequest.TypeAssumptions.get_sizeCache
   PutRequest.TypeAssumptions.set_sizeCache
+  PutRequest.TypeAssumptions.method_set
+  PutRequest.TypeAssumptions.ptr_method_set
   PutRequest.TypeAssumptions.ptr_GetKey_unfold
   PutRequest.TypeAssumptions.ptr_GetLease_unfold
 
@@ -603,6 +691,8 @@ class PutResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_unknownFields : ∀ (x : PutResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : PutResponse)))
   get_sizeCache : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : PutResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : PutResponse)))
+  method_set : go.MethodSetIs PutResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"GetPrevKv", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] PutResponse.TypeAssumptions.type_repr
   PutResponse.TypeAssumptions.underlying
@@ -616,6 +706,8 @@ attribute [instance] PutResponse.TypeAssumptions.type_repr
   PutResponse.TypeAssumptions.set_unknownFields
   PutResponse.TypeAssumptions.get_sizeCache
   PutResponse.TypeAssumptions.set_sizeCache
+  PutResponse.TypeAssumptions.method_set
+  PutResponse.TypeAssumptions.ptr_method_set
 
 class DeleteRangeRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteRangeRequest.underlying DeleteRangeRequest
@@ -632,6 +724,8 @@ class DeleteRangeRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_unknownFields : ∀ (x : DeleteRangeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DeleteRangeRequest)))
   get_sizeCache : ∀ (x : DeleteRangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : DeleteRangeRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DeleteRangeRequest)))
+  method_set : go.MethodSetIs DeleteRangeRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeleteRangeRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetPrevKv", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRangeEnd", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType DeleteRangeRequest.ty) go!"GetKey" DeleteRangeRequest.GetKey.impl
   ptr_GetRangeEnd_unfold : MethodUnfold (go.GoType.PointerType DeleteRangeRequest.ty) go!"GetRangeEnd" DeleteRangeRequest.GetRangeEnd.impl
 
@@ -649,6 +743,8 @@ attribute [instance] DeleteRangeRequest.TypeAssumptions.type_repr
   DeleteRangeRequest.TypeAssumptions.set_unknownFields
   DeleteRangeRequest.TypeAssumptions.get_sizeCache
   DeleteRangeRequest.TypeAssumptions.set_sizeCache
+  DeleteRangeRequest.TypeAssumptions.method_set
+  DeleteRangeRequest.TypeAssumptions.ptr_method_set
   DeleteRangeRequest.TypeAssumptions.ptr_GetKey_unfold
   DeleteRangeRequest.TypeAssumptions.ptr_GetRangeEnd_unfold
 
@@ -667,6 +763,8 @@ class DeleteRangeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_unknownFields : ∀ (x : DeleteRangeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DeleteRangeResponse)))
   get_sizeCache : ∀ (x : DeleteRangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : DeleteRangeResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeleteRangeResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DeleteRangeResponse)))
+  method_set : go.MethodSetIs DeleteRangeResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeleteRangeResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetDeleted", (some (go.signature.Signature [] false [go.int64]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"GetPrevKvs", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] DeleteRangeResponse.TypeAssumptions.type_repr
   DeleteRangeResponse.TypeAssumptions.underlying
@@ -682,11 +780,17 @@ attribute [instance] DeleteRangeResponse.TypeAssumptions.type_repr
   DeleteRangeResponse.TypeAssumptions.set_unknownFields
   DeleteRangeResponse.TypeAssumptions.get_sizeCache
   DeleteRangeResponse.TypeAssumptions.set_sizeCache
+  DeleteRangeResponse.TypeAssumptions.method_set
+  DeleteRangeResponse.TypeAssumptions.ptr_method_set
 
 class isRequestOp_Request.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq isRequestOp_Request.ty isRequestOp_Request.underlying
+  method_set : go.MethodSetIs isRequestOp_Request.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isRequestOp_Request", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType isRequestOp_Request.ty) []
 
 attribute [instance] isRequestOp_Request.TypeAssumptions.underlying
+  isRequestOp_Request.TypeAssumptions.method_set
+  isRequestOp_Request.TypeAssumptions.ptr_method_set
 
 class RequestOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp.underlying RequestOp
@@ -699,6 +803,8 @@ class RequestOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_unknownFields : ∀ (x : RequestOp) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RequestOp)))
   get_sizeCache : ∀ (x : RequestOp), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : RequestOp) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RequestOp)))
+  method_set : go.MethodSetIs RequestOp.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestOp.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetRequest", (some (go.signature.Signature [] false [isRequestOp_Request.ty]))), (go!"GetRequestDeleteRange", (some (go.signature.Signature [] false [(go.GoType.PointerType DeleteRangeRequest.ty)]))), (go!"GetRequestPut", (some (go.signature.Signature [] false [(go.GoType.PointerType PutRequest.ty)]))), (go!"GetRequestRange", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeRequest.ty)]))), (go!"GetRequestTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType TxnRequest.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetRequest_unfold : MethodUnfold (go.GoType.PointerType RequestOp.ty) go!"GetRequest" RequestOp.GetRequest.impl
   ptr_GetRequestRange_unfold : MethodUnfold (go.GoType.PointerType RequestOp.ty) go!"GetRequestRange" RequestOp.GetRequestRange.impl
 
@@ -712,6 +818,8 @@ attribute [instance] RequestOp.TypeAssumptions.type_repr
   RequestOp.TypeAssumptions.set_unknownFields
   RequestOp.TypeAssumptions.get_sizeCache
   RequestOp.TypeAssumptions.set_sizeCache
+  RequestOp.TypeAssumptions.method_set
+  RequestOp.TypeAssumptions.ptr_method_set
   RequestOp.TypeAssumptions.ptr_GetRequest_unfold
   RequestOp.TypeAssumptions.ptr_GetRequestRange_unfold
 
@@ -720,49 +828,69 @@ class RequestOp_RequestRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   underlying : go.UnderlyingDirectedEq RequestOp_RequestRange.ty RequestOp_RequestRange.underlying
   get_RequestRange : ∀ (x : RequestOp_RequestRange), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp_RequestRange.underlying go!"RequestRange") #x (Val #(x.RequestRange'))
   set_RequestRange : ∀ (x : RequestOp_RequestRange) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp_RequestRange.underlying go!"RequestRange") (PairV #x #y) (Val #(({ x with RequestRange' := y } : RequestOp_RequestRange)))
+  method_set : go.MethodSetIs RequestOp_RequestRange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestOp_RequestRange.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isRequestOp_Request", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] RequestOp_RequestRange.TypeAssumptions.type_repr
   RequestOp_RequestRange.TypeAssumptions.underlying
   RequestOp_RequestRange.TypeAssumptions.get_RequestRange
   RequestOp_RequestRange.TypeAssumptions.set_RequestRange
+  RequestOp_RequestRange.TypeAssumptions.method_set
+  RequestOp_RequestRange.TypeAssumptions.ptr_method_set
 
 class RequestOp_RequestPut.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp_RequestPut.underlying RequestOp_RequestPut
   underlying : go.UnderlyingDirectedEq RequestOp_RequestPut.ty RequestOp_RequestPut.underlying
   get_RequestPut : ∀ (x : RequestOp_RequestPut), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp_RequestPut.underlying go!"RequestPut") #x (Val #(x.RequestPut'))
   set_RequestPut : ∀ (x : RequestOp_RequestPut) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp_RequestPut.underlying go!"RequestPut") (PairV #x #y) (Val #(({ x with RequestPut' := y } : RequestOp_RequestPut)))
+  method_set : go.MethodSetIs RequestOp_RequestPut.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestOp_RequestPut.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isRequestOp_Request", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] RequestOp_RequestPut.TypeAssumptions.type_repr
   RequestOp_RequestPut.TypeAssumptions.underlying
   RequestOp_RequestPut.TypeAssumptions.get_RequestPut
   RequestOp_RequestPut.TypeAssumptions.set_RequestPut
+  RequestOp_RequestPut.TypeAssumptions.method_set
+  RequestOp_RequestPut.TypeAssumptions.ptr_method_set
 
 class RequestOp_RequestDeleteRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp_RequestDeleteRange.underlying RequestOp_RequestDeleteRange
   underlying : go.UnderlyingDirectedEq RequestOp_RequestDeleteRange.ty RequestOp_RequestDeleteRange.underlying
   get_RequestDeleteRange : ∀ (x : RequestOp_RequestDeleteRange), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp_RequestDeleteRange.underlying go!"RequestDeleteRange") #x (Val #(x.RequestDeleteRange'))
   set_RequestDeleteRange : ∀ (x : RequestOp_RequestDeleteRange) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp_RequestDeleteRange.underlying go!"RequestDeleteRange") (PairV #x #y) (Val #(({ x with RequestDeleteRange' := y } : RequestOp_RequestDeleteRange)))
+  method_set : go.MethodSetIs RequestOp_RequestDeleteRange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestOp_RequestDeleteRange.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isRequestOp_Request", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] RequestOp_RequestDeleteRange.TypeAssumptions.type_repr
   RequestOp_RequestDeleteRange.TypeAssumptions.underlying
   RequestOp_RequestDeleteRange.TypeAssumptions.get_RequestDeleteRange
   RequestOp_RequestDeleteRange.TypeAssumptions.set_RequestDeleteRange
+  RequestOp_RequestDeleteRange.TypeAssumptions.method_set
+  RequestOp_RequestDeleteRange.TypeAssumptions.ptr_method_set
 
 class RequestOp_RequestTxn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp_RequestTxn.underlying RequestOp_RequestTxn
   underlying : go.UnderlyingDirectedEq RequestOp_RequestTxn.ty RequestOp_RequestTxn.underlying
   get_RequestTxn : ∀ (x : RequestOp_RequestTxn), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp_RequestTxn.underlying go!"RequestTxn") #x (Val #(x.RequestTxn'))
   set_RequestTxn : ∀ (x : RequestOp_RequestTxn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequestOp_RequestTxn.underlying go!"RequestTxn") (PairV #x #y) (Val #(({ x with RequestTxn' := y } : RequestOp_RequestTxn)))
+  method_set : go.MethodSetIs RequestOp_RequestTxn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestOp_RequestTxn.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isRequestOp_Request", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] RequestOp_RequestTxn.TypeAssumptions.type_repr
   RequestOp_RequestTxn.TypeAssumptions.underlying
   RequestOp_RequestTxn.TypeAssumptions.get_RequestTxn
   RequestOp_RequestTxn.TypeAssumptions.set_RequestTxn
+  RequestOp_RequestTxn.TypeAssumptions.method_set
+  RequestOp_RequestTxn.TypeAssumptions.ptr_method_set
 
 class isResponseOp_Response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq isResponseOp_Response.ty isResponseOp_Response.underlying
+  method_set : go.MethodSetIs isResponseOp_Response.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isResponseOp_Response", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType isResponseOp_Response.ty) []
 
 attribute [instance] isResponseOp_Response.TypeAssumptions.underlying
+  isResponseOp_Response.TypeAssumptions.method_set
+  isResponseOp_Response.TypeAssumptions.ptr_method_set
 
 class ResponseOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp.underlying ResponseOp
@@ -775,6 +903,8 @@ class ResponseOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_unknownFields : ∀ (x : ResponseOp) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResponseOp.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResponseOp)))
   get_sizeCache : ∀ (x : ResponseOp), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ResponseOp) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResponseOp.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResponseOp)))
+  method_set : go.MethodSetIs ResponseOp.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseOp.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetResponse", (some (go.signature.Signature [] false [isResponseOp_Response.ty]))), (go!"GetResponseDeleteRange", (some (go.signature.Signature [] false [(go.GoType.PointerType DeleteRangeResponse.ty)]))), (go!"GetResponsePut", (some (go.signature.Signature [] false [(go.GoType.PointerType PutResponse.ty)]))), (go!"GetResponseRange", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeResponse.ty)]))), (go!"GetResponseTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType TxnResponse.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetResponse_unfold : MethodUnfold (go.GoType.PointerType ResponseOp.ty) go!"GetResponse" ResponseOp.GetResponse.impl
   ptr_GetResponseDeleteRange_unfold : MethodUnfold (go.GoType.PointerType ResponseOp.ty) go!"GetResponseDeleteRange" ResponseOp.GetResponseDeleteRange.impl
   ptr_GetResponsePut_unfold : MethodUnfold (go.GoType.PointerType ResponseOp.ty) go!"GetResponsePut" ResponseOp.GetResponsePut.impl
@@ -791,6 +921,8 @@ attribute [instance] ResponseOp.TypeAssumptions.type_repr
   ResponseOp.TypeAssumptions.set_unknownFields
   ResponseOp.TypeAssumptions.get_sizeCache
   ResponseOp.TypeAssumptions.set_sizeCache
+  ResponseOp.TypeAssumptions.method_set
+  ResponseOp.TypeAssumptions.ptr_method_set
   ResponseOp.TypeAssumptions.ptr_GetResponse_unfold
   ResponseOp.TypeAssumptions.ptr_GetResponseDeleteRange_unfold
   ResponseOp.TypeAssumptions.ptr_GetResponsePut_unfold
@@ -802,49 +934,69 @@ class ResponseOp_ResponseRange.TypeAssumptions [GooseExts] [GoGlobalContext] [Go
   underlying : go.UnderlyingDirectedEq ResponseOp_ResponseRange.ty ResponseOp_ResponseRange.underlying
   get_ResponseRange : ∀ (x : ResponseOp_ResponseRange), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp_ResponseRange.underlying go!"ResponseRange") #x (Val #(x.ResponseRange'))
   set_ResponseRange : ∀ (x : ResponseOp_ResponseRange) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResponseOp_ResponseRange.underlying go!"ResponseRange") (PairV #x #y) (Val #(({ x with ResponseRange' := y } : ResponseOp_ResponseRange)))
+  method_set : go.MethodSetIs ResponseOp_ResponseRange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseOp_ResponseRange.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isResponseOp_Response", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ResponseOp_ResponseRange.TypeAssumptions.type_repr
   ResponseOp_ResponseRange.TypeAssumptions.underlying
   ResponseOp_ResponseRange.TypeAssumptions.get_ResponseRange
   ResponseOp_ResponseRange.TypeAssumptions.set_ResponseRange
+  ResponseOp_ResponseRange.TypeAssumptions.method_set
+  ResponseOp_ResponseRange.TypeAssumptions.ptr_method_set
 
 class ResponseOp_ResponsePut.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp_ResponsePut.underlying ResponseOp_ResponsePut
   underlying : go.UnderlyingDirectedEq ResponseOp_ResponsePut.ty ResponseOp_ResponsePut.underlying
   get_ResponsePut : ∀ (x : ResponseOp_ResponsePut), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp_ResponsePut.underlying go!"ResponsePut") #x (Val #(x.ResponsePut'))
   set_ResponsePut : ∀ (x : ResponseOp_ResponsePut) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResponseOp_ResponsePut.underlying go!"ResponsePut") (PairV #x #y) (Val #(({ x with ResponsePut' := y } : ResponseOp_ResponsePut)))
+  method_set : go.MethodSetIs ResponseOp_ResponsePut.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseOp_ResponsePut.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isResponseOp_Response", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ResponseOp_ResponsePut.TypeAssumptions.type_repr
   ResponseOp_ResponsePut.TypeAssumptions.underlying
   ResponseOp_ResponsePut.TypeAssumptions.get_ResponsePut
   ResponseOp_ResponsePut.TypeAssumptions.set_ResponsePut
+  ResponseOp_ResponsePut.TypeAssumptions.method_set
+  ResponseOp_ResponsePut.TypeAssumptions.ptr_method_set
 
 class ResponseOp_ResponseDeleteRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp_ResponseDeleteRange.underlying ResponseOp_ResponseDeleteRange
   underlying : go.UnderlyingDirectedEq ResponseOp_ResponseDeleteRange.ty ResponseOp_ResponseDeleteRange.underlying
   get_ResponseDeleteRange : ∀ (x : ResponseOp_ResponseDeleteRange), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp_ResponseDeleteRange.underlying go!"ResponseDeleteRange") #x (Val #(x.ResponseDeleteRange'))
   set_ResponseDeleteRange : ∀ (x : ResponseOp_ResponseDeleteRange) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResponseOp_ResponseDeleteRange.underlying go!"ResponseDeleteRange") (PairV #x #y) (Val #(({ x with ResponseDeleteRange' := y } : ResponseOp_ResponseDeleteRange)))
+  method_set : go.MethodSetIs ResponseOp_ResponseDeleteRange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseOp_ResponseDeleteRange.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isResponseOp_Response", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ResponseOp_ResponseDeleteRange.TypeAssumptions.type_repr
   ResponseOp_ResponseDeleteRange.TypeAssumptions.underlying
   ResponseOp_ResponseDeleteRange.TypeAssumptions.get_ResponseDeleteRange
   ResponseOp_ResponseDeleteRange.TypeAssumptions.set_ResponseDeleteRange
+  ResponseOp_ResponseDeleteRange.TypeAssumptions.method_set
+  ResponseOp_ResponseDeleteRange.TypeAssumptions.ptr_method_set
 
 class ResponseOp_ResponseTxn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp_ResponseTxn.underlying ResponseOp_ResponseTxn
   underlying : go.UnderlyingDirectedEq ResponseOp_ResponseTxn.ty ResponseOp_ResponseTxn.underlying
   get_ResponseTxn : ∀ (x : ResponseOp_ResponseTxn), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp_ResponseTxn.underlying go!"ResponseTxn") #x (Val #(x.ResponseTxn'))
   set_ResponseTxn : ∀ (x : ResponseOp_ResponseTxn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResponseOp_ResponseTxn.underlying go!"ResponseTxn") (PairV #x #y) (Val #(({ x with ResponseTxn' := y } : ResponseOp_ResponseTxn)))
+  method_set : go.MethodSetIs ResponseOp_ResponseTxn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseOp_ResponseTxn.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isResponseOp_Response", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ResponseOp_ResponseTxn.TypeAssumptions.type_repr
   ResponseOp_ResponseTxn.TypeAssumptions.underlying
   ResponseOp_ResponseTxn.TypeAssumptions.get_ResponseTxn
   ResponseOp_ResponseTxn.TypeAssumptions.set_ResponseTxn
+  ResponseOp_ResponseTxn.TypeAssumptions.method_set
+  ResponseOp_ResponseTxn.TypeAssumptions.ptr_method_set
 
 class isCompare_TargetUnion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq isCompare_TargetUnion.ty isCompare_TargetUnion.underlying
+  method_set : go.MethodSetIs isCompare_TargetUnion.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isCompare_TargetUnion", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType isCompare_TargetUnion.ty) []
 
 attribute [instance] isCompare_TargetUnion.TypeAssumptions.underlying
+  isCompare_TargetUnion.TypeAssumptions.method_set
+  isCompare_TargetUnion.TypeAssumptions.ptr_method_set
 
 class Compare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare.underlying Compare
@@ -865,6 +1017,8 @@ class Compare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_unknownFields : ∀ (x : Compare) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Compare.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Compare)))
   get_sizeCache : ∀ (x : Compare), go.IsGoStepPureDetTagged under (StructFieldGet Compare.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Compare) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Compare.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Compare)))
+  method_set : go.MethodSetIs Compare.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compare.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCreateRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetModRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetRangeEnd", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetResult", (some (go.signature.Signature [] false [Compare_CompareResult.ty]))), (go!"GetTarget", (some (go.signature.Signature [] false [Compare_CompareTarget.ty]))), (go!"GetTargetUnion", (some (go.signature.Signature [] false [isCompare_TargetUnion.ty]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetVersion", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType Compare.ty) go!"GetKey" Compare.GetKey.impl
   ptr_GetRangeEnd_unfold : MethodUnfold (go.GoType.PointerType Compare.ty) go!"GetRangeEnd" Compare.GetRangeEnd.impl
   ptr_GetResult_unfold : MethodUnfold (go.GoType.PointerType Compare.ty) go!"GetResult" Compare.GetResult.impl
@@ -889,6 +1043,8 @@ attribute [instance] Compare.TypeAssumptions.type_repr
   Compare.TypeAssumptions.set_unknownFields
   Compare.TypeAssumptions.get_sizeCache
   Compare.TypeAssumptions.set_sizeCache
+  Compare.TypeAssumptions.method_set
+  Compare.TypeAssumptions.ptr_method_set
   Compare.TypeAssumptions.ptr_GetKey_unfold
   Compare.TypeAssumptions.ptr_GetRangeEnd_unfold
   Compare.TypeAssumptions.ptr_GetResult_unfold
@@ -900,55 +1056,75 @@ class Compare_Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq Compare_Version.ty Compare_Version.underlying
   get_Version : ∀ (x : Compare_Version), go.IsGoStepPureDetTagged under (StructFieldGet Compare_Version.underlying go!"Version") #x (Val #(x.Version'))
   set_Version : ∀ (x : Compare_Version) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Compare_Version.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : Compare_Version)))
+  method_set : go.MethodSetIs Compare_Version.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compare_Version.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isCompare_TargetUnion", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Compare_Version.TypeAssumptions.type_repr
   Compare_Version.TypeAssumptions.underlying
   Compare_Version.TypeAssumptions.get_Version
   Compare_Version.TypeAssumptions.set_Version
+  Compare_Version.TypeAssumptions.method_set
+  Compare_Version.TypeAssumptions.ptr_method_set
 
 class Compare_CreateRevision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_CreateRevision.underlying Compare_CreateRevision
   underlying : go.UnderlyingDirectedEq Compare_CreateRevision.ty Compare_CreateRevision.underlying
   get_CreateRevision : ∀ (x : Compare_CreateRevision), go.IsGoStepPureDetTagged under (StructFieldGet Compare_CreateRevision.underlying go!"CreateRevision") #x (Val #(x.CreateRevision'))
   set_CreateRevision : ∀ (x : Compare_CreateRevision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Compare_CreateRevision.underlying go!"CreateRevision") (PairV #x #y) (Val #(({ x with CreateRevision' := y } : Compare_CreateRevision)))
+  method_set : go.MethodSetIs Compare_CreateRevision.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compare_CreateRevision.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isCompare_TargetUnion", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Compare_CreateRevision.TypeAssumptions.type_repr
   Compare_CreateRevision.TypeAssumptions.underlying
   Compare_CreateRevision.TypeAssumptions.get_CreateRevision
   Compare_CreateRevision.TypeAssumptions.set_CreateRevision
+  Compare_CreateRevision.TypeAssumptions.method_set
+  Compare_CreateRevision.TypeAssumptions.ptr_method_set
 
 class Compare_ModRevision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_ModRevision.underlying Compare_ModRevision
   underlying : go.UnderlyingDirectedEq Compare_ModRevision.ty Compare_ModRevision.underlying
   get_ModRevision : ∀ (x : Compare_ModRevision), go.IsGoStepPureDetTagged under (StructFieldGet Compare_ModRevision.underlying go!"ModRevision") #x (Val #(x.ModRevision'))
   set_ModRevision : ∀ (x : Compare_ModRevision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Compare_ModRevision.underlying go!"ModRevision") (PairV #x #y) (Val #(({ x with ModRevision' := y } : Compare_ModRevision)))
+  method_set : go.MethodSetIs Compare_ModRevision.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compare_ModRevision.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isCompare_TargetUnion", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Compare_ModRevision.TypeAssumptions.type_repr
   Compare_ModRevision.TypeAssumptions.underlying
   Compare_ModRevision.TypeAssumptions.get_ModRevision
   Compare_ModRevision.TypeAssumptions.set_ModRevision
+  Compare_ModRevision.TypeAssumptions.method_set
+  Compare_ModRevision.TypeAssumptions.ptr_method_set
 
 class Compare_Value.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_Value.underlying Compare_Value
   underlying : go.UnderlyingDirectedEq Compare_Value.ty Compare_Value.underlying
   get_Value : ∀ (x : Compare_Value), go.IsGoStepPureDetTagged under (StructFieldGet Compare_Value.underlying go!"Value") #x (Val #(x.Value'))
   set_Value : ∀ (x : Compare_Value) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Compare_Value.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Compare_Value)))
+  method_set : go.MethodSetIs Compare_Value.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compare_Value.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isCompare_TargetUnion", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Compare_Value.TypeAssumptions.type_repr
   Compare_Value.TypeAssumptions.underlying
   Compare_Value.TypeAssumptions.get_Value
   Compare_Value.TypeAssumptions.set_Value
+  Compare_Value.TypeAssumptions.method_set
+  Compare_Value.TypeAssumptions.ptr_method_set
 
 class Compare_Lease.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_Lease.underlying Compare_Lease
   underlying : go.UnderlyingDirectedEq Compare_Lease.ty Compare_Lease.underlying
   get_Lease : ∀ (x : Compare_Lease), go.IsGoStepPureDetTagged under (StructFieldGet Compare_Lease.underlying go!"Lease") #x (Val #(x.Lease'))
   set_Lease : ∀ (x : Compare_Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Compare_Lease.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : Compare_Lease)))
+  method_set : go.MethodSetIs Compare_Lease.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compare_Lease.ty) [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.isCompare_TargetUnion", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Compare_Lease.TypeAssumptions.type_repr
   Compare_Lease.TypeAssumptions.underlying
   Compare_Lease.TypeAssumptions.get_Lease
   Compare_Lease.TypeAssumptions.set_Lease
+  Compare_Lease.TypeAssumptions.method_set
+  Compare_Lease.TypeAssumptions.ptr_method_set
 
 class TxnRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TxnRequest.underlying TxnRequest
@@ -965,6 +1141,8 @@ class TxnRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_unknownFields : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : TxnRequest)))
   get_sizeCache : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : TxnRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : TxnRequest)))
+  method_set : go.MethodSetIs TxnRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TxnRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCompare", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Compare.ty))]))), (go!"GetFailure", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType RequestOp.ty))]))), (go!"GetSuccess", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType RequestOp.ty))]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetCompare_unfold : MethodUnfold (go.GoType.PointerType TxnRequest.ty) go!"GetCompare" TxnRequest.GetCompare.impl
   ptr_GetFailure_unfold : MethodUnfold (go.GoType.PointerType TxnRequest.ty) go!"GetFailure" TxnRequest.GetFailure.impl
   ptr_GetSuccess_unfold : MethodUnfold (go.GoType.PointerType TxnRequest.ty) go!"GetSuccess" TxnRequest.GetSuccess.impl
@@ -983,256 +1161,11 @@ attribute [instance] TxnRequest.TypeAssumptions.type_repr
   TxnRequest.TypeAssumptions.set_unknownFields
   TxnRequest.TypeAssumptions.get_sizeCache
   TxnRequest.TypeAssumptions.set_sizeCache
+  TxnRequest.TypeAssumptions.method_set
+  TxnRequest.TypeAssumptions.ptr_method_set
   TxnRequest.TypeAssumptions.ptr_GetCompare_unfold
   TxnRequest.TypeAssumptions.ptr_GetFailure_unfold
   TxnRequest.TypeAssumptions.ptr_GetSuccess_unfold
-
-class TxnResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying TxnResponse.underlying TxnResponse
-  underlying : go.UnderlyingDirectedEq TxnResponse.ty TxnResponse.underlying
-  get_state : ∀ (x : TxnResponse), go.IsGoStepPureDetTagged under (StructFieldGet TxnResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : TxnResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet TxnResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : TxnResponse)))
-  get_Header : ∀ (x : TxnResponse), go.IsGoStepPureDetTagged under (StructFieldGet TxnResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : TxnResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TxnResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : TxnResponse)))
-  get_Succeeded : ∀ (x : TxnResponse), go.IsGoStepPureDetTagged under (StructFieldGet TxnResponse.underlying go!"Succeeded") #x (Val #(x.Succeeded'))
-  set_Succeeded : ∀ (x : TxnResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TxnResponse.underlying go!"Succeeded") (PairV #x #y) (Val #(({ x with Succeeded' := y } : TxnResponse)))
-  get_Responses : ∀ (x : TxnResponse), go.IsGoStepPureDetTagged under (StructFieldGet TxnResponse.underlying go!"Responses") #x (Val #(x.Responses'))
-  set_Responses : ∀ (x : TxnResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnResponse.underlying go!"Responses") (PairV #x #y) (Val #(({ x with Responses' := y } : TxnResponse)))
-  get_unknownFields : ∀ (x : TxnResponse), go.IsGoStepPureDetTagged under (StructFieldGet TxnResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : TxnResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : TxnResponse)))
-  get_sizeCache : ∀ (x : TxnResponse), go.IsGoStepPureDetTagged under (StructFieldGet TxnResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : TxnResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet TxnResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : TxnResponse)))
-
-attribute [instance] TxnResponse.TypeAssumptions.type_repr
-  TxnResponse.TypeAssumptions.underlying
-  TxnResponse.TypeAssumptions.get_state
-  TxnResponse.TypeAssumptions.set_state
-  TxnResponse.TypeAssumptions.get_Header
-  TxnResponse.TypeAssumptions.set_Header
-  TxnResponse.TypeAssumptions.get_Succeeded
-  TxnResponse.TypeAssumptions.set_Succeeded
-  TxnResponse.TypeAssumptions.get_Responses
-  TxnResponse.TypeAssumptions.set_Responses
-  TxnResponse.TypeAssumptions.get_unknownFields
-  TxnResponse.TypeAssumptions.set_unknownFields
-  TxnResponse.TypeAssumptions.get_sizeCache
-  TxnResponse.TypeAssumptions.set_sizeCache
-
-class CompactionRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying CompactionRequest.underlying CompactionRequest
-  underlying : go.UnderlyingDirectedEq CompactionRequest.ty CompactionRequest.underlying
-  get_state : ∀ (x : CompactionRequest), go.IsGoStepPureDetTagged under (StructFieldGet CompactionRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : CompactionRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet CompactionRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : CompactionRequest)))
-  get_Revision : ∀ (x : CompactionRequest), go.IsGoStepPureDetTagged under (StructFieldGet CompactionRequest.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : CompactionRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CompactionRequest.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : CompactionRequest)))
-  get_Physical : ∀ (x : CompactionRequest), go.IsGoStepPureDetTagged under (StructFieldGet CompactionRequest.underlying go!"Physical") #x (Val #(x.Physical'))
-  set_Physical : ∀ (x : CompactionRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CompactionRequest.underlying go!"Physical") (PairV #x #y) (Val #(({ x with Physical' := y } : CompactionRequest)))
-  get_unknownFields : ∀ (x : CompactionRequest), go.IsGoStepPureDetTagged under (StructFieldGet CompactionRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : CompactionRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CompactionRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : CompactionRequest)))
-  get_sizeCache : ∀ (x : CompactionRequest), go.IsGoStepPureDetTagged under (StructFieldGet CompactionRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : CompactionRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CompactionRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CompactionRequest)))
-
-attribute [instance] CompactionRequest.TypeAssumptions.type_repr
-  CompactionRequest.TypeAssumptions.underlying
-  CompactionRequest.TypeAssumptions.get_state
-  CompactionRequest.TypeAssumptions.set_state
-  CompactionRequest.TypeAssumptions.get_Revision
-  CompactionRequest.TypeAssumptions.set_Revision
-  CompactionRequest.TypeAssumptions.get_Physical
-  CompactionRequest.TypeAssumptions.set_Physical
-  CompactionRequest.TypeAssumptions.get_unknownFields
-  CompactionRequest.TypeAssumptions.set_unknownFields
-  CompactionRequest.TypeAssumptions.get_sizeCache
-  CompactionRequest.TypeAssumptions.set_sizeCache
-
-class CompactionResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying CompactionResponse.underlying CompactionResponse
-  underlying : go.UnderlyingDirectedEq CompactionResponse.ty CompactionResponse.underlying
-  get_state : ∀ (x : CompactionResponse), go.IsGoStepPureDetTagged under (StructFieldGet CompactionResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : CompactionResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet CompactionResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : CompactionResponse)))
-  get_Header : ∀ (x : CompactionResponse), go.IsGoStepPureDetTagged under (StructFieldGet CompactionResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : CompactionResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CompactionResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : CompactionResponse)))
-  get_unknownFields : ∀ (x : CompactionResponse), go.IsGoStepPureDetTagged under (StructFieldGet CompactionResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : CompactionResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CompactionResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : CompactionResponse)))
-  get_sizeCache : ∀ (x : CompactionResponse), go.IsGoStepPureDetTagged under (StructFieldGet CompactionResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : CompactionResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CompactionResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CompactionResponse)))
-
-attribute [instance] CompactionResponse.TypeAssumptions.type_repr
-  CompactionResponse.TypeAssumptions.underlying
-  CompactionResponse.TypeAssumptions.get_state
-  CompactionResponse.TypeAssumptions.set_state
-  CompactionResponse.TypeAssumptions.get_Header
-  CompactionResponse.TypeAssumptions.set_Header
-  CompactionResponse.TypeAssumptions.get_unknownFields
-  CompactionResponse.TypeAssumptions.set_unknownFields
-  CompactionResponse.TypeAssumptions.get_sizeCache
-  CompactionResponse.TypeAssumptions.set_sizeCache
-
-class HashRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying HashRequest.underlying HashRequest
-  underlying : go.UnderlyingDirectedEq HashRequest.ty HashRequest.underlying
-  isUnderlying : go.IsUnderlying HashRequest.underlying HashRequest.underlying
-
-attribute [instance] HashRequest.TypeAssumptions.type_repr
-  HashRequest.TypeAssumptions.underlying
-  HashRequest.TypeAssumptions.isUnderlying
-
-class HashKVRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying HashKVRequest.underlying HashKVRequest
-  underlying : go.UnderlyingDirectedEq HashKVRequest.ty HashKVRequest.underlying
-  isUnderlying : go.IsUnderlying HashKVRequest.underlying HashKVRequest.underlying
-
-attribute [instance] HashKVRequest.TypeAssumptions.type_repr
-  HashKVRequest.TypeAssumptions.underlying
-  HashKVRequest.TypeAssumptions.isUnderlying
-
-class HashKVResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying HashKVResponse.underlying HashKVResponse
-  underlying : go.UnderlyingDirectedEq HashKVResponse.ty HashKVResponse.underlying
-  isUnderlying : go.IsUnderlying HashKVResponse.underlying HashKVResponse.underlying
-
-attribute [instance] HashKVResponse.TypeAssumptions.type_repr
-  HashKVResponse.TypeAssumptions.underlying
-  HashKVResponse.TypeAssumptions.isUnderlying
-
-class HashResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying HashResponse.underlying HashResponse
-  underlying : go.UnderlyingDirectedEq HashResponse.ty HashResponse.underlying
-  isUnderlying : go.IsUnderlying HashResponse.underlying HashResponse.underlying
-
-attribute [instance] HashResponse.TypeAssumptions.type_repr
-  HashResponse.TypeAssumptions.underlying
-  HashResponse.TypeAssumptions.isUnderlying
-
-class SnapshotRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying SnapshotRequest.underlying SnapshotRequest
-  underlying : go.UnderlyingDirectedEq SnapshotRequest.ty SnapshotRequest.underlying
-  isUnderlying : go.IsUnderlying SnapshotRequest.underlying SnapshotRequest.underlying
-
-attribute [instance] SnapshotRequest.TypeAssumptions.type_repr
-  SnapshotRequest.TypeAssumptions.underlying
-  SnapshotRequest.TypeAssumptions.isUnderlying
-
-class SnapshotResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying SnapshotResponse.underlying SnapshotResponse
-  underlying : go.UnderlyingDirectedEq SnapshotResponse.ty SnapshotResponse.underlying
-  isUnderlying : go.IsUnderlying SnapshotResponse.underlying SnapshotResponse.underlying
-
-attribute [instance] SnapshotResponse.TypeAssumptions.type_repr
-  SnapshotResponse.TypeAssumptions.underlying
-  SnapshotResponse.TypeAssumptions.isUnderlying
-
-class isWatchRequest_RequestUnion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq isWatchRequest_RequestUnion.ty isWatchRequest_RequestUnion.underlying
-
-attribute [instance] isWatchRequest_RequestUnion.TypeAssumptions.underlying
-
-class WatchRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying WatchRequest.underlying WatchRequest
-  underlying : go.UnderlyingDirectedEq WatchRequest.ty WatchRequest.underlying
-  get_state : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : WatchRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WatchRequest)))
-  get_RequestUnion : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"RequestUnion") #x (Val #(x.RequestUnion'))
-  set_RequestUnion : ∀ (x : WatchRequest) (y : isWatchRequest_RequestUnion), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest.underlying go!"RequestUnion") (PairV #x #y) (Val #(({ x with RequestUnion' := y } : WatchRequest)))
-  get_unknownFields : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : WatchRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : WatchRequest)))
-  get_sizeCache : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : WatchRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : WatchRequest)))
-
-attribute [instance] WatchRequest.TypeAssumptions.type_repr
-  WatchRequest.TypeAssumptions.underlying
-  WatchRequest.TypeAssumptions.get_state
-  WatchRequest.TypeAssumptions.set_state
-  WatchRequest.TypeAssumptions.get_RequestUnion
-  WatchRequest.TypeAssumptions.set_RequestUnion
-  WatchRequest.TypeAssumptions.get_unknownFields
-  WatchRequest.TypeAssumptions.set_unknownFields
-  WatchRequest.TypeAssumptions.get_sizeCache
-  WatchRequest.TypeAssumptions.set_sizeCache
-
-class WatchRequest_CreateRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying WatchRequest_CreateRequest.underlying WatchRequest_CreateRequest
-  underlying : go.UnderlyingDirectedEq WatchRequest_CreateRequest.ty WatchRequest_CreateRequest.underlying
-  get_CreateRequest : ∀ (x : WatchRequest_CreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest_CreateRequest.underlying go!"CreateRequest") #x (Val #(x.CreateRequest'))
-  set_CreateRequest : ∀ (x : WatchRequest_CreateRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest_CreateRequest.underlying go!"CreateRequest") (PairV #x #y) (Val #(({ x with CreateRequest' := y } : WatchRequest_CreateRequest)))
-
-attribute [instance] WatchRequest_CreateRequest.TypeAssumptions.type_repr
-  WatchRequest_CreateRequest.TypeAssumptions.underlying
-  WatchRequest_CreateRequest.TypeAssumptions.get_CreateRequest
-  WatchRequest_CreateRequest.TypeAssumptions.set_CreateRequest
-
-class WatchRequest_CancelRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying WatchRequest_CancelRequest.underlying WatchRequest_CancelRequest
-  underlying : go.UnderlyingDirectedEq WatchRequest_CancelRequest.ty WatchRequest_CancelRequest.underlying
-  get_CancelRequest : ∀ (x : WatchRequest_CancelRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest_CancelRequest.underlying go!"CancelRequest") #x (Val #(x.CancelRequest'))
-  set_CancelRequest : ∀ (x : WatchRequest_CancelRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest_CancelRequest.underlying go!"CancelRequest") (PairV #x #y) (Val #(({ x with CancelRequest' := y } : WatchRequest_CancelRequest)))
-
-attribute [instance] WatchRequest_CancelRequest.TypeAssumptions.type_repr
-  WatchRequest_CancelRequest.TypeAssumptions.underlying
-  WatchRequest_CancelRequest.TypeAssumptions.get_CancelRequest
-  WatchRequest_CancelRequest.TypeAssumptions.set_CancelRequest
-
-class WatchRequest_ProgressRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying WatchRequest_ProgressRequest.underlying WatchRequest_ProgressRequest
-  underlying : go.UnderlyingDirectedEq WatchRequest_ProgressRequest.ty WatchRequest_ProgressRequest.underlying
-  get_ProgressRequest : ∀ (x : WatchRequest_ProgressRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest_ProgressRequest.underlying go!"ProgressRequest") #x (Val #(x.ProgressRequest'))
-  set_ProgressRequest : ∀ (x : WatchRequest_ProgressRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest_ProgressRequest.underlying go!"ProgressRequest") (PairV #x #y) (Val #(({ x with ProgressRequest' := y } : WatchRequest_ProgressRequest)))
-
-attribute [instance] WatchRequest_ProgressRequest.TypeAssumptions.type_repr
-  WatchRequest_ProgressRequest.TypeAssumptions.underlying
-  WatchRequest_ProgressRequest.TypeAssumptions.get_ProgressRequest
-  WatchRequest_ProgressRequest.TypeAssumptions.set_ProgressRequest
-
-class WatchCreateRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying WatchCreateRequest.underlying WatchCreateRequest
-  underlying : go.UnderlyingDirectedEq WatchCreateRequest.ty WatchCreateRequest.underlying
-  get_state : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : WatchCreateRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WatchCreateRequest)))
-  get_Key : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : WatchCreateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : WatchCreateRequest)))
-  get_RangeEnd : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"RangeEnd") #x (Val #(x.RangeEnd'))
-  set_RangeEnd : ∀ (x : WatchCreateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"RangeEnd") (PairV #x #y) (Val #(({ x with RangeEnd' := y } : WatchCreateRequest)))
-  get_StartRevision : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"StartRevision") #x (Val #(x.StartRevision'))
-  set_StartRevision : ∀ (x : WatchCreateRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"StartRevision") (PairV #x #y) (Val #(({ x with StartRevision' := y } : WatchCreateRequest)))
-  get_ProgressNotify : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"ProgressNotify") #x (Val #(x.ProgressNotify'))
-  set_ProgressNotify : ∀ (x : WatchCreateRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"ProgressNotify") (PairV #x #y) (Val #(({ x with ProgressNotify' := y } : WatchCreateRequest)))
-  get_Filters : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"Filters") #x (Val #(x.Filters'))
-  set_Filters : ∀ (x : WatchCreateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"Filters") (PairV #x #y) (Val #(({ x with Filters' := y } : WatchCreateRequest)))
-  get_PrevKv : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"PrevKv") #x (Val #(x.PrevKv'))
-  set_PrevKv : ∀ (x : WatchCreateRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"PrevKv") (PairV #x #y) (Val #(({ x with PrevKv' := y } : WatchCreateRequest)))
-  get_WatchId : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"WatchId") #x (Val #(x.WatchId'))
-  set_WatchId : ∀ (x : WatchCreateRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"WatchId") (PairV #x #y) (Val #(({ x with WatchId' := y } : WatchCreateRequest)))
-  get_Fragment : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"Fragment") #x (Val #(x.Fragment'))
-  set_Fragment : ∀ (x : WatchCreateRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"Fragment") (PairV #x #y) (Val #(({ x with Fragment' := y } : WatchCreateRequest)))
-  get_unknownFields : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : WatchCreateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : WatchCreateRequest)))
-  get_sizeCache : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : WatchCreateRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : WatchCreateRequest)))
-
-attribute [instance] WatchCreateRequest.TypeAssumptions.type_repr
-  WatchCreateRequest.TypeAssumptions.underlying
-  WatchCreateRequest.TypeAssumptions.get_state
-  WatchCreateRequest.TypeAssumptions.set_state
-  WatchCreateRequest.TypeAssumptions.get_Key
-  WatchCreateRequest.TypeAssumptions.set_Key
-  WatchCreateRequest.TypeAssumptions.get_RangeEnd
-  WatchCreateRequest.TypeAssumptions.set_RangeEnd
-  WatchCreateRequest.TypeAssumptions.get_StartRevision
-  WatchCreateRequest.TypeAssumptions.set_StartRevision
-  WatchCreateRequest.TypeAssumptions.get_ProgressNotify
-  WatchCreateRequest.TypeAssumptions.set_ProgressNotify
-  WatchCreateRequest.TypeAssumptions.get_Filters
-  WatchCreateRequest.TypeAssumptions.set_Filters
-  WatchCreateRequest.TypeAssumptions.get_PrevKv
-  WatchCreateRequest.TypeAssumptions.set_PrevKv
-  WatchCreateRequest.TypeAssumptions.get_WatchId
-  WatchCreateRequest.TypeAssumptions.set_WatchId
-  WatchCreateRequest.TypeAssumptions.get_Fragment
-  WatchCreateRequest.TypeAssumptions.set_Fragment
-  WatchCreateRequest.TypeAssumptions.get_unknownFields
-  WatchCreateRequest.TypeAssumptions.set_unknownFields
-  WatchCreateRequest.TypeAssumptions.get_sizeCache
-  WatchCreateRequest.TypeAssumptions.set_sizeCache
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 

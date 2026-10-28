@@ -15,14 +15,14 @@ sequence number, little-endian, the kind, the key's length, the key, the value),
 (`kvFold`, over `KVMap`, every key's value: a `Put` sets its key, an `Append` appends to it,
 anything else -- a `Get`, a datum that is no operation -- leaves the store). An operation
 answers its key's value after it (`dkey`). The client log holds each operation once
-(`firstOcc`, `Protocol/Model.lean`), which is what `apply`'s table of applied encodings
+(`histOf`, `logHist`), which is what `apply`'s table of applied encodings
 (`AppliedOk`, each with its answer, `AnsOk`) mirrors. (Until 2026-10-19 the example was a
 register: one value, `Put` and `Get`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Linked
 public import Spec.go_etcd_io.raft.v3.Api
+public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.kv
 public import Perennial.Proof.encoding.binary
@@ -129,7 +129,7 @@ def kvFold (L : List (List w8)) : KVMap := L.foldl kvApply kvEmpty
 
 /-- `v` is what the operation `d` answers in the history `H`: its key's value right after `d`,
 which occurs in `H` after the history `H0` (and not in `H0`: the first occurrence; a history
-holds each datum once, `firstOcc`). -/
+holds each datum once, `histOf`). -/
 def AnsOk (H : List (List w8)) (d v : List w8) : Prop :=
   ∃ H0, H0 ++ [d] <+: H ∧ d ∉ H0 ∧ v = kvFold (H0 ++ [d]) (dkey d)
 
@@ -226,33 +226,157 @@ so that the bytes are a function of the state; the proof needs only that they ar
 of them (`StateEnc`: any list of the bindings, without repeated keys), which `getMap` reads back
 whatever the order.
 
-**The cluster's data certificate** (`kvSnapOk`, raft's `RaftNames.reSnapOkRaw`, fixed at the
+**The cluster's data certificate** (`kvSnapOk`, the static cluster's `snapOk`, fixed at the
 cluster's allocation): the data of a snapshot at index `i` encodes the replicated state of the
 committed log prefix of length `i` -- `StateEnc` of its client history, the first occurrences of
-its entries' client data (`odOf`, what `entDataIs` pins of an entry). A replica mints it where it
+its entries' client data (`odOf`, `logHist`). A replica mints it where it
 takes a snapshot (`CreateSnapshot`, of its applied prefix: `runOwn`'s), and the one that installs
 it reads it back at the prefix it is handed (committed prefixes of one length are equal). -/
 
 section snapdata
 variable [GooseExts]
 
-/-- An entry's client datum, as `entDataIs` pins it: a normal entry's non-empty data, else
-none. -/
-def odOf (e : EntryM) : Option (List w8) :=
-  if e.Type' = W32 0 ∧ e.Data' ≠ [] then some e.Data' else none
+/-- An entry's client datum: a normal entry's non-empty data, else none (a filler, a conf change). -/
+def odOf (e : LogEntry) : Option (List w8) :=
+  if e.type = W32 0 ∧ e.data ≠ [] then some e.data else none
 
-/-- ... of an instance-free entry (`RaftNames.reSnapOkRaw` reads those). -/
-def odOfB (b : BootEntry) : Option (List w8) :=
-  if b.type = W32 0 ∧ b.data ≠ [] then some b.data else none
-
-theorem map_odOfB_ofEntry (L : List EntryM) :
-    (L.map BootEntry.ofEntry).map odOfB = L.map odOf := by
-  induction L with
-  | nil => rfl
-  | cons e L ih => simp only [List.map_cons, ih]; rfl
+/-- A filler has no client datum. -/
+theorem odOf_filler (e : LogEntry) (h : e.isFiller) : odOf e = none := by
+  unfold odOf; rw [if_neg]; intro h'; exact h'.2 h.1
 
 end snapdata
 
+/-! ## The client history (2026-10-27: until then raft's `firstOcc`)
+
+The data of committed client entries in commit order, first occurrences only, given each entry's
+datum (`none` for an entry that carries none, `odOf`). -/
+
+/-- One entry's datum added to the history: a new one is appended; a repeated one, or none,
+leaves it. -/
+def histStep (L : List (List w8)) : Option (List w8) → List (List w8)
+  | none => L
+  | some d => if d ∈ L then L else L ++ [d]
+
+/-- The history of the entries' data `ods`. -/
+def histOf (ods : List (Option (List w8))) : List (List w8) := ods.foldl histStep []
+
+theorem histOf_snoc (ods : List (Option (List w8))) (o : Option (List w8)) :
+    histOf (ods ++ [o]) = histStep (histOf ods) o := by
+  simp [histOf, List.foldl_append]
+
+theorem histStep_prefix (L : List (List w8)) (o : Option (List w8)) : L <+: histStep L o := by
+  cases o with
+  | none => exact List.prefix_refl _
+  | some d =>
+    by_cases h : d ∈ L
+    · simp only [histStep, h, ite_true]; exact List.prefix_refl _
+    · simp only [histStep, h, ite_false]; exact List.prefix_append _ _
+
+theorem foldl_histStep_prefix (L : List (List w8)) (b : List (Option (List w8))) :
+    L <+: b.foldl histStep L := by
+  induction b generalizing L with
+  | nil => exact List.prefix_refl _
+  | cons o b ih => exact (histStep_prefix L o).trans (ih _)
+
+theorem histOf_append_prefix (a b : List (Option (List w8))) :
+    histOf a <+: histOf (a ++ b) := by
+  unfold histOf; rw [List.foldl_append]; exact foldl_histStep_prefix _ _
+
+theorem mem_foldl_histStep (L : List (List w8)) (b : List (Option (List w8))) (d : List w8) :
+    d ∈ b.foldl histStep L ↔ d ∈ L ∨ some d ∈ b := by
+  induction b generalizing L with
+  | nil => simp
+  | cons o b ih =>
+    simp only [List.foldl_cons, List.mem_cons]
+    rw [ih]
+    cases o with
+    | none => simp [histStep]
+    | some d' =>
+      by_cases h : d' ∈ L
+      · simp only [histStep, h, ite_true]
+        constructor
+        · rintro (h1 | h1)
+          · exact .inl h1
+          · exact .inr (.inr h1)
+        · rintro (h1 | h1 | h1)
+          · exact .inl h1
+          · cases h1; exact .inl h
+          · exact .inr h1
+      · simp only [histStep, h, ite_false, List.mem_append, List.mem_singleton]
+        constructor
+        · rintro ((h1 | h1) | h1)
+          · exact .inl h1
+          · subst h1; exact .inr (.inl rfl)
+          · exact .inr (.inr h1)
+        · rintro (h1 | h1 | h1)
+          · exact .inl (.inl h1)
+          · cases h1; exact .inl (.inr rfl)
+          · exact .inr h1
+
+theorem mem_histOf (ods : List (Option (List w8))) (d : List w8) :
+    d ∈ histOf ods ↔ some d ∈ ods := by
+  unfold histOf; rw [mem_foldl_histStep]; simp
+
+theorem nodup_foldl_histStep (L : List (List w8)) (b : List (Option (List w8))) :
+    L.Nodup → (b.foldl histStep L).Nodup := by
+  induction b generalizing L with
+  | nil => exact id
+  | cons o b ih =>
+    intro hL
+    apply ih
+    cases o with
+    | none => exact hL
+    | some d =>
+      by_cases h : d ∈ L
+      · simp only [histStep, h, ite_true]; exact hL
+      · simp only [histStep, h, ite_false]
+        exact List.nodup_append.mpr ⟨hL, List.nodup_cons.mpr ⟨by simp, List.nodup_nil⟩,
+          fun a ha b hb => by
+            simp only [List.mem_singleton] at hb; subst hb; intro e; subst e; exact h ha⟩
+
+theorem histOf_nodup (ods : List (Option (List w8))) : (histOf ods).Nodup :=
+  nodup_foldl_histStep [] ods List.nodup_nil
+
+/-- In a list without duplicates, what comes before `d` is determined. -/
+theorem hist_prefix_before_unique (L L0 L1 : List (List w8)) (d : List w8) (Hnd : L.Nodup)
+    (H0 : L0 ++ [d] <+: L) (H1 : L1 ++ [d] <+: L) : L0 = L1 := by
+  have k0 : L[L0.length]? = some d := by
+    obtain ⟨r, rfl⟩ := H0; simp
+  have k1 : L[L1.length]? = some d := by
+    obtain ⟨r, rfl⟩ := H1; simp
+  obtain ⟨h0lt, h0e⟩ := List.getElem?_eq_some_iff.mp k0
+  obtain ⟨h1lt, h1e⟩ := List.getElem?_eq_some_iff.mp k1
+  have hlen := (List.Nodup.getElem_inj Hnd).mp (h0e.trans h1e.symm)
+  have e0 := List.prefix_iff_eq_take.mp ((List.prefix_append L0 [d]).trans H0)
+  have e1 := List.prefix_iff_eq_take.mp ((List.prefix_append L1 [d]).trans H1)
+  rw [e0, e1, hlen]
+
+/-- The history of a log: its entries' data's (`odOf`). -/
+def logHist [GooseExts] (l : List LogEntry) : List (List w8) := histOf (l.map odOf)
+
+theorem foldl_histStep_opsOf [GooseExts] (l : List LogEntry) (L : List (List w8)) :
+    ((opsOf l).map odOf).foldl histStep L = (l.map odOf).foldl histStep L := by
+  induction l generalizing L with
+  | nil => rfl
+  | cons e l ih =>
+    unfold opsOf at ih ⊢
+    by_cases hf : e.isFiller
+    · simp only [List.filter_cons, hf, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte,
+        List.map_cons, List.foldl_cons, odOf_filler e hf, histStep]
+      exact ih L
+    · simp only [List.filter_cons, hf, decide_false, Bool.not_false, ↓reduceIte, List.map_cons,
+        List.foldl_cons]
+      exact ih _
+
+/-- The history of a log is that of its requested entries (a filler carries no datum). -/
+theorem logHist_opsOf [GooseExts] (l : List LogEntry) :
+    logHist (opsOf l) = logHist l := by
+  unfold logHist histOf; exact foldl_histStep_opsOf l []
+
+theorem logHist_prefix [GooseExts] (a b : List LogEntry) (h : a <+: b) :
+    logHist a <+: logHist b := by
+  obtain ⟨c, rfl⟩ := h
+  unfold logHist; rw [List.map_append]; exact histOf_append_prefix _ _
 /-- `putBytes`: the bytes `x`, prefixed by their length. -/
 def putB (x : List w8) : List w8 := u64Le (W64 x.length) ++ x
 
@@ -338,15 +462,11 @@ def StateEnc (H : List (List w8)) (d : List w8) : Prop :=
     (∀ k, ((kvs.lookup k).getD []) = kvFold H k) ∧
     AnsTab (fun o => ops.lookup o) H
 
-/-- **The key-value cluster's data certificate** (`RaftNames.reSnapOkRaw`, see the section
+/-- **The key-value cluster's data certificate** (the static cluster's `snapOk`, see the section
 header): the data of a snapshot at the end of the committed prefix `L` encodes the replicated
 state of `L`. -/
-def kvSnapOk (L : List BootEntry) (d : List w8) : Prop :=
-  StateEnc (firstOcc (L.map odOfB)) d
-
-theorem kvSnapOk_entries [GooseExts] (L : List EntryM) (d : List w8) :
-    kvSnapOk (L.map BootEntry.ofEntry) d ↔ StateEnc (firstOcc (L.map odOf)) d := by
-  unfold kvSnapOk; rw [map_odOfB_ofEntry]
+def kvSnapOk [GooseExts] (L : List LogEntry) (d : List w8) : Prop :=
+  StateEnc (logHist L) d
 
 end EtcdGrove
 

@@ -105,13 +105,11 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
-    [context.DeadlineExceededIsError] [log.NewModel]
+    [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextReadErrs (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextErrsClient (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
-    (Hms : v3rpc.ServerMethodSets)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
+    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
@@ -121,7 +119,7 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (linkvtxnProgram clients ops) [go!"127.0.0.1:23796"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvtxnGF,
-      ⊢ linkvtxn.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id bootLog)
+      ⊢ linkvtxn.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -143,8 +141,8 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok ⟨Has, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
-  have hM := linkvtxn.wp_Main (GF := linkvtxnGF) n id bootLog clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
+  have hM := linkvtxn.wp_Main (GF := linkvtxnGF) n id ctxs boot clients ops Hbf
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

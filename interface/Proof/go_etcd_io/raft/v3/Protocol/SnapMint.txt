@@ -3,9 +3,9 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem isMessage_snap_recontent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (m : Msg) (c
-    ai at_ : w64) (A : List EntryM) : ↑raftLogN ⊆ E → m.ty = MsgType.snap → uint.Z m.index ≤ uint.Z
-    ai → uint.Z ai ≤ uint.Z c → ↑A.length = uint.Z ai → Option.map EntryM.Term' A.getLast? = some
-    at_ → ⊢ raftCommitInv γ -∗ isMessage γ m -∗ commitWit γ m.term c -∗ isCommitted γ A ={E}=∗
+    ai at_ : w64) (A : List EntryM) : ↑(raftLogN γ) ⊆ E → m.ty = MsgType.snap → uint.Z m.index ≤
+    uint.Z ai → uint.Z ai ≤ uint.Z c → ↑A.length = uint.Z ai → Option.map EntryM.Term' A.getLast? =
+    some at_ → ⊢ raftCommitInv γ -∗ isMessage γ m -∗ commitWit γ m.term c -∗ isCommitted γ A ={E}=∗
     isMessage γ { ty := m.ty, src := m.src, dst := m.dst, term := m.term, reject := m.reject, index
     := ai, logterm := at_, commit := m.commit, rejecthint := m.rejecthint, entries := m.entries, cl
     := m.cl, al := m.al, ctx := m.ctx }

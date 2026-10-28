@@ -629,8 +629,8 @@ theorem HistOk.last_mono {L1 L2 : List StorState} {a b : StorState} (h : L1 <+: 
 
 theorem memCut.proj_ss (σ : StorState) (c : entryID) : (memCut σ c).ss = σ.ss
 
-theorem memSnapTok_split [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (σ : StorState)
-    : memSnapTok ms γs σ ⊣⊢ memSnapRO ms γs ∗ memKey γs.ak ∗ memSnapTokG γs σ
+theorem memSnapTok_split (ms : Loc) (γs : MemStorNames) (σ : StorState) : memSnapTok ms γs σ ⊣⊢
+    memSnapRO ms γs ∗ memKey γs.ak ∗ memSnapTokG γs σ
 
 theorem memstorageFields_congr [package_sem : Assumptions] (ms : Loc) (σ σ' : StorState) (h1 :
     σ'.prev = σ.prev) (h2 : σ'.ents = σ.ents) : memstorageFields ms σ ⊢ memstorageFields ms σ'

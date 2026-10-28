@@ -118,7 +118,7 @@ theorem MainWatch.wp_proof
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS ESL ENG ESE CRE CEC PP N id₁ id₂ id₃ bootLog nw nops sched steps Hbf Htb Hrb48
+  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ctxs boot nw nops sched steps Hbf Htb Hrb48
     HrbN Hck Haf Hbuq Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts
@@ -166,7 +166,7 @@ theorem MainWatch.wp_proof
   -- the cluster, its clients' watch prefix `wk/`
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
-  wp_apply (wp_startCluster N id₁ id₂ id₃ bootLog lg wkPfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
+  wp_apply (wp_startCluster N id₁ id₂ id₃ ctxs boot lg wkPfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -191,19 +191,25 @@ theorem MainWatch.wp_proof
   obtain ⟨hr₂, hc₂, hch₂, hlog₂⟩ := Hp₂
   obtain ⟨hr₃, hc₃, hch₃, hlog₃⟩ := Hp₃
   -- the members' names are the history's (the first member's)
-  have hm₁ : v3rpc.memberOf ρ₁.rd.raft ρ₁.rd.kv ρ₁.rd := ⟨rfl, rfl, rfl, rfl⟩
+  -- (2026-10-27, the server port) the members' raft names are the cluster's but for each one's
+  -- storage registry
+  obtain ⟨r₁, hr₁⟩ := hr₁
+  obtain ⟨r₂, hr₂⟩ := hr₂
+  obtain ⟨r₃, hr₃⟩ := hr₃
+  have hm₁ : v3rpc.memberOf ρ₁.rd.raft ρ₁.rd.kv ρ₁.rd :=
+    v3rpc.memberOf_of_eq _ _ _ rfl rfl rfl rfl
   have hm₂ : v3rpc.memberOf ρ₁.rd.raft ρ₁.rd.kv ρ₂.rd :=
-    ⟨hr₂.trans hr₁.symm, hc₂.trans hc₁.symm, hch₂.trans hch₁.symm, hlog₂.trans hlog₁.symm⟩
+    ⟨by rw [hr₂, hr₁], hc₂.trans hc₁.symm, hch₂.trans hch₁.symm, hlog₂.trans hlog₁.symm⟩
   have hm₃ : v3rpc.memberOf ρ₁.rd.raft ρ₁.rd.kv ρ₃.rd :=
-    ⟨hr₃.trans hr₁.symm, hc₃.trans hc₁.symm, hch₃.trans hch₁.symm, hlog₃.trans hlog₁.symm⟩
+    ⟨by rw [hr₃, hr₁], hc₃.trans hc₁.symm, hch₃.trans hch₁.symm, hlog₃.trans hlog₁.symm⟩
   -- the clients' adapter over the KV state, its property the plan's (the start: revision `1`, no
   -- change)
-  have hboot : kvModel ρ₁.rd.kv (bootEntries bootLog) = [[], []] := by
+  have hboot : kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = [[], []] := by
     unfold kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ (putget3.ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃) bootLog
-      Hbf.boot, hlog₁]
-  have hW0 : wkW (trs.map pairOf) (kvModelSt ρ₁.rd.kv (bootEntries bootLog)).changes := by
-    rw [kvModelSt_boot _ _ _ bootLog Hbf.boot, hboot]; exact wkW_start _
+    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) (ids id₁ id₂ id₃)
+      (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog₁]
+  have hW0 : wkW (trs.map pairOf) (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes := by
+    rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hboot]; exact wkW_start _
   imod (client.kmInv_alloc ρ₁.rd.kv _ (wkW (trs.map pairOf)) hW0) $$ Hetcd
     with ⟨%γ, %Hγ, #Hkm, #Hlb0⟩
   obtain ⟨hγk, hγW⟩ := Hγ
@@ -363,7 +369,7 @@ theorem MainWatch.wp_proof
     iapply BigSepL.bigSepL_nil.2
     itrivial
   wp_apply wp_fork $$ [Hobs Hmem]
-  · wp_apply (wp_partitioner PP γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs Hmem]
+  · wp_apply (wp_partitioner inferInstance γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs Hmem]
     all_goals (try (iframe #))
     all_goals (try iframe)
     ipureintro; exact isPanic_intoVal ()

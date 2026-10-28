@@ -440,8 +440,12 @@ abbrev Pgid [GooseExts] : Type := w64
 
 class Pgid.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pgid.ty Pgid.underlying
+  method_set : go.MethodSetIs Pgid.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pgid.ty) []
 
 attribute [instance] Pgid.TypeAssumptions.underlying
+  Pgid.TypeAssumptions.method_set
+  Pgid.TypeAssumptions.ptr_method_set
 
 structure InBucket [GooseExts] where
   mk ::
@@ -472,6 +476,8 @@ class InBucket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_root : ∀ (x : InBucket) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : InBucket)))
   get_sequence : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"sequence") #x (Val #(x.sequence'))
   set_sequence : ∀ (x : InBucket) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InBucket)))
+  method_set : go.MethodSetIs InBucket.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InBucket.ty) [(go!"InSequence", (some (go.signature.Signature [] false [go.uint64]))), (go!"IncSequence", (some (go.signature.Signature [] false []))), (go!"InlinePage", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Page.ty)]))), (go!"RootPage", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"SetInSequence", (some (go.signature.Signature [go.uint64] false []))), (go!"SetRootPage", (some (go.signature.Signature [Pgid.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InBucket.TypeAssumptions.type_repr
   InBucket.TypeAssumptions.underlying
@@ -479,6 +485,8 @@ attribute [instance] InBucket.TypeAssumptions.type_repr
   InBucket.TypeAssumptions.set_root
   InBucket.TypeAssumptions.get_sequence
   InBucket.TypeAssumptions.set_sequence
+  InBucket.TypeAssumptions.method_set
+  InBucket.TypeAssumptions.ptr_method_set
 
 structure Inode [GooseExts] where
   mk ::
@@ -517,6 +525,8 @@ class Inode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_key : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Inode)))
   get_value : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : Inode)))
+  method_set : go.MethodSetIs Inode.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Inode.ty) [(go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetKey", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetValue", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])))]
 
 attribute [instance] Inode.TypeAssumptions.type_repr
   Inode.TypeAssumptions.underlying
@@ -528,6 +538,8 @@ attribute [instance] Inode.TypeAssumptions.type_repr
   Inode.TypeAssumptions.set_key
   Inode.TypeAssumptions.get_value
   Inode.TypeAssumptions.set_value
+  Inode.TypeAssumptions.method_set
+  Inode.TypeAssumptions.ptr_method_set
 
 abbrev Inodes [GooseExts] : Type := GoSlice
 
@@ -536,8 +548,12 @@ abbrev Inodes [GooseExts] : Type := GoSlice
 
 class Inodes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Inodes.ty Inodes.underlying
+  method_set : go.MethodSetIs Inodes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Inodes.ty) []
 
 attribute [instance] Inodes.TypeAssumptions.underlying
+  Inodes.TypeAssumptions.method_set
+  Inodes.TypeAssumptions.ptr_method_set
 
 abbrev Txid [GooseExts] : Type := w64
 
@@ -546,8 +562,12 @@ abbrev Txid [GooseExts] : Type := w64
 
 class Txid.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Txid.ty Txid.underlying
+  method_set : go.MethodSetIs Txid.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Txid.ty) []
 
 attribute [instance] Txid.TypeAssumptions.underlying
+  Txid.TypeAssumptions.method_set
+  Txid.TypeAssumptions.ptr_method_set
 
 structure Meta [GooseExts] where
   mk ::
@@ -606,6 +626,8 @@ class Meta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_txid : ∀ (x : Meta) (y : Txid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"txid") (PairV #x #y) (Val #(({ x with txid' := y } : Meta)))
   get_checksum : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"checksum") #x (Val #(x.checksum'))
   set_checksum : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"checksum") (PairV #x #y) (Val #(({ x with checksum' := y } : Meta)))
+  method_set : go.MethodSetIs Meta.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Meta.ty) [(go!"Checksum", (some (go.signature.Signature [] false [go.uint64]))), (go!"Copy", (some (go.signature.Signature [(go.GoType.PointerType Meta.ty)] false []))), (go!"DecTxid", (some (go.signature.Signature [] false []))), (go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"Freelist", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"IncTxid", (some (go.signature.Signature [] false []))), (go!"IsFreelistPersisted", (some (go.signature.Signature [] false [go.bool]))), (go!"Magic", (some (go.signature.Signature [] false [go.uint32]))), (go!"PageSize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"Print", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false []))), (go!"RootBucket", (some (go.signature.Signature [] false [(go.GoType.PointerType InBucket.ty)]))), (go!"SetChecksum", (some (go.signature.Signature [go.uint64] false []))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetFreelist", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetMagic", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPageSize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetRootBucket", (some (go.signature.Signature [InBucket.ty] false []))), (go!"SetTxid", (some (go.signature.Signature [Txid.ty] false []))), (go!"SetVersion", (some (go.signature.Signature [go.uint32] false []))), (go!"Sum64", (some (go.signature.Signature [] false [go.uint64]))), (go!"Txid", (some (go.signature.Signature [] false [Txid.ty]))), (go!"Validate", (some (go.signature.Signature [] false [go.error]))), (go!"Version", (some (go.signature.Signature [] false [go.uint32]))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType Page.ty)] false [])))]
 
 attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.underlying
@@ -627,6 +649,8 @@ attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.set_txid
   Meta.TypeAssumptions.get_checksum
   Meta.TypeAssumptions.set_checksum
+  Meta.TypeAssumptions.method_set
+  Meta.TypeAssumptions.ptr_method_set
 
 structure Page [GooseExts] where
   mk ::
@@ -665,6 +689,8 @@ class Page.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_count : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Page)))
   get_overflow : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"overflow") #x (Val #(x.overflow'))
   set_overflow : ∀ (x : Page) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"overflow") (PairV #x #y) (Val #(({ x with overflow' := y } : Page)))
+  method_set : go.MethodSetIs Page.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Page.ty) [(go!"BranchPageElement", (some (go.signature.Signature [go.uint16] false [(go.GoType.PointerType branchPageElement.ty)]))), (go!"BranchPageElements", (some (go.signature.Signature [] false [(go.GoType.SliceType branchPageElement.ty)]))), (go!"Count", (some (go.signature.Signature [] false [go.uint16]))), (go!"FastCheck", (some (go.signature.Signature [Pgid.ty] false []))), (go!"Flags", (some (go.signature.Signature [] false [go.uint16]))), (go!"FreelistPageCount", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"FreelistPageIds", (some (go.signature.Signature [] false [(go.GoType.SliceType Pgid.ty)]))), (go!"Id", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"IsBranchPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFreelistPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLeafPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMetaPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsValidPage", (some (go.signature.Signature [] false [go.bool]))), (go!"LeafPageElement", (some (go.signature.Signature [go.uint16] false [(go.GoType.PointerType leafPageElement.ty)]))), (go!"LeafPageElements", (some (go.signature.Signature [] false [(go.GoType.SliceType leafPageElement.ty)]))), (go!"Meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)]))), (go!"Overflow", (some (go.signature.Signature [] false [go.uint32]))), (go!"PageElementSize", (some (go.signature.Signature [] false [go.uintptr]))), (go!"SetCount", (some (go.signature.Signature [go.uint16] false []))), (go!"SetFlags", (some (go.signature.Signature [go.uint16] false []))), (go!"SetId", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetOverflow", (some (go.signature.Signature [go.uint32] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Typ", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/bbolt/internal/common.hexdump", (some (go.signature.Signature [go.int] false [])))]
 
 attribute [instance] Page.TypeAssumptions.type_repr
   Page.TypeAssumptions.underlying
@@ -676,6 +702,8 @@ attribute [instance] Page.TypeAssumptions.type_repr
   Page.TypeAssumptions.set_count
   Page.TypeAssumptions.get_overflow
   Page.TypeAssumptions.set_overflow
+  Page.TypeAssumptions.method_set
+  Page.TypeAssumptions.ptr_method_set
 
 abbrev Pages [GooseExts] : Type := GoSlice
 
@@ -684,8 +712,12 @@ abbrev Pages [GooseExts] : Type := GoSlice
 
 class Pages.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pages.ty Pages.underlying
+  method_set : go.MethodSetIs Pages.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pages.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] Pages.TypeAssumptions.underlying
+  Pages.TypeAssumptions.method_set
+  Pages.TypeAssumptions.ptr_method_set
 
 structure branchPageElement [GooseExts] where
   mk ::
@@ -720,6 +752,8 @@ class branchPageElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_ksize : ∀ (x : branchPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : branchPageElement)))
   get_pgid : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pgid") #x (Val #(x.pgid'))
   set_pgid : ∀ (x : branchPageElement) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : branchPageElement)))
+  method_set : go.MethodSetIs branchPageElement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType branchPageElement.ty) [(go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Ksize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"Pos", (some (go.signature.Signature [] false [go.uint32]))), (go!"SetKsize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetPos", (some (go.signature.Signature [go.uint32] false [])))]
 
 attribute [instance] branchPageElement.TypeAssumptions.type_repr
   branchPageElement.TypeAssumptions.underlying
@@ -729,6 +763,8 @@ attribute [instance] branchPageElement.TypeAssumptions.type_repr
   branchPageElement.TypeAssumptions.set_ksize
   branchPageElement.TypeAssumptions.get_pgid
   branchPageElement.TypeAssumptions.set_pgid
+  branchPageElement.TypeAssumptions.method_set
+  branchPageElement.TypeAssumptions.ptr_method_set
 
 structure leafPageElement [GooseExts] where
   mk ::
@@ -767,6 +803,8 @@ class leafPageElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_ksize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : leafPageElement)))
   get_vsize : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"vsize") #x (Val #(x.vsize'))
   set_vsize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"vsize") (PairV #x #y) (Val #(({ x with vsize' := y } : leafPageElement)))
+  method_set : go.MethodSetIs leafPageElement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leafPageElement.ty) [(go!"Bucket", (some (go.signature.Signature [] false [(go.GoType.PointerType InBucket.ty)]))), (go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"IsBucketEntry", (some (go.signature.Signature [] false [go.bool]))), (go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Ksize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pos", (some (go.signature.Signature [] false [go.uint32]))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetKsize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPos", (some (go.signature.Signature [go.uint32] false []))), (go!"SetVsize", (some (go.signature.Signature [go.uint32] false []))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Vsize", (some (go.signature.Signature [] false [go.uint32])))]
 
 attribute [instance] leafPageElement.TypeAssumptions.type_repr
   leafPageElement.TypeAssumptions.underlying
@@ -778,6 +816,8 @@ attribute [instance] leafPageElement.TypeAssumptions.type_repr
   leafPageElement.TypeAssumptions.set_ksize
   leafPageElement.TypeAssumptions.get_vsize
   leafPageElement.TypeAssumptions.set_vsize
+  leafPageElement.TypeAssumptions.method_set
+  leafPageElement.TypeAssumptions.ptr_method_set
 
 structure PageInfo [GooseExts] where
   mk ::
@@ -816,6 +856,8 @@ class PageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_Count : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : PageInfo)))
   get_OverflowCount : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"OverflowCount") #x (Val #(x.OverflowCount'))
   set_OverflowCount : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"OverflowCount") (PairV #x #y) (Val #(({ x with OverflowCount' := y } : PageInfo)))
+  method_set : go.MethodSetIs PageInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PageInfo.ty) []
 
 attribute [instance] PageInfo.TypeAssumptions.type_repr
   PageInfo.TypeAssumptions.underlying
@@ -827,6 +869,8 @@ attribute [instance] PageInfo.TypeAssumptions.type_repr
   PageInfo.TypeAssumptions.set_Count
   PageInfo.TypeAssumptions.get_OverflowCount
   PageInfo.TypeAssumptions.set_OverflowCount
+  PageInfo.TypeAssumptions.method_set
+  PageInfo.TypeAssumptions.ptr_method_set
 
 abbrev Pgids [GooseExts] : Type := GoSlice
 
@@ -835,6 +879,8 @@ abbrev Pgids [GooseExts] : Type := GoSlice
 
 class Pgids.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pgids.ty Pgids.underlying
+  method_set : go.MethodSetIs Pgids.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Merge", (some (go.signature.Signature [Pgids.ty] false [Pgids.ty]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pgids.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Merge", (some (go.signature.Signature [Pgids.ty] false [Pgids.ty]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold Pgids.ty go!"Len" Pgids.Len.impl
   Less_unfold : MethodUnfold Pgids.ty go!"Less" Pgids.Less.impl
   Merge_unfold : MethodUnfold Pgids.ty go!"Merge" Pgids.Merge.impl
@@ -849,6 +895,8 @@ class Pgids.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
 (App (Val (GoInstruction (MethodResolve Pgids.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "$r"))))
 
 attribute [instance] Pgids.TypeAssumptions.underlying
+  Pgids.TypeAssumptions.method_set
+  Pgids.TypeAssumptions.ptr_method_set
   Pgids.TypeAssumptions.Len_unfold
   Pgids.TypeAssumptions.Less_unfold
   Pgids.TypeAssumptions.Merge_unfold
@@ -865,8 +913,12 @@ abbrev VerificationType [GooseExts] : Type := GoString
 
 class VerificationType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VerificationType.ty VerificationType.underlying
+  method_set : go.MethodSetIs VerificationType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VerificationType.ty) []
 
 attribute [instance] VerificationType.TypeAssumptions.underlying
+  VerificationType.TypeAssumptions.method_set
+  VerificationType.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   InBucket_instance : InBucket.TypeAssumptions

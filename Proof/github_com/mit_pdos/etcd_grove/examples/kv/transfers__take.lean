@@ -26,7 +26,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [StorageModel GF]
 
 theorem transfers.take.wp_proof : transfers.take.spec (GF := GF) (hG := hG) := by
-  intro bud tr
+  intro γ tr
   wp_start as #Htr
   unfold isTransfers
   -- the transfer's tick credit (D19b): the receipt of the resolution of `Lock`
@@ -61,8 +61,7 @@ theorem transfers.take.wp_proof : transfers.take.spec (GF := GF) (hG := hG) := b
     try wp_auto
     iapply HΦ
     simp only [↓reduceIte]
-    unfold tickCred
-    iexact Hc1
+    iapply tickCredit_intro γ 1 $$ Hc1
 
 end proof
 

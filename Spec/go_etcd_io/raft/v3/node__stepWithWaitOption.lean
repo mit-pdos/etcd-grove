@@ -22,6 +22,7 @@ its capacity and the data slice). A message from the network is `netP` alone: it
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
@@ -56,7 +57,7 @@ def stepArg (γ : NodeNames) (id : w64) (ml : Loc) (wait : Bool) : IProp GF :=
 abbrev node.stepWithWaitOption.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (wait : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗
       stepArg γ id ml wait }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWithWaitOption"))

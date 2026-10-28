@@ -178,10 +178,14 @@ class Address.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Address.underlying Address
   underlying : go.UnderlyingDirectedEq Address.ty Address.underlying
   isUnderlying : go.IsUnderlying Address.underlying Address.underlying
+  method_set : go.MethodSetIs Address.ty [(go!"Equal", (some (go.signature.Signature [Address.ty] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Address.ty) [(go!"Equal", (some (go.signature.Signature [Address.ty] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Address.TypeAssumptions.type_repr
   Address.TypeAssumptions.underlying
   Address.TypeAssumptions.isUnderlying
+  Address.TypeAssumptions.method_set
+  Address.TypeAssumptions.ptr_method_set
 
 structure addressMapEntry [GooseExts] (T : Type) where
   mk ::
@@ -212,6 +216,8 @@ class addressMapEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_addr : ∀ (T : go.GoType) (T' : Type) (x : (addressMapEntry T')) (y : Address), go.IsGoStepPureDetTagged under (StructFieldSet (addressMapEntry.underlying T) go!"addr") (PairV #x #y) (Val #(({ x with addr' := y } : (addressMapEntry T'))))
   get_value : ∀ (T : go.GoType) (T' : Type) (x : (addressMapEntry T')), go.IsGoStepPureDetTagged under (StructFieldGet (addressMapEntry.underlying T) go!"value") #x (Val #(x.value'))
   set_value : ∀ (T : go.GoType) (T' : Type) (x : (addressMapEntry T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (addressMapEntry.underlying T) go!"value") (PairV #x #y) (Val #(({ x with value' := y } : (addressMapEntry T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (addressMapEntry.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (addressMapEntry.ty T)) []
 
 attribute [instance] addressMapEntry.TypeAssumptions.type_repr
   addressMapEntry.TypeAssumptions.underlying
@@ -219,6 +225,8 @@ attribute [instance] addressMapEntry.TypeAssumptions.type_repr
   addressMapEntry.TypeAssumptions.set_addr
   addressMapEntry.TypeAssumptions.get_value
   addressMapEntry.TypeAssumptions.set_value
+  addressMapEntry.TypeAssumptions.method_set
+  addressMapEntry.TypeAssumptions.ptr_method_set
 
 structure AddressMapV2 [GooseExts] (T : Type) where
   mk ::
@@ -245,11 +253,15 @@ class AddressMapV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (AddressMapV2.ty T) (AddressMapV2.underlying T)
   get_m : ∀ (T : go.GoType) (T' : Type) (x : (AddressMapV2 T')), go.IsGoStepPureDetTagged under (StructFieldGet (AddressMapV2.underlying T) go!"m") #x (Val #(x.m'))
   set_m : ∀ (T : go.GoType) (T' : Type) (x : (AddressMapV2 T')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (AddressMapV2.underlying T) go!"m") (PairV #x #y) (Val #(({ x with m' := y } : (AddressMapV2 T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (AddressMapV2.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (AddressMapV2.ty T)) [(go!"All", (some (go.signature.Signature [] false [(go.GoType.Named go!"iter.Seq2" [Address.ty, T])]))), (go!"Delete", (some (go.signature.Signature [Address.ty] false []))), (go!"Get", (some (go.signature.Signature [Address.ty] false [T, go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType Address.ty)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [Address.ty, T] false []))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType T)])))]
 
 attribute [instance] AddressMapV2.TypeAssumptions.type_repr
   AddressMapV2.TypeAssumptions.underlying
   AddressMapV2.TypeAssumptions.get_m
   AddressMapV2.TypeAssumptions.set_m
+  AddressMapV2.TypeAssumptions.method_set
+  AddressMapV2.TypeAssumptions.ptr_method_set
 
 abbrev addressMapEntryList [GooseExts] (T : Type) : Type := GoSlice
 
@@ -258,8 +270,12 @@ abbrev addressMapEntryList [GooseExts] (T : Type) : Type := GoSlice
 
 class addressMapEntryList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (addressMapEntryList.ty T) (addressMapEntryList.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (addressMapEntryList.ty T) [(go!"google.golang.org/grpc/resolver.find", (some (go.signature.Signature [Address.ty] false [go.int])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (addressMapEntryList.ty T)) [(go!"google.golang.org/grpc/resolver.find", (some (go.signature.Signature [Address.ty] false [go.int])))]
 
 attribute [instance] addressMapEntryList.TypeAssumptions.underlying
+  addressMapEntryList.TypeAssumptions.method_set
+  addressMapEntryList.TypeAssumptions.ptr_method_set
 
 abbrev endpointMapKey [GooseExts] : Type := GoString
 
@@ -268,8 +284,12 @@ abbrev endpointMapKey [GooseExts] : Type := GoString
 
 class endpointMapKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq endpointMapKey.ty endpointMapKey.underlying
+  method_set : go.MethodSetIs endpointMapKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType endpointMapKey.ty) []
 
 attribute [instance] endpointMapKey.TypeAssumptions.underlying
+  endpointMapKey.TypeAssumptions.method_set
+  endpointMapKey.TypeAssumptions.ptr_method_set
 
 structure EndpointMap [GooseExts] (T : Type) where
   mk ::
@@ -296,11 +316,15 @@ class EndpointMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (EndpointMap.ty T) (EndpointMap.underlying T)
   get_endpoints : ∀ (T : go.GoType) (T' : Type) (x : (EndpointMap T')), go.IsGoStepPureDetTagged under (StructFieldGet (EndpointMap.underlying T) go!"endpoints") #x (Val #(x.endpoints'))
   set_endpoints : ∀ (T : go.GoType) (T' : Type) (x : (EndpointMap T')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (EndpointMap.underlying T) go!"endpoints") (PairV #x #y) (Val #(({ x with endpoints' := y } : (EndpointMap T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (EndpointMap.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (EndpointMap.ty T)) [(go!"All", (some (go.signature.Signature [] false [(go.GoType.Named go!"iter.Seq2" [Endpoint.ty, T])]))), (go!"Delete", (some (go.signature.Signature [Endpoint.ty] false []))), (go!"Get", (some (go.signature.Signature [Endpoint.ty] false [T, go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType Endpoint.ty)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [Endpoint.ty, T] false []))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType T)])))]
 
 attribute [instance] EndpointMap.TypeAssumptions.type_repr
   EndpointMap.TypeAssumptions.underlying
   EndpointMap.TypeAssumptions.get_endpoints
   EndpointMap.TypeAssumptions.set_endpoints
+  EndpointMap.TypeAssumptions.method_set
+  EndpointMap.TypeAssumptions.ptr_method_set
 
 axiom Endpoint : Type
 axiom Endpoint.zero_val : ZeroVal Endpoint
@@ -310,10 +334,14 @@ class Endpoint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Endpoint.underlying Endpoint
   underlying : go.UnderlyingDirectedEq Endpoint.ty Endpoint.underlying
   isUnderlying : go.IsUnderlying Endpoint.underlying Endpoint.underlying
+  method_set : go.MethodSetIs Endpoint.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Endpoint.ty) []
 
 attribute [instance] Endpoint.TypeAssumptions.type_repr
   Endpoint.TypeAssumptions.underlying
   Endpoint.TypeAssumptions.isUnderlying
+  Endpoint.TypeAssumptions.method_set
+  Endpoint.TypeAssumptions.ptr_method_set
 
 structure endpointData [GooseExts] (T : Type) where
   mk ::
@@ -344,6 +372,8 @@ class endpointData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_decodedKey : ∀ (T : go.GoType) (T' : Type) (x : (endpointData T')) (y : Endpoint), go.IsGoStepPureDetTagged under (StructFieldSet (endpointData.underlying T) go!"decodedKey") (PairV #x #y) (Val #(({ x with decodedKey' := y } : (endpointData T'))))
   get_value : ∀ (T : go.GoType) (T' : Type) (x : (endpointData T')), go.IsGoStepPureDetTagged under (StructFieldGet (endpointData.underlying T) go!"value") #x (Val #(x.value'))
   set_value : ∀ (T : go.GoType) (T' : Type) (x : (endpointData T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (endpointData.underlying T) go!"value") (PairV #x #y) (Val #(({ x with value' := y } : (endpointData T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (endpointData.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (endpointData.ty T)) []
 
 attribute [instance] endpointData.TypeAssumptions.type_repr
   endpointData.TypeAssumptions.underlying
@@ -351,6 +381,8 @@ attribute [instance] endpointData.TypeAssumptions.type_repr
   endpointData.TypeAssumptions.set_decodedKey
   endpointData.TypeAssumptions.get_value
   endpointData.TypeAssumptions.set_value
+  endpointData.TypeAssumptions.method_set
+  endpointData.TypeAssumptions.ptr_method_set
 
 axiom BuildOptions : Type
 axiom BuildOptions.zero_val : ZeroVal BuildOptions
@@ -360,10 +392,14 @@ class BuildOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying BuildOptions.underlying BuildOptions
   underlying : go.UnderlyingDirectedEq BuildOptions.ty BuildOptions.underlying
   isUnderlying : go.IsUnderlying BuildOptions.underlying BuildOptions.underlying
+  method_set : go.MethodSetIs BuildOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BuildOptions.ty) []
 
 attribute [instance] BuildOptions.TypeAssumptions.type_repr
   BuildOptions.TypeAssumptions.underlying
   BuildOptions.TypeAssumptions.isUnderlying
+  BuildOptions.TypeAssumptions.method_set
+  BuildOptions.TypeAssumptions.ptr_method_set
 
 axiom State : Type
 axiom State.zero_val : ZeroVal State
@@ -373,10 +409,14 @@ class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying State.underlying State
   underlying : go.UnderlyingDirectedEq State.ty State.underlying
   isUnderlying : go.IsUnderlying State.underlying State.underlying
+  method_set : go.MethodSetIs State.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType State.ty) []
 
 attribute [instance] State.TypeAssumptions.type_repr
   State.TypeAssumptions.underlying
   State.TypeAssumptions.isUnderlying
+  State.TypeAssumptions.method_set
+  State.TypeAssumptions.ptr_method_set
 
 axiom ClientConn : Type
 axiom ClientConn.zero_val : ZeroVal ClientConn
@@ -386,10 +426,14 @@ class ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying ClientConn.underlying ClientConn
   underlying : go.UnderlyingDirectedEq ClientConn.ty ClientConn.underlying
   isUnderlying : go.IsUnderlying ClientConn.underlying ClientConn.underlying
+  method_set : go.MethodSetIs ClientConn.ty [(go!"NewAddress", (some (go.signature.Signature [(go.GoType.SliceType Address.ty)] false []))), (go!"ParseServiceConfig", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/serviceconfig.ParseResult" []))]))), (go!"ReportError", (some (go.signature.Signature [go.error] false []))), (go!"UpdateState", (some (go.signature.Signature [State.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConn.ty) []
 
 attribute [instance] ClientConn.TypeAssumptions.type_repr
   ClientConn.TypeAssumptions.underlying
   ClientConn.TypeAssumptions.isUnderlying
+  ClientConn.TypeAssumptions.method_set
+  ClientConn.TypeAssumptions.ptr_method_set
 
 axiom Target : Type
 axiom Target.zero_val : ZeroVal Target
@@ -399,10 +443,14 @@ class Target.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Target.underlying Target
   underlying : go.UnderlyingDirectedEq Target.ty Target.underlying
   isUnderlying : go.IsUnderlying Target.underlying Target.underlying
+  method_set : go.MethodSetIs Target.ty [(go!"Endpoint", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Target.ty) [(go!"Endpoint", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Target.TypeAssumptions.type_repr
   Target.TypeAssumptions.underlying
   Target.TypeAssumptions.isUnderlying
+  Target.TypeAssumptions.method_set
+  Target.TypeAssumptions.ptr_method_set
 
 abbrev Builder [GooseExts] : Type := GoInterface
 
@@ -411,8 +459,12 @@ abbrev Builder [GooseExts] : Type := GoInterface
 
 class Builder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Builder.ty Builder.underlying
+  method_set : go.MethodSetIs Builder.ty [(go!"Build", (some (go.signature.Signature [Target.ty, ClientConn.ty, BuildOptions.ty] false [Resolver.ty, go.error]))), (go!"Scheme", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Builder.ty) []
 
 attribute [instance] Builder.TypeAssumptions.underlying
+  Builder.TypeAssumptions.method_set
+  Builder.TypeAssumptions.ptr_method_set
 
 structure ResolveNowOptions [GooseExts] where
   mk ::
@@ -436,9 +488,13 @@ noncomputable instance equals_unfold_ResolveNowOptions [GooseExts] [GoGlobalCont
 class ResolveNowOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResolveNowOptions.underlying ResolveNowOptions
   underlying : go.UnderlyingDirectedEq ResolveNowOptions.ty ResolveNowOptions.underlying
+  method_set : go.MethodSetIs ResolveNowOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResolveNowOptions.ty) []
 
 attribute [instance] ResolveNowOptions.TypeAssumptions.type_repr
   ResolveNowOptions.TypeAssumptions.underlying
+  ResolveNowOptions.TypeAssumptions.method_set
+  ResolveNowOptions.TypeAssumptions.ptr_method_set
 
 abbrev Resolver [GooseExts] : Type := GoInterface
 
@@ -447,8 +503,12 @@ abbrev Resolver [GooseExts] : Type := GoInterface
 
 class Resolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Resolver.ty Resolver.underlying
+  method_set : go.MethodSetIs Resolver.ty [(go!"Close", (some (go.signature.Signature [] false []))), (go!"ResolveNow", (some (go.signature.Signature [ResolveNowOptions.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Resolver.ty) []
 
 attribute [instance] Resolver.TypeAssumptions.underlying
+  Resolver.TypeAssumptions.method_set
+  Resolver.TypeAssumptions.ptr_method_set
 
 abbrev AuthorityOverrider [GooseExts] : Type := GoInterface
 
@@ -457,8 +517,12 @@ abbrev AuthorityOverrider [GooseExts] : Type := GoInterface
 
 class AuthorityOverrider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthorityOverrider.ty AuthorityOverrider.underlying
+  method_set : go.MethodSetIs AuthorityOverrider.ty [(go!"OverrideAuthority", (some (go.signature.Signature [Target.ty] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthorityOverrider.ty) []
 
 attribute [instance] AuthorityOverrider.TypeAssumptions.underlying
+  AuthorityOverrider.TypeAssumptions.method_set
+  AuthorityOverrider.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   addressMapEntry_instance : addressMapEntry.TypeAssumptions

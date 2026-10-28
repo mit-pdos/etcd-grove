@@ -1640,10 +1640,14 @@ class cacheWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying cacheWatcher.underlying cacheWatcher
   underlying : go.UnderlyingDirectedEq cacheWatcher.ty cacheWatcher.underlying
   isUnderlying : go.IsUnderlying cacheWatcher.underlying cacheWatcher.underlying
+  method_set : go.MethodSetIs cacheWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacheWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.add", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty), (go.GoType.PointerType _root_.Perennial.time.Timer.ty)] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.convertToWatchEvent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"k8s.io/apiserver/pkg/storage/cacher.isDoneChannelClosedLocked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.markBookmarkAfterRvAsReceived", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.markBookmarkAfterRvSent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.nextBookmarkTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.nonblockingAdd", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.observeDispatchMetrics", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty), _root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType watchCacheInterval.ty), go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.processIncomingEvents", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.processInitialEvents", (some (go.signature.Signature [(go.GoType.PointerType watchCacheInterval.ty), go.uint64] false [go.uint64, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.sendWatchCacheEvent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty]))), (go!"k8s.io/apiserver/pkg/storage/cacher.setBookmarkAfterResourceVersion", (some (go.signature.Signature [go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.setDrainInputBufferLocked", (some (go.signature.Signature [go.bool] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.stopLocked", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.wasBookmarkAfterRvReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.wasBookmarkAfterRvReceivedLocked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.wasBookmarkAfterRvSent", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.wasBookmarkAfterRvSentLocked", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] cacheWatcher.TypeAssumptions.type_repr
   cacheWatcher.TypeAssumptions.underlying
   cacheWatcher.TypeAssumptions.isUnderlying
+  cacheWatcher.TypeAssumptions.method_set
+  cacheWatcher.TypeAssumptions.ptr_method_set
 
 structure Config [GooseExts] where
   mk ::
@@ -1718,6 +1722,8 @@ class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_Codec : ∀ (x : Config) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Codec), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Codec") (PairV #x #y) (Val #(({ x with Codec' := y } : Config)))
   get_Clock : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Clock") #x (Val #(x.Clock'))
   set_Clock : ∀ (x : Config) (y : _root_.Perennial.k8s_io.utils.clock.WithTicker), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : Config)))
+  method_set : go.MethodSetIs Config.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
@@ -1747,6 +1753,8 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.set_Codec
   Config.TypeAssumptions.get_Clock
   Config.TypeAssumptions.set_Clock
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
 
 abbrev watchersMap [GooseExts] : Type := GoMap
 
@@ -1755,8 +1763,12 @@ abbrev watchersMap [GooseExts] : Type := GoMap
 
 class watchersMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq watchersMap.ty watchersMap.underlying
+  method_set : go.MethodSetIs watchersMap.ty [(go!"k8s.io/apiserver/pkg/storage/cacher.addWatcher", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty), go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.deleteWatcher", (some (go.signature.Signature [go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.terminateAll", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchersMap.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.addWatcher", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty), go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.deleteWatcher", (some (go.signature.Signature [go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.terminateAll", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false []))] false [])))]
 
 attribute [instance] watchersMap.TypeAssumptions.underlying
+  watchersMap.TypeAssumptions.method_set
+  watchersMap.TypeAssumptions.ptr_method_set
 
 structure indexedWatchers [GooseExts] where
   mk ::
@@ -1787,6 +1799,8 @@ class indexedWatchers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_scopeWatchers : ∀ (x : indexedWatchers) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet indexedWatchers.underlying go!"scopeWatchers") (PairV #x #y) (Val #(({ x with scopeWatchers' := y } : indexedWatchers)))
   get_indexWatchers : ∀ (x : indexedWatchers), go.IsGoStepPureDetTagged under (StructFieldGet indexedWatchers.underlying go!"indexWatchers") #x (Val #(x.indexWatchers'))
   set_indexWatchers : ∀ (x : indexedWatchers) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet indexedWatchers.underlying go!"indexWatchers") (PairV #x #y) (Val #(({ x with indexWatchers' := y } : indexedWatchers)))
+  method_set : go.MethodSetIs indexedWatchers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexedWatchers.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.addWatcher", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty), go.int, watchSelector.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.deleteWatcher", (some (go.signature.Signature [go.int, watchSelector.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.terminateAll", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false []))] false [])))]
 
 attribute [instance] indexedWatchers.TypeAssumptions.type_repr
   indexedWatchers.TypeAssumptions.underlying
@@ -1794,6 +1808,8 @@ attribute [instance] indexedWatchers.TypeAssumptions.type_repr
   indexedWatchers.TypeAssumptions.set_scopeWatchers
   indexedWatchers.TypeAssumptions.get_indexWatchers
   indexedWatchers.TypeAssumptions.set_indexWatchers
+  indexedWatchers.TypeAssumptions.method_set
+  indexedWatchers.TypeAssumptions.ptr_method_set
 
 structure namespacedName [GooseExts] where
   mk ::
@@ -1824,6 +1840,8 @@ class namespacedName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_namespace : ∀ (x : namespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namespacedName.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : namespacedName)))
   get_name : ∀ (x : namespacedName), go.IsGoStepPureDetTagged under (StructFieldGet namespacedName.underlying go!"name") #x (Val #(x.name'))
   set_name : ∀ (x : namespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namespacedName.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : namespacedName)))
+  method_set : go.MethodSetIs namespacedName.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType namespacedName.ty) []
 
 attribute [instance] namespacedName.TypeAssumptions.type_repr
   namespacedName.TypeAssumptions.underlying
@@ -1831,6 +1849,8 @@ attribute [instance] namespacedName.TypeAssumptions.type_repr
   namespacedName.TypeAssumptions.set_namespace
   namespacedName.TypeAssumptions.get_name
   namespacedName.TypeAssumptions.set_name
+  namespacedName.TypeAssumptions.method_set
+  namespacedName.TypeAssumptions.ptr_method_set
 
 structure watchSelector [GooseExts] where
   mk ::
@@ -1861,6 +1881,8 @@ class watchSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_scope : ∀ (x : watchSelector) (y : namespacedName), go.IsGoStepPureDetTagged under (StructFieldSet watchSelector.underlying go!"scope") (PairV #x #y) (Val #(({ x with scope' := y } : watchSelector)))
   get_indexValue : ∀ (x : watchSelector), go.IsGoStepPureDetTagged under (StructFieldGet watchSelector.underlying go!"indexValue") #x (Val #(x.indexValue'))
   set_indexValue : ∀ (x : watchSelector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchSelector.underlying go!"indexValue") (PairV #x #y) (Val #(({ x with indexValue' := y } : watchSelector)))
+  method_set : go.MethodSetIs watchSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchSelector.ty) []
 
 attribute [instance] watchSelector.TypeAssumptions.type_repr
   watchSelector.TypeAssumptions.underlying
@@ -1868,6 +1890,8 @@ attribute [instance] watchSelector.TypeAssumptions.type_repr
   watchSelector.TypeAssumptions.set_scope
   watchSelector.TypeAssumptions.get_indexValue
   watchSelector.TypeAssumptions.set_indexValue
+  watchSelector.TypeAssumptions.method_set
+  watchSelector.TypeAssumptions.ptr_method_set
 
 structure watcherBookmarkTimeBuckets [GooseExts] where
   mk ::
@@ -1910,6 +1934,8 @@ class watcherBookmarkTimeBuckets.TypeAssumptions [GooseExts] [GoGlobalContext] [
   set_clock : ∀ (x : watcherBookmarkTimeBuckets) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet watcherBookmarkTimeBuckets.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : watcherBookmarkTimeBuckets)))
   get_bookmarkFrequency : ∀ (x : watcherBookmarkTimeBuckets), go.IsGoStepPureDetTagged under (StructFieldGet watcherBookmarkTimeBuckets.underlying go!"bookmarkFrequency") #x (Val #(x.bookmarkFrequency'))
   set_bookmarkFrequency : ∀ (x : watcherBookmarkTimeBuckets) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet watcherBookmarkTimeBuckets.underlying go!"bookmarkFrequency") (PairV #x #y) (Val #(({ x with bookmarkFrequency' := y } : watcherBookmarkTimeBuckets)))
+  method_set : go.MethodSetIs watcherBookmarkTimeBuckets.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watcherBookmarkTimeBuckets.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.addWatcherThreadUnsafe", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.popExpiredWatchersThreadUnsafe", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.SliceType (go.GoType.PointerType cacheWatcher.ty)))])))]
 
 attribute [instance] watcherBookmarkTimeBuckets.TypeAssumptions.type_repr
   watcherBookmarkTimeBuckets.TypeAssumptions.underlying
@@ -1923,6 +1949,8 @@ attribute [instance] watcherBookmarkTimeBuckets.TypeAssumptions.type_repr
   watcherBookmarkTimeBuckets.TypeAssumptions.set_clock
   watcherBookmarkTimeBuckets.TypeAssumptions.get_bookmarkFrequency
   watcherBookmarkTimeBuckets.TypeAssumptions.set_bookmarkFrequency
+  watcherBookmarkTimeBuckets.TypeAssumptions.method_set
+  watcherBookmarkTimeBuckets.TypeAssumptions.ptr_method_set
 
 structure indexedTriggerFunc [GooseExts] where
   mk ::
@@ -1953,6 +1981,8 @@ class indexedTriggerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_indexName : ∀ (x : indexedTriggerFunc) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet indexedTriggerFunc.underlying go!"indexName") (PairV #x #y) (Val #(({ x with indexName' := y } : indexedTriggerFunc)))
   get_indexerFunc : ∀ (x : indexedTriggerFunc), go.IsGoStepPureDetTagged under (StructFieldGet indexedTriggerFunc.underlying go!"indexerFunc") #x (Val #(x.indexerFunc'))
   set_indexerFunc : ∀ (x : indexedTriggerFunc) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.IndexerFunc), go.IsGoStepPureDetTagged under (StructFieldSet indexedTriggerFunc.underlying go!"indexerFunc") (PairV #x #y) (Val #(({ x with indexerFunc' := y } : indexedTriggerFunc)))
+  method_set : go.MethodSetIs indexedTriggerFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexedTriggerFunc.ty) []
 
 attribute [instance] indexedTriggerFunc.TypeAssumptions.type_repr
   indexedTriggerFunc.TypeAssumptions.underlying
@@ -1960,6 +1990,8 @@ attribute [instance] indexedTriggerFunc.TypeAssumptions.type_repr
   indexedTriggerFunc.TypeAssumptions.set_indexName
   indexedTriggerFunc.TypeAssumptions.get_indexerFunc
   indexedTriggerFunc.TypeAssumptions.set_indexerFunc
+  indexedTriggerFunc.TypeAssumptions.method_set
+  indexedTriggerFunc.TypeAssumptions.ptr_method_set
 
 axiom Cacher : Type
 axiom Cacher.zero_val : ZeroVal Cacher
@@ -1969,11 +2001,15 @@ class Cacher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Cacher.underlying Cacher
   underlying : go.UnderlyingDirectedEq Cacher.ty Cacher.underlying
   isUnderlying : go.IsUnderlying Cacher.underlying Cacher.underlying
+  method_set : go.MethodSetIs Cacher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cacher.ty) [(go!"Compact", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.GetOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"GetList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"MarkConsistent", (some (go.signature.Signature [go.bool] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [_root_.Perennial.sync.Locker.ty]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"Ready", (some (go.signature.Signature [] false [go.bool]))), (go!"ShouldDelegateConsistentRead", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.ty, go.error]))), (go!"ShouldDelegateContinue", (some (go.signature.Signature [go.string, go.bool] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.ty, go.error]))), (go!"ShouldDelegateExactRV", (some (go.signature.Signature [go.string, go.bool] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.ty, go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.dispatchEvent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.dispatchEvents", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.finishDispatching", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, go.uint64, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getBookmarkAfterResourceVersionLocked", (some (go.signature.Signature [go.uint64, go.uint64, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [go.uint64]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getKeys", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.SliceType go.string), go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getWatchCacheResourceVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [go.uint64, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.isStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.prepareKey", (some (go.signature.Signature [go.string, go.bool] false [go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.processEvent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.setInitialEventsEndBookmark", (some (go.signature.Signature [(go.GoType.PointerType watchCacheInterval.ty), go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.shouldDelegateExactRV", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.startCaching", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.startDispatching", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.startDispatchingBookmarkEventsLocked", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.stopWatcherLocked", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.terminateAllWatchers", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.triggerValuesThreadUnsafe", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [(go.GoType.SliceType go.string), go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.watchSelector", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.SelectionPredicate.ty] false [watchSelector.ty]))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
   ptr_get_unfold : MethodUnfold (go.GoType.PointerType Cacher.ty) go!"get" Cacher.get.impl
 
 attribute [instance] Cacher.TypeAssumptions.type_repr
   Cacher.TypeAssumptions.underlying
   Cacher.TypeAssumptions.isUnderlying
+  Cacher.TypeAssumptions.method_set
+  Cacher.TypeAssumptions.ptr_method_set
   Cacher.TypeAssumptions.ptr_get_unfold
 
 structure listResp [GooseExts] where
@@ -2005,6 +2041,8 @@ class listResp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_ResourceVersion : ∀ (x : listResp) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet listResp.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : listResp)))
   get_Range : ∀ (x : listResp), go.IsGoStepPureDetTagged under (StructFieldGet listResp.underlying go!"Range") #x (Val #(x.Range'))
   set_Range : ∀ (x : listResp) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Range), go.IsGoStepPureDetTagged under (StructFieldSet listResp.underlying go!"Range") (PairV #x #y) (Val #(({ x with Range' := y } : listResp)))
+  method_set : go.MethodSetIs listResp.ty [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listResp.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
 
 attribute [instance] listResp.TypeAssumptions.type_repr
   listResp.TypeAssumptions.underlying
@@ -2012,6 +2050,8 @@ attribute [instance] listResp.TypeAssumptions.type_repr
   listResp.TypeAssumptions.set_ResourceVersion
   listResp.TypeAssumptions.get_Range
   listResp.TypeAssumptions.set_Range
+  listResp.TypeAssumptions.method_set
+  listResp.TypeAssumptions.ptr_method_set
 
 structure watchEventFilter [GooseExts] where
   mk ::
@@ -2046,6 +2086,8 @@ class watchEventFilter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_opts : ∀ (x : watchEventFilter) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions), go.IsGoStepPureDetTagged under (StructFieldSet watchEventFilter.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : watchEventFilter)))
   get_groupResource : ∀ (x : watchEventFilter), go.IsGoStepPureDetTagged under (StructFieldGet watchEventFilter.underlying go!"groupResource") #x (Val #(x.groupResource'))
   set_groupResource : ∀ (x : watchEventFilter) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet watchEventFilter.underlying go!"groupResource") (PairV #x #y) (Val #(({ x with groupResource' := y } : watchEventFilter)))
+  method_set : go.MethodSetIs watchEventFilter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchEventFilter.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.filterWithAttrsAndPrefix", (some (go.signature.Signature [go.string, _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool])))]
 
 attribute [instance] watchEventFilter.TypeAssumptions.type_repr
   watchEventFilter.TypeAssumptions.underlying
@@ -2055,6 +2097,8 @@ attribute [instance] watchEventFilter.TypeAssumptions.type_repr
   watchEventFilter.TypeAssumptions.set_opts
   watchEventFilter.TypeAssumptions.get_groupResource
   watchEventFilter.TypeAssumptions.set_groupResource
+  watchEventFilter.TypeAssumptions.method_set
+  watchEventFilter.TypeAssumptions.ptr_method_set
 
 structure errWatcher [GooseExts] where
   mk ::
@@ -2081,11 +2125,15 @@ class errWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq errWatcher.ty errWatcher.underlying
   get_result : ∀ (x : errWatcher), go.IsGoStepPureDetTagged under (StructFieldGet errWatcher.underlying go!"result") #x (Val #(x.result'))
   set_result : ∀ (x : errWatcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet errWatcher.underlying go!"result") (PairV #x #y) (Val #(({ x with result' := y } : errWatcher)))
+  method_set : go.MethodSetIs errWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] errWatcher.TypeAssumptions.type_repr
   errWatcher.TypeAssumptions.underlying
   errWatcher.TypeAssumptions.get_result
   errWatcher.TypeAssumptions.set_result
+  errWatcher.TypeAssumptions.method_set
+  errWatcher.TypeAssumptions.ptr_method_set
 
 structure immediateCloseWatcher [GooseExts] where
   mk ::
@@ -2112,21 +2160,29 @@ class immediateCloseWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq immediateCloseWatcher.ty immediateCloseWatcher.underlying
   get_result : ∀ (x : immediateCloseWatcher), go.IsGoStepPureDetTagged under (StructFieldGet immediateCloseWatcher.underlying go!"result") #x (Val #(x.result'))
   set_result : ∀ (x : immediateCloseWatcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet immediateCloseWatcher.underlying go!"result") (PairV #x #y) (Val #(({ x with result' := y } : immediateCloseWatcher)))
+  method_set : go.MethodSetIs immediateCloseWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType immediateCloseWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] immediateCloseWatcher.TypeAssumptions.type_repr
   immediateCloseWatcher.TypeAssumptions.underlying
   immediateCloseWatcher.TypeAssumptions.get_result
   immediateCloseWatcher.TypeAssumptions.set_result
+  immediateCloseWatcher.TypeAssumptions.method_set
+  immediateCloseWatcher.TypeAssumptions.ptr_method_set
 
 abbrev metaRuntimeInterface [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def metaRuntimeInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopyObject" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty])), (go.InterfaceElem.MethodElem go!"GetAnnotations" (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])), (go.InterfaceElem.MethodElem go!"GetCreationTimestamp" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty])), (go.InterfaceElem.MethodElem go!"GetDeletionGracePeriodSeconds" (go.signature.Signature [] false [(go.GoType.PointerType go.int64)])), (go.InterfaceElem.MethodElem go!"GetDeletionTimestamp" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)])), (go.InterfaceElem.MethodElem go!"GetFinalizers" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"GetGenerateName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetGeneration" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"GetLabels" (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])), (go.InterfaceElem.MethodElem go!"GetManagedFields" (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)])), (go.InterfaceElem.MethodElem go!"GetName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetNamespace" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetObjectKind" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty])), (go.InterfaceElem.MethodElem go!"GetOwnerReferences" (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)])), (go.InterfaceElem.MethodElem go!"GetResourceVersion" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetSelfLink" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetUID" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty])), (go.InterfaceElem.MethodElem go!"SetAnnotations" (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [])), (go.InterfaceElem.MethodElem go!"SetCreationTimestamp" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false [])), (go.InterfaceElem.MethodElem go!"SetDeletionGracePeriodSeconds" (go.signature.Signature [(go.GoType.PointerType go.int64)] false [])), (go.InterfaceElem.MethodElem go!"SetDeletionTimestamp" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false [])), (go.InterfaceElem.MethodElem go!"SetFinalizers" (go.signature.Signature [(go.GoType.SliceType go.string)] false [])), (go.InterfaceElem.MethodElem go!"SetGenerateName" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetGeneration" (go.signature.Signature [go.int64] false [])), (go.InterfaceElem.MethodElem go!"SetLabels" (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [])), (go.InterfaceElem.MethodElem go!"SetManagedFields" (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false [])), (go.InterfaceElem.MethodElem go!"SetName" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetNamespace" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetOwnerReferences" (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false [])), (go.InterfaceElem.MethodElem go!"SetResourceVersion" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetSelfLink" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetUID" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))])
 
 class metaRuntimeInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq metaRuntimeInterface.ty metaRuntimeInterface.underlying
+  method_set : go.MethodSetIs metaRuntimeInterface.ty [(go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType metaRuntimeInterface.ty) []
 
 attribute [instance] metaRuntimeInterface.TypeAssumptions.underlying
+  metaRuntimeInterface.TypeAssumptions.method_set
+  metaRuntimeInterface.TypeAssumptions.ptr_method_set
 
 structure serializationResult [GooseExts] where
   mk ::
@@ -2161,6 +2217,8 @@ class serializationResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_raw : ∀ (x : serializationResult) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serializationResult.underlying go!"raw") (PairV #x #y) (Val #(({ x with raw' := y } : serializationResult)))
   get_err : ∀ (x : serializationResult), go.IsGoStepPureDetTagged under (StructFieldGet serializationResult.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : serializationResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet serializationResult.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : serializationResult)))
+  method_set : go.MethodSetIs serializationResult.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serializationResult.ty) []
 
 attribute [instance] serializationResult.TypeAssumptions.type_repr
   serializationResult.TypeAssumptions.underlying
@@ -2170,6 +2228,8 @@ attribute [instance] serializationResult.TypeAssumptions.type_repr
   serializationResult.TypeAssumptions.set_raw
   serializationResult.TypeAssumptions.get_err
   serializationResult.TypeAssumptions.set_err
+  serializationResult.TypeAssumptions.method_set
+  serializationResult.TypeAssumptions.ptr_method_set
 
 abbrev serializationsCache [GooseExts] : Type := GoMap
 
@@ -2178,8 +2238,12 @@ abbrev serializationsCache [GooseExts] : Type := GoMap
 
 class serializationsCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq serializationsCache.ty serializationsCache.underlying
+  method_set : go.MethodSetIs serializationsCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serializationsCache.ty) []
 
 attribute [instance] serializationsCache.TypeAssumptions.underlying
+  serializationsCache.TypeAssumptions.method_set
+  serializationsCache.TypeAssumptions.ptr_method_set
 
 structure cachingObject [GooseExts] where
   mk ::
@@ -2218,6 +2282,8 @@ class cachingObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_object : ∀ (x : cachingObject) (y : metaRuntimeInterface), go.IsGoStepPureDetTagged under (StructFieldSet cachingObject.underlying go!"object") (PairV #x #y) (Val #(({ x with object' := y } : cachingObject)))
   get_serializations : ∀ (x : cachingObject), go.IsGoStepPureDetTagged under (StructFieldGet cachingObject.underlying go!"serializations") #x (Val #(x.serializations'))
   set_serializations : ∀ (x : cachingObject) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet cachingObject.underlying go!"serializations") (PairV #x #y) (Val #(({ x with serializations' := y } : cachingObject)))
+  method_set : go.MethodSetIs cachingObject.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cachingObject.ty) [(go!"CacheEncode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])), _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.conditionalSet", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.getSerializationResult", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty] false [(go.GoType.PointerType serializationResult.ty)]))), (go!"k8s.io/apiserver/pkg/storage/cacher.invalidateCacheLocked", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] cachingObject.TypeAssumptions.type_repr
   cachingObject.TypeAssumptions.underlying
@@ -2229,6 +2295,8 @@ attribute [instance] cachingObject.TypeAssumptions.type_repr
   cachingObject.TypeAssumptions.set_object
   cachingObject.TypeAssumptions.get_serializations
   cachingObject.TypeAssumptions.set_serializations
+  cachingObject.TypeAssumptions.method_set
+  cachingObject.TypeAssumptions.ptr_method_set
 
 structure compactor [GooseExts] where
   mk ::
@@ -2271,6 +2339,8 @@ class compactor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_lock : ∀ (x : compactor) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet compactor.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : compactor)))
   get_compactRevision : ∀ (x : compactor), go.IsGoStepPureDetTagged under (StructFieldGet compactor.underlying go!"compactRevision") #x (Val #(x.compactRevision'))
   set_compactRevision : ∀ (x : compactor) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet compactor.underlying go!"compactRevision") (PairV #x #y) (Val #(({ x with compactRevision' := y } : compactor)))
+  method_set : go.MethodSetIs compactor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType compactor.ty) [(go!"Revision", (some (go.signature.Signature [] false [go.int64]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.compactIfNeeded", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] compactor.TypeAssumptions.type_repr
   compactor.TypeAssumptions.underlying
@@ -2284,6 +2354,8 @@ attribute [instance] compactor.TypeAssumptions.type_repr
   compactor.TypeAssumptions.set_lock
   compactor.TypeAssumptions.get_compactRevision
   compactor.TypeAssumptions.set_compactRevision
+  compactor.TypeAssumptions.method_set
+  compactor.TypeAssumptions.ptr_method_set
 
 structure CacheDelegator [GooseExts] where
   mk ::
@@ -2330,6 +2402,8 @@ class CacheDelegator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_stopOnce : ∀ (x : CacheDelegator) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet CacheDelegator.underlying go!"stopOnce") (PairV #x #y) (Val #(({ x with stopOnce' := y } : CacheDelegator)))
   get_stopCh : ∀ (x : CacheDelegator), go.IsGoStepPureDetTagged under (StructFieldGet CacheDelegator.underlying go!"stopCh") #x (Val #(x.stopCh'))
   set_stopCh : ∀ (x : CacheDelegator) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet CacheDelegator.underlying go!"stopCh") (PairV #x #y) (Val #(({ x with stopCh' := y } : CacheDelegator)))
+  method_set : go.MethodSetIs CacheDelegator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CacheDelegator.ty) [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.Preconditions.ty), _root_.Perennial.k8s_io.apiserver.pkg.storage.ValidateObjectFunc.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.DeleteOptions.ty] false [go.error]))), (go!"EnableResourceSizeEstimation", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.KeysFunc.ty] false [go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.GetOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"GetCurrentResourceVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.uint64, go.error]))), (go!"GetList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"GuaranteedUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.Preconditions.ty), _root_.Perennial.k8s_io.apiserver.pkg.storage.UpdateFunc.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ReadinessCheck", (some (go.signature.Signature [] false [go.error]))), (go!"RequestWatchProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Stats", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.Stats.ty, go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"Versioner", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner.ty]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
 
 attribute [instance] CacheDelegator.TypeAssumptions.type_repr
   CacheDelegator.TypeAssumptions.underlying
@@ -2345,6 +2419,8 @@ attribute [instance] CacheDelegator.TypeAssumptions.type_repr
   CacheDelegator.TypeAssumptions.set_stopOnce
   CacheDelegator.TypeAssumptions.get_stopCh
   CacheDelegator.TypeAssumptions.set_stopCh
+  CacheDelegator.TypeAssumptions.method_set
+  CacheDelegator.TypeAssumptions.ptr_method_set
 
 structure listerWatcher [GooseExts] where
   mk ::
@@ -2391,6 +2467,8 @@ class listerWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_unsupportedWatchListSemantics : ∀ (x : listerWatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet listerWatcher.underlying go!"unsupportedWatchListSemantics") (PairV #x #y) (Val #(({ x with unsupportedWatchListSemantics' := y } : listerWatcher)))
   get_watchListConsistencyCheckEnabled : ∀ (x : listerWatcher), go.IsGoStepPureDetTagged under (StructFieldGet listerWatcher.underlying go!"watchListConsistencyCheckEnabled") #x (Val #(x.watchListConsistencyCheckEnabled'))
   set_watchListConsistencyCheckEnabled : ∀ (x : listerWatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet listerWatcher.underlying go!"watchListConsistencyCheckEnabled") (PairV #x #y) (Val #(({ x with watchListConsistencyCheckEnabled' := y } : listerWatcher)))
+  method_set : go.MethodSetIs listerWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listerWatcher.ty) [(go!"IsWatchListSemanticsUnSupported", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
 
 attribute [instance] listerWatcher.TypeAssumptions.type_repr
   listerWatcher.TypeAssumptions.underlying
@@ -2406,6 +2484,8 @@ attribute [instance] listerWatcher.TypeAssumptions.type_repr
   listerWatcher.TypeAssumptions.set_unsupportedWatchListSemantics
   listerWatcher.TypeAssumptions.get_watchListConsistencyCheckEnabled
   listerWatcher.TypeAssumptions.set_watchListConsistencyCheckEnabled
+  listerWatcher.TypeAssumptions.method_set
+  listerWatcher.TypeAssumptions.ptr_method_set
 
 abbrev status [GooseExts] : Type := w64
 
@@ -2414,8 +2494,12 @@ abbrev status [GooseExts] : Type := w64
 
 class status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq status.ty status.underlying
+  method_set : go.MethodSetIs status.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType status.ty) []
 
 attribute [instance] status.TypeAssumptions.underlying
+  status.TypeAssumptions.method_set
+  status.TypeAssumptions.ptr_method_set
 
 structure ready [GooseExts] where
   mk ::
@@ -2470,6 +2554,8 @@ class ready.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_clock : ∀ (x : ready) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : ready)))
   get_lastStateChangeTime : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"lastStateChangeTime") #x (Val #(x.lastStateChangeTime'))
   set_lastStateChangeTime : ∀ (x : ready) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"lastStateChangeTime") (PairV #x #y) (Val #(({ x with lastStateChangeTime' := y } : ready)))
+  method_set : go.MethodSetIs ready.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ready.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.check", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.checkAndReadGeneration", (some (go.signature.Signature [] false [go.int, _root_.Perennial.time.Duration.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))), (go!"k8s.io/apiserver/pkg/storage/cacher.readGenerationLocked", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.set", (some (go.signature.Signature [go.bool, go.error] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.setError", (some (go.signature.Signature [go.error] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.setReady", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.updateLastStateChangeTimeLocked", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndReadGeneration", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.int, go.error])))]
 
 attribute [instance] ready.TypeAssumptions.type_repr
   ready.TypeAssumptions.underlying
@@ -2489,16 +2575,22 @@ attribute [instance] ready.TypeAssumptions.type_repr
   ready.TypeAssumptions.set_clock
   ready.TypeAssumptions.get_lastStateChangeTime
   ready.TypeAssumptions.set_lastStateChangeTime
+  ready.TypeAssumptions.method_set
+  ready.TypeAssumptions.ptr_method_set
 
 abbrev timeBudget [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def timeBudget.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"returnUnused" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"takeAvailable" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"k8s.io/apiserver/pkg/storage/cacher.returnUnused" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"k8s.io/apiserver/pkg/storage/cacher.takeAvailable" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))])
 
 class timeBudget.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq timeBudget.ty timeBudget.underlying
+  method_set : go.MethodSetIs timeBudget.ty [(go!"k8s.io/apiserver/pkg/storage/cacher.returnUnused", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.takeAvailable", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeBudget.ty) []
 
 attribute [instance] timeBudget.TypeAssumptions.underlying
+  timeBudget.TypeAssumptions.method_set
+  timeBudget.TypeAssumptions.ptr_method_set
 
 structure timeBudgetImpl [GooseExts] where
   mk ::
@@ -2545,6 +2637,8 @@ class timeBudgetImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_refresh : ∀ (x : timeBudgetImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet timeBudgetImpl.underlying go!"refresh") (PairV #x #y) (Val #(({ x with refresh' := y } : timeBudgetImpl)))
   get_last : ∀ (x : timeBudgetImpl), go.IsGoStepPureDetTagged under (StructFieldGet timeBudgetImpl.underlying go!"last") #x (Val #(x.last'))
   set_last : ∀ (x : timeBudgetImpl) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet timeBudgetImpl.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : timeBudgetImpl)))
+  method_set : go.MethodSetIs timeBudgetImpl.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeBudgetImpl.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.returnUnused", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.takeAvailable", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
 
 attribute [instance] timeBudgetImpl.TypeAssumptions.type_repr
   timeBudgetImpl.TypeAssumptions.underlying
@@ -2560,6 +2654,8 @@ attribute [instance] timeBudgetImpl.TypeAssumptions.type_repr
   timeBudgetImpl.TypeAssumptions.set_refresh
   timeBudgetImpl.TypeAssumptions.get_last
   timeBudgetImpl.TypeAssumptions.set_last
+  timeBudgetImpl.TypeAssumptions.method_set
+  timeBudgetImpl.TypeAssumptions.ptr_method_set
 
 axiom watchCacheEvent : Type
 axiom watchCacheEvent.zero_val : ZeroVal watchCacheEvent
@@ -2569,10 +2665,14 @@ class watchCacheEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying watchCacheEvent.underlying watchCacheEvent
   underlying : go.UnderlyingDirectedEq watchCacheEvent.ty watchCacheEvent.underlying
   isUnderlying : go.IsUnderlying watchCacheEvent.underlying watchCacheEvent.underlying
+  method_set : go.MethodSetIs watchCacheEvent.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCacheEvent.ty) []
 
 attribute [instance] watchCacheEvent.TypeAssumptions.type_repr
   watchCacheEvent.TypeAssumptions.underlying
   watchCacheEvent.TypeAssumptions.isUnderlying
+  watchCacheEvent.TypeAssumptions.method_set
+  watchCacheEvent.TypeAssumptions.ptr_method_set
 
 structure watchCache [GooseExts] where
   mk ::
@@ -2623,6 +2723,8 @@ class watchCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_storage : ∀ (x : watchCache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchCache.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : watchCache)))
   get_config : ∀ (x : watchCache), go.IsGoStepPureDetTagged under (StructFieldGet watchCache.underlying go!"config") #x (Val #(x.config'))
   set_config : ∀ (x : watchCache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchCache.underlying go!"config") (PairV #x #y) (Val #(({ x with config' := y } : watchCache)))
+  method_set : go.MethodSetIs watchCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCache.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [_root_.Perennial.sync.Locker.ty]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"SetOnReplace", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"UpdateResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"WaitUntilFreshAndGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.InterfaceType []), go.bool, go.uint64, go.error]))), (go!"WaitUntilFreshAndGetKeys", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType go.string), go.error]))), (go!"WaitUntilFreshAndGetList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.checkSnapshotResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty, go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.getAllEventsSinceLocked", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [(go.GoType.PointerType watchCacheInterval.ty), go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getIntervalFromStoreLocked", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [(go.GoType.PointerType watchCacheInterval.ty), go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getLatestSnapshotLocked", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.storage.MatchValue.ty)] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty, go.string]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getListResourceVersion", (some (go.signature.Signature [] false [go.uint64]))), (go!"k8s.io/apiserver/pkg/storage/cacher.notFresh", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.objectToVersionedRuntimeObject", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.processEvent", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty, go.uint64] false [go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.suggestedWatchChannelSize", (some (go.signature.Signature [go.bool, go.bool] false [go.int]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndGetExactSnapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndGetLatestSnapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, go.uint64, (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.storage.MatchValue.ty)] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty, go.uint64, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndListConsistent", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, go.string, go.string, (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.storage.MatchValue.ty)] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndListExactRV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.uint64] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndListLatestRV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, go.uint64, go.string, go.string, (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.storage.MatchValue.ty)] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitUntilFreshAndListNonRecursive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitUntilFreshAndListRecursive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitUntilFreshLocked", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [go.error]))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Add" watchCache.Add.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Delete" watchCache.Delete.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Lock" (LamV "$r"
@@ -2662,6 +2764,8 @@ attribute [instance] watchCache.TypeAssumptions.type_repr
   watchCache.TypeAssumptions.set_storage
   watchCache.TypeAssumptions.get_config
   watchCache.TypeAssumptions.set_config
+  watchCache.TypeAssumptions.method_set
+  watchCache.TypeAssumptions.ptr_method_set
   watchCache.TypeAssumptions.ptr_Add_unfold
   watchCache.TypeAssumptions.ptr_Delete_unfold
   watchCache.TypeAssumptions.ptr_Lock_unfold
@@ -2687,8 +2791,12 @@ abbrev indexValidator [GooseExts] : Type := GoFunc
 
 class indexValidator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq indexValidator.ty indexValidator.underlying
+  method_set : go.MethodSetIs indexValidator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexValidator.ty) []
 
 attribute [instance] indexValidator.TypeAssumptions.underlying
+  indexValidator.TypeAssumptions.method_set
+  indexValidator.TypeAssumptions.ptr_method_set
 
 structure ImmutableWatchCacheConfig [GooseExts] where
   mk ::
@@ -2747,6 +2855,8 @@ class ImmutableWatchCacheConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [G
   set_waitingUntilFresh : ∀ (x : ImmutableWatchCacheConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ImmutableWatchCacheConfig.underlying go!"waitingUntilFresh") (PairV #x #y) (Val #(({ x with waitingUntilFresh' := y } : ImmutableWatchCacheConfig)))
   get_getCurrentRV : ∀ (x : ImmutableWatchCacheConfig), go.IsGoStepPureDetTagged under (StructFieldGet ImmutableWatchCacheConfig.underlying go!"getCurrentRV") #x (Val #(x.getCurrentRV'))
   set_getCurrentRV : ∀ (x : ImmutableWatchCacheConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet ImmutableWatchCacheConfig.underlying go!"getCurrentRV") (PairV #x #y) (Val #(({ x with getCurrentRV' := y } : ImmutableWatchCacheConfig)))
+  method_set : go.MethodSetIs ImmutableWatchCacheConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ImmutableWatchCacheConfig.ty) []
 
 attribute [instance] ImmutableWatchCacheConfig.TypeAssumptions.type_repr
   ImmutableWatchCacheConfig.TypeAssumptions.underlying
@@ -2768,6 +2878,8 @@ attribute [instance] ImmutableWatchCacheConfig.TypeAssumptions.type_repr
   ImmutableWatchCacheConfig.TypeAssumptions.set_waitingUntilFresh
   ImmutableWatchCacheConfig.TypeAssumptions.get_getCurrentRV
   ImmutableWatchCacheConfig.TypeAssumptions.set_getCurrentRV
+  ImmutableWatchCacheConfig.TypeAssumptions.method_set
+  ImmutableWatchCacheConfig.TypeAssumptions.ptr_method_set
 
 structure watchCacheHistory [GooseExts] where
   mk ::
@@ -2830,6 +2942,8 @@ class watchCacheHistory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_listResourceVersion : ∀ (x : watchCacheHistory) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheHistory.underlying go!"listResourceVersion") (PairV #x #y) (Val #(({ x with listResourceVersion' := y } : watchCacheHistory)))
   get_eventFreshDuration : ∀ (x : watchCacheHistory), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheHistory.underlying go!"eventFreshDuration") #x (Val #(x.eventFreshDuration'))
   set_eventFreshDuration : ∀ (x : watchCacheHistory) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheHistory.underlying go!"eventFreshDuration") (PairV #x #y) (Val #(({ x with eventFreshDuration' := y } : watchCacheHistory)))
+  method_set : go.MethodSetIs watchCacheHistory.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCacheHistory.ty) [(go!"Capacity", (some (go.signature.Signature [] false [go.int]))), (go!"GetIntervalLocked", (some (go.signature.Signature [go.uint64, _root_.Perennial.sync.Locker.ty] false [(go.GoType.PointerType watchCacheInterval.ty), go.error]))), (go!"OldestResourceVersionLocked", (some (go.signature.Signature [] false [go.uint64]))), (go!"ResetLocked", (some (go.signature.Signature [go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.doCacheResizeLocked", (some (go.signature.Signature [go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.isCacheFullLocked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.isIndexValidLocked", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.oldestServableLocked", (some (go.signature.Signature [] false [go.uint64, go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.resizeCacheLocked", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.suggestedWatchChannelSize", (some (go.signature.Signature [go.bool, go.bool] false [go.int]))), (go!"k8s.io/apiserver/pkg/storage/cacher.updateCache", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [])))]
 
 attribute [instance] watchCacheHistory.TypeAssumptions.type_repr
   watchCacheHistory.TypeAssumptions.underlying
@@ -2853,6 +2967,8 @@ attribute [instance] watchCacheHistory.TypeAssumptions.type_repr
   watchCacheHistory.TypeAssumptions.set_listResourceVersion
   watchCacheHistory.TypeAssumptions.get_eventFreshDuration
   watchCacheHistory.TypeAssumptions.set_eventFreshDuration
+  watchCacheHistory.TypeAssumptions.method_set
+  watchCacheHistory.TypeAssumptions.ptr_method_set
 
 abbrev cacheIntervalSource [GooseExts] : Type := GoInterface
 
@@ -2861,8 +2977,12 @@ abbrev cacheIntervalSource [GooseExts] : Type := GoInterface
 
 class cacheIntervalSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq cacheIntervalSource.ty cacheIntervalSource.underlying
+  method_set : go.MethodSetIs cacheIntervalSource.ty [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacheIntervalSource.ty) []
 
 attribute [instance] cacheIntervalSource.TypeAssumptions.underlying
+  cacheIntervalSource.TypeAssumptions.method_set
+  cacheIntervalSource.TypeAssumptions.ptr_method_set
 
 structure watchCacheInterval [GooseExts] where
   mk ::
@@ -2897,6 +3017,8 @@ class watchCacheInterval.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_resourceVersion : ∀ (x : watchCacheInterval) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheInterval.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : watchCacheInterval)))
   get_initialEventsEndBookmark : ∀ (x : watchCacheInterval), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheInterval.underlying go!"initialEventsEndBookmark") #x (Val #(x.initialEventsEndBookmark'))
   set_initialEventsEndBookmark : ∀ (x : watchCacheInterval) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheInterval.underlying go!"initialEventsEndBookmark") (PairV #x #y) (Val #(({ x with initialEventsEndBookmark' := y } : watchCacheInterval)))
+  method_set : go.MethodSetIs watchCacheInterval.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCacheInterval.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)])))]
 
 attribute [instance] watchCacheInterval.TypeAssumptions.type_repr
   watchCacheInterval.TypeAssumptions.underlying
@@ -2906,6 +3028,8 @@ attribute [instance] watchCacheInterval.TypeAssumptions.type_repr
   watchCacheInterval.TypeAssumptions.set_resourceVersion
   watchCacheInterval.TypeAssumptions.get_initialEventsEndBookmark
   watchCacheInterval.TypeAssumptions.set_initialEventsEndBookmark
+  watchCacheInterval.TypeAssumptions.method_set
+  watchCacheInterval.TypeAssumptions.ptr_method_set
 
 abbrev indexerFunc [GooseExts] : Type := GoFunc
 
@@ -2914,8 +3038,12 @@ abbrev indexerFunc [GooseExts] : Type := GoFunc
 
 class indexerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq indexerFunc.ty indexerFunc.underlying
+  method_set : go.MethodSetIs indexerFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexerFunc.ty) []
 
 attribute [instance] indexerFunc.TypeAssumptions.underlying
+  indexerFunc.TypeAssumptions.method_set
+  indexerFunc.TypeAssumptions.ptr_method_set
 
 structure historyCacheIntervalSource [GooseExts] where
   mk ::
@@ -2962,6 +3090,8 @@ class historyCacheIntervalSource.TypeAssumptions [GooseExts] [GoGlobalContext] [
   set_buffer : ∀ (x : historyCacheIntervalSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet historyCacheIntervalSource.underlying go!"buffer") (PairV #x #y) (Val #(({ x with buffer' := y } : historyCacheIntervalSource)))
   get_lock : ∀ (x : historyCacheIntervalSource), go.IsGoStepPureDetTagged under (StructFieldGet historyCacheIntervalSource.underlying go!"lock") #x (Val #(x.lock'))
   set_lock : ∀ (x : historyCacheIntervalSource) (y : _root_.Perennial.sync.Locker), go.IsGoStepPureDetTagged under (StructFieldSet historyCacheIntervalSource.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : historyCacheIntervalSource)))
+  method_set : go.MethodSetIs historyCacheIntervalSource.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType historyCacheIntervalSource.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)]))), (go!"k8s.io/apiserver/pkg/storage/cacher.fillBuffer", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.next", (some (go.signature.Signature [] false [(go.GoType.PointerType watchCacheEvent.ty), go.error])))]
 
 attribute [instance] historyCacheIntervalSource.TypeAssumptions.type_repr
   historyCacheIntervalSource.TypeAssumptions.underlying
@@ -2977,6 +3107,8 @@ attribute [instance] historyCacheIntervalSource.TypeAssumptions.type_repr
   historyCacheIntervalSource.TypeAssumptions.set_buffer
   historyCacheIntervalSource.TypeAssumptions.get_lock
   historyCacheIntervalSource.TypeAssumptions.set_lock
+  historyCacheIntervalSource.TypeAssumptions.method_set
+  historyCacheIntervalSource.TypeAssumptions.ptr_method_set
 
 structure snapshotCacheIntervalSource [GooseExts] where
   mk ::
@@ -3003,11 +3135,15 @@ class snapshotCacheIntervalSource.TypeAssumptions [GooseExts] [GoGlobalContext] 
   underlying : go.UnderlyingDirectedEq snapshotCacheIntervalSource.ty snapshotCacheIntervalSource.underlying
   get_buffer : ∀ (x : snapshotCacheIntervalSource), go.IsGoStepPureDetTagged under (StructFieldGet snapshotCacheIntervalSource.underlying go!"buffer") #x (Val #(x.buffer'))
   set_buffer : ∀ (x : snapshotCacheIntervalSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshotCacheIntervalSource.underlying go!"buffer") (PairV #x #y) (Val #(({ x with buffer' := y } : snapshotCacheIntervalSource)))
+  method_set : go.MethodSetIs snapshotCacheIntervalSource.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotCacheIntervalSource.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)]))), (go!"k8s.io/apiserver/pkg/storage/cacher.next", (some (go.signature.Signature [] false [(go.GoType.PointerType watchCacheEvent.ty), go.error])))]
 
 attribute [instance] snapshotCacheIntervalSource.TypeAssumptions.type_repr
   snapshotCacheIntervalSource.TypeAssumptions.underlying
   snapshotCacheIntervalSource.TypeAssumptions.get_buffer
   snapshotCacheIntervalSource.TypeAssumptions.set_buffer
+  snapshotCacheIntervalSource.TypeAssumptions.method_set
+  snapshotCacheIntervalSource.TypeAssumptions.ptr_method_set
 
 structure lazySnapshotCacheIntervalSource [GooseExts] where
   mk ::
@@ -3046,6 +3182,8 @@ class lazySnapshotCacheIntervalSource.TypeAssumptions [GooseExts] [GoGlobalConte
   set_key : ∀ (x : lazySnapshotCacheIntervalSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lazySnapshotCacheIntervalSource.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : lazySnapshotCacheIntervalSource)))
   get_recursive : ∀ (x : lazySnapshotCacheIntervalSource), go.IsGoStepPureDetTagged under (StructFieldGet lazySnapshotCacheIntervalSource.underlying go!"recursive") #x (Val #(x.recursive'))
   set_recursive : ∀ (x : lazySnapshotCacheIntervalSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet lazySnapshotCacheIntervalSource.underlying go!"recursive") (PairV #x #y) (Val #(({ x with recursive' := y } : lazySnapshotCacheIntervalSource)))
+  method_set : go.MethodSetIs lazySnapshotCacheIntervalSource.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazySnapshotCacheIntervalSource.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)])))]
 
 attribute [instance] lazySnapshotCacheIntervalSource.TypeAssumptions.type_repr
   lazySnapshotCacheIntervalSource.TypeAssumptions.underlying
@@ -3057,6 +3195,8 @@ attribute [instance] lazySnapshotCacheIntervalSource.TypeAssumptions.type_repr
   lazySnapshotCacheIntervalSource.TypeAssumptions.set_key
   lazySnapshotCacheIntervalSource.TypeAssumptions.get_recursive
   lazySnapshotCacheIntervalSource.TypeAssumptions.set_recursive
+  lazySnapshotCacheIntervalSource.TypeAssumptions.method_set
+  lazySnapshotCacheIntervalSource.TypeAssumptions.ptr_method_set
 
 structure watchCacheIntervalBuffer [GooseExts] where
   mk ::
@@ -3091,6 +3231,8 @@ class watchCacheIntervalBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [Go
   set_startIndex : ∀ (x : watchCacheIntervalBuffer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheIntervalBuffer.underlying go!"startIndex") (PairV #x #y) (Val #(({ x with startIndex' := y } : watchCacheIntervalBuffer)))
   get_endIndex : ∀ (x : watchCacheIntervalBuffer), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheIntervalBuffer.underlying go!"endIndex") #x (Val #(x.endIndex'))
   set_endIndex : ∀ (x : watchCacheIntervalBuffer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheIntervalBuffer.underlying go!"endIndex") (PairV #x #y) (Val #(({ x with endIndex' := y } : watchCacheIntervalBuffer)))
+  method_set : go.MethodSetIs watchCacheIntervalBuffer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCacheIntervalBuffer.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.isEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.isFull", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.next", (some (go.signature.Signature [] false [(go.GoType.PointerType watchCacheEvent.ty), go.bool])))]
 
 attribute [instance] watchCacheIntervalBuffer.TypeAssumptions.type_repr
   watchCacheIntervalBuffer.TypeAssumptions.underlying
@@ -3100,6 +3242,8 @@ attribute [instance] watchCacheIntervalBuffer.TypeAssumptions.type_repr
   watchCacheIntervalBuffer.TypeAssumptions.set_startIndex
   watchCacheIntervalBuffer.TypeAssumptions.get_endIndex
   watchCacheIntervalBuffer.TypeAssumptions.set_endIndex
+  watchCacheIntervalBuffer.TypeAssumptions.method_set
+  watchCacheIntervalBuffer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   cacheWatcher_instance : cacheWatcher.TypeAssumptions

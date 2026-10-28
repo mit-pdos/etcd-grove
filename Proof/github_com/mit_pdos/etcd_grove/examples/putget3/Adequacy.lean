@@ -110,20 +110,18 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.putget3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [ErrorStringNotWriter] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
-    [context.DeadlineExceededIsError] [log.NewModel]
+    [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putget3GF, ContextReadErrs (GF := putget3GF) (hG := heapAt3 hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putget3GF, ContextErrsClient (GF := putget3GF) (hG := heapAt3 hG lctx))
-    (Hms : v3rpc.ServerMethodSets)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : putget3.BootFacts id₁ id₂ id₃ bootLog)
+    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : putget3.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
-      ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ bootLog)
+      ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -146,8 +144,8 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   simp only [putget3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Has with ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩
   icases Hps with ⟨Hf₁, Hf₂, Hf₃, -, -⟩
-  have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ bootLog Hbf (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
+  have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ ctxs boot Hbf (by rw [HT]; omega)
+    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok]
   · iframe; iframe #
   ipureintro

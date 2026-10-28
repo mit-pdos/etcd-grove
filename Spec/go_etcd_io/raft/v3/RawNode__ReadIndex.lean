@@ -8,7 +8,7 @@ queued until an entry of its term is committed, then confirmed by a quorum's hea
 acknowledgements (`ReadOnlySafe`), or answered at once when the leader is the only voter
 (stage F); at a follower it is forwarded to the leader (and the answer comes back as a
 `MsgReadIndexResp`); with no leader known it is dropped. Once confirmed, a `Ready` hands out
-`ReadState{Index: i, RequestCtx: rctx}` (`readStateOk`).
+`ReadState{Index: i, RequestCtx: rctx}` (`readStateRaw`).
 
 **A persistent atomic update (2026-10-14, stage R; `notes/raft-readindex-spec.md`).** The
 client passes a persistent atomic update `readAu γ Qr` = `□ AU <{ ∃∃ L, rLog γ L }> @ ⊤ ∖
@@ -30,7 +30,7 @@ client-facing state is unchanged: a `MsgReadIndex` moves no term and no log (`ra
 
 raft v3.7 (2026-10-16, stage R5): the request is `&pb.Message{Type: MsgReadIndex.Enum(), Entries:
 []*pb.Entry{{Data: rctx}}}`, stepped with `raft.Step` (`msgIn ml □`). D6: a read context is its
-bytes (`readStateOk` over `ReadStateM`, etcd matches read states by `bytes.Equal`), so the client
+bytes (`readStateRaw` over `ReadStateM`, etcd matches read states by `bytes.Equal`), so the client
 supplies `rctx ↦*□ c` (the entry holds the slice read-only) instead of the proposed slice.
 
 Lean notes: as `RawNode.Propose.spec` (`hlc := HasLC.hasLC`, `[AllG GF]`).

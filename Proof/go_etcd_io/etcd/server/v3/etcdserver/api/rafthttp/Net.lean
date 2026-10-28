@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvPb
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat
@@ -290,11 +291,8 @@ theorem snapDir_init (ss : Loc) (γd : GName) (img : w64 → backend.Data → IP
   imodintro
   iexact Hi
 
-/-- (2026-10-26, D22 J2, R-loc) **A saved index is local to the receiver** whose raft names name
-its directory: `snapSaved` is `snapLocal`'s body (`RaftNames.reSnapLoc`). -/
-theorem snapLocal_of_saved {γ : RaftNames} {id : w64} {γd : GName} (h : γ.reSnapLoc id = some γd)
-    (i : w64) : snapSaved (GF := GF) γd i ⊢ snapLocal γ id i :=
-  snapLocal_of_elem h i
+-- (2026-10-27) `snapLocal_of_saved` (`snapSaved` as raft's `snapLocal`, by `RaftNames.reSnapLoc`)
+-- deleted with the server's port onto raft's node API: the server's clusters send no snapshot.
 
 /-- **A member's snapshot directory, allocated empty** (D22 S-i): what the receiver gives
 `Transport.Start` for its snapshotter `ss`, at the payload's certificate and its removal fact

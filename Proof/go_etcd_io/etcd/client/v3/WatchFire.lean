@@ -78,13 +78,16 @@ theorem watch_fire (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst : �
         rw [← h.eq_of_length hl2]; exact hb
       · exact h.trans hb
     · imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-        Lf A $$ HrI HLf HA with ⟨HLf, -, %Hp⟩
+        Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+      ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
       imodintro
       iframe HLf
       ipureintro
-      rw [← hA]
+      -- (2026-10-27) `A`'s requested entries are a prefix of the server's log's
+      obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
+      rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
       unfold kvModel
-      exact kvRaftOf_prefix _ _ _ A Lf Hp
+      exact kvRaftOf_prefix _ _ _ A' Lf hA'L
   imod Hp with ⟨HLf, %HpL⟩
   -- the update, fired at the committed state
   imod (fupd_mask_subseteq Hsub) with Hback

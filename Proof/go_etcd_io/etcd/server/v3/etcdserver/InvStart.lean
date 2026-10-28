@@ -224,7 +224,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.mode.isDyn = true → uint.Z c₀ ≤ uint.Z ai₀)⌝ ∗
+      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
@@ -264,7 +264,9 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "HWB" ∷ srvWTStock E N ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's entry of the cluster's registries' map, which
     -- `start` sets to the wait it makes
-    "Hwtok" ∷ idWaitTok ρ.ids)
+    "Hwtok" ∷ idWaitTok ρ.ids ∗
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction, for `run`
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 /-- **What `start` hands to `Start`'s goroutines** (not persistent): a reader slot of `wgMu` (for
 `Start`'s `GoAttach`es), the read loop's precondition with its resources (`srvReadLR`), and the
@@ -272,11 +274,12 @@ reader slots left over for request goroutines: `s.read.mux`'s (`srvReadReader`),
 (`srvWgReader`), `s.leaderChanged`'s; and (2026-10-16, stage R7b) that the request path's read
 names are `γr` (`isServerBuilt`'s premise, which the read server's discharge takes,
 `isReadServer_of_server`). -/
-def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
+def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
+    (F : List EntryModel → KVState := kvStOff γr.kv) : IProp GF :=
   iprop("%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hgo" ∷ srvWgReader s ∗
     "Hrl" ∷ (∃ r : Loc, srvReadAddr s ↦□ r ∗
-      isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1)) ∗
+      isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1) F) ∗
     "HLR" ∷ srvReadLR s ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "Hrds" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),

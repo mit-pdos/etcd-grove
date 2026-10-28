@@ -18,7 +18,7 @@ theorem RawNode.Bootstrap.wp_proof [package_sem : Assumptions] (wp_raft_becomeFo
               id ∈ ps →
                 γ.reCfg = listToSet ps →
                   γ.reBoot = bootLog →
-                    BootLogOk γ.reCCOk ps bootLog →
+                    BootLogOk ps bootLog →
                       ⊢
                         ∀ Φ,
                           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗

@@ -26,9 +26,10 @@ raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, "The node layer over poin
 the message is `&pb.Message{Type: MsgProp.Enum(), From: new(rn.raft.id), Entries:
 []*pb.Entry{{Data: data}}}`, a slice literal of one fresh entry holding `data`'s bytes (D6: the
 entry's record is `propEntryM data`, its `Data` the caller's frozen slice, `data_sl ↦*□ data`);
-`raft.Step` takes it (`msgIn ml 1`). The data must be non-empty (`Hne`, D6: with bytes in the
-record an empty proposal and a leader's own entry are the same record, and `entDataIs (some d)`
-needs `d ≠ []`).
+`raft.Step` takes it (`msgIn ml 1`). Until 2026-10-27 the data had to be non-empty (`Hne`, D6:
+with bytes in the record an empty proposal and a leader's own entry are the same record); an empty
+one is now a filler (`Filler`), whose data is `none` and which carries no ticket (`propData`,
+`entTk`), so the premise went.
 
 Lean notes:
 * Rocq's `prop_entry` was `propEntry`, now `propEntryM` (the record).
@@ -67,9 +68,6 @@ abbrev RawNode.Propose.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "#Hdata" ∷ data_sl ↦*□ data ∗
-      -- (2026-10-16, stage R5, D6) non-empty data: an empty proposal would be a leader's own
-      -- entry
-      "%Hne" ∷ ⌜data ≠ []⌝ ∗
       "#Hent" ∷ propData γ (propEntryM data) ∗
       -- (2026-10-19, D21 M6) its ticket (or that it may be proposed any number of times)
       "Htk" ∷ entTk γ (propEntryM data) }}

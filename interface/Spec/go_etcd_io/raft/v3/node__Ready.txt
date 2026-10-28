@@ -3,10 +3,10 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Ready.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc),
+  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n -∗
-          (▷ ∀ ch, isReadyChan γ ch -∗ Φ (intoVal ch)) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+          (▷ ∀ ch, isReadyChan n γ N ch -∗ Φ (intoVal ch)) -∗
             WP ((intoVal (methods node.ty.PointerType go!"Ready" (intoVal n))) (intoVal ()))
               {{ Φ }}

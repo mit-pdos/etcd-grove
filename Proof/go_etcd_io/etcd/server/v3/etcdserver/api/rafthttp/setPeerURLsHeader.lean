@@ -5,7 +5,7 @@ stage 6e, 2026-10-24). Lean-first.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.setPeerURLsHeader
-public import Spec.strings.Join
+public import Perennial.Spec.strings.Join
 
 @[expose] public section
 
@@ -27,23 +27,29 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 
 theorem rafthttp.setPeerURLsHeader.wp_proof
     (hURLString : http.URLStringAny_spec (GF := GF))
-    (hJoin : strings.Join.spec (GF := GF) (hG := hG))
+    (hJoin : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG))
     (hSet : http.HeaderSetPtr_spec (GF := GF)) :
     rafthttp.setPeerURLsHeader.spec (GF := GF) (hG := hG) := by
   intro r R urls uvs
   wp_start as ⟨Hreq, #Hurls⟩
   iunfold http.reqOwn at Hreq
   icases Hreq with ⟨%hm, #Hhf, Hhm, Hrest⟩
+  ihave %Hul := ownSlice_len _ _ _ $$ Hurls
   wp_auto
   wp_if_destruct
   · iapply HΦ
     iexists R.hdr
     isplitr
     · ipureintro; intro k _; rfl
+    isplitr
+    · ipureintro
+      intro hne _
+      exfalso
+      apply hne
+      exact List.length_eq_zero_iff.1 (by rw [Hul.1]; rfl)
     iunfold http.reqOwn
     iexists hm
     iframe; iframe #
-  ihave %Hul := ownSlice_len _ _ _ $$ Hurls
   wp_method_call
   wp_call
   (try wp_auto)
@@ -58,15 +64,17 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
   irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
   ihave HF : (∃ (k iv : w64) (xs : List GoString),
       "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "Hpu" ∷ pu ↦* xs ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z urls.len ∧ xs.length = uvs.length⌝ : IProp GF)
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z urls.len ∧ xs.length = uvs.length ∧
+        ∀ (j : Nat) (u : net.url.URL), j < sint.nat k → uvs[j]? = some u → http.urlRootPlain u →
+          xs[j]? = some (go!"http://" ++ u.Host')⌝ : IProp GF)
     $$ [i Hiu Hpu]
   · iexists W64 0, _, _
     iframe
     ipureintro
-    refine ⟨by decide, Hul.2, ?_⟩
-    rw [List.length_replicate, Hul.1]
+    refine ⟨by decide, Hul.2, by rw [List.length_replicate, Hul.1], fun j u hj _ _ => ?_⟩
+    exact absurd hj (by simp)
   wp_for HF
-  obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+  obtain ⟨Hk1, Hk2, Hk3, Hk4⟩ := Hk
   (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
   wp_if_destruct
   · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z urls.len := ⟨Hk1, Hif⟩
@@ -78,7 +86,7 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
     (try wp_auto)
     (try simp only [Hb, _root_.and_self, ↓reduceIte])
     ihave ⟨Hu, -⟩ := (ownSlice_elem_acc (sint.Z k) u urls DFrac.discard uvs Hk1 Hu_lookup) $$ Hurls
-    wp_apply (hURLString _ DFrac.discard u) $$ [Hu] as %us -
+    wp_apply (hURLString _ DFrac.discard u) $$ [Hu] as %us ⟨-, %Hus⟩
     · iexact Hu
     (try wp_auto)
     ihave %Hpul := ownSlice_len $$ Hpu
@@ -95,21 +103,51 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
     iexists k + W64 1, k, _
     iframe
     ipureintro
-    refine ⟨by word, by word, by simp [Hk3]⟩
+    refine ⟨by word, by word, by simp [Hk3], fun j v hj hv hvr => ?_⟩
+    have hkn : sint.nat (k + W64 1) = sint.nat k + 1 := by unfold sint.nat; word
+    rw [hkn] at hj
+    rw [List.getElem?_set]
+    by_cases hjk : sint.nat k = j
+    · subst hjk
+      rw [ite_eq_left_of_eq_true _ _ (eq_true rfl),
+        ite_eq_left_of_eq_true _ _ (eq_true (by rw [Hk3]; exact (List.getElem?_eq_some_iff.1 hv).1))]
+      have : v = u := by rw [hv] at Hu_lookup; exact Option.some.inj Hu_lookup
+      subst this
+      rw [Hus hvr]
+    · rw [ite_eq_right_of_eq_false _ _ (eq_false hjk)]
+      exact Hk4 j v (by omega) hv hvr
   -- `req.Header.Set("X-PeerURLs", strings.Join(peerURLs, ","))`
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply hJoin $$ [Hpu] as %js Hpu
+  wp_apply hJoin $$ [Hpu] as Hpu
   · iframe; try iframe #
   (try wp_auto)
   wp_apply (hSet _ hm R.hdr _ _) $$ [Hhm] as Hhm
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
-  iexists _
+  iexists (http.hdrSet R.hdr go!"X-PeerURLs" (go!",".intercalate xs))
   isplitr
-  · ipureintro; intro k hk; exact http.hdrGet_hdrSet_ne R.hdr _ k js (Ne.symm hk)
+  · ipureintro; intro k hk
+    exact http.hdrGet_hdrSet_ne R.hdr _ k (go!",".intercalate xs) (Ne.symm hk)
+  isplitr
+  · ipureintro
+    intro _ hall
+    rw [http.hdrGet_hdrSet_eq]
+    unfold peerURLsHdr
+    have hxs : xs = uvs.map fun u => go!"http://" ++ u.Host' := by
+      apply List.ext_getElem?
+      intro j
+      rw [List.getElem?_map]
+      cases hj : uvs[j]? with
+      | none =>
+        have : uvs.length ≤ j := List.getElem?_eq_none_iff.1 hj
+        exact List.getElem?_eq_none_iff.2 (by omega)
+      | some v =>
+        have hjl : j < uvs.length := (List.getElem?_eq_some_iff.1 hj).1
+        exact Hk4 j v (by unfold sint.nat at *; word) hj (hall v (List.mem_of_getElem? hj))
+    rw [hxs]
   iunfold http.reqOwn
   iexists hm
   iframe; iframe #

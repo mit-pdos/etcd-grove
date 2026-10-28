@@ -141,12 +141,19 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-    L B $$ Hr HL HB with ⟨HL, -, %Hp⟩
+    L B $$ Hr HL HB with ⟨HL, %Hp⟩
+  ihave %HBi := srvRLogLb_idx γ B $$ HB
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  exact ⟨fun m hm => Hok.1 m (Hp.subset hm), Hok.2.2.2.1⟩
+  refine ⟨srv_entry_transfer γ.ai0 B L plainEntry ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
+  · intro m m' he h ht hd rq hdec
+    have h1 := congrArg LogEntry.type he
+    have h2 := congrArg LogEntry.data he
+    simp only [EntryModel.toLE] at h1 h2
+    exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
+  · intro m _ hd _ h; exact absurd hd h
 
 /-- A KV certificate is the store's (at the server's names). -/
 theorem kvCert_certOk (γk : KVNames) (γs : mvcc.StoreNames) (hγ : γs.cok = γk.cok)
@@ -263,10 +270,13 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
       ⌜l.length ≤ (kvModel γk L).length⌝) $$ [HL Hcase]
   · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
     · imodintro; iframe HL; ipureintro; unfold kvModel; omega
-    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, -, %Hp⟩
+    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, %Hp⟩
+      ihave %HAi := srvRLogLb_idx γ A $$ HA
+      obtain ⟨A', HA'L, HAA'⟩ := srv_eqv_prefix γ A L HAi Hp.1 Hp.2.1 Hp.2.2
       imodintro; iframe HL; ipureintro
-      have := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 A L Hp).length_le
-      unfold kvModel at hA ⊢; rw [← hA]; exact this
+      have := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 A' L HA'L).length_le
+      have he := (kvModel_eqv γ γk A A' HAA' Hok'.2.2.1).1
+      unfold kvModel at hA he ⊢; rw [← hA, he]; exact this
   imod Hp with ⟨HL, %Hle⟩
   imod Hclose $$ [HL Hσ'] with -
   · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'

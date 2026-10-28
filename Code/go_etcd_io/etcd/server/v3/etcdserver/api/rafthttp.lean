@@ -7623,22 +7623,30 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
 abbrev encoder [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"encode" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encode" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))])
 
 class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq encoder.ty encoder.underlying
+  method_set : go.MethodSetIs encoder.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoder.ty) []
 
 attribute [instance] encoder.TypeAssumptions.underlying
+  encoder.TypeAssumptions.method_set
+  encoder.TypeAssumptions.ptr_method_set
 
 abbrev decoder [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"decode" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decode" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error]))])
 
 class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
+  method_set : go.MethodSetIs decoder.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decode", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) []
 
 attribute [instance] decoder.TypeAssumptions.underlying
+  decoder.TypeAssumptions.method_set
+  decoder.TypeAssumptions.ptr_method_set
 
 abbrev peerGetter [GooseExts] : Type := GoInterface
 
@@ -7647,8 +7655,12 @@ abbrev peerGetter [GooseExts] : Type := GoInterface
 
 class peerGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq peerGetter.ty peerGetter.underlying
+  method_set : go.MethodSetIs peerGetter.ty [(go!"Get", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [Peer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType peerGetter.ty) []
 
 attribute [instance] peerGetter.TypeAssumptions.underlying
+  peerGetter.TypeAssumptions.method_set
+  peerGetter.TypeAssumptions.ptr_method_set
 
 abbrev writerToResponse [GooseExts] : Type := GoInterface
 
@@ -7657,8 +7669,12 @@ abbrev writerToResponse [GooseExts] : Type := GoInterface
 
 class writerToResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq writerToResponse.ty writerToResponse.underlying
+  method_set : go.MethodSetIs writerToResponse.ty [(go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType writerToResponse.ty) []
 
 attribute [instance] writerToResponse.TypeAssumptions.underlying
+  writerToResponse.TypeAssumptions.method_set
+  writerToResponse.TypeAssumptions.ptr_method_set
 
 abbrev Transporter [GooseExts] : Type := GoInterface
 
@@ -7667,8 +7683,12 @@ abbrev Transporter [GooseExts] : Type := GoInterface
 
 class Transporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Transporter.ty Transporter.underlying
+  method_set : go.MethodSetIs Transporter.ty [(go!"ActivePeers", (some (go.signature.Signature [] false [go.int]))), (go!"ActiveSince", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [_root_.Perennial.time.Time.ty]))), (go!"AddPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"AddRemote", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"Handler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"RemoveAllPeers", (some (go.signature.Signature [] false []))), (go!"RemovePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Send", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))), (go!"SendSnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"Start", (some (go.signature.Signature [] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"UpdatePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transporter.ty) []
 
 attribute [instance] Transporter.TypeAssumptions.underlying
+  Transporter.TypeAssumptions.method_set
+  Transporter.TypeAssumptions.ptr_method_set
 
 abbrev Raft [GooseExts] : Type := GoInterface
 
@@ -7677,8 +7697,12 @@ abbrev Raft [GooseExts] : Type := GoInterface
 
 class Raft.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Raft.ty Raft.underlying
+  method_set : go.MethodSetIs Raft.ty [(go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Raft.ty) []
 
 attribute [instance] Raft.TypeAssumptions.underlying
+  Raft.TypeAssumptions.method_set
+  Raft.TypeAssumptions.ptr_method_set
 
 structure pipelineHandler [GooseExts] where
   mk ::
@@ -7721,6 +7745,8 @@ class pipelineHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_r : ∀ (x : pipelineHandler) (y : Raft), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : pipelineHandler)))
   get_cid : ∀ (x : pipelineHandler), go.IsGoStepPureDetTagged under (StructFieldGet pipelineHandler.underlying go!"cid") #x (Val #(x.cid'))
   set_cid : ∀ (x : pipelineHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : pipelineHandler)))
+  method_set : go.MethodSetIs pipelineHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pipelineHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [])))]
   ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType pipelineHandler.ty) go!"ServeHTTP" pipelineHandler.ServeHTTP.impl
 
 attribute [instance] pipelineHandler.TypeAssumptions.type_repr
@@ -7735,6 +7761,8 @@ attribute [instance] pipelineHandler.TypeAssumptions.type_repr
   pipelineHandler.TypeAssumptions.set_r
   pipelineHandler.TypeAssumptions.get_cid
   pipelineHandler.TypeAssumptions.set_cid
+  pipelineHandler.TypeAssumptions.method_set
+  pipelineHandler.TypeAssumptions.ptr_method_set
   pipelineHandler.TypeAssumptions.ptr_ServeHTTP_unfold
 
 structure snapshotHandler [GooseExts] where
@@ -7782,6 +7810,8 @@ class snapshotHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_localID : ∀ (x : snapshotHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : snapshotHandler)))
   get_cid : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"cid") #x (Val #(x.cid'))
   set_cid : ∀ (x : snapshotHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : snapshotHandler)))
+  method_set : go.MethodSetIs snapshotHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [])))]
   ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType snapshotHandler.ty) go!"ServeHTTP" snapshotHandler.ServeHTTP.impl
 
 attribute [instance] snapshotHandler.TypeAssumptions.type_repr
@@ -7798,6 +7828,8 @@ attribute [instance] snapshotHandler.TypeAssumptions.type_repr
   snapshotHandler.TypeAssumptions.set_localID
   snapshotHandler.TypeAssumptions.get_cid
   snapshotHandler.TypeAssumptions.set_cid
+  snapshotHandler.TypeAssumptions.method_set
+  snapshotHandler.TypeAssumptions.ptr_method_set
   snapshotHandler.TypeAssumptions.ptr_ServeHTTP_unfold
 
 structure streamHandler [GooseExts] where
@@ -7845,6 +7877,8 @@ class streamHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_id : ∀ (x : streamHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : streamHandler)))
   get_cid : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"cid") #x (Val #(x.cid'))
   set_cid : ∀ (x : streamHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : streamHandler)))
+  method_set : go.MethodSetIs streamHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [])))]
   ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType streamHandler.ty) go!"ServeHTTP" streamHandler.ServeHTTP.impl
 
 attribute [instance] streamHandler.TypeAssumptions.type_repr
@@ -7861,6 +7895,8 @@ attribute [instance] streamHandler.TypeAssumptions.type_repr
   streamHandler.TypeAssumptions.set_id
   streamHandler.TypeAssumptions.get_cid
   streamHandler.TypeAssumptions.set_cid
+  streamHandler.TypeAssumptions.method_set
+  streamHandler.TypeAssumptions.ptr_method_set
   streamHandler.TypeAssumptions.ptr_ServeHTTP_unfold
 
 structure closeNotifier [GooseExts] where
@@ -7888,6 +7924,8 @@ class closeNotifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq closeNotifier.ty closeNotifier.underlying
   get_done : ∀ (x : closeNotifier), go.IsGoStepPureDetTagged under (StructFieldGet closeNotifier.underlying go!"done") #x (Val #(x.done'))
   set_done : ∀ (x : closeNotifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet closeNotifier.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : closeNotifier)))
+  method_set : go.MethodSetIs closeNotifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType closeNotifier.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.closeNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType closeNotifier.ty) go!"Close" closeNotifier.Close.impl
   ptr_closeNotify_unfold : MethodUnfold (go.GoType.PointerType closeNotifier.ty) go!"closeNotify" closeNotifier.closeNotify.impl
 
@@ -7895,6 +7933,8 @@ attribute [instance] closeNotifier.TypeAssumptions.type_repr
   closeNotifier.TypeAssumptions.underlying
   closeNotifier.TypeAssumptions.get_done
   closeNotifier.TypeAssumptions.set_done
+  closeNotifier.TypeAssumptions.method_set
+  closeNotifier.TypeAssumptions.ptr_method_set
   closeNotifier.TypeAssumptions.ptr_Close_unfold
   closeNotifier.TypeAssumptions.ptr_closeNotify_unfold
 
@@ -7923,12 +7963,16 @@ class messageEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq messageEncoder.ty messageEncoder.underlying
   get_w : ∀ (x : messageEncoder), go.IsGoStepPureDetTagged under (StructFieldGet messageEncoder.underlying go!"w") #x (Val #(x.w'))
   set_w : ∀ (x : messageEncoder) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet messageEncoder.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : messageEncoder)))
+  method_set : go.MethodSetIs messageEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageEncoder.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])))]
   ptr_encode_unfold : MethodUnfold (go.GoType.PointerType messageEncoder.ty) go!"encode" messageEncoder.encode.impl
 
 attribute [instance] messageEncoder.TypeAssumptions.type_repr
   messageEncoder.TypeAssumptions.underlying
   messageEncoder.TypeAssumptions.get_w
   messageEncoder.TypeAssumptions.set_w
+  messageEncoder.TypeAssumptions.method_set
+  messageEncoder.TypeAssumptions.ptr_method_set
   messageEncoder.TypeAssumptions.ptr_encode_unfold
 
 structure messageDecoder [GooseExts] where
@@ -7956,6 +8000,8 @@ class messageDecoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq messageDecoder.ty messageDecoder.underlying
   get_r : ∀ (x : messageDecoder), go.IsGoStepPureDetTagged under (StructFieldGet messageDecoder.underlying go!"r") #x (Val #(x.r'))
   set_r : ∀ (x : messageDecoder) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet messageDecoder.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : messageDecoder)))
+  method_set : go.MethodSetIs messageDecoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageDecoder.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decode", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decodeLimit", (some (go.signature.Signature [go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error])))]
   ptr_decode_unfold : MethodUnfold (go.GoType.PointerType messageDecoder.ty) go!"decode" messageDecoder.decode.impl
   ptr_decodeLimit_unfold : MethodUnfold (go.GoType.PointerType messageDecoder.ty) go!"decodeLimit" messageDecoder.decodeLimit.impl
 
@@ -7963,6 +8009,8 @@ attribute [instance] messageDecoder.TypeAssumptions.type_repr
   messageDecoder.TypeAssumptions.underlying
   messageDecoder.TypeAssumptions.get_r
   messageDecoder.TypeAssumptions.set_r
+  messageDecoder.TypeAssumptions.method_set
+  messageDecoder.TypeAssumptions.ptr_method_set
   messageDecoder.TypeAssumptions.ptr_decode_unfold
   messageDecoder.TypeAssumptions.ptr_decodeLimit_unfold
 
@@ -8015,6 +8063,8 @@ class msgAppV2Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_uint64buf : ∀ (x : msgAppV2Encoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgAppV2Encoder.underlying go!"uint64buf") (PairV #x #y) (Val #(({ x with uint64buf' := y } : msgAppV2Encoder)))
   get_uint8buf : ∀ (x : msgAppV2Encoder), go.IsGoStepPureDetTagged under (StructFieldGet msgAppV2Encoder.underlying go!"uint8buf") #x (Val #(x.uint8buf'))
   set_uint8buf : ∀ (x : msgAppV2Encoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgAppV2Encoder.underlying go!"uint8buf") (PairV #x #y) (Val #(({ x with uint8buf' := y } : msgAppV2Encoder)))
+  method_set : go.MethodSetIs msgAppV2Encoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType msgAppV2Encoder.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])))]
   ptr_encode_unfold : MethodUnfold (go.GoType.PointerType msgAppV2Encoder.ty) go!"encode" msgAppV2Encoder.encode.impl
 
 attribute [instance] msgAppV2Encoder.TypeAssumptions.type_repr
@@ -8033,6 +8083,8 @@ attribute [instance] msgAppV2Encoder.TypeAssumptions.type_repr
   msgAppV2Encoder.TypeAssumptions.set_uint64buf
   msgAppV2Encoder.TypeAssumptions.get_uint8buf
   msgAppV2Encoder.TypeAssumptions.set_uint8buf
+  msgAppV2Encoder.TypeAssumptions.method_set
+  msgAppV2Encoder.TypeAssumptions.ptr_method_set
   msgAppV2Encoder.TypeAssumptions.ptr_encode_unfold
 
 structure msgAppV2Decoder [GooseExts] where
@@ -8088,6 +8140,8 @@ class msgAppV2Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_uint64buf : ∀ (x : msgAppV2Decoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgAppV2Decoder.underlying go!"uint64buf") (PairV #x #y) (Val #(({ x with uint64buf' := y } : msgAppV2Decoder)))
   get_uint8buf : ∀ (x : msgAppV2Decoder), go.IsGoStepPureDetTagged under (StructFieldGet msgAppV2Decoder.underlying go!"uint8buf") #x (Val #(x.uint8buf'))
   set_uint8buf : ∀ (x : msgAppV2Decoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgAppV2Decoder.underlying go!"uint8buf") (PairV #x #y) (Val #(({ x with uint8buf' := y } : msgAppV2Decoder)))
+  method_set : go.MethodSetIs msgAppV2Decoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType msgAppV2Decoder.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decode", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error])))]
   ptr_decode_unfold : MethodUnfold (go.GoType.PointerType msgAppV2Decoder.ty) go!"decode" msgAppV2Decoder.decode.impl
 
 attribute [instance] msgAppV2Decoder.TypeAssumptions.type_repr
@@ -8108,17 +8162,23 @@ attribute [instance] msgAppV2Decoder.TypeAssumptions.type_repr
   msgAppV2Decoder.TypeAssumptions.set_uint64buf
   msgAppV2Decoder.TypeAssumptions.get_uint8buf
   msgAppV2Decoder.TypeAssumptions.set_uint8buf
+  msgAppV2Decoder.TypeAssumptions.method_set
+  msgAppV2Decoder.TypeAssumptions.ptr_method_set
   msgAppV2Decoder.TypeAssumptions.ptr_decode_unfold
 
 abbrev Peer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Peer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"activeSince" (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"attachOutgoingConn" (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false [])), (go.InterfaceElem.MethodElem go!"send" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"sendSnap" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"update" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activeSince" (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.attachOutgoingConn" (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sendSnap" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.update" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false []))])
 
 class Peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Peer.ty Peer.underlying
+  method_set : go.MethodSetIs Peer.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activeSince", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.attachOutgoingConn", (some (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sendSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.update", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Peer.ty) []
 
 attribute [instance] Peer.TypeAssumptions.underlying
+  Peer.TypeAssumptions.method_set
+  Peer.TypeAssumptions.ptr_method_set
 
 structure peer [GooseExts] where
   mk ::
@@ -8213,6 +8273,8 @@ class peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_cancel : ∀ (x : peer) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet peer.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : peer)))
   get_stopc : ∀ (x : peer), go.IsGoStepPureDetTagged under (StructFieldGet peer.underlying go!"stopc") #x (Val #(x.stopc'))
   set_stopc : ∀ (x : peer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet peer.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : peer)))
+  method_set : go.MethodSetIs peer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType peer.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activeSince", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.attachOutgoingConn", (some (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.pick", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)), go.string]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sendSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.update", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false [])))]
   ptr_Pause_unfold : MethodUnfold (go.GoType.PointerType peer.ty) go!"Pause" peer.Pause.impl
   ptr_Resume_unfold : MethodUnfold (go.GoType.PointerType peer.ty) go!"Resume" peer.Resume.impl
   ptr_activeSince_unfold : MethodUnfold (go.GoType.PointerType peer.ty) go!"activeSince" peer.activeSince.impl
@@ -8261,6 +8323,8 @@ attribute [instance] peer.TypeAssumptions.type_repr
   peer.TypeAssumptions.set_cancel
   peer.TypeAssumptions.get_stopc
   peer.TypeAssumptions.set_stopc
+  peer.TypeAssumptions.method_set
+  peer.TypeAssumptions.ptr_method_set
   peer.TypeAssumptions.ptr_Pause_unfold
   peer.TypeAssumptions.ptr_Resume_unfold
   peer.TypeAssumptions.ptr_activeSince_unfold
@@ -8300,6 +8364,8 @@ class failureType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_source : ∀ (x : failureType) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet failureType.underlying go!"source") (PairV #x #y) (Val #(({ x with source' := y } : failureType)))
   get_action : ∀ (x : failureType), go.IsGoStepPureDetTagged under (StructFieldGet failureType.underlying go!"action") #x (Val #(x.action'))
   set_action : ∀ (x : failureType) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet failureType.underlying go!"action") (PairV #x #y) (Val #(({ x with action' := y } : failureType)))
+  method_set : go.MethodSetIs failureType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType failureType.ty) []
 
 attribute [instance] failureType.TypeAssumptions.type_repr
   failureType.TypeAssumptions.underlying
@@ -8307,6 +8373,8 @@ attribute [instance] failureType.TypeAssumptions.type_repr
   failureType.TypeAssumptions.set_source
   failureType.TypeAssumptions.get_action
   failureType.TypeAssumptions.set_action
+  failureType.TypeAssumptions.method_set
+  failureType.TypeAssumptions.ptr_method_set
 
 structure peerStatus [GooseExts] where
   mk ::
@@ -8353,6 +8421,8 @@ class peerStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_active : ∀ (x : peerStatus) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"active") (PairV #x #y) (Val #(({ x with active' := y } : peerStatus)))
   get_since : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"since") #x (Val #(x.since'))
   set_since : ∀ (x : peerStatus) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"since") (PairV #x #y) (Val #(({ x with since' := y } : peerStatus)))
+  method_set : go.MethodSetIs peerStatus.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType peerStatus.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activeSince", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.deactivate", (some (go.signature.Signature [failureType.ty, go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.isActive", (some (go.signature.Signature [] false [go.bool])))]
   ptr_activate_unfold : MethodUnfold (go.GoType.PointerType peerStatus.ty) go!"activate" peerStatus.activate.impl
   ptr_activeSince_unfold : MethodUnfold (go.GoType.PointerType peerStatus.ty) go!"activeSince" peerStatus.activeSince.impl
   ptr_deactivate_unfold : MethodUnfold (go.GoType.PointerType peerStatus.ty) go!"deactivate" peerStatus.deactivate.impl
@@ -8372,6 +8442,8 @@ attribute [instance] peerStatus.TypeAssumptions.type_repr
   peerStatus.TypeAssumptions.set_active
   peerStatus.TypeAssumptions.get_since
   peerStatus.TypeAssumptions.set_since
+  peerStatus.TypeAssumptions.method_set
+  peerStatus.TypeAssumptions.ptr_method_set
   peerStatus.TypeAssumptions.ptr_activate_unfold
   peerStatus.TypeAssumptions.ptr_activeSince_unfold
   peerStatus.TypeAssumptions.ptr_deactivate_unfold
@@ -8438,6 +8510,8 @@ class pipeline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_wg : ∀ (x : pipeline) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : pipeline)))
   get_stopc : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"stopc") #x (Val #(x.stopc'))
   set_stopc : ∀ (x : pipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : pipeline)))
+  method_set : go.MethodSetIs pipeline.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pipeline.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.handle", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.post", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_handle_unfold : MethodUnfold (go.GoType.PointerType pipeline.ty) go!"handle" pipeline.handle.impl
   ptr_post_unfold : MethodUnfold (go.GoType.PointerType pipeline.ty) go!"post" pipeline.post.impl
   ptr_start_unfold : MethodUnfold (go.GoType.PointerType pipeline.ty) go!"start" pipeline.start.impl
@@ -8465,6 +8539,8 @@ attribute [instance] pipeline.TypeAssumptions.type_repr
   pipeline.TypeAssumptions.set_wg
   pipeline.TypeAssumptions.get_stopc
   pipeline.TypeAssumptions.set_stopc
+  pipeline.TypeAssumptions.method_set
+  pipeline.TypeAssumptions.ptr_method_set
   pipeline.TypeAssumptions.ptr_handle_unfold
   pipeline.TypeAssumptions.ptr_post_unfold
   pipeline.TypeAssumptions.ptr_start_unfold
@@ -8511,6 +8587,8 @@ class remote.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_status : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : remote)))
   get_pipeline : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"pipeline") #x (Val #(x.pipeline'))
   set_pipeline : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"pipeline") (PairV #x #y) (Val #(({ x with pipeline' := y } : remote)))
+  method_set : go.MethodSetIs remote.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType remote.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_Pause_unfold : MethodUnfold (go.GoType.PointerType remote.ty) go!"Pause" remote.Pause.impl
   ptr_Resume_unfold : MethodUnfold (go.GoType.PointerType remote.ty) go!"Resume" remote.Resume.impl
   ptr_send_unfold : MethodUnfold (go.GoType.PointerType remote.ty) go!"send" remote.send.impl
@@ -8528,6 +8606,8 @@ attribute [instance] remote.TypeAssumptions.type_repr
   remote.TypeAssumptions.set_status
   remote.TypeAssumptions.get_pipeline
   remote.TypeAssumptions.set_pipeline
+  remote.TypeAssumptions.method_set
+  remote.TypeAssumptions.ptr_method_set
   remote.TypeAssumptions.ptr_Pause_unfold
   remote.TypeAssumptions.ptr_Resume_unfold
   remote.TypeAssumptions.ptr_send_unfold
@@ -8590,6 +8670,8 @@ class snapshotSender.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_errorc : ∀ (x : snapshotSender) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshotSender.underlying go!"errorc") (PairV #x #y) (Val #(({ x with errorc' := y } : snapshotSender)))
   get_stopc : ∀ (x : snapshotSender), go.IsGoStepPureDetTagged under (StructFieldGet snapshotSender.underlying go!"stopc") #x (Val #(x.stopc'))
   set_stopc : ∀ (x : snapshotSender) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshotSender.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : snapshotSender)))
+  method_set : go.MethodSetIs snapshotSender.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotSender.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.post", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_post_unfold : MethodUnfold (go.GoType.PointerType snapshotSender.ty) go!"post" snapshotSender.post.impl
   ptr_send_unfold : MethodUnfold (go.GoType.PointerType snapshotSender.ty) go!"send" snapshotSender.send.impl
   ptr_stop_unfold : MethodUnfold (go.GoType.PointerType snapshotSender.ty) go!"stop" snapshotSender.stop.impl
@@ -8614,6 +8696,8 @@ attribute [instance] snapshotSender.TypeAssumptions.type_repr
   snapshotSender.TypeAssumptions.set_errorc
   snapshotSender.TypeAssumptions.get_stopc
   snapshotSender.TypeAssumptions.set_stopc
+  snapshotSender.TypeAssumptions.method_set
+  snapshotSender.TypeAssumptions.ptr_method_set
   snapshotSender.TypeAssumptions.ptr_post_unfold
   snapshotSender.TypeAssumptions.ptr_send_unfold
   snapshotSender.TypeAssumptions.ptr_stop_unfold
@@ -8651,6 +8735,8 @@ class responseAndError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_body : ∀ (x : responseAndError) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"body") (PairV #x #y) (Val #(({ x with body' := y } : responseAndError)))
   get_err : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : responseAndError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : responseAndError)))
+  method_set : go.MethodSetIs responseAndError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType responseAndError.ty) []
 
 attribute [instance] responseAndError.TypeAssumptions.type_repr
   responseAndError.TypeAssumptions.underlying
@@ -8660,6 +8746,8 @@ attribute [instance] responseAndError.TypeAssumptions.type_repr
   responseAndError.TypeAssumptions.set_body
   responseAndError.TypeAssumptions.get_err
   responseAndError.TypeAssumptions.set_err
+  responseAndError.TypeAssumptions.method_set
+  responseAndError.TypeAssumptions.ptr_method_set
 
 abbrev streamType [GooseExts] : Type := GoString
 
@@ -8668,6 +8756,8 @@ abbrev streamType [GooseExts] : Type := GoString
 
 class streamType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq streamType.ty streamType.underlying
+  method_set : go.MethodSetIs streamType.ty [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.endpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamType.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.endpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false [go.string])))]
   String_unfold : MethodUnfold streamType.ty go!"String" streamType.String.impl
   endpoint_unfold : MethodUnfold streamType.ty go!"endpoint" streamType.endpoint.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType streamType.ty) go!"String" (LamV "$r"
@@ -8676,6 +8766,8 @@ class streamType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
 (App (Val (GoInstruction (MethodResolve streamType.ty go!"endpoint"))) (App (Val (GoInstruction (GoLoad streamType.ty))) (Var "$r"))))
 
 attribute [instance] streamType.TypeAssumptions.underlying
+  streamType.TypeAssumptions.method_set
+  streamType.TypeAssumptions.ptr_method_set
   streamType.TypeAssumptions.String_unfold
   streamType.TypeAssumptions.endpoint_unfold
   streamType.TypeAssumptions.ptr_String_unfold
@@ -8726,6 +8818,8 @@ class outgoingConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_localID : ∀ (x : outgoingConn) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet outgoingConn.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : outgoingConn)))
   get_peerID : ∀ (x : outgoingConn), go.IsGoStepPureDetTagged under (StructFieldGet outgoingConn.underlying go!"peerID") #x (Val #(x.peerID'))
   set_peerID : ∀ (x : outgoingConn) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet outgoingConn.underlying go!"peerID") (PairV #x #y) (Val #(({ x with peerID' := y } : outgoingConn)))
+  method_set : go.MethodSetIs outgoingConn.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Flush", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType outgoingConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Flush", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   Close_unfold : MethodUnfold outgoingConn.ty go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (StructFieldGet outgoingConn.ty go!"Closer"))) (Var "$r"))))
   Flush_unfold : MethodUnfold outgoingConn.ty go!"Flush" (LamV "$r"
@@ -8753,6 +8847,8 @@ attribute [instance] outgoingConn.TypeAssumptions.type_repr
   outgoingConn.TypeAssumptions.set_localID
   outgoingConn.TypeAssumptions.get_peerID
   outgoingConn.TypeAssumptions.set_peerID
+  outgoingConn.TypeAssumptions.method_set
+  outgoingConn.TypeAssumptions.ptr_method_set
   outgoingConn.TypeAssumptions.Close_unfold
   outgoingConn.TypeAssumptions.Flush_unfold
   outgoingConn.TypeAssumptions.Write_unfold
@@ -8833,6 +8929,8 @@ class streamWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_stopc : ∀ (x : streamWriter) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet streamWriter.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : streamWriter)))
   get_done : ∀ (x : streamWriter), go.IsGoStepPureDetTagged under (StructFieldGet streamWriter.underlying go!"done") #x (Val #(x.done'))
   set_done : ∀ (x : streamWriter) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet streamWriter.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : streamWriter)))
+  method_set : go.MethodSetIs streamWriter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamWriter.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.attach", (some (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.close", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.closeUnlocked", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.writec", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)), go.bool])))]
   ptr_attach_unfold : MethodUnfold (go.GoType.PointerType streamWriter.ty) go!"attach" streamWriter.attach.impl
   ptr_close_unfold : MethodUnfold (go.GoType.PointerType streamWriter.ty) go!"close" streamWriter.close.impl
   ptr_closeUnlocked_unfold : MethodUnfold (go.GoType.PointerType streamWriter.ty) go!"closeUnlocked" streamWriter.closeUnlocked.impl
@@ -8868,6 +8966,8 @@ attribute [instance] streamWriter.TypeAssumptions.type_repr
   streamWriter.TypeAssumptions.set_stopc
   streamWriter.TypeAssumptions.get_done
   streamWriter.TypeAssumptions.set_done
+  streamWriter.TypeAssumptions.method_set
+  streamWriter.TypeAssumptions.ptr_method_set
   streamWriter.TypeAssumptions.ptr_attach_unfold
   streamWriter.TypeAssumptions.ptr_close_unfold
   streamWriter.TypeAssumptions.ptr_closeUnlocked_unfold
@@ -8960,6 +9060,8 @@ class streamReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_cancel : ∀ (x : streamReader) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet streamReader.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : streamReader)))
   get_done : ∀ (x : streamReader), go.IsGoStepPureDetTagged under (StructFieldGet streamReader.underlying go!"done") #x (Val #(x.done'))
   set_done : ∀ (x : streamReader) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet streamReader.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : streamReader)))
+  method_set : go.MethodSetIs streamReader.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamReader.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decodeLoop", (some (go.signature.Signature [_root_.Perennial.io.ReadCloser.ty, streamType.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.dial", (some (go.signature.Signature [streamType.ty] false [_root_.Perennial.io.ReadCloser.ty, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.pause", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.resume", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_close_unfold : MethodUnfold (go.GoType.PointerType streamReader.ty) go!"close" streamReader.close.impl
   ptr_decodeLoop_unfold : MethodUnfold (go.GoType.PointerType streamReader.ty) go!"decodeLoop" streamReader.decodeLoop.impl
   ptr_dial_unfold : MethodUnfold (go.GoType.PointerType streamReader.ty) go!"dial" streamReader.dial.impl
@@ -9003,6 +9105,8 @@ attribute [instance] streamReader.TypeAssumptions.type_repr
   streamReader.TypeAssumptions.set_cancel
   streamReader.TypeAssumptions.get_done
   streamReader.TypeAssumptions.set_done
+  streamReader.TypeAssumptions.method_set
+  streamReader.TypeAssumptions.ptr_method_set
   streamReader.TypeAssumptions.ptr_close_unfold
   streamReader.TypeAssumptions.ptr_decodeLoop_unfold
   streamReader.TypeAssumptions.ptr_dial_unfold
@@ -9109,6 +9213,8 @@ class Transport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_pipelineProber : ∀ (x : Transport) (y : _root_.Perennial.github_com.xiang90.probing.Prober), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"pipelineProber") (PairV #x #y) (Val #(({ x with pipelineProber' := y } : Transport)))
   get_streamProber : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"streamProber") #x (Val #(x.streamProber'))
   set_streamProber : ∀ (x : Transport) (y : _root_.Perennial.github_com.xiang90.probing.Prober), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"streamProber") (PairV #x #y) (Val #(({ x with streamProber' := y } : Transport)))
+  method_set : go.MethodSetIs Transport.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transport.ty) [(go!"ActivePeers", (some (go.signature.Signature [] false [go.int]))), (go!"ActiveSince", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [_root_.Perennial.time.Time.ty]))), (go!"AddPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"AddRemote", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [Peer.ty]))), (go!"Handler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Pause", (some (go.signature.Signature [] false []))), (go!"RemoveAllPeers", (some (go.signature.Signature [] false []))), (go!"RemovePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"Send", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))), (go!"SendSnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"Start", (some (go.signature.Signature [] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"UpdatePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.removePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [])))]
   ptr_ActivePeers_unfold : MethodUnfold (go.GoType.PointerType Transport.ty) go!"ActivePeers" Transport.ActivePeers.impl
   ptr_ActiveSince_unfold : MethodUnfold (go.GoType.PointerType Transport.ty) go!"ActiveSince" Transport.ActiveSince.impl
   ptr_AddPeer_unfold : MethodUnfold (go.GoType.PointerType Transport.ty) go!"AddPeer" Transport.AddPeer.impl
@@ -9168,6 +9274,8 @@ attribute [instance] Transport.TypeAssumptions.type_repr
   Transport.TypeAssumptions.set_pipelineProber
   Transport.TypeAssumptions.get_streamProber
   Transport.TypeAssumptions.set_streamProber
+  Transport.TypeAssumptions.method_set
+  Transport.TypeAssumptions.ptr_method_set
   Transport.TypeAssumptions.ptr_ActivePeers_unfold
   Transport.TypeAssumptions.ptr_ActiveSince_unfold
   Transport.TypeAssumptions.ptr_AddPeer_unfold
@@ -9194,8 +9302,12 @@ abbrev Pausable [GooseExts] : Type := GoInterface
 
 class Pausable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pausable.ty Pausable.underlying
+  method_set : go.MethodSetIs Pausable.ty [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pausable.ty) []
 
 attribute [instance] Pausable.TypeAssumptions.underlying
+  Pausable.TypeAssumptions.method_set
+  Pausable.TypeAssumptions.ptr_method_set
 
 structure urlPicker [GooseExts] where
   mk ::
@@ -9230,6 +9342,8 @@ class urlPicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_urls : ∀ (x : urlPicker) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet urlPicker.underlying go!"urls") (PairV #x #y) (Val #(({ x with urls' := y } : urlPicker)))
   get_picked : ∀ (x : urlPicker), go.IsGoStepPureDetTagged under (StructFieldGet urlPicker.underlying go!"picked") #x (Val #(x.picked'))
   set_picked : ∀ (x : urlPicker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet urlPicker.underlying go!"picked") (PairV #x #y) (Val #(({ x with picked' := y } : urlPicker)))
+  method_set : go.MethodSetIs urlPicker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType urlPicker.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.pick", (some (go.signature.Signature [] false [_root_.Perennial.net.url.URL.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.unreachable", (some (go.signature.Signature [_root_.Perennial.net.url.URL.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.update", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false [])))]
   ptr_pick_unfold : MethodUnfold (go.GoType.PointerType urlPicker.ty) go!"pick" urlPicker.pick.impl
   ptr_unreachable_unfold : MethodUnfold (go.GoType.PointerType urlPicker.ty) go!"unreachable" urlPicker.unreachable.impl
   ptr_update_unfold : MethodUnfold (go.GoType.PointerType urlPicker.ty) go!"update" urlPicker.update.impl
@@ -9242,6 +9356,8 @@ attribute [instance] urlPicker.TypeAssumptions.type_repr
   urlPicker.TypeAssumptions.set_urls
   urlPicker.TypeAssumptions.get_picked
   urlPicker.TypeAssumptions.set_picked
+  urlPicker.TypeAssumptions.method_set
+  urlPicker.TypeAssumptions.ptr_method_set
   urlPicker.TypeAssumptions.ptr_pick_unfold
   urlPicker.TypeAssumptions.ptr_unreachable_unfold
   urlPicker.TypeAssumptions.ptr_update_unfold

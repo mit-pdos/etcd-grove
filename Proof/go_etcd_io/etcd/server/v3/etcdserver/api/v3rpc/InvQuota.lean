@@ -37,6 +37,7 @@ slots `quotaRd` carries.
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
@@ -61,6 +62,10 @@ class v3rpc.QuotaKVServerIsKVServer [GooseExts] [GoGlobalContext] [GoLocalContex
     [GoSemanticsFunctions] : Prop where
   is_kv : go.typeSetContains (go.GoType.PointerType v3rpc.quotaKVServer.ty)
     etcdserverpb.KVServer.ty = true
+
+/-- `QuotaKVServerIsKVServer` holds, from the method sets goose emits. -/
+instance v3rpc.quotaKVServerIsKVServer_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
+    [sem : go.Semantics] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] : v3rpc.QuotaKVServerIsKVServer := ⟨by go_type_set⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

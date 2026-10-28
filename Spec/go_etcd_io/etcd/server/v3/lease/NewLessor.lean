@@ -68,15 +68,16 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   hook `f` under `Pk` (`csContract Pk f`); `UnsafePut` into the `Lease` bucket (created by
   `initAndRecover`; a hook bucket, `bridgeParams`, so the readers' view is unchanged) of an
   8-byte key never fails; `Unlock` writes back at most once (`wbTok`). The `Lease` bucket is a
-  tracked bucket (D22, 2026-10-23: `KBReal.P`'s `RB`): each write takes, with its write-back
-  token, the tracked buckets' client half (`srvRestRW d.γB`), which its put needs; the server's
-  apply thread holds that half at its model and never lends it (the workload has no lease
-  request), so no lease is written.
+  tracked bucket (D22, 2026-10-23: `KBReal.P`'s `RB`): the put takes the tracked buckets' client
+  half (`backend.rbOwn d.γB r`, the backend's `UnsafePut` of a tracked bucket: `rbPut`) and gives
+  it back with the entry put (`mvcc.rbSet r "lease" k v`; leases T3, L3c, 2026-10-27: until then
+  each write took the half, `srvRestRW d.γB`, in its write right, and the put's effect was not
+  stated); the lock and `Unlock` do not need it.
   (D22 receiver epochs, S7c, 2026-10-23) The lessor's lock holds half of `le.b`
   (`lessorExtra`), the caller gets the other (`lease.lessorBeOn lp d.be`); `persistTo(le.b)`
   reads it under the lock, so the writes go to the backend the caller's half names: the contract
   (`lessorApplyOk`) is for whichever backend that is (its contract at some `W`, `Pk`, its frozen
-  hook), given a write right lending the tracked buckets' half and that half (`rwLens`); `Recover`
+  hook), given a write right lending that half of `le.b` (`rwLens`); `Recover`
   (names-only) replaces both halves under the lock. Until S7c `le.b` was `↦□` and the contract for
   `d` only, which `Recover` refutes.
 * `Lookup(id)` (unit N4, D14h, 2026-10-17: `isApplyLessor`'s `Lookup` clause, a premise of

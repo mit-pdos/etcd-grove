@@ -67,22 +67,27 @@ theorem raftNode.start.wp_proof
   have wp_GetTerm := wp_hardStateAt_GetTerm wp_GetTerm
   have wp_GetType := wp_entryAt_GetType wp_GetType
   intro E γ r rh L R
+  letI := srvStor (GF := GF) γ.node
   wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone, HS⟩
   ihave #Hr' := Hr
   iunfold isRaftNode at Hr'
   iNamed Hr'
+  ihave #Henv0 := Henv
+  iunfold rnEnvOk at Henv0
+  icases Henv0 with ⟨-, %HEn, -⟩
+  have HEai : uint.Z E.γr.raft.ai0 = γ.pre.length := HEn.2.2
   wp_auto
   simp only [time.Second]
   iunfold isRNTicker at Htki
   icases Htki with ⟨%tc, #Htc, #Htcb, #HtkStop⟩
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI⟩
+  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI, #Hisn⟩
   subst Hnieq
   iunfold isRNTransport at Htri
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
   subst Htieq
   iunfold isRNWal at Hsti
-  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose⟩
+  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, #HSaveSnap, #HSync⟩
   subst Hsieq
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -157,26 +162,34 @@ theorem raftNode.start.wp_proof
     isplit
     · ileft
       simp only [chan.blockingClausePre]
-      iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γ.node.readyc
+      iunfold rnLoopTokP at Htok
+      icases Htok with ⟨%sent, %cums, Hdrv, Hprod, Hauth, %Hcums, %Hix⟩
+      iunfold rnDrv at Hdrv
+      icases Hdrv with ⟨Hdrv, Hcfg⟩
+      icases isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p) _ rfl
+        $$ Hrc Hisn Hdrv with ⟨%γc, #Hch, Hau⟩
+      iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γc
       isplitr
       · ipureintro; rfl
       isplitr
-      · unfold isHandshake
-        icases Hrc with ⟨$, -⟩
-      iapply handshake_receive_au γ.node.readyc rc (rnReadyP E γ) iprop(True) _ $$ [$Hlc1 $Hlc2] Hrc []
-      · itrivial
+      · iexact Hch
+      iapply Hau $$ [$Hlc1 $Hlc2]
       inext
-      iintro %rd HP
-      iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, Hdrv, Hprod, Hauth, %Hcums⟩
-      imod rn_ready_recv E γ L' p rd $$ Henv Hfits Hrsb Hdrv HP with
-        ⟨%ce, %es, %p', Hdata, Hbusy, #Hdlb⟩
+      iintro %rd ⟨%ce0, %es0, %h0, %Lo, #Hcea0, #Hcom0, Hrs0, Hrest, Hdrv⟩
+      -- (2026-10-27) the log's indices, at the start's index (`rnEnvOk`'s)
+      have HLi : srvIdxOkW E.γr.raft.ai0 L' := by
+        obtain ⟨ai, hai, hidx⟩ := Hix
+        have h2 : uint.Z ai = uint.Z E.γr.raft.ai0 := by rw [hai, HEai]
+        have hae : ai = E.γr.raft.ai0 := by word
+        rw [← hae]; exact hidx
+      imod rn_ready_recv E γ L' p rd ce0 es0 h0 Lo HLi $$ Henv Hrsb Hcfg Hcea0 Hcom0 Hrs0 Hrest
+        Hdrv with ⟨%ce, %es, %p', Hdata, Hbusy, #Hdlb, %HidxN⟩
       -- (D43 M3) the driver's view after `L'`, apart
       iunfold rnBusy at Hbusy
       icases Hbusy with ⟨Hbusy, Hcv⟩
       iunfold rnReadyData at Hdata
       icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, Hmsok,
-        #Hss, #Hhs, %Hp', #Hhsw, ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil⟩
+        #Hss, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil⟩
       wp_auto
       -- the `SoftState`: the leader, the gauges, the ready handler
       wp_join iprop(∃ b' : Bool, islead_ptr ↦ b' ∗ rd_ptr ↦ rd ∗ rh_ptr ↦ rh ∗ r_ptr ↦ r)
@@ -368,7 +381,6 @@ theorem raftNode.start.wp_proof
           ipureintro
           rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
       -- (D22 S-b, D22l) the batch's raft term, with the witness bounding the batch
-      ihave #Hrt := rnRtOk_of_hsWit γ rt' p' _ Hrt' $$ Hhsw
       -- `notifyc` (D43 M3: the two-send idiom, depositing the view after the batch if it goes
       -- along, `rnApR`), `raftAdvancedC`
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -408,16 +420,18 @@ theorem raftNode.start.wp_proof
       -- the batch's committed log and indices, from `E.C` (`rnEnvOk`)
       ihave #Henv' := Henv
       iunfold rnEnvOk at Henv'
-      icases Henv' with ⟨-, -, -, -, -, -, #HCback, -⟩
+      icases Henv' with ⟨-, -, -, -, -, -, -, #HCback, -⟩
       ihave #HCl := HCback $$ %(L' ++ ce) HC
       icases HCl with ⟨#HLb, %HidxOk⟩
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
         (Val #ap_ptr)) (Val #rh))
-      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL L' ce R E.γr) $$ [HR]
+      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL L' ce R E.γr null) $$ [HR]
       · iframe HR; iframe #
-        ipureintro; exact HidxOk
+        isplitr
+        · ipureintro; exact HidxOk
+        ileft; ipureintro; rfl
       inext
-      iintro ⟨HR, #Hclast⟩
+      iintro ⟨HR, #Hclast, -⟩
       wp_auto
       -- `cum` extended with the batch, then `applyc <- ap` (or `<-r.stopped`)
       imod cum_extend γ.cum cums L' ce sent.length Hcums.1 Hcums.2 $$ Hauth with ⟨Hauth, #Hcn, #Hcn1⟩
@@ -440,6 +454,8 @@ theorem raftNode.start.wp_proof
         iapply spsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
           [$Hprod Hnrcv Hgive]
         · iunfold rnApP
+          ileft
+          iunfold rnApN
           iexists L', ce, ceL
           simp only [Int.toNat_natCast]
           iframe Hcn Hcn1 Hce Hcea HC
@@ -456,14 +472,14 @@ theorem raftNode.start.wp_proof
             iexact HacU
           isplitr
           · iexact Hclast
-          iexact Hrt
+          iunfold rnRtOk; itrivial
         inext
         iintro Hprod
         wp_auto
         -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
         -- (D21 stage M1) the messages' bundles go to the transport here, or stay for a follower's
         wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗ E.S ∗
-            (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ.node m))
+            (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ m))
           with [rh rd r islead HS Hmsok] as ⟨rh, rd, r, islead, HS, Hmsok⟩
         -- the cases that reach the join with nothing sent close by framing (`ileft` once the
         -- bundles went to the transport)
@@ -628,11 +644,13 @@ theorem raftNode.start.wp_proof
             iunfold rnLoopTokP
             iexists _, cums ++ [L' ++ ce]
             iframe
-            ipureintro
-            simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
-            constructor
-            · omega
-            · rfl
+            isplitr
+            · ipureintro
+              simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
+              constructor
+              · omega
+              · rfl
+            ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
           · wp_auto
             wp_apply_core chan.wp_select_blocking_nil
             iapply BigAndL.bigAndL_cons.2
@@ -676,11 +694,13 @@ theorem raftNode.start.wp_proof
               iunfold rnLoopTokP
               iexists _, cums ++ [L' ++ ce]
               iframe
-              ipureintro
-              simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
-              constructor
-              · omega
-              · rfl
+              isplitr
+              · ipureintro
+                simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
+                constructor
+                · omega
+                · rfl
+              ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
             iapply BigAndL.bigAndL_cons.2
             isplit
             · ileft
@@ -727,11 +747,13 @@ theorem raftNode.start.wp_proof
             iunfold rnLoopTokP
             iexists _, cums ++ [L' ++ ce]
             iframe
-            ipureintro
-            simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
-            constructor
-            · omega
-            · rfl
+            isplitr
+            · ipureintro
+              simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
+              constructor
+              · omega
+              · rfl
+            ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
           · wp_auto
             wp_apply_core chan.wp_select_blocking_nil
             iapply BigAndL.bigAndL_cons.2
@@ -769,11 +791,13 @@ theorem raftNode.start.wp_proof
               iunfold rnLoopTokP
               iexists _, cums ++ [L' ++ ce]
               iframe
-              ipureintro
-              simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
-              constructor
-              · omega
-              · rfl
+              isplitr
+              · ipureintro
+                simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
+                constructor
+                · omega
+                · rfl
+              ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
             iapply BigAndL.bigAndL_cons.2
             isplit
             · ileft

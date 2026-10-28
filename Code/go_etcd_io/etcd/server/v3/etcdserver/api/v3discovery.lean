@@ -163,6 +163,8 @@ class DiscoveryConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_ConfigSpec : ∀ (x : DiscoveryConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryConfig.underlying go!"ConfigSpec") (PairV #x #y) (Val #(({ x with ConfigSpec' := y } : DiscoveryConfig)))
   get_Token : ∀ (x : DiscoveryConfig), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryConfig.underlying go!"Token") #x (Val #(x.Token'))
   set_Token : ∀ (x : DiscoveryConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryConfig.underlying go!"Token") (PairV #x #y) (Val #(({ x with Token' := y } : DiscoveryConfig)))
+  method_set : go.MethodSetIs DiscoveryConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryConfig.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec.ty)])))]
 
 attribute [instance] DiscoveryConfig.TypeAssumptions.type_repr
   DiscoveryConfig.TypeAssumptions.underlying
@@ -170,6 +172,8 @@ attribute [instance] DiscoveryConfig.TypeAssumptions.type_repr
   DiscoveryConfig.TypeAssumptions.set_ConfigSpec
   DiscoveryConfig.TypeAssumptions.get_Token
   DiscoveryConfig.TypeAssumptions.set_Token
+  DiscoveryConfig.TypeAssumptions.method_set
+  DiscoveryConfig.TypeAssumptions.ptr_method_set
 
 structure memberInfo [GooseExts] where
   mk ::
@@ -204,6 +208,8 @@ class memberInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_peerURLsMap : ∀ (x : memberInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"peerURLsMap") (PairV #x #y) (Val #(({ x with peerURLsMap' := y } : memberInfo)))
   get_createRev : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"createRev") #x (Val #(x.createRev'))
   set_createRev : ∀ (x : memberInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"createRev") (PairV #x #y) (Val #(({ x with createRev' := y } : memberInfo)))
+  method_set : go.MethodSetIs memberInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType memberInfo.ty) []
 
 attribute [instance] memberInfo.TypeAssumptions.type_repr
   memberInfo.TypeAssumptions.underlying
@@ -213,6 +219,8 @@ attribute [instance] memberInfo.TypeAssumptions.type_repr
   memberInfo.TypeAssumptions.set_peerURLsMap
   memberInfo.TypeAssumptions.get_createRev
   memberInfo.TypeAssumptions.set_createRev
+  memberInfo.TypeAssumptions.method_set
+  memberInfo.TypeAssumptions.ptr_method_set
 
 structure clusterInfo [GooseExts] where
   mk ::
@@ -243,6 +251,8 @@ class clusterInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_clusterToken : ∀ (x : clusterInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet clusterInfo.underlying go!"clusterToken") (PairV #x #y) (Val #(({ x with clusterToken' := y } : clusterInfo)))
   get_members : ∀ (x : clusterInfo), go.IsGoStepPureDetTagged under (StructFieldGet clusterInfo.underlying go!"members") #x (Val #(x.members'))
   set_members : ∀ (x : clusterInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clusterInfo.underlying go!"members") (PairV #x #y) (Val #(({ x with members' := y } : clusterInfo)))
+  method_set : go.MethodSetIs clusterInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clusterInfo.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.add", (some (go.signature.Signature [go.string, go.string, go.int64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.exist", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.getInitClusterStr", (some (go.signature.Signature [go.int] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.getPeerURLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] clusterInfo.TypeAssumptions.type_repr
   clusterInfo.TypeAssumptions.underlying
@@ -250,6 +260,8 @@ attribute [instance] clusterInfo.TypeAssumptions.type_repr
   clusterInfo.TypeAssumptions.set_clusterToken
   clusterInfo.TypeAssumptions.get_members
   clusterInfo.TypeAssumptions.set_members
+  clusterInfo.TypeAssumptions.method_set
+  clusterInfo.TypeAssumptions.ptr_method_set
 
 axiom discovery : Type
 axiom discovery.zero_val : ZeroVal discovery
@@ -259,10 +271,14 @@ class discovery.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying discovery.underlying discovery
   underlying : go.UnderlyingDirectedEq discovery.ty discovery.underlying
   isUnderlying : go.IsUnderlying discovery.underlying discovery.underlying
+  method_set : go.MethodSetIs discovery.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType discovery.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.checkCluster", (some (go.signature.Signature [] false [(go.GoType.PointerType clusterInfo.ty), go.int, go.int64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.checkClusterRetry", (some (go.signature.Signature [] false [(go.GoType.PointerType clusterInfo.ty), go.int, go.int64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.getCluster", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.getClusterMembers", (some (go.signature.Signature [] false [(go.GoType.PointerType clusterInfo.ty), go.int64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.getClusterSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.joinCluster", (some (go.signature.Signature [go.string] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.logAndBackoffForRetry", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.registerSelf", (some (go.signature.Signature [go.string] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.registerSelfRetry", (some (go.signature.Signature [go.string] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.waitPeers", (some (go.signature.Signature [(go.GoType.PointerType clusterInfo.ty), go.int, go.int64] false [])))]
 
 attribute [instance] discovery.TypeAssumptions.type_repr
   discovery.TypeAssumptions.underlying
   discovery.TypeAssumptions.isUnderlying
+  discovery.TypeAssumptions.method_set
+  discovery.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DiscoveryConfig_instance : DiscoveryConfig.TypeAssumptions

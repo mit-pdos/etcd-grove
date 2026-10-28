@@ -201,6 +201,8 @@ class leaderStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_Leader : ∀ (x : leaderStats) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet leaderStats.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : leaderStats)))
   get_Followers : ∀ (x : leaderStats), go.IsGoStepPureDetTagged under (StructFieldGet leaderStats.underlying go!"Followers") #x (Val #(x.Followers'))
   set_Followers : ∀ (x : leaderStats) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet leaderStats.underlying go!"Followers") (PairV #x #y) (Val #(({ x with Followers' := y } : leaderStats)))
+  method_set : go.MethodSetIs leaderStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leaderStats.ty) []
 
 attribute [instance] leaderStats.TypeAssumptions.type_repr
   leaderStats.TypeAssumptions.underlying
@@ -208,6 +210,8 @@ attribute [instance] leaderStats.TypeAssumptions.type_repr
   leaderStats.TypeAssumptions.set_Leader
   leaderStats.TypeAssumptions.get_Followers
   leaderStats.TypeAssumptions.set_Followers
+  leaderStats.TypeAssumptions.method_set
+  leaderStats.TypeAssumptions.ptr_method_set
 
 structure LeaderStats [GooseExts] where
   mk ::
@@ -242,6 +246,8 @@ class LeaderStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_leaderStats : ∀ (x : LeaderStats) (y : leaderStats), go.IsGoStepPureDetTagged under (StructFieldSet LeaderStats.underlying go!"leaderStats") (PairV #x #y) (Val #(({ x with leaderStats' := y } : LeaderStats)))
   get_Mutex : ∀ (x : LeaderStats), go.IsGoStepPureDetTagged under (StructFieldGet LeaderStats.underlying go!"Mutex") #x (Val #(x.Mutex'))
   set_Mutex : ∀ (x : LeaderStats) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet LeaderStats.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : LeaderStats)))
+  method_set : go.MethodSetIs LeaderStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaderStats.ty) [(go!"Follower", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType FollowerStats.ty)]))), (go!"JSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
   ptr_Follower_unfold : MethodUnfold (go.GoType.PointerType LeaderStats.ty) go!"Follower" LeaderStats.Follower.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType LeaderStats.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef LeaderStats.ty go!"Mutex"))) (Var "$r"))))
@@ -256,6 +262,8 @@ attribute [instance] LeaderStats.TypeAssumptions.type_repr
   LeaderStats.TypeAssumptions.set_leaderStats
   LeaderStats.TypeAssumptions.get_Mutex
   LeaderStats.TypeAssumptions.set_Mutex
+  LeaderStats.TypeAssumptions.method_set
+  LeaderStats.TypeAssumptions.ptr_method_set
   LeaderStats.TypeAssumptions.ptr_Follower_unfold
   LeaderStats.TypeAssumptions.ptr_Lock_unfold
   LeaderStats.TypeAssumptions.ptr_Unlock_unfold
@@ -305,6 +313,8 @@ class LatencyStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_Minimum : ∀ (x : LatencyStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LatencyStats.underlying go!"Minimum") (PairV #x #y) (Val #(({ x with Minimum' := y } : LatencyStats)))
   get_Maximum : ∀ (x : LatencyStats), go.IsGoStepPureDetTagged under (StructFieldGet LatencyStats.underlying go!"Maximum") #x (Val #(x.Maximum'))
   set_Maximum : ∀ (x : LatencyStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LatencyStats.underlying go!"Maximum") (PairV #x #y) (Val #(({ x with Maximum' := y } : LatencyStats)))
+  method_set : go.MethodSetIs LatencyStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LatencyStats.ty) []
 
 attribute [instance] LatencyStats.TypeAssumptions.type_repr
   LatencyStats.TypeAssumptions.underlying
@@ -320,6 +330,8 @@ attribute [instance] LatencyStats.TypeAssumptions.type_repr
   LatencyStats.TypeAssumptions.set_Minimum
   LatencyStats.TypeAssumptions.get_Maximum
   LatencyStats.TypeAssumptions.set_Maximum
+  LatencyStats.TypeAssumptions.method_set
+  LatencyStats.TypeAssumptions.ptr_method_set
 
 structure CountsStats [GooseExts] where
   mk ::
@@ -350,6 +362,8 @@ class CountsStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_Fail : ∀ (x : CountsStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CountsStats.underlying go!"Fail") (PairV #x #y) (Val #(({ x with Fail' := y } : CountsStats)))
   get_Success : ∀ (x : CountsStats), go.IsGoStepPureDetTagged under (StructFieldGet CountsStats.underlying go!"Success") #x (Val #(x.Success'))
   set_Success : ∀ (x : CountsStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CountsStats.underlying go!"Success") (PairV #x #y) (Val #(({ x with Success' := y } : CountsStats)))
+  method_set : go.MethodSetIs CountsStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CountsStats.ty) []
 
 attribute [instance] CountsStats.TypeAssumptions.type_repr
   CountsStats.TypeAssumptions.underlying
@@ -357,6 +371,8 @@ attribute [instance] CountsStats.TypeAssumptions.type_repr
   CountsStats.TypeAssumptions.set_Fail
   CountsStats.TypeAssumptions.get_Success
   CountsStats.TypeAssumptions.set_Success
+  CountsStats.TypeAssumptions.method_set
+  CountsStats.TypeAssumptions.ptr_method_set
 
 structure FollowerStats [GooseExts] where
   mk ::
@@ -391,6 +407,8 @@ class FollowerStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_Counts : ∀ (x : FollowerStats) (y : CountsStats), go.IsGoStepPureDetTagged under (StructFieldSet FollowerStats.underlying go!"Counts") (PairV #x #y) (Val #(({ x with Counts' := y } : FollowerStats)))
   get_Mutex : ∀ (x : FollowerStats), go.IsGoStepPureDetTagged under (StructFieldGet FollowerStats.underlying go!"Mutex") #x (Val #(x.Mutex'))
   set_Mutex : ∀ (x : FollowerStats) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet FollowerStats.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : FollowerStats)))
+  method_set : go.MethodSetIs FollowerStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FollowerStats.ty) [(go!"Fail", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Succ", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] FollowerStats.TypeAssumptions.type_repr
   FollowerStats.TypeAssumptions.underlying
@@ -400,6 +418,8 @@ attribute [instance] FollowerStats.TypeAssumptions.type_repr
   FollowerStats.TypeAssumptions.set_Counts
   FollowerStats.TypeAssumptions.get_Mutex
   FollowerStats.TypeAssumptions.set_Mutex
+  FollowerStats.TypeAssumptions.method_set
+  FollowerStats.TypeAssumptions.ptr_method_set
 
 structure RequestStats [GooseExts] where
   mk ::
@@ -430,6 +450,8 @@ class RequestStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_SendingTime : ∀ (x : RequestStats) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet RequestStats.underlying go!"SendingTime") (PairV #x #y) (Val #(({ x with SendingTime' := y } : RequestStats)))
   get_Size : ∀ (x : RequestStats), go.IsGoStepPureDetTagged under (StructFieldGet RequestStats.underlying go!"Size") #x (Val #(x.Size'))
   set_Size : ∀ (x : RequestStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RequestStats.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : RequestStats)))
+  method_set : go.MethodSetIs RequestStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestStats.ty) []
 
 attribute [instance] RequestStats.TypeAssumptions.type_repr
   RequestStats.TypeAssumptions.underlying
@@ -437,6 +459,8 @@ attribute [instance] RequestStats.TypeAssumptions.type_repr
   RequestStats.TypeAssumptions.set_SendingTime
   RequestStats.TypeAssumptions.get_Size
   RequestStats.TypeAssumptions.set_Size
+  RequestStats.TypeAssumptions.method_set
+  RequestStats.TypeAssumptions.ptr_method_set
 
 structure statsQueue [GooseExts] where
   mk ::
@@ -483,6 +507,8 @@ class statsQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_totalReqSize : ∀ (x : statsQueue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet statsQueue.underlying go!"totalReqSize") (PairV #x #y) (Val #(({ x with totalReqSize' := y } : statsQueue)))
   get_rwl : ∀ (x : statsQueue), go.IsGoStepPureDetTagged under (StructFieldGet statsQueue.underlying go!"rwl") #x (Val #(x.rwl'))
   set_rwl : ∀ (x : statsQueue) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet statsQueue.underlying go!"rwl") (PairV #x #y) (Val #(({ x with rwl' := y } : statsQueue)))
+  method_set : go.MethodSetIs statsQueue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType statsQueue.ty) [(go!"Clear", (some (go.signature.Signature [] false []))), (go!"Insert", (some (go.signature.Signature [(go.GoType.PointerType RequestStats.ty)] false []))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Rate", (some (go.signature.Signature [] false [go.float64, go.float64]))), (go!"ReqSize", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.frontAndBack", (some (go.signature.Signature [] false [(go.GoType.PointerType RequestStats.ty), (go.GoType.PointerType RequestStats.ty)])))]
 
 attribute [instance] statsQueue.TypeAssumptions.type_repr
   statsQueue.TypeAssumptions.underlying
@@ -498,6 +524,8 @@ attribute [instance] statsQueue.TypeAssumptions.type_repr
   statsQueue.TypeAssumptions.set_totalReqSize
   statsQueue.TypeAssumptions.get_rwl
   statsQueue.TypeAssumptions.set_rwl
+  statsQueue.TypeAssumptions.method_set
+  statsQueue.TypeAssumptions.ptr_method_set
 
 axiom serverStats : Type
 axiom serverStats.zero_val : ZeroVal serverStats
@@ -507,10 +535,14 @@ class serverStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying serverStats.underlying serverStats
   underlying : go.UnderlyingDirectedEq serverStats.ty serverStats.underlying
   isUnderlying : go.IsUnderlying serverStats.underlying serverStats.underlying
+  method_set : go.MethodSetIs serverStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverStats.ty) []
 
 attribute [instance] serverStats.TypeAssumptions.type_repr
   serverStats.TypeAssumptions.underlying
   serverStats.TypeAssumptions.isUnderlying
+  serverStats.TypeAssumptions.method_set
+  serverStats.TypeAssumptions.ptr_method_set
 
 structure ServerStats [GooseExts] where
   mk ::
@@ -541,6 +573,8 @@ class ServerStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_serverStats : ∀ (x : ServerStats) (y : serverStats), go.IsGoStepPureDetTagged under (StructFieldSet ServerStats.underlying go!"serverStats") (PairV #x #y) (Val #(({ x with serverStats' := y } : ServerStats)))
   get_Mutex : ∀ (x : ServerStats), go.IsGoStepPureDetTagged under (StructFieldGet ServerStats.underlying go!"Mutex") #x (Val #(x.Mutex'))
   set_Mutex : ∀ (x : ServerStats) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ServerStats.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : ServerStats)))
+  method_set : go.MethodSetIs ServerStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerStats.ty) [(go!"BecomeLeader", (some (go.signature.Signature [] false []))), (go!"JSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"RecvAppendReq", (some (go.signature.Signature [go.string, go.int] false []))), (go!"SendAppendReq", (some (go.signature.Signature [go.int] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.becomeLeader", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ServerStats.TypeAssumptions.type_repr
   ServerStats.TypeAssumptions.underlying
@@ -548,6 +582,8 @@ attribute [instance] ServerStats.TypeAssumptions.type_repr
   ServerStats.TypeAssumptions.set_serverStats
   ServerStats.TypeAssumptions.get_Mutex
   ServerStats.TypeAssumptions.set_Mutex
+  ServerStats.TypeAssumptions.method_set
+  ServerStats.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   LeaderStats_instance : LeaderStats.TypeAssumptions

@@ -3,13 +3,19 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Propose.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8) (Q : List EntryM → IProp GF)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode γ id n ∗ nodeCtx ctx cd ∗ ownSlice data_sl data DFrac.discard ∗ ⌜data ≠ []⌝ ∗ propArg γ.raft data Q -∗
-          (▷ ∀ err, propErr cd err -∗ Φ (intoVal err)) -∗
+            isNode n γ N id ∗
+              nodeCtx ctx cd ∗
+                ownSlice data_sl data DFrac.discard ∗
+                  AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t,
+                      ownCommittedOps γ (ops ++ [{ term := t, type := W32 0, data := data }]), COMM True }> -∗
+          (▷
+              ∀ err,
+                ⌜err = GoInterface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (methods node.ty.PointerType go!"Propose" (intoVal n)))
                   (intoVal (GoInterface.ok ctx)))

@@ -143,6 +143,35 @@ theorem adminOk_of_passL (γa : auth.AuthNames) (hs : List auth.AuthState) (st :
     auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) :=
   h hn st hl
 
+/-- **An admitted admin request's `apply.Apply` keeps the KV log and the chain** (E3n): an admin
+kind is neither of the pre-v3 kinds nor a store kind, so its dispatched outcome leaves the log
+(`dispatchStep`'s last case), and it is not an alarm request. -/
+theorem applyStep_admin_keep (rq : apply.IRRModel) (x x' : apply.ApplyKV) (out : apply.ApplyOut)
+    (hk : apply.adminKindOk rq) (h : apply.applyStep rq true x x' out) :
+    x'.log = x.log ∧ x'.chain = x.chain := by
+  have hkd : apply.dispatchKind rq = .authUserAdd ∨ apply.dispatchKind rq = .authRoleAdd ∨
+      apply.dispatchKind rq = .authUserGrantRole ∨
+      apply.dispatchKind rq = .authRoleGrantPermission ∨ apply.dispatchKind rq = .authEnable := by
+    unfold apply.adminKindOk at hk
+    split at hk <;> simp_all
+  have hpv : apply.preV3Kind (apply.dispatchKind rq) = false := by
+    rcases hkd with h | h | h | h | h <;> rw [h] <;> rfl
+  have hsk : apply.storeKind (apply.dispatchKind rq) = false := by
+    rcases hkd with h | h | h | h | h <;> rw [h] <;> rfl
+  have hna : apply.dispatchKind rq ≠ .alarm := by
+    rcases hkd with h | h | h | h | h <;> rw [h] <;> decide
+  cases out with
+  | skipped => obtain ⟨-, rfl⟩ := h; exact ⟨rfl, rfl⟩
+  | rejected => obtain ⟨-, rfl⟩ := h; exact ⟨rfl, rfl⟩
+  | dispatched o b =>
+    obtain ⟨-, hd, hl, hc⟩ := h
+    unfold apply.dispatchStep at hd
+    rw [if_neg (by simp [hpv]), if_neg (by simp [hsk])] at hd
+    refine ⟨hl.trans hd, ?_⟩
+    rcases hc with hc | ⟨-, hal, -⟩
+    · exact hc
+    · exact absurd hal hna
+
 end pure
 
 section res
@@ -167,7 +196,212 @@ theorem adminOutX_on_noExtra (γa : auth.AuthNames) (Own : List auth.AuthState �
     · ipureintro; exact h
     cases o <;> simp only [auth.outResX, histAfter] at * <;> icases Hr with ⟨Ho, -⟩ <;> iexact Ho
 
+/-- `adminOutX_on_noExtra`, keeping what the error says of the outcome (E3x): no error, no
+refusal (`auth.authErrOf`: an error variable's value, not `nil`). -/
+theorem adminOutX_on_noExtraE (γa : auth.AuthNames) (Own : List auth.AuthState → IProp GF)
+    (hs : List auth.AuthState) (R : auth.StepRel) (err : GoInterface) :
+    auth.adminOutX (.on γa) Own hs R auth.noExtra err ⊢
+      ∃ (st : auth.AuthState) (o : auth.Outcome), ⌜hs.getLast? = some st ∧ R st o ∧
+        (err = GoInterface.nil → ∀ e, o ≠ .err e)⌝ ∗ Own (histAfter hs o) := by
+  unfold auth.adminOutX
+  iintro (⟨%e, %hx, -, -⟩ | ⟨%st, %o, %h, Hr⟩)
+  · exact absurd hx id
+  · cases o with
+    | err e =>
+      simp only [auth.outResX, histAfter]
+      icases Hr with ⟨Ho, #He⟩
+      iunfold auth.authErrOf at He
+      icases He with ⟨%ei, -, %Hei⟩
+      iexists st, .err e
+      iframe Ho
+      ipureintro
+      refine ⟨h.1, h.2, fun hn => ?_⟩
+      rw [Hei] at hn; cases hn
+    | same =>
+      simp only [auth.outResX, histAfter]
+      icases Hr with ⟨Ho, -⟩
+      iexists st, .same
+      iframe Ho
+      ipureintro
+      exact ⟨h.1, h.2, fun _ e he => by cases he⟩
+    | next st' =>
+      simp only [auth.outResX, histAfter]
+      icases Hr with ⟨Ho, -⟩
+      iexists st, .next st'
+      iframe Ho
+      ipureintro
+      exact ⟨h.1, h.2, fun _ e he => by cases he⟩
+
 end res
+
+section res2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **An admin entry's outcome as the model's admin step** (E3n): `apply.Apply.adminSpecL`'s
+admin outcome with `v3` (`adminOut`), the history `hs` whose latest state is `st`: a refusal at the
+latest state keeps the authority (and the receipt) and the state (`adminStateR_of_rejL`); a
+dispatched request's check passed there (`adminOk_of_passL`), and its result (without an extra
+error) is the step to some `o`, with the authority at the history after it, whose latest state
+`outState st o` the model's admin step reaches (`adminStateR_of_step`, `_of_authEnable`). -/
+theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List auth.AuthState → IProp GF)
+    (hs : List auth.AuthState) (st : auth.AuthState) (rq : apply.IRRModel) (ar : Loc)
+    (out : apply.ApplyOut) (hl : hs.getLast? = some st) (hn : apply.needAdminPermission rq = true)
+    (hrej : out = .rejected → apply.needAdminPermission rq = true ∧ apply.adminRejL (.on γa) hs rq)
+    (hpass : ∀ o b, out = .dispatched o b → apply.adminPassL (.on γa) hs rq)
+    (hout : out = .rejected ∨ ∃ o b, out = .dispatched o b) :
+    apply.adminOut Own γa (.on γa) hs rq true ar out ⊢
+      ∃ (hs' : List auth.AuthState) (st' : auth.AuthState),
+        ⌜hs'.getLast? = some st' ∧ adminStateR rq st st'⌝ ∗ Own γa hs' ∗
+        adminTieAr ar rq st st' out := by
+  rcases hout with rfl | ⟨o, b, rfl⟩
+  · simp only [apply.adminOut]
+    iintro ⟨Ho, -⟩
+    iexists hs, st
+    iframe Ho
+    isplitr
+    · ipureintro
+      exact ⟨hl, adminStateR_of_rejL γa hs st rq hl (hrej rfl).2⟩
+    iunfold adminTieAr
+    ileft
+    ipureintro
+    exact Or.inr (fun o b h => by cases h)
+  · have ha := adminOk_of_passL γa hs st rq hl hn (hpass o b rfl)
+    simp only [apply.adminOut, apply.adminDone, ↓reduceIte]
+    iintro ⟨%v, %ad, %had, #Hv, Hres⟩
+    unfold apply.adminReqOf at had
+    split at had <;> rename_i hkd
+    · -- `UserAdd`
+      cases hm : rq.authUserAdd with
+      | none => simp [hm] at had
+      | some m =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl,
+            adminStateR_of_step rq st o' ha (Or.inl ⟨m, hkd, hm, h2⟩)⟩
+        iunfold adminTieAr
+        iright
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        refine ⟨ha, o', ?_, h3 hn, rfl⟩
+        unfold adminStepO
+        rw [hkd]
+        exact ⟨m, hm, h2⟩
+    · -- `RoleAdd`
+      cases hm : rq.authRoleAdd with
+      | none => simp [hm] at had
+      | some n =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl,
+            adminStateR_of_step rq st o' ha (Or.inr (Or.inl ⟨n, hkd, hm, h2⟩))⟩
+        iunfold adminTieAr
+        iright
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        refine ⟨ha, o', ?_, h3 hn, rfl⟩
+        unfold adminStepO
+        rw [hkd]
+        exact ⟨n, hm, h2⟩
+    · -- `UserGrantRole`
+      cases hm : rq.authUserGrantRole with
+      | none => simp [hm] at had
+      | some ur =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl,
+            adminStateR_of_step rq st o' ha (Or.inr (Or.inr (Or.inl ⟨ur.1, ur.2, hkd, hm, h2⟩)))⟩
+        iunfold adminTieAr
+        iright
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        refine ⟨ha, o', ?_, h3 hn, rfl⟩
+        unfold adminStepO
+        rw [hkd]
+        exact ⟨ur.1, ur.2, hm, h2⟩
+    · -- `RoleGrantPermission`
+      cases hm : rq.authRoleGrantPermission with
+      | none => simp [hm] at had
+      | some nw =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl,
+            adminStateR_of_step rq st o' ha (Or.inr (Or.inr (Or.inr ⟨nw.1, nw.2, hkd, hm, h2⟩)))⟩
+        iunfold adminTieAr
+        iright
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        refine ⟨ha, o', ?_, h3 hn, rfl⟩
+        unfold adminStepO
+        rw [hkd]
+        exact ⟨nw.1, nw.2, hm, h2⟩
+    · -- `AuthEnable`
+      cases had
+      simp only [apply.AdminReq.result]
+      icases Hres with ⟨%en, -, Hx⟩
+      ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hx
+      obtain ⟨h1, h2, h3⟩ := h
+      rw [hl] at h1; cases h1
+      iexists histAfter hs o', outState st o'
+      iframe Ho
+      isplitr
+      · ipureintro
+        exact ⟨histAfter_last hs st o' hl, adminStateR_of_authEnable γa rq st en o' ha hkd h2⟩
+      iunfold adminTieAr
+      iright
+      iexists v
+      iframe Hv
+      ipureintro
+      intro hn
+      refine ⟨ha, o', ?_, h3 hn, rfl⟩
+      unfold adminStepO
+      rw [hkd]
+      exact apply.authEnableR_on γa en st o' h2
+    · cases had
+
+end res2
 
 end EtcdGrove
 end Perennial

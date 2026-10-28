@@ -6,7 +6,7 @@ vocabulary** (the partition plan's S3a, 2026-10-20, `notes/partition-plan.md`). 
 (`putget3/Defs.lean`, whose header explains each) at linkv3p's configuration: the member names
 `linkv3p-1`, `-2`, `-3`, the cluster token `linkv3p`, the peer addresses `127.0.0.1:2384{1,2,3}`
 and the client addresses `127.0.0.1:2383{1,2,3}` (every one served, to its client). The
-conf-change policy (`putget3.ccOk`), the URL builder (`putget3.httpURL`), the premises shared by
+bootstrap facts (`putget3.BootFacts`), the URL builder (`putget3.httpURL`), the premises shared by
 the members (`putget3.commonPremises`) are putget3's, which name no configuration.
 
 **The member ids' order** (`BootFacts`): `id₁ id₂ id₃` are the ids of `linkv3p-1`, `-2`, `-3`.
@@ -53,8 +53,8 @@ def ids (id₁ id₂ id₃ : w64) : List w64 := [id₁, id₂, id₃]
 
 /-- **`bootstrap`'s results, as Go computes them**: putget3's, in the members' id order (see the
 file header). -/
-abbrev BootFacts (id₁ id₂ id₃ : w64) (bootLog : List EntryM) : Prop :=
-  putget3.BootFacts id₁ id₂ id₃ bootLog
+abbrev BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop :=
+  putget3.BootFacts id₁ id₂ id₃ ctxs bl
 
 /-- The members' names. -/
 abbrev name₁ : GoString := go!"linkv3p-1"
@@ -113,31 +113,39 @@ def cfgOk (name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
 
 /-- **`bootstrap`'s contract for member `name`** (putget3's `bootPremise` at linkv3p's `cfgOk` and
 `urlsOk`). -/
-def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (dir : w64 → List GoString)
-    (name peerAddr client : GoString) (id : w64) : IProp GF :=
-  iprop(□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-        (γ : RaftNames),
-      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.reCfg = GMap.listToSet ps ∧
-        γ.reDyn = none ∧ γ.reCCOk = putget3.ccOk ps ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N dir)
+def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
+    (dir : w64 → List GoString) (name peerAddr client : GoString) (id : w64) : IProp GF :=
+  iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
+      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.vs = ps ∧ γ.dyn = false ∧
+        γ.boot = bootLog⌝ -∗
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
 instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM)
-    (dir : w64 → List GoString) (name peerAddr client : GoString) (id : w64) :
-    Persistent (bootPremise (GF := GF) N ps bootLog dir name peerAddr client id) := by
+    (ctxs : List (List w8)) (dir : w64 → List GoString) (name peerAddr client : GoString)
+    (id : w64) :
+    Persistent (bootPremise (GF := GF) N ps bootLog ctxs dir name peerAddr client id) := by
   unfold bootPremise; infer_instance
 
 /-- **`Main`'s named premises** (persistent; putget3's at linkv3p's configuration): `bootstrap`'s
-contract for each member, at the cluster `ids id₁ id₂ id₃` and the directory `dir3`, and the
-premises the members share. -/
-def premises (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) : IProp GF :=
+contract for each member, at the cluster `ids id₁ id₂ id₃` and the directory `dir3`,
+`proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`, 2026-10-27, the
+server port: the cluster's allocation's premise; until then `bootstrap`'s contract gave it), and
+the premises the members share. -/
+def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
+    IProp GF :=
   iprop(
-    bootPremise N (ids id₁ id₂ id₃) bootLog (dir3 id₁ id₂ id₃) name₁ peerAddr₁ clientAddr₁ id₁ ∗
-    bootPremise N (ids id₁ id₂ id₃) bootLog (dir3 id₁ id₂ id₃) name₂ peerAddr₂ clientAddr₂ id₂ ∗
-    bootPremise N (ids id₁ id₂ id₃) bootLog (dir3 id₁ id₂ id₃) name₃ peerAddr₃ clientAddr₃ id₃ ∗
+    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+      name₁ peerAddr₁ clientAddr₁ id₁ ∗
+    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+      name₂ peerAddr₂ clientAddr₂ id₂ ∗
+    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+      name₃ peerAddr₃ clientAddr₃ id₃ ∗
+    bootMarshal (ids id₁ id₂ id₃) ctxs (LogEntry.toEntries boot 0) ∗
     putget3.commonPremises)
 
-instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) :
-    Persistent (premises (GF := GF) N id₁ id₂ id₃ bootLog) := by
+instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8))
+    (boot : List LogEntry) :
+    Persistent (premises (GF := GF) N id₁ id₂ id₃ ctxs boot) := by
   unfold premises; infer_instance
 
 /-- **What `Apply` and `Check` take of one client** (persistent): linkvtxn's `Apply.spec`'s
@@ -267,9 +275,10 @@ def watchEnv (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString)
 `memberServed` and its bridge's start): its bridge's address serving
 its client address's, its read view, etcd's KV specs registered at its client address and the
 address refusal-free, its watch server and `Watch` stream there, its names agreeing with the
-cluster's (the raft names, what the KV model reads). -/
+cluster's (the raft names but for the member's storage registry, `SrvRaft.reg`; what the KV model
+reads). -/
 def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
-    (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : RaftNames) : IProp GF :=
+    (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) : IProp GF :=
   iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
@@ -280,11 +289,11 @@ def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R.γ)
       (fun γs Dn => v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn) ∗
-    ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.c0 = W64 0 ∧
+    ⌜(∃ reg : GName, ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩) ∧ ρ.rd.kv.c0 = W64 0 ∧
       ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []]⌝)
 
 instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames)
-    (E : apply.AEnv GF) (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : RaftNames) :
+    (E : apply.AEnv GF) (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) :
     Persistent (memberAt γn s id ρ E cid mid R b c γ) := by
   unfold memberAt; infer_instance
 
@@ -294,7 +303,7 @@ the clients'; each member (`memberAt`), each bridge owned and not blackholed, ea
 the client's view of etcd's KV at the start store; the members' KV state variables agreeing. -/
 def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (pfx : GoString)
     (srvs brs clis : GoSlice) : IProp GF :=
-  iprop(∃ (γ : RaftNames) (γn : NetNames GF) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
+  iprop(∃ (γ : SrvRaft) (γn : NetNames GF) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
       (cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ : w64) (R₁ R₂ R₃ : v3rpc.WSrv GF) (s₁ s₂ s₃ cl₁ cl₂ cl₃ : Loc)
       (br₁ br₂ br₃ : GoInterface),
     srvs ↦*□ [s₁, s₂, s₃] ∗ brs ↦*□ [br₁, br₂, br₃] ∗ clis ↦*□ [cl₁, cl₂, cl₃] ∗

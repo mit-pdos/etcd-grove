@@ -3,8 +3,8 @@ Package initialization of `go_etcd_io.bbolt.errors`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`bboltErrorsInit`, `storage/backend/Base.lean`): `ErrBucketNotFound` holds an
-`errors.New` error, a leaf pointer error without an `Is` method (`EtcdGrove.ErrorStringLeaf`, a
-premise on the method sets). Its initializer runs its variables' initializers, all untranslated
+`errors.New` error, a leaf pointer error without an `Is` method (`EtcdGrove.ErrorStringLeaf`, of
+the method set goose emits). Its initializer runs its variables' initializers, all untranslated
 `errors.New` calls (`errors/errors.go`), which the trust-boundary axiom `errorsNewVarsInit`
 states.
 -/
@@ -72,7 +72,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.bbolt.errors.Assumptions]
-variable [EtcdGrove.ErrorStringLeaf]
+variable [_root_.Perennial.errors.Assumptions]
 
 namespace go_etcd_io.bbolt.errors
 

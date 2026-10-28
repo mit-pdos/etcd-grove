@@ -136,8 +136,12 @@ abbrev Event_EventType [GooseExts] : Type := w32
 
 class Event_EventType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Event_EventType.ty Event_EventType.underlying
+  method_set : go.MethodSetIs Event_EventType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Event_EventType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event_EventType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Event_EventType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] Event_EventType.TypeAssumptions.underlying
+  Event_EventType.TypeAssumptions.method_set
+  Event_EventType.TypeAssumptions.ptr_method_set
 
 structure KeyValue [GooseExts] where
   mk ::
@@ -196,6 +200,8 @@ class KeyValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_unknownFields : ∀ (x : KeyValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : KeyValue)))
   get_sizeCache : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : KeyValue) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : KeyValue)))
+  method_set : go.MethodSetIs KeyValue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyValue.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCreateRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetModRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetVersion", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.underlying
@@ -217,6 +223,8 @@ attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.set_unknownFields
   KeyValue.TypeAssumptions.get_sizeCache
   KeyValue.TypeAssumptions.set_sizeCache
+  KeyValue.TypeAssumptions.method_set
+  KeyValue.TypeAssumptions.ptr_method_set
 
 structure Event [GooseExts] where
   mk ::
@@ -263,6 +271,8 @@ class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_unknownFields : ∀ (x : Event) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Event)))
   get_sizeCache : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Event) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Event)))
+  method_set : go.MethodSetIs Event.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKv", (some (go.signature.Signature [] false [(go.GoType.PointerType KeyValue.ty)]))), (go!"GetPrevKv", (some (go.signature.Signature [] false [(go.GoType.PointerType KeyValue.ty)]))), (go!"GetType", (some (go.signature.Signature [] false [Event_EventType.ty]))), (go!"IsCreate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsModify", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
@@ -278,6 +288,8 @@ attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.set_unknownFields
   Event.TypeAssumptions.get_sizeCache
   Event.TypeAssumptions.set_sizeCache
+  Event.TypeAssumptions.method_set
+  Event.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Event_EventType_instance : Event_EventType.TypeAssumptions

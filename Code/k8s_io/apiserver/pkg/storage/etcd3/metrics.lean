@@ -280,10 +280,14 @@ class Monitor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Monitor.underlying Monitor
   underlying : go.UnderlyingDirectedEq Monitor.ty Monitor.underlying
   isUnderlying : go.IsUnderlying Monitor.underlying Monitor.underlying
+  method_set : go.MethodSetIs Monitor.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Monitor", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [StorageMetrics.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Monitor.ty) []
 
 attribute [instance] Monitor.TypeAssumptions.type_repr
   Monitor.TypeAssumptions.underlying
   Monitor.TypeAssumptions.isUnderlying
+  Monitor.TypeAssumptions.method_set
+  Monitor.TypeAssumptions.ptr_method_set
 
 structure StorageMetrics [GooseExts] where
   mk ::
@@ -310,11 +314,15 @@ class StorageMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq StorageMetrics.ty StorageMetrics.underlying
   get_Size : ∀ (x : StorageMetrics), go.IsGoStepPureDetTagged under (StructFieldGet StorageMetrics.underlying go!"Size") #x (Val #(x.Size'))
   set_Size : ∀ (x : StorageMetrics) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet StorageMetrics.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : StorageMetrics)))
+  method_set : go.MethodSetIs StorageMetrics.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageMetrics.ty) []
 
 attribute [instance] StorageMetrics.TypeAssumptions.type_repr
   StorageMetrics.TypeAssumptions.underlying
   StorageMetrics.TypeAssumptions.get_Size
   StorageMetrics.TypeAssumptions.set_Size
+  StorageMetrics.TypeAssumptions.method_set
+  StorageMetrics.TypeAssumptions.ptr_method_set
 
 axiom monitorCollector : Type
 axiom monitorCollector.zero_val : ZeroVal monitorCollector
@@ -324,10 +332,14 @@ class monitorCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying monitorCollector.underlying monitorCollector
   underlying : go.UnderlyingDirectedEq monitorCollector.ty monitorCollector.underlying
   isUnderlying : go.IsUnderlying monitorCollector.underlying monitorCollector.underlying
+  method_set : go.MethodSetIs monitorCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType monitorCollector.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CollectWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"k8s.io/component-base/metrics.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" [])), (go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])] false [go.bool]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"DescribeWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" [])))] false []))), (go!"HiddenMetrics", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.getGetter", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType Monitor.ty), go.error]))]))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.setGetter", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType Monitor.ty), go.error]))] false []))), (go!"k8s.io/component-base/metrics.add", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false []))), (go!"k8s.io/component-base/metrics.init", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])] false []))), (go!"k8s.io/component-base/metrics.trackHiddenDescriptor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false []))), (go!"k8s.io/component-base/metrics.trackRegistrableDescriptor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false [])))]
 
 attribute [instance] monitorCollector.TypeAssumptions.type_repr
   monitorCollector.TypeAssumptions.underlying
   monitorCollector.TypeAssumptions.isUnderlying
+  monitorCollector.TypeAssumptions.method_set
+  monitorCollector.TypeAssumptions.ptr_method_set
 
 axiom OperationLatencyTracker : Type
 axiom OperationLatencyTracker.zero_val : ZeroVal OperationLatencyTracker
@@ -337,10 +349,14 @@ class OperationLatencyTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   type_repr : go.TypeReprUnderlying OperationLatencyTracker.underlying OperationLatencyTracker
   underlying : go.UnderlyingDirectedEq OperationLatencyTracker.ty OperationLatencyTracker.underlying
   isUnderlying : go.IsUnderlying OperationLatencyTracker.underlying OperationLatencyTracker.underlying
+  method_set : go.MethodSetIs OperationLatencyTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OperationLatencyTracker.ty) [(go!"Record", (some (go.signature.Signature [go.error, (go.GoType.Named go!"time.Time" [])] false [])))]
 
 attribute [instance] OperationLatencyTracker.TypeAssumptions.type_repr
   OperationLatencyTracker.TypeAssumptions.underlying
   OperationLatencyTracker.TypeAssumptions.isUnderlying
+  OperationLatencyTracker.TypeAssumptions.method_set
+  OperationLatencyTracker.TypeAssumptions.ptr_method_set
 
 structure EtcdMetricsTracker [GooseExts] where
   mk ::
@@ -367,11 +383,15 @@ class EtcdMetricsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   underlying : go.UnderlyingDirectedEq EtcdMetricsTracker.ty EtcdMetricsTracker.underlying
   get_Get : ∀ (x : EtcdMetricsTracker), go.IsGoStepPureDetTagged under (StructFieldGet EtcdMetricsTracker.underlying go!"Get") #x (Val #(x.Get'))
   set_Get : ∀ (x : EtcdMetricsTracker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdMetricsTracker.underlying go!"Get") (PairV #x #y) (Val #(({ x with Get' := y } : EtcdMetricsTracker)))
+  method_set : go.MethodSetIs EtcdMetricsTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdMetricsTracker.ty) []
 
 attribute [instance] EtcdMetricsTracker.TypeAssumptions.type_repr
   EtcdMetricsTracker.TypeAssumptions.underlying
   EtcdMetricsTracker.TypeAssumptions.get_Get
   EtcdMetricsTracker.TypeAssumptions.set_Get
+  EtcdMetricsTracker.TypeAssumptions.method_set
+  EtcdMetricsTracker.TypeAssumptions.ptr_method_set
 
 axiom timestampedResourceGaugeCollector : Type
 axiom timestampedResourceGaugeCollector.zero_val : ZeroVal timestampedResourceGaugeCollector
@@ -381,10 +401,14 @@ class timestampedResourceGaugeCollector.TypeAssumptions [GooseExts] [GoGlobalCon
   type_repr : go.TypeReprUnderlying timestampedResourceGaugeCollector.underlying timestampedResourceGaugeCollector
   underlying : go.UnderlyingDirectedEq timestampedResourceGaugeCollector.ty timestampedResourceGaugeCollector.underlying
   isUnderlying : go.IsUnderlying timestampedResourceGaugeCollector.underlying timestampedResourceGaugeCollector.underlying
+  method_set : go.MethodSetIs timestampedResourceGaugeCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timestampedResourceGaugeCollector.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CollectWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"k8s.io/component-base/metrics.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" [])), (go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])] false [go.bool]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"DescribeWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" [])))] false []))), (go!"HiddenMetrics", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.delete", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupResource" [])] false []))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.set", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupResource" []), go.int64] false []))), (go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.setClock", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/utils/clock.PassiveClock" [])] false []))), (go!"k8s.io/component-base/metrics.add", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false []))), (go!"k8s.io/component-base/metrics.init", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])] false []))), (go!"k8s.io/component-base/metrics.trackHiddenDescriptor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false []))), (go!"k8s.io/component-base/metrics.trackRegistrableDescriptor", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" []))] false [])))]
 
 attribute [instance] timestampedResourceGaugeCollector.TypeAssumptions.type_repr
   timestampedResourceGaugeCollector.TypeAssumptions.underlying
   timestampedResourceGaugeCollector.TypeAssumptions.isUnderlying
+  timestampedResourceGaugeCollector.TypeAssumptions.method_set
+  timestampedResourceGaugeCollector.TypeAssumptions.ptr_method_set
 
 axiom timestampedSample : Type
 axiom timestampedSample.zero_val : ZeroVal timestampedSample
@@ -394,10 +418,14 @@ class timestampedSample.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying timestampedSample.underlying timestampedSample
   underlying : go.UnderlyingDirectedEq timestampedSample.ty timestampedSample.underlying
   isUnderlying : go.IsUnderlying timestampedSample.underlying timestampedSample.underlying
+  method_set : go.MethodSetIs timestampedSample.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timestampedSample.ty) []
 
 attribute [instance] timestampedSample.TypeAssumptions.type_repr
   timestampedSample.TypeAssumptions.underlying
   timestampedSample.TypeAssumptions.isUnderlying
+  timestampedSample.TypeAssumptions.method_set
+  timestampedSample.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Monitor_instance : Monitor.TypeAssumptions

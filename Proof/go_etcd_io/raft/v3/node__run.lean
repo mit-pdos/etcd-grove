@@ -32,7 +32,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
 public import Proof.go_etcd_io.raft.v3.LemmasRunR
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
@@ -806,7 +806,7 @@ theorem node.run.wp_proof
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
         ([∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
-          [∗list] st ∈ sts, readStateOk γ.raft st) ∗
+          [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
           hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length) ∗
         rdSnapOut γ.raft rs rdv' ce es L ∗
@@ -885,6 +885,14 @@ theorem node.run.wp_proof
         icases ownRawNodeReady_loanLoc γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
           with ⟨#Hx, -⟩
         imodintro; iintro %l %h; cases h; iexact Hx
+    -- (2026-10-26, D22 J6a; J7b's raft part) a snapshot handed out ends its committed log
+    ihave %Hllast : ⌜∀ l : SnapLoan, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ $$ [Hrn]
+    · cases L with
+      | none => ipureintro; intro l h; cases h
+      | some l0 =>
+        icases ownRawNodeReady_loanLast γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
+          with ⟨%Hx, -⟩
+        ipureintro; intro l h; cases h; exact Hx
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms L $$ Hrn
       with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
@@ -930,6 +938,8 @@ theorem node.run.wp_proof
         · iexists h; iframe Hhh; ipureintro; rfl
         isplitr
         · ipureintro; exact ⟨Hsin, Hsnp.2.1 Hsin⟩
+        isplitr
+        · ipureintro; exact Hllast l rfl
         isplitr
         · ipureintro; exact Hlo
         rw [← Hstor]

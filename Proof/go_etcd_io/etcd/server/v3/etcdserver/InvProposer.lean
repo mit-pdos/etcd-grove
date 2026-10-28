@@ -336,7 +336,7 @@ variable [sem : go.Semantics]
 request claimed under its id (in the cluster's claims, D21e (A): every member's proposals mint
 here). -/
 def srvPropMint (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
-  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth γ.raft.reFresh 1 F ∗
+  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth γ.raft.fresh 1 F ∗
     [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
       ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim γi id d γf)
 

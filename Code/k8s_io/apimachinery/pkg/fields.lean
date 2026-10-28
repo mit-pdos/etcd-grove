@@ -164,8 +164,12 @@ abbrev Fields [GooseExts] : Type := GoInterface
 
 class Fields.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Fields.ty Fields.underlying
+  method_set : go.MethodSetIs Fields.ty [(go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Fields.ty) []
 
 attribute [instance] Fields.TypeAssumptions.underlying
+  Fields.TypeAssumptions.method_set
+  Fields.TypeAssumptions.ptr_method_set
 
 abbrev Set' [GooseExts] : Type := GoMap
 
@@ -174,8 +178,12 @@ abbrev Set' [GooseExts] : Type := GoMap
 
 class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Set'.ty Set'.underlying
+  method_set : go.MethodSetIs Set'.ty [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Set.TypeAssumptions.underlying
+  Set.TypeAssumptions.method_set
+  Set.TypeAssumptions.ptr_method_set
 
 abbrev Requirements [GooseExts] : Type := GoSlice
 
@@ -184,8 +192,12 @@ abbrev Requirements [GooseExts] : Type := GoSlice
 
 class Requirements.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Requirements.ty Requirements.underlying
+  method_set : go.MethodSetIs Requirements.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Requirements.ty) []
 
 attribute [instance] Requirements.TypeAssumptions.underlying
+  Requirements.TypeAssumptions.method_set
+  Requirements.TypeAssumptions.ptr_method_set
 
 axiom Requirement : Type
 axiom Requirement.zero_val : ZeroVal Requirement
@@ -195,10 +207,14 @@ class Requirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Requirement.underlying Requirement
   underlying : go.UnderlyingDirectedEq Requirement.ty Requirement.underlying
   isUnderlying : go.IsUnderlying Requirement.underlying Requirement.underlying
+  method_set : go.MethodSetIs Requirement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Requirement.ty) []
 
 attribute [instance] Requirement.TypeAssumptions.type_repr
   Requirement.TypeAssumptions.underlying
   Requirement.TypeAssumptions.isUnderlying
+  Requirement.TypeAssumptions.method_set
+  Requirement.TypeAssumptions.ptr_method_set
 
 abbrev Selector [GooseExts] : Type := GoInterface
 
@@ -207,8 +223,12 @@ abbrev Selector [GooseExts] : Type := GoInterface
 
 class Selector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Selector.ty Selector.underlying
+  method_set : go.MethodSetIs Selector.ty [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Selector.ty) []
 
 attribute [instance] Selector.TypeAssumptions.underlying
+  Selector.TypeAssumptions.method_set
+  Selector.TypeAssumptions.ptr_method_set
 
 structure nothingSelector [GooseExts] where
   mk ::
@@ -232,9 +252,13 @@ noncomputable instance equals_unfold_nothingSelector [GooseExts] [GoGlobalContex
 class nothingSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nothingSelector.underlying nothingSelector
   underlying : go.UnderlyingDirectedEq nothingSelector.ty nothingSelector.underlying
+  method_set : go.MethodSetIs nothingSelector.ty [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nothingSelector.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
 
 attribute [instance] nothingSelector.TypeAssumptions.type_repr
   nothingSelector.TypeAssumptions.underlying
+  nothingSelector.TypeAssumptions.method_set
+  nothingSelector.TypeAssumptions.ptr_method_set
 
 structure hasTerm [GooseExts] where
   mk ::
@@ -265,6 +289,8 @@ class hasTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_field : ∀ (x : hasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet hasTerm.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : hasTerm)))
   get_value : ∀ (x : hasTerm), go.IsGoStepPureDetTagged under (StructFieldGet hasTerm.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : hasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet hasTerm.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : hasTerm)))
+  method_set : go.MethodSetIs hasTerm.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hasTerm.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
 
 attribute [instance] hasTerm.TypeAssumptions.type_repr
   hasTerm.TypeAssumptions.underlying
@@ -272,6 +298,8 @@ attribute [instance] hasTerm.TypeAssumptions.type_repr
   hasTerm.TypeAssumptions.set_field
   hasTerm.TypeAssumptions.get_value
   hasTerm.TypeAssumptions.set_value
+  hasTerm.TypeAssumptions.method_set
+  hasTerm.TypeAssumptions.ptr_method_set
 
 structure notHasTerm [GooseExts] where
   mk ::
@@ -302,6 +330,8 @@ class notHasTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_field : ∀ (x : notHasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet notHasTerm.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : notHasTerm)))
   get_value : ∀ (x : notHasTerm), go.IsGoStepPureDetTagged under (StructFieldGet notHasTerm.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : notHasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet notHasTerm.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : notHasTerm)))
+  method_set : go.MethodSetIs notHasTerm.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notHasTerm.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
 
 attribute [instance] notHasTerm.TypeAssumptions.type_repr
   notHasTerm.TypeAssumptions.underlying
@@ -309,6 +339,8 @@ attribute [instance] notHasTerm.TypeAssumptions.type_repr
   notHasTerm.TypeAssumptions.set_field
   notHasTerm.TypeAssumptions.get_value
   notHasTerm.TypeAssumptions.set_value
+  notHasTerm.TypeAssumptions.method_set
+  notHasTerm.TypeAssumptions.ptr_method_set
 
 abbrev andTerm [GooseExts] : Type := GoSlice
 
@@ -317,8 +349,12 @@ abbrev andTerm [GooseExts] : Type := GoSlice
 
 class andTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq andTerm.ty andTerm.underlying
+  method_set : go.MethodSetIs andTerm.ty [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType andTerm.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
 
 attribute [instance] andTerm.TypeAssumptions.underlying
+  andTerm.TypeAssumptions.method_set
+  andTerm.TypeAssumptions.ptr_method_set
 
 structure InvalidEscapeSequence [GooseExts] where
   mk ::
@@ -345,11 +381,15 @@ class InvalidEscapeSequence.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq InvalidEscapeSequence.ty InvalidEscapeSequence.underlying
   get_sequence : ∀ (x : InvalidEscapeSequence), go.IsGoStepPureDetTagged under (StructFieldGet InvalidEscapeSequence.underlying go!"sequence") #x (Val #(x.sequence'))
   set_sequence : ∀ (x : InvalidEscapeSequence) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidEscapeSequence.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InvalidEscapeSequence)))
+  method_set : go.MethodSetIs InvalidEscapeSequence.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidEscapeSequence.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidEscapeSequence.TypeAssumptions.type_repr
   InvalidEscapeSequence.TypeAssumptions.underlying
   InvalidEscapeSequence.TypeAssumptions.get_sequence
   InvalidEscapeSequence.TypeAssumptions.set_sequence
+  InvalidEscapeSequence.TypeAssumptions.method_set
+  InvalidEscapeSequence.TypeAssumptions.ptr_method_set
 
 axiom UnescapedRune : Type
 axiom UnescapedRune.zero_val : ZeroVal UnescapedRune
@@ -359,10 +399,14 @@ class UnescapedRune.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying UnescapedRune.underlying UnescapedRune
   underlying : go.UnderlyingDirectedEq UnescapedRune.ty UnescapedRune.underlying
   isUnderlying : go.IsUnderlying UnescapedRune.underlying UnescapedRune.underlying
+  method_set : go.MethodSetIs UnescapedRune.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnescapedRune.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UnescapedRune.TypeAssumptions.type_repr
   UnescapedRune.TypeAssumptions.underlying
   UnescapedRune.TypeAssumptions.isUnderlying
+  UnescapedRune.TypeAssumptions.method_set
+  UnescapedRune.TypeAssumptions.ptr_method_set
 
 abbrev TransformFunc [GooseExts] : Type := GoFunc
 
@@ -371,8 +415,12 @@ abbrev TransformFunc [GooseExts] : Type := GoFunc
 
 class TransformFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TransformFunc.ty TransformFunc.underlying
+  method_set : go.MethodSetIs TransformFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransformFunc.ty) []
 
 attribute [instance] TransformFunc.TypeAssumptions.underlying
+  TransformFunc.TypeAssumptions.method_set
+  TransformFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Fields_instance : Fields.TypeAssumptions

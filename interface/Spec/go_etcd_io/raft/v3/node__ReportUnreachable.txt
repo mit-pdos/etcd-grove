@@ -3,10 +3,10 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ReportUnreachable.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal

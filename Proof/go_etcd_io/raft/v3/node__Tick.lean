@@ -2,19 +2,59 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.node__Tick
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
+import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.InvApiDyn
 
 @[expose] public section
 
 noncomputable section
 
+
 namespace Perennial
 namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+/-! ## The raw triple (internal: private to this file)
+
+What the proof over raft's internals shows, from which the wrapper (below) derives the spec. Its documentation, as when it was the spec (until 2026-10-28):
+-/
+
+/-! Lean-first (no Rocq counterpart).
+
+## `node.Tick()` (node.go:458)
+
+A tick, for one credit of the term budget (`tickCred`, `InvNode.lean`): the credit goes
+into the buffered `tickc` with the tick, or is dropped with it when the channel is full
+(the `default` branch, which warns through the raft struct's logger). Callable from any
+goroutine.
+-/
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- See the file header. -/
+private abbrev node.Tick.specRaw : Prop :=
+  ∀ (γ : NodeNames) (id : w64) (n : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
+      tickCred γ.bud 1 }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Tick")) (Val #()))
+  {{ RET #(); True }}
+
+end spec
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -26,8 +66,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The credit goes into `tickc` with the tick (`tickInv`), or is dropped with it; the
-`default` branch's warning reads the raft struct's shared fields (`isNode`). -/
-theorem node.Tick.wp_proof : node.Tick.spec (GF := GF) (hG := hG) := by
+`default` branch's warning reads the raft struct's shared fields (`isNodeChan`). -/
+private theorem node.Tick.wp_raw : node.Tick.specRaw (GF := GF) (hG := hG) := by
   intro γ id n
   wp_start as ⟨#Hnode, Hcred⟩
   ihave #Hnode' := Hnode
@@ -94,6 +134,48 @@ theorem node.Tick.wp_proof : node.Tick.spec (GF := GF) (hG := hG) := by
     try wp_auto
     iapply HΦ
     itrivial
+
+end proof
+
+/-! ## The spec, from the raw triple -/
+
+namespace ApiImpl
+
+section wrap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `node.Tick.spec` from the raw triple (`node`'s names hidden behind the API's). -/
+private theorem node.wp_Tick_impl
+    (hT : EtcdGrove.node.Tick.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.node.Tick.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.node.Tick.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.tickCredit
+  intro n γ N id
+  iintro %Φ ⟨#Hinit, #Hnode, Hcr⟩ HΦ
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, -, #Hrn, -⟩
+  iapply (hT γn id n) $$ [Hcr]
+  · iframe Hinit Hrn
+    unfold tickCredit tickCred; iexact Hcr
+  iexact HΦ
+
+end wrap
+
+end ApiImpl
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem node.Tick.wp_proof :
+    node.Tick.spec (GF := GF) (hG := hG) :=
+  ApiImpl.node.wp_Tick_impl (node.Tick.wp_raw)
 
 end proof
 

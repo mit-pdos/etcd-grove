@@ -47,6 +47,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   stutter). Waiting for the pin to reach it: the bump regenerates every translation with the
   new goose and rebuilds; then `.lake/manifest-extnames.json` and the helper branch
   `ext-names-at-pin` go, and this entry moves to "Landed".
+### Lemmas: `strings.split` of `strings.Join` (2026-10-27, D22 J-T)
+
+Perennial's `Proof/strings/Base.lean` has `intercalate_split` (joining the fields of a split gives
+the string back) but not the converse. J-T proves it locally for a one-byte separator no field
+contains (`split_intercalate1`, with `splitAux_field`, in
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Pipe.lean`: the `X-PeerURLs` header,
+`setPeerURLsHeader`'s `Join` read back by the handlers' `Split`). Proposed: the general lemma (any
+non-empty separator that is no infix of a field and does not overlap them) in Perennial's
+`strings` proofs, and this repository's local copy removed.
+
+### Channels: `recvAu_wand` with a fancy update in the wand (2026-10-27, branch `raft-api`)
+
+- **Missing.** `recvAu_wand` (`Chan/AuSpec/ChanAuBase.lean`) turns a receive's update for `Φ1`
+  into one for `Φ2` with a plain wand `Φ1 -∗ Φ2`; every commit of a receive ends at `⊤`
+  (`={∅,⊤}=∗ Φ`), so a wand `Φ1 ={⊤}=∗ Φ2` is as sound, and is what a client needs that opens an
+  invariant after the receive (raft's `isReadyChan_recvAu`: the `Ready`'s facts become the node
+  API's under the cluster's invariants).
+- **Workaround here.** `recvNestedAu_wand_fupd`/`recvAu_wand_fupd` in
+  `Proof/go_etcd_io/raft/v3/NodeApiImpl.lean` (the same proofs, `iapply Hw` after the commit
+  instead of `imodintro`).
+- **Proposed change.** The two lemmas in Perennial beside `recvAu_wand` (and the same for the
+  send and close updates), then the local copies go.
+- **Status.** Open.
 
 ### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
 
@@ -99,7 +122,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   a proof of that weaker fact over Perennial's translation of `sort.Search`.
 - **Proposed change.** `sort.wp_Search_any` (or a spec whose monotonicity premise is optional)
   in Perennial's `Proof/sort`, general; then the local copy goes.
-- **Status.** Open.
+- **Status.** No longer needed here (2026-10-27): the auth plan's E3z fork fix
+  (`issues/etcd-auth-grant-permission-same-key.md`) replaced the search by a filter, and
+  `SearchAny.lean` is gone (in git history). The general spec is still a reasonable Perennial
+  change, with no client here.
 
 ### Goose: a parenthesized untyped constant expression in a bitwise operation
 
@@ -130,7 +156,45 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** The caches keyed per declaration, or held in the tactic's own state
   (`MetaM`/`TacticM` state, or an environment extension reset per declaration), so that a
   declaration's elaboration does not depend on its siblings'.
+- **Seen again, within one declaration** (2026-10-27, the compactor pilot): in
+  `v3compactor.Periodic.getCompactInterval`/`getRetryInterval`'s proofs, `word` in the two sibling
+  branches of one `if` (hypotheses `h < pd` and `¬ h < pd`) gave a proof the kernel rejected
+  ("application type mismatch": the second branch's goal closed by the first branch's cached term,
+  built over the other hypothesis). So a cached proof does leak between contexts, as the paragraph
+  above feared, and fails at the kernel rather than silently. Workaround there: no `word` in sibling
+  branches (`rfl`/`omega` and `BitVec.toInt_sdiv_of_ne_or_ne` instead), with a comment.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
+
+### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
+
+- **Missing.** `isContext` (an `abbrev` of `isContextDef`) has no law for calling `Done()`: clients
+  `iunfold context.isContextDef` and take its `#HDone` field (the compactor's `Run` proofs, the
+  client's `lessor`/`watchGRPCStream` proofs, leasing's).
+- **Needed by.** The spec-first recipe's rule that a client does not unfold another package's
+  definitions (`notes/spec-first-plan.md`, phase 3); the freeze of the compactor's specs.
+- **Workaround here.** The unfold, kept until the law lands.
+- **Proposed change.** `context.isContext_Done : isContext c s ⊢ {{ True }} c.Done() {{ ch γch,
+  RET #ch; isContextDone s ch γch }}`, next to `isContext_pers`: branch `context-done-law` of
+  Perennial (`3c384b081`, off `lean` at `edcadb1e5`; worktree `/shared/perennial-ctxdone`), checked
+  against the pinned `6b58510f9` (the same `isContextDef`), not yet built or landed there.
+- **Status.** Landed on Perennial's `lean` (`3c384b081`, 2026-10-27). Not yet in the pin: moving the
+  pin there brings Perennial's uniform function results (`2b17d5f09`), which touch every proof that
+  runs a translated function (the pin `6b58510f9` stops before it on purpose). The compactor's
+  `Run` proofs switch to the law at the pin bump that does that migration.
+
+### Specs: a law for calling a `cancelSpec` cancel function (2026-10-27, the compactor pilot's phase 4)
+
+- **Missing.** `context.cancelSpec cancel γ P` (a `def`: `□ ∀ Φ, □ P -∗ ▷ (ContextClosed γ -∗ Φ #()) -∗
+  WP cancel #() {{ Φ }}`) has no law for the call: clients `iunfold context.cancelSpec` and apply it
+  (the compactor's `Periodic.Stop`/`Revision.Stop`, the client's `newClient`, `lessor.resetRecv`).
+- **Needed by.** The spec-first recipe's rule against cross-package unfolds (`notes/spec-first-plan.md`,
+  phase 3).
+- **Workaround here.** The unfold, justified at the compactor's freeze with `isContextDef`'s
+  (`notes/decisions.md`, "The compactor pilot's freeze").
+- **Proposed change.** `context.cancelSpec_call : cancelSpec cancel γ P ⊢ {{ □ P }} cancel #() {{ RET #();
+  ContextClosed γ }}`, next to `cancelSpec_weaken`.
+- **Status.** Not started; to land with the next Perennial change (the compactor's proofs switch at the
+  pin bump that brings `isContext_Done`).
 
 ### Specs: `context.WithCancel`'s cancel function not `nil`
 
@@ -181,7 +245,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   body that returns `false` on `break`, and records a `return` (with its values) or a labelled
   `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
   called after it returned `false` (Go panics).
-- **Status.** Not started. The largest item here.
+- **Status.** On Perennial's `lean` since `caa9d07ee` (2026-10-26), after uniform function results
+  (`2b17d5f09`), which the pin `6b58510f9` stops short of (`notes/decisions.md`, "Method-set facts
+  are theorems of goose's method sets"): reached when the pin moves past them.
 
 ### Goose: field selection through a type alias of a struct
 
@@ -359,22 +425,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
 - **Status.** Not started.
 
-### The type set of an interface with an embedded interface
-
-- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
-  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
-  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
-  that is an interface is that interface's type set, so in the model no concrete type is in
-  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
-  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
-  verified).
-- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
-  `runtime.Codec`; conversions and method calls do not consult type sets).
-- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
-  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
-  Perennial's `fix-semantics` workflow.
-- **Status.** Not started.
-
 ### `os.Getenv`, `strconv.ParseBool` have no specs
 
 - **Limitation.** Both are names-only in Perennial (no body, no spec).
@@ -496,6 +546,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** `"#HCanceled"` with the cell (`x.[errorString, "s"] ↦□ "context
   canceled"`, as this repository's `errStrCell`), and `"#HDeadlineExceeded"` with its dynamic type
   (`deadlineExceededError`); then `ErrAny` drops the two facts.
+- **Also needed by** (2026-10-27). Now that method sets are known (pin `6b58510f9`), this is all the
+  premises `EtcdGrove.ContextReadErrs` and `ContextErrsClient` of the server examples' closed
+  theorems still need: the dynamic types of the two values (then their method-set parts follow by
+  `go_type_set`).
 - **Status.** Not started (found 2026-10-23).
 
 ### `encoding/base64` (the auth plan's E2u, 2026-10-26; E2x)
@@ -520,6 +574,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   serve the k8s etcd3 store's continue tokens.
 
 ## Landed
+
+### The type set of an interface with an embedded interface
+
+- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
+  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
+  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
+  that is an interface is that interface's type set, so in the model no concrete type is in
+  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
+  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
+  verified).
+- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
+  `runtime.Codec`; conversions and method calls do not consult type sets).
+- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
+  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
+  Perennial's `fix-semantics` workflow.
+- **Landed.** Perennial `8ef540a62` (pin `6b58510f9`, 2026-10-27): goose writes an interface type as all
+  its methods, embedded interfaces included, and emits every named type's method sets, so
+  `go_type_set` decides such memberships (k8setcd3's `objTyOk` with `runtime.Unstructured`).
 
 ### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`
 
@@ -799,3 +871,14 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
   with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
   says `false` for a leaf error not in the target's type set; then the four are proved here.
+
+### `go.NotInterface go.uint64`
+
+- **Missing.** Perennial's `PostLifting.lean` has `go.NotInterface` instances for composite types
+  (arrays, pointers, slices, maps, untyped) but none for the basic integer types, so
+  `MethodResolve` on a named type over `uint64` (`types.ID`'s `String`) does not step.
+- **Workaround here.** Local instances (`InvStart.lean`, `apply/BackendLemmas2.lean`,
+  `EtcdServer__sendMergedSnap.lean`, `SnapTakeProof.lean` (D22 J4b)), each `⟨by unfold go.uint64;
+  trivial⟩`.
+- **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
+  `PostLifting.lean`, beside the composite ones.

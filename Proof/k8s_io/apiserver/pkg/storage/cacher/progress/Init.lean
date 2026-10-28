@@ -42,9 +42,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.progress.Assumptions]
-variable [EtcdGrove.RpctypesEtcdErrorMethods]
-variable [_root_.Perennial.context.ErrorStringIsError]
-  [_root_.Perennial.context.DeadlineExceededIsError]
 
 namespace k8s_io.apiserver.pkg.storage.cacher.progress
 

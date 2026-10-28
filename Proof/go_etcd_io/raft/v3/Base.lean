@@ -237,7 +237,11 @@ def isInitialized : IProp GF :=
     -- (D22 S-r, 2026-10-21) `ErrSnapOutOfDate`, the error `MemoryStorage.ApplySnapshot` and
     -- `CreateSnapshot` return for a snapshot not newer than the storage's (their specs take its
     -- value), which an application that takes snapshots reads from here
-    "#ErrSnapOOD" ∷ (∃ e : GoInterface, (globalAddr ErrSnapOutOfDate ↦□ e : IProp GF)))
+    "#ErrSnapOOD" ∷ (∃ e : GoInterface, (globalAddr ErrSnapOutOfDate ↦□ e : IProp GF)) ∗
+    -- (D22 J4b, 2026-10-27) and as the `errors.New` error it is, for the server's `snapshot`'s
+    -- `errors.Is(err, raft.ErrSnapOutOfDate)` (a leaf error)
+    "#ErrSnapOODNew" ∷ EtcdGrove.errorsNewVar ErrSnapOutOfDate
+      go!"requested index is older than the existing snapshot")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

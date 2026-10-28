@@ -24,10 +24,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem EtcdServer.setAppliedIndex.wp_proof :
-    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) := by
+/-- In either auth mode (E3p): the invariant's body is the mode's (`srvAppliedBodyM`). -/
+theorem EtcdServer.setAppliedIndex.wp_proofM (on : Bool) :
+    EtcdServer.setAppliedIndex.specM (GF := GF) (hG := hG) on := by
   intro s E γr v v' L
-  wp_start as ⟨#Hinv, Hpre, #Hc⟩
+  wp_start as ⟨#Hinv, Hpre, #Hc, #Hpub⟩
   iunfold srvAppliedPre at Hpre
   icases Hpre with ⟨Hown, Hpo, #HLv', %hv⟩
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
@@ -36,12 +37,12 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   wp_apply_core sync.atomic.Uint64.wp_Store (srvAppliedIndexAddr s) v' $$ [] [HΦ Hown Hpo]
   · iexact Hatomic
   ihave #Hinv' := Hinv
-  iunfold srvAppliedInv at Hinv'
+  iunfold srvAppliedInvM at Hinv'
   iinv Hinv' with Hi Hclose
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  iunfold srvAppliedBody at Hi
+  iunfold srvAppliedBodyM at Hi
   icases Hi with ⟨%vat, %v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0, #Hkl⟩
   iexists vat
   iframe Hv
@@ -58,11 +59,13 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   imod monoNat_halves_update γr.applied (uint.nat v0) (uint.nat v') (by word) $$ Hown Hauth
     with ⟨Hown, Hauth, #Hlb⟩
   imod ghostVar_update_halves false γr.pend true true $$ Hpo Hp with ⟨Hpo, Hp⟩
+  ihave #Hkl' := kvLogsPubM_move on E γr M v0 v' $$ [Hkl Hpub]
+  · iframe Hkl Hpub
   imod Hclose $$ [Hv Hauth HM Hp] with -
   · inext
-    iunfold srvAppliedBody
+    iunfold srvAppliedBodyM
     iexists v', v', L, M, false
-    iframe Hv Hauth HM Hp Hc HLv' Hkl
+    iframe Hv Hauth HM Hp Hc HLv' Hkl'
     ipureintro
     refine ⟨Int.le_refl _, ?_, HMk.2.2⟩
     intro k L' hk
@@ -75,6 +78,17 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   iframe Hown Hpo
   iunfold appliedAtLeast
   iframe Hlb HLv'
+
+theorem EtcdServer.setAppliedIndex.wp_proof :
+    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) := by
+  intro s E γr v v' L
+  iintro %Φ ⟨Ha, Hb, Hc, Hd⟩ HΦ
+  iapply (EtcdServer.setAppliedIndex.wp_proofM false s E γr v v' L) $$ [Ha Hb Hc Hd] HΦ
+  isplitl [Ha]; · iexact Ha
+  isplitl [Hb]; · rw [srvAppliedInvM_false]; iexact Hb
+  isplitl [Hc]; · iexact Hc
+  isplitl [Hd]; · iexact Hd
+  unfold appliedPubM; itrivial
 
 end proof
 

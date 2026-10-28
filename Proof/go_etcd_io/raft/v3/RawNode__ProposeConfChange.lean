@@ -4,7 +4,8 @@ recorded as proposed (`propRegister`), which gives its `entData` (`entData_cc`) 
 bytes `Step` needs (`ccEntsOk_cc`). 
 raft v3.7 (2026-10-16, stage R5): `confChangeToMsg` returns the message `msgIn ml 1`, which is
 passed to `Step` for good; the entry's bytes are in its record (D6), so no registration of the
-data (`propRegister`) and `entData_cc`/`ccEntsOk_cc` are pure.
+data (`propRegister`) and `ccEntsOk_cc` is pure. 2026-10-27: the proposal is tracked under its key
+(`cc_propose_ghost`, from the caller's `ccPropArg`), its ticket on the entry.
 -/
 module
 
@@ -41,13 +42,15 @@ theorem RawNode.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs c o dq Hok
+  intro γ rn id rs c o dq
   wp_start as H
   iNamed H
   iNamed Hrn
   wp_auto_lc 1
   wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
-  ihave #Hent := entData_cc γ o bs Hbs (Hok bs Hbs)
+  -- (2026-10-27) the proposal's ghost work: tracked under its key, its ticket on the entry
+  ihave #Hcinv := ownStepGhost_inv γ _ cf id s $$ Hghost
+  imod cc_propose_ghost γ o bs Hbs $$ Hcinv Harg with ⟨#Hent, Htk⟩
   ihave #Hcc := ccEntsOk_cc (GF := GF) o bs Hbs
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
@@ -62,19 +65,19 @@ theorem RawNode.ProposeConfChange.wp_proof
     (fun _ => ⟨rfl, .inl rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hm Hcr]
+    $$ [$Hphys $Hghost $Hlc1 Hm Hcr Htk]
   · -- the message: its one-entry batch, owned, with the entry's bytes; `Context` nil
     simp only [propMsgM, MsgProp, ite_true]
-    isplitl [Hm]
+    isplitl [Hm Htk]
     · simp only [named]
       isplitl [Hm]
       · iexact Hm
-      isplitr
+      isplitl [Htk]
       · isplitr
         · iexists [some o]
           iexact Hcc
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ e)).2
-        iapply entTk_cc
+        iexact Htk
       isplitr
       · ipureintro
         intro _

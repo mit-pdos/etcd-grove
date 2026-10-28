@@ -7,7 +7,9 @@ persistent updates the server hands raft are built from the KV invariant (`kvInv
 - `kv_prop_au`: a proposal's (`srvPropAu1`), for a request with no KV write, or a client's plain
   write (a put, a delete, a transaction: firing the client's `kvOpAu` at the commit, the state
   stepped by `kvOpStep`);
-- `kv_noop_au`: the standing update for raft's own entries (`srvNoopAu`);
+- `kv_qinv`: the server's result predicates, of the KV model of the log, are ones the server's
+  two logs agree on (`srvQInv`; 2026-10-27, `kvModel_eqv`); (`kv_noop_au`, raft's own entries'
+  standing update, is gone with raft's node API: its fillers commit without the client);
 - `kv_read_compose`: one read update (`srvReadAu`) for a list of clients' read updates
   (`kvReadAu`), fired in turn at every firing (`readQs`: their results), and `readQs_get`, a
   client's own result out of the list.
@@ -86,6 +88,80 @@ theorem kvModelSt_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : Entry
     kvModelSt γk (L ++ [e]) = kvModelSt γk L := by
   unfold kvModelSt; rw [kvModel_snoc_nonwrite γk L e h, kvLeases_snoc_nonwrite γk L e h]
 
+/-! ## The model reads only the requested entries (2026-10-27) -/
+
+section opsModel
+variable [GooseExts]
+
+/-- **A requested entry's effect** on the model's state, above the consistent index. -/
+def kvOpSt (ch : apply.Chain) (s : mvcc.Log × LeaseTable) (x : LogEntry) :
+    mvcc.Log × LeaseTable :=
+  kvEntrySt (W64 0) ch s ⟨x.term, W64 1, x.type, x.data⟩
+
+theorem kvEntrySt_above (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseTable)
+    (m : EntryModel) (h : uint.Z c₀ < uint.Z m.index) :
+    kvEntrySt c₀ ch s m = kvOpSt ch s m.toLE := by
+  have h1 : decide (uint.Z c₀ < uint.Z m.index) = true := decide_eq_true h
+  have h2 : decide (uint.Z (W64 0) < uint.Z (W64 1)) = true := by decide
+  unfold kvOpSt kvEntrySt kvEntry kvTable EntryModel.toLE
+  simp only [h1, h2]
+
+theorem kvEntrySt_filler (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseTable)
+    (m : EntryModel) (h : m.toLE.isFiller) : kvEntrySt c₀ ch s m = s := by
+  obtain ⟨hd, ht⟩ := h
+  simp only [EntryModel.toLE] at hd ht
+  unfold kvEntrySt kvEntry kvTable
+  simp [ht, hd]
+
+theorem kvRaftSt_ops (c₀ : w64) (ch : apply.Chain) :
+    ∀ (A : List EntryModel) (s : mvcc.Log × LeaseTable),
+      (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
+      kvRaftSt c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpSt ch) s
+  | [], _, _ => rfl
+  | m :: A, s, h => by
+    have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index := fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
+    unfold kvRaftSt
+    rw [List.foldl_cons]
+    by_cases hf : m.toLE.isFiller
+    · rw [kvEntrySt_filler c₀ ch s m hf]
+      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
+      rw [this]
+      exact kvRaftSt_ops c₀ ch A s hA
+    · rw [kvEntrySt_above c₀ ch s m (h m (List.mem_cons_self ..))]
+      have : opsOf ((m :: A).map EntryModel.toLE) =
+          m.toLE :: opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
+      rw [this, List.foldl_cons]
+      exact kvRaftSt_ops c₀ ch A _ hA
+
+/-- Every entry of a log consecutive after `ai₀` is above a consistent index at most `ai₀`. -/
+theorem srvIdxOkW_above (ai₀ c₀ : w64) (A : List EntryModel) (h : srvIdxOkW ai₀ A)
+    (hc : uint.Z c₀ ≤ uint.Z ai₀) : ∀ m ∈ A, uint.Z c₀ < uint.Z m.index := by
+  intro m hm
+  obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+  have := (h n m hn).1
+  omega
+
+/-- **The KV model of two logs with the same requested entries** is the same (2026-10-27): the
+server's two logs (`srvEqv`), its start's consistent index at most the start index. -/
+theorem kvModel_eqv (γ : ServerRaftNames) (γk : KVNames) (A B : List EntryModel)
+    (h : srvEqv γ A B) (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) :
+    kvModel γk A = kvModel γk B ∧ kvLeases γk A = kvLeases γk B := by
+  obtain ⟨hA, hB, hops⟩ := h
+  have eA := kvRaftSt_ops γk.c0 γk.ch0 A (γk.log0, []) (srvIdxOkW_above _ _ A hA hc)
+  have eB := kvRaftSt_ops γk.c0 γk.ch0 B (γk.log0, []) (srvIdxOkW_above _ _ B hB hc)
+  have hst : kvRaftSt γk.c0 γk.ch0 (γk.log0, []) A = kvRaftSt γk.c0 γk.ch0 (γk.log0, []) B := by
+    rw [eA, eB, hops]
+  refine ⟨by unfold kvModel kvRaftOf; rw [hst], ?_⟩
+  unfold kvLeases
+  have a := kvRaftSt_snd γk.c0 γk.ch0 A (γk.log0, [])
+  have b := kvRaftSt_snd γk.c0 γk.ch0 B (γk.log0, [])
+  simp only at a b
+  rw [← a, ← b, hst]
+
+end opsModel
+
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -104,23 +180,22 @@ theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
 /-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
-    (hok : plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+    (hok : plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [])
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
     plainLog (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
-      uint.Z γk.c0 ≤ uint.Z γ.ai0 + (L ++ [e]).length ∧
+      uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
   obtain ⟨hplog, -, hc0, hch, h0⟩ := hok
-  refine ⟨?_, hidx', ?_, hch, h0⟩
-  · rw [plainLog_append]
-    refine ⟨hplog, fun m hm => ?_⟩
-    rw [List.mem_singleton] at hm
-    subst hm
-    exact hpl
-  · simp only [List.length_append, List.length_singleton]; push_cast; omega
+  refine ⟨?_, hidx', hc0, hch, h0⟩
+  rw [plainLog_append]
+  refine ⟨hplog, fun m hm => ?_⟩
+  rw [List.mem_singleton] at hm
+  subst hm
+  exact hpl
 
 /-- **The workload facts, one entry on** (D19c): the entry of a good shape, its id claimed. -/
-theorem kvWork_snoc (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
     (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) :
     ⊢ kvWork (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWork cfg γk (L ++ [e]) := by
   iintro Hw #He
@@ -138,31 +213,6 @@ theorem kvWork_snoc (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) (e :
       · subst hm; exact hc
   iapply BigSepL.bigSepL_snoc.2
   iframe Hcl He
-
-/-- An entry of raft's own (an empty entry, a conf change of id `0`) has a good shape and nothing
-to claim (D19c). -/
-theorem noop_shape (cfg : RaftNames) (e : EntryModel) (h : srvNoopEntry cfg e) : entryShape e := by
-  rcases h with ⟨ht, hd⟩ | ⟨ht, -, hid, -⟩
-  · exact ⟨fun _ => Or.inl hd, fun h' => absurd ht h'⟩
-  · refine ⟨fun h' => ?_, fun _ => hid⟩
-    rw [ht] at h'; exact absurd h' (by decide)
-
-/-- A conf change of raft's own is one `applyConfChange` takes (audit phase B3). -/
-theorem noop_cc (cfg : RaftNames) (e : EntryModel) (h : srvNoopEntry cfg e) :
-    e.typ ≠ W32 0 → ccPolOk cfg e.data := by
-  intro ht
-  rcases h with ⟨ht0, -⟩ | ⟨-, -, -, hb⟩
-  · exact absurd ht0 ht
-  · exact hb
-
-theorem noop_claim (γi : IdNames) (cfg : RaftNames) (e : EntryModel) (h : srvNoopEntry cfg e) :
-    ⊢ entryClaim (GF := GF) γi e := by
-  iunfold entryClaim
-  ileft
-  ipureintro
-  rcases h with ⟨-, hd⟩ | ⟨ht, -, -, -⟩
-  · exact Or.inr hd
-  · left; rw [ht]; decide
 
 /-- **A proposal's update, from the KV invariant** (see the file header): since D19c
 (2026-10-18) for data claimed under the request's id (`idClaim`), which the invariant keeps with
@@ -360,60 +410,43 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
       iexact HQ
 
 
-/-- **The standing update for raft's own entries, from the KV invariant.** -/
-theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
-    ⊢ kvInv (GF := GF) γ γk -∗ srvNoopAu γ := by
-  have Hdisj := kvN_raftN
+/-- **A result predicate of the KV model of the log is one the server's two logs agree on**
+(2026-10-27): the KV invariant keeps the start's consistent index at most the start index
+(`kvModel_eqv`). -/
+theorem kv_qinv (γ : ServerRaftNames) (γk : KVNames) (Q : mvcc.Log → IProp GF) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvQInv γ (fun L => Q (kvModel γk L)) := by
   iintro #Hinv
-  unfold srvNoopAu
-  iintro !>
-  iauintro
-  unfold atomic_acc
+  iunfold srvQInv
+  iintro !> %A %B %Hab #HA
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
-  iintro Hmask
-  iexists L
-  iframe HL
-  isplit
-  · iintro HL
-    imod Hmask with -
-    imod Hclose $$ [HL Hσ] with -
-    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
-    imodintro
-    itrivial
-  · iintro %e ⟨%He, HL⟩
-    imod Hmask with -
-    obtain ⟨He, hidx⟩ := He
-    have h10 : W32 1 ≠ W32 0 := by decide
-    have hidx' : srvIdxOkW γ.ai0 (L ++ [e]) := by
-      refine srvIdxOkW_snoc γ.ai0 L e Hok.2.1 hidx ?_
-      rcases He with h | h
-      · left; exact h.1
-      · right; exact ⟨h.1, h.2.1⟩
-    have hent : kvModelSt γk (L ++ [e]) = kvModelSt γk L := by
-      apply kvModelSt_snoc_nonwrite
-      rcases He with h | h
-      · left; exact h.2
-      · right; left; rw [h.1]; exact h10
-    ihave #Hnc := noop_claim (GF := GF) γk.ids γ.raft e He
-    ihave #Hw' := kvWork_snoc γ.raft γk L e (noop_shape γ.raft e He)
-      (noop_cc γ.raft e He) $$ Hw Hnc
-    imod Hclose $$ [HL Hσ] with -
-    · inext
-      iexists L ++ [e]
-      rw [hent]
-      iframe HL Hσ Hw'
-      ipureintro
-      refine kvInv_facts_snoc γ γk L e Hok hidx' ?_
-      intro ht hd'
-      rcases He with h | h
-      · exact absurd h.2 hd'
-      · exact absurd ht (by rw [h.1]; exact h10)
-    imodintro
-    itrivial
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imodintro
+  inext
+  rw [← (kvModel_eqv γ γk A B Hab Hok.2.2.1).1]
+  iexact HA
+
+/-- The result predicates `reqPropOk` admits are of the KV model of the log. -/
+theorem reqPropOk_shape (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    reqPropOk (GF := GF) γk rq Qr ⊢ ⌜∃ Q : mvcc.Log → IProp GF, Qr = fun L => Q (kvModel γk L)⌝ := by
+  iintro Hok
+  iunfold reqPropOk at Hok
+  icases Hok with (%Hno | ⟨%op, %Q, %Hop, -⟩ | ⟨%op, %Q, %γc, %Hop, -⟩)
+  · ipureintro; exact ⟨fun _ => iprop(True), Hno.2.2.2.2⟩
+  · ipureintro; exact ⟨fun l => iprop(□ Q (kvStateOf l)), Hop.2.2.2.2⟩
+  · ipureintro; exact ⟨fun l => kvRes γc Q (kvStateOf l), Hop.2.2.2.2⟩
+
+theorem reqPropOk_qinv (γ : ServerRaftNames) (γk : KVNames) (rq : apply.IRRModel)
+    (Qr : List EntryModel → IProp GF) :
+    reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOk γk rq Qr ∗ (kvInv γ γk -∗ srvQInv γ Qr) := by
+  refine (persistent_entails_left (reqPropOk_shape γk rq Qr)).trans ?_
+  iintro ⟨Hok, %Hq⟩
+  obtain ⟨Q, rfl⟩ := Hq
+  iframe Hok
+  iintro #Hinv
+  iapply kv_qinv γ γk Q $$ Hinv
 
 /-! ## Reads: one update for many clients -/
 
@@ -477,9 +510,70 @@ theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) (hpl : plainLog L) :
       iframe HQ
       rw [HQeq]
       iintro !> !>
-      rw [← kvModelSt_plain γk L hpl, Hag]
+      rw [kvStOff, ← kvModelSt_plain γk L hpl, Hag]
       iexact HQ0
     · iexact Hrest
+
+/-- The clients' results at two logs of the same KV state (2026-10-27; the deposits' state
+function `F`, the auth plan's E3r). -/
+theorem readQs_eqv (γk : KVNames) (F : List EntryModel → KVState) (A B : List EntryModel)
+    (h : F A = F B) :
+    ∀ gs : List GName,
+      ⊢ ([∗list] g ∈ gs, regOk (GF := GF) γk g F) -∗ readQs gs A -∗ ▷ readQs gs B
+  | [] => by
+    iintro - -
+    inext
+    unfold readQs
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    itrivial
+  | g :: gs => by
+    iintro #Hgs #HA
+    icases (BigSepL.bigSepL_cons (Φ := fun _ g => regOk (GF := GF) γk g F)).1 $$ Hgs with
+      ⟨#Hg, #Hgs'⟩
+    iunfold readQs at HA
+    icases (BigSepL.bigSepL_cons (Φ := fun _ g => iprop(∃ Q : List EntryModel → IProp GF,
+      savedPredOwn (GF := GF) g DFrac.discard Q ∗ □ Q A))).1 $$ HA with ⟨⟨%Q, #HQ, #HQA⟩, #HA'⟩
+    ihave #HA'' : readQs gs A $$ []
+    · iunfold readQs; iexact HA'
+    ihave Hrest := readQs_eqv γk F A B h gs $$ Hgs' HA''
+    iunfold regOk at Hg
+    icases Hg with ⟨%Q', #HQ', #Hd⟩
+    ihave #Hag := saved_pred_agree g DFrac.discard DFrac.discard Q Q' A $$ HQ HQ'
+    ihave %HQ'AB : ⌜Q' A = Q' B⌝ $$ [Hd]
+    · iunfold kvDep at Hd
+      icases Hd with (⟨%Q0, %HQeq, -⟩ | %HQeq)
+      · ipureintro; rw [HQeq]; simp only [h]
+      · ipureintro; rw [HQeq]
+    inext
+    unfold readQs
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ g => iprop(∃ Q : List EntryModel → IProp GF,
+      savedPredOwn (GF := GF) g DFrac.discard Q ∗ □ Q B))).2
+    iframe Hrest
+    iexists Q'
+    iframe HQ'
+    ihave #Hiff := internalEq_iff _ _ $$ Hag
+    icases Hiff with ⟨Hto, -⟩
+    iintro !>
+    rw [← HQ'AB]
+    iapply Hto $$ HQA
+
+/-- The clients' results are ones the server's two logs agree on (2026-10-27). -/
+theorem readQs_qinv (γ : ServerRaftNames) (γk : KVNames) (gs : List GName) :
+    ⊢ kvInv (GF := GF) γ γk -∗ ([∗list] g ∈ gs, regOk γk g) -∗ srvQInv γ (readQs gs) := by
+  iintro #Hinv #Hgs
+  iunfold srvQInv
+  iintro !> %A %B %Hab #HA
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  ihave HB := readQs_eqv γk (kvStOff γk) A B
+    (by simp only [kvStOff, (kvModel_eqv γ γk A B Hab Hok.2.2.1).1]) gs $$ Hgs HA
+  imodintro
+  inext
+  iintro !>
+  iexact HB
 
 /-- **One read update for the registered clients `gs`, from the KV invariant** (see the file
 header): at every firing, every client's read update is fired in turn at the current state. -/
@@ -489,6 +583,9 @@ theorem kv_read_compose (γ : ServerRaftNames) (γk : KVNames) (gs : List GName)
   have Hdisj := kvN_raftN
   iintro #Hinv #Hgs
   unfold srvReadAu
+  isplitr
+  rotate_left
+  · iapply readQs_qinv γ γk gs $$ Hinv Hgs
   iintro !>
   iauintro
   unfold atomic_acc

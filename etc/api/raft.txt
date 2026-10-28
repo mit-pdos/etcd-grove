@@ -15,11 +15,15 @@ root go_etcd_io.raft.v3
 
 ## The node API: its specs, the module clients import, the API modules
 importable Spec.go_etcd_io.raft.v3.Api
+# (2026-10-28) the node API: its predicates sealed in `InvNode` (over the internal `InvApi*`), with
+# their laws; its pure vocabulary `NodeApiVocab`; the specs in the per-function spec files below
+importable Proof.go_etcd_io.raft.v3.InvNode
+importable Proof.go_etcd_io.raft.v3.NodeApiVocab
 importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.RestartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance
 importable Spec.go_etcd_io.raft.v3.node__ApplyConfChange
-importable Spec.go_etcd_io.raft.v3.node__ForgetLeader
+# (2026-10-28) `node__ForgetLeader` is not importable: its spec is still over raft's internals (`isNodeChan`)
 importable Spec.go_etcd_io.raft.v3.node__Propose
 importable Spec.go_etcd_io.raft.v3.node__ProposeConfChange
 importable Spec.go_etcd_io.raft.v3.node__ReadIndex
@@ -31,7 +35,6 @@ importable Spec.go_etcd_io.raft.v3.node__Tick
 importable Spec.go_etcd_io.raft.v3.node__TransferLeadership
 importable Spec.go_etcd_io.raft.v3.IsEmptyHardState
 importable Spec.go_etcd_io.raft.v3.IsEmptySnap
-importable Proof.go_etcd_io.raft.v3.InvNode
 importable Proof.go_etcd_io.raft.v3.InvNodeCtx
 importable Proof.go_etcd_io.raft.v3.ApiVocab
 importable Proof.go_etcd_io.raft.v3.ApiCtx

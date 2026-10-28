@@ -11,6 +11,7 @@
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Peer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
@@ -35,6 +36,10 @@ has `Pause` and `Resume`, `peer.go`): what `CutPeer`'s and `MendPeer`'s `p.(Paus
 class PeerPausable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   pausable : go.typeSetContains (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty)
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pausable.ty = true
+
+/-- `PeerPausable` holds, from the method sets goose emits. -/
+instance peerPausable_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [sem : go.Semantics]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions] : PeerPausable := ⟨by go_type_set⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -71,7 +76,8 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"pipelineProber"] ↦□ pp ∗
     t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
     streamRegInv Rh ∗ (□ ∀ pid : w64, ⌜Rh.member pid ∧ pid ≠ lid⌝ -∗ pipeReg Rh pid) ∗
-    globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" ∗ ⌜Rh.member lid⌝)
+    globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" ∗
+    ⌜Rh.member lid ∧ trURLsOk Rh lid uvs⌝)
 
 set_option synthInstance.maxHeartbeats 8000000 in
 set_option synthInstance.maxSize 65536 in

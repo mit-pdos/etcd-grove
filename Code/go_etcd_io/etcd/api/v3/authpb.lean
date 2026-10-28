@@ -340,11 +340,15 @@ abbrev Permission_Type [GooseExts] : Type := w32
 
 class Permission_Type.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Permission_Type.ty Permission_Type.underlying
+  method_set : go.MethodSetIs Permission_Type.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Permission_Type.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Permission_Type.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Permission_Type.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
   Enum_unfold : MethodUnfold Permission_Type.ty go!"Enum" Permission_Type.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType Permission_Type.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Permission_Type.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad Permission_Type.ty))) (Var "$r"))))
 
 attribute [instance] Permission_Type.TypeAssumptions.underlying
+  Permission_Type.TypeAssumptions.method_set
+  Permission_Type.TypeAssumptions.ptr_method_set
   Permission_Type.TypeAssumptions.Enum_unfold
   Permission_Type.TypeAssumptions.ptr_Enum_unfold
 
@@ -385,6 +389,8 @@ class UserAddOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_unknownFields : ∀ (x : UserAddOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UserAddOptions)))
   get_sizeCache : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : UserAddOptions) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UserAddOptions)))
+  method_set : go.MethodSetIs UserAddOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UserAddOptions.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetNoPassword", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetNoPassword_unfold : MethodUnfold (go.GoType.PointerType UserAddOptions.ty) go!"GetNoPassword" UserAddOptions.GetNoPassword.impl
 
 attribute [instance] UserAddOptions.TypeAssumptions.type_repr
@@ -397,6 +403,8 @@ attribute [instance] UserAddOptions.TypeAssumptions.type_repr
   UserAddOptions.TypeAssumptions.set_unknownFields
   UserAddOptions.TypeAssumptions.get_sizeCache
   UserAddOptions.TypeAssumptions.set_sizeCache
+  UserAddOptions.TypeAssumptions.method_set
+  UserAddOptions.TypeAssumptions.ptr_method_set
   UserAddOptions.TypeAssumptions.ptr_GetNoPassword_unfold
 
 structure User [GooseExts] where
@@ -448,6 +456,8 @@ class User.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_unknownFields : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : User)))
   get_sizeCache : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : User) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : User)))
+  method_set : go.MethodSetIs User.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType User.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetOptions", (some (go.signature.Signature [] false [(go.GoType.PointerType UserAddOptions.ty)]))), (go!"GetPassword", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType User.ty) go!"GetName" User.GetName.impl
   ptr_GetOptions_unfold : MethodUnfold (go.GoType.PointerType User.ty) go!"GetOptions" User.GetOptions.impl
   ptr_GetPassword_unfold : MethodUnfold (go.GoType.PointerType User.ty) go!"GetPassword" User.GetPassword.impl
@@ -469,6 +479,8 @@ attribute [instance] User.TypeAssumptions.type_repr
   User.TypeAssumptions.set_unknownFields
   User.TypeAssumptions.get_sizeCache
   User.TypeAssumptions.set_sizeCache
+  User.TypeAssumptions.method_set
+  User.TypeAssumptions.ptr_method_set
   User.TypeAssumptions.ptr_GetName_unfold
   User.TypeAssumptions.ptr_GetOptions_unfold
   User.TypeAssumptions.ptr_GetPassword_unfold
@@ -519,6 +531,8 @@ class Permission.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_unknownFields : ∀ (x : Permission) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Permission)))
   get_sizeCache : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Permission) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Permission)))
+  method_set : go.MethodSetIs Permission.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Permission.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetPermType", (some (go.signature.Signature [] false [Permission_Type.ty]))), (go!"GetRangeEnd", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetKey" Permission.GetKey.impl
   ptr_GetPermType_unfold : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetPermType" Permission.GetPermType.impl
   ptr_GetRangeEnd_unfold : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetRangeEnd" Permission.GetRangeEnd.impl
@@ -537,6 +551,8 @@ attribute [instance] Permission.TypeAssumptions.type_repr
   Permission.TypeAssumptions.set_unknownFields
   Permission.TypeAssumptions.get_sizeCache
   Permission.TypeAssumptions.set_sizeCache
+  Permission.TypeAssumptions.method_set
+  Permission.TypeAssumptions.ptr_method_set
   Permission.TypeAssumptions.ptr_GetKey_unfold
   Permission.TypeAssumptions.ptr_GetPermType_unfold
   Permission.TypeAssumptions.ptr_GetRangeEnd_unfold
@@ -582,6 +598,8 @@ class Role.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_unknownFields : ∀ (x : Role) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Role)))
   get_sizeCache : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Role) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Role)))
+  method_set : go.MethodSetIs Role.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Role.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKeyPermission", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Permission.ty))]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetKeyPermission_unfold : MethodUnfold (go.GoType.PointerType Role.ty) go!"GetKeyPermission" Role.GetKeyPermission.impl
   ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType Role.ty) go!"GetName" Role.GetName.impl
 
@@ -597,6 +615,8 @@ attribute [instance] Role.TypeAssumptions.type_repr
   Role.TypeAssumptions.set_unknownFields
   Role.TypeAssumptions.get_sizeCache
   Role.TypeAssumptions.set_sizeCache
+  Role.TypeAssumptions.method_set
+  Role.TypeAssumptions.ptr_method_set
   Role.TypeAssumptions.ptr_GetKeyPermission_unfold
   Role.TypeAssumptions.ptr_GetName_unfold
 

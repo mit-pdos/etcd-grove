@@ -270,8 +270,12 @@ abbrev Collection [GooseExts] : Type := GoSlice
 
 class Collection.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Collection.ty Collection.underlying
+  method_set : go.MethodSetIs Collection.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Collection.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] Collection.TypeAssumptions.underlying
+  Collection.TypeAssumptions.method_set
+  Collection.TypeAssumptions.ptr_method_set
 
 structure Constraints [GooseExts] where
   mk ::
@@ -306,6 +310,8 @@ class Constraints.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_containsPre : ∀ (x : Constraints) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Constraints.underlying go!"containsPre") (PairV #x #y) (Val #(({ x with containsPre' := y } : Constraints)))
   get_IncludePrerelease : ∀ (x : Constraints), go.IsGoStepPureDetTagged under (StructFieldGet Constraints.underlying go!"IncludePrerelease") #x (Val #(x.IncludePrerelease'))
   set_IncludePrerelease : ∀ (x : Constraints) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Constraints.underlying go!"IncludePrerelease") (PairV #x #y) (Val #(({ x with IncludePrerelease' := y } : Constraints)))
+  method_set : go.MethodSetIs Constraints.ty [(go!"Check", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Validate", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool, (go.GoType.SliceType go.error)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Constraints.ty) [(go!"Check", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Validate", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool, (go.GoType.SliceType go.error)])))]
 
 attribute [instance] Constraints.TypeAssumptions.type_repr
   Constraints.TypeAssumptions.underlying
@@ -315,6 +321,8 @@ attribute [instance] Constraints.TypeAssumptions.type_repr
   Constraints.TypeAssumptions.set_containsPre
   Constraints.TypeAssumptions.get_IncludePrerelease
   Constraints.TypeAssumptions.set_IncludePrerelease
+  Constraints.TypeAssumptions.method_set
+  Constraints.TypeAssumptions.ptr_method_set
 
 structure constraint [GooseExts] where
   mk ::
@@ -361,6 +369,8 @@ class constraint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_dirty : ∀ (x : constraint) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"dirty") (PairV #x #y) (Val #(({ x with dirty' := y } : constraint)))
   get_patchDirty : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"patchDirty") #x (Val #(x.patchDirty'))
   set_patchDirty : ∀ (x : constraint) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"patchDirty") (PairV #x #y) (Val #(({ x with patchDirty' := y } : constraint)))
+  method_set : go.MethodSetIs constraint.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType constraint.ty) [(go!"github.com/Masterminds/semver/v3.check", (some (go.signature.Signature [(go.GoType.PointerType Version.ty), go.bool] false [go.bool, go.error]))), (go!"github.com/Masterminds/semver/v3.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] constraint.TypeAssumptions.type_repr
   constraint.TypeAssumptions.underlying
@@ -376,6 +386,8 @@ attribute [instance] constraint.TypeAssumptions.type_repr
   constraint.TypeAssumptions.set_dirty
   constraint.TypeAssumptions.get_patchDirty
   constraint.TypeAssumptions.set_patchDirty
+  constraint.TypeAssumptions.method_set
+  constraint.TypeAssumptions.ptr_method_set
 
 abbrev cfunc [GooseExts] : Type := GoFunc
 
@@ -384,8 +396,12 @@ abbrev cfunc [GooseExts] : Type := GoFunc
 
 class cfunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq cfunc.ty cfunc.underlying
+  method_set : go.MethodSetIs cfunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cfunc.ty) []
 
 attribute [instance] cfunc.TypeAssumptions.underlying
+  cfunc.TypeAssumptions.method_set
+  cfunc.TypeAssumptions.ptr_method_set
 
 structure Version [GooseExts] where
   mk ::
@@ -432,6 +448,8 @@ class Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_metadata : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"metadata") (PairV #x #y) (Val #(({ x with metadata' := y } : Version)))
   get_original : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"original") #x (Val #(x.original'))
   set_original : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"original") (PairV #x #y) (Val #(({ x with original' := y } : Version)))
+  method_set : go.MethodSetIs Version.ty [(go!"IncMajor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncMinor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncPatch", (some (go.signature.Signature [] false [Version.ty]))), (go!"Major", (some (go.signature.Signature [] false [go.uint64]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Metadata", (some (go.signature.Signature [] false [go.string]))), (go!"Minor", (some (go.signature.Signature [] false [go.uint64]))), (go!"Patch", (some (go.signature.Signature [] false [go.uint64]))), (go!"Prerelease", (some (go.signature.Signature [] false [go.string]))), (go!"SetMetadata", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"SetPrerelease", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.Named go!"database/sql/driver.Value" []), go.error]))), (go!"github.com/Masterminds/semver/v3.originalVPrefix", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Version.ty) [(go!"Compare", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.int]))), (go!"Equal", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"GreaterThan", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"GreaterThanEqual", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"IncMajor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncMinor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncPatch", (some (go.signature.Signature [] false [Version.ty]))), (go!"LessThan", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"LessThanEqual", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"Major", (some (go.signature.Signature [] false [go.uint64]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Metadata", (some (go.signature.Signature [] false [go.string]))), (go!"Minor", (some (go.signature.Signature [] false [go.uint64]))), (go!"Original", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [] false [go.uint64]))), (go!"Prerelease", (some (go.signature.Signature [] false [go.string]))), (go!"Scan", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"SetMetadata", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"SetPrerelease", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.Named go!"database/sql/driver.Value" []), go.error]))), (go!"github.com/Masterminds/semver/v3.originalVPrefix", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.underlying
@@ -447,6 +465,8 @@ attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.set_metadata
   Version.TypeAssumptions.get_original
   Version.TypeAssumptions.set_original
+  Version.TypeAssumptions.method_set
+  Version.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Collection_instance : Collection.TypeAssumptions

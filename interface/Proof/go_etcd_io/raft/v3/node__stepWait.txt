@@ -9,7 +9,7 @@ theorem node.stepWait.wp_proof [package_sem : Assumptions] (wp_node_stepWithWait
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode γ id n ∗
+            isNodeChan γ id n ∗
               nodeCtx ctx cd ∗
                 msgIn ml (DFrac.own 1)
                     { msg := propMsgM, ents := [propEntryM data], snap := none, ctx := [], resps := [] } ∗

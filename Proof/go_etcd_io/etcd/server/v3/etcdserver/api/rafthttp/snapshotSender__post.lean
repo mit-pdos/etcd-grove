@@ -37,7 +37,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 /-- **What the round trip's goroutine sends** for the request `R` to `req` of ticket `γk`: an error
 of net/http's (`RoundTrip`'s or the body read's), or no error, a response whose status the
@@ -67,7 +66,7 @@ theorem rafthttp.snapshotSender.post.wp_proof
   iunfold snapSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %ps, %r, %ec, %sc, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, %γd, %Rr,
     #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hrtf,
-    #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem⟩
+    #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem, %Hturls⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, #HES, #HMR, -, -, -, -, -, -, -, -, -, -, -,

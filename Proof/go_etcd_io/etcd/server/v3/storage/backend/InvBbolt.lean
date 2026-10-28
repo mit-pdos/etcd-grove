@@ -16,10 +16,15 @@ as ownership of or knowledge about bbolt's memory is):
 - `rtxSnap tx D` (persistent): the read transaction `tx` reads the snapshot `D`;
   `rtxStats tx` (exclusive): `Bucket()`/`Cursor()`/`ForEach` on it (its statistics).
   `rBkt tx b es` (persistent): `b` is the read transaction's bucket with entries `es`.
-- `ownWTx tx γ D S`: the write transaction, begun at the committed `D`, contents `S` now
-  (exclusive; it holds `txLive tx 1`, `ownWTx_live`). `wBkt tx b n` (persistent): `b` is its
-  handle of the bucket named `n`; the handle's `FillPercent` field is the transaction's
-  (`ownWTx_fill`).
+- `ownWTxG tx γ D S G`: the write transaction, begun at the committed `D`, contents `S` now,
+  each bucket name `n` at generation `G n` (exclusive; it holds `txLive tx 1`, `ownWTxG_live`);
+  `ownWTx tx γ D S` is it at some generations. `wBkt tx b n g` (persistent): `b` is its handle of
+  the bucket named `n` at generation `g`; the handle's `FillPercent` field is the transaction's
+  (`ownWTxG_fill`). `DeleteBucket` bumps the name's generation, so a handle of a deleted bucket
+  is not current: `Put`/`Delete`/`Cursor` take a handle at the current generation only (bbolt
+  frees a deleted bucket's nodes, and its old handle panics or misses the data even once the name
+  is re-created: `issues/bbolt-deleted-bucket-handle.md`; until 2026-10-27 `wBkt tx b n` had no
+  generation, which made `Tx.DeleteBucket_kv` false, `notes/audit.md`).
 - `ownCur tx c es pos`: a cursor of `tx` over the entries `es`, at `pos` (`none`: not
   positioned; `some i`: at the `i`-th, `es.length` past the end).
 - `txDone tx` (persistent): `tx` was committed or rolled back (its `Stats` can be read);
@@ -88,8 +93,8 @@ axiom txBytes (tx : Loc) (s : GoSlice) (b : GoString) : IProp GF
 axiom rtxSnap (tx : Loc) (D : Data) : IProp GF
 axiom rtxStats (tx : Loc) : IProp GF
 axiom rBkt (tx : Loc) (b : Loc) (es : List Ent) : IProp GF
-axiom ownWTx (tx : Loc) (γ : DBNames) (D S : Data) : IProp GF
-axiom wBkt (tx : Loc) (b : Loc) (n : GoString) : IProp GF
+axiom ownWTxG (tx : Loc) (γ : DBNames) (D S : Data) (G : GoString → Nat) : IProp GF
+axiom wBkt (tx : Loc) (b : Loc) (n : GoString) (g : Nat) : IProp GF
 axiom ownCur (tx : Loc) (c : Loc) (es : List Ent) (pos : Option Nat) : IProp GF
 axiom txDone (tx : Loc) : IProp GF
 axiom txDB (tx : Loc) (db : Loc) : IProp GF
@@ -101,7 +106,8 @@ axiom fileHolds (path : GoString) (D : Data) : IProp GF
 @[instance] axiom rtxSnap_persistent (tx : Loc) (D : Data) : Persistent (rtxSnap (GF := GF) tx D)
 @[instance] axiom rBkt_persistent (tx b : Loc) (es : List Ent) :
   Persistent (rBkt (GF := GF) tx b es)
-@[instance] axiom wBkt_persistent (tx b : Loc) (n : GoString) : Persistent (wBkt (GF := GF) tx b n)
+@[instance] axiom wBkt_persistent (tx b : Loc) (n : GoString) (g : Nat) :
+  Persistent (wBkt (GF := GF) tx b n g)
 @[instance] axiom txDone_persistent (tx : Loc) : Persistent (txDone (GF := GF) tx)
 @[instance] axiom txDB_persistent (tx db : Loc) : Persistent (txDB (GF := GF) tx db)
 @[instance] axiom txLive_fractional (tx : Loc) : Fractional (txLive (GF := GF) tx)
@@ -124,15 +130,31 @@ backend's `t.tx != nil` and `readTx.tx != nil` checks rely on it). -/
 axiom txLive_nonnull (tx : Loc) (q : Qp) : txLive (GF := GF) tx q ⊢ ⌜tx ≠ Loc.null⌝
 
 /-- The write transaction is open. -/
-axiom ownWTx_live (tx : Loc) (γ : DBNames) (D S : Data) :
-  ownWTx (GF := GF) tx γ D S ⊢ txLive tx 1 ∗ (txLive tx 1 -∗ ownWTx tx γ D S)
+axiom ownWTxG_live (tx : Loc) (γ : DBNames) (D S : Data) (G : GoString → Nat) :
+  ownWTxG (GF := GF) tx γ D S G ⊢ txLive tx 1 ∗ (txLive tx 1 -∗ ownWTxG tx γ D S G)
 
-/-- The write transaction owns its bucket handles' `FillPercent` field. -/
-axiom ownWTx_fill (tx b : Loc) (γ : DBNames) (D S : Data) (n : GoString) :
-  ownWTx (GF := GF) tx γ D S ∗ wBkt tx b n ⊢
+/-- The write transaction owns its bucket handles' `FillPercent` field (of every handle it gave
+out, current or not). -/
+axiom ownWTxG_fill (tx b : Loc) (γ : DBNames) (D S : Data) (G : GoString → Nat) (n : GoString)
+    (g : Nat) :
+  ownWTxG (GF := GF) tx γ D S G ∗ wBkt tx b n g ⊢
     ∃ f : w64, structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f ∗
       (∀ f' : w64, structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f' -∗
-        ownWTx tx γ D S)
+        ownWTxG tx γ D S G)
+
+/-- The write transaction, its buckets at some generations: what `Begin` gives and `Commit`
+takes, and what the backend holds between operations. -/
+abbrev ownWTx (tx : Loc) (γ : DBNames) (D S : Data) : IProp GF :=
+  ∃ G : GoString → Nat, ownWTxG tx γ D S G
+
+theorem ownWTx_live (tx : Loc) (γ : DBNames) (D S : Data) :
+    ownWTx (GF := GF) tx γ D S ⊢ txLive tx 1 ∗ (txLive tx 1 -∗ ownWTx tx γ D S) := by
+  iintro ⟨%G, H⟩
+  icases ownWTxG_live tx γ D S G $$ H with ⟨Hl, Hb⟩
+  iframe
+  iintro Hl
+  iexists G
+  iapply Hb $$ Hl
 
 /-- What a cursor move to the `i`-th entry returns: its key (never nil: bbolt's keys are not
 empty) and value, valid while `tx` is open; nil and nil past the end. -/

@@ -644,8 +644,12 @@ abbrev Dialer [GooseExts] : Type := GoInterface
 
 class Dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Dialer.ty Dialer.underlying
+  method_set : go.MethodSetIs Dialer.ty [(go!"Dial", (some (go.signature.Signature [] false [_root_.Perennial.net.Conn.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Dialer.ty) []
 
 attribute [instance] Dialer.TypeAssumptions.underlying
+  Dialer.TypeAssumptions.method_set
+  Dialer.TypeAssumptions.ptr_method_set
 
 abbrev Bridge [GooseExts] : Type := GoInterface
 
@@ -654,8 +658,12 @@ abbrev Bridge [GooseExts] : Type := GoInterface
 
 class Bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Bridge.ty Bridge.underlying
+  method_set : go.MethodSetIs Bridge.ty [(go!"Blackhole", (some (go.signature.Signature [] false []))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"DropConnections", (some (go.signature.Signature [] false []))), (go!"PauseConnections", (some (go.signature.Signature [] false []))), (go!"Unblackhole", (some (go.signature.Signature [] false []))), (go!"UnpauseConnections", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Bridge.ty) []
 
 attribute [instance] Bridge.TypeAssumptions.underlying
+  Bridge.TypeAssumptions.method_set
+  Bridge.TypeAssumptions.ptr_method_set
 
 structure bridge [GooseExts] where
   mk ::
@@ -710,6 +718,8 @@ class bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_wg : ∀ (x : bridge) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : bridge)))
   get_mu : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (x : bridge) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : bridge)))
+  method_set : go.MethodSetIs bridge.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bridge.ty) [(go!"Blackhole", (some (go.signature.Signature [] false []))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"DropConnections", (some (go.signature.Signature [] false []))), (go!"PauseConnections", (some (go.signature.Signature [] false []))), (go!"Unblackhole", (some (go.signature.Signature [] false []))), (go!"UnpauseConnections", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/third_party/bridge.ioCopy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, _root_.Perennial.io.Reader.ty] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/third_party/bridge.serveConn", (some (go.signature.Signature [(go.GoType.PointerType bridgeConn.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/third_party/bridge.serveListen", (some (go.signature.Signature [] false [])))]
   ptr_Blackhole_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"Blackhole" bridge.Blackhole.impl
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"Close" bridge.Close.impl
   ptr_DropConnections_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"DropConnections" bridge.DropConnections.impl
@@ -738,6 +748,8 @@ attribute [instance] bridge.TypeAssumptions.type_repr
   bridge.TypeAssumptions.set_wg
   bridge.TypeAssumptions.get_mu
   bridge.TypeAssumptions.set_mu
+  bridge.TypeAssumptions.method_set
+  bridge.TypeAssumptions.ptr_method_set
   bridge.TypeAssumptions.ptr_Blackhole_unfold
   bridge.TypeAssumptions.ptr_Close_unfold
   bridge.TypeAssumptions.ptr_DropConnections_unfold
@@ -781,6 +793,8 @@ class bridgeConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_out : ∀ (x : bridgeConn) (y : _root_.Perennial.net.Conn), go.IsGoStepPureDetTagged under (StructFieldSet bridgeConn.underlying go!"out") (PairV #x #y) (Val #(({ x with out' := y } : bridgeConn)))
   get_donec : ∀ (x : bridgeConn), go.IsGoStepPureDetTagged under (StructFieldGet bridgeConn.underlying go!"donec") #x (Val #(x.donec'))
   set_donec : ∀ (x : bridgeConn) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridgeConn.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : bridgeConn)))
+  method_set : go.MethodSetIs bridgeConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bridgeConn.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/third_party/bridge.close", (some (go.signature.Signature [] false [])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bridgeConn.ty) go!"Close" bridgeConn.Close.impl
   ptr_close_unfold : MethodUnfold (go.GoType.PointerType bridgeConn.ty) go!"close" bridgeConn.close.impl
 
@@ -792,6 +806,8 @@ attribute [instance] bridgeConn.TypeAssumptions.type_repr
   bridgeConn.TypeAssumptions.set_out
   bridgeConn.TypeAssumptions.get_donec
   bridgeConn.TypeAssumptions.set_donec
+  bridgeConn.TypeAssumptions.method_set
+  bridgeConn.TypeAssumptions.ptr_method_set
   bridgeConn.TypeAssumptions.ptr_Close_unfold
   bridgeConn.TypeAssumptions.ptr_close_unfold
 
@@ -824,6 +840,8 @@ class dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_network : ∀ (x : dialer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet dialer.underlying go!"network") (PairV #x #y) (Val #(({ x with network' := y } : dialer)))
   get_addr : ∀ (x : dialer), go.IsGoStepPureDetTagged under (StructFieldGet dialer.underlying go!"addr") #x (Val #(x.addr'))
   set_addr : ∀ (x : dialer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet dialer.underlying go!"addr") (PairV #x #y) (Val #(({ x with addr' := y } : dialer)))
+  method_set : go.MethodSetIs dialer.ty [(go!"Dial", (some (go.signature.Signature [] false [_root_.Perennial.net.Conn.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dialer.ty) [(go!"Dial", (some (go.signature.Signature [] false [_root_.Perennial.net.Conn.ty, go.error])))]
   Dial_unfold : MethodUnfold dialer.ty go!"Dial" dialer.Dial.impl
   ptr_Dial_unfold : MethodUnfold (go.GoType.PointerType dialer.ty) go!"Dial" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve dialer.ty go!"Dial"))) (App (Val (GoInstruction (GoLoad dialer.ty))) (Var "$r"))))
@@ -834,6 +852,8 @@ attribute [instance] dialer.TypeAssumptions.type_repr
   dialer.TypeAssumptions.set_network
   dialer.TypeAssumptions.get_addr
   dialer.TypeAssumptions.set_addr
+  dialer.TypeAssumptions.method_set
+  dialer.TypeAssumptions.ptr_method_set
   dialer.TypeAssumptions.Dial_unfold
   dialer.TypeAssumptions.ptr_Dial_unfold
 

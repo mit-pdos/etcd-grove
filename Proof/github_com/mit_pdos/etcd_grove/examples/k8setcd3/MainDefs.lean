@@ -69,13 +69,14 @@ def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
 
 /-- **`Main`'s named premises** (persistent): putget's (`putget.premises`) at `k8setcd3`'s
 configuration, URLs and peer directory. -/
-def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
+def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
+    IProp GF :=
   iprop(
-    (□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-        (γ : RaftNames),
-      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.reCfg = GMap.listToSet [id] ∧ γ.reDyn = none ∧
-        γ.reCCOk = putget.ccOk id ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N (k8setcd3Dir id)) ∗
+    (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
+      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.dyn = false ∧
+        γ.boot = LogEntry.toEntries boot 0⌝ -∗
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (k8setcd3Dir id)) ∗
+    bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
     rnStopOkStarted ∗
@@ -90,8 +91,8 @@ theorem client_ctx_field (cl : Loc) (eps : List GoString) (V : client.WEnv GF) :
       ∃ cx : GoInterface, structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ cx := by
   sorry
 
-instance premises_persistent (N : Nat) (id : w64) (bootLog : List EntryM) :
-    Persistent (premises (GF := GF) N id bootLog) := by
+instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
+    (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
   unfold premises; infer_instance
 
 end defs

@@ -36,9 +36,9 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- See the file header. -/
 theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
     (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
-    (N : Nat) (bud : BudgetNames) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) :
+    (N : Nat) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        memberBuilt s ρ E₀ lg γn id N bud sv ∗ threadTok }}
+        memberBuilt s ρ E₀ lg γn id N sv ∗ threadTok }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
     {{ RET #(); memberUp s ρ E₀ lg γn id }} := by
   iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ

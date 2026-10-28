@@ -40,7 +40,7 @@ namespace EtcdGrove
 namespace linkv3p
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open putget3 (httpURL ccOk commonPremises)
+open putget3 (httpURL commonPremises)
 open common (memberBoot memberUp)
 
 set_option synthInstance.maxSize 4096
@@ -62,16 +62,16 @@ theorem startMember.wp_proof
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
     (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀
+  intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn
-    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hdbo Hms
+    Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     #Hnet, Hpown⟩
   -- the premises in the shared start's form
   iunfold bootPremise at Hboot
-  ihave #Hb := common.bootPremise_of N ps bootLog dir go!"linkv3p" name
+  ihave #Hb := common.bootPremise_of N ps bootLog ctxs dir go!"linkv3p" name
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) id (cfgOk name)
-      (urlsOk peerAddr client) (putget3.ccOk ps) (fun _ h => h) (fun _ h => h) rfl $$ Hboot
+      (urlsOk peerAddr client) (fun _ h => h) (fun _ h => h) $$ Hboot
   ihave #Hcm' : common.commonPremises (GF := GF) $$ []
   · iunfold common.commonPremises; iunfold putget3.commonPremises at Hcom; iexact Hcom
   ihave #Hcom' := Hcom
@@ -103,8 +103,8 @@ theorem startMember.wp_proof
   -- `common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", lg)`
   wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" peer cluster lg
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
-      (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog dir id γ bud ρ E₀ Φs γn
-      (by omega) Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir
+      (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn
+      (by omega) Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hpown] as %srv %err Hres
   · iframe; iframe #
     iExactEq Hpeer; rfl
@@ -130,7 +130,7 @@ theorem startMember.wp_proof
   subst Hcerr
   wp_auto
   -- `s.Start()`
-  wp_apply (common.wp_Start_built wp_Start srv ρ E₀ lg γn id N bud _ HrbN) $$ [Hmb Htok] as Hup
+  wp_apply (common.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iunfold memberUp at Hup

@@ -16,14 +16,17 @@ server's store and lessor (`srvUberBase`, `srvUberRowM true`, from `NewUberAppli
   lessor is the real one (`lease.NewLessor`), whose lookups find a lease once one is granted; a
   workload granting none (`examples/authkv`) is where it holds.
 
-The admin side (`apply.uberAuthStepsL`, its `W`) needs the store's half of `be` at the apply
-thread's backend contract (E3f's blocker 1, awaiting the user) and stays a hypothesis of
-`srvApplyKVOn`'s users.
+The admin side (`srv_uberAuthStepsL_on`, E3n): the built part's store fact and the apply thread's
+auth row (`srvAuthApplyResB`, whose admin steps are at the environment's hook since E3n) give the
+apply thread's latest-state admin triples (`apply.uberAuthStepsL`) at the admin steps' resource
+`adminW` (the store's half of `be` borrowed from the rest, blocker 1's row).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.UberKVLBase
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.UberAdmLBase
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
 
 @[expose] public section
 
@@ -106,7 +109,7 @@ theorem srv_uberKVL_on
         apply.uberKVL ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, #Hln⟩
   iunfold srvUberBase at Hb
-  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, %stl, %Hau, #HL⟩
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL⟩
   subst Hau
   have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
       apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
@@ -119,14 +122,74 @@ theorem srv_uberKVL_on
   isplitr
   · iunfold srvUberBase
     iexists (auth.authIface stl), le
-    iframe Hauf Hlef Hub
+    iframe Hauf Hlef Hub HLb
     iexists stl
     isplitr
     · ipureintro; rfl
+    iframe HPub
     rw [hL]; iexact HL
   iunfold srvStoreLatest
   iexists (auth.authIface stl)
   iframe Hauf HL
+
+/-- **The server's uber-applier's admin triples at the latest state, with auth on** (the auth
+plan's E3n): the built part's store fact (`srvUberBase`) and the apply thread's auth row
+(`srvAuthApplyResB`: the store's admin steps at the environment's hook, at `adminW`) give
+`apply.uberAuthStepsL` at the admin steps' resource `adminW stl bel` (its write token `T`), for the
+authority with its fuel and tie, the family `auth.latestRes stl`; the row is given back. -/
+theorem srv_uberAuthStepsL_on
+    (hUA : apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG))
+    (hRA : apply.applierV3backend.RoleAdd.fuelSpecX (GF := GF) (hG := hG))
+    (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
+    (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
+    (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
+    (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
+    (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames) (st : auth.AuthState)
+    (hM : E.authMode = .on γa) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (T : IProp GF),
+        srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+          (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
+          (auth.latestRes stl (.on γa)) := by
+  iintro ⟨#Hpkg, #Hb, HR⟩
+  iunfold srvUberBase at Hb
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL⟩
+  subst Hau
+  iunfold srvAuthApplyResB at HR
+  icases HR with ⟨%stl', %bel, #Hf, HB, #Hlens, #Hro⟩
+  icombine Hauf Hf gives %Hst
+  have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
+  subst Hst'
+  have hB : authApplyResB (GF := GF) E.authMode stl st bel E.P E.f =
+      authApplyResB (GF := GF) (.on γa) stl st bel E.P E.f := by rw [hM]
+  irevert HB
+  rw [hB]
+  unfold authApplyResB
+  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, #Hwa, #Hsteps⟩
+  isplitl [Ho HX HT Htp]
+  · iunfold srvAuthApplyResB
+    iexists stl, bel
+    iframe Hf Hlens Hro
+    rw [hB]
+    unfold authApplyResB
+    iexists hs, P0, f0, T, be
+    iframe Ho HX Hw HT Htp Hwa Hsteps
+    ipureintro; exact Hl
+  iexists stl, bel, T
+  iframe Hauf
+  have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
+      apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
+    rw [hM]; rfl
+  iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hApplyL hApply ua E (auth.authIface stl)
+    le (auth.tieRes stl (.on γa)) (adminW stl bel (.on γa) E.P E.f T) (auth.latestRes stl (.on γa)))
+  iframe Hpkg Hub
+  isplitr
+  · rw [← hL]; iexact HL
+  rw [hM]
+  iexact Hsteps
 
 end proof
 
@@ -135,3 +198,4 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.srv_uberKVL
 #print axioms Perennial.EtcdGrove.srv_uberKVL_on
+#print axioms Perennial.EtcdGrove.srv_uberAuthStepsL_on

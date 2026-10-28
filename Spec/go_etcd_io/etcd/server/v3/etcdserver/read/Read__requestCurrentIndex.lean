@@ -31,9 +31,9 @@ The logger's resource `LR` is given back; the id resource `NR` comes from the se
 `□ |==> NR` (the id budget). -/
 abbrev read.Read.requestCurrentIndex.spec : Prop :=
   ∀ (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) (lcn : Loc)
-    (n : w64) (Qr : List EntryModel → IProp GF),
+    (n : w64) (Qr : List EntryModel → IProp GF) (F : List EntryModel → KVState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
-      isReadLoopPre r γr RQ LR NR ∗ LR ∗ □ (|==> NR) ∗ bcastChan lcn iprop(True) ∗
+      isReadLoopPre r γr RQ LR NR F ∗ LR ∗ □ (|==> NR) ∗ bcastChan lcn iprop(True) ∗
       committedAtLeast γr n ∗ srvReadAu γr.raft Qr }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"requestCurrentIndex")) (Val #lcn))
   {{ (ci : w64) (err : GoInterface), RET (PairV #ci #err); LR ∗ applyErrIs err ∗

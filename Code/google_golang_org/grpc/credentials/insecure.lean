@@ -67,10 +67,14 @@ class insecureTC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying insecureTC.underlying insecureTC
   underlying : go.UnderlyingDirectedEq insecureTC.ty insecureTC.underlying
   isUnderlying : go.IsUnderlying insecureTC.underlying insecureTC.underlying
+  method_set : go.MethodSetIs insecureTC.ty [(go!"ClientHandshake", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net.Conn" [])] false [(go.GoType.Named go!"net.Conn" []), (go.GoType.Named go!"google.golang.org/grpc/credentials.AuthInfo" []), go.error]))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])]))), (go!"Info", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.ProtocolInfo" [])]))), (go!"OverrideServerName", (some (go.signature.Signature [go.string] false [go.error]))), (go!"ServerHandshake", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" [])] false [(go.GoType.Named go!"net.Conn" []), (go.GoType.Named go!"google.golang.org/grpc/credentials.AuthInfo" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType insecureTC.ty) [(go!"ClientHandshake", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net.Conn" [])] false [(go.GoType.Named go!"net.Conn" []), (go.GoType.Named go!"google.golang.org/grpc/credentials.AuthInfo" []), go.error]))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])]))), (go!"Info", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.ProtocolInfo" [])]))), (go!"OverrideServerName", (some (go.signature.Signature [go.string] false [go.error]))), (go!"ServerHandshake", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" [])] false [(go.GoType.Named go!"net.Conn" []), (go.GoType.Named go!"google.golang.org/grpc/credentials.AuthInfo" []), go.error])))]
 
 attribute [instance] insecureTC.TypeAssumptions.type_repr
   insecureTC.TypeAssumptions.underlying
   insecureTC.TypeAssumptions.isUnderlying
+  insecureTC.TypeAssumptions.method_set
+  insecureTC.TypeAssumptions.ptr_method_set
 
 axiom info : Type
 axiom info.zero_val : ZeroVal info
@@ -80,10 +84,14 @@ class info.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying info.underlying info
   underlying : go.UnderlyingDirectedEq info.ty info.underlying
   isUnderlying : go.IsUnderlying info.underlying info.underlying
+  method_set : go.MethodSetIs info.ty [(go!"AuthType", (some (go.signature.Signature [] false [go.string]))), (go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.CommonAuthInfo" [])]))), (go!"ValidateAuthority", (some (go.signature.Signature [go.string] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType info.ty) [(go!"AuthType", (some (go.signature.Signature [] false [go.string]))), (go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.CommonAuthInfo" [])]))), (go!"ValidateAuthority", (some (go.signature.Signature [go.string] false [go.error])))]
 
 attribute [instance] info.TypeAssumptions.type_repr
   info.TypeAssumptions.underlying
   info.TypeAssumptions.isUnderlying
+  info.TypeAssumptions.method_set
+  info.TypeAssumptions.ptr_method_set
 
 axiom insecureBundle : Type
 axiom insecureBundle.zero_val : ZeroVal insecureBundle
@@ -93,10 +101,14 @@ class insecureBundle.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying insecureBundle.underlying insecureBundle
   underlying : go.UnderlyingDirectedEq insecureBundle.ty insecureBundle.underlying
   isUnderlying : go.IsUnderlying insecureBundle.underlying insecureBundle.underlying
+  method_set : go.MethodSetIs insecureBundle.ty [(go!"NewWithMode", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.Bundle" []), go.error]))), (go!"PerRPCCredentials", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.PerRPCCredentials" [])]))), (go!"TransportCredentials", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType insecureBundle.ty) [(go!"NewWithMode", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.Bundle" []), go.error]))), (go!"PerRPCCredentials", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.PerRPCCredentials" [])]))), (go!"TransportCredentials", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])])))]
 
 attribute [instance] insecureBundle.TypeAssumptions.type_repr
   insecureBundle.TypeAssumptions.underlying
   insecureBundle.TypeAssumptions.isUnderlying
+  insecureBundle.TypeAssumptions.method_set
+  insecureBundle.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   insecureTC_instance : insecureTC.TypeAssumptions

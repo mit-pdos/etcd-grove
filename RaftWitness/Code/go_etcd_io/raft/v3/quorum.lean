@@ -962,6 +962,8 @@ abbrev MajorityConfig [GooseExts] : Type := GoMap
 
 class MajorityConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MajorityConfig.ty MajorityConfig.underlying
+  method_set : go.MethodSetIs MajorityConfig.ty [(go!"CommittedIndex", (some (go.signature.Signature [AckedIndexer.ty] false [Index'.ty]))), (go!"Describe", (some (go.signature.Signature [AckedIndexer.ty] false [go.string]))), (go!"OneLessThanQuorum", (some (go.signature.Signature [AckedIndexer.ty] false [Index'.ty]))), (go!"Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"VoteResult", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty]))), (go!"VoteResultWithDifference", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty, go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MajorityConfig.ty) [(go!"CommittedIndex", (some (go.signature.Signature [AckedIndexer.ty] false [Index'.ty]))), (go!"Describe", (some (go.signature.Signature [AckedIndexer.ty] false [go.string]))), (go!"OneLessThanQuorum", (some (go.signature.Signature [AckedIndexer.ty] false [Index'.ty]))), (go!"Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"VoteResult", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty]))), (go!"VoteResultWithDifference", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty, go.int])))]
   CommittedIndex_unfold : MethodUnfold MajorityConfig.ty go!"CommittedIndex" MajorityConfig.CommittedIndex.impl
   Describe_unfold : MethodUnfold MajorityConfig.ty go!"Describe" MajorityConfig.Describe.impl
   OneLessThanQuorum_unfold : MethodUnfold MajorityConfig.ty go!"OneLessThanQuorum" MajorityConfig.OneLessThanQuorum.impl
@@ -985,6 +987,8 @@ class MajorityConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
 (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"VoteResultWithDifference"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "$r"))))
 
 attribute [instance] MajorityConfig.TypeAssumptions.underlying
+  MajorityConfig.TypeAssumptions.method_set
+  MajorityConfig.TypeAssumptions.ptr_method_set
   MajorityConfig.TypeAssumptions.CommittedIndex_unfold
   MajorityConfig.TypeAssumptions.Describe_unfold
   MajorityConfig.TypeAssumptions.OneLessThanQuorum_unfold
@@ -1007,6 +1011,8 @@ abbrev JointConfig [GooseExts] : Type := (GoArray MajorityConfig 2)
 
 class JointConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq JointConfig.ty JointConfig.underlying
+  method_set : go.MethodSetIs JointConfig.ty [(go!"CommittedIndex", (some (go.signature.Signature [AckedIndexer.ty] false [Index'.ty]))), (go!"Describe", (some (go.signature.Signature [AckedIndexer.ty] false [go.string]))), (go!"IDs", (some (go.signature.Signature [] false [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"VoteResult", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty]))), (go!"VoteResultWithDifference", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty, (go.GoType.ArrayType 2 go.int)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType JointConfig.ty) [(go!"CommittedIndex", (some (go.signature.Signature [AckedIndexer.ty] false [Index'.ty]))), (go!"Describe", (some (go.signature.Signature [AckedIndexer.ty] false [go.string]))), (go!"IDs", (some (go.signature.Signature [] false [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"VoteResult", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty]))), (go!"VoteResultWithDifference", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty, (go.GoType.ArrayType 2 go.int)])))]
   CommittedIndex_unfold : MethodUnfold JointConfig.ty go!"CommittedIndex" JointConfig.CommittedIndex.impl
   Describe_unfold : MethodUnfold JointConfig.ty go!"Describe" JointConfig.Describe.impl
   IDs_unfold : MethodUnfold JointConfig.ty go!"IDs" JointConfig.IDs.impl
@@ -1027,6 +1033,8 @@ class JointConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
 (App (Val (GoInstruction (MethodResolve JointConfig.ty go!"VoteResultWithDifference"))) (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "$r"))))
 
 attribute [instance] JointConfig.TypeAssumptions.underlying
+  JointConfig.TypeAssumptions.method_set
+  JointConfig.TypeAssumptions.ptr_method_set
   JointConfig.TypeAssumptions.CommittedIndex_unfold
   JointConfig.TypeAssumptions.Describe_unfold
   JointConfig.TypeAssumptions.IDs_unfold
@@ -1047,11 +1055,15 @@ abbrev Index' [GooseExts] : Type := w64
 
 class Index.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Index'.ty Index'.underlying
+  method_set : go.MethodSetIs Index'.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Index'.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   String_unfold : MethodUnfold Index'.ty go!"String" Index.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType Index'.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Index'.ty go!"String"))) (App (Val (GoInstruction (GoLoad Index'.ty))) (Var "$r"))))
 
 attribute [instance] Index.TypeAssumptions.underlying
+  Index.TypeAssumptions.method_set
+  Index.TypeAssumptions.ptr_method_set
   Index.TypeAssumptions.String_unfold
   Index.TypeAssumptions.ptr_String_unfold
 
@@ -1092,6 +1104,8 @@ class tup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   set_ok : ∀ (x : tup) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"ok") (PairV #x #y) (Val #(({ x with ok' := y } : tup)))
   get_bar : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"bar") #x (Val #(x.bar'))
   set_bar : ∀ (x : tup) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"bar") (PairV #x #y) (Val #(({ x with bar' := y } : tup)))
+  method_set : go.MethodSetIs tup.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tup.ty) []
 
 attribute [instance] tup.TypeAssumptions.type_repr
   tup.TypeAssumptions.underlying
@@ -1103,6 +1117,8 @@ attribute [instance] tup.TypeAssumptions.type_repr
   tup.TypeAssumptions.set_ok
   tup.TypeAssumptions.get_bar
   tup.TypeAssumptions.set_bar
+  tup.TypeAssumptions.method_set
+  tup.TypeAssumptions.ptr_method_set
 
 abbrev AckedIndexer [GooseExts] : Type := GoInterface
 
@@ -1111,8 +1127,12 @@ abbrev AckedIndexer [GooseExts] : Type := GoInterface
 
 class AckedIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AckedIndexer.ty AckedIndexer.underlying
+  method_set : go.MethodSetIs AckedIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [Index'.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AckedIndexer.ty) []
 
 attribute [instance] AckedIndexer.TypeAssumptions.underlying
+  AckedIndexer.TypeAssumptions.method_set
+  AckedIndexer.TypeAssumptions.ptr_method_set
 
 abbrev mapAckIndexer [GooseExts] : Type := GoMap
 
@@ -1121,11 +1141,15 @@ abbrev mapAckIndexer [GooseExts] : Type := GoMap
 
 class mapAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq mapAckIndexer.ty mapAckIndexer.underlying
+  method_set : go.MethodSetIs mapAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [Index'.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mapAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [Index'.ty, go.bool])))]
   AckedIndex_unfold : MethodUnfold mapAckIndexer.ty go!"AckedIndex" mapAckIndexer.AckedIndex.impl
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType mapAckIndexer.ty) go!"AckedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve mapAckIndexer.ty go!"AckedIndex"))) (App (Val (GoInstruction (GoLoad mapAckIndexer.ty))) (Var "$r"))))
 
 attribute [instance] mapAckIndexer.TypeAssumptions.underlying
+  mapAckIndexer.TypeAssumptions.method_set
+  mapAckIndexer.TypeAssumptions.ptr_method_set
   mapAckIndexer.TypeAssumptions.AckedIndex_unfold
   mapAckIndexer.TypeAssumptions.ptr_AckedIndex_unfold
 
@@ -1136,11 +1160,15 @@ abbrev VoteResult [GooseExts] : Type := w8
 
 class VoteResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VoteResult.ty VoteResult.underlying
+  method_set : go.MethodSetIs VoteResult.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VoteResult.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   String_unfold : MethodUnfold VoteResult.ty go!"String" VoteResult.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType VoteResult.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve VoteResult.ty go!"String"))) (App (Val (GoInstruction (GoLoad VoteResult.ty))) (Var "$r"))))
 
 attribute [instance] VoteResult.TypeAssumptions.underlying
+  VoteResult.TypeAssumptions.method_set
+  VoteResult.TypeAssumptions.ptr_method_set
   VoteResult.TypeAssumptions.String_unfold
   VoteResult.TypeAssumptions.ptr_String_unfold
 

@@ -51,16 +51,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptio
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [ErrorStringLeaf] [ErrorStringNoGRPCStatus] [context.ErrorStringIsError]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    (N : Nat) (id : w64) (bootLog : List EntryM),
-  putget.BootFacts id bootLog →
+    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
+  putget.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23916" ∗ threadTok ∗ premises N id bootLog }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23916" ∗ threadTok ∗ premises N id ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.Main)) (Val #()))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}
 

@@ -1014,12 +1014,16 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
 abbrev MembershipBackend [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def MembershipBackend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MustCreateBackendBuckets" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ClusterVersionBackend.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm MemberBackend.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm DowngradeInfoBackend.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ClusterVersionFromBackend" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])), (go.InterfaceElem.MethodElem go!"DowngradeInfoFromBackend" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)])), (go.InterfaceElem.MethodElem go!"MustCreateBackendBuckets" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"MustDeleteMemberFromBackend" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [])), (go.InterfaceElem.MethodElem go!"MustReadMembersFromBackend" (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty)), (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)])), (go.InterfaceElem.MethodElem go!"MustSaveClusterVersionToBackend" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [])), (go.InterfaceElem.MethodElem go!"MustSaveDowngradeToBackend" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)] false [])), (go.InterfaceElem.MethodElem go!"MustSaveMemberToBackend" (go.signature.Signature [(go.GoType.PointerType Member.ty)] false [])), (go.InterfaceElem.MethodElem go!"TrimMembershipFromBackend" (go.signature.Signature [] false [go.error]))])
 
 class MembershipBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MembershipBackend.ty MembershipBackend.underlying
+  method_set : go.MethodSetIs MembershipBackend.ty [(go!"ClusterVersionFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"DowngradeInfoFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"MustCreateBackendBuckets", (some (go.signature.Signature [] false []))), (go!"MustDeleteMemberFromBackend", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MustReadMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty)), (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)]))), (go!"MustSaveClusterVersionToBackend", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false []))), (go!"MustSaveDowngradeToBackend", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)] false []))), (go!"MustSaveMemberToBackend", (some (go.signature.Signature [(go.GoType.PointerType Member.ty)] false []))), (go!"TrimMembershipFromBackend", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MembershipBackend.ty) []
 
 attribute [instance] MembershipBackend.TypeAssumptions.underlying
+  MembershipBackend.TypeAssumptions.method_set
+  MembershipBackend.TypeAssumptions.ptr_method_set
 
 structure RaftCluster [GooseExts] where
   mk ::
@@ -1086,6 +1090,8 @@ class RaftCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_maxLearners : ∀ (x : RaftCluster) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"maxLearners") (PairV #x #y) (Val #(({ x with maxLearners' := y } : RaftCluster)))
   get_versionChanged : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"versionChanged") #x (Val #(x.versionChanged'))
   set_versionChanged : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"versionChanged") (PairV #x #y) (Val #(({ x with versionChanged' := y } : RaftCluster)))
+  method_set : go.MethodSetIs RaftCluster.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaftCluster.ty) [(go!"AddMember", (some (go.signature.Signature [(go.GoType.PointerType Member.ty), ShouldApplyV3.ty] false []))), (go!"ClientURLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"IsIDRemoved", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"IsLocalMemberLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"IsReadyToAddVotingMember", (some (go.signature.Signature [] false [go.bool]))), (go!"IsReadyToPromoteMember", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsReadyToRemoveVotingMember", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Member", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [(go.GoType.PointerType Member.ty)]))), (go!"MemberByName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Member.ty)]))), (go!"MemberIDs", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]))), (go!"Members", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Member.ty))]))), (go!"PeerURLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, ShouldApplyV3.ty] false []))), (go!"Recover", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false []))] false []))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, ShouldApplyV3.ty] false []))), (go!"SetBackend", (some (go.signature.Signature [MembershipBackend.ty] false []))), (go!"SetDowngradeInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty), ShouldApplyV3.ty] false []))), (go!"SetID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"SetVersion", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [])), ShouldApplyV3.ty] false []))), (go!"SetVersionChangedNotifier", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty)] false []))), (go!"Store", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2store.Store" [])] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeLoad", (some (go.signature.Signature [] false []))), (go!"UpdateAttributes", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, Attributes.ty, ShouldApplyV3.ty] false []))), (go!"UpdateRaftAttributes", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, RaftAttributes.ty, ShouldApplyV3.ty] false []))), (go!"ValidateConfigurationChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), ShouldApplyV3.ty] false [go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"VotingMemberIDs", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]))), (go!"VotingMembers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Member.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.buildMembershipMetric", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.genID", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.updateMembershipMetric", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, go.bool] false [])))]
   ptr_AddMember_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"AddMember" RaftCluster.AddMember.impl
   ptr_ID_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ID" RaftCluster.ID.impl
   ptr_IsIDRemoved_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsIDRemoved" RaftCluster.IsIDRemoved.impl
@@ -1123,6 +1129,8 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.set_maxLearners
   RaftCluster.TypeAssumptions.get_versionChanged
   RaftCluster.TypeAssumptions.set_versionChanged
+  RaftCluster.TypeAssumptions.method_set
+  RaftCluster.TypeAssumptions.ptr_method_set
   RaftCluster.TypeAssumptions.ptr_AddMember_unfold
   RaftCluster.TypeAssumptions.ptr_ID_unfold
   RaftCluster.TypeAssumptions.ptr_IsIDRemoved_unfold
@@ -1163,6 +1171,8 @@ class RaftAttributes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_PeerURLs : ∀ (x : RaftAttributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"PeerURLs") (PairV #x #y) (Val #(({ x with PeerURLs' := y } : RaftAttributes)))
   get_IsLearner : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"IsLearner") #x (Val #(x.IsLearner'))
   set_IsLearner : ∀ (x : RaftAttributes) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"IsLearner") (PairV #x #y) (Val #(({ x with IsLearner' := y } : RaftAttributes)))
+  method_set : go.MethodSetIs RaftAttributes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaftAttributes.ty) []
 
 attribute [instance] RaftAttributes.TypeAssumptions.type_repr
   RaftAttributes.TypeAssumptions.underlying
@@ -1170,6 +1180,8 @@ attribute [instance] RaftAttributes.TypeAssumptions.type_repr
   RaftAttributes.TypeAssumptions.set_PeerURLs
   RaftAttributes.TypeAssumptions.get_IsLearner
   RaftAttributes.TypeAssumptions.set_IsLearner
+  RaftAttributes.TypeAssumptions.method_set
+  RaftAttributes.TypeAssumptions.ptr_method_set
 
 structure Attributes [GooseExts] where
   mk ::
@@ -1200,6 +1212,8 @@ class Attributes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_Name : ∀ (x : Attributes) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Attributes)))
   get_ClientURLs : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"ClientURLs") #x (Val #(x.ClientURLs'))
   set_ClientURLs : ∀ (x : Attributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"ClientURLs") (PairV #x #y) (Val #(({ x with ClientURLs' := y } : Attributes)))
+  method_set : go.MethodSetIs Attributes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Attributes.ty) []
 
 attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.underlying
@@ -1207,6 +1221,8 @@ attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.set_Name
   Attributes.TypeAssumptions.get_ClientURLs
   Attributes.TypeAssumptions.set_ClientURLs
+  Attributes.TypeAssumptions.method_set
+  Attributes.TypeAssumptions.ptr_method_set
 
 structure Member [GooseExts] where
   mk ::
@@ -1241,6 +1257,8 @@ class Member.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_RaftAttributes : ∀ (x : Member) (y : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"RaftAttributes") (PairV #x #y) (Val #(({ x with RaftAttributes' := y } : Member)))
   get_Attributes : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Attributes") #x (Val #(x.Attributes'))
   set_Attributes : ∀ (x : Member) (y : Attributes), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Member)))
+  method_set : go.MethodSetIs Member.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Member.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Member.ty)]))), (go!"IsStarted", (some (go.signature.Signature [] false [go.bool])))]
   ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Member.ty) go!"Clone" Member.Clone.impl
 
 attribute [instance] Member.TypeAssumptions.type_repr
@@ -1251,6 +1269,8 @@ attribute [instance] Member.TypeAssumptions.type_repr
   Member.TypeAssumptions.set_RaftAttributes
   Member.TypeAssumptions.get_Attributes
   Member.TypeAssumptions.set_Attributes
+  Member.TypeAssumptions.method_set
+  Member.TypeAssumptions.ptr_method_set
   Member.TypeAssumptions.ptr_Clone_unfold
 
 structure ConfigChangeContext [GooseExts] where
@@ -1282,6 +1302,8 @@ class ConfigChangeContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_Member : ∀ (x : ConfigChangeContext) (y : Member), go.IsGoStepPureDetTagged under (StructFieldSet ConfigChangeContext.underlying go!"Member") (PairV #x #y) (Val #(({ x with Member' := y } : ConfigChangeContext)))
   get_IsPromote : ∀ (x : ConfigChangeContext), go.IsGoStepPureDetTagged under (StructFieldGet ConfigChangeContext.underlying go!"IsPromote") #x (Val #(x.IsPromote'))
   set_IsPromote : ∀ (x : ConfigChangeContext) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConfigChangeContext.underlying go!"IsPromote") (PairV #x #y) (Val #(({ x with IsPromote' := y } : ConfigChangeContext)))
+  method_set : go.MethodSetIs ConfigChangeContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfigChangeContext.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Member.ty)]))), (go!"IsStarted", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] ConfigChangeContext.TypeAssumptions.type_repr
   ConfigChangeContext.TypeAssumptions.underlying
@@ -1289,6 +1311,8 @@ attribute [instance] ConfigChangeContext.TypeAssumptions.type_repr
   ConfigChangeContext.TypeAssumptions.set_Member
   ConfigChangeContext.TypeAssumptions.get_IsPromote
   ConfigChangeContext.TypeAssumptions.set_IsPromote
+  ConfigChangeContext.TypeAssumptions.method_set
+  ConfigChangeContext.TypeAssumptions.ptr_method_set
 
 abbrev ShouldApplyV3 [GooseExts] : Type := Bool
 
@@ -1297,8 +1321,12 @@ abbrev ShouldApplyV3 [GooseExts] : Type := Bool
 
 class ShouldApplyV3.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ShouldApplyV3.ty ShouldApplyV3.underlying
+  method_set : go.MethodSetIs ShouldApplyV3.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ShouldApplyV3.ty) []
 
 attribute [instance] ShouldApplyV3.TypeAssumptions.underlying
+  ShouldApplyV3.TypeAssumptions.method_set
+  ShouldApplyV3.TypeAssumptions.ptr_method_set
 
 structure ClusterOptions [GooseExts] where
   mk ::
@@ -1325,11 +1353,15 @@ class ClusterOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq ClusterOptions.ty ClusterOptions.underlying
   get_maxLearners : ∀ (x : ClusterOptions), go.IsGoStepPureDetTagged under (StructFieldGet ClusterOptions.underlying go!"maxLearners") #x (Val #(x.maxLearners'))
   set_maxLearners : ∀ (x : ClusterOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClusterOptions.underlying go!"maxLearners") (PairV #x #y) (Val #(({ x with maxLearners' := y } : ClusterOptions)))
+  method_set : go.MethodSetIs ClusterOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterOptions.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType ClusterOption.ty)] false [])))]
 
 attribute [instance] ClusterOptions.TypeAssumptions.type_repr
   ClusterOptions.TypeAssumptions.underlying
   ClusterOptions.TypeAssumptions.get_maxLearners
   ClusterOptions.TypeAssumptions.set_maxLearners
+  ClusterOptions.TypeAssumptions.method_set
+  ClusterOptions.TypeAssumptions.ptr_method_set
 
 abbrev ClusterOption [GooseExts] : Type := GoFunc
 
@@ -1338,8 +1370,12 @@ abbrev ClusterOption [GooseExts] : Type := GoFunc
 
 class ClusterOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClusterOption.ty ClusterOption.underlying
+  method_set : go.MethodSetIs ClusterOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterOption.ty) []
 
 attribute [instance] ClusterOption.TypeAssumptions.underlying
+  ClusterOption.TypeAssumptions.method_set
+  ClusterOption.TypeAssumptions.ptr_method_set
 
 abbrev MembersByID [GooseExts] : Type := GoSlice
 
@@ -1348,6 +1384,8 @@ abbrev MembersByID [GooseExts] : Type := GoSlice
 
 class MembersByID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MembersByID.ty MembersByID.underlying
+  method_set : go.MethodSetIs MembersByID.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MembersByID.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold MembersByID.ty go!"Len" MembersByID.Len.impl
   Less_unfold : MethodUnfold MembersByID.ty go!"Less" MembersByID.Less.impl
   Swap_unfold : MethodUnfold MembersByID.ty go!"Swap" MembersByID.Swap.impl
@@ -1359,6 +1397,8 @@ class MembersByID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
 (App (Val (GoInstruction (MethodResolve MembersByID.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad MembersByID.ty))) (Var "$r"))))
 
 attribute [instance] MembersByID.TypeAssumptions.underlying
+  MembersByID.TypeAssumptions.method_set
+  MembersByID.TypeAssumptions.ptr_method_set
   MembersByID.TypeAssumptions.Len_unfold
   MembersByID.TypeAssumptions.Less_unfold
   MembersByID.TypeAssumptions.Swap_unfold
@@ -1373,8 +1413,12 @@ abbrev MembersByPeerURLs [GooseExts] : Type := GoSlice
 
 class MembersByPeerURLs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MembersByPeerURLs.ty MembersByPeerURLs.underlying
+  method_set : go.MethodSetIs MembersByPeerURLs.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MembersByPeerURLs.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] MembersByPeerURLs.TypeAssumptions.underlying
+  MembersByPeerURLs.TypeAssumptions.method_set
+  MembersByPeerURLs.TypeAssumptions.ptr_method_set
 
 abbrev ClusterVersionBackend [GooseExts] : Type := GoInterface
 
@@ -1383,8 +1427,12 @@ abbrev ClusterVersionBackend [GooseExts] : Type := GoInterface
 
 class ClusterVersionBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClusterVersionBackend.ty ClusterVersionBackend.underlying
+  method_set : go.MethodSetIs ClusterVersionBackend.ty [(go!"ClusterVersionFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"MustSaveClusterVersionToBackend", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterVersionBackend.ty) []
 
 attribute [instance] ClusterVersionBackend.TypeAssumptions.underlying
+  ClusterVersionBackend.TypeAssumptions.method_set
+  ClusterVersionBackend.TypeAssumptions.ptr_method_set
 
 abbrev MemberBackend [GooseExts] : Type := GoInterface
 
@@ -1393,8 +1441,12 @@ abbrev MemberBackend [GooseExts] : Type := GoInterface
 
 class MemberBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MemberBackend.ty MemberBackend.underlying
+  method_set : go.MethodSetIs MemberBackend.ty [(go!"MustDeleteMemberFromBackend", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MustReadMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty)), (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)]))), (go!"MustSaveMemberToBackend", (some (go.signature.Signature [(go.GoType.PointerType Member.ty)] false []))), (go!"TrimMembershipFromBackend", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemberBackend.ty) []
 
 attribute [instance] MemberBackend.TypeAssumptions.underlying
+  MemberBackend.TypeAssumptions.method_set
+  MemberBackend.TypeAssumptions.ptr_method_set
 
 abbrev DowngradeInfoBackend [GooseExts] : Type := GoInterface
 
@@ -1403,8 +1455,12 @@ abbrev DowngradeInfoBackend [GooseExts] : Type := GoInterface
 
 class DowngradeInfoBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DowngradeInfoBackend.ty DowngradeInfoBackend.underlying
+  method_set : go.MethodSetIs DowngradeInfoBackend.ty [(go!"DowngradeInfoFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"MustSaveDowngradeToBackend", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeInfoBackend.ty) []
 
 attribute [instance] DowngradeInfoBackend.TypeAssumptions.underlying
+  DowngradeInfoBackend.TypeAssumptions.method_set
+  DowngradeInfoBackend.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RaftCluster_instance : RaftCluster.TypeAssumptions

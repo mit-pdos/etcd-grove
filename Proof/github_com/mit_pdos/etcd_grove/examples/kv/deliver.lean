@@ -18,7 +18,6 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.deliver
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.transfers__take
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.deliverable
-public import Spec.go_etcd_io.raft.v3.node__Step
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
@@ -62,9 +61,9 @@ theorem snapOpt_null_none (dq : DFrac) (s : Option SnapshotM) (h : s = none) :
 set_option hygiene false in
 /-- The tail of an iteration that steps the wire's copy of the message `q` into its node `n`:
 the copy's struct built from `m`'s fields' loads (`iNamed`), the appended entries slice and
-(D22 S-r) the snapshot's clone `snc` (`Hsnc`), owned (`msgPtsC_of_struct`), made `stepP`
-(`stepP_deliverable`), `Node.Step`. Expects the tick credit `Htc`, the read credit `Hc1`, `Hmsg`,
-`Hsnf`, `Hmlb`, `HisNode`, `Hsi`, and the loop's `Hk1`. -/
+(D22 S-r) the snapshot's clone `snc` (`Hsnc`), owned (`msgPtsC_of_struct`), made `stepIn`
+(`stepIn_intro`, `deliverable_step`), `Node.Step`. Expects the tick credit `Htc`, the
+message's credits `Hc1`, `Hmok`, `HisNode`, and the loop's `Hk1`. -/
 local macro "deliver_tail " snc:term : tactic =>
   `(tactic| (
     try wp_auto
@@ -87,11 +86,14 @@ local macro "deliver_tail " snc:term : tactic =>
       iapply ownSlice_nil
     wp_apply context.wp_Background
     ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-    ihave Ht1 : stTks γn.raft (⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩ : MsgSt) $$ [Ht1]
-    · unfold stTks; iexact Ht1
-    imod stepP_deliverable γn q.st.msg.To' «$r0_ptr» ⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩
-      Hd rfl Hsi rfl Hsl0 $$ Hmsg Hsnf Hmlb Hmc Hc1 Ht1 Htc with Hstep
-    wp_apply +noauto wp_node_Step γn q.st.msg.To' n «$r0_ptr» context.backgroundCtxVal bgCd
+    have Hsteps := deliverable_step q.st.msg.To' q.st Hd rfl
+    imod stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st
+      (fun h => ⟨(Hsteps.2.1 h).1, (Hsteps.2.1 h).2.2⟩) Hsteps.2.2 rfl
+      $$ [Hmok Hmc Hc1 Htc] with Hstep
+    · isplitr
+      · ileft; ipureintro; exact deliverable_not_prevote q.st Hd
+      iframe Hmok Hmc Hc1 Htc
+    wp_apply +noauto wp_node_Step n γ kvRaftN q.st.msg.To' «$r0_ptr» context.backgroundCtxVal bgCd
       $$ [Hstep] as %err -
     · iframe
       iframe HisNode Hbg
@@ -119,8 +121,8 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
-  intro γ sid bud peers tr P msl ms
-  wp_start as ⟨#Hpeers, #HP, #Htr, Hms, Hmsok, Hcr, Htks⟩
+  intro γ peers tr P src msl ms
+  wp_start as ⟨#Hpeers, #HP, #Htr, Hms, Hmsok⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -131,15 +133,13 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
   ihave IH : iprop(∃ (k : w64) (mv : Loc),
       "i" ∷ i_ptr ↦ k ∗ "m" ∷ m_ptr ↦ mv ∗ "Hms" ∷ msl ↦* ms.map QMsg.loc ∗
       "Hmsok" ∷ ([∗list] q ∈ ms.drop (sint.nat k),
-        msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ sid q.st ∗ termLB bud q.st.msg.Term') ∗
-      "Hcr" ∷ ([∗list] q ∈ ms.drop (sint.nat k),
-        rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
-      "Htks" ∷ ([∗list] q ∈ ms.drop (sint.nat k), stTks γ q.st) ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ms.length : Int)⌝) $$ [i m Hms Hmsok Hcr Htks]
+        msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ kvRaftN src q.st ∗
+          msgCredits γ kvRaftN q.st) ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ms.length : Int)⌝) $$ [i m Hms Hmsok]
   · iexists W64 0, _
     iframe i m Hms
     simp only [show sint.nat (W64 0) = 0 from rfl, List.drop_zero]
-    iframe Hmsok Hcr Htks
+    iframe Hmsok
     ipureintro; constructor <;> word
   wp_for IH
   wp_if_destruct
@@ -158,9 +158,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       rw [Option.some.inj Hq]
     have Hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
     rw [Hdrop]
-    icases Hmsok with ⟨⟨Hmq, #Hmok, #Hmlb⟩, Hmsok⟩
-    icases Hcr with ⟨Hc1, Hcr⟩
-    icases Htks with ⟨Ht1, Htks⟩
+    icases Hmsok with ⟨⟨Hmq, #Hmok, Hc1⟩, Hmsok⟩
     wp_apply wp_deliverable q.loc (readyDq q.st) DFrac.discard false q.st $$ [$Hmq] as %b ⟨Hmq, %Hb⟩
     cases b
     · wp_auto
@@ -186,24 +184,20 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       iframe
       ipureintro; constructor <;> word
     | some nd =>
-      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => kvPeerOk (GF := GF) γ bud id nd)
+      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => kvPeerOk (GF := GF) γ id nd)
         HPt $$ HP
       unfold kvPeerOk
-      icases Hpeer with ⟨%γn, %n, %Hnd, #HisNode⟩
-      obtain ⟨Hr, Hbud, rfl, Hsi0, Hsl0⟩ := Hnd
-      have Hsi : q.st.msg.Type' = MsgSnap → γn.snapIn = true := fun _ => Hsi0
-      ihave #Hmsg := raftMsg_deliverable γ sid q.st Hd $$ Hmok
-      ihave #Hsnf := raftMsg_snap γ sid q.st Hd $$ Hmok
+      icases Hpeer with ⟨%n, %Hnd, #HisNode⟩
+      subst Hnd
       try simp only [Option.isSome_some, Option.getD_some, _root_.decide_true, Bool.not_true]
       wp_auto
-      subst Hr Hbud
       -- `m.GetType() == pb.MsgTimeoutNow && !tr.take()`
       wp_apply wp_GetType.1 q.loc (readyDq q.st) DFrac.discard false q.st $$ [$Hmq] as Hmq
       -- a `MsgTimeoutNow`: a tick credit from the transfer budget, or dropped
       by_cases Htn : q.st.msg.Type' = W32 14
       · rw [decide_eq_true Htn]
         wp_auto
-        wp_apply wp_take γn.bud tr $$ [$Htr] as %b Hb
+        wp_apply wp_take γ tr $$ [$Htr] as %b Hb
         cases b
         · wp_auto
           wp_for_post
@@ -213,7 +207,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           iframe
           ipureintro; constructor <;> word
         wp_auto
-        ihave Htc : tickCred γn.bud (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Hb]
+        ihave Htc : tickCredit γ (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Hb]
         · have Htn' : q.st.msg.Type' = MsgTimeoutNow := Htn
           rw [ite_eq_left Htn']
           simp only [↓reduceIte]
@@ -237,8 +231,8 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           deliver_tail snc
       · rw [decide_eq_false Htn]
         wp_auto
-        imod tickCred_zero (GF := GF) γn.bud with Htc0
-        ihave Htc : tickCred γn.bud (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Htc0]
+        imod tickCredit_zero (GF := GF) γ with Htc0
+        ihave Htc : tickCredit γ (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Htc0]
         · have Htn' : ¬ q.st.msg.Type' = MsgTimeoutNow := Htn
           rw [ite_eq_right Htn']
           iexact Htc0

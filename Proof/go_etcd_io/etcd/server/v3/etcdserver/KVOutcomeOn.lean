@@ -86,11 +86,6 @@ theorem outcomeOn_of_authOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m :
 
 /-! ## The dispatched outcome's verdict on the request's own permissions (E2y) -/
 
-/-- **No range end of the request is `"\x00"`** (a premise of the workload): the one end at which a
-check can see another range than the model's (`authEndOf`: a non-`nil` empty `RangeEnd` on the
-wire, which the model reads as `"\x00"`). -/
-def noZeroEnds (rq : apply.IRRModel) : Prop := ∀ x ∈ reqPerms rq, x.2.1 ≠ [W8 0]
-
 theorem authEndOf_eq (m e : GoString) (h : apply.authEndOf m e) (hm : m ≠ [W8 0]) : e = m := by
   rcases h with h | ⟨-, h⟩
   · exact h

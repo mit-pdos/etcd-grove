@@ -249,7 +249,7 @@ theorem kv.quietLogger.wp_Warningf :
 
 theorem kv.wp_StartCluster [KVStor GF] :
     kv.StartCluster.spec (GF := GF) (hG := hG) :=
-  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf wp_RestartNode
+  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf wp_RestartNode MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries
 
 theorem kv.wp_Main :
     kv.Main.spec (GF := GF) (hG := hG) :=

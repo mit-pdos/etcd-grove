@@ -12230,8 +12230,12 @@ abbrev Storage [GooseExts] : Type := GoInterface
 
 class Storage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Storage.ty Storage.underlying
+  method_set : go.MethodSetIs Storage.ty [(go!"Entries", (some (go.signature.Signature [go.uint64, go.uint64, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"FirstIndex", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"InitialState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), go.error]))), (go!"LastIndex", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"Snapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty), go.error]))), (go!"Term", (some (go.signature.Signature [go.uint64] false [go.uint64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Storage.ty) []
 
 attribute [instance] Storage.TypeAssumptions.underlying
+  Storage.TypeAssumptions.method_set
+  Storage.TypeAssumptions.ptr_method_set
 
 abbrev Logger [GooseExts] : Type := GoInterface
 
@@ -12240,8 +12244,12 @@ abbrev Logger [GooseExts] : Type := GoInterface
 
 class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Logger.ty Logger.underlying
+  method_set : go.MethodSetIs Logger.ty [(go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Logger.ty) []
 
 attribute [instance] Logger.TypeAssumptions.underlying
+  Logger.TypeAssumptions.method_set
+  Logger.TypeAssumptions.ptr_method_set
 
 structure unstable [GooseExts] where
   mk ::
@@ -12288,6 +12296,8 @@ class unstable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_offsetInProgress : ∀ (x : unstable) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet unstable.underlying go!"offsetInProgress") (PairV #x #y) (Val #(({ x with offsetInProgress' := y } : unstable)))
   get_logger : ∀ (x : unstable), go.IsGoStepPureDetTagged under (StructFieldGet unstable.underlying go!"logger") #x (Val #(x.logger'))
   set_logger : ∀ (x : unstable) (y : Logger), go.IsGoStepPureDetTagged under (StructFieldSet unstable.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : unstable)))
+  method_set : go.MethodSetIs unstable.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unstable.ty) [(go!"go.etcd.io/raft/v3.acceptInProgress", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.maybeFirstIndex", (some (go.signature.Signature [] false [go.uint64, go.bool]))), (go!"go.etcd.io/raft/v3.maybeLastIndex", (some (go.signature.Signature [] false [go.uint64, go.bool]))), (go!"go.etcd.io/raft/v3.maybeTerm", (some (go.signature.Signature [go.uint64] false [go.uint64, go.bool]))), (go!"go.etcd.io/raft/v3.mustCheckOutOfBounds", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"go.etcd.io/raft/v3.nextEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"go.etcd.io/raft/v3.nextSnapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)]))), (go!"go.etcd.io/raft/v3.restore", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false []))), (go!"go.etcd.io/raft/v3.shrinkEntriesArray", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.slice", (some (go.signature.Signature [go.uint64, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"go.etcd.io/raft/v3.stableSnapTo", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/raft/v3.stableTo", (some (go.signature.Signature [entryID.ty] false []))), (go!"go.etcd.io/raft/v3.truncateAndAppend", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [])))]
   ptr_acceptInProgress_unfold : MethodUnfold (go.GoType.PointerType unstable.ty) go!"acceptInProgress" unstable.acceptInProgress.impl
   ptr_maybeFirstIndex_unfold : MethodUnfold (go.GoType.PointerType unstable.ty) go!"maybeFirstIndex" unstable.maybeFirstIndex.impl
   ptr_maybeLastIndex_unfold : MethodUnfold (go.GoType.PointerType unstable.ty) go!"maybeLastIndex" unstable.maybeLastIndex.impl
@@ -12316,6 +12326,8 @@ attribute [instance] unstable.TypeAssumptions.type_repr
   unstable.TypeAssumptions.set_offsetInProgress
   unstable.TypeAssumptions.get_logger
   unstable.TypeAssumptions.set_logger
+  unstable.TypeAssumptions.method_set
+  unstable.TypeAssumptions.ptr_method_set
   unstable.TypeAssumptions.ptr_acceptInProgress_unfold
   unstable.TypeAssumptions.ptr_maybeFirstIndex_unfold
   unstable.TypeAssumptions.ptr_maybeLastIndex_unfold
@@ -12337,8 +12349,12 @@ abbrev entryEncodingSize [GooseExts] : Type := w64
 
 class entryEncodingSize.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq entryEncodingSize.ty entryEncodingSize.underlying
+  method_set : go.MethodSetIs entryEncodingSize.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType entryEncodingSize.ty) []
 
 attribute [instance] entryEncodingSize.TypeAssumptions.underlying
+  entryEncodingSize.TypeAssumptions.method_set
+  entryEncodingSize.TypeAssumptions.ptr_method_set
 
 structure raftLog [GooseExts] where
   mk ::
@@ -12397,6 +12413,8 @@ class raftLog.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_applyingEntsSize : ∀ (x : raftLog) (y : entryEncodingSize), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"applyingEntsSize") (PairV #x #y) (Val #(({ x with applyingEntsSize' := y } : raftLog)))
   get_applyingEntsPaused : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"applyingEntsPaused") #x (Val #(x.applyingEntsPaused'))
   set_applyingEntsPaused : ∀ (x : raftLog) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"applyingEntsPaused") (PairV #x #y) (Val #(({ x with applyingEntsPaused' := y } : raftLog)))
+  method_set : go.MethodSetIs raftLog.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType raftLog.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/raft/v3.acceptApplying", (some (go.signature.Signature [go.uint64, entryEncodingSize.ty, go.bool] false []))), (go!"go.etcd.io/raft/v3.acceptUnstable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.allEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"go.etcd.io/raft/v3.append", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] true [go.uint64]))), (go!"go.etcd.io/raft/v3.appliedTo", (some (go.signature.Signature [go.uint64, entryEncodingSize.ty] false []))), (go!"go.etcd.io/raft/v3.commitTo", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/raft/v3.entries", (some (go.signature.Signature [go.uint64, entryEncodingSize.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"go.etcd.io/raft/v3.findConflict", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.uint64]))), (go!"go.etcd.io/raft/v3.findConflictByTerm", (some (go.signature.Signature [go.uint64, go.uint64] false [go.uint64, go.uint64]))), (go!"go.etcd.io/raft/v3.firstIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/raft/v3.hasNextCommittedEnts", (some (go.signature.Signature [go.bool] false [go.bool]))), (go!"go.etcd.io/raft/v3.hasNextOrInProgressSnapshot", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.hasNextOrInProgressUnstableEnts", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.hasNextUnstableEnts", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.hasNextUnstableSnapshot", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.isUpToDate", (some (go.signature.Signature [entryID.ty] false [go.bool]))), (go!"go.etcd.io/raft/v3.lastEntryID", (some (go.signature.Signature [] false [entryID.ty]))), (go!"go.etcd.io/raft/v3.lastIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/raft/v3.matchTerm", (some (go.signature.Signature [entryID.ty] false [go.bool]))), (go!"go.etcd.io/raft/v3.maxAppliableIndex", (some (go.signature.Signature [go.bool] false [go.uint64]))), (go!"go.etcd.io/raft/v3.maybeAppend", (some (go.signature.Signature [logSlice.ty, go.uint64] false [go.uint64, go.bool]))), (go!"go.etcd.io/raft/v3.maybeCommit", (some (go.signature.Signature [entryID.ty] false [go.bool]))), (go!"go.etcd.io/raft/v3.mustCheckOutOfBounds", (some (go.signature.Signature [go.uint64, go.uint64] false [go.error]))), (go!"go.etcd.io/raft/v3.nextCommittedEnts", (some (go.signature.Signature [go.bool] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"go.etcd.io/raft/v3.nextUnstableEnts", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"go.etcd.io/raft/v3.nextUnstableSnapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)]))), (go!"go.etcd.io/raft/v3.restore", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false []))), (go!"go.etcd.io/raft/v3.scan", (some (go.signature.Signature [go.uint64, go.uint64, entryEncodingSize.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))] false [go.error]))), (go!"go.etcd.io/raft/v3.slice", (some (go.signature.Signature [go.uint64, go.uint64, entryEncodingSize.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"go.etcd.io/raft/v3.snapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty), go.error]))), (go!"go.etcd.io/raft/v3.stableSnapTo", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/raft/v3.stableTo", (some (go.signature.Signature [entryID.ty] false []))), (go!"go.etcd.io/raft/v3.subterm", (some (go.signature.Signature [go.uint64] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/raft/v3.term", (some (go.signature.Signature [go.uint64] false [go.uint64, go.error]))), (go!"go.etcd.io/raft/v3.zeroTermOnOutOfBounds", (some (go.signature.Signature [go.uint64, go.error] false [go.uint64])))]
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"String" raftLog.String.impl
   ptr_acceptApplying_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"acceptApplying" raftLog.acceptApplying.impl
   ptr_acceptUnstable_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"acceptUnstable" raftLog.acceptUnstable.impl
@@ -12454,6 +12472,8 @@ attribute [instance] raftLog.TypeAssumptions.type_repr
   raftLog.TypeAssumptions.set_applyingEntsSize
   raftLog.TypeAssumptions.get_applyingEntsPaused
   raftLog.TypeAssumptions.set_applyingEntsPaused
+  raftLog.TypeAssumptions.method_set
+  raftLog.TypeAssumptions.ptr_method_set
   raftLog.TypeAssumptions.ptr_String_unfold
   raftLog.TypeAssumptions.ptr_acceptApplying_unfold
   raftLog.TypeAssumptions.ptr_acceptUnstable_unfold
@@ -12520,6 +12540,8 @@ class DefaultLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_Logger : ∀ (x : DefaultLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DefaultLogger.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : DefaultLogger)))
   get_debug : ∀ (x : DefaultLogger), go.IsGoStepPureDetTagged under (StructFieldGet DefaultLogger.underlying go!"debug") #x (Val #(x.debug'))
   set_debug : ∀ (x : DefaultLogger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DefaultLogger.underlying go!"debug") (PairV #x #y) (Val #(({ x with debug' := y } : DefaultLogger)))
+  method_set : go.MethodSetIs DefaultLogger.ty [(go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Flags", (some (go.signature.Signature [] false [go.int]))), (go!"Output", (some (go.signature.Signature [go.int, go.string] false [go.error]))), (go!"Panicln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Prefix", (some (go.signature.Signature [] false [go.string]))), (go!"Print", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"SetFlags", (some (go.signature.Signature [go.int] false []))), (go!"SetOutput", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"SetPrefix", (some (go.signature.Signature [go.string] false []))), (go!"Writer", (some (go.signature.Signature [] false [_root_.Perennial.io.Writer.ty]))), (go!"log.output", (some (go.signature.Signature [go.uintptr, go.int, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DefaultLogger.ty) [(go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"EnableDebug", (some (go.signature.Signature [] false []))), (go!"EnableTimestamps", (some (go.signature.Signature [] false []))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Flags", (some (go.signature.Signature [] false [go.int]))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Output", (some (go.signature.Signature [go.int, go.string] false [go.error]))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Prefix", (some (go.signature.Signature [] false [go.string]))), (go!"Print", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"SetFlags", (some (go.signature.Signature [go.int] false []))), (go!"SetOutput", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"SetPrefix", (some (go.signature.Signature [go.string] false []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Writer", (some (go.signature.Signature [] false [_root_.Perennial.io.Writer.ty]))), (go!"log.output", (some (go.signature.Signature [go.uintptr, go.int, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))] false [go.error])))]
   Fatalln_unfold : MethodUnfold DefaultLogger.ty go!"Fatalln" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.log.Logger.ty) go!"Fatalln"))) (App (Val (GoInstruction (StructFieldGet DefaultLogger.ty go!"Logger"))) (Var "$r"))))
   Flags_unfold : MethodUnfold DefaultLogger.ty go!"Flags" (LamV "$r"
@@ -12593,6 +12615,8 @@ attribute [instance] DefaultLogger.TypeAssumptions.type_repr
   DefaultLogger.TypeAssumptions.set_Logger
   DefaultLogger.TypeAssumptions.get_debug
   DefaultLogger.TypeAssumptions.set_debug
+  DefaultLogger.TypeAssumptions.method_set
+  DefaultLogger.TypeAssumptions.ptr_method_set
   DefaultLogger.TypeAssumptions.Fatalln_unfold
   DefaultLogger.TypeAssumptions.Flags_unfold
   DefaultLogger.TypeAssumptions.Output_unfold
@@ -12641,8 +12665,12 @@ abbrev SnapshotStatus [GooseExts] : Type := w64
 
 class SnapshotStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SnapshotStatus.ty SnapshotStatus.underlying
+  method_set : go.MethodSetIs SnapshotStatus.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SnapshotStatus.ty) []
 
 attribute [instance] SnapshotStatus.TypeAssumptions.underlying
+  SnapshotStatus.TypeAssumptions.method_set
+  SnapshotStatus.TypeAssumptions.ptr_method_set
 
 abbrev StateType [GooseExts] : Type := w64
 
@@ -12651,6 +12679,8 @@ abbrev StateType [GooseExts] : Type := w64
 
 class StateType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StateType.ty StateType.underlying
+  method_set : go.MethodSetIs StateType.ty [(go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StateType.ty) [(go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   MarshalJSON_unfold : MethodUnfold StateType.ty go!"MarshalJSON" StateType.MarshalJSON.impl
   String_unfold : MethodUnfold StateType.ty go!"String" StateType.String.impl
   ptr_MarshalJSON_unfold : MethodUnfold (go.GoType.PointerType StateType.ty) go!"MarshalJSON" (LamV "$r"
@@ -12659,6 +12689,8 @@ class StateType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
 (App (Val (GoInstruction (MethodResolve StateType.ty go!"String"))) (App (Val (GoInstruction (GoLoad StateType.ty))) (Var "$r"))))
 
 attribute [instance] StateType.TypeAssumptions.underlying
+  StateType.TypeAssumptions.method_set
+  StateType.TypeAssumptions.ptr_method_set
   StateType.TypeAssumptions.MarshalJSON_unfold
   StateType.TypeAssumptions.String_unfold
   StateType.TypeAssumptions.ptr_MarshalJSON_unfold
@@ -12693,6 +12725,8 @@ class SoftState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_Lead : ∀ (x : SoftState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SoftState.underlying go!"Lead") (PairV #x #y) (Val #(({ x with Lead' := y } : SoftState)))
   get_RaftState : ∀ (x : SoftState), go.IsGoStepPureDetTagged under (StructFieldGet SoftState.underlying go!"RaftState") #x (Val #(x.RaftState'))
   set_RaftState : ∀ (x : SoftState) (y : StateType), go.IsGoStepPureDetTagged under (StructFieldSet SoftState.underlying go!"RaftState") (PairV #x #y) (Val #(({ x with RaftState' := y } : SoftState)))
+  method_set : go.MethodSetIs SoftState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SoftState.ty) [(go!"go.etcd.io/raft/v3.equal", (some (go.signature.Signature [(go.GoType.PointerType SoftState.ty)] false [go.bool])))]
   ptr_equal_unfold : MethodUnfold (go.GoType.PointerType SoftState.ty) go!"equal" SoftState.equal.impl
 
 attribute [instance] SoftState.TypeAssumptions.type_repr
@@ -12701,6 +12735,8 @@ attribute [instance] SoftState.TypeAssumptions.type_repr
   SoftState.TypeAssumptions.set_Lead
   SoftState.TypeAssumptions.get_RaftState
   SoftState.TypeAssumptions.set_RaftState
+  SoftState.TypeAssumptions.method_set
+  SoftState.TypeAssumptions.ptr_method_set
   SoftState.TypeAssumptions.ptr_equal_unfold
 
 structure Ready [GooseExts] where
@@ -12760,6 +12796,8 @@ class Ready.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_MustSync : ∀ (x : Ready) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Ready.underlying go!"MustSync") (PairV #x #y) (Val #(({ x with MustSync' := y } : Ready)))
   get_WitnessMessages : ∀ (x : Ready), go.IsGoStepPureDetTagged under (StructFieldGet Ready.underlying go!"WitnessMessages") #x (Val #(x.WitnessMessages'))
   set_WitnessMessages : ∀ (x : Ready) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Ready.underlying go!"WitnessMessages") (PairV #x #y) (Val #(({ x with WitnessMessages' := y } : Ready)))
+  method_set : go.MethodSetIs Ready.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/raft/v3.equal", (some (go.signature.Signature [(go.GoType.PointerType SoftState.ty)] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Ready.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/raft/v3.equal", (some (go.signature.Signature [(go.GoType.PointerType SoftState.ty)] false [go.bool])))]
   Descriptor_unfold : MethodUnfold Ready.ty go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"Descriptor"))) (App (Val (GoInstruction (StructFieldGet Ready.ty go!"HardState"))) (Var "$r"))))
   GetCommit_unfold : MethodUnfold Ready.ty go!"GetCommit" (LamV "$r"
@@ -12817,6 +12855,8 @@ attribute [instance] Ready.TypeAssumptions.type_repr
   Ready.TypeAssumptions.set_MustSync
   Ready.TypeAssumptions.get_WitnessMessages
   Ready.TypeAssumptions.set_WitnessMessages
+  Ready.TypeAssumptions.method_set
+  Ready.TypeAssumptions.ptr_method_set
   Ready.TypeAssumptions.Descriptor_unfold
   Ready.TypeAssumptions.GetCommit_unfold
   Ready.TypeAssumptions.GetTerm_unfold
@@ -12843,8 +12883,12 @@ abbrev Node [GooseExts] : Type := GoInterface
 
 class Node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Node.ty Node.underlying
+  method_set : go.MethodSetIs Node.ty [(go!"Advance", (some (go.signature.Signature [] false []))), (go!"ApplyConfChange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"Campaign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ForgetLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Propose", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProposeConfChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error]))), (go!"ReadIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Ready", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Ready.ty)]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"Status", (some (go.signature.Signature [] false [Status.ty]))), (go!"Step", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"Tick", (some (go.signature.Signature [] false []))), (go!"TransferLeadership", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Node.ty) []
 
 attribute [instance] Node.TypeAssumptions.underlying
+  Node.TypeAssumptions.method_set
+  Node.TypeAssumptions.ptr_method_set
 
 structure Peer [GooseExts] where
   mk ::
@@ -12879,6 +12923,8 @@ class Peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_Context : ∀ (x : Peer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : Peer)))
   get_IsWitness : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"IsWitness") #x (Val #(x.IsWitness'))
   set_IsWitness : ∀ (x : Peer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"IsWitness") (PairV #x #y) (Val #(({ x with IsWitness' := y } : Peer)))
+  method_set : go.MethodSetIs Peer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Peer.ty) []
 
 attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.underlying
@@ -12888,6 +12934,8 @@ attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.set_Context
   Peer.TypeAssumptions.get_IsWitness
   Peer.TypeAssumptions.set_IsWitness
+  Peer.TypeAssumptions.method_set
+  Peer.TypeAssumptions.ptr_method_set
 
 structure msgWithResult [GooseExts] where
   mk ::
@@ -12918,6 +12966,8 @@ class msgWithResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_m : ∀ (x : msgWithResult) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet msgWithResult.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : msgWithResult)))
   get_result : ∀ (x : msgWithResult), go.IsGoStepPureDetTagged under (StructFieldGet msgWithResult.underlying go!"result") #x (Val #(x.result'))
   set_result : ∀ (x : msgWithResult) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet msgWithResult.underlying go!"result") (PairV #x #y) (Val #(({ x with result' := y } : msgWithResult)))
+  method_set : go.MethodSetIs msgWithResult.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType msgWithResult.ty) []
 
 attribute [instance] msgWithResult.TypeAssumptions.type_repr
   msgWithResult.TypeAssumptions.underlying
@@ -12925,6 +12975,8 @@ attribute [instance] msgWithResult.TypeAssumptions.type_repr
   msgWithResult.TypeAssumptions.set_m
   msgWithResult.TypeAssumptions.get_result
   msgWithResult.TypeAssumptions.set_result
+  msgWithResult.TypeAssumptions.method_set
+  msgWithResult.TypeAssumptions.ptr_method_set
 
 structure node [GooseExts] where
   mk ::
@@ -12991,6 +13043,8 @@ class node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_status : ∀ (x : node) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : node)))
   get_rn : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"rn") #x (Val #(x.rn'))
   set_rn : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"rn") (PairV #x #y) (Val #(({ x with rn' := y } : node)))
+  method_set : go.MethodSetIs node.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType node.ty) [(go!"Advance", (some (go.signature.Signature [] false []))), (go!"ApplyConfChange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"Campaign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ForgetLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Propose", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProposeConfChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error]))), (go!"ReadIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Ready", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Ready.ty)]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"Status", (some (go.signature.Signature [] false [Status.ty]))), (go!"Step", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"Tick", (some (go.signature.Signature [] false []))), (go!"TransferLeadership", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false []))), (go!"go.etcd.io/raft/v3.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.step", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"go.etcd.io/raft/v3.stepWait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"go.etcd.io/raft/v3.stepWithWaitOption", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.bool] false [go.error])))]
   ptr_Advance_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"Advance" node.Advance.impl
   ptr_ApplyConfChange_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"ApplyConfChange" node.ApplyConfChange.impl
   ptr_Campaign_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"Campaign" node.Campaign.impl
@@ -13035,6 +13089,8 @@ attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.set_status
   node.TypeAssumptions.get_rn
   node.TypeAssumptions.set_rn
+  node.TypeAssumptions.method_set
+  node.TypeAssumptions.ptr_method_set
   node.TypeAssumptions.ptr_Advance_unfold
   node.TypeAssumptions.ptr_ApplyConfChange_unfold
   node.TypeAssumptions.ptr_Campaign_unfold
@@ -13062,8 +13118,12 @@ abbrev ReadOnlyOption [GooseExts] : Type := w64
 
 class ReadOnlyOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ReadOnlyOption.ty ReadOnlyOption.underlying
+  method_set : go.MethodSetIs ReadOnlyOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadOnlyOption.ty) []
 
 attribute [instance] ReadOnlyOption.TypeAssumptions.underlying
+  ReadOnlyOption.TypeAssumptions.method_set
+  ReadOnlyOption.TypeAssumptions.ptr_method_set
 
 structure lockedRand [GooseExts] where
   mk ::
@@ -13090,12 +13150,16 @@ class lockedRand.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq lockedRand.ty lockedRand.underlying
   get_mu : ∀ (x : lockedRand), go.IsGoStepPureDetTagged under (StructFieldGet lockedRand.underlying go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (x : lockedRand) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet lockedRand.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : lockedRand)))
+  method_set : go.MethodSetIs lockedRand.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lockedRand.ty) [(go!"Intn", (some (go.signature.Signature [go.int] false [go.int])))]
   ptr_Intn_unfold : MethodUnfold (go.GoType.PointerType lockedRand.ty) go!"Intn" lockedRand.Intn.impl
 
 attribute [instance] lockedRand.TypeAssumptions.type_repr
   lockedRand.TypeAssumptions.underlying
   lockedRand.TypeAssumptions.get_mu
   lockedRand.TypeAssumptions.set_mu
+  lockedRand.TypeAssumptions.method_set
+  lockedRand.TypeAssumptions.ptr_method_set
   lockedRand.TypeAssumptions.ptr_Intn_unfold
 
 abbrev CampaignType [GooseExts] : Type := GoString
@@ -13105,8 +13169,12 @@ abbrev CampaignType [GooseExts] : Type := GoString
 
 class CampaignType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CampaignType.ty CampaignType.underlying
+  method_set : go.MethodSetIs CampaignType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CampaignType.ty) []
 
 attribute [instance] CampaignType.TypeAssumptions.underlying
+  CampaignType.TypeAssumptions.method_set
+  CampaignType.TypeAssumptions.ptr_method_set
 
 abbrev TraceLogger [GooseExts] : Type := GoInterface
 
@@ -13115,8 +13183,12 @@ abbrev TraceLogger [GooseExts] : Type := GoInterface
 
 class TraceLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TraceLogger.ty TraceLogger.underlying
+  method_set : go.MethodSetIs TraceLogger.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TraceLogger.ty) []
 
 attribute [instance] TraceLogger.TypeAssumptions.underlying
+  TraceLogger.TypeAssumptions.method_set
+  TraceLogger.TypeAssumptions.ptr_method_set
 
 structure Config [GooseExts] where
   mk ::
@@ -13215,6 +13287,8 @@ class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_StepDownOnRemoval : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"StepDownOnRemoval") (PairV #x #y) (Val #(({ x with StepDownOnRemoval' := y } : Config)))
   get_TraceLogger : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"TraceLogger") #x (Val #(x.TraceLogger'))
   set_TraceLogger : ∀ (x : Config) (y : TraceLogger), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"TraceLogger") (PairV #x #y) (Val #(({ x with TraceLogger' := y } : Config)))
+  method_set : go.MethodSetIs Config.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"go.etcd.io/raft/v3.validate", (some (go.signature.Signature [] false [go.error])))]
   ptr_validate_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"validate" Config.validate.impl
 
 attribute [instance] Config.TypeAssumptions.type_repr
@@ -13257,6 +13331,8 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.set_StepDownOnRemoval
   Config.TypeAssumptions.get_TraceLogger
   Config.TypeAssumptions.set_TraceLogger
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
   Config.TypeAssumptions.ptr_validate_unfold
 
 structure WitnessMessage [GooseExts] where
@@ -13320,6 +13396,8 @@ class WitnessMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_Votes : ∀ (x : WitnessMessage) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"Votes") (PairV #x #y) (Val #(({ x with Votes' := y } : WitnessMessage)))
   get_Context : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"Context") #x (Val #(x.Context'))
   set_Context : ∀ (x : WitnessMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : WitnessMessage)))
+  method_set : go.MethodSetIs WitnessMessage.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WitnessMessage.ty) []
 
 attribute [instance] WitnessMessage.TypeAssumptions.type_repr
   WitnessMessage.TypeAssumptions.underlying
@@ -13343,6 +13421,8 @@ attribute [instance] WitnessMessage.TypeAssumptions.type_repr
   WitnessMessage.TypeAssumptions.set_Votes
   WitnessMessage.TypeAssumptions.get_Context
   WitnessMessage.TypeAssumptions.set_Context
+  WitnessMessage.TypeAssumptions.method_set
+  WitnessMessage.TypeAssumptions.ptr_method_set
 
 abbrev entryPayloadSize [GooseExts] : Type := w64
 
@@ -13351,8 +13431,12 @@ abbrev entryPayloadSize [GooseExts] : Type := w64
 
 class entryPayloadSize.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq entryPayloadSize.ty entryPayloadSize.underlying
+  method_set : go.MethodSetIs entryPayloadSize.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType entryPayloadSize.ty) []
 
 attribute [instance] entryPayloadSize.TypeAssumptions.underlying
+  entryPayloadSize.TypeAssumptions.method_set
+  entryPayloadSize.TypeAssumptions.ptr_method_set
 
 abbrev stepFunc [GooseExts] : Type := GoFunc
 
@@ -13361,8 +13445,12 @@ abbrev stepFunc [GooseExts] : Type := GoFunc
 
 class stepFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq stepFunc.ty stepFunc.underlying
+  method_set : go.MethodSetIs stepFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stepFunc.ty) []
 
 attribute [instance] stepFunc.TypeAssumptions.underlying
+  stepFunc.TypeAssumptions.method_set
+  stepFunc.TypeAssumptions.ptr_method_set
 
 structure raft [GooseExts] where
   mk ::
@@ -13521,6 +13609,8 @@ class raft.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_witnessMsgs : ∀ (x : raft) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet raft.underlying go!"witnessMsgs") (PairV #x #y) (Val #(({ x with witnessMsgs' := y } : raft)))
   get_witnessVoteAsked : ∀ (x : raft), go.IsGoStepPureDetTagged under (StructFieldGet raft.underlying go!"witnessVoteAsked") #x (Val #(x.witnessVoteAsked'))
   set_witnessVoteAsked : ∀ (x : raft) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet raft.underlying go!"witnessVoteAsked") (PairV #x #y) (Val #(({ x with witnessVoteAsked' := y } : raft)))
+  method_set : go.MethodSetIs raft.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType raft.ty) [(go!"Step", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"go.etcd.io/raft/v3.abortLeaderTransfer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.appendEntry", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] true [go.bool]))), (go!"go.etcd.io/raft/v3.appliedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false []))), (go!"go.etcd.io/raft/v3.appliedTo", (some (go.signature.Signature [go.uint64, entryEncodingSize.ty] false []))), (go!"go.etcd.io/raft/v3.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"go.etcd.io/raft/v3.bcastAppend", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.bcastHeartbeat", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.bcastHeartbeatWithCtx", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/raft/v3.becomeCandidate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.becomeFollower", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"go.etcd.io/raft/v3.becomeLeader", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.becomePreCandidate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.campaign", (some (go.signature.Signature [CampaignType.ty] false []))), (go!"go.etcd.io/raft/v3.committedEntryInCurrentTerm", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.getWitnessVoteRequestReadiness", (some (go.signature.Signature [(go.GoType.ArrayType 2 go.int)] false [(go.GoType.MapType go.uint64 go.bool)]))), (go!"go.etcd.io/raft/v3.handleAppendEntries", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/raft/v3.handleHeartbeat", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/raft/v3.handleSnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/raft/v3.hardState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)]))), (go!"go.etcd.io/raft/v3.hasLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.hasUnappliedConfChanges", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.hup", (some (go.signature.Signature [CampaignType.ty] false []))), (go!"go.etcd.io/raft/v3.increaseUncommittedSize", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.bool]))), (go!"go.etcd.io/raft/v3.loadState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)] false []))), (go!"go.etcd.io/raft/v3.maybeCommit", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.maybeSendAppend", (some (go.signature.Signature [go.uint64, go.bool] false [go.bool]))), (go!"go.etcd.io/raft/v3.maybeSendSnapshot", (some (go.signature.Signature [go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)] false [go.bool]))), (go!"go.etcd.io/raft/v3.maybeStartNewSubterm", (some (go.signature.Signature [go.bool, go.bool] false [go.bool]))), (go!"go.etcd.io/raft/v3.pastElectionTimeout", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.pollAndReportDiff", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty, go.bool] false [go.int, go.int, _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty, (go.GoType.ArrayType 2 go.int)]))), (go!"go.etcd.io/raft/v3.promotable", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.reduceUncommittedSize", (some (go.signature.Signature [entryPayloadSize.ty] false []))), (go!"go.etcd.io/raft/v3.reset", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/raft/v3.resetRandomizedElectionTimeout", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.responseToReadIndexReq", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)]))), (go!"go.etcd.io/raft/v3.restore", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.bool]))), (go!"go.etcd.io/raft/v3.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/raft/v3.sendAppend", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/raft/v3.sendAppendToWitness", (some (go.signature.Signature [go.uint64, go.uint64, go.uint64] false []))), (go!"go.etcd.io/raft/v3.sendHeartbeat", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/raft/v3.sendHeartbeatToWitness", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/raft/v3.sendRequestVoteToWitness", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.uint64, _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty, go.uint64] false []))), (go!"go.etcd.io/raft/v3.sendTimeoutNow", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/raft/v3.softState", (some (go.signature.Signature [] false [SoftState.ty]))), (go!"go.etcd.io/raft/v3.switchToConfig", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"go.etcd.io/raft/v3.tickElection", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.tickHeartbeat", (some (go.signature.Signature [] false [])))]
   ptr_Step_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"Step" raft.Step.impl
   ptr_abortLeaderTransfer_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"abortLeaderTransfer" raft.abortLeaderTransfer.impl
   ptr_appendEntry_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"appendEntry" raft.appendEntry.impl
@@ -13640,6 +13730,8 @@ attribute [instance] raft.TypeAssumptions.type_repr
   raft.TypeAssumptions.set_witnessMsgs
   raft.TypeAssumptions.get_witnessVoteAsked
   raft.TypeAssumptions.set_witnessVoteAsked
+  raft.TypeAssumptions.method_set
+  raft.TypeAssumptions.ptr_method_set
   raft.TypeAssumptions.ptr_Step_unfold
   raft.TypeAssumptions.ptr_abortLeaderTransfer_unfold
   raft.TypeAssumptions.ptr_appendEntry_unfold
@@ -13730,6 +13822,8 @@ class RawNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_prevHardSt : ∀ (x : RawNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RawNode.underlying go!"prevHardSt") (PairV #x #y) (Val #(({ x with prevHardSt' := y } : RawNode)))
   get_stepsOnAdvance : ∀ (x : RawNode), go.IsGoStepPureDetTagged under (StructFieldGet RawNode.underlying go!"stepsOnAdvance") #x (Val #(x.stepsOnAdvance'))
   set_stepsOnAdvance : ∀ (x : RawNode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RawNode.underlying go!"stepsOnAdvance") (PairV #x #y) (Val #(({ x with stepsOnAdvance' := y } : RawNode)))
+  method_set : go.MethodSetIs RawNode.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RawNode.ty) [(go!"Advance", (some (go.signature.Signature [Ready.ty] false []))), (go!"ApplyConfChange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"BasicStatus", (some (go.signature.Signature [] false [BasicStatus.ty]))), (go!"Bootstrap", (some (go.signature.Signature [(go.GoType.SliceType Peer.ty)] false [go.error]))), (go!"Campaign", (some (go.signature.Signature [] false [go.error]))), (go!"ForgetLeader", (some (go.signature.Signature [] false [go.error]))), (go!"HasReady", (some (go.signature.Signature [] false [go.bool]))), (go!"Propose", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProposeConfChange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error]))), (go!"ReadIndex", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"Ready", (some (go.signature.Signature [] false [Ready.ty]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"Status", (some (go.signature.Signature [] false [Status.ty]))), (go!"Step", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"Tick", (some (go.signature.Signature [] false []))), (go!"TickQuiesced", (some (go.signature.Signature [] false []))), (go!"TransferLeader", (some (go.signature.Signature [go.uint64] false []))), (go!"WithProgress", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uint64, ProgressType.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty] false []))] false []))), (go!"go.etcd.io/raft/v3.acceptReady", (some (go.signature.Signature [Ready.ty] false []))), (go!"go.etcd.io/raft/v3.applyUnstableEntries", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.readyWithoutAccept", (some (go.signature.Signature [] false [Ready.ty])))]
   ptr_Advance_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"Advance" RawNode.Advance.impl
   ptr_ApplyConfChange_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"ApplyConfChange" RawNode.ApplyConfChange.impl
   ptr_BasicStatus_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"BasicStatus" RawNode.BasicStatus.impl
@@ -13765,6 +13859,8 @@ attribute [instance] RawNode.TypeAssumptions.type_repr
   RawNode.TypeAssumptions.set_prevHardSt
   RawNode.TypeAssumptions.get_stepsOnAdvance
   RawNode.TypeAssumptions.set_stepsOnAdvance
+  RawNode.TypeAssumptions.method_set
+  RawNode.TypeAssumptions.ptr_method_set
   RawNode.TypeAssumptions.ptr_Advance_unfold
   RawNode.TypeAssumptions.ptr_ApplyConfChange_unfold
   RawNode.TypeAssumptions.ptr_BasicStatus_unfold
@@ -13795,8 +13891,12 @@ abbrev ProgressType [GooseExts] : Type := w8
 
 class ProgressType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ProgressType.ty ProgressType.underlying
+  method_set : go.MethodSetIs ProgressType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProgressType.ty) []
 
 attribute [instance] ProgressType.TypeAssumptions.underlying
+  ProgressType.TypeAssumptions.method_set
+  ProgressType.TypeAssumptions.ptr_method_set
 
 structure ReadState [GooseExts] where
   mk ::
@@ -13827,6 +13927,8 @@ class ReadState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_Index : ∀ (x : ReadState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReadState.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : ReadState)))
   get_RequestCtx : ∀ (x : ReadState), go.IsGoStepPureDetTagged under (StructFieldGet ReadState.underlying go!"RequestCtx") #x (Val #(x.RequestCtx'))
   set_RequestCtx : ∀ (x : ReadState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReadState.underlying go!"RequestCtx") (PairV #x #y) (Val #(({ x with RequestCtx' := y } : ReadState)))
+  method_set : go.MethodSetIs ReadState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadState.ty) []
 
 attribute [instance] ReadState.TypeAssumptions.type_repr
   ReadState.TypeAssumptions.underlying
@@ -13834,6 +13936,8 @@ attribute [instance] ReadState.TypeAssumptions.type_repr
   ReadState.TypeAssumptions.set_Index
   ReadState.TypeAssumptions.get_RequestCtx
   ReadState.TypeAssumptions.set_RequestCtx
+  ReadState.TypeAssumptions.method_set
+  ReadState.TypeAssumptions.ptr_method_set
 
 structure readIndexRequest [GooseExts] where
   mk ::
@@ -13864,6 +13968,8 @@ class readIndexRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_req : ∀ (x : readIndexRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet readIndexRequest.underlying go!"req") (PairV #x #y) (Val #(({ x with req' := y } : readIndexRequest)))
   get_index : ∀ (x : readIndexRequest), go.IsGoStepPureDetTagged under (StructFieldGet readIndexRequest.underlying go!"index") #x (Val #(x.index'))
   set_index : ∀ (x : readIndexRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet readIndexRequest.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : readIndexRequest)))
+  method_set : go.MethodSetIs readIndexRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType readIndexRequest.ty) []
 
 attribute [instance] readIndexRequest.TypeAssumptions.type_repr
   readIndexRequest.TypeAssumptions.underlying
@@ -13871,6 +13977,8 @@ attribute [instance] readIndexRequest.TypeAssumptions.type_repr
   readIndexRequest.TypeAssumptions.set_req
   readIndexRequest.TypeAssumptions.get_index
   readIndexRequest.TypeAssumptions.set_index
+  readIndexRequest.TypeAssumptions.method_set
+  readIndexRequest.TypeAssumptions.ptr_method_set
 
 structure readOnly [GooseExts] where
   mk ::
@@ -13909,6 +14017,8 @@ class readOnly.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_unconfirmedReads : ∀ (x : readOnly) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet readOnly.underlying go!"unconfirmedReads") (PairV #x #y) (Val #(({ x with unconfirmedReads' := y } : readOnly)))
   get_confirmedReads : ∀ (x : readOnly), go.IsGoStepPureDetTagged under (StructFieldGet readOnly.underlying go!"confirmedReads") #x (Val #(x.confirmedReads'))
   set_confirmedReads : ∀ (x : readOnly) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet readOnly.underlying go!"confirmedReads") (PairV #x #y) (Val #(({ x with confirmedReads' := y } : readOnly)))
+  method_set : go.MethodSetIs readOnly.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType readOnly.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool]))), (go!"go.etcd.io/raft/v3.addRequest", (some (go.signature.Signature [go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/raft/v3.heartbeatCtx", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/raft/v3.maybeAdvance", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty] false [(go.GoType.SliceType (go.GoType.PointerType readIndexRequest.ty))]))), (go!"go.etcd.io/raft/v3.recvAck", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.byte)] false [])))]
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType readOnly.ty) go!"AckedIndex" readOnly.AckedIndex.impl
   ptr_addRequest_unfold : MethodUnfold (go.GoType.PointerType readOnly.ty) go!"addRequest" readOnly.addRequest.impl
   ptr_heartbeatCtx_unfold : MethodUnfold (go.GoType.PointerType readOnly.ty) go!"heartbeatCtx" readOnly.heartbeatCtx.impl
@@ -13925,6 +14035,8 @@ attribute [instance] readOnly.TypeAssumptions.type_repr
   readOnly.TypeAssumptions.set_unconfirmedReads
   readOnly.TypeAssumptions.get_confirmedReads
   readOnly.TypeAssumptions.set_confirmedReads
+  readOnly.TypeAssumptions.method_set
+  readOnly.TypeAssumptions.ptr_method_set
   readOnly.TypeAssumptions.ptr_AckedIndex_unfold
   readOnly.TypeAssumptions.ptr_addRequest_unfold
   readOnly.TypeAssumptions.ptr_heartbeatCtx_unfold
@@ -13953,9 +14065,13 @@ noncomputable instance equals_unfold_TracingEvent [GooseExts] [GoGlobalContext] 
 class TracingEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TracingEvent.underlying TracingEvent
   underlying : go.UnderlyingDirectedEq TracingEvent.ty TracingEvent.underlying
+  method_set : go.MethodSetIs TracingEvent.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracingEvent.ty) []
 
 attribute [instance] TracingEvent.TypeAssumptions.type_repr
   TracingEvent.TypeAssumptions.underlying
+  TracingEvent.TypeAssumptions.method_set
+  TracingEvent.TypeAssumptions.ptr_method_set
 
 structure BasicStatus [GooseExts] where
   mk ::
@@ -13998,6 +14114,8 @@ class BasicStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_Applied : ∀ (x : BasicStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BasicStatus.underlying go!"Applied") (PairV #x #y) (Val #(({ x with Applied' := y } : BasicStatus)))
   get_LeadTransferee : ∀ (x : BasicStatus), go.IsGoStepPureDetTagged under (StructFieldGet BasicStatus.underlying go!"LeadTransferee") #x (Val #(x.LeadTransferee'))
   set_LeadTransferee : ∀ (x : BasicStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BasicStatus.underlying go!"LeadTransferee") (PairV #x #y) (Val #(({ x with LeadTransferee' := y } : BasicStatus)))
+  method_set : go.MethodSetIs BasicStatus.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BasicStatus.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/raft/v3.equal", (some (go.signature.Signature [(go.GoType.PointerType SoftState.ty)] false [go.bool])))]
   Descriptor_unfold : MethodUnfold BasicStatus.ty go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"Descriptor"))) (App (Val (GoInstruction (StructFieldGet BasicStatus.ty go!"HardState"))) (Var "$r"))))
   GetCommit_unfold : MethodUnfold BasicStatus.ty go!"GetCommit" (LamV "$r"
@@ -14045,6 +14163,8 @@ attribute [instance] BasicStatus.TypeAssumptions.type_repr
   BasicStatus.TypeAssumptions.set_Applied
   BasicStatus.TypeAssumptions.get_LeadTransferee
   BasicStatus.TypeAssumptions.set_LeadTransferee
+  BasicStatus.TypeAssumptions.method_set
+  BasicStatus.TypeAssumptions.ptr_method_set
   BasicStatus.TypeAssumptions.Descriptor_unfold
   BasicStatus.TypeAssumptions.GetCommit_unfold
   BasicStatus.TypeAssumptions.GetTerm_unfold
@@ -14096,6 +14216,8 @@ class Status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_Config : ∀ (x : Status) (y : _root_.Perennial.go_etcd_io.raft.v3.tracker.Config), go.IsGoStepPureDetTagged under (StructFieldSet Status.underlying go!"Config") (PairV #x #y) (Val #(({ x with Config' := y } : Status)))
   get_Progress : ∀ (x : Status), go.IsGoStepPureDetTagged under (StructFieldGet Status.underlying go!"Progress") #x (Val #(x.Progress'))
   set_Progress : ∀ (x : Status) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Status.underlying go!"Progress") (PairV #x #y) (Val #(({ x with Progress' := y } : Status)))
+  method_set : go.MethodSetIs Status.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Status.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/raft/v3.equal", (some (go.signature.Signature [(go.GoType.PointerType SoftState.ty)] false [go.bool])))]
   Descriptor_unfold : MethodUnfold Status.ty go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve BasicStatus.ty go!"Descriptor"))) (App (Val (GoInstruction (StructFieldGet Status.ty go!"BasicStatus"))) (Var "$r"))))
   GetCommit_unfold : MethodUnfold Status.ty go!"GetCommit" (LamV "$r"
@@ -14141,6 +14263,8 @@ attribute [instance] Status.TypeAssumptions.type_repr
   Status.TypeAssumptions.set_Config
   Status.TypeAssumptions.get_Progress
   Status.TypeAssumptions.set_Progress
+  Status.TypeAssumptions.method_set
+  Status.TypeAssumptions.ptr_method_set
   Status.TypeAssumptions.Descriptor_unfold
   Status.TypeAssumptions.GetCommit_unfold
   Status.TypeAssumptions.GetTerm_unfold
@@ -14206,6 +14330,8 @@ class inMemStorageCallStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   set_term : ∀ (x : inMemStorageCallStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet inMemStorageCallStats.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : inMemStorageCallStats)))
   get_snapshot : ∀ (x : inMemStorageCallStats), go.IsGoStepPureDetTagged under (StructFieldGet inMemStorageCallStats.underlying go!"snapshot") #x (Val #(x.snapshot'))
   set_snapshot : ∀ (x : inMemStorageCallStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet inMemStorageCallStats.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : inMemStorageCallStats)))
+  method_set : go.MethodSetIs inMemStorageCallStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType inMemStorageCallStats.ty) []
 
 attribute [instance] inMemStorageCallStats.TypeAssumptions.type_repr
   inMemStorageCallStats.TypeAssumptions.underlying
@@ -14221,6 +14347,8 @@ attribute [instance] inMemStorageCallStats.TypeAssumptions.type_repr
   inMemStorageCallStats.TypeAssumptions.set_term
   inMemStorageCallStats.TypeAssumptions.get_snapshot
   inMemStorageCallStats.TypeAssumptions.set_snapshot
+  inMemStorageCallStats.TypeAssumptions.method_set
+  inMemStorageCallStats.TypeAssumptions.ptr_method_set
 
 structure MemoryStorage [GooseExts] where
   mk ::
@@ -14263,6 +14391,8 @@ class MemoryStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_ents : ∀ (x : MemoryStorage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MemoryStorage.underlying go!"ents") (PairV #x #y) (Val #(({ x with ents' := y } : MemoryStorage)))
   get_callStats : ∀ (x : MemoryStorage), go.IsGoStepPureDetTagged under (StructFieldGet MemoryStorage.underlying go!"callStats") #x (Val #(x.callStats'))
   set_callStats : ∀ (x : MemoryStorage) (y : inMemStorageCallStats), go.IsGoStepPureDetTagged under (StructFieldSet MemoryStorage.underlying go!"callStats") (PairV #x #y) (Val #(({ x with callStats' := y } : MemoryStorage)))
+  method_set : go.MethodSetIs MemoryStorage.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemoryStorage.ty) [(go!"Append", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))), (go!"ApplySnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Compact", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"CreateSnapshot", (some (go.signature.Signature [go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty), go.error]))), (go!"Entries", (some (go.signature.Signature [go.uint64, go.uint64, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"FirstIndex", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"InitialState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), go.error]))), (go!"LastIndex", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"SetHardState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)] false [go.error]))), (go!"Snapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty), go.error]))), (go!"Term", (some (go.signature.Signature [go.uint64] false [go.uint64, go.error]))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3.firstIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/raft/v3.lastIndex", (some (go.signature.Signature [] false [go.uint64])))]
   ptr_Append_unfold : MethodUnfold (go.GoType.PointerType MemoryStorage.ty) go!"Append" MemoryStorage.Append.impl
   ptr_ApplySnapshot_unfold : MethodUnfold (go.GoType.PointerType MemoryStorage.ty) go!"ApplySnapshot" MemoryStorage.ApplySnapshot.impl
   ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType MemoryStorage.ty) go!"Compact" MemoryStorage.Compact.impl
@@ -14295,6 +14425,8 @@ attribute [instance] MemoryStorage.TypeAssumptions.type_repr
   MemoryStorage.TypeAssumptions.set_ents
   MemoryStorage.TypeAssumptions.get_callStats
   MemoryStorage.TypeAssumptions.set_callStats
+  MemoryStorage.TypeAssumptions.method_set
+  MemoryStorage.TypeAssumptions.ptr_method_set
   MemoryStorage.TypeAssumptions.ptr_Append_unfold
   MemoryStorage.TypeAssumptions.ptr_ApplySnapshot_unfold
   MemoryStorage.TypeAssumptions.ptr_Compact_unfold
@@ -14341,6 +14473,8 @@ class entryID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_term : ∀ (x : entryID) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet entryID.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : entryID)))
   get_index : ∀ (x : entryID), go.IsGoStepPureDetTagged under (StructFieldGet entryID.underlying go!"index") #x (Val #(x.index'))
   set_index : ∀ (x : entryID) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet entryID.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : entryID)))
+  method_set : go.MethodSetIs entryID.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType entryID.ty) []
 
 attribute [instance] entryID.TypeAssumptions.type_repr
   entryID.TypeAssumptions.underlying
@@ -14348,6 +14482,8 @@ attribute [instance] entryID.TypeAssumptions.type_repr
   entryID.TypeAssumptions.set_term
   entryID.TypeAssumptions.get_index
   entryID.TypeAssumptions.set_index
+  entryID.TypeAssumptions.method_set
+  entryID.TypeAssumptions.ptr_method_set
 
 structure logSlice [GooseExts] where
   mk ::
@@ -14382,6 +14518,8 @@ class logSlice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_prev : ∀ (x : logSlice) (y : entryID), go.IsGoStepPureDetTagged under (StructFieldSet logSlice.underlying go!"prev") (PairV #x #y) (Val #(({ x with prev' := y } : logSlice)))
   get_entries : ∀ (x : logSlice), go.IsGoStepPureDetTagged under (StructFieldGet logSlice.underlying go!"entries") #x (Val #(x.entries'))
   set_entries : ∀ (x : logSlice) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet logSlice.underlying go!"entries") (PairV #x #y) (Val #(({ x with entries' := y } : logSlice)))
+  method_set : go.MethodSetIs logSlice.ty [(go!"go.etcd.io/raft/v3.lastEntryID", (some (go.signature.Signature [] false [entryID.ty]))), (go!"go.etcd.io/raft/v3.lastIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/raft/v3.valid", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType logSlice.ty) [(go!"go.etcd.io/raft/v3.lastEntryID", (some (go.signature.Signature [] false [entryID.ty]))), (go!"go.etcd.io/raft/v3.lastIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/raft/v3.valid", (some (go.signature.Signature [] false [go.error])))]
   lastEntryID_unfold : MethodUnfold logSlice.ty go!"lastEntryID" logSlice.lastEntryID.impl
   lastIndex_unfold : MethodUnfold logSlice.ty go!"lastIndex" logSlice.lastIndex.impl
   valid_unfold : MethodUnfold logSlice.ty go!"valid" logSlice.valid.impl
@@ -14400,6 +14538,8 @@ attribute [instance] logSlice.TypeAssumptions.type_repr
   logSlice.TypeAssumptions.set_prev
   logSlice.TypeAssumptions.get_entries
   logSlice.TypeAssumptions.set_entries
+  logSlice.TypeAssumptions.method_set
+  logSlice.TypeAssumptions.ptr_method_set
   logSlice.TypeAssumptions.lastEntryID_unfold
   logSlice.TypeAssumptions.lastIndex_unfold
   logSlice.TypeAssumptions.valid_unfold
@@ -14414,8 +14554,12 @@ abbrev EntryFormatter [GooseExts] : Type := GoFunc
 
 class EntryFormatter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EntryFormatter.ty EntryFormatter.underlying
+  method_set : go.MethodSetIs EntryFormatter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EntryFormatter.ty) []
 
 attribute [instance] EntryFormatter.TypeAssumptions.underlying
+  EntryFormatter.TypeAssumptions.method_set
+  EntryFormatter.TypeAssumptions.ptr_method_set
 
 abbrev WitnessStorage [GooseExts] : Type := GoInterface
 
@@ -14424,8 +14568,12 @@ abbrev WitnessStorage [GooseExts] : Type := GoInterface
 
 class WitnessStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WitnessStorage.ty WitnessStorage.underlying
+  method_set : go.MethodSetIs WitnessStorage.ty [(go!"Close", (some (go.signature.Signature [] false []))), (go!"GetWitnessState", (some (go.signature.Signature [] false [WitnessState.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WitnessStorage.ty) []
 
 attribute [instance] WitnessStorage.TypeAssumptions.underlying
+  WitnessStorage.TypeAssumptions.method_set
+  WitnessStorage.TypeAssumptions.ptr_method_set
 
 abbrev WitnessState [GooseExts] : Type := GoInterface
 
@@ -14434,8 +14582,12 @@ abbrev WitnessState [GooseExts] : Type := GoInterface
 
 class WitnessState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WitnessState.ty WitnessState.underlying
+  method_set : go.MethodSetIs WitnessState.ty [(go!"GetState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)]))), (go!"Update", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WitnessState.ty) []
 
 attribute [instance] WitnessState.TypeAssumptions.underlying
+  WitnessState.TypeAssumptions.method_set
+  WitnessState.TypeAssumptions.ptr_method_set
 
 structure WitnessConfig [GooseExts] where
   mk ::
@@ -14474,6 +14626,8 @@ class WitnessConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_CheckQuorum : ∀ (x : WitnessConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WitnessConfig.underlying go!"CheckQuorum") (PairV #x #y) (Val #(({ x with CheckQuorum' := y } : WitnessConfig)))
   get_PreVote : ∀ (x : WitnessConfig), go.IsGoStepPureDetTagged under (StructFieldGet WitnessConfig.underlying go!"PreVote") #x (Val #(x.PreVote'))
   set_PreVote : ∀ (x : WitnessConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WitnessConfig.underlying go!"PreVote") (PairV #x #y) (Val #(({ x with PreVote' := y } : WitnessConfig)))
+  method_set : go.MethodSetIs WitnessConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WitnessConfig.ty) []
 
 attribute [instance] WitnessConfig.TypeAssumptions.type_repr
   WitnessConfig.TypeAssumptions.underlying
@@ -14485,6 +14639,8 @@ attribute [instance] WitnessConfig.TypeAssumptions.type_repr
   WitnessConfig.TypeAssumptions.set_CheckQuorum
   WitnessConfig.TypeAssumptions.get_PreVote
   WitnessConfig.TypeAssumptions.set_PreVote
+  WitnessConfig.TypeAssumptions.method_set
+  WitnessConfig.TypeAssumptions.ptr_method_set
 
 abbrev Witness [GooseExts] : Type := GoInterface
 
@@ -14493,8 +14649,12 @@ abbrev Witness [GooseExts] : Type := GoInterface
 
 class Witness.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Witness.ty Witness.underlying
+  method_set : go.MethodSetIs Witness.ty [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [WitnessMessage.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Witness.ty) []
 
 attribute [instance] Witness.TypeAssumptions.underlying
+  Witness.TypeAssumptions.method_set
+  Witness.TypeAssumptions.ptr_method_set
 
 structure witness [GooseExts] where
   mk ::
@@ -14541,6 +14701,8 @@ class witness.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_state : ∀ (x : witness) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : witness)))
   get_lastError : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"lastError") #x (Val #(x.lastError'))
   set_lastError : ∀ (x : witness) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"lastError") (PairV #x #y) (Val #(({ x with lastError' := y } : witness)))
+  method_set : go.MethodSetIs witness.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType witness.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [WitnessMessage.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error]))), (go!"go.etcd.io/raft/v3.cloneState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)]))), (go!"go.etcd.io/raft/v3.handleAppend", (some (go.signature.Signature [WitnessMessage.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)]))), (go!"go.etcd.io/raft/v3.handleAppendNoUpdate", (some (go.signature.Signature [WitnessMessage.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.bool]))), (go!"go.etcd.io/raft/v3.handleHeartbeat", (some (go.signature.Signature [WitnessMessage.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)]))), (go!"go.etcd.io/raft/v3.handleVote", (some (go.signature.Signature [WitnessMessage.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)]))), (go!"go.etcd.io/raft/v3.isHealthy", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3.processMessageWithNewerTerm", (some (go.signature.Signature [WitnessMessage.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)] false []))), (go!"go.etcd.io/raft/v3.processMessageWithOlderTerm", (some (go.signature.Signature [WitnessMessage.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)]))), (go!"go.etcd.io/raft/v3.processNoUpdate", (some (go.signature.Signature [WitnessMessage.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.bool])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"Close" witness.Close.impl
   ptr_Process_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"Process" witness.Process.impl
   ptr_cloneState_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"cloneState" witness.cloneState.impl
@@ -14567,6 +14729,8 @@ attribute [instance] witness.TypeAssumptions.type_repr
   witness.TypeAssumptions.set_state
   witness.TypeAssumptions.get_lastError
   witness.TypeAssumptions.set_lastError
+  witness.TypeAssumptions.method_set
+  witness.TypeAssumptions.ptr_method_set
   witness.TypeAssumptions.ptr_Close_unfold
   witness.TypeAssumptions.ptr_Process_unfold
   witness.TypeAssumptions.ptr_cloneState_unfold

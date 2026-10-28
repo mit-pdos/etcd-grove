@@ -31,14 +31,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 (D22 S-b) the node's names (`rnRtOk`) only. -/
 theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
     (hms : γ1.ms = γ2.ms) (hγs : γ1.γs = γ2.γs) (hpre : γ1.pre = γ2.pre)
-    (hn : γ1.node = γ2.node) :
+    (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP rnApR rnApGive rnHands rnCfgAt rnRtOk rnLogOf; rw [h, hms, hγs, hpre, hn]
+  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk RNNames.srv
+  rw [h, hms, hγs, hpre, hn, hnl]
 
 set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof :
     newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E node id nl pre ms γs reg cv Hlg Hhb
+  intro E node id nl pre ms γs cv Hlg Hhb
   wp_start as ⟨#Hzap, #Hsetlg, #Htdok, #Htkok⟩
   iunfold rnLoggerZapOk at Hzap
   iunfold rnSetLoggerOk at Hsetlg
@@ -82,7 +83,7 @@ theorem newRaftNode.wp_proof :
   -- `cum` at `[[]]`
   imod start_bag (V := ReadState) (srvReadStateOk E.γr.raft E.RQ) _ rsc γrs (by simp)
     $$ Hrsc Hrso with #Hrsb
-  imod start_bag (V := Loc) (rnSnapMsg node) _
+  imod start_bag (V := Loc) rnSnapMsg _
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => E.ST) _ stc γst (by trivial) $$ Hstc Hsto with #Hstb
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γd dnc $$ Hdnc Hdno with Hdc
@@ -93,7 +94,7 @@ theorem newRaftNode.wp_proof :
   imod mono_list_own_alloc [([] : List EntryModel)] with ⟨%cum, Hcum, #Hlb⟩
   ihave #Hcum0 := monoListIdxOwn_get (γ := cum) 0 ([] : List EntryModel) (by simp) $$ Hlb
   imod start_spsc (V := toApply) apc
-    (rnApP E ⟨node, id, nl, pre, ms, γs, reg, ⟨γap, cum, cum⟩, cum, γd⟩)
+    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd⟩)
     (fun _ => iprop(False)) γap $$ Hapc [Hapo] with ⟨%γsp, #Hspsc, Hprod, Hcons⟩
   · ileft; iexact Hapo
   -- the struct `r`
@@ -108,7 +109,7 @@ theorem newRaftNode.wp_proof :
   · ipureintro; exact Hhb
   (try wp_auto)
   iapply HΦ
-  iexists ⟨node, id, nl, pre, ms, γs, reg, γsp, cum, γd⟩
+  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd⟩
   isplitr
   · ipureintro; simp
   iunfold rnBuilt
@@ -131,8 +132,8 @@ theorem newRaftNode.wp_proof :
   · iunfold isRNMsgSnapC; iexists γms; iexact Hmsb
   isplitr
   · iunfold isRNApplyc
-    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, reg, γsp, cum, γd⟩
-      ⟨node, id, nl, pre, ms, γs, reg, ⟨γap, cum, cum⟩, cum, γd⟩ rfl rfl rfl rfl rfl]
+    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd⟩
+      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd⟩ rfl rfl rfl rfl rfl rfl]
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb

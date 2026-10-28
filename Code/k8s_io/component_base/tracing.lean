@@ -90,10 +90,14 @@ class Span.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Span.underlying Span
   underlying : go.UnderlyingDirectedEq Span.ty Span.underlying
   isUnderlying : go.IsUnderlying Span.underlying Span.underlying
+  method_set : go.MethodSetIs Span.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Span.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/attribute.KeyValue" []))] true []))), (go!"End", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false []))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/attribute.KeyValue" []))] true [])))]
 
 attribute [instance] Span.TypeAssumptions.type_repr
   Span.TypeAssumptions.underlying
   Span.TypeAssumptions.isUnderlying
+  Span.TypeAssumptions.method_set
+  Span.TypeAssumptions.ptr_method_set
 
 axiom TracerProvider : Type
 axiom TracerProvider.zero_val : ZeroVal TracerProvider
@@ -103,10 +107,14 @@ class TracerProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying TracerProvider.underlying TracerProvider
   underlying : go.UnderlyingDirectedEq TracerProvider.ty TracerProvider.underlying
   isUnderlying : go.IsUnderlying TracerProvider.underlying TracerProvider.underlying
+  method_set : go.MethodSetIs TracerProvider.ty [(go!"Shutdown", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerOption" []))] true [(go.GoType.Named go!"go.opentelemetry.io/otel/trace.Tracer" [])]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerProvider.ty) []
 
 attribute [instance] TracerProvider.TypeAssumptions.type_repr
   TracerProvider.TypeAssumptions.underlying
   TracerProvider.TypeAssumptions.isUnderlying
+  TracerProvider.TypeAssumptions.method_set
+  TracerProvider.TypeAssumptions.ptr_method_set
 
 axiom noopTracerProvider : Type
 axiom noopTracerProvider.zero_val : ZeroVal noopTracerProvider
@@ -116,10 +124,14 @@ class noopTracerProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying noopTracerProvider.underlying noopTracerProvider
   underlying : go.UnderlyingDirectedEq noopTracerProvider.ty noopTracerProvider.underlying
   isUnderlying : go.IsUnderlying noopTracerProvider.underlying noopTracerProvider.underlying
+  method_set : go.MethodSetIs noopTracerProvider.ty [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerOption" []))] true [(go.GoType.Named go!"go.opentelemetry.io/otel/trace.Tracer" [])]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTracerProvider.ty) [(go!"Shutdown", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerOption" []))] true [(go.GoType.Named go!"go.opentelemetry.io/otel/trace.Tracer" [])]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTracerProvider.TypeAssumptions.type_repr
   noopTracerProvider.TypeAssumptions.underlying
   noopTracerProvider.TypeAssumptions.isUnderlying
+  noopTracerProvider.TypeAssumptions.method_set
+  noopTracerProvider.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Span_instance : Span.TypeAssumptions

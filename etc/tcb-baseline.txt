@@ -27,6 +27,7 @@ axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
 axiom Perennial.github_com.Masterminds.semver.v3.opaqueInitsOk
 axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
 axiom Perennial.github_com.dustin.go_humanize.opaqueInitsOk
+axiom Perennial.github_com.jonboulle.clockwork.opaqueInitsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.opaqueInitsOk
 axiom Perennial.github_com.xiang90.probing.opaqueInitsOk
@@ -304,9 +305,9 @@ axiom backend.optsAt_timeout
 axiom backend.optsVal
 axiom backend.ownCur
 axiom backend.ownDB
-axiom backend.ownWTx
-axiom backend.ownWTx_fill
-axiom backend.ownWTx_live
+axiom backend.ownWTxG
+axiom backend.ownWTxG_fill
+axiom backend.ownWTxG_live
 axiom backend.rBkt
 axiom backend.rBkt_persistent
 axiom backend.rBkt_timeless
@@ -370,6 +371,14 @@ axiom bridge.bridgeAt
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
+axiom clockwork.NewRealClock.wp_proof
+axiom clockwork.clockLb
+axiom clockwork.clockLb_init
+axiom clockwork.clockLb_le
+axiom clockwork.clockLb_persistent
+axiom clockwork.realClock
+axiom clockwork.stampAt
+axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.Err.wp_proof
@@ -690,7 +699,6 @@ axiom v2stats.ServerStats.RecvAppendReq.wp_proof
 axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
-axiom v3compactor.New.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.isClientCtxErr.wp_proof
@@ -723,6 +731,7 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
+sorry EtcdServer.Compact.wp_proof
 sorry authkv.Main.wp_proof
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom

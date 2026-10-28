@@ -289,8 +289,12 @@ abbrev key [GooseExts] : Type := w64
 
 class key.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq key.ty key.underlying
+  method_set : go.MethodSetIs key.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType key.ty) []
 
 attribute [instance] key.TypeAssumptions.underlying
+  key.TypeAssumptions.method_set
+  key.TypeAssumptions.ptr_method_set
 
 abbrev requestReceivedTimestampKeyType [GooseExts] : Type := w64
 
@@ -299,8 +303,12 @@ abbrev requestReceivedTimestampKeyType [GooseExts] : Type := w64
 
 class requestReceivedTimestampKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq requestReceivedTimestampKeyType.ty requestReceivedTimestampKeyType.underlying
+  method_set : go.MethodSetIs requestReceivedTimestampKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestReceivedTimestampKeyType.ty) []
 
 attribute [instance] requestReceivedTimestampKeyType.TypeAssumptions.underlying
+  requestReceivedTimestampKeyType.TypeAssumptions.method_set
+  requestReceivedTimestampKeyType.TypeAssumptions.ptr_method_set
 
 axiom LongRunningRequestCheck : Type
 axiom LongRunningRequestCheck.zero_val : ZeroVal LongRunningRequestCheck
@@ -310,10 +318,14 @@ class LongRunningRequestCheck.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   type_repr : go.TypeReprUnderlying LongRunningRequestCheck.underlying LongRunningRequestCheck
   underlying : go.UnderlyingDirectedEq LongRunningRequestCheck.ty LongRunningRequestCheck.underlying
   isUnderlying : go.IsUnderlying LongRunningRequestCheck.underlying LongRunningRequestCheck.underlying
+  method_set : go.MethodSetIs LongRunningRequestCheck.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LongRunningRequestCheck.ty) []
 
 attribute [instance] LongRunningRequestCheck.TypeAssumptions.type_repr
   LongRunningRequestCheck.TypeAssumptions.underlying
   LongRunningRequestCheck.TypeAssumptions.isUnderlying
+  LongRunningRequestCheck.TypeAssumptions.method_set
+  LongRunningRequestCheck.TypeAssumptions.ptr_method_set
 
 axiom RequestInfoResolver : Type
 axiom RequestInfoResolver.zero_val : ZeroVal RequestInfoResolver
@@ -323,10 +335,14 @@ class RequestInfoResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying RequestInfoResolver.underlying RequestInfoResolver
   underlying : go.UnderlyingDirectedEq RequestInfoResolver.ty RequestInfoResolver.underlying
   isUnderlying : go.IsUnderlying RequestInfoResolver.underlying RequestInfoResolver.underlying
+  method_set : go.MethodSetIs RequestInfoResolver.ty [(go!"NewRequestInfo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType RequestInfo.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfoResolver.ty) []
 
 attribute [instance] RequestInfoResolver.TypeAssumptions.type_repr
   RequestInfoResolver.TypeAssumptions.underlying
   RequestInfoResolver.TypeAssumptions.isUnderlying
+  RequestInfoResolver.TypeAssumptions.method_set
+  RequestInfoResolver.TypeAssumptions.ptr_method_set
 
 structure RequestInfo [GooseExts] where
   mk ::
@@ -401,6 +417,8 @@ class RequestInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_FieldSelector : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"FieldSelector") (PairV #x #y) (Val #(({ x with FieldSelector' := y } : RequestInfo)))
   get_LabelSelector : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"LabelSelector") #x (Val #(x.LabelSelector'))
   set_LabelSelector : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"LabelSelector") (PairV #x #y) (Val #(({ x with LabelSelector' := y } : RequestInfo)))
+  method_set : go.MethodSetIs RequestInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfo.ty) []
 
 attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.underlying
@@ -430,6 +448,8 @@ attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.set_FieldSelector
   RequestInfo.TypeAssumptions.get_LabelSelector
   RequestInfo.TypeAssumptions.set_LabelSelector
+  RequestInfo.TypeAssumptions.method_set
+  RequestInfo.TypeAssumptions.ptr_method_set
 
 axiom RequestInfoFactory : Type
 axiom RequestInfoFactory.zero_val : ZeroVal RequestInfoFactory
@@ -439,10 +459,14 @@ class RequestInfoFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying RequestInfoFactory.underlying RequestInfoFactory
   underlying : go.UnderlyingDirectedEq RequestInfoFactory.ty RequestInfoFactory.underlying
   isUnderlying : go.IsUnderlying RequestInfoFactory.underlying RequestInfoFactory.underlying
+  method_set : go.MethodSetIs RequestInfoFactory.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfoFactory.ty) [(go!"NewRequestInfo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType RequestInfo.ty), go.error])))]
 
 attribute [instance] RequestInfoFactory.TypeAssumptions.type_repr
   RequestInfoFactory.TypeAssumptions.underlying
   RequestInfoFactory.TypeAssumptions.isUnderlying
+  RequestInfoFactory.TypeAssumptions.method_set
+  RequestInfoFactory.TypeAssumptions.ptr_method_set
 
 abbrev requestInfoKeyType [GooseExts] : Type := w64
 
@@ -451,8 +475,12 @@ abbrev requestInfoKeyType [GooseExts] : Type := w64
 
 class requestInfoKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq requestInfoKeyType.ty requestInfoKeyType.underlying
+  method_set : go.MethodSetIs requestInfoKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestInfoKeyType.ty) []
 
 attribute [instance] requestInfoKeyType.TypeAssumptions.underlying
+  requestInfoKeyType.TypeAssumptions.method_set
+  requestInfoKeyType.TypeAssumptions.ptr_method_set
 
 abbrev serverShutdownSignalKeyType [GooseExts] : Type := w64
 
@@ -461,8 +489,12 @@ abbrev serverShutdownSignalKeyType [GooseExts] : Type := w64
 
 class serverShutdownSignalKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq serverShutdownSignalKeyType.ty serverShutdownSignalKeyType.underlying
+  method_set : go.MethodSetIs serverShutdownSignalKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverShutdownSignalKeyType.ty) []
 
 attribute [instance] serverShutdownSignalKeyType.TypeAssumptions.underlying
+  serverShutdownSignalKeyType.TypeAssumptions.method_set
+  serverShutdownSignalKeyType.TypeAssumptions.ptr_method_set
 
 abbrev ServerShutdownSignal [GooseExts] : Type := GoInterface
 
@@ -471,8 +503,12 @@ abbrev ServerShutdownSignal [GooseExts] : Type := GoInterface
 
 class ServerShutdownSignal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerShutdownSignal.ty ServerShutdownSignal.underlying
+  method_set : go.MethodSetIs ServerShutdownSignal.ty [(go!"ShuttingDown", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerShutdownSignal.ty) []
 
 attribute [instance] ServerShutdownSignal.TypeAssumptions.underlying
+  ServerShutdownSignal.TypeAssumptions.method_set
+  ServerShutdownSignal.TypeAssumptions.ptr_method_set
 
 axiom DurationTracker : Type
 axiom DurationTracker.zero_val : ZeroVal DurationTracker
@@ -482,10 +518,14 @@ class DurationTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying DurationTracker.underlying DurationTracker
   underlying : go.UnderlyingDirectedEq DurationTracker.ty DurationTracker.underlying
   isUnderlying : go.IsUnderlying DurationTracker.underlying DurationTracker.underlying
+  method_set : go.MethodSetIs DurationTracker.ty [(go!"GetLatency", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"Track", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"TrackDuration", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DurationTracker.ty) []
 
 attribute [instance] DurationTracker.TypeAssumptions.type_repr
   DurationTracker.TypeAssumptions.underlying
   DurationTracker.TypeAssumptions.isUnderlying
+  DurationTracker.TypeAssumptions.method_set
+  DurationTracker.TypeAssumptions.ptr_method_set
 
 axiom durationTracker : Type
 axiom durationTracker.zero_val : ZeroVal durationTracker
@@ -495,10 +535,14 @@ class durationTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying durationTracker.underlying durationTracker
   underlying : go.UnderlyingDirectedEq durationTracker.ty durationTracker.underlying
   isUnderlying : go.IsUnderlying durationTracker.underlying durationTracker.underlying
+  method_set : go.MethodSetIs durationTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType durationTracker.ty) [(go!"GetLatency", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"Track", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"TrackDuration", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [])))]
 
 attribute [instance] durationTracker.TypeAssumptions.type_repr
   durationTracker.TypeAssumptions.underlying
   durationTracker.TypeAssumptions.isUnderlying
+  durationTracker.TypeAssumptions.method_set
+  durationTracker.TypeAssumptions.ptr_method_set
 
 structure LatencyTrackers [GooseExts] where
   mk ::
@@ -565,6 +609,8 @@ class LatencyTrackers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_DecodeTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"DecodeTracker") (PairV #x #y) (Val #(({ x with DecodeTracker' := y } : LatencyTrackers)))
   get_ImpersonationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"ImpersonationTracker") #x (Val #(x.ImpersonationTracker'))
   set_ImpersonationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"ImpersonationTracker") (PairV #x #y) (Val #(({ x with ImpersonationTracker' := y } : LatencyTrackers)))
+  method_set : go.MethodSetIs LatencyTrackers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LatencyTrackers.ty) []
 
 attribute [instance] LatencyTrackers.TypeAssumptions.type_repr
   LatencyTrackers.TypeAssumptions.underlying
@@ -590,6 +636,8 @@ attribute [instance] LatencyTrackers.TypeAssumptions.type_repr
   LatencyTrackers.TypeAssumptions.set_DecodeTracker
   LatencyTrackers.TypeAssumptions.get_ImpersonationTracker
   LatencyTrackers.TypeAssumptions.set_ImpersonationTracker
+  LatencyTrackers.TypeAssumptions.method_set
+  LatencyTrackers.TypeAssumptions.ptr_method_set
 
 abbrev latencyTrackersKeyType [GooseExts] : Type := w64
 
@@ -598,8 +646,12 @@ abbrev latencyTrackersKeyType [GooseExts] : Type := w64
 
 class latencyTrackersKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq latencyTrackersKeyType.ty latencyTrackersKeyType.underlying
+  method_set : go.MethodSetIs latencyTrackersKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType latencyTrackersKeyType.ty) []
 
 attribute [instance] latencyTrackersKeyType.TypeAssumptions.underlying
+  latencyTrackersKeyType.TypeAssumptions.method_set
+  latencyTrackersKeyType.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   key_instance : key.TypeAssumptions

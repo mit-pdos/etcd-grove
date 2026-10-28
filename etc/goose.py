@@ -180,17 +180,23 @@ PROJECTS = [
         # `Ready`'s conf changes applied before `Advance`). Then (D43 M4, 2026-10-26) branch
         # `goose-lean-learnerfix` (on 4d9282b0f): a removed local member is no learner, rather
         # than a panic (c00a2dc06, issues/etcd-unary-interceptor-learner-removed.md;
-        # etcd-io/etcd#22188's fix).
+        # etcd-io/etcd#22188's fix). Then (the auth plan's E3z, 2026-10-27) branch
+        # `goose-lean-grantfix` (on c00a2dc06): `RoleGrantPermission` replaces every permission
+        # on the range (acafa0317, issues/etcd-auth-grant-permission-same-key.md). Then (the
+        # spec-first pilot, 2026-10-27) branch `goose-lean-grantfix-compactorstart` (on acafa0317):
+        # the auto-compactor run by `start()`, not by `NewServer` (a20f6760f, the cherry-pick of
+        # 964dccdb4; issues/etcd-compactor-started-before-start.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="c00a2dc062245b2afbc37678b4e5423eff351bfd",
+        rev="a20f6760ff4312d40cd6b1ff04f9b4dd58e827c6",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
+                    "github.com/jonboulle/clockwork=",
                     "net=", "hash=", "path=", "internal/bytealg=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
@@ -252,6 +258,8 @@ PROJECTS = [
             # names only (D21 M2): `Process`'s `403` errors (`httptypes.NewHTTPError`)
             "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
+            # with bodies (etcdserver/api/v3compactor.toml): the auto-compactor (the spec-first
+            # pilot, notes/compactor-pilot-plan.md)
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor",
             # names only: what the apply package names (api.UpdateCapability,
             # version.DowngradeInfo, the membership requests, semver)
@@ -308,6 +316,8 @@ PROJECTS = [
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
+            # names only: the auto-compactor's clock (the spec-first pilot)
+            "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
             # names only: the metrics mvcc's transactions and key index update
             "github.com/prometheus/client_golang/prometheus",
@@ -400,7 +410,8 @@ PROJECTS = [
                "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
-               os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
+               os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
+               os.path.join("golang_org", "x", "time"),
                os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
                os.path.join("github_com", "grpc_ecosystem")],
