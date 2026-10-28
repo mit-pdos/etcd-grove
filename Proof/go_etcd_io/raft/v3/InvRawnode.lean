@@ -12,7 +12,7 @@ of an apply acknowledgement are its `MsgSt.ents`); a pending step's message is a
 `isMessage`; `pendingOwn` is gone (the apply acknowledgement's `Entries` capacity is inside
 `msgIn`); `SelfMsgOk`/`isRaftMsg` are on the message's state; `prevHardSt` is a pointer to a
 read-only hard state (`hsRO`, never `nil`); the message types `RawNode.Step` takes
-(`netStepTypes`, `NetMsgOk`, now over the message's state), `DynNoSnap`, `DynCCPreOp`/`DynCCPre`
+(`netStepTypes`, `NetMsgOk`, now over the message's state), `DynNoSnap` (gone, stage U3c), `DynCCPreOp`/`DynCCPre`
 and the records `RawNode.Propose`/`confChangeToMsg` build (`propEntryM`, `propMsgM`,
 `ccEntryM`) moved here from the old specs (`RawNode__Step`, `RawNode__ApplyConfChange`,
 `RawNode__Propose`), so that `InvNode.lean` and the specs share them.
@@ -148,13 +148,34 @@ theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List 
   | dyn dec c0 h0 _ =>
     obtain ⟨g', Hcm, rfl, -⟩ := H
     rcases Hcm with h | h | ⟨hty, h⟩ | ⟨hty, h, -⟩
-    · exact absurd h hs
+    · exact absurd h.1 hs
     · subst h
       exact ⟨ca, rfl, Nat.le_refl _, Nat.le_max_left _ _, fun h => (by cases h), fun _ => rfl⟩
     · subst h
       exact ⟨_, rfl, Nat.le_max_left _ _, Nat.le_refl _, fun h => (by cases h),
         fun hm => absurd hty hm⟩
     · exact absurd (ha hty) h
+
+/-- (2026-10-28, stage U3c) A snapshot's step in the mode of a `RawNode`: the mode afterwards is the
+node's at the same configuration index and configuration (a restore keeps them, `GMove`), with some
+full prefix `fp'` (a restore's), the same at a pre-candidate (which no restore makes). -/
+theorem RNMode.stepOut_snap {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List EntryM}
+    {c : CfgM} {id : w64} {m : MessageM} {s s' : NState} {md' : GMode}
+    (H : (mode.toG ⟨ca, cfg, fp⟩).StepOut c id m s s' md') (hs : m.Type' = MsgSnap) :
+    ∃ fp', md' = mode.toG ⟨ca, cfg, fp'⟩ ∧ (s'.role = .preCandidate → fp' = fp) := by
+  cases mode with
+  | static => exact ⟨fp, H.1, fun _ => rfl⟩
+  | dyn dec c0 h0 _ =>
+    obtain ⟨g', Hcm, rfl, -⟩ := H
+    rcases Hcm with ⟨-, hci, hcf, hpc⟩ | h | ⟨hty, -⟩ | ⟨hty, -⟩
+    · refine ⟨g'.fp, ?_, fun h => by rw [hpc h]⟩
+      cases g'
+      simp only at hci hcf
+      subst hci hcf
+      rfl
+    · subst h; exact ⟨fp, rfl, fun _ => rfl⟩
+    · rw [hs] at hty; simp [MsgSnap, MsgStorageApplyResp] at hty
+    · rw [hs] at hty; simp [MsgSnap, MsgStorageAppendResp] at hty
 
 
 -- (2026-10-16, stage R5) `hsAbs`, `nodeHardstate`, `nodeSoftstate`,
@@ -515,10 +536,8 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     · exact .inr (.inr (.inr (.inr h')))
   · exact absurd (Hun (.inr (.inl h'))) hz
 
-/-- (2026-10-14, stage B7 part 2) The dynamic mode takes no snapshot message (stage B8).
-(2026-10-16, stage R5: on the message's scalars.) -/
-def DynNoSnap (rs : RNState) (m : MessageM) : Prop :=
-  rs.mode.isDyn = true → m.Type' ≠ MsgSnap
+-- (2026-10-28, stage U3c) `DynNoSnap` (the dynamic mode took no snapshot message, from 2026-10-14,
+-- stage B7 part 2) is gone: `RawNode.Step` takes a `MsgSnap` in either mode.
 
 -- (2026-10-26, raft's signature, stage 1) `DynCCPreOp` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
@@ -878,6 +897,14 @@ theorem RNPv.keep {rs rs' : RNState} {fp : List EntryM} {s s' : NState} (H : RNP
     by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h),
     fun h => by rw [hr]; exact H5 (hsn ▸ h)⟩
 
+/-- (2026-10-28, stage U3c) `RNPv` at another full prefix, the same at a pre-candidate (the guard
+reads the prefix only there). -/
+theorem RNPv.fp_pc {rs : RNState} {fp fp' : List EntryM} {s : NState} (H : RNPv rs fp s)
+    (h : s.role = .preCandidate → fp' = fp) : RNPv rs fp' s := by
+  refine ⟨fun hd hl hr => ?_, H.2⟩
+  obtain rfl := h hr
+  exact H.1 hd hl hr
+
 /-- `RNPv.keep` in the static mode, where the guard is not kept. -/
 theorem RNPv.keepS {rs rs' : RNState} {fp : List EntryM} {s s' : NState} (H : RNPv rs fp s)
     (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
@@ -910,7 +937,8 @@ def LoanOk (rs : RNState) (s : NState) : Prop :=
     uint.Z l.snap.Metadata'.Index' ≤ uint.Z s.logst.committed ∧
     l.fl = s.logst.fl ∧
     s.logst.stored = s.logst.unpersisted ∧
-    uint.Z s.logst.applying ≤ uint.Z l.snap.Metadata'.Index' ∧
+    -- (2026-10-28, stage U3c) strictly (`SnapRdy`, `SipOk`): `appliedSnap` moves `applied`
+    uint.Z s.logst.applying < uint.Z l.snap.Metadata'.Index' ∧
     rs.delivered <+: l.dlv ∧ l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
     ∃ pre t e, rs.steps = pre ++ [Pending.appendAck t (snapId l.snap) e (some l.snap)] ∧
       ∀ p ∈ pre, ∃ pv t', p = .self pv t')
@@ -1894,11 +1922,14 @@ abbrev lentPend (o : Option SnapLoan) (P : IProp GF) : IProp GF :=
 
 /-- (D22 S-d3a) The committed log up to a lent snapshot (`SnapLoan.dlv`); (2026-10-28, stage U0)
 and the snapshot's `ConfState` naming a node (the pending one's, `pendKsn`): what makes its
-certificate's facts hold when `Advance` applies it (`raft.Step`'s `SnapAckOk`). -/
+certificate's facts hold when `Advance` applies it (`raft.Step`'s `SnapAckOk`); (stage U3c) and the
+committed log ending at the snapshot's id (`ownRawNodeReady_loanLast`), so that it is the full prefix
+the certificate's dynamic clause speaks of (`SnapAckDyn`). -/
 abbrev loanCom (γ : RaftNames) (o : Option SnapLoan) : IProp GF :=
   match o with
   | none => iprop(True)
-  | some l => iprop(isCommitted γ l.dlv ∗ ⌜∃ x, l.snap.Metadata'.ConfState'.lists.Has x⌝)
+  | some l => iprop(isCommitted γ l.dlv ∗ ⌜(∃ x, l.snap.Metadata'.ConfState'.lists.Has x) ∧
+      plogLast base0 l.dlv = snapId l.snap⌝)
 
 instance loanCom_pers (γ : RaftNames) (o : Option SnapLoan) :
     Persistent (loanCom (GF := GF) γ o) := by
@@ -1987,9 +2018,9 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜rs.unpersisted = s.logst.unpersisted⌝ ∗
   -- no snapshot pending unless a `MsgSnap` was stepped (`RNState.psnap`) or one is lent
-  -- (`RNState.slent`, D22 S-d3a), which only the static mode takes (`DynNoSnap`); until
-  -- 2026-10-20, D22 S-c, none at all
-  "%Hsnap" ∷ ⌜(rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none⌝ ∗
+  -- (`RNState.slent`, D22 S-d3a); until 2026-10-20, D22 S-c, none at all; (2026-10-28, stage U3c)
+  -- in either mode (until then none in the dynamic mode, `DynNoSnap`)
+  "%Hsnap" ∷ ⌜rs.psnap = false ∧ rs.slent = none → s.logst.snap = none⌝ ∗
   -- the queue is steppable (since 2026-10-10 unconditionally: until then only for an
   -- `advanceable` one)
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
@@ -2020,7 +2051,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
-    (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
+    (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
@@ -2086,7 +2117,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hrel : NStateRel s ps) (Hin : id ∈ γ.reCfg) (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
-    (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
+    (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     {fp : List EntryM} (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)

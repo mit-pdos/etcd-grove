@@ -445,14 +445,15 @@ theorem stepCDS_handle_snap (c : CfgM) (id : w64) (s t : NState) (m : MessageM)
     m.Term' = (toPState s).term →
     m.From' ≠ id →
     HandleSnapResult id t m sv voters s' →
-    StepCDS c c (snapCfg sv voters) id B (snapId sv) s [absSnap m sv voters] s' := by
+    StepCDS c c (snapCfg sv voters) (voters.Has id) id B (snapId sv) s [absSnap m sv voters] s' := by
   intro Ht Htl Hnls Htr Hto Hterm Hfid Hres
   have Hnl : (toPState s).role ≠ .leader := by
     rw [toPState_role]; exact proleRole_not_leader _ Hnls
   by_cases Hr : SnapRestores id t sv voters
   · -- a restore: `StepR.snapRestore`
     have Hstep := step_handle_snap (B := B) c id _ _ m sv voters s' Ht Hto Hterm Hnl Hfid Hres
-    refine ⟨Hstep, fun Adm dec g fp' cs' hgc hfp hag hcs hA => ?_⟩
+    refine ⟨Hstep, fun Adm dec g fp' cs' hgc hfp hag hA0 => ?_⟩
+    obtain ⟨hcs, hA⟩ := hA0 Hr.2.1
     have Htm : t.term = (toPState s).term := congrArg PState.term Ht
     have Hb : t.logst.prev = (toPState s).base := congrArg PState.base Ht
     have Hl : t.logst.sents ++ t.logst.uents = (toPState s).log := congrArg PState.log Ht
@@ -462,7 +463,7 @@ theorem stepCDS_handle_snap (c : CfgM) (id : w64) (s t : NState) (m : MessageM)
     rcases Hres with ⟨Hle, -⟩ | ⟨Hlt, -, Hm, -⟩ | ⟨Hlt, Hin, Hnm, rfl⟩
     · exact Hle.elim (fun H => absurd Hr.1 (Int.not_lt.2 H)) (fun H => absurd Hr.2.1 H)
     · exact absurd Hm Hr.2.2
-    refine ⟨⟨g.cidx, g.cfg, fp'⟩, hgc, ?_⟩
+    refine ⟨⟨g.cidx, g.cfg, fp'⟩, hgc, rfl, rfl, fun h => absurd h (by simp [sendMsgs, Htr]), ?_⟩
     rw [Hc] at Hlt; rw [Hb, Hl] at Hnm
     have Hp : toPState (sendMsgs { t with logst := logRestore t.logst (snapTrip sv voters) }
         [appResp id t m.From' false (snapId sv).index' (W64 0) (W64 0)]) =

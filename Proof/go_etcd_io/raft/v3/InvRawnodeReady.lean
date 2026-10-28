@@ -1062,14 +1062,22 @@ def loanRet (rs : RNState) : IProp GF :=
   | none => iprop(emp)
   | some l => snapReceipt rs.storage l rs.unpersisted
 
+/-- (2026-10-28, stage U3c) The configuration a snapshot's acknowledgement installs, in the mode `md`,
+of the committed log `L` up to the snapshot: dynamically the fold of `L` (`StepR.applySnap`; the
+snapshot's certificate makes it some, `SnapAckDyn`), `c` if none; statically `c` (unconstrained). -/
+def RNMode.foldCfg : RNMode → List EntryM → CCState → CCState
+  | .static, _, c => c
+  | .dyn dec c0 _ _, L, c => (cfgFold dec c0 L).getD c
+
 /-- (D22 S-d3a) The node after `Advance` (`RawNode.Advance.spec`): the queue stepped, the term `t`,
 the configuration index `ca`, the floor no longer raised; after a snapshot `Ready` also the loan
-returned, nothing unpersisted and the committed log handed out up to the snapshot. -/
+returned, nothing unpersisted and the committed log handed out up to the snapshot; (2026-10-28, stage
+U3c) dynamically the configuration the snapshot's (`RNMode.foldCfg`), `ca` its index. -/
 def advRS (rs : RNState) (t : w64) (ca : Nat) : RNState :=
   match rs.slent with
   | none => { rs with steps := [], term := t, capplied := ca, flw := false }
   | some l => { rs with steps := [], term := t, capplied := ca, flw := false, slent := none,
-                        unpersisted := [], delivered := l.dlv }
+                        unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.dlv rs.cfg }
 
 theorem advRS_none {rs : RNState} (t : w64) (ca : Nat) (h : rs.slent = none) :
     advRS rs t ca = { rs with steps := [], term := t, capplied := ca, flw := false } := by
@@ -1117,7 +1125,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜s.logst.unpersisted = []⌝ ∗
   -- (D22 S-d3a) as `ownRawNode`'s (a snapshot may be pending), and no loan
-  "%Hsnap" ∷ ⌜(rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none⌝ ∗
+  "%Hsnap" ∷ ⌜rs.psnap = false ∧ rs.slent = none → s.logst.snap = none⌝ ∗
   "%Hloan" ∷ ⌜LoanOk rs s ∧ rs.slent = none⌝ ∗
   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
   "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
@@ -1534,7 +1542,7 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "#Hloanc" ∷ loanCom γ rs.slent ∗
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜rs.unpersisted = s.logst.unpersisted⌝ ∗
-  "%Hsnap" ∷ ⌜(rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none⌝ ∗
+  "%Hsnap" ∷ ⌜rs.psnap = false ∧ rs.slent = none → s.logst.snap = none⌝ ∗
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
   "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
@@ -1558,7 +1566,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
-    (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
+    (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)

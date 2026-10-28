@@ -688,7 +688,9 @@ abbrev raft.Step.spec : Prop :=
       -- legitimately sent. Transport/client assumptions like the rest. (Since D22 S-b′4,
       -- 2026-10-20, the scope and the static mode's need are the message certificate's, under
       -- the lists' naming the node, `SnapScopeIf`/`GMode.SnapOkIf`: only the index bound and,
-      -- dynamically, `GMode.SnapOk` (`GMode.SnapDyn`) are left.)
+      -- dynamically, `GMode.SnapOk` (`GMode.SnapDyn`) were left; since 2026-10-28, stage U3c,
+      -- dynamically the certificate's dynamic clause too, under the lists' naming the node: only
+      -- the index bound.)
       -- (stage R4) the snapshot the message holds (`sn = some sv`, owned in `"Hm"`) and the
       -- lists of its `ConfState` (until the retarget the read-only slices, `ownCSL`)
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
@@ -697,7 +699,6 @@ abbrev raft.Step.spec : Prop :=
            -- the mode asks come from the message's certificate (under its naming the node)
            ⌜sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
              uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
-           md.SnapDyn γ sv scfg ∗
            -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`): its snapshot's configuration
            -- certificate, which the step registers in the storage (`certLink`) before the restore
            isMessageC γ (absSnap m sv scfg) ∗
@@ -723,9 +724,13 @@ abbrev raft.Step.spec : Prop :=
                    (m.Type' = MsgStorageAppendResp → ∀ sv, sn = some sv →
                       -- (U0) at the snapshot's configuration, the tracker rebuilt
                       c' = snapCfg sv sv.Metadata'.ConfState'.lists ∧
-                      ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool),
+                      (∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool),
                         s' = { s with logst := ackSnapLog s.logst m s.term sv, progress := prs,
-                                      prvals := pvs, isLearner := il })⌝ ∗
+                                      prvals := pvs, isLearner := il }) ∧
+                      -- (2026-10-28, stage U3c) dynamically the configuration index at the
+                      -- snapshot's, the full prefix kept (`StepR.applySnap`)
+                      (∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
+                        ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat sv.Metadata'.Index', cs', g.fp⟩))⌝ ∗
       -- for every other message but a snapshot (and its acknowledgement), what is kept of the
       -- log (2026-10-09)
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp →

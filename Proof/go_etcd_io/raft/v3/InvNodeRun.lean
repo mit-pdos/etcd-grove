@@ -400,13 +400,12 @@ local macro "not_net" : tactic => `(tactic| (intro h; first
 `RawNode.Step` (its guards are `run`'s own code). (2026-10-16, stage R5: the message is the
 pointer `ml`, given for good as `raft.Step` takes it (`msgIn ml □ st`); the facts over its state
 `st`.) (D22 S-d4, 2026-10-21) A `MsgSnap` too, as `RawNode.Step` takes it (until then a premise
-`Type ≠ MsgSnap`): outside the no-snapshot mode, in the static mode (`DynNoSnap`), with its
-snapshot's facts and certificate (`"#Hsnap"`); after it a snapshot may be pending (`psnap`). -/
+`Type ≠ MsgSnap`): outside the no-snapshot mode, (2026-10-28, stage U3c) in either mode (until then
+the static mode only, `DynNoSnap`), with its snapshot's facts and certificate (`"#Hsnap"`); after it
+a snapshot may be pending (`psnap`). -/
 theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt)
     (Hok : NetMsgOk id st)
-    -- (D22 S-d4) a snapshot only in the static mode
-    (Hdns : DynNoSnap rs st.msg)
     -- (2026-10-17) as `RawNode.Step`'s: the ceiling covers the message's term and a transfer's
     -- campaign; a pre-vote request only after a bootstrap
     (Hmtc : uint.Z st.msg.Term' ≤ uint.Z rs.tc)
@@ -445,14 +444,8 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
               (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ }} := by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   have Hok0 := Hok
-  simp only [NetMsgOk] at Hok0 Htn Hmtc Hpvb Hxt Hsnp Hdns ⊢
+  simp only [NetMsgOk] at Hok0 Htn Hmtc Hpvb Hxt Hsnp ⊢
   obtain ⟨Hty, -⟩ := Hok0
-  -- (D22 S-d4) a snapshot comes in the static mode only
-  have Hstat : m.Type' = MsgSnap → rs.mode = .static := by
-    intro h
-    cases hm : rs.mode with
-    | static => rfl
-    | dyn _ _ _ _ => exact absurd h (Hdns (by rw [hm]; rfl))
   have Hps' : (rs.psnap || decide (m.Type' = MsgSnap)) = false → rs.psnap = false :=
     fun h => (Bool.or_eq_false_iff.1 h).1
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hmsg, #Hsnap, Hcred, Hlc⟩ HΦ
@@ -495,8 +488,6 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     iintro %h
     icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0, #Hd0, -⟩
     iexists sv0, scfg0
-    rw [Hstat h]
-    simp only [RNMode.toG, GMode.SnapDyn]
     iframe Hm0 Hd0
     ipureintro; exact Hp0
   simp only [HnP]
@@ -508,7 +499,6 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   by_cases Hs : m.Type' = MsgSnap
   · -- (D22 S-d4) a snapshot, as `RawNode.Step`'s: the static mode, the restore's configuration;
     -- any queue, the acknowledgement's facts carried across the restore (`ackInv_snap`)
-    have Hst := Hstat Hs
     obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hsl⟩ := Hsfr Hs
     -- (2026-10-28, stage U0) at the configuration it started at (until then the restore's)
     have e2 := Hcc (fun h => by rw [Hs] at h; simp [MsgSnap, MsgStorageAppendResp] at h); subst c'
@@ -521,9 +511,9 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       · rw [h2]; iexact Hsloc
       · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
         rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
-    have Hmd : md' = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ := by
-      rw [Hst] at Href ⊢; exact Href.1
-    ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s' $$ [Hghost]
+    -- (2026-10-28, stage U3c) in either mode: the ghost part at a new full prefix (a restore's)
+    obtain ⟨fp', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
+    ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp'⟩) cf id s' $$ [Hghost]
     · rw [← Hmd]; iexact Hghost
     have HnT : m.Type' ≠ MsgTimeoutNow := by rw [Hs]; simp [MsgSnap, MsgTimeoutNow]
     have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
@@ -539,13 +529,13 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     iapply HΦ $$ %err %s'.term
     isplitl
     · iapply ownRawNode_intro γ rn id
-          { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp
+          { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp'
           rnv sv hprev steps Hwf' Hin Hal
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
-          (fun h => by rcases h with ⟨h, -⟩ | h <;> simp [Hs, Hst, RNMode.isDyn] at h)
+          (fun h => by have h1 := h.1; simp [Hs] at h1)
           (stepsOk_mono_st s s' _ Ht1 Hsd Hc Ha (tc_le_of_gh Hgh) Hstok) rfl
           (by rw [Hsg]; exact Hstor)
-          (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
+          ((Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net)).fp_pc Hfp')
           (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
           (RNFl.keep Hrnfl Hfl' (by rw [Hap']; exact Int.le_refl _) Ha)
           (Hloan.step s'.term Hgh (fun _ => ⟨by
@@ -595,7 +585,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp
         rnv sv hprev steps Hwf' Hin Hal
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
-        (fun h => by rw [Hsn]; exact Hsnap (h.imp_left fun h' => ⟨Hps' h'.1, h'.2⟩))
+        (fun h => by rw [Hsn]; exact Hsnap ⟨Hps' h.1, h.2⟩)
         Hstok' rfl (by rw [Hsg]; exact Hstor)
         (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
@@ -980,10 +970,12 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
       s'.logst = { s.logst with committed := s'.logst.committed } ∧
       uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
       -- (2026-10-17) no pre-candidate made (`RNPv`)
-      (s'.role = .preCandidate → s.role = .preCandidate) := by
+      (s'.role = .preCandidate → s.role = .preCandidate) ∧
+      -- (2026-10-28, stage U3c) a follower stays one (`SnapFol`)
+      (s.role = .follower → s'.role = .follower) := by
   rcases applyCCOkC_step (B := 0) c' id s s' H with ⟨-, Hr, Hsf, Htk, Ht, Hpv, Hg, Hl, Hc⟩ | ⟨Hl, Hv, Hsd, -⟩
   · exact ⟨⟨by rw [Hsf, Hr]; exact Hwf.1, by rw [Htk]; exact Hwf.2⟩, Ht, Hpv, Hg, Hl, Hc,
-      fun h => by rw [← Hr]; exact h⟩
+      fun h => by rw [← Hr]; exact h, fun h => by rw [Hr]; exact h⟩
   · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
     unfold SwitchOkC at Hsw
     rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
@@ -991,7 +983,7 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
       if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState).sdr = true from Hsd)] at Hsw
     obtain ⟨pvs', rfl⟩ := Hsw
-    refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
       simp [becomeFollower, resetTo0, resetTo, stepFuncOf]
 
 /-- `ccStepB`'s answer is `ccApplyM`'s, of fewer than `2^62` tracked ids. -/
@@ -1026,7 +1018,7 @@ theorem wp_applyConf_dyn
     (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg) (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
-    (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
+    (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
@@ -1162,7 +1154,7 @@ theorem wp_applyConf_dyn
          ({ rs with cfg := cs', capplied := k + 1 } : RNState).cfg, fp⟩) = GMode.dyn dec c0 h0 g' by
       simp only; rw [hm]; rfl]
     iexact Hghost
-  obtain ⟨Hwf', Ht', Hpv', Hgh', Hls', Hc', Hrl'⟩ := applyCCOkC_frame Hok Hwf
+  obtain ⟨Hwf', Ht', Hpv', Hgh', Hls', Hc', Hrl', Hfol'⟩ := applyCCOkC_frame Hok Hwf
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Ht']; exact Int.le_refl _)
     (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']; exact Int.le_refl _) $$ Hstrecs
   ihave #Hsloc' := snapLocOk_keep γ id (o := s.logst.snap) (o' := s'.logst.snap) (.inl (by rw [Hls']))
@@ -1178,7 +1170,7 @@ theorem wp_applyConf_dyn
       (by rw [Ht']; exact Htrm) (by rw [Hls']; exact Hstor)
       ⟨fun _ _ hp => absurd (Hrl' hp) Hnpc, by rw [Hgh']; exact Hpvoff.2.1,
         by rw [Hgh', Ht']; exact Hpvoff.2.2.1, fun h => by rw [Hgh', Ht']; exact Hpvoff.2.2.2.1 (Hrl' h),
-        fun h => (h (by rw [Hls']; exact Hsnap (.inr (by rw [hm]; rfl)))).elim⟩
+        fun h => Hfol' (Hpvoff.2.2.2.2 (by rw [Hls'] at h; exact h))⟩
       (by rw [Hgh']; exact Hrs_out) (by rw [Hgh']; exact Hrs_unst) (Int.le_trans Hrs_clb Hc')
       (by unfold RNFl; rw [Hls']; exact Hrnfl)
       (Hloan.keep Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) Hc')
@@ -1207,7 +1199,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hrel : NStateRel s ps) (Hin : id ∈ γ.reCfg) (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
-    (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
+    (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps) (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     {fp : List EntryM} (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
@@ -2119,7 +2111,8 @@ committed log handed out, over no conf entry (A1), not at all in the static mode
 2026-10-21) After a snapshot `Ready` the loan is returned and the committed log handed out is the
 loan's (`advRS`), which the authority is already over (`rsDlv`). -/
 theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
-    (Hca : rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length ∧
+    (Hca : (rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
+      (∀ l, rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
       (rs.mode = .static → ca = rs.capplied))
     (HA1 : rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied rs.delivered.length) :
     ⊢ runCfg (GF := GF) γ { rs with flw := false } -∗ runCfg γ (advRS rs t ca) := by
@@ -2136,7 +2129,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       | static => exact .inl (Hca.2.2 hm)
       | dyn _ _ _ _ =>
         right; refine ⟨rfl, ?_⟩
-        have := Hca.2.1; omega
+        have := (Hca.1 hsl).2; omega
     iunfold runCfg
     isplitr
     · ipureintro
@@ -2153,7 +2146,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
     rcases Hcases with h | ⟨hd, h⟩
     · simp only; rw [h]; exact Hinv
     · simp only
-      refine ⟨by have := Hca.1; omega, ?_⟩
+      refine ⟨by have := (Hca.1 hsl).1; omega, ?_⟩
       exact NoConfIn_trans Hinv.2 (NoConfIn_mono (HA1 hd) (Nat.le_refl _) h)
   | some l =>
     -- a loan: the node takes snapshots, so the static mode, and the index does not move
@@ -2167,9 +2160,10 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
     have Hadv : advRS rs t ca =
         { rs with
           steps := [], term := t, capplied := ca, flw := false,
-          slent := none, unpersisted := [], delivered := l.dlv } := by
+          slent := none, unpersisted := [], delivered := l.dlv,
+          cfg := rs.mode.foldCfg l.dlv rs.cfg } := by
       unfold advRS; rw [hsl]
-    rw [Hadv]
+    rw [Hadv, show rs.mode.foldCfg l.dlv rs.cfg = rs.cfg by rw [Hst]; rfl]
     iunfold runCfg
     isplitr
     · ipureintro

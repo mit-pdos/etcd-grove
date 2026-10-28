@@ -46,7 +46,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   · iapply ownRawNode_intro γ rn id
       { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s cf fp rnv sv
       hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-      (fun h => Hsnap (h.imp_left fun h' => ⟨Hps' h'.1, h'.2⟩)) Hstok Htrm Hstor Hpvoff
+      (fun h => Hsnap ⟨Hps' h.1, h.2⟩) Hstok Htrm Hstor Hpvoff
       Hrs_out Hrs_unst Hrs_clb Hrnfl
       (Hloan.step rs.term rfl (fun _ => ⟨.inl rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩))
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
@@ -76,18 +76,12 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ml st Hok Hdns Hmtc Htn Hpvb Hflw Hxt Hsnp
+  intro γ rn id rs ml st Hok Hmtc Htn Hpvb Hflw Hxt Hsnp
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
-  simp only at Hok Hdns Hmtc Htn Hpvb Hxt Hsnp ⊢
+  simp only at Hok Hmtc Htn Hpvb Hxt Hsnp ⊢
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty
-  -- (2026-10-20, D22 S-c) a snapshot comes in the static mode only
-  have Hstat : m.Type' = MsgSnap → rs.mode = .static := by
-    intro h
-    cases hm : rs.mode with
-    | static => rfl
-    | dyn _ _ _ _ => exact absurd h (Hdns (by rw [hm]; rfl))
   have Hps' : (rs.psnap || decide (m.Type' = MsgSnap)) = false → rs.psnap = false :=
     fun h => (Bool.or_eq_false_iff.1 h).1
   wp_start as H
@@ -156,8 +150,6 @@ theorem RawNode.Step.wp_proof
         iintro %h
         icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0, #Hd0, -⟩
         iexists sv0, scfg0
-        rw [Hstat h]
-        simp only [RNMode.toG, GMode.SnapDyn]
         iframe Hm0 Hd0
         ipureintro; exact Hp0
       simp only [HnP]
@@ -171,7 +163,6 @@ theorem RawNode.Step.wp_proof
       by_cases Hs : m.Type' = MsgSnap
       · -- (2026-10-20, D22 S-c) a snapshot: the static mode, the restore's configuration; (D22
         -- S-d3b) any queue, the acknowledgement's facts carried across the restore (`ackInv_snap`)
-        have Hst := Hstat Hs
         obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hsl⟩ := Hsfr Hs
         -- (2026-10-28, stage U0) at the configuration it started at (until then the restore's)
         have e2 := Hcc (fun h => by rw [Hs] at h; simp [MsgSnap, MsgStorageAppendResp] at h); subst c'
@@ -184,9 +175,9 @@ theorem RawNode.Step.wp_proof
           · rw [h2]; iexact Hsloc
           · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
             rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
-        have Hmd : md' = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ := by
-          rw [Hst] at Href ⊢; exact Href.1
-        ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s' $$ [Hghost]
+        -- (2026-10-28, stage U3c) in either mode: the ghost part at a new full prefix (a restore's)
+        obtain ⟨fp', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
+        ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp'⟩) cf id s' $$ [Hghost]
         · rw [← Hmd]; iexact Hghost
         have HnT : m.Type' ≠ MsgTimeoutNow := by rw [Hs]; simp [MsgSnap, MsgTimeoutNow]
         have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
@@ -203,13 +194,13 @@ theorem RawNode.Step.wp_proof
         iapply HΦ $$ %err %s'.term
         isplitl
         · iapply ownRawNode_intro γ rn id
-              { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp
+              { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp'
               rnv sv hprev steps Hwf' Hin Hal
               Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
-              (fun h => by rcases h with ⟨h, -⟩ | h <;> simp [Hs, Hst, RNMode.isDyn] at h)
+              (fun h => by have h1 := h.1; simp [Hs] at h1)
               (stepsOk_mono_st s s' _ Ht1 Hsd Hc Ha (tc_le_of_gh Hgh) Hstok) rfl
               (by rw [Hsg]; exact Hstor)
-              (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
+              ((Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net)).fp_pc Hfp')
               (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
               (RNFl.keep Hrnfl Hfl' (by rw [Hap']; exact Int.le_refl _) Ha)
               (Hloan.step s'.term Hgh (fun _ => ⟨by
@@ -263,7 +254,7 @@ theorem RawNode.Step.wp_proof
             { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp
             rnv sv hprev steps Hwf' Hin Hal
             Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
-            (fun h => by rw [Hsn]; exact Hsnap (h.imp_left fun h' => ⟨Hps' h'.1, h'.2⟩))
+            (fun h => by rw [Hsn]; exact Hsnap ⟨Hps' h.1, h.2⟩)
             Hstok' rfl (by rw [Hsg]; exact Hstor)
             (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
             (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)

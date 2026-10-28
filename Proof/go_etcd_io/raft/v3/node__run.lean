@@ -405,11 +405,6 @@ theorem node.run.wp_proof
       icases headRest_snapIn γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hsi, %Hrm, Hrest⟩
       have Hsnp : st.msg.Type' = MsgSnap → γ.raft.reNoSnap = false :=
         fun h => (Hsi (Hpvb.2.2 h)).1
-      have Hdns : DynNoSnap rs st.msg := by
-        intro hd hs
-        have := (Hsi (Hpvb.2.2 hs)).2
-        rw [Hrm, this] at hd
-        cases hd
       -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit; (2026-10-17) the
       -- term ceiling raised to the bound, past the message's term (a granted pre-vote answers at
       -- it) and a transfer's campaign
@@ -422,7 +417,7 @@ theorem node.run.wp_proof
       ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs tb (by omega) $$ Hrn
       icases ownRawNode_mode γ.raft nv.rn' id _ $$ Hrn with ⟨%Hmd, Hrn⟩
       wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id { rs with tc := tb } r ml st Hok
-        Hdns (by simp only; omega)
+        (by simp only; omega)
         (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb.1 Hflw Hpvb.2.1 Hsnp
         $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hm Hrnraft Hmsg Hsnap Hcred Hlc1
@@ -1011,7 +1006,17 @@ theorem node.run.wp_proof
     -- (2026-10-15, stage N) A1, from the driver's
     icases runCfg_a1 γ { rs1 with flw := false } ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, Hcfg⟩
     · ipureintro; exact HA
-    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1
+    -- (2026-10-28, stage U3c) a loan only at a node that takes snapshots, in the static mode
+    icases runCfg_snap γ { rs1 with flw := false } $$ Hcfg with ⟨%Hsn1, Hcfg⟩
+    have Hal1 : ∀ l, rs1.slent = some l → rs1.mode.isDyn = true →
+        l.snap.Metadata'.ConfState'.AutoLeave' = false := by
+      intro l hl hd
+      obtain ⟨Hs1, Hs2, Hs3⟩ := Hsn1
+      cases hs : γ.snapIn
+      · rw [(Hs1 hs).2] at hl; cases hl
+      · have h3 : rs1.mode = γ.mode := Hs3
+        rw [h3, (Hs2 hs).2] at hd; cases hd
+    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1 Hal1
       $$ [$Hrn $Hlr] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
     ihave Hcfg := runCfg_advance γ rs1 t ca Hca HA1 $$ Hcfg
     -- (D22 S-d4) the node after `Advance` (`advRS`): nothing queued, unpersisted or lent, the

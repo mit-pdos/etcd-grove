@@ -127,10 +127,9 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                           ⌜sn = some sv ∧
                                                                                 scfg = sv.Metadata'.ConfState'.lists ∧
                                                                                   uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
-                                                                            GMode.SnapDyn γ md sv scfg ∗
-                                                                              isMessageC γ (absSnap m sv scfg) ∗
-                                                                                snapDataOk γ sv.Metadata'.Index'
-                                                                                  sv.Data') -∗
+                                                                            isMessageC γ (absSnap m sv scfg) ∗
+                                                                              snapDataOk γ sv.Metadata'.Index'
+                                                                                sv.Data') -∗
                                                       (▷
                                                           ∀ err s' c' md',
                                                             "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -150,28 +149,40 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                       c' =
                                                                                           snapCfg sv
                                                                                             sv.Metadata'.ConfState'.lists ∧
-                                                                                        ∃ prs pvs il,
-                                                                                          s' =
-                                                                                            { term := s.term,
-                                                                                              vote := s.vote,
-                                                                                              lead := s.lead,
-                                                                                              role := s.role,
-                                                                                              votes := s.votes,
-                                                                                              outbox := s.outbox,
-                                                                                              stepfn := s.stepfn,
-                                                                                              ticking := s.ticking,
-                                                                                              progress := prs,
-                                                                                              log := s.log,
-                                                                                              logst :=
-                                                                                                ackSnapLog s.logst m
-                                                                                                  s.term sv,
-                                                                                              prvals := pvs,
-                                                                                              prevote := s.prevote,
-                                                                                              gh := s.gh, rd := s.rd,
-                                                                                              lt := s.lt, pci := s.pci,
-                                                                                              isLearner := il,
-                                                                                              sdr := s.sdr,
-                                                                                              cq := s.cq })⌝ ∗
+                                                                                        (∃ prs pvs il,
+                                                                                            s' =
+                                                                                              { term := s.term,
+                                                                                                vote := s.vote,
+                                                                                                lead := s.lead,
+                                                                                                role := s.role,
+                                                                                                votes := s.votes,
+                                                                                                outbox := s.outbox,
+                                                                                                stepfn := s.stepfn,
+                                                                                                ticking := s.ticking,
+                                                                                                progress := prs,
+                                                                                                log := s.log,
+                                                                                                logst :=
+                                                                                                  ackSnapLog s.logst m
+                                                                                                    s.term sv,
+                                                                                                prvals := pvs,
+                                                                                                prevote := s.prevote,
+                                                                                                gh := s.gh, rd := s.rd,
+                                                                                                lt := s.lt, pci := s.pci,
+                                                                                                isLearner := il,
+                                                                                                sdr := s.sdr,
+                                                                                                cq := s.cq }) ∧
+                                                                                          ∀ (dec : CCDec) (c0 : CCState)
+                                                                                            (h0 : CfgOk c0) (g : RGh),
+                                                                                            md = GMode.dyn dec c0 h0 g →
+                                                                                              ∃ cs',
+                                                                                                md' =
+                                                                                                  GMode.dyn dec c0 h0
+                                                                                                    {
+                                                                                                      cidx :=
+                                                                                                        uint.nat
+                                                                                                          sv.Metadata'.Index',
+                                                                                                      cfg := cs',
+                                                                                                      fp := g.fp })⌝ ∗
                                                                           "%Hframe" ∷
                                                                               ⌜m.Type' ≠ MsgSnap →
                                                                                   m.Type' ≠ MsgStorageApplyResp →

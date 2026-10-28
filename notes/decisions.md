@@ -24968,3 +24968,43 @@ prefix: the pending snapshot is the node's boundary, `snap = some (snapId sv)`) 
 then `node.run`/`InvNodeRun` (the conf-change step and `readySnap_dynamic`), U4's allocation without
 `reNoSnap`.
 
+
+**2026-10-28 · U3c taken (the dynamic `RawNode` with snapshots); U3d (the node) not started.**
+
+*The changed statements (raft-internal; no exported result moved).*
+- `ownRawNode`'s `"%Hsnap"` (`InvRawnode.lean`, `InvRawnodeReady.lean`'s two Ready predicates) is now
+  `rs.psnap = false ∧ rs.slent = none → s.logst.snap = none` in either mode (the `∨ rs.mode.isDyn` arm
+  is gone). `DynNoSnap` is deleted: `RawNode.Step.spec` and `wp_rn_raft_Step_net` (`InvNodeRun.lean`)
+  take a `MsgSnap` in either mode.
+- `raft.Step.spec`'s `"#Hsnap"` no longer takes `md.SnapDyn` (deleted with `GMode.SnapOk`):
+  `GMode.SnapOkIf`'s dynamic case is the message's certificate itself (`raftSnapCert`), whose dynamic
+  clause is under the lists' naming the node. So the model may not ask a refused snapshot's
+  admissibility: **`StepCDS` takes `hid : Prop`** (the lists' naming the node) and asks `cs'`/`Adm` only
+  under it (a restore's `SnapRestores` has it); its witness keeps the configuration index and the
+  configuration, and all of the ghost part at a pre-candidate. **`GMove`'s `MsgSnap` case** says the
+  same (`g'.cidx = g.cidx ∧ g'.cfg = g.cfg ∧ (s'.role = .preCandidate → g' = g)`), and its
+  acknowledgement case gains `g'.cidx = uint.nat s'.logst.applied`. `raft.Step.spec`'s `Hlocal`
+  snapshot clause gains the dynamic ghost part after the acknowledgement (`md' = .dyn .. ⟨index, cs',
+  g.fp⟩`), from `ghost_step_snapack`.
+- `LoanOk`'s `applying ≤ index` is strict (`SnapRdy` had it); `loanCom` carries `plogLast base0 l.dlv =
+  snapId l.snap` (`ownRawNodeReady_loanLast`, read in `acceptReady`).
+- `advRS`'s snapshot case sets `cfg := rs.mode.foldCfg l.dlv rs.cfg` (`RNMode.foldCfg`: dynamically the
+  fold of the loan's committed log). `RawNode.Advance.spec` takes (dynamically, with a loan) the
+  snapshot's `ConfState` not auto-leave (as `ApplyConfChange` excludes auto-leave until U5), and its
+  post on `ca` is `(slent = none → old bounds) ∧ (slent = some l → isDyn → ca = l.dlv.length) ∧
+  (static → ca = capplied)` (`runCfg_advance` takes the new shape).
+- `wp_step_snapack` (`RawNode__Advance.lean`) is mode-generic: dynamically it reads `SnapAckDyn` off the
+  certificate's dynamic clause at the loan's committed log (the node's full prefix up to the index:
+  `ownStepGhost_deliv`, `FullOk` from the loan's last id), with `applied < index` from `LoanOk`.
+- New lemmas: `RNMode.stepOut_snap`, `RNPv.fp_pc` (`InvRawnode.lean`); `applyCCOkC_frame` gives a
+  follower stays one (for `SnapFol` across a dynamic `ApplyConfChange` with a snapshot pending).
+
+*U3d: what is left.* The node layer still keeps snapshots out of the dynamic mode: `runCfg`'s
+`γ.snapIn = true → reNoSnap = false ∧ γ.mode = .static` (`InvNodeChan.lean:800`) and `readyData`'s
+snapshot arm (`InvNodeChan.lean:640`), `runCfg_advance`'s loan case (static only), `node.run`'s
+`headRest_snapIn`; and `DynNames.reNoSnap = true` (`readySnap_dynamic`, `sentMsg_dynamic_notSnapshot`).
+The dynamic loan's `Advance` moves the configuration (`advRS`'s `cfg`, the index to the snapshot's), but
+the node's configuration is shared with the client through `dghostVar γ.cap` (`runCfg`, half; the other
+half in `nodeConfig`): `node.Advance` would have to take `nodeConfig` back after a snapshot `Ready` (a
+public-spec change, U9's), or the configuration's half be held by the node's run loop. A design question
+for the coordinator before U3d.

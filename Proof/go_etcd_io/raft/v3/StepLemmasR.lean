@@ -631,34 +631,40 @@ cover (`FullOk`) and any configuration state `cs'` over the configuration `cn` i
 denotes that the dynamic model admits after `fp'` (`Adm`), a `StepR` witness to a ghost part over
 the configuration afterwards `c'` (`cn` after a restore, `c` otherwise). Unlike `StepCD`, the
 ghost part may change wholesale (`StepR.snapRestore`'s configuration index, configuration and
-full prefix). -/
-def StepCDS (c c' cn : CfgM) (id : w64) (B : Int) (sid : entryID) (s : NState) (recv : List Msg)
-    (s' : NState) : Prop :=
+full prefix). (2026-10-28, stage U3c) The configuration state `cs'` and its admissibility only
+under `hid` (the `ConfState` naming the node: a restore's, `SnapRestores`; a refused snapshot's
+certificate says nothing, `raftSnapCert`); the ghost part keeps its configuration index and
+configuration (`StepR.snapRestore` keeps them), and all of it at a pre-candidate (a restore makes a
+follower). -/
+def StepCDS (c c' cn : CfgM) (hid : Prop) (id : w64) (B : Int) (sid : entryID) (s : NState)
+    (recv : List Msg) (s' : NState) : Prop :=
   StepC c id B (toPState s) recv (toPState s') ∧
   ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh) (fp' : List EntryM)
-    (cs' : CCState), g.cfg.cfg = c → FullOk sid fp' → SnapAgree s g fp' → cs'.cfg = cn →
-    Adm fp' cs' → ∃ g', g'.cfg.cfg = c' ∧ StepR Adm dec id B (rOf s g) recv (rOf s' g')
+    (cs' : CCState), g.cfg.cfg = c → FullOk sid fp' → SnapAgree s g fp' →
+    (hid → cs'.cfg = cn ∧ Adm fp' cs') →
+    ∃ g', g'.cfg.cfg = c' ∧ g'.cidx = g.cidx ∧ g'.cfg = g.cfg ∧ (s'.role = .preCandidate → g' = g) ∧
+      StepR Adm dec id B (rOf s g) recv (rOf s' g')
 
 /-- A frame step (with no configuration change), as `StepCDS`. -/
-theorem StepCDS.frame {c cn : CfgM} {id : w64} {sid : entryID} {s : NState} {recv : List Msg}
+theorem StepCDS.frame {c cn : CfgM} {hid : Prop} {id : w64} {sid : entryID} {s : NState} {recv : List Msg}
     {s' : NState} (h : StepCF c id (toPState s) recv (toPState s')) (hf : RFrame s s') :
-    StepCDS c c cn id B sid s recv s' := by
-  refine ⟨h.toC, fun Adm dec g _ _ hc _ _ _ _ => ⟨g, hc, ?_⟩⟩
+    StepCDS c c cn hid id B sid s recv s' := by
+  refine ⟨h.toC, fun Adm dec g _ _ hc _ _ _ => ⟨g, hc, rfl, rfl, fun _ => rfl, ?_⟩⟩
   rw [rOf_frame s s' g hf]
   exact h.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
 /-- A frame step, then a `StepCDS` one. -/
-theorem StepCDS.trans_frame {c c' cn : CfgM} {id : w64} {sid : entryID} {s s1 s' : NState}
+theorem StepCDS.trans_frame {c c' cn : CfgM} {hid : Prop} {id : w64} {sid : entryID} {s s1 s' : NState}
     {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState s1)) (hf : RFrame s s1)
     (hlc : (toPState s1).log = (toPState s).log ∧ (toPState s1).commit = (toPState s).commit)
-    (h2 : StepCDS c c' cn id B sid s1 r2 s') : StepCDS c c' cn id B sid s (r1 ++ r2) s' := by
-  refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g fp' cs' hc hfp hag hcs hA => ?_⟩
+    (h2 : StepCDS c c' cn hid id B sid s1 r2 s') : StepCDS c c' cn hid id B sid s (r1 ++ r2) s' := by
+  refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g fp' cs' hc hfp hag hA => ?_⟩
   have hag1 : SnapAgree s1 g fp' := by
     have e1 : (rOf s1 g).full = (rOf s g).full := by
       unfold RState.full rOf; rw [hlc.1]
     unfold SnapAgree; rw [e1, hlc.2]; exact hag
-  obtain ⟨g', hc', H2⟩ := h2.2 Adm dec g fp' cs' hc hfp hag1 hcs hA
-  refine ⟨g', hc', .trans _ _ _ _ _ ?_ H2⟩
+  obtain ⟨g', hc', hci, hcf, hpc, H2⟩ := h2.2 Adm dec g fp' cs' hc hfp hag1 hA
+  refine ⟨g', hc', hci, hcf, hpc, .trans _ _ _ _ _ ?_ H2⟩
   rw [rOf_frame s s1 g hf]
   exact h1.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 

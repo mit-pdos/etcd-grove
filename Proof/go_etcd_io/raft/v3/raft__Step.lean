@@ -425,7 +425,6 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
-      md.SnapDyn γ sv scfg -∗
       isMessageC γ (absSnap m sv scfg) -∗
       -- (D22 S-r, 2026-10-21) its data certificate, registered with its configuration's
       snapDataOk γ sv.Metadata'.Index' sv.Data' -∗
@@ -433,7 +432,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
-  iintro #Hinit Hphys Hghost Hrest Hmsg #Hsd #HmC #Hdat HΦ
+  iintro #Hinit Hphys Hghost Hrest Hmsg #HmC #Hdat HΦ
   ihave #Hm := isMessageC_isMessage γ _ $$ HmC
   -- (D22 S-b′3) the snapshot's certificate, registered in the storage's registry (`certLink`:
   -- outside the no-snapshot mode, `storCertOk`); (D22 S-r) with its data certificate
@@ -460,7 +459,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     icases Hcr with ⟨%Hl, -⟩
     ipureintro; intro x hx; subst Hcl; exact Hl x hx
   have Hscope : SnapScopeIf id sv scfg := ⟨Hlo id, Hidx⟩
-  icases snapOkIf_of_cert γ md id (toPState s) sv scfg Hcl $$ Hghost [] Hsd with ⟨#Hso, Hghost⟩
+  icases snapOkIf_of_cert γ md id (toPState s) sv scfg Hcl $$ Hghost [] with ⟨#Hso, Hghost⟩
   · rw [Hcl]; iexact Hcr
   -- at the current term the receiver is not a leader: the sender leads it
   ihave #Hl2 := isMessage_snap_isLeader γ m sv scfg $$ Hm
@@ -862,7 +861,7 @@ theorem raft.Step.wp_proof
       imod ghost_step_snapack γ md c (snapCfg sv sv.Metadata'.ConfState'.lists) id m s
         { s with logst := ackSnapLog s.logst m s.term sv, progress := prs, prvals := pvs,
                  isLearner := il } sv.Metadata'.Index' HtyA Hps rfl ⟨rfl, Hp4⟩ Hmode'
-        $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+        $$ Hlc Hghost Hrest with ⟨%md', ⟨%Hout, %Hmd'⟩, Hghost⟩
       imodintro
       iapply HΦ $$ %err %_ %_ %md'
       iframe Hphys Hghost
@@ -875,7 +874,7 @@ theorem raft.Step.wp_proof
       isplitr
       · ipureintro
         exact ⟨fun h => absurd (h HtyA) (by simp),
-          fun _ sv' h => by cases h; exact ⟨rfl, prs, pvs, il, rfl⟩⟩
+          fun _ sv' h => by cases h; exact ⟨rfl, ⟨prs, pvs, il, rfl⟩, Hmd'⟩⟩
       isplitr
       · ipureintro; exact fun _ _ h => absurd (h HtyA) (by simp)
       isplitr
@@ -947,11 +946,11 @@ theorem raft.Step.wp_proof
          fun h => absurd h (by rw [Hns]; w32_ne)⟩,
         fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => ⟨Hsf.1, Hsf.2.2⟩,
         fun h => absurd h (by rw [Hns]; w32_ne)⟩
-    icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hso, #Hm', #Hdat⟩
+    icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hm', #Hdat⟩
     obtain ⟨Hsn, Hcl, Hidx⟩ := Hsc
     have Hnsf : s.gh.ns = false := Hnsx Hns
     iapply dispatch_Snap P Q γ md c r id s ml m ents sn ctx rs sv scfg Φ Hwf Hns (Hsnapt Hns) Hidx Hsn Hcl Hnsf
-      $$ Hinit Hphys Hghost Hrest Hmi Hso Hm' Hdat HΦs
+      $$ Hinit Hphys Hghost Hrest Hmi Hm' Hdat HΦs
   -- (D22 S-d3b, 2026-10-21) MsgApp: `dispatch_App`, with the truncation's mark (`AppTrunc`), which
   -- `stepPost` does not carry
   by_cases HtyApp : m.Type' = MsgApp

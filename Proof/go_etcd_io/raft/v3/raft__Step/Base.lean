@@ -519,7 +519,9 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
         (s'.logst.snap = none → j = s.logst.prev.index') ∧
         ∃ cs', cfgFold dec c0 (g.fp.take (uint.nat j)) = some cs' ∧ cs'.cfg = c')) :
     ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c' id s' := by
+      ∃ md', ⌜md.StepOut c id m s s' md' ∧
+        (∀ dec c0 h0 g, md = .dyn dec c0 h0 g → ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat j, cs', g.fp⟩)⌝ ∗
+        ownStepGhost γ md' c' id s' := by
   cases md with
   | static =>
     have HC' : CfgStatic γ c' ∧ TrackedOk γ c' id := by
@@ -532,7 +534,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
     imodintro
     iexists GMode.static
     iframe Hgh
-    ipureintro; exact Hout
+    ipureintro; exact ⟨Hout, fun _ _ _ _ h => by cases h⟩
   | dyn dec c0 h0 g =>
     have Hd : s.role = .follower ∧ s'.logst.applied = j ∧ uint.Z s.logst.applied < uint.Z j ∧
         uint.Z j ≤ uint.Z s.logst.prev.index' ∧
@@ -589,7 +591,8 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
     simp only [rOf.proj_p, rOf.proj_fp]
     isplitr
     · ipureintro
-      refine ⟨g', .inr (.inr (.inr ⟨Hty, ?_, rfl⟩)), rfl, _, [], StepR.mono (fun _ _ h => h.1) HR⟩
+      refine ⟨⟨g', .inr (.inr (.inr ⟨Hty, ?_, rfl, by rw [Hap]⟩)), rfl, _, [],
+        StepR.mono (fun _ _ h => h.1) HR⟩, fun _ _ _ _ h => by cases h; exact ⟨cs', rfl⟩⟩
       rw [Hap]; intro h; rw [h] at Hlt; omega
     iframe Hg
     isplitr

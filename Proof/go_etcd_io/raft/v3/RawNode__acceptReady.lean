@@ -208,6 +208,14 @@ theorem RawNode.acceptReady.wp_proof
   intro γ rn id rs rd ce es ms h L
   wp_start as H
   iNamed H
+  -- (2026-10-28, stage U3c) a lent snapshot's committed log ends at its id
+  ihave ⟨%HlastL, Hrn⟩ : ⌜∀ l, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ ∗
+      ownRawNodeReady γ rn id rs rd ce es ms true L $$ [Hrn]
+  · cases L with
+    | none => iframe Hrn; ipureintro; intro l hl; cases hl
+    | some l0 =>
+      icases ownRawNodeReady_loanLast γ rn id rs rd ce es ms true l0 $$ Hrn with ⟨%Hx, Hrn⟩
+      iframe Hrn; ipureintro; intro l hl; cases hl; exact Hx
   iNamed Hrn
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
@@ -300,7 +308,7 @@ theorem RawNode.acceptReady.wp_proof
       icases Hrdz with ⟨Hs, #Hc, %Hz⟩
       rw [← Hz.1]
       iframe Hs Hc
-      ipureintro; exact Hz.2.2.2.2.2.2.2.2.2.2.2
+      ipureintro; exact ⟨Hz.2.2.2.2.2.2.2.2.2.2.2, HlastL l rfl⟩
   icases Hsno with ⟨Hsno, #Hloanc⟩
   have Hsnne : ∀ sv, L.map SnapLoan.snap = some sv → sv.Metadata'.Index' ≠ W64 0 := by
     intro sv hsv
@@ -937,7 +945,7 @@ theorem RawNode.acceptReady.wp_proof
         exact this
       · rw [Hlogst, Haf9, Hf_fl, Hfl1]
       · rw [Hlogst, Haf11, Haf12, Hnu0, Hnx1, Hf_sents, Hf_uents]
-      · rw [Hap0 rfl]; exact Int.le_of_lt Hap1
+      · rw [Hap0 rfl]; exact Hap1
       · show rs.delivered ++ [] <+: l.dlv; rw [List.append_nil]; exact Hdp1
       · refine ⟨(selfmsgs id ms2).map (fun q => selfPending q.st.msg), s.term,
           if s.logst.uents ≠ [] then some (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
@@ -991,9 +999,7 @@ theorem RawNode.acceptReady.wp_proof
     (by show nextUnstable s.logst = _; rw [Hlogst, Haf12, Hnu0])
     (fun h => by
       rw [Hlogst, Haf2, Hf_snap]
-      rcases h with ⟨-, h⟩ | h
-      · exact (Hrdp.1 h).2
-      · exact Hsnap (.inr h))
+      exact (Hrdp.1 h.2).2)
     Hstok' Htrm
     (by rw [Hlogst, Haf3, Hf_st]; exact Hstor)
     ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2.1, Hpvoff.2.2.1, Hpvoff.2.2.2.1,

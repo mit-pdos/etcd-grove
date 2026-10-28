@@ -71,7 +71,8 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 -- (2026-10-16, stage R5) `netStepTypes`, `UnstampedType`, `NetMsgOk`, `NetMsgOk.restMsgOk`,
--- `DynNoSnap` and their lemmas moved to `InvRawnode.lean` (`node.go`'s `netP` states them).
+-- `DynNoSnap` (gone since stage U3c) and their lemmas moved to `InvRawnode.lean` (`node.go`'s
+-- `netP` states them).
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -85,10 +86,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev RawNode.Step.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ml : Loc) (st : MsgSt),
   NetMsgOk id st →
-  -- (2026-10-14, stage B7 part 2) **no snapshot in the dynamic mode** (`DynNoSnap`): a
-  -- snapshot restore at a dynamic configuration is stage B8. (Until 2026-10-20, D22 S-c,
-  -- implied by `NetMsgOk`, which took no `MsgSnap` in either mode.)
-  DynNoSnap rs st.msg →
+  -- (2026-10-14 to 2026-10-28, stage B7 part 2 to stage U3c, no snapshot in the dynamic mode,
+  -- `DynNoSnap`; until 2026-10-20, D22 S-c, implied by `NetMsgOk`, which took no `MsgSnap` in
+  -- either mode.) Since stage U3c a snapshot in either mode.
   -- (2026-10-17) the term ceiling covers the message's term (a granted pre-vote answers at it)
   -- and, for a `MsgTimeoutNow` (until then: does not wrap the term), its campaign's term;
   -- the client raises the ceiling first (`ownRawNode_raise_tc`)
@@ -119,8 +119,8 @@ abbrev RawNode.Step.spec : Prop :=
       -- (2026-10-20, D22 S-c) but a snapshot's, whose abstraction is `absSnap` (`"#Hsnap"`)
       "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
         isMessage γ (absMsg ty st.msg st.ents st.ctx)) ∗
-      -- (2026-10-20, D22 S-c) a `MsgSnap`'s snapshot, as `raft.Step`'s `"#Hsnap"` takes it at the
-      -- static mode (the only one a snapshot comes in, `DynNoSnap`): the snapshot the message
+      -- (2026-10-20, D22 S-c) a `MsgSnap`'s snapshot, as `raft.Step`'s `"#Hsnap"` takes it (until
+      -- 2026-10-28, stage U3c, at the static mode only, `DynNoSnap`): the snapshot the message
       -- holds, its `ConfState`'s lists well formed (`SnapScope`), the ghost state's voters, not
       -- joint, within the tracked bound (`GMode.SnapOk`), and its abstraction legitimately sent.
       -- (Since D22 S-b′4, 2026-10-20, `SnapScope` and `GMode.SnapOk` come from the message's

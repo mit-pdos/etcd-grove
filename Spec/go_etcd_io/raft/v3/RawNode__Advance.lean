@@ -92,6 +92,9 @@ abbrev RawNode.Advance.spec : Prop :=
   -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
   -- configuration index (`issues/raft-advance-before-applyconfchange.md`)
   (rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied rs.delivered.length) →
+  -- (2026-10-28, stage U3c) in the dynamic mode a snapshot's `ConfState` is no auto-leave joint one
+  -- (`appliedTo`'s auto-leave proposal is out of `raft.Step`'s scope, as `ApplyConfChange`'s)
+  (∀ l, rs.slent = some l → rs.mode.isDyn = true → l.snap.Metadata'.ConfState'.AutoLeave' = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (D22 S-d3a, 2026-10-21) after a snapshot `Ready`, the application's receipt
@@ -107,8 +110,10 @@ abbrev RawNode.Advance.spec : Prop :=
       -- term ceiling
       ⌜uint.Z t ≤ uint.Z rs.tc⌝ ∗
       -- (2026-10-14) the configuration index moves up, to at most the committed log handed
-      -- out (`StepR.advance`); not at all in the static mode
-      ⌜rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length ∧
+      -- out (`StepR.advance`); not at all in the static mode; (2026-10-28, stage U3c) after a
+      -- snapshot `Ready`, dynamically, to the snapshot's index (`StepR.applySnap`)
+      ⌜(rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
+        (∀ l, rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
         (rs.mode = .static → ca = rs.capplied)⌝ }}
 
 end spec

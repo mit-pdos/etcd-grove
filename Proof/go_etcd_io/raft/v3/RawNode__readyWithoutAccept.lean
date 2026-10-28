@@ -622,7 +622,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
         omega
       · show LogIndicesOk (snapId svs) (nextUnstable s.logst)
         rw [Hnx, ← Hpv]; exact Hidx
-      · exact absurd (Hsnap (.inl ⟨h, Hsl⟩)) (by rw [Hss]; simp)
+      · exact absurd (Hsnap ⟨h, Hsl⟩) (by rw [Hss]; simp)
   icases Hsnl with ⟨%L, Hrdz, Hsnapz, %Hpsn⟩
   ihave Hphys := ownRaftPhysReady_lt0 cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false L.isSome
     $$ Hphys

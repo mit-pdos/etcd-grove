@@ -61,8 +61,8 @@ commit per lemma.
 - **U3. RawNode in one mode.** Lift `DynNoSnap` (`RawNode.Step` supplies `GMode.SnapDyn` from the
   message's certificate), the `"%Hsnap"` clause (a pending snapshot in the dynamic invariant), the
   `MsgStorageAppendResp`/`ApplyResp` snapshot cases (`StepR.applySnap`), `RNState.cfg/capplied`
-  following a restore. (2026-10-28: U3a, the model, and U3b, `raft.Step`'s two storage-response cases,
-  done; U3c, the `RawNode`, and U3d, the node, left: `notes/decisions.md`, "Stages U2, U3".)
+  following a restore. (2026-10-28: U3a, the model, U3b, `raft.Step`'s two storage-response cases, and
+  U3c, the `RawNode`, done; U3d, the node, left: `notes/decisions.md`, "Stages U2, U3".)
 - **U4. Allocation without `reNoSnap`, joiners.** `ownRaftGhost_alloc_core` for a dynamic cluster with
   snapshots and an empty or bootstrap log; `joinAuth`; `RestartNode` from `γ.c0`; a joiner (empty log,
   configuration `c0`) in the protocol invariant beside the founders; pre-votes granted at term 0 with
@@ -105,9 +105,10 @@ commit per lemma.
   (`Protocol/Ghost.lean`); `RNMode` (`ApiVocab.lean:151`); `GMode` (`StepGhostMode.lean:46`);
   `StaticNames`/`DynNames` (`InvApi.lean:655`, `InvApiDyn.lean:197`).
 - Dynamic-mode exclusions of snapshots: `DynNames.reNoSnap = true`; `snapshotCert` needs `reNoSnap =
-  false` (`InvApi.lean:1399`); `storCap 1`; `DynNoSnap` (`InvRawnode.lean:518`); `"%Hsnap"`
-  (`InvRawnode.lean:1984`); `md.isDyn = false` at `MsgStorageAppendResp` (`raft__Step.lean:588`);
-  `GMode.Pre` at `MsgStorageApplyResp` (`StepGhostMode.lean:63`); `ownRaftGhost_alloc_core`'s `ns` only
-  with a non-empty log (`Protocol/Facts.lean:1193`).
-- Automatic leave excluded: `m'.autoLeave = false` (`node__ApplyConfChange`), `DynCCPreOp`, and
+  false` (`InvApi.lean:1399`); `storCap 1`; the node's `runCfg`/`readyData` (`snapIn` static only,
+  `InvNodeChan.lean:640, 800`); `ownRaftGhost_alloc_core`'s `ns` only with a non-empty log
+  (`Protocol/Facts.lean:1193`). (Lifted in U3: `DynNoSnap`, `"%Hsnap"`'s dynamic arm, `md.isDyn = false`
+  at `MsgStorageAppendResp`, `GMode.Pre` at `MsgStorageApplyResp`.)
+- Automatic leave excluded: `m'.autoLeave = false` (`node__ApplyConfChange`), `DynCCPreOp`, a dynamic
+  snapshot's `ConfState` at `RawNode.Advance` (U3c), and
   `c.autoLeave → role ≠ leader` in `raft.appliedTo`, `appliedSnap`, `raft.Step`.
