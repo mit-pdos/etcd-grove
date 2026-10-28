@@ -8,6 +8,7 @@ below it".
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -37,9 +38,11 @@ abbrev Client.unaryClientInterceptor.spec : Prop :=
       [∗list] ro ∈ ros, optApplyKeep ro.applyFunc' true }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"unaryClientInterceptor")) (Val #sl))
-  {{ (f : GoFunc), RET #f; etcdInterceptorOk f ∗
-      -- (D29) a write on a refusal-free connection, whatever the bound
-      etcdInterceptorOkW f }}
+  {{ (f : GoFunc), RET #f;
+      -- (the auth plan's C1, 2026-10-28) once the client is ready (its `Auth` set: the refresh
+      -- path's `getToken` calls it), on a connection whose interceptor `f` is, both modes (D29: a
+      -- write on a refusal-free connection, whatever the bound)
+      etcdInterceptorOkG c f }}
 
 end spec
 

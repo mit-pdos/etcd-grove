@@ -95,6 +95,12 @@ theorem Client.unaryClientInterceptor.wp_proof
   ipersist intOpts
   wp_auto
   iapply HΦ
+  -- (the auth plan's C1, 2026-10-28) once the client is ready, by Löb induction: the refresh path's
+  -- `getToken` calls `Authenticate` through this interceptor
+  unfold etcdInterceptorOkG
+  iclear «$res0»
+  iloeb as IH
+  iintro !> %cconn %ceps #Hready #Hcg
   -- (D29) both modes: any precondition persistent, or an ordinary one for a write on a
   -- refusal-free connection
   iapply etcdInterceptorOkM_split
@@ -383,7 +389,22 @@ theorem Client.unaryClientInterceptor.wp_proof
       rotate_left
       · -- refresh the token
         (try wp_auto)
-        wp_apply wp_refresh c ci { cd with Values := vsv } $$ [$Hc $Hctx'] as %gt #Hgt
+        -- (C1) the client's connection, under the induction hypothesis
+        ihave #Hcc : iprop(▷ isEtcdConn cconn ceps) $$ []
+        · inext
+          iapply isEtcdConnG_ready
+          iframe Hready
+          unfold isEtcdConnG
+          iexists _
+          iframe Hcg
+          unfold etcdInterceptorOkG
+          iexact IH
+        -- (C1, `notes/c1-plan.md`, finding 3) the context's `Err()` gives client errors:
+        -- `authClient.Authenticate`'s `ContextError`; not in the interceptor's contract yet
+        ihave #Hce : ctxErrClient ci { cd with Values := vsv } $$ []
+        · sorry
+        wp_apply wp_refresh c cconn ceps ci { cd with Values := vsv } $$ [$Hc $Hready $Hcc $Hctx' $Hce]
+          as %gt #Hgt
         cases gt with
         | ok gti =>
           (try wp_auto)

@@ -21,13 +21,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `grpc.WithPerRPCCredentials(creds)`, any credentials: a dial option adding per-RPC credentials
-(`.perRPCCreds`). -/
+/-- `grpc.WithPerRPCCredentials(creds)`, any credentials: a dial option adding the per-RPC
+credentials `creds` (`.perRPCCreds creds`). -/
 abbrev grpc.WithPerRPCCredentials.spec : Prop :=
   ∀ (creds : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithPerRPCCredentials)) (Val #creds))
-  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o .perRPCCreds⌝ }}
+  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o (.perRPCCreds creds)⌝ }}
 
 end spec
 

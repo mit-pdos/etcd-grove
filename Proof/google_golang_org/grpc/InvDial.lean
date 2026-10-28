@@ -20,12 +20,12 @@ proof holds a descriptor of is one of these:
   `notes/decisions.md` D28): it sets no interceptor and no resolver; at run time the transport
   pings and closes the connection when a ping goes unanswered, which fails the calls on it, as
   `ClientConn.Invoke`'s and `NewStream`'s axioms already allow;
-* `.perRPCCreds` (`WithPerRPCCredentials(c)`: appends to `dopts.copts.PerRPCCredentials`, since
+* `.perRPCCreds c` (`WithPerRPCCredentials(c)`: appends to `dopts.copts.PerRPCCredentials`, since
   2026-10-25, the auth plan's E2d: a client with a user name): it sets no interceptor and no
   resolver; at run time each attempt's outgoing metadata gains what the credentials'
   `GetRequestMetadata` returns (etcd's: its token, if any), and an error of theirs fails the
-  attempt, which the attempt contract (`grpcInvokerOk`) already allows: it says nothing of an
-  attempt's metadata.
+  attempt, which the attempt contract (`grpcInvokerOk`) already allows; what the credentials
+  return to the attempts is `connCredsOk` (`NewClient`'s post, since the auth plan's C1).
 An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefaultCallOptions`,
 ...) has no descriptor: a dial that holds one is not covered
 (`clientv3.New`'s premises exclude `Config.DialOptions`,
@@ -75,7 +75,16 @@ inductive GrpcDialOpt where
   | transportCreds
   | resolvers (rbs : List GoInterface)
   | keepalive
-  | perRPCCreds
+  | perRPCCreds (pc : GoInterface)
+
+/-- The per-RPC credentials a descriptor adds, if it adds some. -/
+def GrpcDialOpt.credsOf : GrpcDialOpt → Option GoInterface
+  | .perRPCCreds pc => some pc
+  | _ => none
+
+/-- **The per-RPC credentials of a dial with the options `ds`**, in order (grpc appends each
+`WithPerRPCCredentials`'s to `dopts.copts.PerRPCCredentials`). -/
+def credsOfDial (ds : List GrpcDialOpt) : List GoInterface := ds.filterMap GrpcDialOpt.credsOf
 
 /-- The unary interceptor a descriptor sets, if it sets one. -/
 def GrpcDialOpt.unaryOf : GrpcDialOpt → Option GoFunc
@@ -96,8 +105,8 @@ theorem unaryIcsOf_keepalive (ds : List GrpcDialOpt) :
   simp [List.filterMap_cons, GrpcDialOpt.unaryOf]
 
 /-- Per-RPC credentials set no unary interceptor. -/
-theorem unaryIcsOf_perRPCCreds (ds : List GrpcDialOpt) :
-    unaryIcsOf (ds ++ [.perRPCCreds]) = unaryIcsOf ds := by
+theorem unaryIcsOf_perRPCCreds (ds : List GrpcDialOpt) (pc : GoInterface) :
+    unaryIcsOf (ds ++ [.perRPCCreds pc]) = unaryIcsOf ds := by
   unfold unaryIcsOf
   simp [List.filterMap_append, GrpcDialOpt.unaryOf]
 
@@ -149,8 +158,8 @@ theorem dialOk_keepalive (ds : List GrpcDialOpt) (rb : GoInterface) :
 
 /-- Per-RPC credentials set no stream interceptor and no resolver: a dial with them is
 `NewClient`'s if the dial without them is. -/
-theorem dialOk_perRPCCreds (ds : List GrpcDialOpt) (rb : GoInterface) :
-    dialOk ds rb → dialOk (ds ++ [.perRPCCreds]) rb := by
+theorem dialOk_perRPCCreds (ds : List GrpcDialOpt) (rb : GoInterface) (pc : GoInterface) :
+    dialOk ds rb → dialOk (ds ++ [.perRPCCreds pc]) rb := by
   intro ⟨h1, h2, h3⟩
   refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_append_left _ h3⟩
   · simpa using h

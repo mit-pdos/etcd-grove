@@ -18,15 +18,17 @@ open Iris Iris.BI
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
-/-- `NewPerRPCCredentialBundle()`: a token bundle (`tokenBundleAt`). -/
+/-- `NewPerRPCCredentialBundle()`: a token bundle (`tokenBundleAt`) whose tokens are `""` or meet
+any `P` the caller picks (`tokenBundleInv`; the auth plan's C1: its token starts `""`). -/
 abbrev credentials.NewPerRPCCredentialBundle.spec : Prop :=
+  ∀ (P : GoString → IProp GF),
   {{ True }}
     (App (Val (@! go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBundle)) (Val #()))
-  {{ (atb : GoInterface), RET #atb; tokenBundleAt (GF := GF) atb }}
+  {{ (atb : GoInterface), RET #atb; tokenBundleInv (GF := GF) atb P }}
 
 end spec
 

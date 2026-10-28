@@ -18,22 +18,30 @@ open Iris Iris.BI Iris.ProofMode
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 theorem credentials.NewPerRPCCredentialBundle.wp_proof :
     credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) := by
+  intro P
   wp_start as -
   wp_auto
   wp_alloc b as Hb
   iStructNamed Hb
   ipersist rc
+  iStructNamed «$v0»
+  imod inv_alloc credTokN ⊤ iprop(∃ t : GoString,
+      structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken"
+        «$v0_ptr» ↦ t ∗ (⌜t = go!""⌝ ∨ □ P t)) $$ [authToken] with #Hinv
+  · iexists _
+    iframe authToken
+    ileft; ipureintro; rfl
   wp_auto
   iapply HΦ
-  unfold tokenBundleAt
+  unfold tokenBundleInv credTokInv
   iexists b, «$v0_ptr»
-  iframe rc
+  iframe rc Hinv
   ipureintro; rfl
 
 end proof

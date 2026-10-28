@@ -39,7 +39,7 @@ theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
   · iPkgInit
   wp_auto
   -- `clientv3.New(Config{Endpoints: eps, DialTimeout: ..., DialKeepAliveTime: ..., Logger: lg})`
-  wp_apply (wp_New _ addrs V) $$ [] as %cl %cerr Hcl
+  wp_apply (wp_New _ addrs V (fun _ => iprop(True))) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
     simp only
@@ -51,8 +51,10 @@ theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
       refine ⟨?_, ?_⟩
       · exact Hplain
       · simp [Hlg]
+    isplitr
+    · iunfold clientAuthPre; ileft; ipureintro; left; rfl
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   · subst Hcerr
     iapply HΦ
     ileft

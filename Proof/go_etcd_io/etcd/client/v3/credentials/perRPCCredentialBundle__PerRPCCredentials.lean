@@ -5,6 +5,7 @@ Proof of `Spec/go_etcd_io/etcd/client/v3/credentials/perRPCCredentialBundle__Per
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__PerRPCCredentials
+public import Spec.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__GetRequestMetadata
 
 @[expose] public section
 
@@ -18,17 +19,28 @@ open Iris Iris.BI Iris.ProofMode
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
-theorem credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof :
+theorem credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
+    (wp_GetRequestMetadata :
+      credentials.perRPCCredential.GetRequestMetadata.spec (GF := GF) (hG := hG)) :
     credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG) := by
-  intro b rc
-  wp_start as #Hrc
+  intro b rc P
+  wp_start as ⟨#Hrc, #Hinv⟩
   wp_auto
   iapply HΦ
-  itrivial
+  unfold perRPCCredsOk
+  iintro !> %ctx %sl %Ψ !> - HΨ
+  wp_auto
+  wp_apply wp_GetRequestMetadata rc P ctx sl $$ [$Hinv] as %mp %err ⟨%Herr, %cm, Hm, #Hq⟩
+  iapply HΨ
+  iintro -
+  iexists cm
+  iframe Hm
+  imodintro
+  iexact Hq
 
 end proof
 

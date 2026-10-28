@@ -11,7 +11,6 @@
 roots ^Proof/go_etcd_io/etcd/client/v3/(Link|Results)\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
-axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom NewCluster.wp_proof
@@ -38,6 +37,8 @@ axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
+axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
+axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
@@ -123,3 +124,10 @@ axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Uint.wp_proof
+sorry Client.getToken.wp_proof
+sorry Client.unaryClientInterceptor.wp_proof
+sorry authClient.Authenticate.wp_proof
+sorry credentials.perRPCCredentialBundle.UpdateAuthToken.wp_proof
+sorry etcdserverpb.authClient.Authenticate.wp_proof
+sorry newClient.wp_proof
+sorry retryAuthClient.Authenticate.wp_proof

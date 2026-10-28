@@ -65,8 +65,8 @@ theorem newClient.wp_proof
     (wp_Close : Client.Close.spec (GF := GF) (hG := hG))
     (wp_NewBundle : credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG)) :
     newClient.spec (GF := GF) (hG := hG) := by
-  intro p cfg eps V
-  wp_start as ⟨#Hp, #Hcfg, %HV⟩
+  intro p cfg eps V P
+  wp_start as ⟨#Hp, #Hcfg, #Hauth, %HV⟩
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
@@ -119,17 +119,23 @@ theorem newClient.wp_proof
   wp_join iprop(∃ (un pw : GoString) (atb : GoInterface),
       cfg_ptr ↦ p ∗ client_ptr ↦ «$r0_ptr» ∗
       clientF «$r0_ptr» go!"Username" ↦ un ∗ clientF «$r0_ptr» go!"Password" ↦ pw ∗
-      clientF «$r0_ptr» go!"authTokenBundle" ↦ atb ∗ tokenBundleOk atb)
+      clientF «$r0_ptr» go!"authTokenBundle" ↦ atb ∗
+      -- (the auth plan's C1, 2026-10-28) no user name or password and no bundle, or the
+      -- configuration's with a bundle whose tokens meet `P`
+      ((⌜un = go!"" ∨ pw = go!""⌝ ∗ ⌜atb = GoInterface.nil⌝) ∨
+        (⌜un = cfg.Username' ∧ pw = cfg.Password'⌝ ∗ tokenBundleInv atb P)))
     at next with [Hcfgp client Username Password authTokenBundle]
-    as ⟨%un, %pw, %atb, Hcfgp, client, Username, Password, authTokenBundle, #Htb⟩
+    as ⟨%un, %pw, %atb, Hcfgp, client, Username, Password, authTokenBundle, #Hcred⟩
   · by_cases hu : cfg.Username' = []
     · rw [decide_eq_true hu]
       wp_auto
       wp_join_done
       iexists _, _, GoInterface.nil
       iframe
-      iunfold tokenBundleOk
-      ileft; ipureintro; rfl
+      ileft
+      isplitr
+      · ipureintro; left; rfl
+      · ipureintro; rfl
     rw [decide_eq_false hu]
     wp_auto
     by_cases hp : cfg.Password' = []
@@ -138,17 +144,24 @@ theorem newClient.wp_proof
       wp_join_done
       iexists _, _, GoInterface.nil
       iframe
-      iunfold tokenBundleOk
-      ileft; ipureintro; rfl
+      ileft
+      isplitr
+      · ipureintro; right; rfl
+      · ipureintro; rfl
     rw [decide_eq_false hp]
     wp_auto
-    wp_apply wp_NewBundle $$ [] as %atb #Hb
+    wp_apply wp_NewBundle P $$ [] as %atb #Hb
     (try wp_auto)
     wp_join_done
     iexists _, _, atb
     iframe
-    iunfold tokenBundleOk
-    iright; iexact Hb
+    iright
+    iframe Hb
+    ipureintro; exact ⟨rfl, rfl⟩
+  ihave #Htb : iprop(⌜atb = GoInterface.nil⌝ ∨ tokenBundleInv atb P) $$ []
+  · icases Hcred with (⟨-, %Hn⟩ | ⟨-, #Hb⟩)
+    · ileft; ipureintro; exact Hn
+    · iright; iexact Hb
   rw [decide_eq_false (show ¬ (sint.Z (W64 0) < sint.Z cfg.MaxCallSendMsgSize') by
     have : sint.Z (W64 0) = 0 := by decide
     word)]
@@ -172,6 +185,7 @@ theorem newClient.wp_proof
   ipersist cfg
   ipersist creds
   ipersist Username
+  ipersist Password
   ipersist Token
   ipersist authTokenBundle
   ipersist callOpts
@@ -191,16 +205,17 @@ theorem newClient.wp_proof
     ipureintro; intro h; exact absurd rfl h
   ihave #HDOpt : p.[go_etcd_io.etcd.client.v3.Config, go!"DialOptions"] ↦□ cfg.DialOptions' $$ []
   · iexact DialOptions
-  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps atb
+  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps atb P
     $$ [$Hrc $cfg $Hdo $authTokenBundle $Htb $creds $endpoints $Heps $resolver $Hro]
     as %conn %derr Hres
   · ipureintro; exact Hplain
-  icases Hres with (⟨%Hderr, #Hconn⟩ | %Hderr)
+  icases Hres with (⟨%Hderr, #HconnG, #Hctok⟩ | %Hderr)
   · subst Hderr
     wp_auto
     ipersist conn
-    iunfold isEtcdConn at Hconn
-    icases Hconn with ⟨%ic, #Hgc, #Hic, #HicW⟩
+    ihave #HconnG' := HconnG
+    iunfold isEtcdConnG at HconnG'
+    icases HconnG' with ⟨%ic, #Hgc, -⟩
     ihave #Hcore : clientCoreAt (GF := GF) «$r0_ptr» $$ []
     · iunfold clientCoreAt
       iframe HcLg'
@@ -211,18 +226,16 @@ theorem newClient.wp_proof
       isplitr
       · iexists _; iexact callOpts
       iexists _; iexact cfg
-    ihave #Hkv : clientKVAt (GF := GF) «$r0_ptr» eps $$ []
-    · iunfold clientKVAt
+    -- (C1) the objects built before `Auth` without the connection's fact
+    ihave #HkvS : clientKVAtS (GF := GF) «$r0_ptr» conn $$ []
+    · iunfold clientKVAtS
       isplitr
       · ipureintro; exact Hcnn
-      iexists conn, dsl
+      iexists dsl
       iframe conn callOpts Hdslok
-      iunfold isEtcdConn
-      iexists ic
-      iframe Hgc Hic HicW
     wp_apply wp_NewCluster «$r0_ptr» $$ [$Hcore] as %vc -
-    wp_apply wp_NewKV «$r0_ptr» eps $$ [$Hkv] as %vkv ⟨%api, %Hvkv, #Hapi⟩
-    wp_apply wp_NewLease «$r0_ptr» eps $$ [$Hcore $Hkv] as %vl ⟨%lp, %Hvl, #Hlp⟩
+    wp_apply wp_NewKV «$r0_ptr» conn $$ [$HkvS] as %vkv ⟨%api, %Hvkv, #HapiS⟩
+    wp_apply wp_NewLease «$r0_ptr» conn $$ [$Hcore $HkvS] as %vl ⟨%lp, %Hvl, #HlpS⟩
     iunfold callOptsAt at Hdslok
     icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok, -⟩
     have Htb := HV
@@ -231,12 +244,44 @@ theorem newClient.wp_proof
     · isplitr
       · ipureintro; exact Hcnn
       ipureintro; exact Htb
-    wp_apply wp_NewAuth «$r0_ptr» eps $$ [$Hkv] as %va ⟨%ap, %Hva, #Hap⟩
+    wp_apply wp_NewAuth «$r0_ptr» conn $$ [$HkvS] as %va ⟨%ap, %Hva, #HapS⟩
     wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm -
+    subst Hvkv Hvl Hva
     ipersist KV
     ipersist Watcher
     ipersist Lease
     ipersist Auth
+    -- (C1) the client is ready: its `Auth` set, and what the token fetch needs
+    ihave #Hready : clientReady (GF := GF) «$r0_ptr» conn eps $$ []
+    · unfold clientReady
+      iexists ap, P
+      iframe Auth HapS
+      unfold clientAuthAt
+      iexists un, pw, _, atb
+      iframe Username Password Token authTokenBundle Htb
+      isplitr
+      · ileft; ipureintro; rfl
+      icases Hcred with (⟨%Hup, -⟩ | ⟨%Hupc, #Hb⟩)
+      · ileft; ipureintro; exact Hup
+      · obtain ⟨rfl, rfl⟩ := Hupc
+        iunfold clientAuthPre at Hauth
+        icases Hauth with (%Hup | #Hreg)
+        · ileft; ipureintro; exact Hup
+        · iright
+          iframe Hreg
+          iapply tokenBundleInv_nn
+          iexact Hb
+    ihave #Hconn : isEtcdConn (GF := GF) conn eps $$ []
+    · iapply isEtcdConnG_ready
+      iframe HconnG Hready
+    ihave #Hkv : clientKVAt (GF := GF) «$r0_ptr» eps $$ []
+    · iapply clientKVAt_of; iframe HkvS Hconn
+    ihave #Hapi : kvObjAt (GF := GF) api eps $$ []
+    · iapply kvObjAt_of; iframe HapiS Hconn
+    ihave #Hlp : lessorAt (GF := GF) lp eps $$ []
+    · iapply lessorAt_of; iframe HlpS Hconn
+    ihave #Hap : authObjAt (GF := GF) ap eps $$ []
+    · iapply authObjAt_of; iframe HapS Hconn
     ihave #Hcfgf := cfg
     iStructNamed Hcfgf
     wp_auto
@@ -259,8 +304,13 @@ theorem newClient.wp_proof
       iintro !> %Φ' HΦ'
       wp_auto
       iexact HΦ'
-    wp_apply wp_getToken «$r0_ptr» cx cd $$ [$Hrc] as %terr ⟨-, -⟩
-    · iapply ctxOk_of_isContext; iexact Hcx
+    wp_apply wp_getToken «$r0_ptr» conn eps cx cd $$ [$Hrc $Hready] as %terr ⟨-, -⟩
+    · isplitr
+      · inext; iexact Hconn
+      isplitr
+      · iapply ctxOk_of_isContext; iexact Hcx
+      -- (C1, `notes/c1-plan.md`, finding 3) the timeout context's `Err()` gives client errors
+      sorry
     -- (E2d) the token's fetch failed (a client with a user name): the client closed, an error
     cases terr with
     | ok e =>
@@ -289,23 +339,27 @@ theorem newClient.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iunfold isNewClient
-    iframe Hkv Hrc
     isplitl []
-    · iexists api
-      subst Hvkv
-      iframe KV Hapi
-    isplitl []
-    · iexists w, conn, wc, wlg, [ic]
-      subst Hwi
-      iframe Watcher Hgc Hcw
-    isplitl []
-    · iexists lp
-      subst Hvl
-      iframe Lease Hlp
-    iexists ap
-    subst Hva
-    iframe Auth Hap
+    · iunfold isNewClient
+      iframe Hkv Hrc
+      isplitl []
+      · iexists api
+        iframe KV Hapi
+      isplitl []
+      · iexists w, conn, wc, wlg, [ic]
+        subst Hwi
+        iframe Watcher Hgc Hcw
+      isplitl []
+      · iexists lp
+        iframe Lease Hlp
+      iexists ap
+      iframe Auth Hap
+    -- (C1) its KV calls carry the credentials' tokens meeting `P`
+    unfold clientTokAt
+    iexists api, conn
+    iframe KV Hctok
+    iapply kvObjAtC_of
+    iframe HapiS Hconn
   · cases derr with
     | nil => exact absurd rfl Hderr
     | ok e =>

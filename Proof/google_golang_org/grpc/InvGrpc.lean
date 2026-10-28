@@ -46,7 +46,8 @@ module
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
-public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.google_golang_org.grpc.metadata.Outgoing
+public import Code.google_golang_org.grpc.credentials
 
 @[expose] public section
 
@@ -855,13 +856,38 @@ empty name with `"etcdserver: user name is empty"` even with authentication off
 (`authStore.UserAdd`). -/
 opaque noRefusalAt : GoString → Prop
 
+/-- **Metadata's values at the key `k`** (`none` metadata: none). -/
+def mdGet (md : GrpcMd) (k : GoString) : Option (List GoString) := md.bind fun m => m k
+
+/-- **An attempt's values at the key `k`** (the auth plan's C1, 2026-10-28): the per-RPC
+credentials' values `cm` first, then the context's outgoing ones `md` (grpc-go's
+`http2Client.createHeaderFields`: the credentials' pairs, then `metadata.FromOutgoingContext`'s). -/
+def mdMergeAt (cm md : GrpcMd) (k : GoString) : Option (List GoString) :=
+  match mdGet cm k, mdGet md k with
+  | none, v => v
+  | some vs, none => some vs
+  | some vs, some ws => some (vs ++ ws)
+
+/-- **A key grpc sets itself** (the auth plan's C1): a pseudo-header (`:authority`, ...), a
+`grpc-` key, `content-type`, `user-agent` (grpc's, before the caller's), `te`. What an attempt
+delivers at such a key is not stated. -/
+def grpcReservedKey (k : GoString) : Prop :=
+  go!":" <+: k ∨ go!"grpc-" <+: k ∨ k = go!"content-type" ∨ k = go!"user-agent" ∨ k = go!"te"
+
+/-- **The per-RPC credentials of the connection `conn` returned the metadata `cm` to an attempt**
+(opaque; the auth plan's C1, 2026-10-28): `none` if it has none or they returned none; what is
+known of `cm` is the credentials' contract (`credsYield_ok`). -/
+opaque credsYield (conn : Loc) (cm : GrpcMd) : Prop
+
 /-- **The handler of an attempt on the connection `conn` with the caller's context `ctx` sees the
-metadata `md`** (an opaque relation; the auth plan's E3zb): what grpc delivers of the call's
-outgoing metadata (the context's, `metadata.outgoingOf`, and the connection's per-RPC
-credentials'). The attempt contract (`grpcInvokerOk`) gives the method's spec at such an `md`; the
-facts known of it are stated where the client's side of auth is (`examples/authkv`'s contract,
-C1-C4 of `notes/decisions.md`, "E2b of the auth plan"). -/
-opaque grpcAttemptMd (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop
+metadata `md`** (the auth plan's E3zb; a definition since C1, 2026-10-28, until then opaque): on
+every key grpc does not set itself, the values of the connection's per-RPC credentials' metadata
+`cm` for the attempt (`credsYield`), then the context's outgoing metadata (`metadata.outgoingOf`).
+True of grpc-go v1.84 (`http2Client.createHeaderFields`, to check in C1's phase 2); the attempt
+contract (`grpcInvokerOk`) gives the method's spec at such an `md`. -/
+def grpcAttemptMd [GooseExts] (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
+  ∃ cm, credsYield conn cm ∧
+    ∀ k, ¬ grpcReservedKey k → mdGet md k = mdMergeAt cm (metadata.outgoingOf ctx) k
 
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
 connection's interceptor chain; unit P3a): a call of a method registered at every address `addrs`
@@ -921,6 +947,42 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF
 instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (inv : GoFunc) :
     Persistent (grpcInvokerOk (GF := GF) conn addrs inv) := by
   unfold grpcInvokerOk; infer_instance
+
+/-- **Per-RPC credentials' metadata**: `GetRequestMetadata`'s map `mp` (a `map[string]string`;
+`nil` for none) as metadata `cm`, each key with its one value (the auth plan's C1). -/
+def credsMapIs (mp : Loc) (cm : GrpcMd) : IProp GF :=
+  iprop(⌜mp = null ∧ cm = none⌝ ∨ ∃ m : GMap GoString GoString,
+    ownMap mp DFrac.discard m ∗ ⌜cm = some fun k => (m !! k).map fun v => [v]⌝)
+
+/-- **The per-RPC credentials `pc` return metadata meeting `Q`** (persistent; the auth plan's C1,
+2026-10-28): each call of `pc.GetRequestMetadata(ctx, uri...)` that returns no error returns a map
+whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`). -/
+def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterface) (sl : GoSlice),
+    {{ True }}
+      (App (App (App (Val (GoInstruction (MethodResolve
+          google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"GetRequestMetadata")))
+        (Val #pc)) (Val #ctx)) (Val #sl))
+    {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err);
+        ⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm }})
+
+instance perRPCCredsOk_persistent (pc : GoInterface) (Q : GrpcMd → IProp GF) :
+    Persistent (perRPCCredsOk pc Q) := by
+  unfold perRPCCredsOk; infer_instance
+
+/-- **What the per-RPC credentials `pcs` of the connection `conn` returned to its attempts**
+(persistent; the auth plan's C1, 2026-10-28; `grpc.NewClient`'s post, from the credentials'
+contract at the dial, `perRPCCredsOk`): with no credentials, nothing (`none`); with one, metadata
+meeting `Q`; with more, nothing is stated. -/
+def connCredsOk (conn : Loc) (pcs : List GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
+  match pcs with
+  | [] => iprop(⌜∀ cm, credsYield conn cm → cm = none⌝)
+  | [_] => iprop(□ ∀ cm, ⌜credsYield conn cm⌝ -∗ □ Q cm)
+  | _ => iprop(True)
+
+instance connCredsOk_persistent (conn : Loc) (pcs : List GoInterface) (Q : GrpcMd → IProp GF) :
+    Persistent (connCredsOk conn pcs Q) := by
+  unfold connCredsOk; split <;> infer_instance
 
 /-- **The interceptor chain `ics` over the final invoker `inv`** (unit P3a; grpc's
 `chainUnaryClientInterceptors`, `getChainUnaryInvoker`): with no interceptor, the call is `inv`'s;

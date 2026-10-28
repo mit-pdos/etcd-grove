@@ -31,15 +31,15 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem New.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro cfg eps V
-  wp_start as ⟨#Hcfg, %Htb⟩
+  intro cfg eps V P
+  wp_start as ⟨#Hcfg, #Hauth, %Htb⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
-  wp_apply (wp_New cfg eps V) $$ [] as %cl %err Hr
+  wp_apply (wp_New cfg eps V P) $$ [] as %cl %err Hr
   · iframe #
     ipureintro; exact Htb
-  icases Hr with (⟨%He, #Hnc⟩ | ⟨%He, %Hcl⟩)
+  icases Hr with (⟨%He, #Hnc, -⟩ | ⟨%He, %Hcl⟩)
   · subst He
     iapply wp_fupd
     wp_auto

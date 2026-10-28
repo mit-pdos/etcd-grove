@@ -5,14 +5,19 @@ what its dial reads of it (`PerRPCCredentials`, passed to grpc's `WithPerRPCCred
 Lean-first (no Rocq counterpart).
 
 `tokenBundleAt atb` (persistent): `atb` is a `*perRPCCredentialBundle` whose `rc` field (its
-`*perRPCCredential`) is read-only. Nothing is said of the token behind it (`rc`'s `authToken` under
-its lock): the client's `getToken` writes it (an axiom, `Client__getToken.lean`) and grpc reads it
-for each attempt (`GetRequestMetadata`), neither modelled; which token an attempt carries is the
-client's auth contract (`notes/decisions.md`, "E2b of the auth plan", C1).
+`*perRPCCredential`) is read-only.
+
+**The token behind it** (the auth plan's C1, 2026-10-28, `notes/c1-plan.md`): `credTokInv rc P`
+(persistent), an invariant over `rc`'s `authToken` field, `""` or a token meeting `□ P`;
+`tokenBundleInv atb P` is `tokenBundleAt atb` with it. `rc`'s `UpdateAuthToken` (given `""` or a
+`P`-token) and `GetRequestMetadata` (metadata meeting `tokMdOk P`: none, or the one key `token`
+with a `P`-token) are trust-boundary axioms over it (their `RWMutex` read lock needs a reader token
+grpc's per-attempt call cannot give: `notes/c1-plan.md`, finding 2).
 -/
 module
 
 public import GeneratedProof.go_etcd_io.etcd.client.v3.credentials
+public import Proof.google_golang_org.grpc.InvGrpc
 
 @[expose] public section
 
@@ -39,6 +44,51 @@ def tokenBundleAt (atb : GoInterface) : IProp GF :=
 instance tokenBundleAt_persistent (atb : GoInterface) :
     Persistent (tokenBundleAt (GF := GF) atb) := by
   unfold tokenBundleAt; infer_instance
+
+/-- **The per-RPC credentials' metadata of a bundle whose tokens meet `P`** (persistent if `P`
+is; the auth plan's C1): none, or only the key `token` (`rpctypes.TokenFieldNameGRPC`), with one
+token meeting `□ P`. -/
+def tokMdOk (P : GoString → IProp GF) (cm : GrpcMd) : IProp GF :=
+  iprop(⌜∀ k, k ≠ go!"token" → mdGet cm k = none⌝ ∗
+    (⌜mdGet cm go!"token" = none⌝ ∨ ∃ t, ⌜mdGet cm go!"token" = some [t]⌝ ∗ □ P t))
+
+instance tokMdOk_persistent (P : GoString → IProp GF) (cm : GrpcMd) :
+    Persistent (tokMdOk P cm) := by
+  unfold tokMdOk; infer_instance
+
+/-- The credentials' invariant's namespace. -/
+def credTokN : Namespace := nroot.@"etcd_client_creds"
+
+/-- **The token of the per-RPC credentials `rc` is `""` or meets `P`** (persistent; the auth
+plan's C1, see the file header): an invariant over its `authToken` field. -/
+def credTokInv (rc : Loc) (P : GoString → IProp GF) : IProp GF :=
+  iprop(inv credTokN iprop(∃ t : GoString,
+    structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" rc ↦ t ∗
+    (⌜t = go!""⌝ ∨ □ P t)))
+
+instance credTokInv_persistent (rc : Loc) (P : GoString → IProp GF) :
+    Persistent (credTokInv rc P) := by
+  unfold credTokInv; infer_instance
+
+/-- **The token bundle `atb`, its tokens `""` or meeting `P`** (persistent; the auth plan's C1). -/
+def tokenBundleInv (atb : GoInterface) (P : GoString → IProp GF) : IProp GF :=
+  iprop(∃ b rc : Loc,
+    ⌜atb = interface.mkOk
+      (go.GoType.PointerType go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle.ty) #b⌝ ∗
+    structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" b ↦□ rc ∗
+    credTokInv rc P)
+
+instance tokenBundleInv_persistent (atb : GoInterface) (P : GoString → IProp GF) :
+    Persistent (tokenBundleInv atb P) := by
+  unfold tokenBundleInv; infer_instance
+
+theorem tokenBundleInv_at (atb : GoInterface) (P : GoString → IProp GF) :
+    tokenBundleInv (GF := GF) atb P ⊢ tokenBundleAt atb := by
+  unfold tokenBundleInv tokenBundleAt
+  iintro ⟨%b, %rc, %h, #Hrc, -⟩
+  iexists b, rc
+  iframe Hrc
+  ipureintro; exact h
 
 end defs
 

@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 public import Proof.go_etcd_io.etcd.client.v3.InvLessor
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -23,18 +24,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `NewLease(c)` of a client `New` builds (its connection to the server at `addr`, call options,
-configuration and logger, read-only: `clientCoreAt`, `clientKVAt`):
+/-- `NewLease(c)` of a client `New` builds (its connection `conn`, call options, configuration and
+logger, read-only: `clientCoreAt`, `clientKVAtS`):
 `NewLeaseFromLeaseClient(RetryLeaseClient(c), c, c.cfg.DialTimeout + time.Second)`, a `*lessor`
-over the connection (`lessorAt`), as a `Lease`. -/
+over the connection (`lessorAtS`), as a `Lease` (the auth plan's C1, 2026-10-28: without the connection's fact, which `newClient` attaches once
+the client is ready, `InvClientAuth.lean`). -/
 abbrev NewLease.spec : Prop :=
-  ∀ (c : Loc) (addr : List GoString),
+  ∀ (c conn : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCoreAt c ∗
-      clientKVAt c addr }}
+      clientKVAtS c conn }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewLease)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ l : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l⌝ ∗
-      lessorAt l addr }}
+      lessorAtS l conn }}
 
 end spec
 

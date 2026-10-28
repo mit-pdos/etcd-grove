@@ -168,15 +168,6 @@ theorem clientNewVars_of_init :
   ipureintro
   exact Hv.2
 
-/-- **The client's token bundle, if any** (persistent; the auth plan's E2d, 2026-10-25): `nil`, or
-the bundle `NewPerRPCCredentialBundle` makes for a client with a user name and password
-(`tokenBundleAt`), which the dial passes to grpc as per-RPC credentials. -/
-def tokenBundleOk (atb : GoInterface) : IProp GF :=
-  iprop(⌜atb = GoInterface.nil⌝ ∨ tokenBundleAt atb)
-
-instance tokenBundleOk_persistent (atb : GoInterface) : Persistent (tokenBundleOk (GF := GF) atb) := by
-  unfold tokenBundleOk; infer_instance
-
 /-- **What the client's API constructors read of a `*Client`** (persistent; `NewCluster`,
 `NewLease`, `NewAuth`, `NewMaintenance`): non-nil, its logger, its connection, call options and
 configuration, read-only. -/

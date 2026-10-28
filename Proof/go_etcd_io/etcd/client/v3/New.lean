@@ -31,8 +31,8 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
     clientv3.New.spec (GF := GF) (hG := hG) := by
-  intro cfg eps V
-  wp_start as ⟨#Hcfg, %HV⟩
+  intro cfg eps V P
+  wp_start as ⟨#Hcfg, #Hauth, %HV⟩
   ihave #Hcfg' := Hcfg
   iunfold clientCfgOk at Hcfg'
   icases Hcfg' with ⟨#Heps, -, %Hpure⟩
@@ -43,7 +43,7 @@ theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := h
     exact Hpure.1.1 (List.eq_nil_of_length_eq_zero (by rw [h0]; rfl)))]
   wp_auto
   ipersist cfg
-  wp_apply wp_newClient cfg_ptr cfg eps V $$ [$cfg $Hcfg] as %cl %err Hres
+  wp_apply wp_newClient cfg_ptr cfg eps V P $$ [$cfg $Hcfg $Hauth] as %cl %err Hres
   · ipureintro; exact HV
   iapply HΦ
   iexact Hres
