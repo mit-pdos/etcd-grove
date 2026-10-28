@@ -750,7 +750,7 @@ transfer's campaign, a pre-vote request only past term `0`): every premise up to
 vacuous at a type the network does not deliver. `k` is `raft.Step`'s spec at the message (what it
 takes after `RestMsgOk` is left in `X`). Shared by `RawNode.Step` (`RawNode__Step.lean`) and
 `run`'s step (`InvNodeRun.lean`, `wp_rn_raft_Step_net`). -/
-theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md : GMode} {m : MessageM}
+theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md : GMode} {m : MessageM}
     {ents : List EntryM} {sn : Option SnapshotM} {ctx : List w8} {rsp : List Loc} {X : Prop}
     (Hok : NetMsgOk id ⟨m, ents, sn, ctx, rsp⟩) {fp : List EntryM} (Hpv : RNPv rs fp s) (Htrm : rs.term = s.term)
     (Hmtc : uint.Z m.Term' ≤ uint.Z rs.tc)
@@ -785,7 +785,7 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md 
         (∀ sv, sn = some sv →
           snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
           uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-          md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader) ∧
+          md.isDyn = false ∧ s.role = .follower ∧ SnapAckOk γ id sv ∧
           (s.logst.snap ≠ none → s.logst.lent = false →
             uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
           (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index')) ∧

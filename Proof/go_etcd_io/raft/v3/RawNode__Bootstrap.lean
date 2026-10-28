@@ -496,7 +496,8 @@ theorem RawNode.Bootstrap.wp_proof
           (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
           (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
           ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
-            fun h => by simp only at h; rw [HNr] at h; cases h⟩
+            fun h => by simp only at h; rw [HNr] at h; cases h,
+            fun h => (h (by rw [HNls]; simp only [logAppend, Hsn])).elim⟩
           (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
           -- (D22 S-d3a) no snapshot lent
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
@@ -555,7 +556,8 @@ theorem RawNode.Bootstrap.wp_proof
           (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
           (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
           ⟨fun _ _ h => (by simp only at h; rw [HNr] at h; cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
-            fun h => by simp only at h; rw [HNr] at h; cases h⟩
+            fun h => by simp only at h; rw [HNr] at h; cases h,
+            fun h => (h (by rw [HNls]; simp only [logAppend, Hsn])).elim⟩
           (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
           -- (D22 S-d3a) no snapshot lent
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,

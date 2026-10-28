@@ -172,7 +172,9 @@ theorem RawNode.Step.wp_proof
       · -- (2026-10-20, D22 S-c) a snapshot: the static mode, the restore's configuration; (D22
         -- S-d3b) any queue, the acknowledgement's facts carried across the restore (`ackInv_snap`)
         have Hst := Hstat Hs
-        obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hco, Hsl⟩ := Hsfr Hs
+        obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hsl⟩ := Hsfr Hs
+        -- (2026-10-28, stage U0) at the configuration it started at (until then the restore's)
+        have e2 := Hcc (fun h => by rw [Hs] at h; simp [MsgSnap, MsgStorageAppendResp] at h); subst c'
         icases Hsnap $$ %Hs with ⟨%sv0, %scfg0, %Hp0, #Hm0, -, #Hloc0⟩
         obtain ⟨Hsn0, Hcl0, -⟩ := Hp0
         have Hsl0 := Hsl sv0 Hsn0
@@ -184,31 +186,7 @@ theorem RawNode.Step.wp_proof
             rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
         have Hmd : md' = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ := by
           rw [Hst] at Href ⊢; exact Href.1
-        -- (D22 S-b′4) the restored lists' static facts, from the message's certificate (under
-        -- their naming the node: `SnapCfgOut`)
-        icases ownStepGhost_mode γ md' c' id s' $$ Hghost with ⟨%Hgm, Hghost⟩
-        have Hn : γ.reDyn = none := by
-          rw [Hmd, Hst] at Hgm
-          simp only [RNMode.toG, GMode.isDyn] at Hgm
-          cases h : γ.reDyn with
-          | none => rfl
-          | some _ => simp [h] at Hgm
-        ihave #Hcr0 : raftSnapCert γ (snapTrip sv0 scfg0) $$ []
-        · rw [show raftSnapCert (GF := GF) γ (snapTrip sv0 scfg0) =
-        raftSnapCert γ (msgSnapTrip (absSnap m sv0 scfg0)) from rfl]
-          iapply isMessageC_snap_cert γ (absSnap m sv0 scfg0) (by simp [absSnap, absSnapFrom]) $$ Hm0
-        ihave %Hso0 : ⌜scfg0.Has id → scfg0.outgoing = []⌝ $$ []
-        · unfold raftSnapCert
-          icases Hcr0 with ⟨-, %Hs0, -⟩
-          ipureintro; intro hh; exact (Hs0 Hn id hh).2.1
-        have Hal' : c'.autoLeave = false := by
-          rcases Hco with rfl | ⟨sv1, Hsv1, rfl, Hhas⟩
-          · exact Hal
-          · rw [Hsn0] at Hsv1
-            cases Hsv1
-            rw [← Hcl0] at Hhas ⊢
-            simp [snapCfg, csCfgM, Hso0 Hhas]
-        ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c' id s' $$ [Hghost]
+        ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s' $$ [Hghost]
         · rw [← Hmd]; iexact Hghost
         have HnT : m.Type' ≠ MsgTimeoutNow := by rw [Hs]; simp [MsgSnap, MsgTimeoutNow]
         have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
@@ -225,8 +203,8 @@ theorem RawNode.Step.wp_proof
         iapply HΦ $$ %err %s'.term
         isplitl
         · iapply ownRawNode_intro γ rn id
-              { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' c' fp
-              rnv sv hprev steps Hwf' Hin Hal'
+              { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp
+              rnv sv hprev steps Hwf' Hin Hal
               Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
               (fun h => by rcases h with ⟨h, -⟩ | h <;> simp [Hs, Hst, RNMode.isDyn] at h)
               (stepsOk_mono_st s s' _ Ht1 Hsd Hc Ha (tc_le_of_gh Hgh) Hstok) rfl
@@ -243,7 +221,7 @@ theorem RawNode.Step.wp_proof
         rw [Htrm]
         exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
       have e1 := Href.keep (by not_net) Hs; subst e1
-      have e2 := Hcc Hs; subst c'
+      have e2 := Hcc (fun h => absurd h (by not_net)); subst c'
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hs (by not_net) (fun h => absurd h (by not_net))
       obtain ⟨Ht1, -, Ht3, Hip4, Ht5, Hpcs⟩ := Htm Hs
       have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
