@@ -37,6 +37,27 @@ def v3rpc.kvDescMethods : List (GoString × val) :=
    (go!"DeleteRange", @! etcdserverpb._KV_DeleteRange_Handler),
    (go!"Txn", @! etcdserverpb._KV_Txn_Handler), (go!"Compact", @! etcdserverpb._KV_Compact_Handler)]
 
+/-- **The methods of the generated `Auth_ServiceDesc`** (`rpc_grpc.pb.go`), with their generated
+handlers (the auth plan's E3zb). -/
+def v3rpc.authDescMethods : List (GoString × val) :=
+  [(go!"AuthEnable", @! etcdserverpb._Auth_AuthEnable_Handler),
+   (go!"AuthDisable", @! etcdserverpb._Auth_AuthDisable_Handler),
+   (go!"AuthStatus", @! etcdserverpb._Auth_AuthStatus_Handler),
+   (go!"Authenticate", @! etcdserverpb._Auth_Authenticate_Handler),
+   (go!"UserAdd", @! etcdserverpb._Auth_UserAdd_Handler),
+   (go!"UserGet", @! etcdserverpb._Auth_UserGet_Handler),
+   (go!"UserList", @! etcdserverpb._Auth_UserList_Handler),
+   (go!"UserDelete", @! etcdserverpb._Auth_UserDelete_Handler),
+   (go!"UserChangePassword", @! etcdserverpb._Auth_UserChangePassword_Handler),
+   (go!"UserGrantRole", @! etcdserverpb._Auth_UserGrantRole_Handler),
+   (go!"UserRevokeRole", @! etcdserverpb._Auth_UserRevokeRole_Handler),
+   (go!"RoleAdd", @! etcdserverpb._Auth_RoleAdd_Handler),
+   (go!"RoleGet", @! etcdserverpb._Auth_RoleGet_Handler),
+   (go!"RoleList", @! etcdserverpb._Auth_RoleList_Handler),
+   (go!"RoleDelete", @! etcdserverpb._Auth_RoleDelete_Handler),
+   (go!"RoleGrantPermission", @! etcdserverpb._Auth_RoleGrantPermission_Handler),
+   (go!"RoleRevokePermission", @! etcdserverpb._Auth_RoleRevokePermission_Handler)]
+
 /-- `getServerMetrics`'s lock (the package variable `metricsServerLock`). -/
 abbrev v3rpc.metricsMu : Loc := globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.metricsServerLock
 
@@ -89,8 +110,12 @@ def v3rpc.svcDescsOk : IProp GF :=
       etcdserverpb.LeaseServer.ty ∗
     v3rpc.descOk (globalAddr etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster"
       etcdserverpb.ClusterServer.ty ∗
-    v3rpc.descOk (globalAddr etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth"
-      etcdserverpb.AuthServer.ty ∗
+    (∃ (mds : List google_golang_org.grpc.MethodDesc)
+        (sds : List google_golang_org.grpc.StreamDesc),
+      go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth"
+        (v3rpc.handlerTy etcdserverpb.AuthServer.ty) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.authDescMethods ∧
+        sds.map (·.StreamName') = []⌝) ∗
     v3rpc.descOk (globalAddr etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
       etcdserverpb.MaintenanceServer.ty)
 

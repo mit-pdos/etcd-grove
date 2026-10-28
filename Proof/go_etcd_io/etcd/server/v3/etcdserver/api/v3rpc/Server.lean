@@ -327,11 +327,10 @@ theorem v3rpc.Server.wp_proof
     SrvOptKind.unary, SrvOptKind.stream, List.nil_append, List.append_nil]
   (try wp_auto)
   iunfold v3rpc.svcDescsOk at Hdescs
-  icases Hdescs with ⟨⟨%kmds, %ksds, #HdKV, %HkvD⟩, ⟨%wsds, #HdW, %HwD⟩, HdL, HdC, HdA, HdM⟩
-  iunfold v3rpc.descOk at HdL HdC HdA HdM
+  icases Hdescs with ⟨⟨%kmds, %ksds, #HdKV, %HkvD⟩, ⟨%wsds, #HdW, %HwD⟩, HdL, HdC, ⟨%amds, %asds, #HdA, %HaD⟩, HdM⟩
+  iunfold v3rpc.descOk at HdL HdC HdM
   icases HdL with ⟨%lmds, %lsds, #HdL, %HlD⟩
   icases HdC with ⟨%cmds, %csds, #HdC, %HcD⟩
-  icases HdA with ⟨%amds, %asds, #HdA, %HaD⟩
   icases HdM with ⟨%mmds, %msds, #HdM, %HmD⟩
   ihave #HdKV := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdKV
   ihave #HdW := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdW
@@ -384,12 +383,13 @@ theorem v3rpc.Server.wp_proof
       ⟨_, rfl, v3rpc.ServerMethodSets.cluster_te⟩⟩
     exact v3rpc.ServerMethodSets.cluster_impl
   (try wp_auto)
-  wp_apply (hNewA s) as %pa -
+  wp_apply (hNewA s) as %pa #Hpa
   (try wp_auto)
   wp_apply (hRegA gs _ _ _ _ _ _ _ _ amds asds) $$ [Hgs] as Hgs
   · iframe; iframe #
     ipureintro
-    refine ⟨by decide, ⟨etcdserverpb.AuthServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩, HaD,
+    refine ⟨by decide, ⟨etcdserverpb.AuthServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩,
+      v3rpc.authDesc_nodup amds asds HaD,
       ⟨_, rfl, v3rpc.ServerMethodSets.auth_te⟩⟩
     exact v3rpc.ServerMethodSets.auth_impl
   (try wp_auto)
@@ -416,7 +416,7 @@ theorem v3rpc.Server.wp_proof
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
-  iexists q, p, pw, il, im, iu, ims, is, _, _, _, cid, mid',
+  iexists q, p, pw, pa, il, im, iu, ims, is, _, _, _, cid, mid',
     ⟨s, C.E, C.wsl, C.γ, cidw, midw, lgw, C.m + W64 (512 * 1024)⟩, d'
   iframe Hgs
   isplitr
@@ -425,7 +425,11 @@ theorem v3rpc.Server.wp_proof
     · intro x hx
       have := v3rpc.kvRegs_sub q kmds HkvD.1 x hx
       simp [List.mem_append, this]
+    constructor
     · have := v3rpc.watchSReg_mem pw wsds HwD
+      simp [List.mem_append, this]
+    · intro x hx
+      have := v3rpc.authRegs_sub pa amds HaD.1 x hx
       simp [List.mem_append, this]
   iframe
   iframe #

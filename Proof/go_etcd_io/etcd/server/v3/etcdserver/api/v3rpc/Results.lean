@@ -971,20 +971,6 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
-/-- **What `RegisterAuthServer(gs, p)` registers of the Auth service's methods we specify** (the
-`ServiceDesc`'s `MethodDesc`s under `"/etcdserverpb.Auth/"`, with the service value). -/
-def etcdAuthRegs (p : Loc) : List (GoString × val × GoInterface) :=
-  [(go!"/etcdserverpb.Auth/UserAdd", (@! etcdserverpb._Auth_UserAdd_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/UserGrantRole", (@! etcdserverpb._Auth_UserGrantRole_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/RoleAdd", (@! etcdserverpb._Auth_RoleAdd_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/RoleGrantPermission", (@! etcdserverpb._Auth_RoleGrantPermission_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/AuthEnable", (@! etcdserverpb._Auth_AuthEnable_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p)]
-
 /-- **etcd's Auth methods** as registered, with etcd's specs. -/
 def etcdAuthMethods (p : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : List (GrpcMethod GF) :=
   [⟨go!"/etcdserverpb.Auth/UserAdd", pbAuthUserAddRequest, pbAuthUserAddResponse, etcdUserAddSpec E ρ,
@@ -1000,7 +986,7 @@ def etcdAuthMethods (p : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : List (GrpcMe
 
 /-- **etcd's server serves its Auth methods** (the auth plan's E3za; as `etcd_kv_served`): the gRPC
 server at `addr` built with the chain `ics` of transparent interceptors (with their per-run
-resources `Rs`), with the Auth service registered on the `*AuthServer` `p` (`etcdAuthRegs p` among
+resources `Rs`), with the Auth service registered on the `*AuthServer` `p` (`v3rpc.authRegs p` among
 the registered methods), that hands the runtime `N` run slots (`authSlot` and the interceptors'),
 registers etcd's specs of `UserAdd`, `UserGrantRole`, `RoleAdd`, `RoleGrantPermission` and
 `AuthEnable` at `addr` (`isGrpcRpc`). Premises: the server's with auth on (`isServerReqM true`,
@@ -1010,7 +996,7 @@ contracts, the packages'. -/
 theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (ast : GoInterfaceOk) (ics : List GoFunc) (Rs : List (IProp GF))
     (regs : List (GoString × val × GoInterface)) (N : Nat)
-    (hregs : ∀ x ∈ etcdAuthRegs (GF := GF) p, x ∈ regs) :
+    (hregs : ∀ x ∈ v3rpc.authRegs p, x ∈ regs) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.authServerIs p s ∗ isServerReqM true s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
@@ -1052,7 +1038,7 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
       intro x hx
       apply hregs
       simp only [etcdAuthMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [etcdAuthRegs])) $$ [Hl Hslots] with Hrpcs
+      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [v3rpc.authRegs])) $$ [Hl Hslots] with Hrpcs
   · iframe
     imodintro
     simp only [etcdAuthMethods]

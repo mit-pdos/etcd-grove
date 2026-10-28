@@ -72,8 +72,8 @@ theorem Serve.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
   wp_apply (wp_Server Hms s C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo Hwp]
-    as %gs ⟨%q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
-      Hgsn, %Hregs, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
+    as %gs ⟨%q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
+      Hgsn, %Hregs, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
       Hwpi2⟩
   · iframe; iframe #
     isplitr
@@ -100,7 +100,7 @@ theorem Serve.wp_proof
     iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs, d'
     iframe; iframe #
     ipureintro
-    exact ⟨HC.1, HC.2, Hregs.1, Hregs.2, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
+    exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
   imod HG $$ %gs %lis %cid %mid %R Hup with ⟨Hserv, HQ⟩
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]
