@@ -82,7 +82,9 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.bkRTx γ P b) := by
   unfold backend.newPost
-  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd⟩
+  -- (the backend-compaction stage's `dlInit`: unused while the server's store keeps the old
+  -- bridge, `notes/backend-cmp-plan.md`)
+  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, -⟩
   iframe Hb Hsc Hh Hrb
   icases (backend.bOpen_one_shares γ).1 $$ Ho with ⟨Ho, Hos⟩
   ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$Hrd $Hos]

@@ -280,7 +280,8 @@ theorem applySnapshot_walk
   subst Herr Hbe
   iunfold backend.newPostK at Hnew
   simp only
-  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT⟩
+  -- (the new backend's `dlInit`, the backend-compaction stage's: unused here, no compaction)
+  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, -⟩
   obtain ⟨d', hγ', hbe', hgx', hP'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧ d'.gx = gx' ∧
       d'.P = d.P := ⟨{ d with γB := γB, be := nb, gx := gx' }, rfl, rfl, rfl, rfl⟩
   rw [← hbe']

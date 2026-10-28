@@ -17,6 +17,7 @@ counterpart); 2026-10-17, branch `construct`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvStop
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 
 @[expose] public section
 
@@ -58,7 +59,9 @@ def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (
     IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ bOpen γ 1 ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗ ownToks γ.wb wbInit ∗
-    rbOwn γ (rbData P D) ∗ [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b)
+    rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
+    -- (the backend-compaction stage, Draft round 2) the creator's part of the deletable keys
+    dlInit γ)
 
 end preds
 
@@ -154,15 +157,16 @@ def newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc
     IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
-    rbOwn γ (rbData P D) ∗ [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b)
+    rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
+    dlInit γ)
 
 /-- The constructor's post with the payment rights kept is `newPost`. -/
 theorem newPost_of_K (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :
     newPostK (GF := GF) γ P W Pk bFresh b D ⊢ newPost γ P W Pk b D := by
   unfold newPostK bFresh
-  iintro ⟨Hb, Hs, ⟨Ht, Ho⟩, Hv, Hh, Hr, Hrd⟩
+  iintro ⟨Hb, Hs, ⟨Ht, Ho⟩, Hv, Hh, Hr, Hrd, Hdl⟩
   unfold newPost
-  iframe Hb Hs Ho Hv Hh Ht Hr Hrd
+  iframe Hb Hs Ho Hv Hh Ht Hr Hrd Hdl
 
 end preds2
 

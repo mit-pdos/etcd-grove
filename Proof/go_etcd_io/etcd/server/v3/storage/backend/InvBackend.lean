@@ -96,6 +96,12 @@ structure BNames where
   the restore plan's R5a, 2026-10-23), half the clients' (inside `bView`), half `readTx.mu`'s
   (`RdSt.cln`) -/
   cln : GName
+  /-- saved predicate: the deletable keys' registration (`DelKeys.lean`, `dlReg`; the
+  backend-compaction stage, decision O1): allocated by the constructor at `False` (nothing
+  deletable), its whole fraction to the creator (`dlInit`), who fixes the predicate once -/
+  dlg : GName
+  /-- `dghostVar Bool`: "no safe-range key deleted yet" (`dlNone`, decision O2), the creator's -/
+  dln : GName
 
 section phys
 variable [GooseExts]

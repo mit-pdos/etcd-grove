@@ -2108,8 +2108,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **The `Key` bucket's deletable keys** (the backend-compaction stage, `notes/backend-cmp-plan.md`
-3.2, decision O1; Draft, 2026-10-28): the keys the backend's creator registered at `g`. -/
-def bkDel (g : GName) (k : GoString) : IProp GF := backend.dlIs g (go!"key", k)
+3.2, decision O1; Draft, 2026-10-28): the keys the backend's creator registered (at the backend's
+`γ.dlg`, Draft round 2). -/
+def bkDel (γ : backend.BNames) (k : GoString) : IProp GF := backend.dlIs γ (go!"key", k)
 
 /-- **A one-shot delete permit** (3.4, decision O3): the limited range hands one out per key it
 returns and `UnsafeDelete` spends it, so a compaction session's operations stay within the
@@ -2250,7 +2251,7 @@ theorem isKeyBackendG_of_backend
 
 /-- **The bridge with the compaction** (the backend-compaction stage, `notes/backend-cmp-plan.md`
 section 2; Draft, 2026-10-28): `isKeyBackendG_of_backend` with `Cmp` true, the deletable keys those
-registered at `g` (`bkDel`, decision O1), the one-shot delete permits at `gp` (`bkDP`, O3) and the
+registered at the backend's names (`bkDel`, decision O1), the one-shot delete permits at `gp` (`bkDP`, O3) and the
 safe-range slot (`srSlot`/`srHeld`, 3.4). Its non-compaction clauses are the old bridge's proofs;
 the compaction's clauses are the stage's new cases. The stores switch to it (`kbCmp := True`, O5)
 when it is proved. -/
@@ -2278,13 +2279,13 @@ theorem isKeyBackendG_of_backendC
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc)
-    (g gp : GName) :
+    (gp : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗ keySized γ P b ⊢
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
-        (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk (bkDel g) W W iprop(True) True Pk (bkHookIs γ)
+        (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk (bkDel γ) W W iprop(True) True Pk (bkHookIs γ)
         (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
         (bkBt b) (bkDP gp) (srSlot b) (srHeld b) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
@@ -2293,10 +2294,10 @@ theorem isKeyBackendG_of_backendC
   isplitr
   · ipureintro; rfl
   isplitr
-  · iapply bridge_crt hCRT hcRL hcRU hcUR hID hName hSafe hP γ W Pk b (bkDel g)
+  · iapply bridge_crt hCRT hcRL hcRU hcUR hID hName hSafe hP γ W Pk b (bkDel γ)
       $$ [$Hpkg $Hsch $Hb]
   isplitr
-  · iapply bridge_rt hRT hrRL hrRU hrUR hID hName hSafe hP γ W Pk b (bkDel g)
+  · iapply bridge_rt hRT hrRL hrRU hrUR hID hName hSafe hP γ W Pk b (bkDel γ)
       $$ [$Hpkg $Hsch $Hb $Hsafe]
   isplitr
   · iintro !> %Φ !> - HΦ
@@ -2315,7 +2316,7 @@ theorem isKeyBackendG_of_backendC
       isplitr
       · iapply bt_unlock hUL hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr
-      · iapply bt_range hbUR hID hName hSafe hP γ W Pk b t (bkDel g) $$ [$Hpkg $Hsch $Hb $Ht]
+      · iapply bt_range hbUR hID hName hSafe hP γ W Pk b t (bkDel γ) $$ [$Hpkg $Hsch $Hb $Ht]
       isplitr
       · iapply bt_lockOutJ hLO hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr

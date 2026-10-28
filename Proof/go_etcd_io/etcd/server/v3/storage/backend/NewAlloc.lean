@@ -485,8 +485,13 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod ghostVar_alloc (hkData P D) with ⟨%ghkd, Hhkd⟩
   imod ghostVar_alloc (rbData P D) with ⟨%grbk, Hrbk⟩
   imod ghostVar_alloc true with ⟨%gcln, Hcln⟩
+  -- (the backend-compaction stage, O1/O2) the deletable keys' registration, nothing yet, and
+  -- "no safe-range key deleted"
+  imod saved_pred_alloc (A := GoString × GoString) (fun _ => iprop(False)) (DFrac.own 1)
+    DFrac.valid_own_one with ⟨%gdlg, Hdlg⟩
+  imod dghostVar_alloc true with ⟨%gdln, Hdln⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
-    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln⟩
+    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdln⟩
   let rd0 : RdSt := ⟨rtx, wg, gw, go, gt, 0, false, true, true⟩
   -- the shares
   icases gv_halves gview _ $$ Hview with ⟨Hviewc, Hview⟩
@@ -593,7 +598,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   iexists γ
   isplitr
   · ipureintro; rfl
-  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds]
+  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdln]
   · unfold newPostK
     isplitr
     · iexact Hb
@@ -612,7 +617,10 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
       iexact Hhookc
     isplitl [Hrbkc]
     · unfold rbOwn; iexact Hrbkc
-    iexact Hrds
+    isplitl [Hrds]
+    · iexact Hrds
+    unfold dlInit dlNone
+    iframe Hdlg Hdln
   unfold runTok
   iframe Hstop Hdcp Hstk Hopnr Husedr
 

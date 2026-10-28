@@ -42,12 +42,12 @@ safe-range bucket too, for a key registered as deletable at `g` (`dlIs`, decisio
 readers then may miss (3.2). Replaces `spec` once proved (its proof: the batch lemmas over
 `safeStC`). -/
 abbrev backend.batchTxBuffered.UnsafeDelete.specC : Prop :=
-  ∀ (γ : BNames) (g : GName) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess)
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess)
     (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac),
   P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
       bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗
-      rbPut γ P bi.name st.S ∗ (if P.SB bi.name then dlIs g (bi.name, kb) else iprop(True)) }}
+      rbPut γ P bi.name st.S ∗ (if P.SB bi.name then dlIs γ (bi.name, kb) else iprop(True)) }}
     (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
   {{ RET #(); batchLocked γ P b (st.del bi kb) ∗ key ↦*{dk} kb ∗ rbPut γ P bi.name (st.del bi kb).S }}
 
