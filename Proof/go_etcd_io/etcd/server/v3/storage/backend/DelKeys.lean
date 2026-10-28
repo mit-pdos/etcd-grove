@@ -9,14 +9,15 @@ the clients hold, missing only keys registered as deletable. The keys are regist
 predicate `Φ` the backend's creator fixes (decision O1: a saved predicate, `dlReg`; mvcc's is its
 late-bound `delKey`), so the backend's specs need no new parameter.
 
-D22's clean read, restore over a new backend and snapshot sender rely on an exact view; the
-exclusive token `dlNone` (decision O2), which the backend's opener returns and the first deletion
-of a safe-range key consumes, gives its holder exactness.
+D22's clean read, restore over a new backend and snapshot sender rely on an exact view: they hold
+the registration unfixed (`dlInit`, the opener's), which rules out every deletable key
+(`dlInit_noDel`), so that a thin view is exact for them (after review round 1, F6: the exclusive
+token `dlNone` of decision O2, linked to nothing, was dropped).
 
 Draft: the definitions the changed statements are written in. The registration's name is the
 backend's (`BNames.dlg`, Draft round 2): the constructor allocates it at `False` and gives its whole
-fraction, with `dlNone`, to the creator (`dlInit`, in the constructor's post), who fixes the
-predicate once (`dlReg_fix`). The invariants' use of `thinV` (`rtRest`, `batchGhostAt`,
+fraction to the creator (`dlInit`, in the constructor's post), who fixes the predicate once
+(`dlReg_fix`) or keeps it unfixed for an exact view (`dlInit_noDel`). The invariants' use of `thinV` (`rtRest`, `batchGhostAt`,
 `cacheValid`) is the stage's next Draft step.
 -/
 module
@@ -72,28 +73,32 @@ theorem thinV_refl (γ : BNames) (vd : VData) : ⊢ thinV (GF := GF) γ vd vd :=
   · iintro !> %nk %h
     exact absurd h.2 h.1
 
-/-- **No safe-range key deleted yet** (exclusive; decision O2): its holder knows the view exact
-(`thinV … vd L → vd = L`, the stage's next step). The backend's opener returns it; the first
-`UnsafeDelete` of a safe-range bucket consumes it. -/
-def dlNone (γ : BNames) : IProp GF := dghostVar γ.dln (DFrac.own 1) true
-
 /-- **The creator's part of a new backend's deletable keys** (Draft round 2): the registration's
-whole fraction, at `False` (nothing deletable), and `dlNone`; in the constructor's post
-(`newPost`). -/
+whole fraction, at `False` (nothing deletable); in the constructor's post (`newPost`). -/
 def dlInit (γ : BNames) : IProp GF :=
-  iprop(savedPredOwn γ.dlg (DFrac.own 1) (fun _ : GoString × GoString => iprop(False)) ∗ dlNone γ)
+  savedPredOwn γ.dlg (DFrac.own 1) (fun _ : GoString × GoString => iprop(False))
 
 /-- **The creator fixes the deletable keys once** (decision O1): the registration at `Φ`, read-only
-from then on; `dlNone` stays the creator's. -/
+from then on. -/
 theorem dlReg_fix (γ : BNames) (Φ : GoString × GoString → IProp GF) :
-    dlInit (GF := GF) γ ⊢ |==> (dlReg γ Φ ∗ dlNone γ) := by
+    dlInit (GF := GF) γ ⊢ |==> dlReg γ Φ := by
   unfold dlInit
-  iintro ⟨Hs, Hn⟩
+  iintro Hs
   imod saved_pred_update Φ γ.dlg _ $$ Hs with Hs
   imod saved_pred_persist γ.dlg _ Φ $$ Hs with Hs
   imodintro
   iunfold dlReg
-  iframe Hs Hn
+  iexact Hs
+
+/-- **An unfixed registration rules out every deletable key** (review round 1, F6(b)): its whole
+fraction and a fixed registration's discarded one are not valid together. So a holder of `dlInit`
+(D22's exact readers) knows every `thinV` exact. -/
+theorem dlInit_noDel (γ : BNames) (nk : GoString × GoString) :
+    dlInit (GF := GF) γ ∗ dlIs γ nk ⊢ False := by
+  unfold dlInit dlIs dlReg
+  iintro ⟨Hs, %Φ, Hr, -⟩
+  ihave ⟨%Hv, -⟩ := saved_pred_valid_2 γ.dlg _ _ _ _ nk $$ Hs Hr
+  exact absurd (DFrac.valid_own_op_discard.1 Hv) (by decide)
 
 /-- **The safe-range discipline without the "no deletes" clause** (3.1; Draft): `safeSt`'s first two
 parts. A committed key of a safe-range bucket need not be in the writer's contents any more
@@ -124,6 +129,24 @@ def viOk (VI : GoString → GoString → GoString → Prop) (D : Data) : Prop :=
   ∀ n k v, (bktOf D n).lookup k = some v → VI n k v
 
 end defs
+
+section slot
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **The safe-range deletion's slot** (3.4; one definition after review round 1, F9): a reader's
+slot of the backend's `safeRangeDeleteMu`, which mvcc's compaction session holds (`kbSR`) and the
+bridge's `LockForSafeRangeDelete` read-locks. -/
+def srSlot (b : Loc) : IProp GF :=
+  sync.ownRWMutex (bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True))
+
+/-- The slot read-locked (between `LockForSafeRangeDelete` and `UnlockForSafeRangeDelete`). -/
+def srHeld (b : Loc) : IProp GF :=
+  sync.ownRWMutexRLocked (bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True))
+
+end slot
 
 end backend
 end EtcdGrove

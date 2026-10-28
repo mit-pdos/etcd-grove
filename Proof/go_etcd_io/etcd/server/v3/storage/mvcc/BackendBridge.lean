@@ -2117,15 +2117,6 @@ returns and `UnsafeDelete` spends it, so a compaction session's operations stay 
 backend's bound (`pend < 2^58`, with the scope premise `CompactionBatchLimit ≤ 2^56`). -/
 def bkDP (gp : GName) (_k : GoString) : IProp GF := ownToks gp 1
 
-/-- **The safe-range deletion's slot** (3.4): a reader's slot of the backend's
-`safeRangeDeleteMu`. -/
-def srSlot (b : Loc) : IProp GF :=
-  sync.ownRWMutex (backend.bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True))
-
-/-- The slot read-locked (between `LockForSafeRangeDelete` and `UnlockForSafeRangeDelete`). -/
-def srHeld (b : Loc) : IProp GF :=
-  sync.ownRWMutexRLocked (backend.bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True))
-
 end cmpvocab
 
 /-! ## The bridge -/
@@ -2287,7 +2278,7 @@ theorem isKeyBackendG_of_backendC
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk (bkDel γ) W W iprop(True) True Pk (bkHookIs γ)
         (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
-        (bkBt b) (bkDP gp) (srSlot b) (srHeld b) := by
+        (bkBt b) (bkDP gp) (backend.srSlot b) (backend.srHeld b) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩

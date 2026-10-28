@@ -70,8 +70,10 @@ theorem backend.batchTx.UnsafeDelete.wp_proof
   obtain ⟨m, Hm⟩ : ∃ m, st.S.lookup bi.name = some m := Option.ne_none_iff_exists'.mp Hn
   wp_if_destruct
   · exact absurd rfl Hnn
-  wp_apply (hDelete st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key kb dk rfl Hm)
-    $$ [$Hwtx $Hwb $Hkey] as ⟨Hwtx, Hkey⟩
+  -- the caller's own key slice (`Delete_kv`'s `own`)
+  have hDel := hDelete st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key kb dk true rfl Hm
+  simp only [↓reduceIte] at hDel
+  wp_apply hDel $$ [$Hwtx $Hwb $Hkey] as ⟨Hwtx, Hkey⟩
   iapply HΦ
   unfold BSess.del bktOf
   rw [Hm]

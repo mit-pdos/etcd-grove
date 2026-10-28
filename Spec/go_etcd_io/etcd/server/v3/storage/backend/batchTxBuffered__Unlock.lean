@@ -53,15 +53,18 @@ abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
 sessions, which hold no clients' share of the view: their commit may make the physical view (the
 writer's contents `sData P st.S`) miss keys, registered as deletable (`γ.dlg`), of the view the
 batch lock holds (`vData P (st.C, st.R)`, its quarter of `γ.view`: the logical view once the
-invariants are over it, Draft round 2's next step; the clients' view keeps it). Replaces `spec`
-once proved (`cacheValidC`, the commit path). -/
+invariants are over it, Draft round 2's next step; the clients' view keeps it), and whose write
+buffer holds no puts to the non-hook buckets (review round 1, F8: `Unlock` writes the buffer back
+into the read buffer before committing, so such a put would be seen by readers between the two).
+`spec`'s first branch (`viewSame`) is the instance with an exact view (`thinV_refl`), so it is not
+repeated. Replaces `spec` once proved (`cacheValidC`, the commit path). -/
 abbrev backend.batchTxBuffered.Unlock.specC : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF),
   st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
       bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗
-      ((⌜viewSame P st⌝ ∗ W ∗ Pk ∗ Q) ∨
-       (thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗ W ∗ Pk ∗ Q) ∨
+      ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
+         ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
        (∃ vd : VData, bView γ 1 vd ∗ Pk ∗ (bView γ 1 (sData P st.S) -∗ W ∗ Q))) }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
   {{ RET #(); Q }}

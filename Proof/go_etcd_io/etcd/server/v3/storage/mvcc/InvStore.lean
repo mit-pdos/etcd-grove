@@ -41,6 +41,7 @@ public import Perennial.Ghost.DGhostVar
 public import Perennial.Proof.TokSet
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevOrder
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
@@ -201,14 +202,14 @@ instance dbNames_countable : Pos.Countable backend.DBNames :=
 
 instance bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
-    (fun x : backend.BNames => (x.dlg, x.dln, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
+    (fun x : backend.BNames => (x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
       x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
-    (fun r0 => let q0 := r0.2.2; let q := q0.2; let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
+    (fun r0 => let q0 := r0.2; let q := q0.2; let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1, r0.2.1⟩)
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1⟩)
     (fun _ => rfl)
 
 instance kbReal_countable : Pos.Countable KBReal :=
@@ -1419,7 +1420,7 @@ defragmentation, out of scope, is its only writer). -/
 def kbSR (kb : Option KBReal) : IProp GF :=
   match kb with
   | none => iprop(True)
-  | some d => sync.ownRWMutex (backend.bF go!"safeRangeDeleteMu" d.be) (fun _ => iprop(True))
+  | some d => backend.srSlot d.be
 
 /-- **The write-back tokens' supply** in the instance `kb` (3.4, decision O4): for the real
 backend, a write session's token for each time receipt (the server's receipt-funded pool,

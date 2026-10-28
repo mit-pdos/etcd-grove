@@ -100,8 +100,6 @@ structure BNames where
   backend-compaction stage, decision O1): allocated by the constructor at `False` (nothing
   deletable), its whole fraction to the creator (`dlInit`), who fixes the predicate once -/
   dlg : GName
-  /-- `dghostVar Bool`: "no safe-range key deleted yet" (`dlNone`, decision O2), the creator's -/
-  dln : GName
 
 section phys
 variable [GooseExts]
