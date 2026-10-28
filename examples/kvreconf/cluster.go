@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/goose-lang/primitive"
 	"go.etcd.io/raft/v3"
 	pb "go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/proto"
@@ -30,49 +29,37 @@ func (quietLogger) Fatalf(format string, v ...interface{})   { panic(fmt.Sprintf
 func (quietLogger) Panic(v ...interface{})                   { panic(fmt.Sprint(v...)) }
 func (quietLogger) Panicf(format string, v ...interface{})   { panic(fmt.Sprintf(format, v...)) }
 
-// Stats counts what a run exercised.
+// Stats counts what a run exercised (per replica: an entry applied by three replicas counts
+// three times). It is for the tests' coverage checks; the store does not read it.
 type Stats struct {
-	SnapshotsTaken        atomic.Uint64
-	SnapshotsSent         atomic.Uint64
-	SnapshotsInstalled    atomic.Uint64
-	SnapshotsReconfigured atomic.Uint64 // installed with a configuration other than the bootstrap's
-	SimpleChanges         atomic.Uint64
-	JointChanges          atomic.Uint64
-	ConfChangesRejected   atomic.Uint64 // retried copies a replica did not apply
-	ReplicasAdded         atomic.Uint64
-	ReplicasRemoved       atomic.Uint64
-	Partitions            atomic.Uint64
-	Transfers             atomic.Uint64
-	Dropped               atomic.Uint64
-	Retries               atomic.Uint64
+	SnapshotsTaken             atomic.Uint64
+	SnapshotsTakenJoint        atomic.Uint64 // at a joint configuration
+	SnapshotsSent              atomic.Uint64
+	SnapshotsInstalled         atomic.Uint64
+	SnapshotsInstalledJoint    atomic.Uint64
+	SnapshotsInstalledLearners atomic.Uint64
+	Compactions                atomic.Uint64
+	ConfChangesProposed        atomic.Uint64
+	ConfChangesApplied         atomic.Uint64
+	ConfChangesRejected        atomic.Uint64 // committed but invalid where applied
+	JointEntered               atomic.Uint64
+	ReplicasStarted            atomic.Uint64
+	Dropped                    atomic.Uint64
+	Duplicated                 atomic.Uint64
+	Delayed                    atomic.Uint64
+	Retries                    atomic.Uint64
 }
 
 func (s *Stats) add(c *atomic.Uint64) { c.Add(1) }
 
 func (s *Stats) String() string {
-	return fmt.Sprintf("snapshots taken %d, sent %d, installed %d (%d at a changed configuration); "+
-		"conf changes simple %d, joint %d, duplicates rejected %d; replicas added %d, removed %d; "+
-		"partitions %d, leadership transfers %d, messages dropped %d, client retries %d",
-		s.SnapshotsTaken.Load(), s.SnapshotsSent.Load(), s.SnapshotsInstalled.Load(), s.SnapshotsReconfigured.Load(),
-		s.SimpleChanges.Load(), s.JointChanges.Load(), s.ConfChangesRejected.Load(),
-		s.ReplicasAdded.Load(), s.ReplicasRemoved.Load(),
-		s.Partitions.Load(), s.Transfers.Load(), s.Dropped.Load(), s.Retries.Load())
-}
-
-// initialVoters is the bootstrap configuration of every cluster.
-var initialVoters = []uint64{1, 2, 3}
-
-// sameIDs says whether a and b hold the same ids, in any order.
-func sameIDs(a, b []uint64) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for _, x := range a {
-		if !hasID(b, x) {
-			return false
-		}
-	}
-	return true
+	return fmt.Sprintf("snapshots taken %d (%d joint), sent %d, installed %d (%d joint, %d with learners), compactions %d; "+
+		"conf changes proposed %d, applied %d, rejected %d, joint entered %d; replicas started %d; "+
+		"messages dropped %d, duplicated %d, delayed %d; client retries %d",
+		s.SnapshotsTaken.Load(), s.SnapshotsTakenJoint.Load(), s.SnapshotsSent.Load(), s.SnapshotsInstalled.Load(),
+		s.SnapshotsInstalledJoint.Load(), s.SnapshotsInstalledLearners.Load(), s.Compactions.Load(),
+		s.ConfChangesProposed.Load(), s.ConfChangesApplied.Load(), s.ConfChangesRejected.Load(), s.JointEntered.Load(),
+		s.ReplicasStarted.Load(), s.Dropped.Load(), s.Duplicated.Load(), s.Delayed.Load(), s.Retries.Load())
 }
 
 // hasID says whether id is in ids.
@@ -85,116 +72,113 @@ func hasID(ids []uint64, id uint64) bool {
 	return false
 }
 
-// Options are a cluster's faults and raft's optional features.
+// Options are a cluster's size and raft's options.
 type Options struct {
-	DropOneIn   uint64 // drop one message in DropOneIn at random (0: none)
-	PreVote     bool
-	CheckQuorum bool
+	Voters            uint64 // the bootstrap configuration's, 1 to 5
+	PreVote           bool
+	CheckQuorum       bool
+	StepDownOnRemoval bool
+	MaxSizePerMsg     uint64
+	// MaxCommittedSizePerReady is never 0 when MaxSizePerMsg is: raft defaults the former to the
+	// latter, and panics with both 0 (issues/nonissues/raft-zero-max-size-per-msg.md; the
+	// premise of raft's NewRawNode and RestartNode specs)
+	MaxCommittedSizePerReady uint64
+	MaxInflightMsgs          int
 }
 
-// Cluster is a cluster of replicas connected in process: the running replicas (by id), the
-// members as of the last configuration change the cluster made (its voters and learners; the
-// replicas clients go to), the replicas cut off from the network, the next fresh id, the next
-// operation id and configuration-change sequence number, and the statistics.
+// RandomOptions are options chosen at random.
+func RandomOptions() Options {
+	o := Options{
+		Voters:            1 + below(5),
+		PreVote:           oneIn(2),
+		CheckQuorum:       oneIn(2),
+		StepDownOnRemoval: oneIn(2),
+		MaxSizePerMsg:     []uint64{0, 256, 4 << 10, 1 << 20}[below(4)],
+		MaxInflightMsgs:   []int{1, 4, 256}[below(3)],
+	}
+	o.MaxCommittedSizePerReady = []uint64{0, 4 << 10, 1 << 20}[below(3)]
+	if o.MaxSizePerMsg == 0 && o.MaxCommittedSizePerReady == 0 {
+		o.MaxCommittedSizePerReady = 4 << 10
+	}
+	return o
+}
+
+// maxReplicas bounds the replicas a cluster starts (removed ones keep running).
+const maxReplicas = 9
+
+// Cluster is a cluster of replicas connected in process: every replica it started (removed
+// ones keep running: they may be added back), the next fresh id and operation id, and the
+// statistics.
 type Cluster struct {
 	opts  Options
 	Stats Stats
 
 	mu       sync.Mutex
 	replicas map[uint64]*Replica
-	members  []uint64
-	cut      map[uint64]bool
 	nextID   uint64
 	nextOp   uint64
-	confSeq  uint64
 }
 
-// StartCluster bootstraps a cluster of initialVoters (raft.StartNode with them as the peers:
-// each node's log starts with their configuration changes).
+// StartCluster bootstraps a cluster of opts.Voters voters, of ids 1 to opts.Voters
+// (raft.StartNode with them as the peers: each node's log starts with their configuration
+// changes).
 func StartCluster(opts Options) *Cluster {
-	c := &Cluster{opts: opts, replicas: make(map[uint64]*Replica), cut: make(map[uint64]bool),
-		members: append([]uint64(nil), initialVoters...), nextID: uint64(len(initialVoters)) + 1}
+	c := &Cluster{opts: opts, replicas: make(map[uint64]*Replica), nextID: opts.Voters + 1}
 	var peers []raft.Peer
-	for _, id := range initialVoters {
+	for id := uint64(1); id <= opts.Voters; id++ {
 		peers = append(peers, raft.Peer{ID: id})
 	}
 	c.mu.Lock()
-	for _, id := range initialVoters {
-		st := raft.NewMemoryStorage()
-		c.replicas[id] = newReplica(id, raft.StartNode(c.config(id, st), peers), st, &c.Stats, c.sender(id))
+	for id := uint64(1); id <= opts.Voters; id++ {
+		st := &Storage{raft.NewMemoryStorage()}
+		c.replicas[id] = newReplica(id, raft.StartNode(c.config(id, st), peers), st, c.tick(), &c.Stats, c.sender(id))
+		c.Stats.add(&c.Stats.ReplicasStarted)
 	}
 	c.mu.Unlock()
 	return c
 }
 
+// tick is a random tick interval, 1 to 4ms: the replicas' clocks run at different rates.
+func (c *Cluster) tick() time.Duration {
+	return time.Duration(1+below(4)) * time.Millisecond
+}
+
 // config is raft's configuration of node id on storage st.
-func (c *Cluster) config(id uint64, st *raft.MemoryStorage) *raft.Config {
+func (c *Cluster) config(id uint64, st *Storage) *raft.Config {
 	return &raft.Config{
-		ID:                id,
-		ElectionTick:      10,
-		HeartbeatTick:     1,
-		Storage:           st,
-		MaxSizePerMsg:     4 << 10,
-		MaxInflightMsgs:   64,
-		Logger:            quietLogger{},
-		PreVote:           c.opts.PreVote,
-		CheckQuorum:       c.opts.CheckQuorum,
-		StepDownOnRemoval: true,
+		ID:                       id,
+		ElectionTick:             10,
+		HeartbeatTick:            1,
+		Storage:                  st,
+		MaxSizePerMsg:            c.opts.MaxSizePerMsg,
+		MaxCommittedSizePerReady: c.opts.MaxCommittedSizePerReady,
+		MaxInflightMsgs:          c.opts.MaxInflightMsgs,
+		Logger:                   quietLogger{},
+		PreVote:                  c.opts.PreVote,
+		CheckQuorum:              c.opts.CheckQuorum,
+		StepDownOnRemoval:        c.opts.StepDownOnRemoval,
 	}
 }
 
 // startNew starts a replica of a fresh id that is in no configuration yet (raft.RestartNode on
-// an empty storage: it waits for a leader to send it the log or a snapshot), and returns its id.
-func (c *Cluster) startNew() uint64 {
-	c.mu.Lock()
-	id := c.nextID
-	c.nextID++
-	st := raft.NewMemoryStorage()
-	c.replicas[id] = newReplica(id, raft.RestartNode(c.config(id, st)), st, &c.Stats, c.sender(id))
-	c.mu.Unlock()
-	c.Stats.add(&c.Stats.ReplicasAdded)
-	return id
-}
-
-// setMembers records the configuration the cluster's last change reached (not joint), and
-// stops for good every running replica outside it.
-func (c *Cluster) setMembers(cs *pb.ConfState) {
-	members := append(append([]uint64(nil), cs.GetVoters()...), cs.GetLearners()...)
-	var gone []*Replica
-	c.mu.Lock()
-	c.members = members
-	for id, r := range c.replicas {
-		if !hasID(members, id) {
-			delete(c.replicas, id)
-			delete(c.cut, id)
-			gone = append(gone, r)
-		}
-	}
-	c.mu.Unlock()
-	for _, r := range gone {
-		r.stop()
-		c.Stats.add(&c.Stats.ReplicasRemoved)
-	}
-}
-
-// randomMember is a random running member, or nil if there is none.
-func (c *Cluster) randomMember() *Replica {
+// an empty storage: it waits for a leader to send it the log or a snapshot) and returns its id;
+// ok is false if the cluster has started maxReplicas already.
+func (c *Cluster) startNew() (uint64, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	var rs []*Replica
-	for _, id := range c.members {
-		if r, ok := c.replicas[id]; ok {
-			rs = append(rs, r)
-		}
+	if len(c.replicas) >= maxReplicas {
+		return 0, false
 	}
-	if len(rs) == 0 {
-		return nil
-	}
-	return rs[primitive.RandomUint64()%uint64(len(rs))]
+	id := c.nextID
+	c.nextID++
+	st := &Storage{raft.NewMemoryStorage()}
+	c.replicas[id] = newReplica(id, raft.RestartNode(c.config(id, st)), st, c.tick(), &c.Stats, c.sender(id))
+	c.Stats.add(&c.Stats.ReplicasStarted)
+	return id, true
 }
 
-// running is the running replicas.
-func (c *Cluster) running() []*Replica {
+// all is every replica, in no particular order.
+func (c *Cluster) all() []*Replica {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	var rs []*Replica
@@ -204,17 +188,31 @@ func (c *Cluster) running() []*Replica {
 	return rs
 }
 
-// leader is the running replica that believes it is the leader of the highest term, or nil.
-func (c *Cluster) leader() *Replica {
-	var best *Replica
-	var term uint64
-	for _, r := range c.running() {
-		st := r.node.Status()
-		if st.RaftState == raft.StateLeader && st.HardState.GetTerm() >= term {
-			best, term = r, st.HardState.GetTerm()
-		}
+// random is a random replica.
+func (c *Cluster) random() *Replica {
+	rs := c.all()
+	return rs[below(uint64(len(rs)))]
+}
+
+// replica is replica id, or nil.
+func (c *Cluster) replica(id uint64) *Replica {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.replicas[id]
+}
+
+// randomMember is a random member (voter or learner) of a random replica's configuration, or,
+// one time in four or if that has none, a random replica.
+func (c *Cluster) randomMember() *Replica {
+	cs, _ := c.random().conf()
+	members := append(append([]uint64(nil), cs.GetVoters()...), cs.GetLearners()...)
+	if len(members) == 0 || oneIn(4) {
+		return c.random()
 	}
-	return best
+	if r := c.replica(members[below(uint64(len(members)))]); r != nil {
+		return r
+	}
+	return c.random()
 }
 
 // sender is the transport of replica from's messages.
@@ -222,76 +220,80 @@ func (c *Cluster) sender(from uint64) func([]*pb.Message) {
 	return func(ms []*pb.Message) { c.send(from, ms) }
 }
 
-// send delivers the messages of replica from to their targets, each as a fresh copy (the
-// wire's), but drops those to a replica not running, from or to a replica cut off, and one in
-// DropOneIn at random; the sender's node is told of a drop (Node.ReportUnreachable) and of each
-// snapshot's fate (Node.ReportSnapshot: a leader waits for it before it sends the follower
-// anything else). A message the target does not take within stepTimeout is dropped too: Step
-// of a forwarded proposal (MsgProp) blocks while the target knows no leader, and the sender's
-// loop must not wait for that (a candidate whose loop is blocked never handles the Ready that
-// persists its vote, so never receives it, and a cluster whose only voter it is never elects
-// anyone).
+// send hands each message of replica from to the network (deliver), each as a fresh copy (the
+// wire's).
 func (c *Cluster) send(from uint64, ms []*pb.Message) {
+	src := c.replica(from)
 	for _, m := range ms {
-		c.mu.Lock()
-		src := c.replicas[from]
-		dst, ok := c.replicas[m.GetTo()]
-		drop := !ok || c.cut[from] || c.cut[m.GetTo()] ||
-			(c.opts.DropOneIn != 0 && primitive.RandomUint64()%c.opts.DropOneIn == 0)
-		c.mu.Unlock()
-		if src == nil {
-			return
-		}
-		snap := m.GetType() == pb.MsgSnap
-		if drop {
-			c.Stats.add(&c.Stats.Dropped)
-			src.node.ReportUnreachable(m.GetTo())
-			if snap {
-				src.node.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)
-			}
-			continue
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), stepTimeout)
-		err := dst.node.Step(ctx, proto.Clone(m).(*pb.Message))
-		cancel()
-		if err == context.DeadlineExceeded {
-			c.Stats.add(&c.Stats.Dropped)
-			src.node.ReportUnreachable(m.GetTo())
-			if snap {
-				src.node.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)
-			}
-			continue
-		}
-		if snap {
-			c.Stats.add(&c.Stats.SnapshotsSent)
+		c.deliver(src, proto.Clone(m).(*pb.Message))
+	}
+}
+
+// stepTimeout bounds how long the network waits for a target to take a message: Step of a
+// forwarded proposal (MsgProp) blocks while the target knows no leader, and a sender must not
+// wait for that (a candidate whose loop is blocked never handles the Ready that persists its
+// vote, so never receives it: a cluster whose only voter it is would never elect anyone).
+const stepTimeout = 5 * time.Millisecond
+
+// deliver is the network: it drops the message (one time in twenty), or delivers it later, from
+// another goroutine (one time in eight: messages are reordered), or now; a message delivered
+// may be delivered a second time (one time in thirty-two). A message to a replica that does
+// not exist, or that its target does not take within stepTimeout, is dropped. The sender is
+// told of a drop (Node.ReportUnreachable) and of each snapshot's fate (Node.ReportSnapshot:
+// a leader waits for it before it sends the follower anything else), which the network may
+// also report as failed when it was delivered.
+func (c *Cluster) deliver(src *Replica, m *pb.Message) {
+	dst := c.replica(m.GetTo())
+	if dst == nil || oneIn(20) {
+		c.dropped(src, m)
+		return
+	}
+	if oneIn(8) {
+		c.Stats.add(&c.Stats.Delayed)
+		delay := time.Duration(below(20)) * time.Millisecond
+		go func() {
+			time.Sleep(delay)
+			c.step(src, dst, m)
+		}()
+		return
+	}
+	c.step(src, dst, m)
+	if oneIn(32) {
+		c.Stats.add(&c.Stats.Duplicated)
+		c.step(src, dst, proto.Clone(m).(*pb.Message))
+	}
+}
+
+// step steps m on its target dst and reports a snapshot's fate to its sender src.
+func (c *Cluster) step(src, dst *Replica, m *pb.Message) {
+	ctx, cancel := context.WithTimeout(context.Background(), stepTimeout)
+	err := dst.node.Step(ctx, m)
+	cancel()
+	if err == context.DeadlineExceeded {
+		c.dropped(src, m)
+		return
+	}
+	if m.GetType() == pb.MsgSnap {
+		c.Stats.add(&c.Stats.SnapshotsSent)
+		if oneIn(8) {
+			src.node.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)
+		} else {
 			src.node.ReportSnapshot(m.GetTo(), raft.SnapshotFinish)
 		}
 	}
 }
 
-// setCut cuts replica id off the network, or reconnects it.
-func (c *Cluster) setCut(id uint64, cut bool) {
-	c.mu.Lock()
-	if cut {
-		c.cut[id] = true
-	} else {
-		delete(c.cut, id)
+// dropped tells the sender of a dropped message so.
+func (c *Cluster) dropped(src *Replica, m *pb.Message) {
+	c.Stats.add(&c.Stats.Dropped)
+	src.node.ReportUnreachable(m.GetTo())
+	if m.GetType() == pb.MsgSnap {
+		src.node.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)
 	}
-	c.mu.Unlock()
 }
-
-// heal reconnects every replica.
-func (c *Cluster) heal() {
-	c.mu.Lock()
-	c.cut = make(map[uint64]bool)
-	c.mu.Unlock()
-}
-
-// stepTimeout bounds how long the transport waits for a target to take a message.
-const stepTimeout = 5 * time.Millisecond
 
 // opTimeout is how long a client waits for an answer at one replica before it tries another.
-const opTimeout = 200 * time.Millisecond
+const opTimeout = 100 * time.Millisecond
 
 // do runs one operation through the log: it gives it a fresh id and proposes it at a random
 // member until one answers (the same encoding each time: it takes effect once).
@@ -301,10 +303,8 @@ func (c *Cluster) do(kind byte, key, val string) string {
 	op := encode(c.nextOp, kind, key, val)
 	c.mu.Unlock()
 	for {
-		if r := c.randomMember(); r != nil {
-			if v, ok := r.propose(op, opTimeout); ok {
-				return v
-			}
+		if v, ok := c.randomMember().propose(op, opTimeout); ok {
+			return v
 		}
 		c.Stats.add(&c.Stats.Retries)
 	}
@@ -324,10 +324,8 @@ func (c *Cluster) Get(key string) string {
 // answers (a read has no effect: each attempt is a fresh one).
 func (c *Cluster) Read(key string) string {
 	for {
-		if r := c.randomMember(); r != nil {
-			if v, ok := r.read(key, opTimeout); ok {
-				return v
-			}
+		if v, ok := c.randomMember().read(key, opTimeout); ok {
+			return v
 		}
 		c.Stats.add(&c.Stats.Retries)
 	}
@@ -335,25 +333,18 @@ func (c *Cluster) Read(key string) string {
 
 // Stop stops every replica.
 func (c *Cluster) Stop() {
-	for _, r := range c.running() {
+	for _, r := range c.all() {
 		r.stop()
 	}
 }
 
-// Converged waits up to timeout for the running members to agree: the same applied index
-// and the same store contents. It returns an error describing the disagreement otherwise.
+// Converged waits up to timeout for the members of the configuration of the replica that has
+// applied the most to agree with it: the same applied index, the same configuration and the
+// same store contents. It returns an error describing the disagreement otherwise.
 func (c *Cluster) Converged(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for {
-		c.mu.Lock()
-		var rs []*Replica
-		for _, id := range c.members {
-			if r, ok := c.replicas[id]; ok {
-				rs = append(rs, r)
-			}
-		}
-		c.mu.Unlock()
-		err := agree(rs)
+		err := c.agree()
 		if err == nil || time.Now().After(deadline) {
 			return err
 		}
@@ -361,20 +352,54 @@ func (c *Cluster) Converged(timeout time.Duration) error {
 	}
 }
 
-// agree says whether the replicas rs have the same applied index and contents.
-func agree(rs []*Replica) error {
-	if len(rs) == 0 {
-		return fmt.Errorf("kvreconf: no running member")
+// agree is Converged's check, once.
+func (c *Cluster) agree() error {
+	var top *Replica
+	var topIndex uint64
+	for _, r := range c.all() {
+		if _, i := r.conf(); top == nil || i > topIndex {
+			top, topIndex = r, i
+		}
 	}
-	kv0, i0 := rs[0].contents()
-	for _, r := range rs[1:] {
+	cs, _ := top.conf()
+	kv0, i0 := top.contents()
+	members := append(append(append([]uint64(nil), cs.GetVoters()...), cs.GetVotersOutgoing()...), cs.GetLearners()...)
+	for _, id := range members {
+		r := c.replica(id)
+		if r == nil {
+			return fmt.Errorf("kvreconf: member %d does not exist", id)
+		}
 		kv, i := r.contents()
+		rcs, _ := r.conf()
 		if i != i0 {
-			return fmt.Errorf("kvreconf: replica %d applied %d, replica %d applied %d", rs[0].id, i0, r.id, i)
+			return fmt.Errorf("kvreconf: replica %d applied %d, member %d applied %d", top.id, i0, id, i)
+		}
+		if !proto.Equal(cs, rcs) {
+			return fmt.Errorf("kvreconf: replica %d's configuration %v, member %d's %v", top.id, cs, id, rcs)
 		}
 		if !within(kv, kv0) || !within(kv0, kv) {
-			return fmt.Errorf("kvreconf: replicas %d and %d differ at index %d: %v, %v", rs[0].id, r.id, i, kv0, kv)
+			return fmt.Errorf("kvreconf: replicas %d and %d differ at index %d: %v, %v", top.id, id, i, kv0, kv)
 		}
 	}
 	return nil
+}
+
+// Dump describes every replica's raft state, for a test that fails: its role, term, leader,
+// commit and applied indices, configuration, log's first and last indices and latest
+// snapshot, and, for a leader, its followers' progress.
+func (c *Cluster) Dump() string {
+	s := ""
+	for _, r := range c.all() {
+		st := r.node.Status()
+		first, _ := r.storage.FirstIndex()
+		last, _ := r.storage.LastIndex()
+		snap, _ := r.storage.MemoryStorage.Snapshot()
+		s += fmt.Sprintf("%d: %v term %d lead %d commit %d applied %d cfg %v log [%d, %d] snapshot %d (%v)\n",
+			r.id, st.RaftState, st.HardState.GetTerm(), st.Lead, st.HardState.GetCommit(), st.Applied, st.Config,
+			first, last, snap.GetMetadata().GetIndex(), snap.GetMetadata().GetConfState())
+		for id, pr := range st.Progress {
+			s += fmt.Sprintf("    %d: %v\n", id, pr.String())
+		}
+	}
+	return s
 }

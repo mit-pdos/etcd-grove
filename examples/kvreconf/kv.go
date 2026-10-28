@@ -1,19 +1,32 @@
-// Package kvreconf is a replicated key-value store on raft that exercises the parts of the
-// library the store of examples/kv leaves out: its cluster is bootstrapped through
-// configuration changes (raft.StartNode), its membership changes at random while it serves
-// requests -- voters and learners added, promoted, demoted and removed, by simple changes
-// (ConfChange) and by joint consensus (ConfChangeV2, with the automatic, implicit and explicit
-// transitions) -- and its replicas take snapshots of their state at any configuration, compact
-// their logs and catch up from one another's snapshots (a replica a partition left behind, a
-// newcomer). Its network drops messages and partitions replicas, and leadership moves.
+// Package kvreconf is a replicated key-value store on raft whose test program is meant to be
+// read as a specification of how an application may use raft: every choice the application is
+// allowed to make is made at random (primitive.RandomUint64), so that the program's possible
+// executions include every interleaving of the store's requests with snapshots and
+// configuration changes.
+//
+//   - Snapshots: after any applied entry or Ready, a replica may take a snapshot of its state at
+//     its applied index (with the configuration there), and may compact its log to any index
+//     raft allows (at most its latest snapshot's and its acknowledged applied index); its storage
+//     may answer, when raft asks for a snapshot to send, that none is available for now.
+//   - Configuration changes: proposers propose random changes at random times through random
+//     replicas -- simple and joint (ConfChange and ConfChangeV2, every transition, the explicit
+//     leaving of a joint configuration), of voters and learners, of members, of replicas removed
+//     earlier and of new ones -- concurrently with one another, with no regard for what is
+//     pending. A replica applies a committed change only if it is valid on its current
+//     configuration (raft's own confchange rules, Replica.applyConf), and rejects it otherwise
+//     (raft lets an application reject a change by not applying it): the replicas apply the same
+//     log, so they all reject the same changes.
+//   - The network drops, duplicates, delays and reorders messages; leadership is transferred,
+//     campaigns started and leaders forgotten at random; raft's options are chosen at random.
 //
 // What it leaves out is durability: a replica's storage is a raft.MemoryStorage, and replicas
-// never crash and restart (a removed replica is stopped for good, and an id is never reused).
+// never crash or restart. A removed replica keeps running (it may be added back, with its old
+// log); a new one starts empty (raft.RestartNode on an empty storage) and catches up from the
+// leader's log or snapshot.
 //
 // Every Put and Get goes through the raft log; Read is a linearizable read by a read index
 // (Node.ReadIndex). An operation is identified by an id the cluster gives it, so that a client
-// may retry it at another replica (one that times out: a replica removed, cut off, without a
-// leader) without its taking effect twice.
+// may retry it at another replica without its taking effect twice.
 package kvreconf
 
 import (
@@ -22,8 +35,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/goose-lang/primitive"
 	"go.etcd.io/raft/v3"
+	"go.etcd.io/raft/v3/confchange"
 	pb "go.etcd.io/raft/v3/raftpb"
+	"go.etcd.io/raft/v3/tracker"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -33,10 +49,23 @@ const (
 	opRead = 3
 )
 
+// oneIn is true with probability 1/n.
+func oneIn(n uint64) bool {
+	return primitive.RandomUint64()%n == 0
+}
+
+// below is a random number in [0, n) (0 if n is 0).
+func below(n uint64) uint64 {
+	if n == 0 {
+		return 0
+	}
+	return primitive.RandomUint64() % n
+}
+
 // encode is an operation as a log entry: its id (8 bytes, little-endian), the kind (1 byte),
 // the key's length (8 bytes), the key, then the value (the rest; empty for a Get). A read's
-// context (Read) is encoded the same way, with the replica's id and a sequence number of its
-// own as the id (8 bytes each) in place of the operation's, of kind opRead.
+// context (Read) is encoded the same way, after the replica's id (8 bytes), with a sequence
+// number of the replica's as the id, of kind opRead.
 func encode(id uint64, kind byte, key, val string) []byte {
 	b := make([]byte, 17, 17+len(key)+len(val))
 	binary.LittleEndian.PutUint64(b, id)
@@ -77,23 +106,6 @@ func decodeReadCtx(b []byte) (replica, seq uint64, key string, ok bool) {
 		return 0, 0, "", false
 	}
 	return binary.LittleEndian.Uint64(b), seq, key, true
-}
-
-// confCtx is the context of a configuration change the cluster proposes: its sequence
-// number (8 bytes). The changes raft makes itself (the bootstrap's, the automatic leaving of
-// a joint configuration) have no context.
-func confCtx(seq uint64) []byte {
-	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, seq)
-	return b
-}
-
-// decodeConfCtx reads back what confCtx wrote; ok is false for a change with no context.
-func decodeConfCtx(b []byte) (seq uint64, ok bool) {
-	if len(b) != 8 {
-		return 0, false
-	}
-	return binary.LittleEndian.Uint64(b), true
 }
 
 // putBytes appends b to buf, prefixed by its length (8 bytes, little-endian).
@@ -182,78 +194,101 @@ func getMap(b []byte) (m map[string]string, rest []byte, ok bool) {
 }
 
 // encodeState is a replica's replicated state as a snapshot's data: the store's contents and
-// the operations applied with their answers, each as putMap writes it, then the sequence
-// number of the last configuration change applied (8 bytes). The configuration itself is the
-// snapshot's metadata's.
-func encodeState(kv map[string]string, applied map[string]string, confSeq uint64) []byte {
-	return append(putMap(putMap(nil, kv), applied), confCtx(confSeq)...)
+// the operations applied with their answers, each as putMap writes it. The configuration is
+// the snapshot's metadata's.
+func encodeState(kv map[string]string, applied map[string]string) []byte {
+	return putMap(putMap(nil, kv), applied)
 }
 
 // decodeState reads back what encodeState wrote; ok is false for data it did not write.
-func decodeState(b []byte) (kv map[string]string, applied map[string]string, confSeq uint64, ok bool) {
+func decodeState(b []byte) (kv map[string]string, applied map[string]string, ok bool) {
 	k, rest, ok1 := getMap(b)
 	if !ok1 {
-		return nil, nil, 0, false
+		return nil, nil, false
 	}
 	a, rest2, ok2 := getMap(rest)
-	if !ok2 {
-		return nil, nil, 0, false
+	if !ok2 || len(rest2) != 0 {
+		return nil, nil, false
 	}
-	seq, ok3 := decodeConfCtx(rest2)
-	if !ok3 {
-		return nil, nil, 0, false
-	}
-	return k, a, seq, true
+	return k, a, true
 }
 
-// snapEvery is the number of entries a replica applies between two of its snapshots, and
-// snapMargin the number of entries below a new snapshot's index its storage keeps: both small,
-// so that a replica that falls behind, or joins, is usually sent a snapshot rather than entries.
-const (
-	snapEvery  = 20
-	snapMargin = 4
-)
+// validConf says whether applying cc to a node whose configuration is cs succeeds: raft's own
+// check (raft.applyConfChange runs the same confchange functions on its tracker, and panics on
+// their error), run on the configuration restored from cs (as raft restores a snapshot's).
+func validConf(cs *pb.ConfState, cc *pb.ConfChangeV2) bool {
+	if cs == nil {
+		cs = &pb.ConfState{}
+	}
+	cfg, prs, err := confchange.Restore(confchange.Changer{Tracker: tracker.MakeProgressTracker(1, 0), LastIndex: 1}, cs)
+	if err != nil {
+		return false
+	}
+	trk := tracker.MakeProgressTracker(1, 0)
+	trk.Config = cfg
+	trk.Progress = prs
+	chg := confchange.Changer{Tracker: trk, LastIndex: 1}
+	if cc.LeaveJoint() {
+		_, _, err = chg.LeaveJoint()
+	} else if autoLeave, ok := cc.EnterJoint(); ok {
+		_, _, err = chg.EnterJoint(autoLeave, cc.GetChanges()...)
+	} else {
+		_, _, err = chg.Simple(cc.GetChanges()...)
+	}
+	return err == nil
+}
+
+// Storage is a replica's raft storage: a MemoryStorage that, when raft asks for its snapshot
+// (to send to a follower), may answer at random that none is available for now, as the Storage
+// interface allows (raft then asks again later).
+type Storage struct {
+	*raft.MemoryStorage
+}
+
+// Snapshot is the MemoryStorage's, or, one time in four, ErrSnapshotTemporarilyUnavailable.
+func (s *Storage) Snapshot() (*pb.Snapshot, error) {
+	if oneIn(4) {
+		return nil, raft.ErrSnapshotTemporarilyUnavailable
+	}
+	return s.MemoryStorage.Snapshot()
+}
 
 // Replica is one replica of the store: its id, its raft node and storage, and, under mu, its
 // replicated state as of its applied index -- the store's contents, the operations applied
-// (by their encoding, each with its answer: the key's value after it), the sequence number of
-// the last configuration change of the cluster's it applied and the configuration -- and the
-// operations and reads waiting for their answers here.
+// (by their encoding, each with its answer: the key's value after it) and the configuration --
+// and the operations and reads waiting for their answers here.
 type Replica struct {
 	id      uint64
 	node    raft.Node
-	storage *raft.MemoryStorage
+	storage *Storage
 	stats   *Stats
+	tick    time.Duration
 	stopc   chan struct{}
 
 	mu       sync.Mutex
 	kv       map[string]string
 	applied  map[string]string
-	confSeq  uint64
 	cs       *pb.ConfState
-	changed  bool
 	index    uint64
 	waiters  map[string]chan string
 	nextRead uint64
 	reads    map[uint64]chan string
 }
 
-// newReplica is replica id on node, a node just started on storage; send delivers the node's
-// messages. It starts the replica's loop and its node's clock.
-func newReplica(id uint64, node raft.Node, storage *raft.MemoryStorage, stats *Stats, send func([]*pb.Message)) *Replica {
-	r := &Replica{id: id, node: node, storage: storage, stats: stats, stopc: make(chan struct{}),
+// newReplica is replica id on node, a node just started on storage, ticked every tick; send
+// delivers the node's messages. It starts the replica's loop and its node's clock.
+func newReplica(id uint64, node raft.Node, storage *Storage, tick time.Duration, stats *Stats, send func([]*pb.Message)) *Replica {
+	r := &Replica{id: id, node: node, storage: storage, stats: stats, tick: tick, stopc: make(chan struct{}),
 		kv: make(map[string]string), applied: make(map[string]string),
 		waiters: make(map[string]chan string), reads: make(map[uint64]chan string)}
 	go r.run(send)
-	go r.tick()
+	go r.ticker()
 	return r
 }
 
-const tickInterval = 2 * time.Millisecond
-
-// tick drives the node's clock until the replica stops.
-func (r *Replica) tick() {
-	tk := time.NewTicker(tickInterval)
+// ticker drives the node's clock until the replica stops.
+func (r *Replica) ticker() {
+	tk := time.NewTicker(r.tick)
 	for {
 		select {
 		case <-tk.C:
@@ -275,18 +310,14 @@ func (r *Replica) stop() {
 // (in the storage, then as the replicated state: install); save the hard state and append the
 // entries; send the messages; note the read states; apply the committed entries in order (a
 // configuration change to the node, Node.ApplyConfChange, before the Advance that acknowledges
-// it); answer the reads whose index is applied; Advance. Then, every snapEvery applied
-// entries and after every configuration change it applies, it takes a snapshot of the
-// replicated state at the applied index, with the configuration there (the one the last
-// ApplyConfChange returned, or the installed snapshot's), and compacts the log up to
-// snapMargin entries below it.
+// it); answer the reads whose index is applied; Advance.
 //
-// The snapshot after a configuration change is needed: a leader sends a follower whose entries
-// are compacted away its storage's latest snapshot, and a follower drops a snapshot whose
-// configuration does not have it. A replica added after the leader's latest snapshot, once
-// the log is compacted past the change that added it, would be sent that snapshot again and
-// again and never catch up (and a joint configuration that needs its vote would never commit
-// again, to make a newer one): issues/raft-snapshot-without-recipient-livelock.md.
+// Snapshots and compaction are the application's to choose: after any entry it applies and
+// after any Advance, the replica may take a snapshot (maybeSnapshot), and after any Advance it
+// may compact its log to any index from its first one to the least of its latest snapshot's
+// (compacting past it, the leader would have no snapshot to send a follower that needs the
+// compacted entries: issues/raft-compact-past-snapshot.md) and its applied index as raft knows
+// it (the bound MemoryStorage.Compact documents: what it applied before the last Advance).
 func (r *Replica) run(send func([]*pb.Message)) {
 	var pending []raft.ReadState
 	var snapIndex uint64
@@ -298,12 +329,12 @@ func (r *Replica) run(send func([]*pb.Message)) {
 			return
 		}
 		if !raft.IsEmptySnap(rd.Snapshot) {
-			kv, ops, seq, ok := decodeState(rd.Snapshot.GetData())
+			kv, ops, ok := decodeState(rd.Snapshot.GetData())
 			if !ok {
 				panic("kvreconf: a snapshot whose data does not decode")
 			}
 			r.storage.ApplySnapshot(rd.Snapshot)
-			r.install(rd.Snapshot.GetMetadata(), kv, ops, seq)
+			r.install(rd.Snapshot.GetMetadata(), kv, ops)
 			snapIndex = rd.Snapshot.GetMetadata().GetIndex()
 		}
 		if !raft.IsEmptyHardState(rd.HardState) {
@@ -314,41 +345,74 @@ func (r *Replica) run(send func([]*pb.Message)) {
 		pending = append(pending, rd.ReadStates...)
 		for _, e := range rd.CommittedEntries {
 			r.applyEntry(e)
+			if oneIn(8) {
+				snapIndex = r.maybeSnapshot(snapIndex)
+			}
 		}
 		pending = r.answer(pending)
 		r.node.Advance()
-		r.mu.Lock()
-		index := r.index
-		cs := r.cs
-		var data []byte
-		if cs != nil && (index-snapIndex >= snapEvery || (r.changed && index > snapIndex)) {
-			data = encodeState(r.kv, r.applied, r.confSeq)
-			r.changed = false
+		if oneIn(4) {
+			snapIndex = r.maybeSnapshot(snapIndex)
 		}
-		r.mu.Unlock()
-		if data != nil {
-			if _, err := r.storage.CreateSnapshot(index, cs, data); err == nil {
-				r.stats.add(&r.stats.SnapshotsTaken)
-				if index > snapMargin {
-					r.storage.Compact(index - snapMargin)
-				}
-			}
-			snapIndex = index
+		if oneIn(4) {
+			r.maybeCompact(snapIndex)
 		}
+	}
+}
+
+// maybeSnapshot takes a snapshot of the replicated state at the applied index, with the
+// configuration there, unless the latest snapshot is already that recent (or no configuration
+// is applied yet: a new replica's, before it catches up); it returns the latest snapshot's index.
+func (r *Replica) maybeSnapshot(snapIndex uint64) uint64 {
+	r.mu.Lock()
+	index := r.index
+	cs := r.cs
+	var data []byte
+	if cs != nil && index > snapIndex {
+		data = encodeState(r.kv, r.applied)
+	}
+	r.mu.Unlock()
+	if data == nil {
+		return snapIndex
+	}
+	if _, err := r.storage.CreateSnapshot(index, cs, data); err != nil {
+		panic("kvreconf: CreateSnapshot: " + err.Error())
+	}
+	r.stats.add(&r.stats.SnapshotsTaken)
+	if len(cs.GetVotersOutgoing()) != 0 {
+		r.stats.add(&r.stats.SnapshotsTakenJoint)
+	}
+	return index
+}
+
+// maybeCompact compacts the log to a random index allowed after an Advance (run), if there is
+// one past the first.
+func (r *Replica) maybeCompact(snapIndex uint64) {
+	first, _ := r.storage.FirstIndex()
+	r.mu.Lock()
+	hi := r.index
+	r.mu.Unlock()
+	if snapIndex < hi {
+		hi = snapIndex
+	}
+	if hi < first {
+		return
+	}
+	if err := r.storage.Compact(first + below(hi-first+1)); err == nil {
+		r.stats.add(&r.stats.Compactions)
 	}
 }
 
 // install replaces the replicated state by a snapshot's (its metadata and its data, decoded),
 // and answers each operation waiting here that the snapshot covers -- whose entry this replica
 // does not apply -- with the answer the snapshot records.
-func (r *Replica) install(md *pb.SnapshotMetadata, kv map[string]string, applied map[string]string, confSeq uint64) {
+func (r *Replica) install(md *pb.SnapshotMetadata, kv map[string]string, applied map[string]string) {
+	cs := proto.Clone(md.GetConfState()).(*pb.ConfState)
 	r.mu.Lock()
 	r.kv = kv
 	r.applied = applied
-	r.confSeq = confSeq
-	r.cs = proto.Clone(md.GetConfState()).(*pb.ConfState)
+	r.cs = cs
 	r.index = md.GetIndex()
-	r.changed = false
 	for o, ch := range r.waiters {
 		if v, done := applied[o]; done {
 			delete(r.waiters, o)
@@ -357,8 +421,11 @@ func (r *Replica) install(md *pb.SnapshotMetadata, kv map[string]string, applied
 	}
 	r.mu.Unlock()
 	r.stats.add(&r.stats.SnapshotsInstalled)
-	if len(md.GetConfState().GetLearners()) != 0 || len(md.GetConfState().GetVotersOutgoing()) != 0 || !sameIDs(md.GetConfState().GetVoters(), initialVoters) {
-		r.stats.add(&r.stats.SnapshotsReconfigured)
+	if len(cs.GetVotersOutgoing()) != 0 {
+		r.stats.add(&r.stats.SnapshotsInstalledJoint)
+	}
+	if len(cs.GetLearners()) != 0 || len(cs.GetLearnersNext()) != 0 {
+		r.stats.add(&r.stats.SnapshotsInstalledLearners)
 	}
 }
 
@@ -372,42 +439,42 @@ func (r *Replica) applyEntry(e *pb.Entry) {
 		if err := proto.Unmarshal(e.GetData(), &cc); err != nil {
 			panic("kvreconf: a configuration change that does not decode")
 		}
-		r.applyConf(&cc, cc.GetContext())
+		r.applyConf(&cc)
 	case pb.EntryConfChangeV2:
 		var cc pb.ConfChangeV2
 		if err := proto.Unmarshal(e.GetData(), &cc); err != nil {
 			panic("kvreconf: a configuration change that does not decode")
 		}
-		r.applyConf(&cc, cc.GetContext())
+		r.applyConf(&cc)
 	}
 	r.mu.Lock()
 	r.index = e.GetIndex()
 	r.mu.Unlock()
 }
 
-// applyConf applies a committed configuration change to the node, unless it is one of the
-// cluster's whose sequence number is not past the last one applied: a proposal retried (the
-// cluster proposes a change again when it is not applied in time, and both copies may be
-// committed), which the replica rejects by not applying it, as raft allows. Applying it again
-// could be wrong (a change raft would panic on: leaving a joint configuration that is not
-// one) or undo a later change. The changes raft makes itself (no context) are always applied.
-func (r *Replica) applyConf(cc pb.ConfChangeI, ctx []byte) {
-	seq, ours := decodeConfCtx(ctx)
+// applyConf applies a committed configuration change to the node if it is valid on the
+// current configuration (validConf), and rejects it otherwise by not applying it, as raft
+// allows (applying it, raft would panic). The proposers propose any change at any time, so a
+// change committed may be invalid by the time it is applied (made so by changes committed
+// before it); every replica applies the same entries from the same configuration, so they all
+// decide the same.
+func (r *Replica) applyConf(cc pb.ConfChangeI) {
+	v2 := cc.AsV2()
 	r.mu.Lock()
-	stale := ours && seq <= r.confSeq
+	cur := r.cs
 	r.mu.Unlock()
-	if stale {
+	if !validConf(cur, v2) {
 		r.stats.add(&r.stats.ConfChangesRejected)
 		return
 	}
 	cs := r.node.ApplyConfChange(cc)
 	r.mu.Lock()
 	r.cs = cs
-	r.changed = true
-	if ours {
-		r.confSeq = seq
-	}
 	r.mu.Unlock()
+	r.stats.add(&r.stats.ConfChangesApplied)
+	if _, joint := v2.EnterJoint(); joint {
+		r.stats.add(&r.stats.JointEntered)
+	}
 }
 
 // applyOp runs one committed operation: a Put sets its key's value; either kind answers the
@@ -477,7 +544,7 @@ func (r *Replica) propose(op []byte, timeout time.Duration) (string, bool) {
 	r.mu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	for r.node.Propose(ctx, op) != nil && ctx.Err() == nil {
-		time.Sleep(tickInterval)
+		time.Sleep(time.Millisecond)
 	}
 	select {
 	case v := <-ch:
@@ -527,12 +594,11 @@ func (r *Replica) read(key string, timeout time.Duration) (string, bool) {
 	}
 }
 
-// state is the replica's applied index, the sequence number of the last configuration change of
-// the cluster's it applied, and its configuration (nil before any).
-func (r *Replica) state() (uint64, uint64, *pb.ConfState) {
+// conf is the replica's configuration (nil before any) and its applied index.
+func (r *Replica) conf() (*pb.ConfState, uint64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.index, r.confSeq, r.cs
+	return r.cs, r.index
 }
 
 // contents is a copy of the store's contents and its applied index.

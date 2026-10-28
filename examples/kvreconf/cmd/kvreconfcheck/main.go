@@ -1,12 +1,12 @@
-// Command kvreconfcheck runs the reconfiguring key-value store's randomized test: a cluster
-// bootstrapped in process, clients running random Puts, Gets and Reads while the cluster's
-// membership changes at random (simple and joint changes), replicas take and install
-// snapshots, and messages are dropped, replicas cut off and leadership moved; then
-// porcupine's check of the trace and a check that the members converge. With no flags it runs
-// kvreconf.Main. The flags run other tests.
+// Command kvreconfcheck runs the reconfiguring key-value store's randomized test (the package's
+// comment): a cluster of random options bootstrapped in process, clients running random Puts,
+// Gets and Reads while proposers propose random configuration changes, replicas take snapshots
+// and compact their logs at random, the network drops, duplicates, delays and reorders messages,
+// and leadership is disrupted; then porcupine's check of the trace and a check that the members
+// converge. With no flags it runs kvreconf.Main. The flags run more rounds, larger ones.
 //
 //	go run ./cmd/kvreconfcheck
-//	go run ./cmd/kvreconfcheck -clients 8 -ops 300 -rounds 10 -drop 20
+//	go run ./cmd/kvreconfcheck -rounds 20 -clients 8 -ops 300 -proposers 3
 package main
 
 import (
@@ -21,37 +21,38 @@ import (
 )
 
 func main() {
-	def := kvreconf.DefaultConfig()
-	clients := flag.Int("clients", 0, "concurrent clients (0: run kvreconf.Main)")
-	ops := flag.Int("ops", def.Ops, "operations per client")
-	rounds := flag.Int("rounds", 1, "tests, each on a fresh cluster")
-	drop := flag.Uint64("drop", def.DropOneIn, "drop one message in N (0: none)")
-	reconf := flag.Duration("reconf", def.ReconfPause, "pause between configuration changes")
-	faults := flag.Duration("faults", def.FaultPause, "pause between faults (0: none)")
-	prevote := flag.Bool("prevote", def.PreVote, "raft's PreVote")
-	checkquorum := flag.Bool("checkquorum", def.CheckQuorum, "raft's CheckQuorum")
+	rounds := flag.Int("rounds", 0, "tests, each on a fresh cluster of random options (0: run kvreconf.Main)")
+	clients := flag.Int("clients", 4, "concurrent clients")
+	ops := flag.Int("ops", 100, "operations per client")
+	proposers := flag.Int("proposers", 0, "concurrent proposers of configuration changes (0: random, 1 to 3)")
+	reconf := flag.Duration("reconf", 10*time.Millisecond, "average pause between a proposer's proposals")
+	disrupt := flag.Duration("disrupt", 30*time.Millisecond, "average pause between leadership disruptions (0: none)")
 	clock := flag.String("clock", "counter", "the trace's clock: counter or monotonic")
 	flag.Parse()
 
-	if *clients == 0 {
+	if *rounds == 0 {
 		start := time.Now()
 		kvreconf.Main()
-		fmt.Printf("kvreconf.Main: porcupine answered Ok, members converged (%v)\n", time.Since(start).Round(time.Millisecond))
+		fmt.Printf("kvreconf.Main: porcupine answered Ok (%v)\n", time.Since(start).Round(time.Millisecond))
 		return
 	}
-	cfg := def
-	cfg.Clients, cfg.Ops = *clients, *ops
-	cfg.DropOneIn, cfg.ReconfPause, cfg.FaultPause = *drop, *reconf, *faults
-	cfg.PreVote, cfg.CheckQuorum = *prevote, *checkquorum
 	for i := 0; i < *rounds; i++ {
+		cfg := kvreconf.RandomConfig()
+		cfg.Clients, cfg.Ops = *clients, *ops
+		if *proposers != 0 {
+			cfg.Proposers = *proposers
+		}
+		cfg.ReconfPause, cfg.DisruptPause = *reconf, *disrupt
 		c := lintest.CounterClock()
 		if *clock == "monotonic" {
 			c = lintest.MonotonicClock()
 		}
 		start := time.Now()
-		res, err, cl := kvreconf.Run(cfg, c)
-		fmt.Printf("round %d: %d clients x %d operations: %v (%v)\n  %v\n",
-			i+1, *clients, *ops, res, time.Since(start).Round(time.Millisecond), &cl.Stats)
+		res, cl := kvreconf.Run(cfg, c)
+		err := cl.Converged(20 * time.Second)
+		cl.Stop()
+		fmt.Printf("round %d: %+v, %d proposers, %d clients x %d operations: %v (%v)\n  %v\n",
+			i+1, cfg.Options, cfg.Proposers, cfg.Clients, cfg.Ops, res, time.Since(start).Round(time.Millisecond), &cl.Stats)
 		if res != porcupine.Ok || err != nil {
 			if err != nil {
 				fmt.Println(err)

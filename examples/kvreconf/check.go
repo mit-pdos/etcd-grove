@@ -1,7 +1,6 @@
 package kvreconf
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -104,47 +103,49 @@ func Gen(id int) any {
 	return Input{Kind: kind, Key: key, Val: val}
 }
 
-// Config is a test run's size and pace.
+// Config is a test run's cluster, size and pace.
 type Config struct {
 	Options
-	Clients     int
-	Ops         int           // per client
-	Reconfigs   int           // at most; the reconfigurer stops when the clients are done
-	ReconfPause time.Duration // between two configuration changes
-	FaultPause  time.Duration // between two faults (0: no partitions or transfers)
+	Clients      int
+	Ops          int           // per client
+	Proposers    int           // of configuration changes, running concurrently
+	ReconfPause  time.Duration // between two proposals of a proposer, on average
+	DisruptPause time.Duration // between two leadership disruptions, on average (0: none)
 }
 
-// DefaultConfig is Main's.
-func DefaultConfig() Config {
+// RandomConfig is Main's: random options (RandomOptions), 4 clients of 100 operations, one to
+// three proposers of configuration changes, and disruptions.
+func RandomConfig() Config {
 	return Config{
-		Options:     Options{DropOneIn: 50, PreVote: true, CheckQuorum: true},
-		Clients:     4,
-		Ops:         100,
-		Reconfigs:   1 << 30,
-		ReconfPause: 20 * time.Millisecond,
-		FaultPause:  40 * time.Millisecond,
+		Options:      RandomOptions(),
+		Clients:      4,
+		Ops:          100,
+		Proposers:    1 + int(below(3)),
+		ReconfPause:  10 * time.Millisecond,
+		DisruptPause: 30 * time.Millisecond,
 	}
 }
 
-// Run starts a cluster and runs cfg.Clients clients of cfg.Ops operations of Gen's traffic on it
-// while the cluster reconfigures itself (Reconfigure) and faults are injected (Faults), traced
-// with the given clock. Once the clients are done and the reconfigurer and the faults have
-// stopped (the network healed), it checks the trace against Model with porcupine and that the
-// members converge; it returns porcupine's answer, the error of convergence, and the cluster
-// (stopped) for its statistics.
-func Run(cfg Config, clock lintest.Clock) (porcupine.CheckResult, error, *Cluster) {
+// Run starts a cluster and runs cfg.Clients clients of cfg.Ops operations of Gen's traffic on
+// it, traced with the given clock, while cfg.Proposers proposers reconfigure it (Reconfigure)
+// and leadership is disrupted (Disrupt); once the clients are done, it stops the proposers and
+// the disruptions and checks the trace against Model with porcupine. It returns porcupine's
+// answer and the cluster, still running (the tests check that it converges, then stop it).
+func Run(cfg Config, clock lintest.Clock) (porcupine.CheckResult, *Cluster) {
 	c := StartCluster(cfg.Options)
 	stop := make(chan struct{})
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		c.Reconfigure(cfg.Reconfigs, cfg.ReconfPause, stop)
-		wg.Done()
-	}()
-	if cfg.FaultPause != 0 {
+	for i := 0; i < cfg.Proposers; i++ {
 		wg.Add(1)
 		go func() {
-			c.Faults(cfg.FaultPause, stop)
+			c.Reconfigure(cfg.ReconfPause, stop)
+			wg.Done()
+		}()
+	}
+	if cfg.DisruptPause != 0 {
+		wg.Add(1)
+		go func() {
+			c.Disrupt(cfg.DisruptPause, stop)
 			wg.Done()
 		}()
 	}
@@ -162,23 +163,16 @@ func Run(cfg Config, clock lintest.Clock) (porcupine.CheckResult, error, *Cluste
 	res := lintest.Run(Model(), apply, Gen, clock, cfg.Clients, cfg.Ops, 0)
 	close(stop)
 	wg.Wait()
-	err := c.Converged(10 * time.Second)
-	c.Stop()
-	return res, err, c
+	return res, c
 }
 
-// Main runs DefaultConfig's test with a counter clock; it panics unless porcupine answers Ok
-// and the members converge, and unless the run took and installed snapshots, installed one at
-// a configuration other than the bootstrap's, and made joint changes.
+// Main runs a test of RandomConfig with a counter clock, and panics unless porcupine answers
+// Ok: the program whose executions are meant to cover raft's uses (the package's comment), and
+// the one to prove never panics.
 func Main() {
-	res, err, c := Run(DefaultConfig(), lintest.CounterClock())
+	res, c := Run(RandomConfig(), lintest.CounterClock())
 	if res != porcupine.Ok {
 		panic("kvreconf: porcupine rejected the store's trace")
 	}
-	if err != nil {
-		panic(err)
-	}
-	if c.Stats.SnapshotsInstalled.Load() == 0 || c.Stats.SnapshotsReconfigured.Load() == 0 || c.Stats.JointChanges.Load() == 0 {
-		panic(fmt.Sprintf("kvreconf: the run did not exercise snapshots at a changed configuration: %v", &c.Stats))
-	}
+	c.Stop()
 }

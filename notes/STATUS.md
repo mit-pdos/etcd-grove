@@ -471,45 +471,48 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 
 ## `examples/kvreconf`: snapshots and reconfiguration together, Go only (2026-10-28, branch `kv-snap-reconf`)
 
-A key-value store on `raft.Node` that uses more of raft than `examples/kv`, as the target of the
-proof that both snapshots and reconfiguration work (D1 below; the proofs' modes take one or the
-other). Go only so far: no Goose project in `etc/goose.py`, no proof. What it does:
+A key-value store on `raft.Node` whose test program is meant as a specification of how an
+application may use raft (the package's comment): every choice the application may make is made at
+random (`primitive.RandomUint64`), so that its executions cover the interleavings of requests with
+snapshots and configuration changes. The target of the unified proof (D1 below: the proofs' modes
+take snapshots or reconfiguration, not both).
 
-- the cluster bootstraps through `StartNode` (conf-change entries in the log); newcomers join on an
-  empty `MemoryStorage` through `RestartNode`; a removed replica is stopped and its id never reused;
-- a single reconfigurer makes random changes: add a voter or a learner, promote, demote, remove,
-  as simple changes (`ConfChange`, or a `ConfChangeV2` of the automatic transition) and joint ones
-  (a `ConfChangeV2` of one to three changes; automatic, implicit or explicit transition, leaving
-  the joint configuration by an explicit change in the last case), each carried until applied,
-  so every change is valid where it is applied;
-- replicas snapshot every 20 entries and after every conf change, with the current `ConfState`,
-  and compact to 4 entries below it, so catching up is by `MsgSnap`; the transport reports each
-  snapshot's fate (`ReportSnapshot`) and every drop (`ReportUnreachable`);
-- faults: one message in 50 dropped, a replica cut off for a while, leadership transfers;
-  `PreVote` and `CheckQuorum` on;
-- clients: Put and Get through the log, Read by `ReadIndex`, each retried at another member on
-  a timeout, the same operation id each time (a duplicate is answered from the table of applied
-  operations); a conf change proposed twice is applied once (its context carries a sequence
-  number; the duplicate is rejected by not calling `ApplyConfChange`).
+- bootstrap by `StartNode` (1 to 5 voters); newcomers by `RestartNode` on an empty `MemoryStorage`;
+  removed replicas keep running (they may be added back with their old log); raft's options random
+  (`PreVote`, `CheckQuorum`, `StepDownOnRemoval`, message and inflight limits, tick rates);
+- snapshots after any applied entry (mid-Ready) or Ready, compaction to any allowed index, a
+  storage that may answer `ErrSnapshotTemporarilyUnavailable`;
+- one to three proposers of random conf changes at random times through random replicas (simple
+  and joint, `ConfChange`/`ConfChangeV2`, every transition, explicit leaves, junk), unserialized; a
+  replica applies a committed change only if raft's `confchange` accepts it on its configuration
+  (`validConf`), and otherwise rejects it by not calling `ApplyConfChange`;
+- the network drops, duplicates, delays and reorders; random transfers, `Campaign`,
+  `ForgetLeader`, `ReportSnapshot` outcomes;
+- clients: Put and Get through the log, Read by `ReadIndex`, retried at random members with the
+  same operation id.
 
-`kvreconf.Main` (and `go run ./cmd/kvreconfcheck`): porcupine checks the trace, and the members must
-converge; it fails unless the run installed a snapshot at a changed configuration and made a joint
-change. Not durable: `MemoryStorage`, no crash or restart (the user's scope).
+`kvreconf.Main`: runs it and panics unless porcupine answers Ok (the adequacy target);
+`TestRounds` and `go run ./cmd/kvreconfcheck -rounds N` also check convergence and coverage. Not
+durable: `MemoryStorage`, no crash or restart (the user's scope).
 
 Found while writing it:
 
+- [issues/raft-snapshot-during-apply-stale-confchange](../issues/raft-snapshot-during-apply-stale-confchange.md)
+  reached in a full cluster: raft panics in `applyConfChange` (1 of 17 rounds on the pinned raft).
+  With the issue's fix ported to the fork (`issues/raft-conf-lag-model/fork-v3.7-applied-snap-config.patch`,
+  `patch -p1` on `raft37-goose-lean-a1`; raft's tests and the fix's regression test pass), 15 rounds
+  passed. Not yet a fork branch, and the raft pin is unchanged (moving it is the user's decision).
 - [issues/raft-snapshot-without-recipient-livelock](../issues/raft-snapshot-without-recipient-livelock.md):
-  a newcomer added after the storage's latest snapshot is sent that snapshot forever once the log
-  is compacted; the fix here is the snapshot after every conf change.
-- `examples/kv`'s transport (`deliver`, `cluster.go`) steps a forwarded `MsgProp` with
-  `context.Background()`, and `Node.Step` of a `MsgProp` blocks while the target knows no leader.
-  In `kvreconf` this blocked a candidate's loop before it handled the Ready that persists its own
-  vote, so the cluster's only voter never won an election (fixed there: each message is stepped
-  with a 5ms timeout, a timeout a drop). `kv`'s is the same pattern; the proof is of partial
-  correctness, so a hang is no violation, but its liveness test could hang in the same way (not
-  observed).
-- Not exercised yet: rejecting a duplicated conf change (0 in every run so far: the reconfigurer
-  waits 400ms before it proposes again).
+  a newcomer added after the storage's latest snapshot is sent it forever once the log is
+  compacted (with random snapshots, a later one ends it).
+- Stopping a removed voter as soon as some replica applied its removal can leave the remaining
+  voter, which has not applied it, needing its vote forever (why removed replicas keep running).
+- `examples/kv`'s transport steps a forwarded `MsgProp` with `context.Background()`; `Node.Step` of
+  a `MsgProp` blocks while the target knows no leader, which in `kvreconf` blocked a candidate's
+  loop before it handled the Ready persisting its own vote (fixed there with a 5ms step timeout).
+  `kv`'s is the same pattern (partial correctness: a hang is no violation; not observed).
+- `MaxSizePerMsg: 0` with `MaxCommittedSizePerReady: 0` panics
+  (`issues/nonissues/raft-zero-max-size-per-msg.md`); the random options avoid the pair.
 
 
 ## The node API's specs in the per-function files (2026-10-28, branch `node-api-cleanup`)
