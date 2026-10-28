@@ -215,7 +215,7 @@ theorem kvPutOk_of_serverOn (hPut : EtcdServer.Put.specOn (GF := GF) (hG := hG))
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, #Hcok,
-    HQv, -⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    HQv, -, -⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -252,7 +252,9 @@ theorem kvPutOk_of_serverOn (hPut : EtcdServer.Put.specOn (GF := GF) (hG := hG))
     iunfold putErrOk
     iframe Hrd
     iunfold putErr
-    iexact Hfail
+    icases Hfail with (⟨%hm, Herr, -⟩ | Hdep)
+    · ileft; iexists hm; iexact Herr
+    · iright; iexact Hdep
 
 /-- **`raftKV`'s `DeleteRange` conjunct with auth on, from `EtcdServer.DeleteRange.specOn`**. -/
 theorem kvDeleteOk_of_serverOn (hDel : EtcdServer.DeleteRange.specOn (GF := GF) (hG := hG))
@@ -278,7 +280,7 @@ theorem kvDeleteOk_of_serverOn (hDel : EtcdServer.DeleteRange.specOn (GF := GF) 
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit,
-    #Hcok, HQv, -⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    #Hcok, HQv, -, -⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hwire, Hop', Hnz, Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
     simp only [apply.deleteOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -315,7 +317,9 @@ theorem kvDeleteOk_of_serverOn (hDel : EtcdServer.DeleteRange.specOn (GF := GF) 
     iunfold deleteErrOk
     iframe Hrd
     iunfold deleteErr
-    iexact Hfail
+    icases Hfail with (⟨%hm, %rq', %Hw, Herr, -⟩ | Hdep)
+    · ileft; iexists hm, rq'; iframe Herr; ipureintro; exact Hw
+    · iright; iexact Hdep
 
 /-- **`raftKV`'s `Range` conjunct with auth on, from `EtcdServer.Range.specOn`** (in the mode
 `on γa`, with the store's range check as the server keeps it, `srvAuthLb`). -/
@@ -479,7 +483,7 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact hm
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
-      iexact Hfail
+      iapply txnErrOk_of_on $$ Hfail
   · -- a read-only transaction: read locally
     ihave #Hdep' := kvDep_of_depOn ρ γr d $$ Hdep
     wp_apply hTxnR s E ρ γr c ci cd r t (rangeDepQOn γr.kv d) none false F n γa hγa
@@ -553,8 +557,7 @@ theorem kvGetOk_of_serverOn (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
   ihave #Hmb : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
-  iunfold isServerReqM at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, -⟩
   iunfold srvPeersOk at Hpeers

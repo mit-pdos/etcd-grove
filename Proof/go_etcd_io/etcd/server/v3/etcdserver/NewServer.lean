@@ -644,7 +644,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, #HstLb, #HstPub, HAres, #HauR⟩
+      #HstL, #HstLb, #HstPub, #HbBk, HAres, #HauR⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -1761,7 +1761,8 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (E3t) publication, from the construction
     isplitr
     · iexact HstPub
-    iexact HstL
+    iframe HstL
+    iexact HbBk
   isplitr
   · iunfold apply.applierFor
     iexists up, uopts

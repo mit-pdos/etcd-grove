@@ -24717,11 +24717,40 @@ of the dispatched result: `grantedRes_applied`'s first step). The grant is of th
 to, or none (`principalBound`, E1/E2c), which today only the admin guards state (`adminOutB`); the
 KV writes' header comes from `raftRequest`'s `AuthInfoFromCtx`, whose bound variant
 (`ctxBoundOrTLS`) needs the server's store bound (`srvAuthBound`), not yet among `isServerReqM
-true`'s facts. Next, in order: `raftRequest.specM true`'s stamped header bound to the context
-(over `srvAuthBound`); the three writes' `specOn` success with the grant and the bound header (a
-stronger post, interface diff); both into `srvKVAnsOn`'s write answers; then the
-gRPC-level specs with auth on (`etcdPutSpecOn`, ...: the client's bound `n`, the shape premises,
-the grant and the read class in the replies), the handlers as grpc runs them and one serve of the
-KV and Auth methods.
+true`'s facts.
 
-**Trust base.** Unchanged so far (no axiom, no `sorry`).
+**Done (3): the grant and the bound header in the writes' posts.** `isServerReqM true` now holds
+`srvAuthBound` (`ReqOn.lean`; from the kit's `authStoreKit` through `srvUberBase`, which carries
+`isReqAuthBound` when auth is on). `processInternalRaftRequestOnce.specM` and `raftRequest.specM`
+report the stamped header bound to the request's context (`hdrBoundM on s E ctx hm`: off `True`;
+on, the empty user, or `principalBound` of the header's user), on success and, for `raftRequest`,
+on an applied error; the proof calls `AuthInfoFromCtx` through `AuthInfoFromCtx.wpM` (the bound
+spec when on, a new premise `hAuthB : on = true → AuthInfoFromCtx.boundSpec`). `Put`, `DeleteRange`
+and the writing `Txn`'s `specOn` add the grant at the committed prefix (`grantedAt`, from
+`grantedAt_of_applied`) and the bound header to their success, and the bound header to an applied
+error (`txnErrOkOn` for `Txn`). The empty user is allowed in `hdrBoundM` rather than excluded:
+the header of an `Authenticate`, or of a context the store finds no user in, has it, and the
+apply thread grants such a header no key; a client that needs its principal named shows its
+token is not empty.
+
+**The context `raftRequest` sees is not the caller's.** `Put` and `Txn` call it with a
+`context.WithValue` of `Tracer.Start`'s context (and `Txn` of `EnsureTrace`'s), so the binding is
+to that context; it transfers to the caller's because the token is read from the incoming gRPC
+metadata (`auth.ctxTokenOf` of `metadata.incomingOf`), which the three keep:
+`metadata.FromIncomingContext` reads `Value(mdIncomingKey{})`, and none of them stores under grpc's
+key (`hdrBoundM_ctx`). `incomingOf` is opaque (a function of the context value), so this is stated
+in the derived context's spec: `context.WithValue.spec` and `traceutil.Tracer.Start.spec` (both
+trust-boundary axioms) post `incomingOf c' = incomingOf parent`, and `traceutil.EnsureTrace.spec`
+(proved) follows. The alternative, defining `incomingOf` from the context description's `Values`,
+would tie the opaque function to Perennial's context model, which does not describe a context's
+values by key; the per-call fact is the same kind of statement as the specs' trace facts
+(`ctxTraceIs`), which they already make.
+
+Next, in order: the grant and the bound header into `srvKVAnsOn`'s write answers (today
+`ServerKVOn` drops them); the refusal side (an applied error of a write whose header is bound:
+not granted at `L`); then the gRPC-level specs with auth on (`etcdPutSpecOn`, ...: the client's
+bound `n`, the shape premises, the grant and the read class in the replies), the handlers as grpc
+runs them and one serve of the KV and Auth methods.
+
+**Trust base.** No axiom or `sorry` added; two axioms' statements are stronger (`context.WithValue`,
+`traceutil.Tracer.Start`: the incoming metadata kept, above).

@@ -61,7 +61,7 @@ theorem txn.DeleteRange.wp_proof
   iintro %fsl ⟨Hfsl, Hfslc⟩
   (try wp_auto)
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto Hfsl Hfslc]
-    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iunfold traceutil.ownFields
     iexists _
     iframe Hfsl Hfslc

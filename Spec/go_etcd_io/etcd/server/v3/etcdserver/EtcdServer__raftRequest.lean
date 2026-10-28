@@ -70,10 +70,12 @@ abbrev EtcdServer.raftRequest.specM (on : Bool) : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel)
           (L : List EntryModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ srvRLogLb ρ.raft L ∗
-          appliedOkM on E ρ rq' F resp L ∗ pubAfterM on E ρ rq' L ∗ □ Qh hm L) ∨
+          appliedOkM on E ρ rq' F resp L ∗ pubAfterM on E ρ rq' L ∗ □ Qh hm L ∗
+          hdrBoundM on s E (GoInterface.ok ctx) hm) ∨
        (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-            ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
+            ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' F err ∗
+            hdrBoundM on s E (GoInterface.ok ctx) hm) ∨
           srvMaybeDeposited ρ rq))) }}
 
 end spec

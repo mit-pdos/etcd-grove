@@ -64,7 +64,9 @@ as a proposer sees it in the mode `on` (`isServerReqM true`) and the put's permi
 not empty (`putPermitOn`); the same post: a success is a put the auth state the entry met granted
 (the apply thread's auth verdict is the model's, `authTie`), so its client's update fired there and
 its result `Q` holds at the log the entry met; a refusal is an error (`appliedErr`: the auth layer's
-rejection). -/
+rejection). (E3zb, 2026-10-28) A success names the grant, at the committed log `L` before the
+entry (`grantedAt`); a success and an applied error, the header the server stamped, whose user is
+bound to the context (`hdrBoundM`: its token was issued to that user). -/
 abbrev EtcdServer.Put.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull)
@@ -83,9 +85,12 @@ abbrev EtcdServer.Put.specOn : Prop :=
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
           mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
           mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log) ∗
-          ∃ L, pubAfterM true E ρ (apply.withHeader (irrPut op) hm) L) ∨
+          hdrBoundM true s E (GoInterface.ok ctx) hm ∗
+          ∃ L, ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrPut op) hm) L⌝ ∗
+            pubAfterM true E ρ (apply.withHeader (irrPut op) hm) L) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
-         ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) F err) ∨
+         ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) F err ∗
+            hdrBoundM true s E (GoInterface.ok ctx) hm) ∨
           srvMaybeDeposited ρ (irrPut op)))) }}
 
 end spec

@@ -51,8 +51,7 @@ theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
     EtcdServer.doSerialize.specM (GF := GF) (hG := hG) on := by
   intro s E ρ γr ctx cd chk get G Q C t e
   wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
-  iunfold isServerReqM at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,
     #Has, #Hras, -, -, -, -, -, -, -, -, -, -⟩

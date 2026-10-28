@@ -27,6 +27,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
@@ -80,6 +81,8 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
         isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗ authStoreLbM M st RD ∗
         authPublishM M stl ∗
+        -- (E3zb) with auth on, the request side bound to the request context's token
+        □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
         authApplyResPre M stl (auth.bump auth.bootState) d ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
@@ -179,6 +182,8 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   · unfold authStoreLbM; itrivial
   isplitr
   · unfold authPublishM; itrivial
+  isplitr
+  · iintro !> %h; exact absurd h (by decide)
   isplitr
   · unfold authApplyResPre
     itrivial
@@ -289,6 +294,8 @@ theorem authStoreKit_on
     iapply apply.isAuthStoreRangeLb_of_authInv hRangeLb stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
   -- (E3t) publication, of its invariant
   ihave #HstPub := authPublishM_of_authInv stp R γa $$ Hinv
+  -- (E3zb) the request side bound to the request context's token, of its invariant
+  ihave #HbB := isReqAuthBound_of_authInv hCtx stp R (.on γa) $$ [$Hpkg $Hinv]
   subst hhs'
   -- (E2v) the halves tied to the start's history, whose states are disabled
   ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
@@ -334,6 +341,8 @@ theorem authStoreKit_on
     · iframe Hslots HRs
     iapply (replicate_mono _ (auth.authRd stp R (.on γa)) _
       (by iintro ⟨⟨He, Hc, Hb⟩, HR⟩; unfold auth.authRd; iframe He Hc Hb HR)) $$ Hsl
+  isplitr
+  · iintro !> -; iexact HbB
   -- (D22 J1a) the mode is `on`: no `Recover` clause
   iintro !> %Hm
   exfalso; cases Hm

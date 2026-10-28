@@ -109,7 +109,7 @@ theorem srv_uberKVL_on
         apply.uberKVL ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, #Hln⟩
   iunfold srvUberBase at Hb
-  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL⟩
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL, #HbB⟩
   subst Hau
   have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
       apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
@@ -126,7 +126,7 @@ theorem srv_uberKVL_on
     iexists stl
     isplitr
     · ipureintro; rfl
-    iframe HPub
+    iframe HPub HbB
     rw [hL]; iexact HL
   iunfold srvStoreLatest
   iexists (auth.authIface stl)
@@ -156,7 +156,7 @@ theorem srv_uberAuthStepsL_on
           (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, HR⟩
   iunfold srvUberBase at Hb
-  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL⟩
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL, #HbB⟩
   subst Hau
   iunfold srvAuthApplyResB at HR
   icases HR with ⟨%stl', %bel, #Hf, HB, #Hlens, #Hro⟩

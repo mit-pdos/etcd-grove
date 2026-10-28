@@ -2278,13 +2278,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The proposer's handoff in the auth mode `on`** (the auth plan's E3b, `ReqOn.lean`): the
 result at the header the server stamps, the applied result's auth verdict the model's grant at the
-committed prefix before the entry (`resPostM true`, `authTie`). Every callee linked. -/
+committed prefix before the entry (`resPostM true`, `authTie`), and (E3zb) the stamped header's
+user bound to the context (`hdrBoundM`). Every callee linked. -/
 theorem server_process_irr_on :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) true :=
   EtcdServer.processInternalRaftRequestOnce.wp_proofM true (EtcdServer.getAppliedIndex.wp_proofM true)
     EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit
-    idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR
-    config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext
+    idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx
+    (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore)
+    wp_getRequestType proto.wp_MarshalIRR config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext
     (EtcdServer.parseProposeCtxErr.wp_proofM true errors.wp_IsCtxErr time.Time.wp_After
       EtcdServer.wp_getLead EtcdServer.wp_MemberID membership.RaftCluster.wp_Members
       wp_isConnectedToQuorumSince wp_isConnectedSince)

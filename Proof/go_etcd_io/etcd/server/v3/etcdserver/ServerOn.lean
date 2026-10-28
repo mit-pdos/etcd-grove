@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BaseAuth
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
 
 @[expose] public section
 
@@ -341,12 +342,15 @@ its store and lessor the server's `authStore` and `lessor` fields' (`apply.uberB
 apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`); with the store's
 checks at the latest state in the environment's mode (`authStoreLatestM`, E3l: with auth on, of the
 store's invariant), its range check at a reader's lower bound (`authStoreLbM`, E3s) and publication
-(`authPublishM`, E3t). -/
+(`authPublishM`, E3t), and (E3zb) with auth on, its request side bound to the request context's token
+(`isReqAuthBound`, of the store's invariant: the header a request is stamped with names its
+context's principal). -/
 def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ au le : GoInterface, srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗
     apply.uberBaseAuth ua E au le ∗ authStoreLbM E.authMode au E.RD ∗
     ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authPublishM E.authMode stl ∗
-      authStoreLatestM E.authMode au E.RD stl)
+      authStoreLatestM E.authMode au E.RD stl ∗
+      □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound au E.RD E.authMode))
 
 instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
     Persistent (srvUberBase s ua E) := by

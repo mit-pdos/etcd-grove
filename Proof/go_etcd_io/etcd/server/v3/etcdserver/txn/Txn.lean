@@ -119,7 +119,7 @@ theorem txn.Txn_sole
   ihave ⟨#Hko, #Hs⟩ := txn.isKV_kvOver _ s γ $$ Hkv
   wp_auto
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
-    as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+    as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply (hRO rt t) $$ [$Hrt]
   generalize hw : (!txnReadonly t) = isW
@@ -411,7 +411,7 @@ theorem txn.Txn_read
   obtain ⟨kty, kvv, rfl⟩ := Hkvok
   wp_auto
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
-    as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+    as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply (hRO rt t) $$ [$Hrt]
   rw [hro]
