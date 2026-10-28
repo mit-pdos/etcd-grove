@@ -339,7 +339,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     simp [u64Be_length] at this
   · iframe; iframe #
   inext
-  iintro %ks %vs ⟨Hlocked, HbvW, HlastS, HendS, %m', #Hthin, #Hpv⟩
+  iintro %ks %vs ⟨Hlocked, HbvW, HlastS, HendS, %m', %Rd, #Hthin, #Hcap, #Hcap2, #Hpv, -⟩
   (try wp_auto)
   rename_i igo
   irename : (igo ↦ zero_val w64 : IProp GF) => Higo
@@ -406,9 +406,15 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · ipureintro; exact Hkv.1
     have Hkb : e.1 = mvcc.revBytes r false ++ (if t then [W8 116] else []) := by
       rw [Hk]; cases t <;> simp [mvcc.revBytes]
-    wp_apply (h4 ksl r (if t then [W8 116] else []) DFrac.discard (by cases t <;> simp) Hr0 Hs0)
-      $$ [] as -
-    · rw [← Hkb]; iexact Hksl
+    -- (backend-cmp, 3.5) the key slice read under the session's lock token
+    ihave #Hcap' := Hcap
+    iunfold mvcc.rdCap at Hcap'
+    icases Hcap' $$ %ksl %e.1 Hksl Hlocked with ⟨%dqk, Hkp, Hkback⟩
+    wp_apply (h4 ksl r (if t then [W8 116] else []) dqk (by cases t <;> simp) Hr0 Hs0)
+      $$ [Hkp] as Hkp
+    · rw [← Hkb]; iexact Hkp
+    ihave Hlocked := Hkback $$ [Hkp]
+    · rw [Hkb]; iexact Hkp
     (try wp_auto)
     wp_apply (wp_map_lookup2 Revision.ty (go.GoType.StructType []) keep A (mvcc.revVal r) (DFrac.own 1))
       $$ [$Hkeep] as Hkeep
@@ -446,6 +452,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       wp_bind (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #ksl))
       iapply HDel1 $$ [Hlocked]
       · iframe Hlocked; iframe #
+        -- the key slice `keys[i]` is lent by the range's capability against `Locked`, which the
+        -- delete also takes: the contract's delete clause must take a lent slice (3.5, a finding)
+        sorry -- backend-cmp Draft: re-prove from 10e2918d3e:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/store__scheduleCompaction.lean
+        all_goals exact DFrac.discard
       inext
       iintro ⟨Hlocked, -⟩
       (try wp_auto)
@@ -470,22 +480,27 @@ theorem mvcc.store.scheduleCompaction.wp_proof
         · exact Or.inl rfl
         · exact Or.inr hk
     (try wp_auto)
-    simp only [Hbnd2, and_self, ↓reduceIte]
+    simp only [Hbnd2, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index ks (sint.Z n) kss DFrac.discard ksl Hn.1 $$ [$Hks] as -
     · ipureintro; exact Hkv.1
     (try wp_auto)
     have Hbnd3 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z vs.len := by
       refine ⟨Hn.1, ?_⟩; have := Hvl.1; rw [hlen2] at this; word
-    simp only [Hbnd3, and_self, ↓reduceIte]
+    simp only [Hbnd3, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index vs (sint.Z n) vss DFrac.discard vsl Hn.1 $$ [$Hvs] as -
     · ipureintro; exact Hkv.2
     (try wp_auto)
     icases h with ⟨h, %Hhv⟩
-    wp_apply (h5 h_ptr hv keep (DFrac.own 1) A ksl vsl e.1 e.2 DFrac.discard DFrac.discard)
-      $$ [$h $Hkeep] as ⟨⟨%hv2, h⟩, Hkeep, -, -⟩
+    -- (backend-cmp, 3.5) the key and its value read together under the session's lock token
+    ihave #Hcap2' := Hcap2
+    iunfold mvcc.rdCap2 at Hcap2'
+    icases Hcap2' $$ %ksl %vsl %e.1 %e.2 Hksl Hvsl Hlocked with ⟨%dqk, %dqv, Hkp, Hvp, Hkvback⟩
+    wp_apply (h5 h_ptr hv keep (DFrac.own 1) A ksl vsl e.1 e.2 dqk dqv)
+      $$ [$h $Hkeep $Hkp $Hvp] as ⟨⟨%hv2, h⟩, Hkeep, Hkp, Hvp⟩
     · iframe #
       ipureintro
       exact ⟨Hhv, r, _, Hkb, by cases t <;> simp, Hr0, Hs0⟩
+    ihave Hlocked := Hkvback $$ Hkp Hvp
     (try wp_auto)
     wp_for_post
     iframe

@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ConcurrentReadTx
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ReadTx
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
@@ -2100,6 +2101,32 @@ theorem bk_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG :=
 
 end batch2
 
+section cmpvocab
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **The `Key` bucket's deletable keys** (the backend-compaction stage, `notes/backend-cmp-plan.md`
+3.2, decision O1; Draft, 2026-10-28): the keys the backend's creator registered at `g`. -/
+def bkDel (g : GName) (k : GoString) : IProp GF := backend.dlIs g (go!"key", k)
+
+/-- **A one-shot delete permit** (3.4, decision O3): the limited range hands one out per key it
+returns and `UnsafeDelete` spends it, so a compaction session's operations stay within the
+backend's bound (`pend < 2^58`, with the scope premise `CompactionBatchLimit ≤ 2^56`). -/
+def bkDP (gp : GName) (_k : GoString) : IProp GF := ownToks gp 1
+
+/-- **The safe-range deletion's slot** (3.4): a reader's slot of the backend's
+`safeRangeDeleteMu`. -/
+def srSlot (b : Loc) : IProp GF :=
+  sync.ownRWMutex (backend.bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True))
+
+/-- The slot read-locked (between `LockForSafeRangeDelete` and `UnlockForSafeRangeDelete`). -/
+def srHeld (b : Loc) : IProp GF :=
+  sync.ownRWMutexRLocked (backend.bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True))
+
+end cmpvocab
+
 /-! ## The bridge -/
 
 section main
@@ -2220,6 +2247,113 @@ theorem isKeyBackendG_of_backend
   isplitr
   · iapply bk_sizeInUse hSzU γ P W Pk b $$ [$Hpkg $Hb]
   iintro !> %hc; exact (hC hc).elim
+
+/-- **The bridge with the compaction** (the backend-compaction stage, `notes/backend-cmp-plan.md`
+section 2; Draft, 2026-10-28): `isKeyBackendG_of_backend` with `Cmp` true, the deletable keys those
+registered at `g` (`bkDel`, decision O1), the one-shot delete permits at `gp` (`bkDP`, O3) and the
+safe-range slot (`srSlot`/`srHeld`, 3.4). Its non-compaction clauses are the old bridge's proofs;
+the compaction's clauses are the stage's new cases. The stores switch to it (`kbCmp := True`, O5)
+when it is proved. -/
+theorem isKeyBackendG_of_backendC
+    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
+    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
+    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc)
+    (g gp : GName) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ∗ keySized γ P b ⊢
+      isKeyBackendG
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
+        (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk (bkDel g) W W iprop(True) True Pk (bkHookIs γ)
+        (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
+        (bkBt b) (bkDP gp) (srSlot b) (srHeld b) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
+  iunfold isKeyBackendG
+  iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply bridge_crt hCRT hcRL hcRU hcUR hID hName hSafe hP γ W Pk b (bkDel g)
+      $$ [$Hpkg $Hsch $Hb]
+  isplitr
+  · iapply bridge_rt hRT hrRL hrRU hrUR hID hName hSafe hP γ W Pk b (bkDel g)
+      $$ [$Hpkg $Hsch $Hb $Hsafe]
+  isplitr
+  · iintro !> %Φ !> - HΦ
+    wp_apply (hBT γ P W Pk b) $$ [$Hb] as %t #Ht
+    iapply HΦ
+    iunfold isBatchTxG
+    iexists (bkLocked γ P b), (bkLockedO γ P b)
+    isplitl []
+    · iunfold batchTxSpecG
+      isplitr
+      · iapply bt_lockIn hLI hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
+      isplitr
+      · iapply bt_seqPut hSP hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
+      isplitr
+      · iapply bt_unlock0 hUL hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
+      isplitr
+      · iapply bt_unlock hUL hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
+      isplitr
+      · iapply bt_range hbUR hID hName hSafe hP γ W Pk b t (bkDel g) $$ [$Hpkg $Hsch $Hb $Ht]
+      isplitr
+      · iapply bt_lockOutJ hLO hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
+      isplitr
+      · -- the job's `UnsafeDelete(Key, k)` of a registered key, spending its permit (3.1)
+        iintro !> -; sorry -- backend-cmp Draft: new case (UnsafeDelete of a safe-range key, 3.1-3.2)
+      isplitr
+      · -- the job's limited range: thin of the logical bucket, slices valid until the commit (3.5)
+        iintro !> -; sorry -- backend-cmp Draft: new case (the limited range, 3.2/3.5)
+      isplitr
+      · -- the job's `UnsafePut(Meta, compaction key, revision)` (3.3)
+        iintro !> -; sorry -- backend-cmp Draft: new case (the Meta keys' value invariant, 3.3)
+      iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
+    isplitr
+    · iunfold batchTxInitSpec
+      isplitr
+      · iapply bt_lockOut hLO γ P W Pk b t $$ [$Hpkg $Hb $Ht]
+      isplitr
+      · iapply bt_create hCB hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
+      iapply bt_unlockO hUL γ P W Pk b t $$ [$Hpkg $Hb $Ht]
+    -- the read-only `batchTx` field, which `BatchTx()` returns
+    iunfold bkBt
+    iintro !>
+    iexists t
+    iframe Ht
+    isplitr
+    · ipureintro; rfl
+    iintro !> %Φ' !> - HΦ'
+    wp_apply (hBT γ P W Pk b) $$ [$Hb] as %t' #Ht'
+    iapply HΦ' $$ Ht'
+  isplitr
+  · iapply bk_forceCommit hFC γ P W Pk b $$ [$Hpkg $Hb]
+  isplitr
+  · iapply bk_size hSz γ P W Pk b $$ [$Hpkg $Hb]
+  isplitr
+  · iapply bk_sizeInUse hSzU γ P W Pk b $$ [$Hpkg $Hb]
+  -- `LockForSafeRangeDelete`/`UnlockForSafeRangeDelete` over the slot, and `ReadTx` of the `Meta`
+  -- keys (3.3, 3.4)
+  iintro !> -; sorry -- backend-cmp Draft: new case (the safe-range slot and metaReadTx, 3.3-3.4)
 
 /-- **The store's backend contract with the witness `True`, of the real backend** (D22 receiver
 epochs, S6; `storeBackendT`: what `store.Restore` takes of its new backend). As

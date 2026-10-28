@@ -267,3 +267,38 @@ exactness through the `dlNone` token (an addition for D22, to be shown to its ow
 delete permits from the limited range, with the scope premise `CompactionBatchLimit ≤ 2^56`. O4:
 the job's write-back tokens from the server's receipt-funded pool (`srvWTPool`, D22's: check with
 its owner before Draft). O5: `Cmp` kept, `kbCmp := True`, removed in a later cleanup. Next: Draft.
+
+## Draft (2026-10-28, first round)
+
+Written so far (statements; existing results unchanged except one marked step of the job):
+- **mvcc's contract** (`mvcc/InvStore.lean`): `batchTxSpecG`/`isBatchTxG`/`isKeyBackendG` gain the
+  one-shot delete permits `DP` (O3) and `isKeyBackendG` the safe-range slot `SR`/`SRh` (3.4), all
+  defaulting to `True` (mvcc's assumed backend unchanged); the limited range's slices are lent
+  against the session token (`rdCap`, and `rdCap2` for a key and its value read together: the job
+  hashes both, which `rdCap` alone, the Scope draft's form, cannot lend) instead of read-only for
+  good (3.5); `UnsafeDelete(Key)` spends a permit. The budgets `kbSR`, `kbWTSupply`,
+  `compactJobRes` (3.4, O4) and the job's non-persistent precondition `compactJobPreR`
+  (`mvcc/InvCompact.lean`; `compactJobPreR_none`: the assumed backend's instance).
+- **The bridge** (`mvcc/BackendBridge.lean`): `isKeyBackendG_of_backendC`, `Cmp` true over the
+  registered deletable keys `bkDel g`, the permits `bkDP gp` and the slot `srSlot`/`srHeld`; its
+  non-compaction clauses are the old bridge's proofs, its four compaction clauses marked `sorry`
+  (new cases). The old bridge stays, and `kbCmp` stays `kb = none`, until it is proved
+  (a deviation from O5's timing: switching now would put the new cases' `sorry`s under every
+  server result).
+- **The backend** (`backend/DelKeys.lean`): `dlReg`/`dlIs` (O1), `thinV` (3.2), `dlNone` (O2),
+  `safeStC` (3.1), `cacheValidC` (3.2), `viOk` (3.3); the specs' variants
+  `batchTxBuffered.UnsafeDelete.specC` (any bucket, a safe-range key registered),
+  `UnsafeSeqPut.specC` (above the committed keys too), `Unlock.specC` (the deleting session's
+  branch, thin of the logical view).
+
+**Found while drafting (for Review)**: (1) the job deletes `keys[i]`, a slice the range lends
+against the session token, which `UnsafeDelete` also takes: the delete clause must accept a lent
+slice (the job's proof has a marked `sorry` there); (2) `rdCap` lends one slice at a time, the
+hasher reads two (hence `rdCap2`); (3) the registration's name `g` is explicit: `BNames` should hold
+it, with `newBackend`'s creator fixing `Φ` (`NewAlloc`, its one construction site).
+
+**Left for Draft's next round**: the backend invariants over the logical view (`γ.view` holding
+`L`, `rtRest`/`batchGhostAt` thin, `cacheValid` → `cacheValidC`), `safeSt` → `safeStC` and
+`BParams.VI` in place, `newBackend` returning `dlNone`, the slot and the registration, the
+wiring (`storeBackend_of_backend` over the new bridge with `isKeyBackendG_congrDel`, `NewStore` and
+`compactTok` carrying the budgets, `kbCmp := True`), and `metaVI`.

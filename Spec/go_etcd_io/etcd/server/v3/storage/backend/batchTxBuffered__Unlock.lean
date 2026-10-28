@@ -13,6 +13,7 @@ the buffers, bbolt as a key-value contract, the locks and the views".
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 
 @[expose] public section
 
@@ -44,6 +45,22 @@ abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
   st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗
       ((⌜viewSame P st⌝ ∗ W ∗ Pk ∗ Q) ∨
+       (∃ vd : VData, bView γ 1 vd ∗ Pk ∗ (bView γ 1 (sData P st.S) -∗ W ∗ Q))) }}
+    (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
+  {{ RET #(); Q }}
+
+/-- **`Unlock` of a deleting session** (3.2; Draft): a third branch, for the compaction job's
+sessions, which hold no clients' share of the view: their commit may make the physical view miss
+keys (the writer's contents `sData P st.S`), registered as deletable at `g`, of the logical view
+`L` (the view the batch lock's quarter holds; the clients' view keeps `L`). Replaces `spec` once
+proved (`cacheValidC`, the commit path). -/
+abbrev backend.batchTxBuffered.Unlock.specC : Prop :=
+  ∀ (γ : BNames) (g : GName) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF),
+  st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
+      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗
+      ((⌜viewSame P st⌝ ∗ W ∗ Pk ∗ Q) ∨
+       (∃ L : VData, thinV g (sData P st.S) L ∗ W ∗ Pk ∗ Q) ∨
        (∃ vd : VData, bView γ 1 vd ∗ Pk ∗ (bView γ 1 (sData P st.S) -∗ W ∗ Q))) }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
   {{ RET #(); Q }}

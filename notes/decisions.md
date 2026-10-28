@@ -25149,3 +25149,17 @@ that needs no token frames it itself (counter, logkv, logkvcompact, logkvsnap, l
 k8setcd3, whose closures are proved inline in `Check`: the same, the token added to the
 continuation they pass on). logkvrw's `Apply` passes it to `Get`, and its copies of the driver
 are gone.
+
+### The compaction over the real backend: the Draft's statements (backend-cmp, 2026-10-28)
+
+**2026-10-28 · drafted** (`notes/backend-cmp-plan.md`, "Draft"; the user's Scope decisions O1-O5)
+
+Supersedes, when proved, "The compaction over the real backend (merge, 2026-10-13)": the real
+backend gets `Cmp` true (`isKeyBackendG_of_backendC`). mvcc's contract changes in three ways, each
+`True`/unchanged for mvcc's assumed backend: one-shot delete permits `DP` (the backend's bound on a
+session's operations), the safe-range slot `SR`/`SRh`, and the limited range's slices lent against
+the session token (`rdCap`, `rdCap2`) instead of read-only for good (false of bbolt, whose slices die
+with the transaction). The backend's view becomes exact up to keys registered as deletable (a saved
+predicate fixed at creation, `dlReg`), with `dlNone` for D22's exact readers. The new statements stand
+beside the old (`…specC`, `isKeyBackendG_of_backendC`) until proved, so that their `sorry`s reach no
+existing result but the job's one marked step.
