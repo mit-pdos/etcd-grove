@@ -13,6 +13,7 @@ module
 
 public import Proof.k8s_io.client_go.tools.cache.Link
 public import Proof.k8s_io.client_go.tools.cache.InformerHandler
+public import Proof.k8s_io.client_go.tools.cache.InformerHasSynced
 
 @[expose] public section
 
@@ -138,6 +139,34 @@ theorem sharedIndexInformer_handlerOk (Hbound : receiptBound GF ≤ 2 ^ 63) (s p
 end handler
 
 #print axioms sharedIndexInformer_handlerOk
+
+section synced
+open Iris Iris.BI Iris.ProgramLogic
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
+
+/-- **`HasSynced` at an informer's FIFO** (phase 4, fifth round), from the linked
+`RealFIFO.HasSynced`: `true` means the first list's version `v` and the store's version at least
+`v` from then on (`informer.syncedFacts`). -/
+theorem RealFIFO_HasSynced_inf (f : Loc) (OK : GoInterface → IProp GF) (γa : apimodel.ApiNames)
+    (r : apimodel.Res) (γf : cache.FifoNames) (γt : cache.TsNames) (γi : informer.InfNames) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ cache.isFIFO f γf OK ∗
+        informer.infInv γa r γf γt γi }}
+      (App (Val (f @!! go.GoType.PointerType k8s_io.client_go.tools.cache.RealFIFO.ty @!!
+        go!"HasSynced")) (Val #()))
+    {{ (b : Bool), RET #b; informer.syncedFacts γi b }} :=
+  informer.RealFIFO.wp_HasSynced_inf cache.RealFIFO.wp_HasSynced f OK γa r γf γt γi
+
+end synced
+
+-- the informer contract's first list and `HasSynced` (phase 4, fifth round; `InformerSync.lean`)
+#print axioms RealFIFO_HasSynced_inf
+#print axioms informer.infInv_hasSyncedAU
+#print axioms informer.infInv_readLbAU
+#print axioms informer.infInv_pushReplaceAU
 -- the store keys
 #print axioms cache.ObjectName.wp_String
 #print axioms cache.wp_SplitMetaNamespaceKey

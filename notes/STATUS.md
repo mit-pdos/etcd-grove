@@ -455,9 +455,30 @@ axioms; a gap or an unapproved boundary callee is a named hypothesis, `?` in
   matches `etc/tcb-baseline.txt` (751 axioms, 11 sorries). `meta.List`/`meta.Type` are now
   translated interface types (`meta.toml` imports `metav1`), not axiomatized types.
   `#print axioms` in `Proof/k8s_io/client_go/tools/cache/Results.lean`.
+- **`HasSynced` ⇒ the first list is in the store** (`InformerSync.lean`, `InformerHasSynced.lean`;
+  proved, no axiom). The invariant `infRes` gains the first list's version `f` (ghost `γi.first`,
+  persistent once set: `infFirst γi v`) and the pure `syncOk`: before the first list the FIFO is
+  empty, nothing is popped, the reflector has no version; after it, the FIFO's
+  `initialPopulationCount` is the position of the first relist's delta among the deltas not yet
+  done (after the applied-not-done ones, `apN`), or the store is already at its version; once
+  synced, the store's version is at least `v`. Every accessor re-proved (`sync_pop`, `sync_apply`,
+  `sync_done`, `sync_push`, `sync_replace_first`). New accessors: `infInv_hasSyncedAU` (at
+  `HasSynced`'s linearization point, `true` gives `infFirst γi v ∗ infRvLb γi v`),
+  `infInv_readLbAU` (a later store read is the server's table at a version at least such a bound);
+  `infInv_pushReplaceAU` now also gives the reflector `infFirst` at its first list (`firstIf`).
+  Linked: `RealFIFO_HasSynced_inf` (`Results.lean`). Not yet threaded: the first list's version
+  against the state `Main` knew when it started the informer (the reflector's `list` gets a state
+  at least it; `lwPost` does not carry `infFirst` out), and the informer's own `HasSynced` chain
+  (`sharedIndexInformer` → `controller` → the FIFO, and C2's forwards).
+  An observation, not reachable from the reflector: Go's `Pop`/`PopBatch` lower the count for a
+  delta popped before the first `Replace` (a bookmark, which does not populate the queue) when its
+  processing ends after that `Replace`, so a FIFO fed a bookmark first could report synced before
+  the relist is processed; `syncOk`'s "empty before the first list" is what excludes it (the
+  reflector lists first).
 - **Not done this round**: `RunWithContext` (needs `wait`'s backoff `Until` and the watch error
-  handler as hypotheses), `HasSynced` ⇒ the initial list in the store, the handlers' order against
-  the chain, and the construction and `Run` of `Main`'s four informers (blocked on D2/C2).
+  handler as hypotheses), the handlers' order against the chain (the handler history `γe` is not
+  yet tied to the applied deltas), and the construction and `Run` of `Main`'s four informers
+  (blocked on D2/C2).
 
 ## The informers, fourth round: the batch path, the reflector, the contract (2026-10-27, branch `k8s-daemonset-proof`)
 

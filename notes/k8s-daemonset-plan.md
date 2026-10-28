@@ -416,9 +416,10 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
    `infInv_pushReplaceAU`), `watch` (each event through the push accessors), `handleWatch`,
    `watchWithResync`, `startResync`, `ListAndWatchWithContext`, the pager; `handleAnyWatch` (D4)
    and `retryWithDeadlineImpl.After` (`Time.IsZero` missing) are gaps, the `apierrors`
-   predicates, `meta` list accessors and `Trace.Step` pending approval. Still to do: `RunWithContext`,
-   `HasSynced` ⇒ the initial list in the store, the handlers' order, the informers' construction
-   and `Run` (D2, C2) (`notes/STATUS.md`, "The informers, fifth round").
+   predicates, `meta` list accessors and `Trace.Step` pending approval. **`HasSynced` ⇒ the first
+   list in the store** (`syncOk` in the invariant, `infInv_hasSyncedAU`, `RealFIFO_HasSynced_inf`).
+   Still to do: `RunWithContext`, the handlers' order, the informers' construction and `Run` (D2,
+   C2) (`notes/STATUS.md`, "The informers, fifth round").
 5. **The controller.** `Run`, the workers, `syncDaemonSet` and what it calls on this scenario's
    paths, the event handlers, `syncNodeUpdate`; S1's invariant.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and

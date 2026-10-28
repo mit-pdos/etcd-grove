@@ -452,7 +452,7 @@ theorem Reflector.list.wp_proof
             $$ [$Hpkg $Hstore $Hfifo $Hxs $Hoks]
           iapply (infInv_pushReplaceAU γa res γf γt γi n σ σ.rev R0 xs hl (Nat.le_refl _) hu (hgood res))
             $$ Hinv Hσ HR0 Hlast
-          iintro Hlast -
+          iintro Hlast - -
           (try wp_auto)
           wp_apply (wp_Step tr _ _)
           (try wp_auto)

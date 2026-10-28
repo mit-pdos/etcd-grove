@@ -8,19 +8,21 @@ one informer of one resource (all namespaces). Lean-first.
   model object, registered once: `infObj`), the reflector's last version (`last`, halves: the
   invariant's and the reflector's), the deltas popped and not yet applied (`pop`, halves: the
   invariant's and the processing goroutine's, with their Go deltas), the store's state as its writer
-  knows it (`sw`), and a lower bound of the store's version (`rvlb`, a mono counter: the contract's
-  monotonicity, persistent).
+  knows it (`sw`), a lower bound of the store's version (`rvlb`, a mono counter: the contract's
+  monotonicity, persistent), and the first list's version (`first`, persistent once set).
 * `infObj γi r x`: the FIFO's and the store's object contract `OK`: `x` registered with a model
   object `o` of resource `r`, owned read-only (`objAt x DFrac.discard o`).
 * `infInv`: there is a past state `σp` of the server and an abstract state `s` such that
   `s.ok (σp's log of r)` (`InfP.ok`), the reflector's last version at most `σp`'s, the FIFO's deltas
-  are `s.fifo`'s (`fdRel`), the store is `s.store` (`storeRel`), the popped deltas are `s.popped`.
+  are `s.fifo`'s (`fdRel`), the store is `s.store` (`storeRel`), the popped deltas are `s.popped`,
+  and the FIFO's initial count is the first list's position (`syncOk`, `InformerSync.lean`: once
+  synced, the store's version is at least the first list's).
 
 The contract's statements over it are in `InformerSpec.lean`.
 -/
 module
 
-public import Proof.k8s_io.client_go.tools.cache.InformerRel
+public import Proof.k8s_io.client_go.tools.cache.InformerSync
 public import Proof.k8s_io.client_go.tools.cache.FIFODefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Defs
 public import Perennial.Ghost.MonoNat
@@ -42,6 +44,7 @@ structure InfNames where
   pop : GName
   sw : GName
   rvlb : GName
+  first : GName
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -57,21 +60,33 @@ instance infObj_persistent (γi : InfNames) (r : Res) (x : GoInterface) :
     Persistent (infObj (GF := GF) γi r x) := by
   unfold infObj; infer_instance
 
+/-- The first list's ghost variable's fraction: owned until set, then persistent. -/
+def firstDq : Option Nat → DFrac
+  | none => .own 1
+  | some _ => .discard
+
+/-- **The informer's first list was at version `v`** (persistent). -/
+def infFirst (γi : InfNames) (v : Nat) : IProp GF := dghostVar γi.first .discard (some v)
+
+instance infFirst_persistent (γi : InfNames) (v : Nat) : Persistent (infFirst (GF := GF) γi v) := by
+  unfold infFirst; infer_instance
+
 /-- **The informer invariant's content.** -/
 def infRes (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames) (γi : InfNames) : IProp GF :=
   iprop(∃ (σp : apimodel.St) (s : InfP) (q : FQ) (σs : cache.St) (R : Reg)
-      (pd : List cache.FD) (ap : Bool),
+      (pd : List cache.FD) (ap : Bool) (f : Option Nat),
     pastSt γa σp ∗ ghostMapAuth γi.reg 1 R ∗ ([∗map] x ↦ o ∈ R, x ↪[γi.reg]□ o) ∗
     ([∗map] x ↦ o ∈ R, □ apimodel.objAt x DFrac.discard o) ∗
     fifoSt γf q ∗ storeSt γt σs ∗
     ghostVar γi.sw (1 : Qp).half σs ∗
     ghostVar γi.last (1 : Qp).half s.last ∗
     ghostVar γi.pop (1 : Qp).half (pd, ap) ∗
-    monoNatAuthOwn γi.rvlb 1 (rvNat s.store.rv) ∗
+    monoNatAuthOwn γi.rvlb 1 (rvNat s.store.rv) ∗ dghostVar γi.first (firstDq f) f ∗
     ⌜s.ok (σp.tbl r).log ∧ rvLe s.last (some σp.rev.toNat) ∧
       List.Forall₂ (fdRel R) q.items s.fifo ∧ poppedRel R σs pd ap s.popped ∧
       storeRel R σs s.store ∧ (∀ x o, R !! x = some o → o.res = r) ∧
-      (∀ c ∈ (σp.tbl r).log, keyGood c.obj.key) ∧ fqOk q pd ∧ pdReg R pd⌝)
+      (∀ c ∈ (σp.tbl r).log, keyGood c.obj.key) ∧ fqOk q pd ∧ pdReg R pd ∧
+      syncOk q pd ap s f⌝)
 
 instance ite_timeless' (c : Prop) [Decidable c] (P Q : IProp GF) [Timeless P] [Timeless Q] :
     Timeless (if c then P else Q) := by
@@ -249,6 +264,9 @@ instance infInv_persistent (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
 /-- **A lower bound of the store's version** (persistent): the store's version is at least `n` from
 now on. -/
 def infRvLb (γi : InfNames) (n : Nat) : IProp GF := monoNatLbOwn γi.rvlb n
+
+instance infRvLb_persistent (γi : InfNames) (n : Nat) : Persistent (infRvLb (GF := GF) γi n) := by
+  unfold infRvLb; infer_instance
 
 end defs
 
