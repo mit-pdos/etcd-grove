@@ -67,7 +67,7 @@ transfer off of raft's shape (`SentMsgOk`), so a network message is one its rece
 theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet γ.node)
     {γd : GName} (ml : Loc) :
     srvClusterOk (GF := GF) γ.srv ∗ netRecv γn γ.id γd ml ⊢
-      |==> Draft.stepIn γ.node.cl srvClusterN γ.id ml := by
+      |==> stepIn γ.node.cl srvClusterN γ.id ml := by
   letI := srvStor (GF := GF) γ.node
   obtain ⟨N, g, dir, r⟩ := γn
   simp only at HN
@@ -83,7 +83,7 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
   ihave #Hcl' := Hcl
   iunfold srvClusterOk at Hcl'
   icases Hcl' with ⟨-, #Hxo, -, #Hbt⟩
-  ihave %Hsent := Draft.sentMsg_transferOff γ.node.cl srvClusterN sid st $$ [Hxo Hrm]
+  ihave %Hsent := sentMsg_transferOff γ.node.cl srvClusterN sid st $$ [Hxo Hrm]
   · iframe Hxo Hrm
   have Htn := SentMsgOk.ne_timeoutNow Hsent
   have Htl := SentMsgOk.ne_transferLeader Hsent
@@ -94,8 +94,8 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
   have Hcopy : (⟨st.msg, st.ents, st.snap, st.ctx, []⟩ : MsgSt) = st := by
     cases st; simp only at Hsr ⊢; rw [Hsr]
   rw [Hst']
-  imod Draft.tickCredit_zero γ.node.cl with Htc
-  iapply Draft.stepIn_intro γ.node.cl srvClusterN γ.id ml sid st
+  imod tickCredit_zero γ.node.cl with Htc
+  iapply stepIn_intro γ.node.cl srvClusterN γ.id ml sid st
     (fun Hp => ⟨by rw [Hcopy]; exact NetMsgOk.of_sent Hsent Hto Hp, Htl⟩)
     (fun h => absurd h Hns) Hto
   rw [ite_eq_right Htn]

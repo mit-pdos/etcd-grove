@@ -131,8 +131,8 @@ theorem startCluster.wp_proof
     ⟨#Hsl₂, Ho₂⟩, Hmb₃, ⟨#Hsl₃, Ho₃⟩, Hetcd⟩
   obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
-  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    simp [Draft.LogEntry.toEntries, hblen0]
+  have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    simp [LogEntry.toEntries, hblen0]
   -- the three members, each served
   iunfold memberBoot at Hmb₁
   icases Hmb₁ with ⟨%Hp₁, Hmb₁⟩
@@ -141,7 +141,7 @@ theorem startCluster.wp_proof
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
-      (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
+      (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
       Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
       Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
@@ -165,7 +165,7 @@ theorem startCluster.wp_proof
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
-      (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
+      (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
       Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
@@ -190,7 +190,7 @@ theorem startCluster.wp_proof
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
-      (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
+      (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
       Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃

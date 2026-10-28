@@ -294,8 +294,8 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
   -- (2026-10-27) `B`'s entries are the server's log's or fillers
   exact srv_entry_transfer γ.ai0 B L (fun m => m.typ ≠ W32 0 → ccPolOk γ.raft m.data)
     (fun m m' he h => by
-      have h1 := congrArg Draft.LogEntry.type he
-      have h2 := congrArg Draft.LogEntry.data he
+      have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       rw [h1, h2]; exact h)
     (fun m ht _ h => absurd ht h) HBi Hp.2.2 Hcc

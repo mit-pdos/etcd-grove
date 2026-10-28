@@ -5,7 +5,7 @@
 proposed it and the entry is the operation's first, gets the value after it (`waitP`).
 
 `e` is a `*pb.Entry` holding the committed log entry `le` at index `idx` (`entRO`, read-only for
-good: what `Ready.CommittedEntries` hands out, `Draft.committedEntriesAt`), read through its
+good: what `Ready.CommittedEntries` hands out, `committedEntriesAt`), read through its
 getters.
 -/
 module
@@ -33,10 +33,10 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.apply.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
-    (ap : List Draft.LogEntry) (e : Loc) (le : Draft.LogEntry) (idx : w64),
+    (ap : List LogEntry) (e : Loc) (le : LogEntry) (idx : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isReplica γr γp r id n st ∗ runOwn γr r ap ∗ entRO e (le.toEntryM idx) ∗
-      Draft.isCommittedLogLb γr.cluster (ap ++ [le]) }}
+      isCommittedLogLb γr.cluster (ap ++ [le]) }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"apply")) (Val #e))
   {{ RET #(); runOwn γr r (ap ++ [le]) }}
 

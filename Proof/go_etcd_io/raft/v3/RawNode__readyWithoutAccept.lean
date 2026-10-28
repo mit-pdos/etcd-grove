@@ -12,7 +12,7 @@ their terms are bounded by the outbox's `OutTermOk` (2026-10-17: within the term
 then, with pre-vote off, by the node's term).
 
 Since 2026-10-13 the `ReadState`s are handed out (`rd.ReadStates = r.readStates` when not
-empty): the slice read-only, and each one's `readStateOk`, copied out of the ghost state
+empty): the slice read-only, and each one's `readStateRaw`, copied out of the ghost state
 (`ownRaftGhost_readStates`; `InvRawnodeReady.lean`'s header).
 
 Lean notes: `readyWithoutAccept`'s `rd` is tracked as `readyVal` (one field per argument).

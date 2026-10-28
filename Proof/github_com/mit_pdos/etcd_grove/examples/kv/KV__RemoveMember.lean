@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
 theorem KV.RemoveMember.wp_proof
-    (wp_node_ProposeConfChange : Draft.node.ProposeConfChange.spec (GF := GF) (hG := hG))
+    (wp_node_ProposeConfChange : node.ProposeConfChange.spec (GF := GF) (hG := hG))
     (wp_ConfChangeType_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG)) :
     KV.RemoveMember.spec (GF := GF) (hG := hG) := by
   intro γr γp r id Hsh

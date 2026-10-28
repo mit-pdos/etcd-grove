@@ -63,7 +63,7 @@ theorem linkvtxn_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextReadErrs (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextErrsClient (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)

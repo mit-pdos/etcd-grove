@@ -5,15 +5,19 @@
 theorem node.Propose.wp_proof [package_sem : Assumptions] (wp_node_stepWait : node.stepWait.spec)
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : node.Propose.spec
   -- `Perennial.EtcdGrove.node.Propose.spec`, unfolded:
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8) (Q : List EntryM → IProp GF)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode γ id n ∗
+            isNode n γ N id ∗
               nodeCtx ctx cd ∗
-                ownSlice data_sl data DFrac.discard ∗ (⌜data = []⌝ ∨ propArg γ.raft (entKey (W32 0) data) Q) -∗
-          (▷ ∀ err, propErr cd err -∗ Φ (intoVal err)) -∗
+                ownSlice data_sl data DFrac.discard ∗
+                  AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t,
+                      ownCommittedOps γ (ops ++ [{ term := t, type := W32 0, data := data }]), COMM True }> -∗
+          (▷
+              ∀ err,
+                ⌜err = GoInterface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (methods node.ty.PointerType go!"Propose" (intoVal n)))
                   (intoVal (GoInterface.ok ctx)))

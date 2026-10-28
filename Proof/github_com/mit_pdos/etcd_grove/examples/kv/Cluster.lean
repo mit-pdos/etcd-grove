@@ -11,8 +11,8 @@ raft's `Node`, connected in process by `deliver`, each node driven by a `tick` g
   methods return (`quietLogger.{Debugf,Errorf,Infof,Warningf}`), which is raft's
   `isLogger` (`qLogger_isLogger`).
 * **The transport** (`deliverable`, `deliver`): `Ready` says of each of its messages only
-  that it was sent (`Draft.sentMsg`), with its credits (`Draft.msgCredits`); `Node.Step` takes
-  more (`Draft.stepIn`, `Draft.stepIn_intro`: the type, the target, a nonzero term and sender but
+  that it was sent (`sentMsg`), with its credits (`msgCredits`); `Node.Step` takes
+  more (`stepIn`, `stepIn_intro`: the type, the target, a nonzero term and sender but
   for a forwarded read-index request (unstamped), its entries owned, and a `MsgTimeoutNow`'s tick
   credit). The transport checks in Go what
   it can (`Deliverable`: the type, a sender other than the target, a term (none on a
@@ -30,7 +30,7 @@ raft's `Node`, connected in process by `deliver`, each node driven by a `tick` g
   `Entries` nor hand it to `Step`: `deliver` steps the wire's copy of every message instead.
 * **The transfer budget** (`isTransfers`, 2026-10-13): a `MsgTimeoutNow` makes its target
   campaign at once, one term past its own or the message's, so `Node.Step` takes it with a
-  tick credit (`Draft.tickCredit`). The transport holds `timeouts` of them in a
+  tick credit (`tickCredit`). The transport holds `timeouts` of them in a
   mutex-protected counter (`transfers`, `transfersInv`: one credit per count) and passes a
   `MsgTimeoutNow` on only while one is left (`transfers.take`), as `tick` bounds a node's
   ticks; `Main` allocates them with the budget.
@@ -103,25 +103,25 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [StorageModel GF]
 
 /-- The node `nd` is node `id` of the store's cluster `γ` (persistent). -/
-def kvPeerOk (γ : Draft.Cluster) (id : w64) (nd : GoInterface) : IProp GF :=
+def kvPeerOk (γ : Cluster) (id : w64) (nd : GoInterface) : IProp GF :=
   iprop(∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-    Draft.isNode n γ kvRaftN id)
+    isNode n γ kvRaftN id)
 
-instance kvPeerOk_persistent (γ : Draft.Cluster) (id : w64) (nd : GoInterface) :
+instance kvPeerOk_persistent (γ : Cluster) (id : w64) (nd : GoInterface) :
     Persistent (kvPeerOk (GF := GF) γ id nd) := by
   unfold kvPeerOk; infer_instance
 
 /-- The transfer budget's lock invariant (see the file header): the number of `MsgTimeoutNow`s
 the transport may still pass on (D19b, 2026-10-18: until then with one tick credit each; `take`
 takes the credit, a time receipt, from a Go step of its own). -/
-def transfersInv (_γ : Draft.Cluster) (tr : Loc) : IProp GF :=
+def transfersInv (_γ : Cluster) (tr : Loc) : IProp GF :=
   iprop(∃ n : w64, tr.[RTransfers, go!"left"] ↦ n)
 
 /-- The transport's transfer budget `tr` (persistent). -/
-def isTransfers (γ : Draft.Cluster) (tr : Loc) : IProp GF :=
+def isTransfers (γ : Cluster) (tr : Loc) : IProp GF :=
   sync.isMutex (tr.[RTransfers, go!"mu"]) (transfersInv γ tr)
 
-instance isTransfers_persistent (γ : Draft.Cluster) (tr : Loc) :
+instance isTransfers_persistent (γ : Cluster) (tr : Loc) :
     Persistent (isTransfers (GF := GF) γ tr) := by
   unfold isTransfers; infer_instance
 
@@ -212,7 +212,7 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
     exact ⟨by rw [Hsn]; simp [netStepTypes], fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun,
       fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF', Hr⟩
 
-/-- A deliverable message, addressed to `id`, as `Draft.stepIn_intro` asks of a message a node
+/-- A deliverable message, addressed to `id`, as `stepIn_intro` asks of a message a node
 steps: a forwarded proposal with no context, or what a node takes from the network (`NetMsgOk`, of
 its copy with no responses; no pre-vote, no leader transfer), a snapshot below `2^61`. -/
 theorem deliverable_step (id : w64) (st : MsgSt) (Hd : Deliverable st) (Hto : st.msg.To' = id) :

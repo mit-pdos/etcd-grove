@@ -29,11 +29,11 @@ variable [StorageModel GF]
 
 /-- See the file header. -/
 abbrev transfers.take.spec : Prop :=
-  ∀ (γ : Draft.Cluster) (tr : Loc),
+  ∀ (γ : Cluster) (tr : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isTransfers γ tr }}
     (App (Val (tr @!! go.GoType.PointerType rTransfersTy @!! go!"take")) (Val #()))
-  {{ (b : Bool), RET #b; if b then Draft.tickCredit γ 1 else True }}
+  {{ (b : Bool), RET #b; if b then tickCredit γ 1 else True }}
 
 end spec
 

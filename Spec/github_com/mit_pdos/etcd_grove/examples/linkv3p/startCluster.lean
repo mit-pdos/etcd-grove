@@ -38,7 +38,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 /-- See the file header. -/
 abbrev startCluster.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry) (lg : Loc)
+    (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) (lg : Loc)
     (pfx : GoString),
   BootFacts id₁ id₂ id₃ ctxs boot →  lg ≠ null →
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
@@ -55,7 +55,7 @@ abbrev startCluster.spec : Prop :=
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster)) (Val #lg))
   {{ (srvs brs clis : GoSlice) (ok : Bool), RET (PairV (PairV (PairV #srvs #brs) #clis) #ok);
       ⌜ok = false⌝ ∨
-      (⌜ok = true⌝ ∗ threadTok ∗ clusterUp id₁ id₂ id₃ (Draft.LogEntry.toEntries boot 0) pfx srvs brs clis) }}
+      (⌜ok = true⌝ ∗ threadTok ∗ clusterUp id₁ id₂ id₃ (LogEntry.toEntries boot 0) pfx srvs brs clis) }}
 
 end spec
 

@@ -11,6 +11,7 @@ then the Goose value `propMsg esl` with the entries' slice, its capacity and the
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
@@ -36,7 +37,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev node.stepWait.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (data : List w8)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗
       msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
       propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) }}

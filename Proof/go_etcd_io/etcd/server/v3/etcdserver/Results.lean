@@ -2121,16 +2121,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `srvClusterBoot_alloc`'s, with the mode-`on` KV invariant `kvInvOn _ _ srvAuthSt0` at the start
 chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates. -/
 theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
-    (boot : List Draft.LogEntry) (Φs : w64 → w64 → List w8 → GName → IProp GF) (reg : GName)
+    (boot : List LogEntry) (Φs : w64 → w64 → List w8 → GName → IProp GF) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (HB : Draft.BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
-    (hcc : ∀ e ∈ Draft.LogEntry.toEntries boot 0,
+    (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
+    (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
       ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
-    ⊢ bootMarshal (GF := GF) ps ctxs (Draft.LogEntry.toEntries boot 0) ={⊤}=∗
+    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt : GName) (γk : KVNames),
-        ⌜γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = Draft.LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
+        ⌜γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
@@ -2139,7 +2139,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          Draft.readCredits γ.cl (2 ^ 48) ∗ Draft.nodeBoot γ.cl srvClusterN ps ctxs id ∗
+          readCredits γ.cl (2 ^ 48) ∗ nodeBoot γ.cl srvClusterN ps ctxs id ∗
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) :=
   srvClusterBootOn_alloc ps ctxs boot Φs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hpd Hp0

@@ -64,7 +64,7 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
   · unfold isReplica
     simp only [named]
     iframe #
-  ihave #Hc0 := Draft.isCommittedLogLb_nil (GF := GF) γr.cluster
+  ihave #Hc0 := isCommittedLogLb_nil (GF := GF) γr.cluster
   wp_apply wp_fork $$ [Hdrv kv HK applied HA Hrs]
   · wp_apply wp_run γr ⟨⟩ «$r0_ptr» id n st send
       $$ [$Hpkg $Hrep Hdrv kv HK applied HA Hrs]

@@ -61,7 +61,7 @@ theorem transfers.take.wp_proof : transfers.take.spec (GF := GF) (hG := hG) := b
     try wp_auto
     iapply HΦ
     simp only [↓reduceIte]
-    iapply Draft.tickCredit_intro γ 1 $$ Hc1
+    iapply tickCredit_intro γ 1 $$ Hc1
 
 end proof
 

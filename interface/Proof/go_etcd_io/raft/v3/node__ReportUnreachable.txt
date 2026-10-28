@@ -5,10 +5,10 @@
 theorem node.ReportUnreachable.wp_proof [package_sem : Assumptions] (wp_MessageType_Enum :
     raftpb.MessageType.Enum.spec) : node.ReportUnreachable.spec
   -- `Perennial.EtcdGrove.node.ReportUnreachable.spec`, unfolded:
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal

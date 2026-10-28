@@ -157,18 +157,18 @@ theorem kvStorCert_intro (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
   iexact H
 
 /-- A store storage whose `MemoryStorage`'s registry is tied to the cluster
-(`Draft.storageCertInv`) has the cluster's certificates (`Draft.storageCertLink`). -/
-theorem kvStorCertLink_intro (γ : Draft.Cluster) (N : Namespace) (s ms : Loc) (γs : MemStorNames) :
-    ⊢ Draft.storageCertInv (GF := GF) γ N γs -∗ kvStorRec s ms γs -∗
-      Draft.storageCertLink γ N (kvStorIface s) := by
+(`storageCertInv`) has the cluster's certificates (`storageCertLink`). -/
+theorem kvStorCertLink_intro (γ : Cluster) (N : Namespace) (s ms : Loc) (γs : MemStorNames) :
+    ⊢ storageCertInv (GF := GF) γ N γs -∗ kvStorRec s ms γs -∗
+      storageCertLink γ N (kvStorIface s) := by
   iintro #Hinv #Hrec
-  iapply Draft.storageCertLink_intro γ N (kvStorIface s)
+  iapply storageCertLink_intro γ N (kvStorIface s)
   isplit
   · iintro !> %k %E %hE #Hc
     ihave #Hc := kvStorCert_at s ms γs k $$ Hrec Hc
-    iapply Draft.storageCert_read γ N γs k E hE $$ Hinv Hc
+    iapply storageCert_read γ N γs k E hE $$ Hinv Hc
   · iintro !> %k %E %hE #Hk
-    imod Draft.storageCert_register γ N γs k E hE $$ Hinv Hk with #Hc
+    imod storageCert_register γ N γs k E hE $$ Hinv Hk with #Hc
     imodintro
     iapply kvStorCert_intro s ms γs k $$ Hrec Hc
 

@@ -1,7 +1,7 @@
 /-
 # Raft's node API: dynamic clusters, the implementation (2026-10-27)
 
-The definitions behind the draft's dynamic-cluster items (`NodeApiDraft.lean`, "What etcd's server
+The definitions behind the draft's dynamic-cluster items (`InvNode.lean`, "What etcd's server
 needs") and the proofs of their laws and specs (`*_impl`), from raft's dynamic mode
 (`RNMode.dyn`, `raft_dyn_alloc_boot`'s allocation, `node.ApplyConfChange`'s dynamic case,
 `node.Advance`'s A1) and its no-snapshot mode.
@@ -17,12 +17,12 @@ needs") and the proofs of their laws and specs (`*_impl`), from raft's dynamic m
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.NodeApiImpl
+public import Proof.go_etcd_io.raft.v3.InvApi
 public import Proof.go_etcd_io.raft.v3.CCApplyC
 public import Proof.go_etcd_io.raft.v3.SnapConf
 public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 public import Proof.go_etcd_io.raft.v3.Protocol.SnapMint
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 
 @[expose] public section
 
@@ -35,7 +35,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace ApiImpl
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 Draft
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-! ## Memberships -/
 
@@ -374,13 +374,13 @@ configuration (`nodeCfg`) of the node's names, at the membership's state, the na
 def nodeConfig (n : Loc) (γ : Cluster) (_N : Namespace) (v : ConfigView) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64),
     ⌜NodeOk γ γn ∧ γn.mode.isDyn = true ∧ CCGood (stOf v.membership)⌝ ∗
-    EtcdGrove.isNode γn id n ∗ nodeTabOk γ id γn ∗ nodeCfg γn v.applied (stOf v.membership))
+    EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ id γn ∗ nodeCfg γn v.applied (stOf v.membership))
 
 /-- **The committed log delivered to node `n` extends `l`** (the draft's `deliveredLogLb`):
 raft's lower bound (`dlvLb`) of the node's names (its table's, if dynamic), and committed. -/
 def deliveredLogLb (n : Loc) (γ : Cluster) (_N : Namespace) (l : List LogEntry) : IProp GF :=
   iprop((∃ (γn : NodeNames) (id : w64) (ds : List EntryM), ⌜NodeOk γ γn ∧ strip ds = l⌝ ∗
-    EtcdGrove.isNode γn id n ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ id γn) ∗ dlvLb γn ds) ∗
+    EtcdGrove.isNodeChan γn id n ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ id γn) ∗ dlvLb γn ds) ∗
     isCommittedLogLb γ l)
 
 instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
@@ -388,16 +388,16 @@ instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l :
   unfold deliveredLogLb; infer_instance
 
 theorem drv_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
-    EtcdGrove.nodeDriver (GF := GF) γn id n ds p ⊢
-      EtcdGrove.nodeDriver γn id n ds p ∗ (EtcdGrove.isNode γn id n ∗ dlvLb γn ds) := by
-  unfold EtcdGrove.nodeDriver
+    EtcdGrove.nodeDriverChan (GF := GF) γn id n ds p ⊢
+      EtcdGrove.nodeDriverChan γn id n ds p ∗ (EtcdGrove.isNodeChan γn id n ∗ dlvLb γn ds) := by
+  unfold EtcdGrove.nodeDriverChan
   iintro ⟨#Hn, Hd, #Hlb, Hr⟩
   iframe Hn Hd Hlb Hr
 
 theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p : HardStateM) (L : Option SnapLoan) :
     nodeDriverBusy (GF := GF) γn id n ds es p L ⊢
-      nodeDriverBusy γn id n ds es p L ∗ (EtcdGrove.isNode γn id n ∗ dlvLb γn ds) := by
+      nodeDriverBusy γn id n ds es p L ∗ (EtcdGrove.isNodeChan γn id n ∗ dlvLb γn ds) := by
   unfold nodeDriverBusy
   iintro ⟨#Hn, #Hlb, Hr⟩
   iframe Hn Hlb Hr
@@ -407,7 +407,7 @@ theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
   unfold nodeDriver
   iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hst, #Hdy, Htok⟩
-  ihave #Hl : iprop(EtcdGrove.isNode (GF := GF) γn id n ∗ dlvLb γn ds) $$ [Htok]
+  ihave #Hl : iprop(EtcdGrove.isNodeChan (GF := GF) γn id n ∗ dlvLb γn ds) $$ [Htok]
   · icases Htok with (⟨-, Htok⟩ | ⟨%es, %L, -, Htok⟩)
     · icases drv_isNode_lb γn id n ds st.hardState $$ Htok with ⟨-, $⟩
     · icases busy_isNode_lb γn id n ds es st.hardState L $$ Htok with ⟨-, $⟩
@@ -623,304 +623,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- **`StartNode(c, peers)`** in a dynamic cluster (the draft's). -/
-abbrev StartNode.dynamicSpec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
-    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  cv.Applied' = W64 0 →
-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] → HsEmpty hs →
-  csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
-  cv.ID' ∈ ps →
-  σ.fl = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
-      nodeDynamicBoot γ N ps ctxs cv.ID' ∗
-      storCap (interface.ok si) 1 }}
-    (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
-  {{ (nd : GoInterface), RET #nd;
-      R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
-        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet ps)⟩ }}
-
-theorem wp_StartNode_dynamic_impl (hS : EtcdGrove.StartNode.spec (GF := GF) (hG := hG)) :
-    StartNode.dynamicSpec (GF := GF) (hG := hG) := by
-  intro γ N c cv lok si σ hs csm R peers dq pv ps ctxs H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss
-    Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl
-  iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, Hinst, Hpeers, #Hpc, Hboot, #Hcap⟩ HΦ
-  iunfold nodeDynamicBoot at Hboot
-  icases Hboot with ⟨⟨%c0, %decode, #Hdc⟩, %Hok, Hg, #Hc0, #Hm, #Hbinv, #Htlb, ⟨%g, %Hg0, Ha⟩⟩
-  obtain ⟨Hok, Hcfg⟩ := Hok
-  ihave #Hdc' := Hdc
-  iunfold isDynamicCluster at Hdc'
-  icases Hdc' with ⟨%Hdn, #Hci⟩
-  have Hns := Hdn.noSnap
-  have Hsl : γ.raft.reSnapLoc = (fun _ => none) := by obtain ⟨-, -, -, -, h⟩ := Hdn; exact h
-  iapply wp_fupd
-  iapply (hS γ.raft (γ.mode inferInstance) γ.bud c cv lok si σ hs csm R peers dq pv ps ctxs
-    γ.raft.reBoot false
-    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid
-    Hcfg rfl Hok Hfl (fun h => by cases h)) $$ [Hc Hown Hinst Hpeers Hg]
-  · iframe Hinit Hc Hlog Hstor Hown Hinst Hpeers Hpc Hm Hc0 Hbinv Htlb Hg
-    isplitr
-    · unfold NsCap; imodintro; iintro -; iexact Hcap
-    · unfold certLink; ileft; ipureintro; exact Hns
-  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, Hcf, -⟩
-  obtain ⟨Hγr, Hγb, Hγs, Hmd, -, Hnd'⟩ := Hf
-  have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, Hmd, .inr Hns⟩
-  have Hdy := Hdn.isDyn Hnok
-  imod ghost_map_insert_persist cv.ID' (cfgNamesOf γn) (GMap.lookup_empty _) $$ Ha with ⟨-, #He⟩
-  ihave #Htb : nodeTabOk (GF := GF) γ cv.ID' γn $$ []
-  · unfold nodeTabOk; iexists g; iframe He; ipureintro; exact Hg0
-  imodintro
-  iapply HΦ
-  iframe HR
-  iexists n
-  isplitr
-  · ipureintro; exact Hnd'
-  isplitr
-  · unfold isNode
-    iexists γn
-    iframe Hnode Hci
-    ipureintro; exact Hnok
-  isplitl [Hdrv]
-  · unfold nodeDriver NodeDriverState.init
-    iexists γn, cv.ID', []
-    isplitr
-    · ipureintro; exact ⟨Hnok, Hγs, rfl⟩
-    iframe Hci
-    isplitr
-    · iapply isCommittedLogLb_nil_impl
-    isplitr
-    · ileft; ipureintro; exact Hdy
-    isplitr
-    · iright; iframe Htb; unfold hsCommitted; ileft; ipureintro; rfl
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexact Hdrv
-  unfold nodeConfig
-  iexists γn, cv.ID'
-  iframe Hnode Htb
-  isplitr
-  · ipureintro
-    refine ⟨Hnok, Hdy, ?_⟩
-    show CCGood (stOf (Membership.simple (GMap.listToSet ps)))
-    rw [stOf_simple]; exact ccGood_cfgState _
-  rw [stOf_simple]; iexact Hcf
-
-/-- **`node.ApplyConfChange(cc)`** in a dynamic cluster (the draft's). -/
-abbrev node.ApplyConfChange.dynamicSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c0 : Membership)
-    (decode : ConfChangeDecoder) (c : GoInterface) (o o' : ConfChangeIM) (l : List LogEntry)
-    (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
-  v.applied ≤ k → l[k]? = some e → e.isConfChange → NoConfChangeIn l v.applied k →
-  decode (l.take k) e = some o' → memApply o' v.membership = some m' →
-  memApply o v.membership = some m' → m'.autoLeave = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
-      isDynamicCluster γ N c0 decode ∗ ownConfChangeI c DFrac.discard (some o) ∗
-      nodeConfig n γ N v ∗ deliveredLogLb n γ N l }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
-  {{ (csp : Loc) (cs : ConfStateM), RET #csp; csPts csp (DFrac.own 1) cs true ∗
-      nodeConfig n γ N ⟨k + 1, m'⟩ ∗ ⌜confStateIs cs m'⌝ }}
-
-theorem node.wp_ApplyConfChange_dynamic_impl
-    (hA : EtcdGrove.node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
-    node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := by
-  intro n γ N id c0 decode c o o' l k e v m' Hk He Hcc Hno Hdec Hap' Hap Hal
-  iintro %Φ ⟨#Hinit, -, #Hdc, Hcc0, Hcfg, #Hdl⟩ HΦ
-  iunfold isDynamicCluster at Hdc
-  icases Hdc with ⟨%Hdn, -⟩
-  iunfold nodeConfig at Hcfg
-  icases Hcfg with ⟨%γn, %id1, %Hf, #Hn1, #Htab1, Hcf⟩
-  obtain ⟨Hnok, Hdy, Hgood⟩ := Hf
-  iunfold deliveredLogLb at Hdl
-  icases Hdl with ⟨⟨%γn2, %id2, %ds, %Hf2, #Hn2, #Htab2, #Hlb⟩, -⟩
-  obtain ⟨Hnok2, Hds⟩ := Hf2
-  icases isNode_id_agree γn γn2 id1 id2 n $$ Hn1 Hn2 with %Hid
-  subst Hid
-  have Hdy2 := Hdn.isDyn Hnok2
-  icases Htab2 with (%Hc | #Htab2)
-  · rw [Hdy2] at Hc; cases Hc
-  icases nodeTabOk_agree γ id1 γn γn2 $$ Htab1 Htab2 with %Hnm
-  ihave #Hlb' := dlvLb_names γn2 γn Hnm.symm ds $$ Hlb
-  obtain ⟨h0, h1, Hmd⟩ := Hdn.node Hnok
-  -- the entry, as raft has it
-  have He' : (strip ds)[k]? = some e := by rw [Hds]; exact He
-  unfold strip at He'
-  rw [List.getElem?_map] at He'
-  obtain ⟨eM, HeM, HeMe⟩ : ∃ eM, ds[k]? = some eM ∧ LogEntry.ofEntryM eM = e := by
-    cases h : ds[k]? with
-    | none => rw [h] at He'; cases He'
-    | some eM => rw [h] at He'; exact ⟨eM, rfl, Option.some.inj He'⟩
-  obtain ⟨Hs', Hg'⟩ := memApply_some Hgood Hap'
-  obtain ⟨Hs, -⟩ := memApply_some Hgood Hap
-  have Hpre : DynCCPreOp (decOf decode) ds v.applied (stOf v.membership) (ccV2Of o) k eM
-      (stOf m') := by
-    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs, Hal⟩
-    · rw [← HeMe] at Hcc; exact Hcc
-    · intro k' e' h1 h2 he hc
-      apply Hno k' (LogEntry.ofEntryM e') h1 h2
-      · rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
-      · exact hc
-    · unfold decOf
-      have : strip (ds.take k) = l.take k := by
-        rw [← Hds]; unfold strip; rw [List.map_take]
-      rw [this, HeMe, Hdec]; rfl
-  iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m')
-    (fun h => by rw [Hmd] at h; cases h)
-    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; exact Hpre)) $$ [Hcc0 Hcf]
-  · iframe Hinit Hn1 Hcc0
-    iright; iframe Hcf Hlb'
-  iintro !> %csp %cs ⟨Hcs, Hor⟩
-  icases Hor with (⟨%Hst, -⟩ | ⟨-, Hcf', %Hok⟩)
-  · exfalso; rw [Hmd] at Hst; cases Hst
-  iapply HΦ
-  iframe Hcs
-  isplitl [Hcf']
-  · unfold nodeConfig
-    iexists γn, id1
-    iframe Hn1 Htab1 Hcf'
-    ipureintro; exact ⟨Hnok, Hdy, Hg'⟩
-  ipureintro
-  have := confStateIs_of_ok cs _ Hok
-  rw [stOf_cfg, memOf_cfgOf] at this
-  exact this
-
-/-- **`node.Advance()`** in a dynamic cluster (the draft's). -/
-abbrev node.Advance.dynamicSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership) (decode : ConfChangeDecoder)
-    (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan) (v : ConfigView),
-  st.handling = some (es, L) →
-  NoConfChangeIn st.delivered v.applied st.delivered.length →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isDynamicCluster γ N c0 decode ∗
-      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗ nodeConfig n γ N v ∗
-      match L with
-      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
-      | some _ => True }}
-
-theorem node.wp_Advance_dynamic_impl (hA : EtcdGrove.node.Advance.spec (GF := GF) (hG := hG)) :
-    node.Advance.dynamicSpec (GF := GF) (hG := hG) := by
-  intro n γ N c0 decode st es L v Hh Hno
-  iintro %Φ ⟨#Hinit, #Hdc, Hdrv, Hrc, Hcfg⟩ HΦ
-  iunfold isDynamicCluster at Hdc
-  icases Hdc with ⟨%Hdn, -⟩
-  iunfold nodeDriver at Hdrv
-  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hstc, #Hdy, Htok⟩
-  obtain ⟨Hnok, Hγs, Hds⟩ := Hf
-  have Hd := Hdn.isDyn Hnok
-  icases Hdy with (%Hc | ⟨#Htb, #Hhc⟩)
-  · rw [Hd] at Hc; cases Hc
-  icases Htok with (⟨%Hh', -⟩ | ⟨%es0, %L0, %Hh', Htok⟩)
-  · rw [Hh] at Hh'; cases Hh'
-  rw [Hh] at Hh'
-  cases Hh'
-  ihave ⟨Htok, #Hn1, -⟩ := busy_isNode_lb γn id n ds es st.hardState L $$ Htok
-  iunfold nodeConfig at Hcfg
-  icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
-  icases isNode_id_agree γn γn2 id id2 n $$ Hn1 Hn2 with %Hid
-  subst Hid
-  icases nodeTabOk_agree γ id γn γn2 $$ Htb Htab2 with %Hnm
-  ihave Hcf := nodeCfg_names γn2 γn Hnm.symm _ _ $$ Hcf
-  have HA1 : NoConfIn ds v.applied ds.length := by
-    have := noConfIn_of_strip ds v.applied ds.length
-    rw [Hds] at this
-    apply this
-    have Hl : ds.length = st.delivered.length := by rw [← Hds, strip_length]
-    rw [Hl]; exact Hno
-  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L (fun _ => HA1))
-    $$ [Htok Hrc Hcf]
-  · iframe Hinit Htok Hcf
-    rw [Hγs]; iexact Hrc
-  iintro !> ⟨Hdrv, Hcf, #Hw⟩
-  iapply HΦ
-  isplitl [Hdrv Hstc]
-  · unfold nodeDriver
-    iexists γn, id, ds
-    isplitr
-    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
-    iframe Hci Hlb0 Hstc
-    isplitr
-    · iright; iframe Htb Hhc
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexact Hdrv
-  isplitl [Hcf]
-  · unfold nodeConfig
-    iexists γn, id
-    iframe Hn1 Htb Hcf
-    ipureintro; exact ⟨Hnok, Hd, Hf2.2.2⟩
-  cases L with
-  | none =>
-    simp only
-    iunfold reqOf at Hw
-    iunfold reqWit at Hw
-    icases Hw with ⟨%x, #Hx, %Hle⟩
-    iexists x
-    rw [← Hγs]
-    iframe Hx
-    ipureintro
-    rw [← Hds, strip_length]; exact Hle
-  | some l => simp only; itrivial
-
-/-- **`node.ReportUnreachable(id)`** (the draft's). -/
-abbrev node.ReportUnreachable.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportUnreachable")) (Val #to))
-  {{ RET #(); True }}
-
-theorem node.wp_ReportUnreachable_impl
-    (hR : EtcdGrove.node.ReportUnreachable.spec (GF := GF) (hG := hG)) :
-    node.ReportUnreachable.spec (GF := GF) (hG := hG) := by
-  intro n γ N id to
-  iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
-  iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, -, #Hrn, -⟩
-  iapply (hR γn id n to) $$ []
-  · iframe Hinit Hrn
-  iexact HΦ
-
-/-- **`node.ReportSnapshot(id, status)`** (the draft's). -/
-abbrev node.ReportSnapshot.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64) (status : SnapshotStatus),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
-      (Val #status))
-  {{ RET #(); True }}
-
-theorem node.wp_ReportSnapshot_impl
-    (hR : EtcdGrove.node.ReportSnapshot.spec (GF := GF) (hG := hG)) :
-    node.ReportSnapshot.spec (GF := GF) (hG := hG) := by
-  intro n γ N id to status
-  iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
-  iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, -, #Hrn, -⟩
-  iapply (hR γn id n to status) $$ []
-  · iframe Hinit Hrn
-  iexact HΦ
 
 end spec
 

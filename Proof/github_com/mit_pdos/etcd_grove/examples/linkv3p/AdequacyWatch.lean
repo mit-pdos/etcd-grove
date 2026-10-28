@@ -71,7 +71,7 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)

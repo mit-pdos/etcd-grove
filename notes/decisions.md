@@ -23671,6 +23671,10 @@ statement was weakened, none was dropped.
 
 ## Raft's node API over an abstract log (2026-10-27 · the user's decisions; draft statements)
 
+*Superseded in part* (2026-10-28, "The node API's specs in the per-function files", below): its file
+layout (the specs in `NodeApiDraft.lean`, namespace `Draft`, over `NodeApiImpl*.lean`); not its
+statements.
+
 **Why:** locality. Raft's specs are sound (proved) and complete enough (kv and etcd are built on
 them); what is slow is evolving proofs on top, because clients depend on raft's internals: they open
 `raftLogInv`/`raftRegInv`, unfold `propDataIs`, `rLog`, `propArg`, track minted data, and avoid
@@ -24686,3 +24690,56 @@ empty or justified here. For the compactor:
 - **Left, justified (phase 4): `context.cancelSpec`**, unfolded by `Periodic.Stop`/`Revision.Stop` to
   call the cancel function; no Perennial law yet (`notes/perennial-changes.md`, "a law for calling a
   `cancelSpec` cancel function"). Not a statement change: the frozen specs are unchanged.
+
+## The node API's specs in the per-function files (2026-10-28 · the user's decisions)
+
+**2026-10-28 · taken (the user: the target state and D1-D4; the rest by them)**
+
+**What was wrong.** The clean node API (2026-10-27, above) lived beside the standard layout: its
+specs in `NodeApiDraft.lean` (namespace `Draft`), sealed predicates re-sealed there over
+`NodeApiImpl.lean`/`NodeApiImplDyn.lean` (each predicate defined twice, each law stated twice, and the
+specs a third time as `ApiImpl` copies), and each spec's proof a wrapper `wp_*_impl (h : <old
+spec>) : <clean spec>`, so every `node` function had two triples: the old one over raft's internals
+in `Spec/<fn>.lean`, the clean one in the draft. The user: "The files like NodeApiImpl.lean and
+NodeApiDraft.lean should not be in the proof. The clean specs they were used to establish are meant
+to be the specs in, e.g., node__Propose.lean."
+
+**Now.**
+- `Spec/go_etcd_io/raft/v3/<fn>.lean` holds the clean triple, in the package namespace, for
+  `StartNode`, `RestartNode`, `node.{Propose, ProposeConfChange, ReadIndex, Ready, Advance, Step, Tick,
+  TransferLeadership, ApplyConfChange, ReportUnreachable, ReportSnapshot}`.
+- `Proof/go_etcd_io/raft/v3/<fn>.lean` proves it from the callees' specs (`etc/gen-link.py` links it,
+  unchanged). The old triple and its proof are `private` there (`<fn>.specRaw`, `<fn>.wp_raw`: no
+  other file can use them, D2), and the wrapper (`ApiImpl.<...>_impl`, opening with an `unfold` of the
+  sealed names) derives the spec from it. Not a separate file: Lean's `private` is per file, and a
+  separate file builds no faster (the wrapper needs its statement). `node__ReadIndexReq.lean` (the
+  `specReq` variant the wrapper used) became `node__ReadIndex`'s raw triple; the old `ReadIndex`
+  triple and `node.Ready`'s were dead (their wrappers did not use them) and are gone.
+- **The API module is `InvNode.lean` (D3):** the sealed predicates (over the implementation) and
+  their laws, as the draft had them, in the package namespace. `node.readyRecv` is a law there
+  (`node.wp_readyRecv`, a triple of `chan.receive`), not a spec: it is no Go function. The previous
+  `InvNode.lean` (the older sealed node API over `NodeNames`) is `InvNodeChan.lean`, internal; its
+  names that clashed are renamed (`isNode`, `nodeDriver`, `isReadyChan` -> `isNodeChan`,
+  `nodeDriverChan`, `isReadyChanRaw`; `Protocol/GhostState`'s `readStateOk` -> `readStateRaw`).
+- The implementation: `InvApi.lean`, `InvApiDyn.lean` (the definitions and laws of `NodeApiImpl*`,
+  namespace `ApiImpl`), internal; `NodeApiVocab.lean` (pure) moved out of `Draft`.
+- **D1, the static/dynamic pairs stay for now:** `StartNode`, `node.Advance`, `node.ApplyConfChange`
+  keep `spec` and `dynamicSpec` in one spec file, proved by `wp_proof` and `wp_proof_dynamic`, the
+  latter linked by hand in `Linked.lean` (`RaftLink.wp_StartNode_dynamic`, ...: `gen-link` links only
+  `wp_proof`). The known exception to one triple per function, until one cluster kind takes snapshots
+  and reconfiguration (the user's direction, 2026-10-28: start from the static, snapshot-taking
+  proof, and add reconfiguration to it).
+- **`ProposeConfChange`'s raw proof calls the clean `node.Step`** (its callee's spec is the clean one
+  now): its raw triple also takes the node's `ApiImpl.isNode` in the API's cluster with `NodeOk`, and
+  builds `stepIn` (`∀ γn', NodeOk γ γn' -∗ stepP γn' id ml`) from its forwarded proposal's `fwdP`,
+  which reads only `γn.raft`, which `NodeOk` fixes.
+- `InvNodeCtx` no longer re-exports `InvNodeChan` (nothing in it needed it), so the API module does not
+  reach the internal one publicly; `node__ForgetLeader`'s spec (still over `isNodeChan`, never part of
+  the clean API) is off the importable list and `Api.lean`.
+- kv's `run` calls the law `node.wp_readyRecv` (no callee hypothesis); its `Link.lean` is generated
+  again (the node's callees were edited by hand), with `proto_UnmarshalConfChange` and
+  `node__ApplyConfChange` added to its list.
+
+**Left (D4, a follow-up):** the other variant triples (`MemstorageAU.lean`'s `spec_tok`,
+`raft.applyConfChange.specS`, `confchange.Restore.specE`); a clean `node.ForgetLeader` spec.
+

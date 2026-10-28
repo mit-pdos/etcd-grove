@@ -181,10 +181,10 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
-    Draft.nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
+    nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-    idShare ρ.ids ∗ Draft.readCredits γ.cl (2 ^ 48) ∗ idWaitTok ρ.ids ∗
+    idShare ρ.ids ∗ readCredits γ.cl (2 ^ 48) ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
     ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗

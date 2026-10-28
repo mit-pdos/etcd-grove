@@ -59,8 +59,8 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
     (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (d : mvcc.KBReal) (al st lp : Loc)
-    (dv : Option Loc) (ds : List Draft.LogEntry) (v : Draft.ConfigView) (k : Nat)
-    (m' : Draft.Membership) (e : Draft.LogEntry)
+    (dv : Option Loc) (ds : List LogEntry) (v : ConfigView) (k : Nat)
+    (m' : Membership) (e : LogEntry)
     (lg bh : Loc) (ix : GoInterfaceOk) (lgh tl : Loc) (lid : w64) (prs : trIds) (lgc : Loc)
     (cid : w64),
   ccApplyOkM γs m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.be) →

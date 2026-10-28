@@ -65,7 +65,7 @@ theorem Main.wp_proof
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] (Draft.LogEntry.toEntries boot 0) ctxs (putgetDir id)
+  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (putgetDir id)
       go!"putget" go!"putget"
       (common.urls1 go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
@@ -99,14 +99,14 @@ theorem Main.wp_proof
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
-  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    simp [Draft.LogEntry.toEntries, hblen0]
+  have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    simp [LogEntry.toEntries, hblen0]
   -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (putgetDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790" lg
-      (Draft.LogEntry.toEntries boot 0) ctxs (putgetDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
+      (LogEntry.toEntries boot 0) ctxs (putgetDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hdyn hboot hblen hγn1 hγn2 Hdirok
       (by simp [putgetDir, dirOne]) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
@@ -166,7 +166,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the client's invariant, the floor, no options
   rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot)]
-  imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))) go!"k" go!"v" ⊤)
+  imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v" ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []

@@ -3,19 +3,18 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.TransferLeadership.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (lead transferee : w64) (ctx : GoInterfaceOk)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id lead transferee : w64) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
-    γ.raft.reNoXfer = false →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd -∗
-            ▷ (True -∗ Φ (intoVal ())) -∗
-              WP
-                ((((intoVal
-                        (methods node.ty.PointerType
-                          go!"TransferLeadership"
-                          (intoVal n)))
-                      (intoVal (GoInterface.ok ctx)))
-                    (intoVal lead))
-                  (intoVal transferee))
-                {{ Φ }}
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗ leaderTransferOn γ N -∗
+          ▷ (True -∗ Φ (intoVal ())) -∗
+            WP
+              ((((intoVal
+                      (methods node.ty.PointerType
+                        go!"TransferLeadership"
+                        (intoVal n)))
+                    (intoVal (GoInterface.ok ctx)))
+                  (intoVal lead))
+                (intoVal transferee))
+              {{ Φ }}

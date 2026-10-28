@@ -104,6 +104,16 @@ inductive Pending : Type
 def propEntryM (d : List w8) : EntryM :=
   { Term' := W64 0, Index' := W64 0, Type' := W32 0, Data' := d }
 
+def ready_countable : Pos.Countable Ready :=
+  countableOfLeftInverse
+    (fun r =>
+      (r.SoftState', r.HardState', r.ReadStates', r.Entries', r.Snapshot', r.CommittedEntries', r.Messages', r.MustSync'))
+    (fun p =>
+      { SoftState' := p.fst, HardState' := p.snd.fst, ReadStates' := p.snd.snd.fst, Entries' := p.snd.snd.snd.fst,
+        Snapshot' := p.snd.snd.snd.snd.fst, CommittedEntries' := p.snd.snd.snd.snd.snd.fst,
+        Messages' := p.snd.snd.snd.snd.snd.snd.fst, MustSync' := p.snd.snd.snd.snd.snd.snd.snd })
+    ⋯
+
 def bootInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) (bootLog : List EntryM) : IProp
     GF :=
   match md with
@@ -183,6 +193,11 @@ theorem bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog 
 
 theorem isRaftMsg_dat [package_sem : Assumptions] (γ : RaftNames) (id : w64) (st : MsgSt) :
     isRaftMsg γ id st ⊢ msgDat γ st
+
+def advReceipt (st : Storage) (es : List EntryM) : Option SnapLoan → IProp GF :=
+  match x✝ with
+  | none => appendReceipt st es
+  | some l => snapReceipt st l es
 
 theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F) (hhi : hi ≤ D.length) (h :
     NoConfIn D lo hi) : NoConfIn F lo hi

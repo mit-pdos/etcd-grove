@@ -7,9 +7,9 @@ Lean-first (no Rocq counterpart).
 - `kv_mint`: a new sequence number mints the operation's datum (`MintOk`) and the operation's
   slot, holding the client's atomic update (`opSlot`).
 - `kv_mint_read`: a new sequence number mints a read's context and commits it, once, to the read
-  seeing what the reader knew to be committed (`Draft.readCtx_commit`, with the update `kv_readAu`).
+  seeing what the reader knew to be committed (`readCtx_commit`, with the update `kv_readAu`).
 - `kvLb_current`: the history now is a lower bound (`kvLb`), at the client's state.
-- `kv_propAu`: the atomic update over the committed requested entries (`Draft.ownCommittedOps`)
+- `kv_propAu`: the atomic update over the committed requested entries (`ownCommittedOps`)
   that `Node.Propose` takes for an operation's datum, fired at most once: the history moves by the
   datum, and at its first occurrence the client's update runs from the operation's slot (the
   linearization point); `kv_ccAu`, `RemoveMember`'s conf change's (no datum).
@@ -132,7 +132,7 @@ theorem histOf_prefix_of_prefix (a b : List (Option (List w8))) (h : a <+: b) :
 
 /-- The history of a log's prefix `l` is a prefix of the history of committed requested entries
 `ops` extending its requested entries. -/
-theorem logHist_le_ops [GooseExts] (l ops : List Draft.LogEntry) (h : Draft.opsOf l <+: ops) :
+theorem logHist_le_ops [GooseExts] (l ops : List LogEntry) (h : opsOf l <+: ops) :
     logHist l <+: logHist ops := by
   rw [← logHist_opsOf l]; exact logHist_prefix _ _ h
 
@@ -348,12 +348,12 @@ theorem kv_mint (γr : RKVNames) (id ns : w64) (kind : w8) (key val : List w8)
 
 /-- A read's update: the committed requested entries lent and returned, nothing moved; it gives
 that they extend the requested entries of `l0`, a committed log the reader knew. -/
-theorem kv_readAu (γr : RKVNames) (l0 : List Draft.LogEntry) :
-    ⊢ rkvInv (GF := GF) γr -∗ Draft.isCommittedLogLb γr.cluster l0 -∗
-      □ AU <{ ∃∃ (ops : List Draft.LogEntry), Draft.ownCommittedOps γr.cluster ops }>
+theorem kv_readAu (γr : RKVNames) (l0 : List LogEntry) :
+    ⊢ rkvInv (GF := GF) γr -∗ isCommittedLogLb γr.cluster l0 -∗
+      □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γr.cluster ops }>
           @ ⊤ \ ↑kvRaftN, ∅
-        <{ Draft.ownCommittedOps γr.cluster ops,
-           COMM □ (fun ops => iprop(⌜Draft.opsOf l0 <+: ops⌝) : List Draft.LogEntry → IProp GF) ops }> := by
+        <{ ownCommittedOps γr.cluster ops,
+           COMM □ (fun ops => iprop(⌜opsOf l0 <+: ops⌝) : List LogEntry → IProp GF) ops }> := by
   iintro #Hinv #Hl0
   imodintro
   iauintro
@@ -362,7 +362,7 @@ theorem kv_readAu (γr : RKVNames) (l0 : List Draft.LogEntry) :
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
-  ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l0 $$ [Hops Hl0]
+  ihave %Hpre := ownCommittedOps_lb_prefix γr.cluster ops l0 $$ [Hops Hl0]
   · iframe Hops Hl0
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑kvRaftN) \ ↑rkvN from
     Std.LawfulSet.empty_subset)
@@ -396,14 +396,14 @@ theorem kv_readAu (γr : RKVNames) (l0 : List Draft.LogEntry) :
     ipureintro; exact Hpre
 
 /-- A new sequence number mints a read's context and commits it, once, to the read seeing the
-requested entries of `l0`, a committed log the reader knows (`Draft.readCtx_commit`). -/
-theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (l0 : List Draft.LogEntry)
+requested entries of `l0`, a committed log the reader knows (`readCtx_commit`). -/
+theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (l0 : List LogEntry)
     (E : CoPset) (HE : ↑rkvN ⊆ E) (Hns : uint.Z ns + 1 < 2 ^ 64) (Hk : (key.length : Int) < 2 ^ 64) :
-    ⊢ rkvInv (GF := GF) γr -∗ id ↪[γr.seq] ns -∗ Draft.isCommittedLogLb γr.cluster l0 ={E}=∗
+    ⊢ rkvInv (GF := GF) γr -∗ id ↪[γr.seq] ns -∗ isCommittedLogLb γr.cluster l0 ={E}=∗
       id ↪[γr.seq] (ns + W64 1) ∗
       (id, ns + W64 1) ↪[γr.mint]□ encodeOp id (ns + W64 1) opReadB key [] ∗
-      Draft.isReadCtx γr.cluster kvRaftN (encodeOp id (ns + W64 1) opReadB key [])
-        (fun ops => iprop(⌜Draft.opsOf l0 <+: ops⌝)) := by
+      isReadCtx γr.cluster kvRaftN (encodeOp id (ns + W64 1) opReadB key [])
+        (fun ops => iprop(⌜opsOf l0 <+: ops⌝)) := by
   iintro #Hinv Hseq #Hl0
   ihave #Hau := kv_readAu γr l0 $$ Hinv Hl0
   unfold rkvInv rkvInvBody
@@ -416,8 +416,8 @@ theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (l0 : List D
   obtain ⟨HMi0, -, -, HU0⟩ := mintOk_fresh S Mi O U id ns d Hok HSi Hkey Hns
   imod ghost_map_update (ns + W64 1) $$ HS Hseq with ⟨HS, Hseq⟩
   imod ghost_map_insert_persist (id, ns + W64 1) d HMi0 $$ HMi with ⟨HMi, #Hmint⟩
-  ihave Hcm := Draft.readCtx_commit γr.cluster kvRaftN U d
-      (fun ops => iprop(⌜Draft.opsOf l0 <+: ops⌝)) HU0 $$ [HU Hau]
+  ihave Hcm := readCtx_commit γr.cluster kvRaftN U d
+      (fun ops => iprop(⌜opsOf l0 <+: ops⌝)) HU0 $$ [HU Hau]
   · iframe HU Hau
   imod Hcm with ⟨HU, #Hrc⟩
   imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
@@ -442,17 +442,17 @@ theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (l0 : List D
   iframe Hseq Hmint Hrc
 
 /-- A read state's context with a minted key is the one minted there: it was committed
-(`Draft.readStateOk_used`), so minted. -/
+(`readStateOk_used`), so minted. -/
 theorem kv_read_minted (γr : RKVNames) (c c0 : List w8) (i : w64) (k : w64 × w64) (E : CoPset)
     (HE : ↑rkvN ⊆ E) (Hk : opKey c = some k) :
-    ⊢ rkvInv (GF := GF) γr -∗ Draft.readStateOk γr.cluster kvRaftN c i -∗
+    ⊢ rkvInv (GF := GF) γr -∗ readStateOk γr.cluster kvRaftN c i -∗
       k ↪[γr.mint]□ c0 ={E}=∗ ⌜c0 = c⌝ := by
   iintro #Hinv #Hok #Hmint
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
-  ihave %HcU := Draft.readStateOk_used γr.cluster kvRaftN c i U $$ [Hok HU]
+  ihave %HcU := readStateOk_used γr.cluster kvRaftN c i U $$ [Hok HU]
   · iframe Hok HU
   obtain ⟨k', Hk', HMik⟩ := Hok.2.2 c HcU
   rw [Hk] at Hk'; cases Hk'
@@ -470,28 +470,28 @@ theorem kv_read_minted (γr : RKVNames) (c c0 : List w8) (i : w64) (k : w64 × w
   ipureintro; rfl
 
 /-- A datum of a committed entry is a datum of its requested entries (a filler has none). -/
-theorem odOf_mem_opsOf [GooseExts] (l : List Draft.LogEntry) (d : List w8)
-    (h : some d ∈ l.map odOf) : some d ∈ (Draft.opsOf l).map odOf := by
+theorem odOf_mem_opsOf [GooseExts] (l : List LogEntry) (d : List w8)
+    (h : some d ∈ l.map odOf) : some d ∈ (opsOf l).map odOf := by
   obtain ⟨e, he, hd⟩ := List.mem_map.1 h
   refine List.mem_map.2 ⟨e, ?_, hd⟩
-  unfold Draft.opsOf
+  unfold opsOf
   refine List.mem_filter.2 ⟨he, ?_⟩
   simp only [Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
   intro hf; rw [odOf_filler e hf] at hd; cases hd
 
 /-- A datum of a committed log with a minted key is the one minted there: every committed
 datum was minted (only the store's updates move the committed requested entries). -/
-theorem kv_committed_minted (γr : RKVNames) (l : List Draft.LogEntry) (d d0 : List w8)
+theorem kv_committed_minted (γr : RKVNames) (l : List LogEntry) (d d0 : List w8)
     (k : w64 × w64) (E : CoPset) (HE : ↑rkvN ⊆ E) (Hd : some d ∈ l.map odOf)
     (Hk : opKey d = some k) :
-    ⊢ rkvInv (GF := GF) γr -∗ Draft.isCommittedLogLb γr.cluster l -∗
+    ⊢ rkvInv (GF := GF) γr -∗ isCommittedLogLb γr.cluster l -∗
       k ↪[γr.mint]□ d0 ={E}=∗ ⌜d0 = d⌝ := by
   iintro #Hinv #Hl #Hmint
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
-  ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
+  ihave %Hpre := ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
   · iframe Hops Hl
   have Hd' : some d ∈ ops.map odOf :=
     (Hpre.map odOf).subset (odOf_mem_opsOf l d Hd)
@@ -520,7 +520,7 @@ theorem kvLb_current (γr : RKVNames) (x : KVMap) (E : CoPset) (HE1 : ↑rkvN �
   iunfold kvCore at Hc
   icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   ihave %Hxeq := rkvVal_agree γr (logHist ops) x $$ Hv Hx
-  icases Draft.ownCommittedOps_get_lb γr.cluster ops $$ Hops with ⟨Hops, %l, #Hl, %Hl⟩
+  icases ownCommittedOps_get_lb γr.cluster ops $$ Hops with ⟨Hops, %l, #Hl, %Hl⟩
   imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
   · inext
     iexists ops, S, Mi, O, U
@@ -564,9 +564,9 @@ occurrence (`d` not yet in the history) the client's update runs from the slot, 
 later credit. Persistent: every proposal of `d`, a retry included, gets one. -/
 theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d ≠ []) :
     ⊢ rkvInv (GF := GF) γr -∗ d ↪[γr.ops]□ γp -∗
-      □ AU <{ ∃∃ (ops : List Draft.LogEntry), Draft.ownCommittedOps γr.cluster ops }>
+      □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γr.cluster ops }>
           @ ⊤ \ ↑kvRaftN, ∅
-        <{ ∀∀ (t : w64), Draft.ownCommittedOps γr.cluster (ops ++ [(⟨t, W32 0, d⟩ : Draft.LogEntry)]),
+        <{ ∀∀ (t : w64), ownCommittedOps γr.cluster (ops ++ [(⟨t, W32 0, d⟩ : LogEntry)]),
            COMM True }> := by
   iintro #Hinv #Hop
   imodintro
@@ -600,17 +600,17 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
   · -- commit: the requested entries grow by `d`'s
     iintro %t Hops
     imod Hclose2 with -
-    have Hod : odOf (⟨t, W32 0, d⟩ : Draft.LogEntry) = some d := by
+    have Hod : odOf (⟨t, W32 0, d⟩ : LogEntry) = some d := by
       unfold odOf; rw [if_pos ⟨rfl, Hne⟩]
     have Hhist : logHist (ops ++ [⟨t, W32 0, d⟩]) = histStep (logHist ops) (some d) := by
       unfold logHist; rw [List.map_append, List.map_singleton, Hod, histOf_snoc]
-    have Hodm' : ∀ d', some d' ∈ (ops ++ [(⟨t, W32 0, d⟩ : Draft.LogEntry)]).map odOf → Minted Mi d' := by
+    have Hodm' : ∀ d', some d' ∈ (ops ++ [(⟨t, W32 0, d⟩ : LogEntry)]).map odOf → Minted Mi d' := by
       intro d' h
       rw [List.map_append, List.map_singleton, Hod] at h
       rcases List.mem_append.mp h with h | h
       · exact Hodm d' h
       · simp only [List.mem_singleton, Option.some.injEq] at h; subst h; exact HMd
-    have Hrm' : RmReqs (ops ++ [(⟨t, W32 0, d⟩ : Draft.LogEntry)]) := by
+    have Hrm' : RmReqs (ops ++ [(⟨t, W32 0, d⟩ : LogEntry)]) := by
       intro e he hty
       rcases List.mem_append.mp he with h | h
       · exact Hrm e h hty
@@ -692,11 +692,11 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
 carries no datum, so the history does not move. -/
 theorem kv_ccAu (γr : RKVNames) (id : w64) (Hsh : RmShrink id) :
     ⊢ rkvInv (GF := GF) γr -∗
-      AU <{ ∃∃ (ops : List Draft.LogEntry), Draft.ownCommittedOps γr.cluster ops }>
+      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γr.cluster ops }>
           @ ⊤ \ ↑kvRaftN, ∅
         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some (.v1 (rmCC id))) bs⌝ ∗
-             Draft.ownCommittedOps γr.cluster
-               (ops ++ [(⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩ : Draft.LogEntry)]),
+             ownCommittedOps γr.cluster
+               (ops ++ [(⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩ : LogEntry)]),
            COMM True }> := by
   iintro #Hinv
   iauintro
@@ -725,7 +725,7 @@ theorem kv_ccAu (γr : RKVNames) (id : w64) (Hsh : RmShrink id) :
     iempintro
   · iintro %t %bs ⟨%Hbs, Hops⟩
     imod Hclose2 with -
-    have Hod : odOf (⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩ : Draft.LogEntry) = none := by
+    have Hod : odOf (⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩ : LogEntry) = none := by
       unfold odOf; rw [if_neg]
       rintro ⟨h, -⟩
       exact absurd h (by simp only [confChangeEntryType]; intro h1; revert h1; word)
@@ -758,11 +758,11 @@ which `d` first occurs at position `m`, the ticket buys the result of the client
 key's value after the history before it and `d`, under two laters (the invariant it was stored
 in; the saved predicate naming it). -/
 theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : List w8 → IProp GF)
-    (l : List Draft.LogEntry) (ods : List (Option (List w8))) (m : Nat) (E : CoPset)
+    (l : List LogEntry) (ods : List (Option (List w8))) (m : Nat) (E : CoPset)
     (HE1 : ↑rkvN ⊆ E) :
     ods = l.map odOf → ods[m]? = some (some d) → d ∉ histOf (ods.take m) →
     ⊢ rkvInv (GF := GF) γr -∗ d ↪[γr.ops]□ γp -∗
-      savedPredOwn γp.1 DFrac.discard Ψ -∗ token γp.2 -∗ Draft.isCommittedLogLb γr.cluster l ={E}=∗
+      savedPredOwn γp.1 DFrac.discard Ψ -∗ token γp.2 -∗ isCommittedLogLb γr.cluster l ={E}=∗
       ▷ ▷ Ψ (kvFold (histOf (ods.take m) ++ [d]) (dkey d)) := by
   intro Hods Hm Hfirst
   iintro #Hinv #Hop #Hsp Htok #Hl
@@ -770,7 +770,7 @@ theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : L
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
-  ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
+  ihave %Hpre := ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
   · iframe Hops Hl
   icases ghost_map_lookup $$ HO Hop with %HOd
   -- `d` is in the history, right after `histOf (ods.take m)`
@@ -827,12 +827,12 @@ theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : L
 
 /-- **A committed conf-change entry is a `RemoveMember`'s** (2026-10-27): an entry of type `1` (a
 `ConfChange`, never a filler) of a committed log is among the committed requested entries
-(`Draft.ownCommittedOps_lb_prefix`), whose conf changes are `RemoveMember`'s (`RmReqs`): its bytes
+(`ownCommittedOps_lb_prefix`), whose conf changes are `RemoveMember`'s (`RmReqs`): its bytes
 decode to `rmCC id` for some `id`. What `run` applies with `node.ApplyConfChange`. -/
-theorem kv_committed_cc (γr : RKVNames) (l : List Draft.LogEntry) (e : Draft.LogEntry) (E : CoPset)
+theorem kv_committed_cc (γr : RKVNames) (l : List LogEntry) (e : LogEntry) (E : CoPset)
     (HE : ↑rkvN ⊆ E) :
     e ∈ l → e.type = W32 1 →
-    ⊢ rkvInv (GF := GF) γr -∗ Draft.isCommittedLogLb γr.cluster l ={E}=∗
+    ⊢ rkvInv (GF := GF) γr -∗ isCommittedLogLb γr.cluster l ={E}=∗
       ⌜∃ id, ccDecodeV1 e.data = some (rmCC id) ∧ RmShrink id⌝ := by
   intro Hel Hty
   iintro #Hinv #Hl
@@ -840,7 +840,7 @@ theorem kv_committed_cc (γr : RKVNames) (l : List Draft.LogEntry) (e : Draft.Lo
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
-  ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
+  ihave %Hpre := ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
   · iframe Hops Hl
   have Hnf : ¬ e.isFiller := by
     rintro ⟨-, h⟩; rw [Hty] at h; revert h; word
@@ -873,10 +873,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The `ReadState` values of a `Ready`'s read states (`readStatesPts`'s big separating
 conjunction), each `rsOk`. -/
-theorem rsOk_of_readStates (γ : Draft.Cluster) :
+theorem rsOk_of_readStates (γ : Cluster) :
     ∀ (vs : List ReadState) (sts : List ReadStateM),
     ([∗list] v;st ∈ vs;sts, ⌜v.Index' = st.Index'⌝ ∗ v.RequestCtx' ↦*□ st.RequestCtx') ∗
-      ([∗list] st ∈ sts, Draft.readStateOk (GF := GF) γ kvRaftN st.RequestCtx' st.Index') ⊢
+      ([∗list] st ∈ sts, readStateOk (GF := GF) γ kvRaftN st.RequestCtx' st.Index') ⊢
       [∗list] v ∈ vs, rsOk γ v
   | [], _ => by
     iintro ⟨-, -⟩
@@ -902,9 +902,9 @@ theorem rsOk_of_readStates (γ : Draft.Cluster) :
 
 /-- The `ReadState` values a `Ready` hands out (`readStatesPts`, persistent), each `rsOk`: what
 `run` appends to its pending read states and `answer` takes. -/
-theorem readStatesPts_rsOk (γ : Draft.Cluster) (rs : GoSlice) (sts : List ReadStateM) :
+theorem readStatesPts_rsOk (γ : Cluster) (rs : GoSlice) (sts : List ReadStateM) :
     readStatesPts (GF := GF) rs sts ∗
-      ([∗list] st ∈ sts, Draft.readStateOk γ kvRaftN st.RequestCtx' st.Index') ⊢
+      ([∗list] st ∈ sts, readStateOk γ kvRaftN st.RequestCtx' st.Index') ⊢
       ∃ vs : List ReadState, rs ↦*□ vs ∗ [∗list] v ∈ vs, rsOk γ v := by
   iintro ⟨H, #Hok⟩
   iunfold readStatesPts at H
