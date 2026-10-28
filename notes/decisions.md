@@ -24959,7 +24959,7 @@ to be the specs in, e.g., node__Propose.lean."
 `raft.applyConfChange.specS`, `confchange.Restore.specE`); a clean `node.ForgetLeader` spec.
 
 
-## E3zc of the auth plan: one client KV stack for both auth modes (2026-10-28 · `notes/auth-plan.md`; E3zb's "What is left", item 1; in progress)
+## E3zc of the auth plan: one client KV stack for both auth modes (2026-10-28 · `notes/auth-plan.md`; E3zb's "What is left", item 1; done but the `*Client` wrappers)
 
 **The problem.** A member with auth on registers the metadata-indexed `On` specs
 (`client/v3/KVServiceOn.lean`), and `Work` needs what their replies add (a write's grant at the
@@ -24984,12 +24984,30 @@ derived at `GrpcSpec.md`: the Auth and Lease stubs unchanged), `kVClient.{Put,Ra
 connection, `txnObjAt_kv`, `kvObjAtC_agree`). The members' proofs instantiate them at `GrpcSpec.md`
 (`isGrpcRpcs_md`, `attemptPre_md`): no statement above `kv.Do.wp_generic` changed.
 
-**Step B (next): the members, mode-indexed.** A member with its auth mode (`SrvAtM`: the `SrvAt`
-and, with auth on, its server and request names, whose read names are the member's); its
-registrations at the mode (`GrpcSpec.md` of the plain specs, or the `On` specs); the members' calls'
-premises at the mode (with auth on: a delete's and a writing transaction's shapes, a read's lower
-bound of the published auth index) and their answers with the mode's facts at the attempt's
-metadata (`True` with auth off). One proof of `kv.Do`/`Put`/`Get`/`Delete`/`txn.Commit` over such
-members; the current `specM` statements (over `SrvAt`, `kvRegsAt`, `putAns`, ...) its instance at
-mode off, unchanged, so their ~30 users do not move. The answer's facts name the attempt's
-connection and context, which the call's caller knows (`isNewClient`'s connection).
+**Step B (done): one proof of the `*kv`'s calls, an instance per mode.** The plan above had a
+mode-indexed member (`SrvAtM`) and one proof over such members. Taken instead, simpler: the calls
+are proved once over the transport's terms, for any spec registered at the connection, and each
+mode is an instance by glue.
+- B1, the generic statements (`KVMembers.lean`): `kv.Do.specG` (`kv.Do.wp_generic`'s, `doRunGen`
+  moved there), `kv.Put.specG`, `kv.Get.specG`, `kv.Delete.specG`, `txn.Commit.specG`: a `*kv`
+  over `conn` (`kvObjAtC`), a `GrpcSpecMd` registered at its addresses (`isGrpcRpcsMd`), the
+  caller's precondition `attemptPre conn ctx S … Q` (in `kvReqPre`/`txnReqPre`; `□ ▷` for a
+  read), the answer `putCallOut Q`, .... Proved once (`kv.X.wp_generic`), linked in
+  `LinkMembers.lean` (`v3.kv.wp_PutG`, ..., `v3.txn.wp_CommitG`).
+- B2, auth off: the `specM`s (statements unchanged) are `kv.X.wp_members (wp_X : kv.X.specG)`,
+  glue at `GrpcSpec.md` of the members' specs (`kvObjAt_conn`, `isGrpcRpcs_md`, `kvRegs_rpc*`,
+  `putSpec_of … |>.trans attemptPre_md`).
+- B3, auth on (`client/v3/ResultsOn.lean`): `client_put_on`, `client_range_on`,
+  `client_delete_on`, `client_txn_on`, the `client_*_any` at one member whose methods are
+  registered with the `On` specs (what `etcd_kv_auth_served_on` gives). The answer `Q` the caller
+  picks carries the server's auth fact at some attempt's metadata, `∃ md, ⌜clientAttemptMd conn
+  (GoInterface.ok ci) md⌝ ∗ writeGrantOn … (auth.mdTokenOf md) …` (`rangeAuthed`, `txnAuthOn`):
+  `attemptPre` gives the `md` the `On` spec's reply is at. Premises with auth on: a delete's key
+  non-empty (`auth.reqShape` of a point), a writing transaction's `kvShapeAll`, a read's lower
+  bound `n` of the published index (`auth.authPubLbM`, `0` free).
+
+Not yet: the `*Client` wrappers (`ClientPutGet`'s `client_Put_any`, ..., over `isNewClient`).
+`isNewClient`'s `*kv` (`kvObjAt`) does not name its connection as the client's (`clientKVAt`'s
+`conn` field), and the answers above speak of the `*kv`'s connection: the client's token (C1, over
+`clientAttemptMd`) is a fact of the client's connection, so the wrappers come with C1, which may
+tie the two in `isNewClient` (`NewKV(c)` stores `c.conn`).
