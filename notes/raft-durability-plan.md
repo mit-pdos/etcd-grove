@@ -21,16 +21,20 @@ It ends with the open questions to settle before proving anything (§7).
   `crashed` token. That is enough for raft and for `examples/durablekv`, because every change to
   durable state is one atomic step of a durable-state extension (§3.1). Old Perennial's
   `own_crash`, NC tokens and crash borrows are either not needed or derivable here (§3.3).
-- **One derived pattern is needed: a generation handoff.** Volatile ghost state is named per
-  generation. Durable ghost state is named per node, in an invariant tied to the durable file.
-  The crash frame owns the right to start the next generation (§3.2). The pattern is general
-  enough to propose to Perennial once a proof has used it.
-- **The central spec change is in raft.** A promise (a vote, an acknowledgement, a candidate's
-  own vote) is minted when it becomes durable, not at `Step` time as today (§4.2):
-  - the messages of a `Ready` become sendable on a receipt that the batch is durable;
-  - `Advance` takes that receipt, because it steps the node's own vote and acknowledgement;
-  - restart from a non-empty storage gets a spec that rebuilds the node's ghost state from
-    its durable state (§4.3).
+- **No separate handoff machinery.** What crosses a crash is named per node and kept in the
+  client's per-node invariant: the file and raft's `nodeStable`. Everything else is per
+  incarnation. A restart re-points `nodeStable` once the old incarnation has halted (§3.2).
+- **One raft spec for clients with and without durability** (§4, designed with the spec skill
+  and reviewed twice). The `Ready` contract is the main change:
+  - its messages are sendable after the batch's write (`readyMsgs` + `stableRcpt`), or at
+    once at a leader;
+  - the write itself is a ghost update the client fires on the node's durable state
+    (`nodeStable_persist`): when the write is durable, or at once if nothing is durable;
+  - `Advance` takes the receipt;
+  - `RestartNode` and `StartNode` start from any restart point;
+  - `node.Stop` gives `halted`.
+
+  Raft's promises are minted at the write, not at `Step` as today.
 - **First target:** `examples/durablekv`, which is already written, tested and translated, but
   not proved. It persists its whole state through `durableExt` and restarts with
   `RestartNode`. Its first proof runs its in-process restart with plain WP (stage D3). Real
@@ -166,8 +170,8 @@ of a WPC must hold at every step. Here, an invariant must hold at every step:
 
     durInv i := ∃ fs, durableOwn_i fs ∗ D_i (decode fs)
 
-`D_i` is the durable half of node `i`'s protocol ghost state: its durable authority and the
-facts that the promises other nodes hold are backed by the file.
+`D_i` is raft's durable state of node `i`, `nodeStable` (§4.1), at what the file decodes to.
+Raft's internal invariant ensures that every promise other nodes hold is backed by it.
 
 The invariant holds at every step because every durable change is one atomic step:
 
@@ -176,39 +180,32 @@ The invariant holds at every step because every durable change is one atomic ste
 
 So the invariant is opened around exactly that step. This is `crashfs`'s proof, scaled up.
 
-Each `Write` must also re-establish `D_i` of the new contents. That is where raft's promises
-are minted (§4.2). A write of a state whose promises are not yet minted is fine: `D_i` asks
-only that what was minted be backed, not that everything durable be minted.
+Each `Write` must also re-establish `D_i` of the new contents. It does so by firing
+`nodeStable_persist` inside the write's atomic update, and that is where raft's promises are
+minted (§4.1).
 
-### 3.2 The generation handoff (derived, reusable)
+### 3.2 Handing over from one generation to the next
 
-Some per-node ghost state must be exclusive to the running generation, for example:
+Some per-node state must be exclusive to the running incarnation. For example: raft's
+in-memory protocol state, the replica's mutex invariants, the right to move the node's durable
+state. The crash frame cannot get these back from the dead threads. The design keeps them out
+of what crosses a crash:
 
-- the authority over raft's in-memory protocol state (`PState`);
-- the right to write node `i`'s file;
-- the replica's mutex invariants.
-
-The crash frame cannot get these back from the dead threads. The pattern:
-
-- **Per-generation naming.** Volatile ghost state is allocated per generation. Its invariants
-  name generation `L`'s ghost names. After a crash they are still allocated, but nobody owns
-  their fragments, and they constrain nothing that runs.
-- **The current generation.** A per-node ghost variable records the current generation:
-  `curGen_i γ`, half in `durInv i` and half in the crash frame's closure.
-  - Anything that must say "the running node's in-memory state" (for example, the global
-    protocol invariant's per-node `PState` authority) is stated under `curGen_i`.
-  - At a crash, the frame (holding `crashed L` and its half of `curGen_i`) re-points
-    `curGen_i` to `L'` and allocates `L'`'s volatile ghost state from the durable contents in
-    `durInv i`.
-- **Refuting a dead generation.** `crashed L` refutes any old-generation token still in an
-  invariant (`notCrashed_crashed`). This is how a disjunct like "generation `L` is mid-write"
-  is closed after `L` crashed. With `durableExt`'s atomic `Write`, no such disjunct should
-  arise.
-
-This is three lemmas around Perennial's existing pieces: allocation, handoff and refutation.
-Write them in this repository first (`Proof/CrashPrelude.lean` or beside the durable
-prelude). When a second user appears, propose them to Perennial as a general library, by
-Perennial's own workflow (CLAUDE.md, "Changes to Perennial").
+- **What crosses a crash.** It is all named per node and kept in the client's per-node
+  invariant (§4.4):
+  - the durable file;
+  - raft's `nodeStable` (exclusive) and `restartable` (persistent);
+  - a way to get `halted ι` for the incarnation that ran.
+- **What is per incarnation.** Raft's volatile ghost state, the driver token, and a batch's
+  obligation and receipt (`readyStable`, `stableRcpt`) are indexed by the incarnation `ι`.
+  After a crash, they constrain nothing that runs.
+- **Re-pointing.** `nodeStable` is re-pointed to the new incarnation by `nodeStable_bind`, a
+  ghost update that needs `halted ι` of the old one. `halted ι` comes from one of two places:
+  - `node.Stop`, for `durablekv`'s in-process restart;
+  - the old generation's `crashed`, through `□ (crashed -∗ halted ι)`, which `RestartNode`
+    and `StartNode` give, for a real crash.
+- **Why a crash mid-restart is harmless.** Everything a restart takes is persistent, so the
+  invariant holds however a crash interrupts the restart.
 
 ### 3.3 What old Perennial needed, and what replaces it
 
@@ -241,113 +238,260 @@ not, the general fix is a Perennial change, designed apart, not a local primitiv
 
 ## 4. Raft's spec changes (T-raft)
 
-### 4.1 Durable and volatile state of a node
+**One spec, for every client.** The node API (`Spec/.../Api.lean`, `InvNode.lean`) changes
+so that one spec serves both:
 
-- **Durable state.** `DurState := (hs : HardStateM, snap : snapshot metadata and conf state,
-  ents)` is what a restart reads back. Node `i`'s durable authority `durAuth_i d` lives in
-  `durInv i` (§3.1).
-- **Volatile state.** The existing `PState` stays as the in-memory state. It may be ahead of
-  `d`, and it is named per generation (§3.2).
-- **What each kind of ghost state becomes.**
-  - *Promises* (`isVote`, `isAcked`, a candidate's own vote, term bounds that others rely
-    on) are backed by `d`.
-  - *Proposals* stay as they are, global and independent of persistence: the term-`t`
-    leader's log (`isTermLog`, `leadPrefix`) and the commit witnesses. A leader that crashes
-    in term `t` restarts as a follower in term `t`, having voted for itself. It can never lead
-    term `t` again, so term `t`'s leader log is frozen, and no persistence is needed for it.
+- a client that makes nothing durable (`examples/kv`, `kvwitness`, etcd's server under a
+  theorem with no crashes);
+- a client that does (`examples/durablekv`, and etcd with its WAL).
 
-### 4.2 Minting at durability
+The `Ready` contract is the main change. `Advance` gains one premise. `RestartNode` and
+`StartNode` generalize from an empty storage to any restart point. `node.Stop` gets a spec in
+the API. Everything else is unchanged:
 
-**Today.** `Step` mints a promise into the global ghost state at once.
+- `node.Ready.spec`, `Step`, `Propose`, `ProposeConfChange`, `Tick`, `ReadIndex`,
+  `TransferLeadership`, `ReportSnapshot`, `ReportUnreachable` and `ApplyConfChange`;
+- `sentMsg`, `stepIn_intro`, and the `MemoryStorage` specs.
 
-**Proposed.** `Step` records the promise as **pending** in the generation's volatile ghost
-state. The pending promises are minted into the global ghost state when the batch carrying them
-becomes durable. Concretely:
+The design follows the spec skill's TaDa principle. Raft's specs take and give back ghost
+state the client owns: the node's durable state, `nodeStable`. The client keeps whatever
+invariant it wants over it:
 
-- **`Ready`'s postcondition** adds the batch's durable target `D(rd)`, which is the previous
-  durable state with `rd.HardState`, `rd.Entries` and `rd.Snapshot` applied, together with a
-  ghost update:
+- in its own frame, when nothing is durable;
+- in an invariant with the file or the WAL, when something is.
 
-      persisted_i D(rd) ==∗ [∗ m ∈ rd.Messages] msgOk m
+The candidate went through two rounds of the `spec-reviewer` agent on 2026-10-28. The
+defects found and repaired are in §4.6. It is a design: nothing is compiled, and the user
+has not reviewed it yet.
 
-  This makes every message of the `Ready` conditional on the batch being durable. That is
-  `Ready.Messages`' contract in synchronous mode (`node.go:98-101`), and it is stronger than
-  `doc.go:79-86`, which is the issue above. The condition covers the requests too: a
-  `MsgVote` carries the candidate's promise of its own vote. If a candidate sent `MsgVote`
-  before `(term, vote = self)` was durable, it could win with the others' votes, crash,
-  restart a term back, and vote for a rival in the same term. Two leaders in one term.
-- **`persisted_i D`** is a persistent receipt that node `i`'s durable state has reached `D`.
-  It is minted by the durable write's logically atomic update, which updates `durAuth_i`
-  inside `durInv i` and turns the batch's pending promises into global ones.
-  - In `durablekv`, that write is `persist`'s `durable.Write`.
-  - In etcd, it is `Save`, or `Save` followed by `Sync`.
-- **`Advance`'s precondition** adds `persisted_i D(rd)`. `Advance` steps `stepsOnAdvance`,
-  which holds the node's own vote and its acknowledgement of its new entries (main's
-  `notes/raft-implementation-facts.md`: "the self-ack must not reach the state machine
-  before the append is durable").
-- **The leader exemption** (needed for etcd only; D5). `Ready`'s postcondition also gives:
+### 4.1 Vocabulary
 
-      rd.RaftState = Leader → ([∗ m ∈ rd.Messages] msgOk m)  (needing only earlier batches durable)
+**Pure** (`NodeApiVocab.lean`):
 
-  This states that a leader's `Ready` carries no promise that is not already durable. It is
-  believed true (open question Q1):
-  - a node can only become leader after its campaign `Ready` was handed out and persisted,
-    since `MsgVote` leaves only in a `Ready`;
-  - a `Ready` handed out while it was still a candidate already flushed its earlier
-    `msgsAfterAppend`;
-  - a leader's own acknowledgement and vote go through `stepsOnAdvance`, not `rd.Messages`.
+- **`Stable := ⟨hs, snap, prev, ents⟩`** is what a restart reads back: the hard state, the
+  latest snapshot (`Option SnapTrip`), the log's start `prev` (the snapshot's id or a
+  compaction point above it), and the entries after it.
+  - `Stable.init` is the empty one.
+  - `Stable.Wf` says `prev ≤ snapshot ≤ commit ≤ last entry`, with the entries consecutive.
+  - `Stable.commit` is `max(hs.Commit, prev.index)`.
+- **`Delta := ⟨h, snap, es⟩`** is a `Ready`'s write (`doc.go`, step 1). `Stable.next P δ`:
+  - sets the hard state, if not empty;
+  - with a snapshot, replaces the snapshot, `prev` and every entry (as
+    `MemoryStorage.ApplySnapshot` does);
+  - drops the entries at or after `es`'s first index, then appends `es`.
+- **`Stable.snapshot P k` and `Stable.compact P c`** are `CreateSnapshot` and `Compact`.
+- **`StoresStable σ hs P`** (decidable): a `Storage` at `σ` whose `InitialState` is `hs`
+  holds `P`.
 
-  This is the kind of statement this proof has found false before, so it is a lemma to prove,
-  not to assume.
+**Sealed** (`InvNode.lean`):
 
-**Clients that persist nothing.** `examples/kv`, `kvwitness`, and etcd today under a
-no-crash theorem allocate `durAuth_i` with no file behind it. They can then mint `persisted_i`
-at will. That is sound because their adequacy theorems have no crash frame. The tie to real
-durability is in the client's `durInv`, not in raft's specs, so raft's specs stay uniform.
+| Predicate | Kind | Meaning |
+|---|---|---|
+| `Inc` | type | an incarnation: one run of `StartNode` or `RestartNode` |
+| `nodeStable γ N id ι P` | exclusive, timeless, one per node for the cluster's lifetime | node `id` restarts from `P`; `ι` is the incarnation whose batches move it |
+| `restartable γ N id P` | persistent | `P` is a restart point of `id` |
+| `halted γ N ι` | persistent | no goroutine steps incarnation `ι` again |
+| `nodeInc n ι` | persistent | the node object `n` is incarnation `ι` |
+| `freshNode γ N id ι P` | exclusive | a new incarnation from `P`, not yet bound |
+| `readyStable γ N id ι b δ` | exclusive | batch `b`'s write obligation |
+| `stableRcpt γ N id ι b` | persistent | batch `b` was written |
+| `readyMsgs γ N id ι b r sts` | persistent | batch `b`'s messages, handed out with the last reported role `r` |
 
-**What moves in the proof.** The minting lemmas (`ownRaftGhost_step_grantVote`,
-`_app_accept`, `_higherTerm`) split in two:
+**Laws.** Every ghost update has `↑N ⊆ E`, and a client's own invariants sit outside `N`.
 
-- a `Step`-time half that records the promise as pending and updates `PState`;
-- a persist-time half that mints the global witnesses.
+    nodeStable_persist   : nodeStable id ι P ∗ readyStable id ι b δ ={E}=∗
+                             nodeStable id ι (P.next δ) ∗ stableRcpt id ι b ∗ restartable id (P.next δ)
+    readyMsgs_send       : readyMsgs id ι b r sts ∗ stableRcpt id ι b ⊢ [∗ st ∈ sts] sentMsg id st
+    readyMsgs_leader     : readyMsgs id ι b StateLeader sts ⊢ [∗ st ∈ sts] sentMsg id st
+    nodeStable_bind      : nodeStable id ι P ∗ halted ι ∗ freshNode id ι' P ={E}=∗ nodeStable id ι' P
+    nodeStable_snapshot  : (k within P's committed entries) →
+                           nodeStable id ι P ∗ snapshotCert k ={E}=∗ nodeStable id ι (P.snapshot k) ∗ restartable …
+    nodeStable_compact   : (c within P) → nodeStable id ι P ={E}=∗ nodeStable id ι (P.compact c) ∗ restartable …
+    nodeStable_committed : nodeStable id st.inc P ∗ nodeDriver n st ⊢
+                             ⌜st.handling = none → st.delivered.length ≤ P.hs.Commit⌝
+    nodeStable_restartable : nodeStable id ι P ⊢ nodeStable id ι P ∗ (restartable id P ∨ ⌜P = Stable.init⌝)
+    restartable_wf       : restartable id P ⊢ ⌜P.Wf⌝
+    restartable_snapshotCert : restartable id P ⊢ ⌜P.snap = some k⌝ -∗ snapshotCert k
+    readyRest_volatile   : nodeStable id st.inc P ∗ readyRest … ={E}=∗
+                             nodeStable id st.inc (P.next δ) ∗ stableRcpt id st.inc st.batch ∗ (today's readyRest)
+    nodeStable_exclusive, nodeInc_agree (with nodeDriver's st.inc)
 
-`VoteHistOk` and `acksOk` hold of the durable state for the minted promises, and of `PState`
-for the pending ones.
+`nodeStable_persist` is where raft's promises take effect: a vote, an acknowledgement, a
+candidate's own vote. The client does it when its write is durable. A client that keeps
+nothing durable does it at once.
 
-The safety arguments (election safety, log matching, leader completeness, commit) are about
-minted witnesses and should not change.
+### 4.2 `Ready`
 
-### 4.3 Restart from a non-empty storage
+`readyRest`, which `isReadyChan_recvAu` and `node.wp_readyRecv` hand out, changes in two ways:
 
-The new spec for `RestartNode` / `NewRawNode` / `newRaft` over a storage whose contents are
-`d` takes `durAuth_i d` and the next generation's `curGen_i`. It gives `ownRaftGhost` for the
-new generation at a `PState` built from `d`, with no pending promises.
+- **The messages lose their `sentMsg`.** They come as one `readyMsgs γ N id st.inc st.batch
+  (roleAfter st rd) sts`. They are sendable after the batch's write (`readyMsgs_send`), or at
+  once by a leader (`readyMsgs_leader`).
+- **It adds the batch's obligation** `readyStable γ N id st.inc st.batch (readyDelta h es L)`.
 
-The proof obligation is that a durable state is a valid restart point: the node-local
-invariants (`VoteHistOk`, `acksOk`, `logRecs`) hold of `d` with the minted promises. This
-holds for two reasons:
+`NodeDriverState` gains three fields:
 
-- in `durablekv`, `d` is a state the node was in, namely the state at the time of some
-  `Ready`;
-- a promise is minted only once `d` reflects it.
+- `inc : Inc` (fixed, like `storage`);
+- `batch : Nat`, the `Ready`s received;
+- `role : StateType`, the last reported role.
 
-Two cases go beyond "a state the node was in":
+`roleAfter st rd` is the `SoftState`'s role, or `st.role` when the `SoftState` is nil (it is
+nil unless the role changed). This is etcd's `islead`, kept across `Ready`s.
 
-- **The commit index can go back.** In etcd, a commit-only `HardState` change is not fsynced
-  (§1.4), so the durable commit can be lower than one the node had. `Hboot`/`commit_mono` must
-  become per generation, with the commit witnesses (global, monotone) separate from the node's
-  `committed`. The read-index argument's use of monotonicity is then checked per generation
-  (Q3).
-- **`Config.Applied`** must be at most the durable commit (`log.go:333`, `appliedTo`
-  panics). `durablekv` passes the snapshot's index, which is at most the commit. etcd passes
-  nothing.
+This is `Ready.Messages`' contract in synchronous mode (`node.go:98-101`), not
+`doc.go:79-86`'s (the issue above). It covers requests too: a `MsgVote` carries the
+candidate's promise of its own vote. If a candidate sent `MsgVote` before `(term, vote = self)`
+was durable, it could win with the others' votes, crash, restart a term back, and vote for a
+rival in the same term. Two leaders in one term.
 
-### 4.4 Storage
+### 4.3 `Advance`, `Stop`, restart, start, allocation
+
+- **`node.Advance.spec`** (and `dynamicSpec`) adds `stableRcpt γ N id st.inc st.batch`, and its
+  post increments `batch`. `Advance` steps `stepsOnAdvance`, which holds the node's own vote
+  and its acknowledgement of its new entries (`rawnode.go:410-425`). That is why this premise
+  is needed: main's `notes/raft-implementation-facts.md` says "the self-ack must not reach the
+  state machine before the append is durable". `batch` moves only at `Advance`, and the next
+  `Ready` comes only after `Advance`, so at most one obligation is outstanding.
+- **`node.Stop.spec`** (new to the API): `{{ isNode n γ N id ∗ nodeInc n ι }} n.Stop()
+  {{ halted γ N ι }}`. `Stop` returns after `run` exits (`node.go:331-341`).
+  - Proof obligation: the other methods' specs (`Advance`'s `storFloor` included) stay true on
+    a stopped node. `durablekv`'s old `run` calls `Advance` after `Stop`, and its `tick`
+    goroutine calls `Tick`.
+- **`RestartNode.spec`.** The empty-storage premises and `nodeRestartBoot` are replaced by:
+  - `StoresStable σ hs P`;
+  - `cv.Applied' = 0`, or `P.prev.index ≤ Applied ≤ P.commit` (as `appliedTo`, `log.go:333`,
+    requires);
+  - `restartable γ N id P`.
+
+  The post gives:
+  - `isNode n`, `nodeInc n ι`, `freshNode γ N id ι P`, and `□ (crashed -∗ halted γ N ι)`,
+    with the current generation's crash token;
+  - `isCommittedLogLb γ dl`, with `dl` as long as `Applied` (or as `P.prev.index`);
+  - `nodeDriver n` at `initAt := ⟨stor, dl, P.hs, none, ι, 0, StateFollower⟩` (`newRaft` ends
+    in `becomeFollower`).
+
+  The node's configuration is `P`'s snapshot's, or the static voters when `P.snap = none`.
+- **`StartNode.spec`** (a bootstrap log): unchanged, except that the post adds `nodeInc`,
+  `freshNode γ N id ι Stable.init` and `□ (crashed -∗ halted ι)`, and the driver starts as a
+  follower at batch 0.
+- **Allocation.**
+  - `cluster_alloc_static` (no bootstrap log: kv, `durablekv`) gives, per voter,
+    `nodeStable γ N id ι₀ Stable.init ∗ halted γ N ι₀ ∗ restartable γ N id Stable.init`, in
+    place of `nodeRestartBoot`.
+  - `cluster_alloc` and `dynamicCluster_alloc` (a bootstrap log: etcd's server) give the same
+    **without** `restartable`. The bootstrap entries are committed in the ghost state but
+    reach storage only through the first `Ready` (`bootstrap.go:77`), so the empty state is
+    not a restart point.
+  - **Scope restriction:** a node of a bootstrapped cluster that crashes before its first
+    write cannot restart. etcd restarts such a member from an empty WAL. Record this in
+    `decisions.md` at D1, and in `issues/` if it turns out to matter for safety.
+
+### 4.4 The two kinds of client
+
+**No durability.**
+- The loop's invariant holds `nodeStable γ N id st.inc P` beside `nodeDriver`, threaded from
+  allocation through boot.
+- At start: one `nodeStable_bind`, with `halted ι₀`.
+- Per `Ready`: one `readyRest_volatile`, which gives today's `readyRest` and the receipt
+  `Advance` takes.
+- `crashed` in `RestartNode`'s post is well defined in a proof with no crashes:
+  `notCrashed` is in every generation's state interpretation. So no second spec is needed.
+
+**Durability (`durablekv`).** A per-node invariant, outside `N` and named per node, so that it
+survives a crash:
+
+    ∃ f ι P, durableOwn_id f ∗ ⌜decode f = (σ, hs) ∧ StoresStable σ hs P⌝ ∗ nodeStable γ N id ι P ∗
+      restartable γ N id P ∗ (halted γ N ι ∨ □ (crashed_L -∗ halted γ N ι))
+
+- `persist` fires `nodeStable_persist` inside the atomic `durable.Write`, with the thread's
+  `readyStable`.
+- The snapshot write uses `nodeStable_committed`, `nodeStable_snapshot` and
+  `nodeStable_compact`.
+- `Cluster.Restart`: `node.Stop` gives `halted`. `start()` then runs `RestartNode` (whose
+  premise comes from `restartable_wf`), then `nodeStable_bind`.
+- With real crashes (D4), the crash frame turns `crashed_L` into `halted ι` at boot.
+- Nothing a restart takes is exclusive, so a crash in the middle of `start()` leaves the
+  invariant intact.
+
+**etcd with a WAL (D5).**
+- `Save`'s atomic update fires `nodeStable_persist`.
+- The leader sends first, by `readyMsgs_leader`.
+- The snapshot branch writes in several steps (`SaveSnap`, `Save`, `Sync`), so its delta may
+  have to split into a snapshot part that is itself a restart point, then the rest. Settle
+  this with the WAL model.
+
+### 4.5 What moves inside raft's proof
+
+- **Promises are minted at the write, not at `Step`.** The minting lemmas
+  (`ownRaftGhost_step_grantVote`, `_app_accept`, `_higherTerm`) split in two:
+  - a `Step`-time half, which records the promise as pending in the incarnation's volatile
+    ghost state;
+  - a persist-time half (`nodeStable_persist`), which mints the global witnesses.
+
+  The safety arguments (election safety, log matching, leader completeness, commit) are
+  about minted witnesses and should not change.
+- **Volatile ghost state is per incarnation, durable state per node.**
+  - *Per incarnation:* the in-memory `PState` and the pending promises.
+  - *Per node:* `nodeStable`'s authority, in raft's cluster invariant.
+  - *Proposals* stay global and independent of persistence: the term-`t` leader's log
+    (`isTermLog`, `leadPrefix`) and the commit witnesses. A leader that crashes in term `t`
+    restarts as a follower that voted for itself in `t`, so it never leads `t` again.
+  - **A fresh incarnation that is never bound is inert.** It never gets a `stableRcpt`, so it
+    never advances and never becomes leader.
+- **Obligations the laws rest on:**
+  - `readyMsgs_leader` needs batch `b-1` durable (by `Advance`'s premise). It also needs
+    every message of a batch that ends as leader in term `T` to have been generated in term
+    `T`, after the term-`T` vote was durable. This is Q1. The review traced it and found no
+    counterexample.
+  - `nodeStable_persist` on a halted incarnation (a client that stopped the node still holds
+    the batch's obligation) needs the cluster invariant to keep a halted incarnation's
+    pending promises until the bind.
+  - `halted` from `crashed` needs the internal invariant to refute an old generation's steps
+    through its `notCrashed` (`CrashToken.lean`).
+- **Restart is from a restart point.** The node-local invariants (`VoteHistOk`, `acksOk`,
+  `logRecs`) hold of every `restartable P` with the minted promises.
+  - `Stable.init` is one only without a bootstrap log.
+  - The commit index can go back in etcd, where a commit-only `HardState` change is not
+    fsynced (§1.4). So `Hboot`/`commit_mono` become per incarnation, and the read-index
+    argument is checked per incarnation (Q3). `StoresStable` stays exact until D5.
+
+### 4.6 How the review changed the candidate (2026-10-28)
+
+First round, against candidate 1:
+- **A stale read.** Candidate 1 bound a new incarnation without the old one halted. The old
+  incarnation, still running as leader, could confirm a `ReadIndex` from its in-memory
+  acknowledgements (`raft.go:2144-2155`) and serve a stale read. `halted` and `node.Stop`
+  repair it.
+- **Compaction got stuck.** Candidate 1 kept the batch's target as a whole `Stable` in the
+  driver, so `durablekv` stuck at its first compaction. The write obligation became a delta,
+  numbered per batch, and `Stable` gained `prev`.
+- **The empty state as a restart point.** Candidate 1 made the empty state a restart point
+  in a bootstrapped cluster, which is unsound: a restart from it could commit a different
+  index 1. `cluster_alloc` now gives no `restartable`.
+- **A panic.** Candidate 1's `Applied` premise allowed `appliedTo` to panic.
+- **The leader law.** Candidate 1 read the `Ready`'s `SoftState`, which is nil after a
+  role's first `Ready`. The law now reads `roleAfter`.
+- **Smaller fixes:**
+  - incarnations became abstract (a reset heap can reuse a `Loc`);
+  - `Stable.next`'s snapshot case now drops every entry;
+  - laws were added, and masks stated.
+
+Second round, against candidate 2:
+- **`durablekv` could not discharge two premises:**
+  - the snapshot index's bound, which `nodeStable_committed` now gives;
+  - `Applied` at restart, which `restartable_wf` now gives.
+- **`Stop`'s caller could not name the incarnation.** `nodeInc` names it now.
+- **`initAt` was undefined.** It is defined now.
+- **The persist law's obligation** for a halted incarnation is now written down.
+
+### 4.7 Storage
 
 `durablekv`'s `Storage` wraps a `MemoryStorage` with `Encode` and `OpenStorage`. It needs:
 
 - a `StorageModel` instance (as `MemstorageInstance.lean`);
-- the round trip `OpenStorage(Encode s) = s` on the fields the model holds.
+- the round trip `OpenStorage(Encode s) = s`;
+- a storage-contract law: after `ApplySnapshot`, `SetHardState` and `Append` of a `Ready`, a
+  storage that stored `P` stores `P.next δ`.
 
 `InitialState`, deliberately omitted from the `Storage` contract today, comes back for
 restart (`newRaft` reads it).
@@ -356,19 +500,18 @@ restart (`newRaft` reads it).
 
 ### 5.1 `durablekv` (D3, D4)
 
-- **`persist`:** the logically atomic `durable.Write` inside `durInv i`. It mints
-  `persisted_i D(rd)` and the batch's promises. The `crashed` flag of the in-process
-  simulation is the D3 stand-in for `crashed L`: a crashed incarnation writes nothing more.
 - **`handle`:**
   1. `ApplySnapshot`, `SetHardState`, `Append`;
-  2. `persist`;
-  3. send, using `persisted_i` and the `Ready` ghost update;
+  2. `persist`, which fires `nodeStable_persist` in the atomic write; a batch with nothing to
+     write fires it at `P.next δ = P`;
+  3. send (`readyMsgs_send`);
   4. apply;
-  5. `Advance`, with `persisted_i`;
-  6. snapshot and compaction, followed by a second `persist`. This changes `d` without new
-     promises: compaction must keep `d` a valid restart point (Q4).
-- **`start`:** `durable.Read`, `OpenStorage`, `RestartNode` (§4.3). In D4, `start` is the boot
-  program, and `P i L'` is `durInv i` with `curGen_i`'s frame half.
+  5. `Advance`, with the receipt;
+  6. every `snapEvery` entries, `CreateSnapshot`/`Compact` and a second `persist`, with
+     `nodeStable_snapshot`/`_compact` (§4.4).
+- **`start`:** `durable.Read`, `OpenStorage`, `RestartNode`, `nodeStable_bind`.
+  - In D3, `Cluster.Restart`'s `crash()` stops the node first, which gives `halted`.
+  - In D4, `start` is the boot program and `P i L'` is the invariant of §4.4.
 - **The client's epoch.** `Cluster` keeps the client's epoch durably, so operations are
   unique across client restarts. That is part of linearizability across crashes: a retried
   operation takes effect once. Its invariant is in the replicated state, so it does not
@@ -386,8 +529,9 @@ restart (`newRaft` reads it).
     This is the model whose atomicity Q2 questions.
   - Verifying the real WAL over a file model is out of scope (§3.3).
 - **`raftNode.start`:**
-  - a follower calls `Save`, whose atomic update mints `persisted`, and then sends;
-  - a leader sends first under the leader exemption, then calls `Save`;
+  - a follower calls `Save`, whose atomic update fires `nodeStable_persist`, and then sends
+    (`readyMsgs_send`);
+  - a leader sends first (`readyMsgs_leader`), then calls `Save`;
   - the snapshot branch: `SaveSnap` → `Save` → `Sync` → `ApplySnapshot` → `Release`.
     `Release` deletes WAL segments and snapshots up to the snapshot only after the hard state
     is synced (the code's comment at `raft.go:265`). Its spec must make that order necessary.
@@ -405,20 +549,23 @@ restart (`newRaft` reads it).
 | Stage | What | Needs |
 |---|---|---|
 | D0 | This plan. Settle Q1–Q5 by reading the code, with the reconfiguration model checker's crash mode, and with Go crash tests (gofail, `durablekv`'s tests). File what is found in `issues/`. | none; can start now |
-| D1 | The ghost design on paper, as a `decisions.md` entry: which `RaftNames` maps become durable-backed, the pending-promise state, `durInv`/`curGen` and the handoff lemmas (§3.2), the new `Ready`/`Advance`/restart specs. Review with `spec-reviewer` before writing code. | D0; the cleanup's final `Ready`/`Advance` specs |
-| D2 | Raft: the split minting lemmas, `Ready`/`Advance` with `persisted`, restart from a non-empty storage. Port the clients: `kv`, `kvwitness` and etcd's `raftNode` mint `persisted` for free. | the cleanup landed |
+| D1 | Settle the node API of §4 with the user (the spec skill: critiques become principles, the approved spec an example), then the internal design as a `decisions.md` entry: which `RaftNames` maps are per node and which per incarnation, the pending promises, `halted` from `Stop` and from `crashed`, and the scope restriction of §4.3. Review with `spec-reviewer`. | D0; the cleanup's final `Ready`/`Advance`/snapshot specs |
+| D2 | Raft: the split minting lemmas, the §4 API (`readyRest`, `Advance`, `Stop`, `RestartNode`/`StartNode` from a restart point, allocation, the laws), proved. Port the clients (`kv`, `kvwitness`, etcd's `raftNode`) with `readyRest_volatile`. | the cleanup landed |
 | D3 | `durablekv` with its in-process restart, plain WP: `StorageModel`, `persist`, `handle`, `start`, porcupine `Ok` with `Cluster.Restart`. | D2 |
 | D4 | Real crashes: `ExtCrashInterp durableExt`, one node per replica, `goose_dist_crash_adequacy`; T-dkv. | D3; a network extension (§3.4) |
-| D5 | etcd: `walExt`, `isRNWal` → atomic `Save` minting `persisted`, the leader exemption, bootstrap. | D2, Q1, Q2 |
+| D5 | etcd: `walExt`, `isRNWal` → atomic `Save` firing `nodeStable_persist`, the leader path, bootstrap, the snapshot branch's split delta (§4.4). | D2, Q1, Q2 |
 | D6 | etcd: backend durability, replay above the consistent index, the snapshot path's crash cases. | D5 |
 
 Track D2–D6 with a TCB collection each (`etc/tcb-collections/`), as for the other proofs.
 
 ## 7. Open questions (D0)
 
-- **Q1: the leader exemption.** Can a `Ready` with `RaftState = Leader` carry a message whose
-  promise is not durable? Two candidate paths:
-  - a vote granted, then a campaign and a win, within one batch: argued impossible in §4.2;
+- **Q1: the leader law** (`readyMsgs_leader`, §4.5). Can a `Ready` handed out at a leader
+  (role `StateLeader`, as last reported) carry a message whose promise is not durable? The
+  spec review traced the code and found no counterexample. Two paths to test:
+  - a vote granted, then a campaign and a win, within one batch: impossible, since `MsgVote`
+    leaves only in an earlier, non-leader batch, which is written before it is sent, and the
+    node's own vote is stepped only by `Advance`;
   - leader transfer (`MsgTimeoutNow`), where a forced campaign still sends its `MsgVote`
     through a `Ready`.
 
@@ -444,11 +591,11 @@ Track D2–D6 with a TCB collection each (`etc/tcb-collections/`), as for the ot
   argument (`raft-readindex-spec.md`, item 11) need the leader not to have restarted since
   the read began? A restarted node is a follower until it wins a later term, which suggests
   it does not.
-- **Q4: compaction as a durable change.** `durablekv` persists after `CreateSnapshot` and
-  `Compact`. The durable state then has a snapshot in place of entries. Is a compacted durable
-  state still a valid restart point for every minted acknowledgement? An acknowledgement of
-  index `i` must remain backed when entry `i` is only in the snapshot. That needs
-  `isAcked`'s backing to accept "covered by a snapshot of committed entries".
+- **Q4: compaction as a durable change.** `nodeStable_snapshot` and `nodeStable_compact` (§4.1)
+  state that a snapshotted or compacted durable state stays a restart point. Proving them
+  needs `isAcked`'s backing to accept "entry `i` is covered by a certified snapshot of
+  committed entries". That is a proof obligation for D2, no longer a design question.
 - **Q5: what the cleanup changes.** The snapshot and reconfiguration specs being rewritten
-  decide where `rd.Snapshot`'s durable target and the conf state enter `DurState`. Re-read
-  §4.1–4.3 against them before D1.
+  decide how `rd.Snapshot` and the conf state enter `Stable` and `restartable` (the static
+  voters when there is no snapshot; otherwise the snapshot's conf state). Re-read §4 against
+  them before D1.
