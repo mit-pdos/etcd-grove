@@ -258,3 +258,12 @@ discharge changes (put premise 13, `UnsafeDelete` 4 in `etcdserver/`, `hookStep`
 read 10, overlapping). Hardest: `cacheValid` through the commit path and `ConcurrentReadTx`, and the
 bridge's soft `Unlock`. Next (Draft): write 3.1-3.5's statements with `sorry`, the bridge's glue
 first (its 25 callee specs are the frame), then a review round before any backend proof.
+
+## Scope decided (2026-10-28, the user's)
+
+O1: the deletable keys a saved predicate fixed at the backend's creation (fallback, if the `▷` of
+saved predicates' agreement blocks it: a pure key set mvcc vouches for in an invariant). O2: D22's
+exactness through the `dlNone` token (an addition for D22, to be shown to its owner). O3: one-shot
+delete permits from the limited range, with the scope premise `CompactionBatchLimit ≤ 2^56`. O4:
+the job's write-back tokens from the server's receipt-funded pool (`srvWTPool`, D22's: check with
+its owner before Draft). O5: `Cmp` kept, `kbCmp := True`, removed in a later cleanup. Next: Draft.
