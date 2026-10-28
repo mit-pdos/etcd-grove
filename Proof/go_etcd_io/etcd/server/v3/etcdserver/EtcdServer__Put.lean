@@ -326,7 +326,7 @@ theorem EtcdServer.Put.wp_proofOn
       simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
     subst Hrq
     iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok, -⟩
     obtain ⟨Hstep, Hfl, -, Hmo, -⟩ := Hstep0
     have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
       simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]

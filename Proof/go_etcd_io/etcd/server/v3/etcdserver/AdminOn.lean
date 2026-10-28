@@ -58,7 +58,6 @@ end `[0]` and the id `0` (the server stamps the id). -/
 theorem adminPropOk_authEnable : adminPropOk srvAuthSt0 irrAuthEnable :=
   ⟨by simp [apply.adminKindOk, apply.dispatchKind, irrAuthEnable, apply.irrEmpty],
    by simp [apply.noSideEffect, irrAuthEnable, apply.irrEmpty],
-   by simp [apply.needAdminPermission, irrAuthEnable, apply.irrEmpty],
    by simp [irrAuthEnable, apply.irrEmpty],
    rolesSorted_srvAuthSt0⟩
 
@@ -69,7 +68,6 @@ theorem adminPropOk_userAdd (m : apply.UserAddModel) (hn : m.name.length ≤ bac
       simp only [Option.isSome_none, Option.isSome_some, Bool.false_eq_true, ↓reduceIte]
       intro m' h; cases h; exact ⟨hn, hpw⟩,
    by simp [apply.noSideEffect, irrUserAdd, apply.irrEmpty],
-   by simp [apply.needAdminPermission, irrUserAdd, apply.irrEmpty],
    by intro m' h; simp only [irrUserAdd, Option.some.injEq] at h; subst h; exact hpw,
    rolesSorted_srvAuthSt0⟩
 
@@ -80,7 +78,6 @@ theorem adminPropOk_roleAdd (name : GoString) (hn : name.length ≤ backend.maxK
       simp only [Option.isSome_none, Option.isSome_some, Bool.false_eq_true, ↓reduceIte]
       intro n h; cases h; exact hn,
    by simp [apply.noSideEffect, irrRoleAdd, apply.irrEmpty],
-   by simp [apply.needAdminPermission, irrRoleAdd, apply.irrEmpty],
    by simp [irrRoleAdd, apply.irrEmpty],
    rolesSorted_srvAuthSt0⟩
 
@@ -91,7 +88,6 @@ theorem adminPropOk_userGrantRole (user role : GoString) (hn : user.length ≤ b
       simp only [Option.isSome_none, Option.isSome_some, Bool.false_eq_true, ↓reduceIte]
       intro u ro h; cases h; exact hn,
    by simp [apply.noSideEffect, irrUserGrantRole, apply.irrEmpty],
-   by simp [apply.needAdminPermission, irrUserGrantRole, apply.irrEmpty],
    by simp [irrUserGrantRole, apply.irrEmpty],
    rolesSorted_srvAuthSt0⟩
 
@@ -103,7 +99,6 @@ theorem adminPropOk_roleGrantPermission (name : GoString) (w : Option auth.PermW
       simp only [Option.isSome_none, Option.isSome_some, Bool.false_eq_true, ↓reduceIte]
       intro n w' h; cases h; exact hn,
    by simp [apply.noSideEffect, irrRoleGrantPermission, apply.irrEmpty],
-   by simp [apply.needAdminPermission, irrRoleGrantPermission, apply.irrEmpty],
    by simp [irrRoleGrantPermission, apply.irrEmpty],
    rolesSorted_srvAuthSt0⟩
 

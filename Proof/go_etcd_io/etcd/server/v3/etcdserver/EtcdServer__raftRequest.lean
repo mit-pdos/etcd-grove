@@ -51,8 +51,10 @@ local macro "rr_ok" : tactic => `(tactic| (
     iframe Hcert HMint Hwit Hok
     isplitr
     · ipureintro; exact ⟨Hstep.1, Hstep.2.1, Hstep.2.2.1, Hstep.2.2.2, Hadm⟩
-    rw [← hve]
-    iexact Hans
+    isplitl [Hans]
+    · rw [← hve]
+      iexact Hans
+    iexact Hau'
   iexact HQL))
 
 set_option maxRecDepth 20000 in
@@ -80,7 +82,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
   · subst Herr
     (try wp_auto)
     iunfold resPostM at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM⟩
+    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM, Hau⟩
     rcases out with _ | _ | ⟨o, skip⟩
     · simp only [apply.applyResultIs]
       icases Hres with %Hn
@@ -165,6 +167,8 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
         iexact HerrIs
       · -- (E3x) no error: an admin request's step succeeded
         ihave %Hadm := adminDoneM_of_tie on ρ.kv rq' L res o skip v hve $$ HtM Hv
+        -- (C1's A3) an `Authenticate`'s response
+        ihave Hau' := authnAnsM_of_ar on E res rq' o skip v hve $$ Hau Hv
         (try wp_auto)
         wp_apply hV ctx _ cd rfl $$ [] as %val %Hval
         · iframe #
@@ -261,8 +265,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.specM_false_of_spec
       refine ⟨Hst.1, Hst.2.1, Hst.2.2.2, ?_⟩
       show kvModel ρ.kv L = y.log
       rw [Hst.2.2.1]; exact Hlb
-    simp only [adminTieM]
-    itrivial
+    simp only [adminTieM, authnArM]
+    isplit <;> itrivial
   · iright; iexact Herr
 
 theorem EtcdServer.raftRequest.wp_proof
@@ -291,7 +295,7 @@ theorem EtcdServer.raftRequest.wp_proof
     isplitr
     · ipureintro; exact He
     iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hst, Ha1, Ha2, Ha3, Ha4, Ha5⟩
+    icases Hok with ⟨%x, %x', %o, %skip, %Hst, Ha1, Ha2, Ha3, Ha4, Ha5, -⟩
     iexists hm, rq', x.log
     isplitr
     · ipureintro; exact Hw

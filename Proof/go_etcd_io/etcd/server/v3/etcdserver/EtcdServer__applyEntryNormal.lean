@@ -820,8 +820,10 @@ local macro "trig_on" : tactic => `(tactic| (
   iframe HRes Hcert HMint Hcx'
   isplitr
   · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl, Hwvf hpx, Htie⟩
-  isplitl; rotate_left
-  · iexact HtA
+  isplitr [HAu]; rotate_left
+  · isplitr
+    · iexact HtA
+    iexact HAu
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -921,7 +923,7 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
     ipureintro; exact Ho
   icases Hdel with (%Hwv | #Hg)
   · have Hwvf : idPfx id = ρ.ids.pfx → out.waived = false := fun _ => Hwv
-    wp_apply HT $$ [HRes HTr HMint]
+    wp_apply HT $$ [HRes HTr HMint HAu]
     · trig_on
     (try wp_auto)
     tail_any
@@ -933,7 +935,7 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
       tail_any
     | none =>
       have Hwvf : idPfx id = ρ.ids.pfx → out.waived = false := fun h => absurd h (Hot rfl hdata)
-      wp_apply HT $$ [HRes HTr HMint]
+      wp_apply HT $$ [HRes HTr HMint HAu]
       · trig_on
       (try wp_auto)
       tail_any))
@@ -1364,6 +1366,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           rw [srvRest_apply E γr A m rq true x x' out Htyp hdata hdec HkA.2 hp Hstep0.1]
           ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpaceOn rq x x' ar out hp Hch Hstep0.1
             $$ Hev HRes
+          ihave HAu : authnArM true E ar rq out $$ []
+          · iapply (authnArM_of_ne true E ar rq out (by intro h; rw [h] at hpk; simp [putgetKind] at hpk))
           tail_on sa
         · -- a cluster request: `apply.Apply`, the log kept
           have hkv' : apply.isKVKind (apply.dispatchKind rq) = false := by simpa using hkv
@@ -1408,6 +1412,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           rw [srvRest_apply E γr A m rq true x x' out Htyp hdata hdec HkA.2 hp Hstep0.1]
           ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpaceOn rq x x' ar out hp Hch Hstep0.1
             $$ Hev HRes
+          ihave HAu : authnArM true E ar rq out $$ []
+          · iapply (authnArM_of_ne true E ar rq out (by intro h; rw [h] at hpk; simp [putgetKind] at hpk))
           tail_on sa
       · -- an admin request: the auth row's admin steps (`adminEntryOn`)
         by_cases hka : apply.dispatchKind rq = .authenticate
@@ -1456,7 +1462,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
               bel T sa _ hM hns $$ [Hst Happ Hbe HKV HRD Hfu Htie HT Htp HRS Hlc Hhk Hx]
               as %ar %id ⟨HRD, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
-                HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0, -⟩
+                HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0, HAu0⟩
           · simp only [↓reduceIte]
             iframe HUA Hwok' HRD He HKV HT Htp Hwba Hlend HRS Hlc Hhk
             isplitr
@@ -1495,6 +1501,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
               notNoSpaceErr err) $$ [HNS]
           · iexact HNS
+          -- (C1's A3) the response, for the waiter
+          ihave HAu : authnArM true E ar rq out $$ [HAu0]
+          · iapply (authnArM_of_on E γa ar rq out hM) $$ HAu0
           tail_on sa
         icases HtokA with ⟨Htok, -⟩
         have hna := adminKindOk_needAdmin rq hadm hka
@@ -1559,6 +1568,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
             notNoSpaceErr err) $$ [HNS]
         · iexact HNS
+        ihave HAu : authnArM true E ar rq out $$ []
+        · iapply (authnArM_of_ne true E ar rq out hka)
         tail_on sa'
 
 end proof

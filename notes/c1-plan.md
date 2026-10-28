@@ -1,6 +1,6 @@
 # Plan: C1, a user client's attempts carry its user's token (spec-first)
 
-Status (2026-10-28): the client side done (phase 2, `bdff5812a6`); the server's A1 and A2 done (A2: phase 1 `3667ec323a`, phase 2 below), A3-A5 left. Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
+Status (2026-10-28): the client side done (phase 2, `bdff5812a6`); the server's A1, A2 and A3 done (A2: phase 1 `3667ec323a`, phase 2 below; "A3 done" below), A4-A5 left. Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
 (2026-10-28, "Phase 1: the statements" below); next: the spec-review round (phase 1b), then the
 proofs. Not to be merged into `lean` before the proofs: phase 1's `sorry`s sit under `New` and the
 retry interceptor, so nearly every client result rests on them meanwhile. The auth plan's item 2
@@ -471,3 +471,29 @@ which the gRPC reply (`pbAuthenticateResponse.send`, `resp ↦ v`) cannot be reb
   backend reads); the `Authenticate` branch takes the second, the others the first.
   `dispatchKind_authenticate` (`InvRequest`; `ite_eq_iff'` moved there from `apply/Results`).
 - The response (`adminAuthnAr`) is still dropped at `applyEntryNormal`: A3 delivers it.
+
+## A3 done (2026-10-28): the response to the requester
+
+Not quite the plan's wording (the waiter's result carrying `tokIssued` persistently, and a new
+`reqPropOkOn` clause): the response is owned (the handler sends it), so it travels as a resource.
+- **The result** (`ReqOn.lean`): `resultIsWOn` (the waiter's, through the wait's trigger to the one
+  waiter) gains `authnArM true E ar rq out` (`adminAuthnAr`, moved here from `AdminEntryOn`: the
+  result's response and `authnOut`); `resPostM` (`processInternalRaftRequestOnce`'s) carries it;
+  `appliedOkM` (`raftRequest`'s success) gains `authnAnsM on E rq' resp`: an `Authenticate`'s answer
+  is `*AuthenticateResponse` `rp`, `rp ↦ v` and `tokIssued γa v.Token' am.name`
+  (`authnAnsM_of_ar`, from the result dispatched without error). Both `True` with auth off.
+  `applyEntryNormal` hands it over (`authnArM_of_ne` for the other kinds, `authnArM_of_on` from
+  `adminEntryOn`'s post).
+- **The proposal** (`ProposeOn.lean`): `adminPropOk` no longer requires `needAdminPermission rq =
+  true`; `adminKindOk` requires it of every kind but `Authenticate`, so the change admits exactly
+  `Authenticate` through the admin disjunct of `reqPropOkOn`. `kv_prop_au_on` keeps the model's
+  state for it (`kvModelOn_snoc_nonwrite`); its `Qr` (`adminPropRes`) holds.
+- **The review** (a fresh `spec-reviewer`, 2026-10-28): no first-tier defect. Left for A4 (decide
+  with A4's draft): `dispatchAnswer` and `adminRespTy` have no `.authenticate` case, so
+  `authRaftOk_on` (the path `UserAdd.specOn` takes) cannot serve `Authenticate` as is (the type
+  comes from `authnAnsM` only, at `.on γa`); a law reading the answer out of `appliedOkM` without
+  unfolding it. Kept: the `on`-indexed form of `authnArM`/`authnAnsM` (as `adminTieM`; the
+  spec/specOn merge, `notes/auth-mode-merge-plan.md` on `lean`, removes the flag).
+- **For A4** (the compaction track's lesson, 2026-10-28): before drafting, check what the callees'
+  proofs assume (`CheckPassword`, `GenTokenPrefix`, `Revision`, `LinearizableReadNotify` with auth
+  on, at the real backend), not only that their specs exist; then draft, review, prove.

@@ -46,20 +46,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 variable [errors_sem : _root_.Perennial.errors.Assumptions]
 
-/-- **An `Authenticate` entry's response** (C1's A2, 2026-10-28): unless the entry is not an
-`Authenticate` or was not dispatched, the result at `ar` holds the response (`Resp`, a pointer to
-an `AuthenticateResponse`) and its error, and the response is what the store returned
-(`apply.authnOut`: an error and no response, or a token issued to the request's user). -/
-def adminAuthnAr (γa : auth.AuthNames) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) :
-    IProp GF :=
-  iprop(⌜apply.dispatchKind rq ≠ .authenticate ∨ ∀ o b, out ≠ .dispatched o b⌝ ∨
-    ∃ (am : apply.AuthenticateModel) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result)
-      (resp : Loc),
-      ⌜rq.authenticate = some am ∧
-        v.Resp' = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)
-          #resp⌝ ∗
-      ar ↦□ v ∗ apply.authnOut γa am.name resp v.Err')
-
 /-- **An admin entry's application with auth on** (see the file header): the triple. (C1's A2) An
 `Authenticate` entry too (`adminKindOk`; it needs no admin permission): with `v3`, the right to
 its token at the index `ConsistentIndex()` reads under what it borrows from `Pre`

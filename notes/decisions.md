@@ -25055,3 +25055,15 @@ Drafted before any proof (the user's instruction). What changed in existing stat
   backend reads (`ciEff γ st.k`), before the entry, while the rights are raised to `m.index` for
   every branch. Stated as an Iris `∧` of the two uses (keep, or keep-and-mint in the mode on), so
   the branches before the dispatch need not know the kind.
+
+## C1's A3: the `Authenticate` response travels as a resource (2026-10-28 · `notes/c1-plan.md`, "A3 done")
+
+- **Owned, not persistent.** The plan had the waiter's result carry `tokIssued` (persistent) beside
+  the result; but the handler's reply needs the response struct owned (review 1 of A2), and the
+  apply thread never reads the response after `Trigger` (the deferred warning reads it only on an
+  error, when it is nil), so the response goes to the one waiter as a resource: `resultIsWOn`,
+  `resPostM`, `appliedOkM` each gain a conjunct (`authnArM`, `authnAnsM`), `True` off.
+- **`adminPropOk` without `needAdminPermission rq = true`.** The conjunct was redundant for every
+  kind `adminKindOk` admits but `Authenticate`, which it excluded; dropping it admits `Authenticate`
+  through the admin path of `reqPropOkOn` rather than a fourth disjunct, so A4 can follow the admin
+  proposers' path. The commit keeps the model's state for it.
