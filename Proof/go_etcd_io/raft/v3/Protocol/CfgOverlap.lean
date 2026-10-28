@@ -380,6 +380,113 @@ theorem fold_adjacent (dec : CCDec) (l : List EntryM) (i j : Nat)
   rw [hsplit, confCount_append] at hc
   exact cfgFoldFrom_le_one_overlap (by omega) hj (cfgFold_ok hi h0)
 
+/-! ### Decisions recorded by position (2026-10-28, the conf-change decision switch)
+
+The client decides each committed conf entry (`notes/spec-first-study/raft-decisions-spec.md`):
+apply a change, or skip it. Its decisions are a ghost map by position (`DecMap`: `some o` the
+change `o` applied, `none` the entry skipped), which only grows. A node, and every ghost record
+that names a configuration, folds the decisions it has witnessed (a lower bound of the map) over a
+base decoder (`effDec`, the base first: an older cluster's pure decoder, with the empty map). A
+fold that is defined keeps its result under more decisions (`cfgFold_mono`), and two lower
+bounds of one map are compatible (`DecCompat`), so two records fold one prefix alike. -/
+
+/-- The client's decisions by position: `some o` the change `o` applied, `none` the entry
+skipped. -/
+abbrev DecMap := GMap Nat (Option ConfChangeIM)
+
+/-- A recorded decision as the protocol's: an applied change's `AsV2` form; a skip rejects. -/
+def ccDecOf : Option ConfChangeIM → CCDecision
+  | some o => .apply (ccV2Of o)
+  | none => .reject
+
+/-- The base decoder, then the decision recorded at the entry's position. -/
+def effDec (dec : CCDec) (M : DecMap) : CCDec := fun pre e =>
+  match dec pre e with
+  | some d => some d
+  | none => (M.lookup pre.length).map ccDecOf
+
+/-- `d2` decides everything `d1` does, alike. -/
+def DecLe (d1 d2 : CCDec) : Prop := ∀ pre e x, d1 pre e = some x → d2 pre e = some x
+
+theorem DecLe.refl (d : CCDec) : DecLe d d := fun _ _ _ h => h
+
+theorem DecLe.trans {d1 d2 d3 : CCDec} (h1 : DecLe d1 d2) (h2 : DecLe d2 d3) : DecLe d1 d3 :=
+  fun pre e x h => h2 pre e x (h1 pre e x h)
+
+theorem effDec_mono (dec : CCDec) {M M' : DecMap} (h : M ⊆ M') :
+    DecLe (effDec dec M) (effDec dec M') := by
+  intro pre e x hx
+  unfold effDec at hx ⊢
+  cases hd : dec pre e with
+  | some d => rw [hd] at hx; exact hx
+  | none =>
+    rw [hd] at hx
+    simp only at hx ⊢
+    cases hm : M.lookup pre.length with
+    | none => rw [hm] at hx; cases hx
+    | some v =>
+      rw [hm] at hx
+      have : M'.lookup pre.length = some v := h _ _ hm
+      rw [this]; exact hx
+
+/-- With no decision recorded, the base decoder. -/
+theorem effDec_empty (dec : CCDec) : effDec dec ∅ = dec := by
+  funext pre e
+  unfold effDec
+  cases dec pre e with
+  | some d => rfl
+  | none => rfl
+
+theorem entStep_mono {d1 d2 : CCDec} (h : DecLe d1 d2) {pre : List EntryM} {s s' : CCState}
+    {e : EntryM} (hs : entStep d1 pre s e = some s') : entStep d2 pre s e = some s' := by
+  unfold entStep at hs ⊢
+  split at hs
+  · rename_i hc
+    rw [ite_eq_left hc]
+    cases hd : d1 pre e with
+    | none => rw [hd] at hs; cases hs
+    | some d => rw [hd] at hs; rw [h pre e d hd]; exact hs
+  · rename_i hc
+    rw [ite_eq_right hc]; exact hs
+
+theorem cfgFoldFrom_mono {d1 d2 : CCDec} (h : DecLe d1 d2) {pre : List EntryM} {s s' : CCState}
+    {l : List EntryM} (hs : cfgFoldFrom d1 pre s l = some s') :
+    cfgFoldFrom d2 pre s l = some s' := by
+  induction l generalizing s pre with
+  | nil => exact hs
+  | cons e l ih =>
+    simp only [cfgFoldFrom] at hs ⊢
+    cases he : entStep d1 pre s e with
+    | none => rw [he] at hs; cases hs
+    | some s1 =>
+      rw [he, Option.bind_some] at hs
+      rw [entStep_mono h he, Option.bind_some]
+      exact ih hs
+
+/-- **A defined fold keeps its result under more decisions.** -/
+theorem cfgFold_mono {d1 d2 : CCDec} (h : DecLe d1 d2) {s s' : CCState} {l : List EntryM}
+    (hs : cfgFold d1 s l = some s') : cfgFold d2 s l = some s' :=
+  cfgFoldFrom_mono h hs
+
+/-- Two maps that agree where both are defined. -/
+def DecCompat (M1 M2 : DecMap) : Prop :=
+  ∀ k v1 v2, M1.lookup k = some v1 → M2.lookup k = some v2 → v1 = v2
+
+theorem DecCompat.symm {M1 M2 : DecMap} (h : DecCompat M1 M2) : DecCompat M2 M1 :=
+  fun k v1 v2 h1 h2 => (h k v2 v1 h2 h1).symm
+
+theorem DecCompat.sub_left (M1 M2 : DecMap) : M1 ⊆ M1 ∪ M2 := by
+  intro k v h
+  show (M1.lookup k).or (M2.lookup k) = some v
+  rw [h]; rfl
+
+theorem DecCompat.sub_right {M1 M2 : DecMap} (hc : DecCompat M1 M2) : M2 ⊆ M1 ∪ M2 := by
+  intro k v h
+  show (M1.lookup k).or (M2.lookup k) = some v
+  cases h1 : M1.lookup k with
+  | none => rw [h]; rfl
+  | some v1 => rw [hc k v1 v h1 h]; rfl
+
 /-! ### The decoder from the entries' bytes (2026-10-14, reconfiguration stage B3)
 
 A conf-change entry's `Data'` is its bytes (D6, stage R4; until then a slice whose bytes the

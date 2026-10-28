@@ -509,6 +509,62 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
     | (apply StepR.advance <;> assumption)
     | (apply StepR.stepDown <;> assumption)
 
+theorem NoUndecConfIn.mono_dec {d1 d2 : CCDec} (h : DecLe d1 d2) {l : List EntryM} {lo hi : Nat}
+    (hn : NoUndecConfIn d1 l lo hi) : NoUndecConfIn d2 l lo hi :=
+  fun k e h1 h2 he hc => h _ _ _ (hn k e h1 h2 he hc)
+
+/-- (2026-10-28, the decision switch) **Monotonicity in the decoder**: a step under some
+decisions is one under more. -/
+theorem StepR.mono_dec {Adm : List EntryM → CCState → Prop} {dec dec' : CCDec} {id : w64}
+    {B : Int} (hd : DecLe dec dec') {r : RState} {ms : List Msg} {r' : RState}
+    (h : StepR Adm dec id B r ms r') : StepR Adm dec' id B r ms r' := by
+  induction h with
+  | refl r => exact .refl r
+  | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
+  | snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h8' h9 h10 =>
+    exact .snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h8' h9 h10
+  | applyConf r k e op cs' h2 h3 h4 h5 h6 h7 h8 h9 =>
+    exact .applyConf r k e op cs' h2 h3 h4 h5 (h6.mono_dec hd) (hd _ _ _ h7) h8 h9
+  | advance r a h1 h2 h3 => exact .advance r a h1 h2 (h3.mono_dec hd)
+  | applySnap r j sn cs' h1 h2 h3 h4 h5 => exact .applySnap r j sn cs' h1 h2 h3 h4 h5
+  | _ =>
+    first
+    | (apply StepR.higherTerm <;> assumption)
+    | (apply StepR.campaign <;> assumption)
+    | (apply StepR.grantVote <;> assumption)
+    | (apply StepR.rejectVote <;> assumption)
+    | (apply StepR.recordVote <;> assumption)
+    | (apply StepR.win <;> assumption)
+    | (apply StepR.lose <;> assumption)
+    | (apply StepR.drain <;> assumption)
+    | (apply StepR.appAccept <;> assumption)
+    | (apply StepR.appStale <;> assumption)
+    | (apply StepR.appReject <;> assumption)
+    | (apply StepR.heartbeat <;> assumption)
+    | (apply StepR.beat <;> assumption)
+    | (apply StepR.appResp <;> assumption)
+    | (apply StepR.commit <;> assumption)
+    | (apply StepR.sendApps <;> assumption)
+    | (apply StepR.propose <;> assumption)
+    | (apply StepR.propDrop <;> assumption)
+    | (apply StepR.propForward <;> assumption)
+    | (apply StepR.snapFastfwd <;> assumption)
+    | (apply StepR.snapStale <;> assumption)
+    | (apply StepR.takeReads <;> assumption)
+    | (apply StepR.readFwd <;> assumption)
+    | (apply StepR.readPend <;> assumption)
+    | (apply StepR.readArrive <;> assumption)
+    | (apply StepR.readRelease <;> assumption)
+    | (apply StepR.readAck <;> assumption)
+    | (apply StepR.readSingle <;> assumption)
+    | (apply StepR.readReleaseSingle <;> assumption)
+    | (apply StepR.readState <;> assumption)
+    | (apply StepR.sendFree <;> assumption)
+    | (apply StepR.abandon <;> assumption)
+    | (apply StepR.zeroAck <;> assumption)
+    | (apply StepR.reMatch <;> assumption)
+    | (apply StepR.stepDown <;> assumption)
+
 end mono
 
 /-! ### At a static configuration

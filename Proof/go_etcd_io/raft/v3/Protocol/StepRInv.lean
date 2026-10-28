@@ -946,6 +946,12 @@ theorem RInv.cand_cfg {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0
   ⟨cfgFold_noConf dec c0 ((H.cand hc).2.mono H.applied_cidx (Nat.le_refl _)) H.cidx_commit H.cfg,
     H.i1.confCount_drop (fun _ _ h1 h2 => absurd h2 (by omega))⟩
 
+/-- (2026-10-28, the decision switch) **Monotonicity in the decoder**: the invariant reads the
+decoder only through a defined fold. -/
+theorem RInv.mono_dec {dec dec' : CCDec} {c0 : CCState} {r : RState} (hd : DecLe dec dec')
+    (H : RInv dec c0 r) : RInv dec' c0 r :=
+  { H with cfg := cfgFold_mono hd H.cfg }
+
 /-- A leader has at most one conf entry past its configuration index (I3, `applied ≤ cidx`). -/
 theorem RInv.leader_drop_cidx {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
     (hl : r.p.role = .leader) : confCount (r.full.drop r.cidx) ≤ 1 :=
