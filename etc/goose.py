@@ -119,11 +119,13 @@ PROJECTS = [
         # (issues/raft-readindex-singleton-stale.md) and the probe-to-replicate shortcut taken
         # only when `pr.Next == pr.Match+1` (issues/raft-stale-term-appresp-index-zero-ack.md;
         # D21 M3): branch raft37-goose-lean-a1 of the etcd fork (raft37-goose-lean, 509271dac,
-        # plus the second fix). (The raft proof was ported to it in a parallel tree, the module root Raft37,
+        # plus the second fix); and (2026-10-28) a third, the configuration switched to a
+        # snapshot's when it is applied, not restored (issues/raft-snapshot-during-apply-stale-confchange.md):
+        # branch raft37-goose-lean-a2, 565c2bd on a1. (The raft proof was ported to it in a parallel tree, the module root Raft37,
         # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="c8217eb91ae5948182c1035ff0464b1e54b8f1d0",
+        rev="565c2bda9e6dd2c41fa0dcc598bdbc52f2d64885",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],

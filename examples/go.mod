@@ -13,7 +13,7 @@ replace (
 	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261027220749-a20f6760ff43
 	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261027220749-a20f6760ff43
 	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261027220749-a20f6760ff43
-	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5
+	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261028061729-565c2bda9e6d
 )
 
 // The driver (a module of its own, which kvwitness shares), the vendored porcupine

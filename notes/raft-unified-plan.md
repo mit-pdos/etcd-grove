@@ -18,6 +18,18 @@ the adequacy of `examples/kvreconf` (its `Main` never panics: porcupine answers 
   (`issues/raft-snapshot-during-apply-stale-confchange.md`). The protocol model switches at restore
   (`StepR.snapRestore` sets `cfg`); it must follow the fix.
 
+## The user's decisions (2026-10-28)
+
+- The fork branch `raft37-goose-lean-a2` pushed; the raft pin moved to `565c2bd` (`etc/goose.py`,
+  `examples/go.mod`, `examples/k8setcd3/go.mod`; `etc/goose.py --check --project raft` up to date).
+- The trust-base fact `ccDecodeV2_nil` added
+  (`Spec/google_golang_org/protobuf/proto/UnmarshalConfChangeV2Empty.lean`), for U5.
+- The conf-change rule fixed at allocation (`γ.rule`) is replaced by a TaDa design: clients own, for
+  each committed conf entry, a one-shot permission to decide it (apply a change or skip it), the
+  decision recorded once in raft's ghost state; e.g. an implementation that agrees out of band on a
+  random but unanimous decision. Redesign: the decisions section below (the frozen candidate's
+  `ConfRule` parts superseded).
+
 ## The spec
 
 Designed with the spec skill over eleven review rounds (`notes/spec-first-study/raft-node-unified-review-*.md`);
@@ -62,7 +74,7 @@ commit per lemma.
   message's certificate), the `"%Hsnap"` clause (a pending snapshot in the dynamic invariant), the
   `MsgStorageAppendResp`/`ApplyResp` snapshot cases (`StepR.applySnap`), `RNState.cfg/capplied`
   following a restore. (2026-10-28: U3a, the model, U3b, `raft.Step`'s two storage-response cases, and
-  U3c, the `RawNode`, done; U3d, the node, left: `notes/decisions.md`, "Stages U2, U3".)
+  U3c, the `RawNode`, done; U3d, the node, done: `notes/decisions.md`, "Stages U2, U3", "Stage U3d".)
 - **U4. Allocation without `reNoSnap`, joiners.** `ownRaftGhost_alloc_core` for a dynamic cluster with
   snapshots and an empty or bootstrap log; `joinAuth`; `RestartNode` from `γ.c0`; a joiner (empty log,
   configuration `c0`) in the protocol invariant beside the founders; pre-votes granted at term 0 with
@@ -105,10 +117,10 @@ commit per lemma.
   (`Protocol/Ghost.lean`); `RNMode` (`ApiVocab.lean:151`); `GMode` (`StepGhostMode.lean:46`);
   `StaticNames`/`DynNames` (`InvApi.lean:655`, `InvApiDyn.lean:197`).
 - Dynamic-mode exclusions of snapshots: `DynNames.reNoSnap = true`; `snapshotCert` needs `reNoSnap =
-  false` (`InvApi.lean:1399`); `storCap 1`; the node's `runCfg`/`readyData` (`snapIn` static only,
-  `InvNodeChan.lean:640, 800`); `ownRaftGhost_alloc_core`'s `ns` only with a non-empty log
-  (`Protocol/Facts.lean:1193`). (Lifted in U3: `DynNoSnap`, `"%Hsnap"`'s dynamic arm, `md.isDyn = false`
-  at `MsgStorageAppendResp`, `GMode.Pre` at `MsgStorageApplyResp`.)
+  false` (`InvApi.lean:1399`); `storCap 1`; `ownRaftGhost_alloc_core`'s `ns` only with a non-empty
+  log (`Protocol/Facts.lean:1193`; it allows `ns = false` with any log, the dynamic allocation passes
+  `true`). (Lifted in U3: `DynNoSnap`, `"%Hsnap"`'s dynamic arm, `md.isDyn = false` at
+  `MsgStorageAppendResp`, `GMode.Pre` at `MsgStorageApplyResp`; in U3d the node's `runCfg`/`readyData`.)
 - Automatic leave excluded: `m'.autoLeave = false` (`node__ApplyConfChange`), `DynCCPreOp`, a dynamic
   snapshot's `ConfState` at `RawNode.Advance` (U3c), and
   `c.autoLeave → role ≠ leader` in `raft.appliedTo`, `appliedSnap`, `raft.Step`.
