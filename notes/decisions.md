@@ -24766,5 +24766,34 @@ Next, in order: the gRPC-level specs with auth on (`etcdPutSpecOn`, ...: the cli
 bound `n`, the shape premises, the grant and the read class in the replies), the handlers as grpc
 runs them and one serve of the KV and Auth methods.
 
+**The gRPC specs see the attempt's metadata (2026-10-28).** A gRPC spec (`GrpcSpec`, a predicate
+transformer over the request and reply) had no context, so an auth-on reply could not say which
+token its grant is at (`writeGrantOn s E ρ (auth.ctxTokenOf h)`, `h` the handler's context, which
+only grpc's runtime knows). Options weighed:
+- a spec per token (`etcdPutSpecOn … tok`): one registration per method, so no;
+- the reply quantifies over the token, the client learning nothing of it: useless to `authkv`,
+  whose `Work` needs the token to be its own principal's (C1) or the bad one (C2, C4);
+- **the spec indexed by the metadata the handler sees** (chosen): `GrpcSpecMd := GrpcMd →
+  GrpcSpec`, a run's precondition at `metadata.incomingOf` of its context (`grpcMethodOkMd`,
+  `grpcHandlerOkMd`, `isGrpcRpcMd`, `GrpcMethod.spec`), and the attempt contract
+  (`grpcInvokerOk`) hands the spec any metadata `md` with `grpcAttemptMd conn ctx md` (opaque: what
+  grpc delivers of the call's outgoing metadata and the connection's per-RPC credentials). E2b's
+  C1-C4 become facts about `grpcAttemptMd` (stated with `authkv`'s client side, not yet).
+  A plain spec is one at every metadata (`GrpcSpec.md`); the plain definitions stay, each equal to
+  its metadata-indexed one at a plain spec by `rfl` (`grpcMethodOk_md`, `isGrpcRpc_md`, ...), so
+  the auth-off proofs are unchanged but for the generated handlers' lemma (`wp_unaryHandlerMd`,
+  the plain one its instance) and the places that build `GrpcMethod`s. Trust base: the axiom
+  `grpc.serve` now takes `grpcMethodOkMd` (the plain one is its instance), and `grpcInvokerOk`
+  (the restatement of `ClientConn.Invoke`'s promise) gives the spec at the delivered metadata
+  instead of at none: both true of grpc-go, which delivers a call's metadata as its handler's
+  incoming metadata.
+
+**Found: a read's check must be the caller's too.** `rangeAuthed`'s auth info (the one whose
+permission the check saw) was not tied to the caller: a range of `u` outside `u`'s keys could
+succeed as root's for all the answer said. `doSerialize.specM` with auth on now also gives the
+info bound to the context (`infoBoundM`, `hdrBoundM`'s for an auth info), from
+`AuthInfoFromCtx`'s binding (moved from `processInternalRaftRequestOnce`'s proof to `ReqOn`,
+`EtcdServer.AuthInfoFromCtx.wpM`), and `Range.specOn`/`Txn.specOnR` and the read answers carry it.
+
 **Trust base.** No axiom or `sorry` added; two axioms' statements are stronger (`context.WithValue`,
 `traceutil.Tracer.Start`: the incoming metadata kept, above).

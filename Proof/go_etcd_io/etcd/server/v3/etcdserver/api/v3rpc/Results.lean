@@ -1164,15 +1164,15 @@ open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 /-- **etcd's Auth methods** as registered, with etcd's specs. -/
 def etcdAuthMethods (p : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : List (GrpcMethod GF) :=
-  [⟨go!"/etcdserverpb.Auth/UserAdd", pbAuthUserAddRequest, pbAuthUserAddResponse, etcdUserAddSpec E ρ,
+  [⟨go!"/etcdserverpb.Auth/UserAdd", pbAuthUserAddRequest, pbAuthUserAddResponse, GrpcSpec.md (etcdUserAddSpec E ρ),
      (@! etcdserverpb._Auth_UserAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/UserGrantRole", pbAuthUserGrantRoleRequest, pbAuthUserGrantRoleResponse, etcdUserGrantRoleSpec E ρ,
+   ⟨go!"/etcdserverpb.Auth/UserGrantRole", pbAuthUserGrantRoleRequest, pbAuthUserGrantRoleResponse, GrpcSpec.md (etcdUserGrantRoleSpec E ρ),
      (@! etcdserverpb._Auth_UserGrantRole_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/RoleAdd", pbAuthRoleAddRequest, pbAuthRoleAddResponse, etcdRoleAddSpec E ρ,
+   ⟨go!"/etcdserverpb.Auth/RoleAdd", pbAuthRoleAddRequest, pbAuthRoleAddResponse, GrpcSpec.md (etcdRoleAddSpec E ρ),
      (@! etcdserverpb._Auth_RoleAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/RoleGrantPermission", pbAuthRoleGrantPermissionRequest, pbAuthRoleGrantPermissionResponse, etcdRoleGrantPermissionSpec E ρ,
+   ⟨go!"/etcdserverpb.Auth/RoleGrantPermission", pbAuthRoleGrantPermissionRequest, pbAuthRoleGrantPermissionResponse, GrpcSpec.md (etcdRoleGrantPermissionSpec E ρ),
      (@! etcdserverpb._Auth_RoleGrantPermission_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequest, pbAuthEnableResponse, etcdAuthEnableSpec E ρ,
+   ⟨go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequest, pbAuthEnableResponse, GrpcSpec.md (etcdAuthEnableSpec E ρ),
      (@! etcdserverpb._Auth_AuthEnable_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩]
 
 /-- **etcd's server serves its Auth methods** (the auth plan's E3za; as `etcd_kv_served`): the gRPC
@@ -1223,6 +1223,11 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
   · iframe #
   ihave #Hme := etcd_authEnableMethodOk p _ _ ics Rs $$ [He Ppb Hics]
   · iframe #
+  ihave #Hmu' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmu
+  ihave #Hmg' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmg
+  ihave #Hmr' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmr
+  ihave #Hmp' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmp
+  ihave #Hme' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hme
   imod (grpc_serve_rpcs addr ics regs (etcdAuthMethods p E ρ)
     iprop(authSlot s E ∗ [∗list] R ∈ Rs, R) N (by simp only [etcdAuthMethods, List.map]; decide)
     (by
@@ -1238,6 +1243,11 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
     itrivial
   simp only [etcdAuthMethods]
   icases Hrpcs with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
+  ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
+  ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+  ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
+  ihave #H4' := (isGrpcRpc_md _ _ _).2 $$ H4
+  ihave #H5' := (isGrpcRpc_md _ _ _).2 $$ H5
   imodintro
   iframe #
 
