@@ -319,14 +319,14 @@ theorem stepCandidate.wp_proof
         iexact Hc
     wp_apply wp_raft_handleSnapshot c _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
         ml m ents sn cl rs sv scfg rfl rfl Hsn Hscfg Hscope Hfid Hns $$ [$Hphys $Hm $Hcs]
-      as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
-    iapply HΦ $$ %GoInterface.nil %s' %false %c'
+      as %s' ⟨Hphys, %Hres⟩
+    iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     refine ⟨?_, trivial⟩
     unfold CandidateStepResultC
-    refine ⟨by rw [ite_eq_left Hty]; exact Hc', ?_⟩
+    refine ⟨rfl, ?_⟩
     simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
       MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap]
     refine ⟨trivial, pvs, ?_⟩

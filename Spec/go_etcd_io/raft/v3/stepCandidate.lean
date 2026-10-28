@@ -80,14 +80,13 @@ def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
 
 /-- `CandidateStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with the
-configuration `c'` the node is at afterwards (`c`, but the snapshot's after a `MsgSnap` that
-`restore` installs: since 2026-10-14, stage A3, `SnapCfgOk`; since B8 the configuration the
-`ConfState`'s lists `scfg` denote, any). -/
+configuration `c'` the node is at afterwards: `c` (from 2026-10-14, stage A3, to 2026-10-28,
+stage U0, the snapshot's after a `MsgSnap` that `restore` installs, `SnapCfgOk`; now `appliedSnap`
+switches). -/
 def CandidateStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
-  (if m.Type' = MsgSnap then SnapCfgOk id c s sv scfg c'
-   else c' = c) ∧
+  c' = c ∧
   (if m.Type' = MsgVoteResp then
        dropped = false ∧
        (if s.role = .preCandidate then s' = s

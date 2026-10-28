@@ -83,8 +83,7 @@ theorem raft.handleSnapshot.wp_proof
     $$ [$Hphys $Hsnap $Hcert] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
   ihave Hm := Hmback $$ [Hsnap]
   · simp only [snapOpt]; iapply ownSnapE_weaken $$ Hsnap
-  generalize Hc1 : restoreCfg c sv cl b = c1
-  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hin, Hmt, rfl, rfl⟩ | ⟨Hlt, Hin, Hnm, rfl, prs, pvs, il, rfl⟩
+  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hin, Hmt, rfl, rfl⟩ | ⟨Hlt, Hin, Hnm, rfl, rfl⟩
   · -- obsolete: acknowledge the commit index
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -123,15 +122,10 @@ theorem raft.handleSnapshot.wp_proof
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
-    iapply HΦ $$ %_ %c1
+    iapply HΦ $$ %_
     iframe Hphys
-    isplitr
-    · ipureintro
-      exact Or.inl ⟨Hst, rfl⟩
     ipureintro
-    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte] at Hc1
-    exact Or.inr ⟨fun h => Hst.elim (fun H => absurd H (Int.not_le.2 h.1)) (fun H => H h.2.1),
-      Hc1.symm⟩
+    exact Or.inl ⟨Hst, rfl⟩
   · -- fast-forward: acknowledge the new commit index, the snapshot's
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -170,14 +164,10 @@ theorem raft.handleSnapshot.wp_proof
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
-    iapply HΦ $$ %_ %c1
+    iapply HΦ $$ %_
     iframe Hphys
-    isplitr
-    · ipureintro
-      exact Or.inr (Or.inl ⟨Hlt, Hin, Hmt, rfl⟩)
     ipureintro
-    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte] at Hc1
-    exact Or.inr ⟨fun h => h.2.2 Hmt, Hc1.symm⟩
+    exact Or.inr (Or.inl ⟨Hlt, Hin, Hmt, rfl⟩)
   · -- a restore: acknowledge the new last index, the snapshot's
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -220,14 +210,10 @@ theorem raft.handleSnapshot.wp_proof
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
-    iapply HΦ $$ %_ %c1
+    iapply HΦ $$ %_
     iframe Hphys
-    isplitr
-    · ipureintro
-      exact Or.inr (Or.inr ⟨Hlt, Hin, Hnm, prs, pvs, il, rfl⟩)
     ipureintro
-    simp only [restoreCfg, ↓reduceIte] at Hc1
-    exact Or.inl ⟨⟨Hlt, Hin, Hnm⟩, Hc1.symm⟩
+    exact Or.inr (Or.inr ⟨Hlt, Hin, Hnm, rfl⟩)
 
 end proof
 

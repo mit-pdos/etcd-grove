@@ -197,15 +197,15 @@ theorem stepFollower.wp_proof
       · rw [Hsn] at Hsv'; obtain rfl := Option.some.inj Hsv'; iexact Hc
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
         Hrole Hvotes Hsn Hscfg Hscope Hfid Hns $$ [$Hphys $Hm $Hcs]
-      as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
-    iapply HΦ $$ %GoInterface.nil %s' %false %c'
+      as %s' ⟨Hphys, %Hres⟩
+    iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     refine ⟨?_, trivial⟩
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
       MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
-    exact ⟨Hc', Hres⟩
+    exact Hres
   · -- `MsgPreVoteResp` (2026-10-04): no arm
     simp only [Hty, MsgPreVoteResp]
     wp_auto

@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.raft.v3.confchange.Restore
 public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
 public import Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetConfState
 public import Proof.go_etcd_io.raft.v3.LemmasSnapCfg
 public import Proof.go_etcd_io.raft.v3.LemmasSendRD
 
@@ -38,8 +39,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 whose premises the log gives: the snapshot at or below the boundary, which is at most `committed`
 and below `offsetInProgress` (`ownRaftLogW_struct`), and on a hit the boundary itself (the pending
 snapshot is `prev`, `ownRaftLogW_snap_prev`), so `appliedSnap`'s window ends there. Then (stage U0)
-the rebuild, as `restore` ran it until then: the conf state read from the set snapshot (`Hset`:
-`EnsureConfState` returns it unchanged), the tracker replaced by the empty one
+the rebuild, as `restore` ran it until then: the conf state read and `EnsureConfState`d
+(`wp_EnsureConfState_opt`: frozen with its `AutoLeave` set), the tracker replaced by the empty one
 `MakeProgressTracker` builds (`ownRaftPhysC_retrack`, `ownTrackerC_empty`; the tally was already
 empty), `confchange.Restore` on it (`restoreM_wf`), `switchToConfig` to the snapshot's
 configuration and `assertConfStatesEquivalent`. -/
@@ -53,17 +54,19 @@ theorem raft.appliedSnap.wp_proof
     (wp_confchange_Restore : confchange.Restore.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG))
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
-    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
+    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG))
+    (wp_SnapshotMetadata_GetConfState :
+      raftpb.SnapshotMetadata.GetConfState.spec (GF := GF) (hG := hG)) :
     raft.appliedSnap.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp dq sv cl Hiff Haps Hle Hrole Hvotes Hcl Hscope Hun Hns Hsx Hkx
+  intro c r id s sp sv cl Hiff Haps Hle Hrole Hvotes Hcl Hscope Hun Hns Hsx Hkx
   subst Hcl
   obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, -⟩ := Hscope
   have Hal : c.autoLeave = true → s.role ≠ .leader := fun _ h => absurd (Hrole.symm.trans h) (by decide)
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hsnap] as %pm ⟨Hm, Hback⟩
-  wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
+  wp_apply wp_Snapshot_GetMetadata.1 sp _ sv $$ [$Hsnap] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex pm _ _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
   try wp_auto
   -- `r.raftLog.stableSnapTo(index)`
@@ -140,19 +143,14 @@ theorem raft.appliedSnap.wp_proof
   have Hrole2 : s2.role = .follower := by rw [← HS2]; exact Hrole
   icases ownRaftPhysC_log_at c r id s2 $$ Hphys with ⟨Hlog, %Hgh2, Hlogback⟩
   ihave Hphys := Hlogback $$ Hlog %Hgh2 %(fun h => absurd (Hrole2.symm.trans h) (by decide))
-  iunfold ownSnapS at Hset
-  icases Hset with ⟨%ds, %pm, %uf, %Hspn, #HD, #Hd, #HM, #Hm, #Hpb⟩
-  iunfold smPtsS at Hm
-  icases Hm with ⟨%pc, %pi, %pt, %ufm, %Hnnm, #HC, #Hcs, #HI, #cI, #HT, #cT, #Hpbm⟩
-  obtain ⟨Hpmn, HpcS, -, -⟩ := Hnnm
-  ihave #Hcf : csPts pc DFrac.discard sv.Metadata'.ConfState' true $$ []
-  · iunfold csSet at Hcs; icases Hcs with (#H | #H) <;> iexact H
   try wp_auto
-  wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as -
-  wp_apply wp_SnapshotMetadata_GetConfState_field pm pc _ Hpmn $$ [$HC] as -
+  wp_apply wp_Snapshot_GetMetadata.1 sp _ sv $$ [$Hback] as %pm2 ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetConfState pm2 _ _ $$ [$Hm] as %pc ⟨Hcs, Hmb⟩
   try wp_auto
-  wp_apply wp_EnsureConfState.1 pc DFrac.discard _ true $$ [$Hcf] as -
-  · ipureintro; intro _; rfl
+  wp_apply wp_EnsureConfState_opt wp_EnsureConfState pc _ $$ [Hcs] as %q ⟨#Hcf, Hcs, -⟩
+  · iexact Hcs
+  ihave Hm := Hmb $$ Hcs
+  ihave Hback := Hback $$ Hm
   try wp_auto
   -- the tracker replaced by the empty one, the log used meanwhile
   icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ ∅).voters
@@ -173,7 +171,7 @@ theorem raft.appliedSnap.wp_proof
     sv.Metadata'.ConfState'.AutoLeave' Hwf
   have Hinv := restoreM_cfgInv Hrm
   ihave HcB := csPts_weaken $$ Hcf
-  wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } pc sv.Metadata'.ConfState'
+  wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } q sv.Metadata'.ConfState'
       _ v0 _ Hrm Hmi0 Htv0arr Htv0l Htv0ln Htv0al
       $$ [$HcB $Hv0 $Hprs0]
     as %cfgv %prsm %prs ⟨HcB, Hv0, -, Hres⟩
@@ -235,7 +233,7 @@ theorem raft.appliedSnap.wp_proof
     by_cases ho : sv.Metadata'.ConfState'.lists.outgoing = []
     · simp only [ho, ↓reduceIte]; exact Hal0 ho
     · simp only [ho, ↓reduceIte]
-  wp_apply wp_assertConfStatesEquivalent _ pc cs2 sv.Metadata'.ConfState'
+  wp_apply wp_assertConfStatesEquivalent _ q cs2 sv.Metadata'.ConfState'
       (ConfStateM.mk xs2 ls2 os2 lns2
         (if sv.Metadata'.ConfState'.VotersOutgoing' = [] then false else sv.Metadata'.ConfState'.AutoLeave')) _ _ Hperm Hbnd Hal2
       $$ [$HcB $Hcs2v] as ⟨HcB, -⟩

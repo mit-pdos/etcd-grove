@@ -2,7 +2,6 @@
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 public import Proof.go_etcd_io.raft.v3.SpecResults
 
 @[expose] public section
@@ -51,12 +50,11 @@ the `Ready`) -- which gives `appliedTo`'s guard (`index ≤ committed`) and keep
 its tally kept: a node with a snapshot pending is a follower, `promotable`), with an empty tally
 (`FollowerVotesOk`: the fresh tracker's `Votes` is empty), the `ConfState` well formed
 (`SnapScope`: `Restore` answers the configuration it denotes, `restoreM_wf`, and
-`assertConfStatesEquivalent` compares it with `switchToConfig`'s sets) and set (`ownSnapS`, read-only:
-`EnsureConfState` writes a `nil` `AutoLeave`, which the snapshot handed out has not, being the
-pending one's clone, `unstable.nextSnapshot`). -/
+`assertConfStatesEquivalent` compares it with `switchToConfig`'s sets), and the snapshot owned
+(`EnsureConfState` may write its `AutoLeave`; `raft.Step` holds its message's snapshot whole,
+`msgIn`). -/
 abbrev raft.appliedSnap.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sp : Loc) (dq : DFrac) (sv : SnapshotM)
-    (cl : CSLists),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sp : Loc) (sv : SnapshotM) (cl : CSLists),
   (snapHit s.logst.snap sv.Metadata'.Index' = true ↔ s.logst.sapp = true) →
   s.logst.aps = false →
   uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' →
@@ -75,11 +73,11 @@ abbrev raft.appliedSnap.spec : Prop :=
   -- and the snapshot handed out is at most the acknowledged one (it is the one)
   (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCVW c c.voters r id s ∗ "Hsnap" ∷ ownSnapM sp dq sv ∗
-      -- (U0) every pointer field set, read-only
-      "#Hset" ∷ ownSnapS sp DFrac.discard sv }}
+      "Hphys" ∷ ownRaftPhysCVW c c.voters r id s ∗
+      -- (U0) owned (until then at any fraction)
+      "Hsnap" ∷ ownSnapM sp (DFrac.own 1) sv }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appliedSnap")) (Val #sp))
-  {{ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool), RET #(); ownSnapM sp dq sv ∗
+  {{ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool), RET #(); ownSnapM sp (DFrac.own 1) sv ∗
       ownRaftPhysCV (snapCfg sv cl) (snapCfg sv cl).voters r id
         { s with logst := logAppliedTo (logStableSnap s.logst sv.Metadata'.Index')
                             sv.Metadata'.Index' (W64 0),

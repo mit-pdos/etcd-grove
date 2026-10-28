@@ -86,15 +86,13 @@ def readForward (id lead : w64) (m : MessageM) (ents : List EntryM)
     m.LogTerm' m.Commit' m.RejectHint' ents [] cl
 
 /-- `FollowerStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with
-the configuration `c'` the node is at afterwards: `c` itself, except after a `MsgSnap` that
-`restore` installs, which moves it to the snapshot's (since 2026-10-14, stage A3; since B8 the
-configuration its `ConfState`'s lists `scfg` denote, any; `SnapCfgOk`); `MsgTimeoutNow` campaigns
-at `c` (`HupOkC`). -/
+the configuration `c'` the node is at afterwards: `c` itself (from 2026-10-14, stage A3, to
+2026-10-28, stage U0, the snapshot's after a `MsgSnap` that `restore` installs, `SnapCfgOk`; now
+`appliedSnap` switches); `MsgTimeoutNow` campaigns at `c` (`HupOkC`). -/
 def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
-  (if m.Type' = MsgSnap then SnapCfgOk id c s sv scfg c'
-   else c' = c) ∧
+  c' = c ∧
   (if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
      else if m.Type' = MsgProp then
        if s.lead = W64 0 then dropped = true ∧ s' = s
