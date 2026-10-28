@@ -2,6 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem RInv.mono_dec {dec dec' : CCDec} {c0 : CCState} {r : RState} (hd : DecLe dec dec') (H : RInv
+    dec c0 r) : RInv dec' c0 r
+
 theorem ConfI1_of_drop_le {l : List EntryM} {a c : Nat} (h : confCount (List.drop a l) ≤ 1) (hac : a
     ≤ c) : ConfI1 l c
 

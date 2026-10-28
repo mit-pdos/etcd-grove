@@ -49,6 +49,7 @@ structure RaftNames : Type 1 where
   reNs : Namespace
   reCertNs : Namespace
   reSnapReg : Option GName
+  reDec : Option GName
 
 theorem witsB_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (lim : Nat) (B : Int) :
     List.take lim F' = List.take lim F → ⊢ witsB γ F lim B -∗ witsB γ F' lim B
@@ -72,6 +73,8 @@ theorem isLeader_unique [ReceiptGS GF] (γ : RaftNames) (id1 id2 term : w64) : �
 theorem commitJ_timeless [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (c tm : w64) : Timeless
     (commitJ γ F c tm)
 
+theorem decLb_persistent (γ : RaftNames) (M : DecMap) : Persistent (decLb γ M)
+
 def raftSnapCert [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) : IProp GF :=
   iprop(⌜∀ (x : w64), k.cl.Has x → SnapListsOk k⌝ ∗
       ⌜γ.reDyn = none →
@@ -82,7 +85,7 @@ def raftSnapCert [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) : IProp GF :=
         (□
             ∀ x,
               ⌜k.cl.Has x⌝ -∗
-                ∀ D, ⌜γ.dyn = some D⌝ -∗ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝) ∗
+                ∀ D, ⌜γ.dyn = some D⌝ -∗ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold ∅ fp = some k.cfgM⌝) ∗
           snapAtOk γ k)
 
 structure BootEntry : Type where
@@ -120,12 +123,18 @@ theorem ownCommitted_alloc_at [ReceiptGS GF] (l : List EntryM) : ⊢ |==> ∃ γ
 def witsB [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (lim : Nat) (B : Int) : IProp GF :=
   iprop(∀ k x x, ∃ t' n' G' a' c' q' x, cqAt γ t' n' G' a' c' q')
 
+theorem decLb_mono [ReceiptGS GF] (γ : RaftNames) (M M' : DecMap) (h : M' ⊆ M) : decLb γ M ⊢ decLb γ
+    M'
+
 theorem leadFull_wf [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) : ⊢ leadFull γ t G -∗
     ⌜PlogWf base0 G ∧ ∀ (j x : w64), plogTermAt base0 G j = some x → uint.Z x ≤ uint.Z t⌝ ∗ logRecs
     γ base0 G
 
 def entTk (γ : RaftNames) (e : EntryM) : IProp GF :=
   if Filler e.Type' e.Data' then iprop(emp) else propTk γ (entKey e.Type' e.Data')
+
+def decLb (γ : RaftNames) (M : DecMap) : IProp GF :=
+  iprop(⌜γ.reDec = none → M = ∅⌝ ∗ □ ∀ g, ⌜γ.reDec = some g⌝ -∗ ∀ k v, ⌜M !! k = some v⌝ -∗ k ↪[g]□ v)
 
 theorem snapRegOk_timeless (γ : RaftNames) (i : w64) (d : List w8) : Timeless (snapRegOk γ i d)
 
@@ -168,17 +177,17 @@ theorem raftSnapCertD_timeless [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) : 
     (raftSnapCertD γ k)
 
 theorem cqAt_parts [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) (a : w64) (c : CfgM)
-    (q : GSet w64) : ⊢ cqAt γ t n G a c q -∗ ⌜plogTermAt base0 G n = some t ∧ uint.Z a ≤ uint.Z n ∧
-    CfgAt γ (List.take (uint.Z a).toNat G) c ∧ JQuorum c q⌝ ∗ leadFull γ t G ∗ isCommitted γ
-    (List.take (uint.Z a).toNat G) ∗ ([∗map] v ↦ _u ∈ toMap q, iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗
-    isAcked γ v t i')) ∗ dynOn γ (cqDyn γ t G a)
+    (q : GSet w64) : ⊢ cqAt γ t n G a c q -∗ ∃ M, ⌜plogTermAt base0 G n = some t ∧ uint.Z a ≤ uint.Z
+    n ∧ CfgAt γ M (List.take (uint.Z a).toNat G) c ∧ JQuorum c q⌝ ∗ decLb γ M ∗ leadFull γ t G ∗
+    isCommitted γ (List.take (uint.Z a).toNat G) ∗ ([∗map] v ↦ _u ∈ toMap q, iprop(∃ i', ⌜uint.Z n ≤
+    uint.Z i'⌝ ∗ isAcked γ v t i')) ∗ dynOn γ (cqDyn γ t G a)
 
 theorem propsOf_subperm (o' o : List Msg) (h : o'.Subperm o) : (propsOf o').Subperm (propsOf o)
 
 theorem isWin_timeless (γ : RaftNames) (id term : w64) (q : GSet w64) : Timeless (isWin γ id term q)
 
-theorem CfgAt.overlap {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM} (Hst : γ.reDyn = none)
-    (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2
+theorem CfgAt.overlap {γ : RaftNames} {M1 M2 : DecMap} {P1 P2 : List EntryM} {c1 c2 : CfgM} (Hst :
+    γ.reDyn = none) (H1 : CfgAt γ M1 P1 c1) (H2 : CfgAt γ M2 P2 c2) : QOverlap c1 c2
 
 theorem RaftNames.noSnap_boot {γ : RaftNames} (h : γ.reNoSnap = true) : γ.reBoot ≠ []
 
@@ -232,13 +241,13 @@ def entData (γ : RaftNames) (e : EntryM) : IProp GF :=
   iprop(∃ o, entDataIs γ e o)
 
 theorem cqAt_intro [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) (a : w64) (c : CfgM)
-    (q : GSet w64) : plogTermAt base0 G n = some t → uint.Z a ≤ uint.Z n → CfgAt γ (List.take
-    (uint.Z a).toNat G) c → JQuorum c q → ⊢ leadFull γ t G -∗ isCommitted γ (List.take (uint.Z
-    a).toNat G) -∗ ([∗map] v ↦ _u ∈ toMap q, iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i'))
-    -∗ dynOn γ (cqDyn γ t G a) -∗ cqAt γ t n G a c q
+    (q : GSet w64) (M : DecMap) : plogTermAt base0 G n = some t → uint.Z a ≤ uint.Z n → CfgAt γ M
+    (List.take (uint.Z a).toNat G) c → JQuorum c q → ⊢ decLb γ M -∗ leadFull γ t G -∗ isCommitted γ
+    (List.take (uint.Z a).toNat G) -∗ ([∗map] v ↦ _u ∈ toMap q, iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗
+    isAcked γ v t i')) -∗ dynOn γ (cqDyn γ t G a) -∗ cqAt γ t n G a c q
 
-theorem CfgAt.static {γ : RaftNames} {P : List EntryM} {c : CfgM} (Hst : γ.reDyn = none) (H : CfgAt
-    γ P c) : CfgStatic γ c
+theorem CfgAt.static {γ : RaftNames} {M : DecMap} {P : List EntryM} {c : CfgM} (Hst : γ.reDyn =
+    none) (H : CfgAt γ M P c) : CfgStatic γ c
 
 def DynCfg.all [ext : GooseExts] (D : DynCfg) (e : GooseExts) : DynCfg :=
   if h : e = ext then ⋯ ▸ D else DynCfg.trivial
@@ -261,9 +270,9 @@ theorem entDataIs_persistent (γ : RaftNames) (e : EntryM) (o : Option (List w8)
 
 theorem cqAt_unfold [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) (a : w64) (c :
     CfgM) (q : GSet w64) : cqAt γ t n G a c q = iprop(⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t
-    G ∗ ⌜uint.Z a ≤ uint.Z n ∧ CfgAt γ (List.take (uint.Z a).toNat G) c ∧ JQuorum c q⌝ ∗ isCommitted
-    γ (List.take (uint.Z a).toNat G) ∗ ([∗map] v ↦ _u ∈ toMap q, iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝
-    ∗ isAcked γ v t i')) ∗ dynOn γ (cqDyn γ t G a))
+    G ∗ (∃ M, ⌜uint.Z a ≤ uint.Z n ∧ CfgAt γ M (List.take (uint.Z a).toNat G) c ∧ JQuorum c q⌝ ∗
+    decLb γ M) ∗ isCommitted γ (List.take (uint.Z a).toNat G) ∗ ([∗map] v ↦ _u ∈ toMap q, iprop(∃
+    i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i')) ∗ dynOn γ (cqDyn γ t G a))
 
 theorem full_take_eq [ReceiptGS GF] (γ : RaftNames) (F1 F2 : List EntryM) (c : w64) : PlogWf base0
     F1 → PlogWf base0 F2 → (plogTermAt base0 F1 c).isSome = true → plogTermAt base0 F1 c =
@@ -274,7 +283,7 @@ theorem isEntryR_boot [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : 
     ⌜BootRec γ.reBoot e pt ∨ ↑γ.reBoot.length < uint.Z e.Index'⌝
 
 def DynCfg.trivial : DynCfg :=
-  { fold := fun x => none, adj := ⋯ }
+  { fold := fun x x_1 => none, mono := ⋯, adj := ⋯ }
 
 theorem okL_timeless [ReceiptGS GF] (γ : RaftNames) (t : w64) (B : Int) (j : w64) (X : List EntryM)
     : Timeless (okL γ t B j X)
@@ -307,9 +316,9 @@ theorem isWin_tbl_agree [ReceiptGS GF] (γ : RaftNames) (id1 id2 term : w64) (q1
     isWin γ id1 term q1 -∗ isWin γ id2 term q2 -∗ ⌜id1 = id2 ∧ q1 = q2⌝
 
 def isWinCore (γ : RaftNames) (id term : w64) (c : CfgM) (q : GSet w64) : IProp GF :=
-  iprop(∃ γw F0 k,
-      ⌜γ.reWins !! id = some γw ∧ JQuorum c q ∧ CfgAt γ (List.take (uint.Z k).toNat F0) c⌝ ∗
-        isCampK γ id term F0 k ∗ term ↪[γw]□ q ∗ [∗map] v ↦ _u ∈ toMap q, isVote γ v term id)
+  iprop(∃ γw F0 k M,
+      ⌜γ.reWins !! id = some γw ∧ JQuorum c q ∧ CfgAt γ M (List.take (uint.Z k).toNat F0) c⌝ ∗
+        isCampK γ id term F0 k ∗ term ↪[γw]□ q ∗ ([∗map] v ↦ _u ∈ toMap q, isVote γ v term id) ∗ decLb γ M)
 
 theorem isCommitted_unseal : @isCommitted = @isCommittedDef
 
@@ -317,10 +326,10 @@ def isTermLog (γ : RaftNames) (v t : w64) (γt : GName) (b : entryID) (l0 : Lis
     :=
   iprop(∃ γm, ⌜γ.reTerms !! v = some γm⌝ ∗ t ↪[γm]□ ((γt, b), l0))
 
-def CfgAt (γ : RaftNames) (P : List EntryM) (c : CfgM) : Prop :=
+def CfgAt (γ : RaftNames) (M : DecMap) (P : List EntryM) (c : CfgM) : Prop :=
   match γ.dyn with
   | none => CfgStatic γ c
-  | some D => D.fold P = some c
+  | some D => D.fold M P = some c
 
 theorem CfgStatic.simple (γ : RaftNames) (lrn : GSet w64) (Hst : γ.reDyn = none) : CfgStatic γ
     (CfgM.simple γ.reCfg lrn)
@@ -407,8 +416,8 @@ theorem commitIn_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (c t
 theorem entDataIs_idx [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (d : List w8) : entDataIs γ e
     (some d) ⊢ propIdx γ d e.Index'
 
-theorem CfgAt.member {γ : RaftNames} {P : List EntryM} {c : CfgM} {q : GSet w64} (H : CfgAt γ P c)
-    (hq : JQuorum c q) : ∃ x, x ∈ q
+theorem CfgAt.member {γ : RaftNames} {M : DecMap} {P : List EntryM} {c : CfgM} {q : GSet w64} (H :
+    CfgAt γ M P c) (hq : JQuorum c q) : ∃ x, x ∈ q
 
 theorem cq_full [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) : ⊢ cq γ t n G -∗
     ⌜PlogWf base0 G⌝ ∗ logRecs γ base0 G
@@ -437,6 +446,9 @@ theorem lpfull_timeless [ReceiptGS GF] (γ : RaftNames) (ldr t : w64) (bL : entr
 
 theorem entKey_inj {ty1 ty2 : w32} {d1 d2 : List w8} (h : entKey ty1 d1 = entKey ty2 d2) : ty1 = ty2
     ∧ d1 = d2
+
+theorem decLb_union [ReceiptGS GF] (γ : RaftNames) (M1 M2 : DecMap) : decLb γ M1 ∗ decLb γ M2 ⊢
+    decLb γ (M1 ∪ M2)
 
 theorem cq_boot [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) : ⊢ cq γ t n G -∗
     ⌜γ.reBoot <+: G ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z t)⌝
@@ -470,14 +482,18 @@ def WitOk (F : List EntryM) (k : Nat) (t' n' : w64) (G' : List EntryM) (a' : w64
 def cq [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) : IProp GF :=
   iprop(∃ a c q, cqAt γ t n G a c q)
 
-theorem CfgAt.overlap_adj {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM} (Hp : P1 <+: P2 ∨ P2
-    <+: P1) (Hc1 : confCount P2 ≤ confCount P1 + 1) (Hc2 : confCount P1 ≤ confCount P2 + 1) (H1 :
-    CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2
+theorem CfgAt.overlap_adj {γ : RaftNames} {M1 M2 : DecMap} {P1 P2 : List EntryM} {c1 c2 : CfgM} (Hm
+    : DecCompat M1 M2) (Hp : P1 <+: P2 ∨ P2 <+: P1) (Hc1 : confCount P2 ≤ confCount P1 + 1) (Hc2 :
+    confCount P1 ≤ confCount P2 + 1) (H1 : CfgAt γ M1 P1 c1) (H2 : CfgAt γ M2 P2 c2) : QOverlap c1
+    c2
 
 theorem isCamp_timeless (γ : RaftNames) (c T : w64) (F : List EntryM) : Timeless (isCamp γ c T F)
 
 def CfgStatic (γ : RaftNames) (c : CfgM) : Prop :=
   c.incoming = γ.reCfg ∧ c.outgoing = ∅ ∧ γ.reDyn = none
+
+theorem decLb_compat [ReceiptGS GF] (γ : RaftNames) (M1 M2 : DecMap) : decLb γ M1 ∗ decLb γ M2 ⊢
+    ⌜DecCompat M1 M2⌝
 
 theorem isCampK_agree [ReceiptGS GF] (γ : RaftNames) (c T : w64) (F1 F2 : List EntryM) (k1 k2 : w64)
     : ⊢ isCampK γ c T F1 k1 -∗ isCampK γ c T F2 k2 -∗ ⌜F1 = F2 ∧ k1 = k2⌝
@@ -496,6 +512,14 @@ theorem isEntryR_timeless [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64
 
 theorem ownCommitted_extend [ReceiptGS GF] (γ : RaftNames) (l l' : List EntryM) : l <+: l' → ⊢
     ownCommitted γ l ==∗ ownCommitted γ l' ∗ isCommitted γ l'
+
+def confChangeIM_countable : Pos.Countable ConfChangeIM :=
+  Pos.Countable.ofInjective
+    (fun x =>
+      match x with
+      | ConfChangeIM.v1 m => Pos.Countable.encode (Sum.inl (m.type, m.nodeId, m.context, m.id))
+      | ConfChangeIM.v2 m => Pos.Countable.encode (Sum.inr (m.transition, m.changes, m.context)))
+    ⋯
 
 theorem okL_persistent [ReceiptGS GF] (γ : RaftNames) (t : w64) (B : Int) (j : w64) (X : List
     EntryM) : Persistent (okL γ t B j X)
@@ -522,6 +546,8 @@ theorem logRecs_lookup [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (k : Na
 theorem cqAt_persistent_aux [ReceiptGS GF] (γ : RaftNames) (N : Nat) (t n : w64) (G : List EntryM)
     (a : w64) (c : CfgM) (q : GSet w64) : (uint.Z a).toNat < N → Persistent (cqAt γ t n G a c q)
 
+theorem decLb_timeless (γ : RaftNames) (M : DecMap) : Timeless (decLb γ M)
+
 def leadFull [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) : IProp GF :=
   iprop(∃ ldr bL l fp, leadPrefix γ ldr t bL l ∗ lpfull γ ldr t bL l fp ∗ ⌜G = fp ++ l⌝)
 
@@ -539,6 +565,9 @@ theorem leadPrefix_base [ReceiptGS GF] (γ : RaftNames) (L1 L2 t : w64) (b1 b2 :
 
 theorem isCamp_persistent (γ : RaftNames) (c T : w64) (F : List EntryM) : Persistent (isCamp γ c T
     F)
+
+def confChangeSingleM_countable : Pos.Countable ConfChangeSingleM :=
+  Pos.Countable.ofInjective (fun c => Pos.Countable.encode (c.Type', c.NodeId')) ⋯
 
 def ownCommittedDef (γ : RaftNames) (l : List EntryM) : IProp GF :=
   monoListAuthOwn γ.reCommit 1 l
@@ -596,10 +625,12 @@ def snapAtOk (γ : RaftNames) (k : SnapTrip) : IProp GF :=
         isCommitted γ L ∗
           ⌜L.length = uint.nat k.sid.index' ∧
               Option.map EntryM.Term' L.getLast? = some k.sid.term' ∧
-                SnapListsOk k ∧ ∀ (D : DynCfg), γ.dyn = some D → D.fold L = some k.cfgM⌝)
+                SnapListsOk k ∧ ∀ (D : DynCfg), γ.dyn = some D → D.fold ∅ L = some k.cfgM⌝)
 
 theorem isWin_core [ReceiptGS GF] (γ : RaftNames) (id term : w64) (q : GSet w64) : ⊢ isWin γ id term
     q -∗ ∃ c, isWinCore γ id term c q
+
+theorem decLb_empty [ReceiptGS GF] (γ : RaftNames) : ⊢ decLb γ ∅
 
 theorem dynOn_timeless (γ : RaftNames) (P : IProp GF) [Timeless P] : Timeless (dynOn γ P)
 
@@ -620,6 +651,7 @@ theorem msgsTks_props [ReceiptGS GF] (γ : RaftNames) (ms : List Msg) : msgsTks 
 
 structure DynCfg : Type where
   fold : Option CfgM
+  mono : self.fold M' P = some c
   adj : QOverlap c1 c2
 
 def RaftNames.dyn [ext : GooseExts] (γ : RaftNames) : Option DynCfg :=
@@ -657,8 +689,11 @@ theorem propsOf_append (a b : List Msg) : propsOf (a ++ b) = propsOf a ++ propsO
 theorem commitIn_committed [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (c tm : w64) : ⊢
     commitIn γ F c tm -∗ isCommittedIdx γ c
 
-theorem CfgAt.dyn {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM} (HD : γ.dyn = some D) (H
-    : CfgAt γ P c) : D.fold P = some c
+theorem CfgAt.dyn {γ : RaftNames} {D : DynCfg} {M : DecMap} {P : List EntryM} {c : CfgM} (HD : γ.dyn
+    = some D) (H : CfgAt γ M P c) : D.fold M P = some c
+
+theorem CfgAt.mono {γ : RaftNames} {M M' : DecMap} {P : List EntryM} {c : CfgM} (hM : M ⊆ M') (H :
+    CfgAt γ M P c) : CfgAt γ M' P c
 
 def leadPrefix [ReceiptGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l : List EntryM) : IProp
     GF :=
@@ -696,8 +731,8 @@ theorem hist_of_agree [ReceiptGS GF] (γ : RaftNames) (F X : List EntryM) (t i :
 theorem witsB_le [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (lim lim' : Nat) (B B' : Int) :
     lim' ≤ lim → B ≤ B' → ⊢ witsB γ F lim B -∗ witsB γ F lim' B'
 
-theorem CfgAt.of_static {γ : RaftNames} {c : CfgM} (P : List EntryM) (HC : CfgStatic γ c) : CfgAt γ
-    P c
+theorem CfgAt.of_static {γ : RaftNames} {c : CfgM} (M : DecMap) (P : List EntryM) (HC : CfgStatic γ
+    c) : CfgAt γ M P c
 
 def WinRec : Type :=
   (w64 × CfgM) × GSet w64
@@ -854,10 +889,10 @@ theorem cqAt_persistent [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List En
 
 theorem cqAt.eq_def [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) (a : w64) (c :
     CfgM) (q : GSet w64) : cqAt γ t n G a c q = iprop(⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t
-    G ∗ ⌜uint.Z a ≤ uint.Z n ∧ CfgAt γ (List.take (uint.Z a).toNat G) c ∧ JQuorum c q⌝ ∗ isCommitted
-    γ (List.take (uint.Z a).toNat G) ∗ ([∗map] v ↦ _u ∈ toMap q, iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝
-    ∗ isAcked γ v t i')) ∗ (⌜γ.reDyn = none⌝ ∨ ⌜ConfI1 G (uint.Z a).toNat⌝ ∗ ∀ k x x, ∃ t' n' G' a'
-    c' q' x, cqAt γ t' n' G' a' c' q'))
+    G ∗ (∃ M, ⌜uint.Z a ≤ uint.Z n ∧ CfgAt γ M (List.take (uint.Z a).toNat G) c ∧ JQuorum c q⌝ ∗
+    decLb γ M) ∗ isCommitted γ (List.take (uint.Z a).toNat G) ∗ ([∗map] v ↦ _u ∈ toMap q, iprop(∃
+    i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i')) ∗ (⌜γ.reDyn = none⌝ ∨ ⌜ConfI1 G (uint.Z
+    a).toNat⌝ ∗ ∀ k x x, ∃ t' n' G' a' c' q' x, cqAt γ t' n' G' a' c' q'))
 
 theorem isCampK_ok [ReceiptGS GF] (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) : ⊢
     isCampK γ c T F k -∗ ⌜CampOk T F⌝
@@ -1008,8 +1043,8 @@ theorem forall_prop_timeless.{u_1} {PROP : Type u_1} [BI PROP] {P : Prop} (Ψ : 
 theorem isCampK_k_le [ReceiptGS GF] (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) : ⊢
     isCampK γ c T F k -∗ ⌜uint.Z k ≤ plogLastIndexZ base0 F⌝
 
-theorem CfgAt.of_dyn {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM} (HD : γ.dyn = some D)
-    (H : D.fold P = some c) : CfgAt γ P c
+theorem CfgAt.of_dyn {γ : RaftNames} {D : DynCfg} {M : DecMap} {P : List EntryM} {c : CfgM} (HD :
+    γ.dyn = some D) (H : D.fold M P = some c) : CfgAt γ M P c
 
 theorem baseOk_persistent [ReceiptGS GF] (γ : RaftNames) (b : entryID) : Persistent (baseOk γ b)
 

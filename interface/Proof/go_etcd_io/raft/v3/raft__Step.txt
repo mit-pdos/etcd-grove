@@ -182,7 +182,8 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                                         uint.nat
                                                                                                           sv.Metadata'.Index',
                                                                                                       cfg := cs',
-                                                                                                      fp := g.fp })⌝ ∗
+                                                                                                      fp := g.fp,
+                                                                                                      decs := g.decs })⌝ ∗
                                                                           "%Hframe" ∷
                                                                               ⌜m.Type' ≠ MsgSnap →
                                                                                   m.Type' ≠ MsgStorageApplyResp →

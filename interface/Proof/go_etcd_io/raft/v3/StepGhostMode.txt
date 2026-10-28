@@ -17,11 +17,13 @@ theorem snapOkIf_of_cert [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF]
     scfg) -∗ GMode.SnapOkIf γ id md sv scfg ∗ ownRaftGhost γ id ps md.isDyn
 
 def GMove (m : MessageM) (s s' : NState) (g g' : RGh) : Prop :=
-  m.Type' = MsgSnap ∧ g'.cidx = g.cidx ∧ g'.cfg = g.cfg ∧ (s'.role = PRole.preCandidate → g' = g) ∨
+  m.Type' = MsgSnap ∧
+      g'.cidx = g.cidx ∧ g'.cfg = g.cfg ∧ g.decs ⊆ g'.decs ∧ (s'.role = PRole.preCandidate → g'.fp = g.fp) ∨
     g' = g ∨
-      m.Type' = MsgStorageApplyResp ∧ g' = { cidx := max g.cidx (uint.nat s'.logst.applied), cfg := g.cfg, fp := g.fp } ∨
+      m.Type' = MsgStorageApplyResp ∧
+          g' = { cidx := max g.cidx (uint.nat s'.logst.applied), cfg := g.cfg, fp := g.fp, decs := g.decs } ∨
         m.Type' = MsgStorageAppendResp ∧
-          s'.logst.applied ≠ s.logst.applied ∧ g'.fp = g.fp ∧ g'.cidx = uint.nat s'.logst.applied
+          s'.logst.applied ≠ s.logst.applied ∧ g'.fp = g.fp ∧ g'.decs = g.decs ∧ g'.cidx = uint.nat s'.logst.applied
 
 theorem ghost_stepCDS [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM) (Hms : m.Type' = MsgSnap) (sv :
@@ -49,6 +51,11 @@ def GMode.SnapOkIf [ReceiptGS GF] (γ : RaftNames) (id : w64) : GMode → Snapsh
               ∀ (T : GSet w64), γ.reTracked = some T → (snapCfg sv scfg).voters ∪ (snapCfg sv scfg).learners ⊆ T⌝)
   | GMode.dyn dec c0 h0 g, sv, scfg => raftSnapCert γ (snapTrip sv scfg)
 
+theorem ownStepGhost_absorb [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
+    RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh) (c : CfgM) (id : w64) (s :
+    NState) (M : DecMap) : decLb γ M ∗ ownStepGhost γ (GMode.dyn dec c0 h0 g) c id s ⊢ ownStepGhost
+    γ (GMode.dyn dec c0 h0 { cidx := g.cidx, cfg := g.cfg, fp := g.fp, decs := g.decs ∪ M }) c id s
+
 theorem ghostRest_certLink [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : ghostRest γ md c id s ⊢ certLink γ
     s.logst.storage ∗ ghostRest γ md c id s
@@ -60,7 +67,8 @@ def GMode.StepOut (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (s s' : NSta
   | GMode.dyn dec c0 h0 g =>
     ∃ g',
       GMove m s s' g g' ∧
-        md' = GMode.dyn dec c0 h0 g' ∧ ∃ B recv, StepR (AdmFold dec c0) dec id B (rOf s g) recv (rOf s' g')
+        md' = GMode.dyn dec c0 h0 g' ∧
+          ∃ B recv, StepR (AdmFold (effDec dec g'.decs) c0) (effDec dec g'.decs) id B (rOf s g) recv (rOf s' g')
 
 theorem NsLink.boot [GoGlobalContext] [GoSemanticsFunctions] {γ : RaftNames} {s : NState} (H :
     NsLink γ s) (h : s.gh.ns = true) : γ.reBoot ≠ []
@@ -85,17 +93,17 @@ theorem GMode.SnapOkIf_persistent [ReceiptGS GF] (γ : RaftNames) (id : w64) (md
 theorem ghost_stepCDM [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (B : Int) (HB : B < 2 ^ 64) (s :
     NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s') (Hdh : ∀ (dec :
-    CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = GMode.dyn dec c0 h0 g → RInv dec c0 (rOf s
-    g) → DynHyp m s s' g) : ⊢ ⧖(B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage γ x) -∗
-    rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
-    ghostRestM γ md c id s ={⊤}=∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownRaftGhost γ id (toPState
-    s') md'.isDyn ∗ ghostRestM γ md' c id s'
+    CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = GMode.dyn dec c0 h0 g → ∀ (d' : CCDec),
+    RInv d' c0 (rOf s g) → DynHyp m s s' g) : ⊢ ⧖(B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv,
+    isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗ ownRaftGhost γ id
+    (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+    ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c id s'
 
 theorem ownStepGhost_dyn [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh) (c : CfgM) (id : w64) (s :
     NState) : ownStepGhost γ (GMode.dyn dec c0 h0 g) c id s ⊣⊢ ⌜γ.dyn = some (DynCfg.ofFold dec c0
-    h0) ∧ g.cfg.cfg = c ∧ NsLink γ s⌝ ∗ ownRaftGhostR γ dec c0 id (rOf s g) ∗ certLink γ
-    s.logst.storage
+    h0) ∧ g.cfg.cfg = c ∧ NsLink γ s⌝ ∗ decLb γ g.decs ∗ ownRaftGhostR γ (effDec dec g.decs) c0 id
+    (rOf s g) ∗ certLink γ s.logst.storage
 
 theorem ownStepGhost_mode [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : ownStepGhost γ md c id s ⊢
@@ -116,14 +124,15 @@ theorem GMode.Pre.dynHyp [GoGlobalContext] [GoSemanticsFunctions] {md : GMode} {
     : List EntryM} {s s' : NState} (h : md.Pre m ents s) (Hns : m.Type' ≠ MsgSnap) (Hap : m.Type' =
     MsgStorageApplyResp → s'.logst.applied = s.logst.applied ∨ ∃ e, ents.getLast? = some e ∧
     s'.logst.applied = w64Max e.Index' s.logst.applied) {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0}
-    {g : RGh} (hmd : md = GMode.dyn dec c0 h0 g) (HI : RInv dec c0 (rOf s g)) : DynHyp m s s' g
+    {g : RGh} (hmd : md = GMode.dyn dec c0 h0 g) {d' : CCDec} (HI : RInv d' c0 (rOf s g)) : DynHyp m
+    s s' g
 
 def ghostRestM [ReceiptGS GF] (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF :=
   match x✝³, x✝², x✝¹, x✝ with
   | GMode.static, c, id, x => iprop(⌜CfgStatic γ c ∧ TrackedOk γ c id⌝)
   | GMode.dyn dec c0 h0 g, c, id, s =>
-    iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ RInv dec c0 (rOf s g)⌝ ∗
-        logRecs γ base0 g.fp ∗ ∀ x, isCampK γ id (toPState s).term (rOf s g).full (toPState s).commit)
+    iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ RInv (effDec dec g.decs) c0 (rOf s g)⌝ ∗
+        decLb γ g.decs ∗ logRecs γ base0 g.fp ∗ ∀ x, isCampK γ id (toPState s).term (rOf s g).full (toPState s).commit)
 
 theorem GMode.StepOut.commit_mono [GoGlobalContext] [GoSemanticsFunctions] {md : GMode} {c : CfgM}
     {id : w64} {m : MessageM} {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md') :
@@ -158,12 +167,12 @@ theorem ghost_stepCDSM [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [
 theorem ghost_stepCD [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (B : Int) (HB : B < 2 ^ 64) (s :
     NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s') (Hdh : ∀ (dec :
-    CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = GMode.dyn dec c0 h0 g → RInv dec c0 (rOf s
-    g) → DynHyp m s s' g) (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) : ⊢ ⧖(B.toNat -
-    γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ
-    recv -∗ £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗ ∃ md',
-    ⌜md.StepOut c id m s s' md'⌝ ∗ ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id
-    s'
+    CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = GMode.dyn dec c0 h0 g → ∀ (d' : CCDec),
+    RInv d' c0 (rOf s g) → DynHyp m s s' g) (Hng : s'.gh = s.gh ∧ s'.logst.storage =
+    s.logst.storage) : ⊢ ⧖(B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred
+    γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
+    ghostRest γ md c id s ={⊤}=∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownRaftGhost γ id (toPState
+    s') md'.isDyn ∗ ghostRest γ md' c id s'
 
 theorem ownStepGhost_nsLink [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : ownStepGhost γ md c id s ⊢ ⌜NsLink

@@ -14,7 +14,8 @@ def StepCD (c : CfgM) (id : w64) (B : Int) (m : MessageM) (s : NState) (recv : L
       g.cfg.cfg = c →
         DynHyp m s s' g →
           ∃ cidx',
-            CidxMove m s' g cidx' ∧ StepR Adm dec id B (rOf s g) recv (rOf s' { cidx := cidx', cfg := g.cfg, fp := g.fp })
+            CidxMove m s' g cidx' ∧
+              StepR Adm dec id B (rOf s g) recv (rOf s' { cidx := cidx', cfg := g.cfg, fp := g.fp, decs := g.decs })
 
 def pciR (s : NState) : w64 :=
   if s.role = PRole.leader then s.pci else W64 0
@@ -157,7 +158,7 @@ theorem stepR_snap_restore [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {A
     [Msg.mk MsgType.appResp id m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []])
     (Ha : s'.logst.applied = s.logst.applied) (Hsn : s'.logst.snap.isSome = true) (Hl' : s'.role ≠
     PRole.leader) : StepR Adm dec id B (rOf s g) [m] (rOf s' { cidx := g.cidx, cfg := g.cfg, fp :=
-    fp' })
+    fp', decs := g.decs })
 
 theorem StepCD.of_excluded [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c : CfgM} {id : w64}
     {m : MessageM} {s : NState} {recv : List Msg} {s' : NState} (h : StepC c id B (toPState s) recv
@@ -185,6 +186,7 @@ structure RGh : Type where
   cidx : Nat
   cfg : CCState
   fp : List EntryM
+  decs : DecMap
 
 theorem rOf.proj_applied (s : NState) (g : RGh) : (rOf s g).applied = s.logst.applied
 

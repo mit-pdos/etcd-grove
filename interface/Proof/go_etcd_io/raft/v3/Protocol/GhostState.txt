@@ -664,14 +664,14 @@ def rqLb (γ : RaftNames) (L T : w64) (recs : List RqRec) : IProp GF :=
 def dynEnv [ReceiptGS GF] (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
   iprop(⌜CfgStatic γ c⌝ ∨
       ⌜γ.reDyn ≠ none⌝ ∗
-        ∃ fpR a,
+        ∃ fpR a M,
           ⌜FullOk s.base fpR ∧
                 ConfI1 (fpR ++ s.log) (uint.Z s.commit).toNat ∧
                   uint.Z a ≤ uint.Z s.commit ∧
-                    CfgAt γ (List.take (uint.Z a).toNat (fpR ++ s.log)) c ∧
+                    CfgAt γ M (List.take (uint.Z a).toNat (fpR ++ s.log)) c ∧
                       (s.role = Role.leader → confCount (List.drop (uint.Z a).toNat (fpR ++ s.log)) ≤ 1) ∧
                         (s.role = Role.candidate → a = s.commit)⌝ ∗
-            logRecs γ base0 fpR ∗ ∀ x, isCampK γ id s.term (fpR ++ s.log) s.commit)
+            logRecs γ base0 fpR ∗ (∀ x, isCampK γ id s.term (fpR ++ s.log) s.commit) ∗ decLb γ M)
 
 theorem voteEv_persistent [ReceiptGS GF] (γ : RaftNames) (v T : w64) (d : Bool) (F : List EntryM) :
     Persistent (voteEv γ v T d F)

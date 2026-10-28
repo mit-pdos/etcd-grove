@@ -23,6 +23,10 @@ def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF 
     iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝) ∗
         storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists))
 
+theorem DynCCPreOp.mono_dec {d d' : CCDec} (h : DecLe d d') {D : List EntryM} {ca : Nat} {cfg :
+    CCState} {op : CCOp} {k : Nat} {e : EntryM} {cs' : CCState} (H : DynCCPreOp d D ca cfg op k e
+    cs') : DynCCPreOp d' D ca cfg op k e cs'
+
 inductive RNMode : Type
   | RNMode.static : RNMode
   | RNMode.dyn (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0) : RNMode

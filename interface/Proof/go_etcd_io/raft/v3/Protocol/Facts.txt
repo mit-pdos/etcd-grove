@@ -112,12 +112,12 @@ theorem ownRaftGhost_alloc_core_reg [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg 
     (C : RaftNames → IProp GF) (trk : Option (GSet w64)) (Htrk : ∀ (T : GSet w64), trk = some T →
     cfg ⊆ T ∧ dyn = none) (ns : Bool) (Hns : ns = true → L ≠ []) (nx : Bool) (Hnx : nx = true → L ≠
     []) (sok : List BootEntry → List w8 → Prop) (sl : w64 → Option GName) (nsN certN : Namespace)
-    (reg : Option GName) : cfg ≠ ∅ → ¬W64 0 ∈ ids → BootWf L → (L ≠ [] → 1 ≤ uint.Z t) → ⊢
+    (reg rdec : Option GName) : cfg ≠ ∅ → ¬W64 0 ∈ ids → BootWf L → (L ≠ [] → 1 ≤ uint.Z t) → ⊢
     allocClientGen E cfg dyn ccOk L C nsN ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk =
     ccOk ∧ γ.reBoot = L ∧ γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw =
-    sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg⌝ ∗ raftCommitInv
-    γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L)
-    dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧ γ.reDec = rdec⌝
+    ∗ raftCommitInv γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id
+    (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
 
 theorem ownRaftGhost_alloc_gen [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids : GSet w64) (dyn :
     Option ((e : GooseExts) → DynCfg)) (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :

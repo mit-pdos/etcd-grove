@@ -17,12 +17,19 @@ theorem preadRespondAll_role (id : w64) (s : PState) (qs : List ReadReq) : (prea
 def AdmFold (dec : CCDec) (c0 : CCState) (l : List EntryM) (cs : CCState) : Prop :=
   cfgFold dec c0 l = some cs
 
+theorem NoUndecConfIn.mono_dec {d1 d2 : CCDec} (h : DecLe d1 d2) {l : List EntryM} {lo hi : Nat} (hn
+    : NoUndecConfIn d1 l lo hi) : NoUndecConfIn d2 l lo hi
+
 def RState.full (r : RState) : List EntryM :=
   r.fp ++ r.p.log
 
 theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {id : w64} {B : Int} (hA
     : ∀ (l : List EntryM) (cs : CCState), Adm l cs → Adm' l cs) {r : RState} {ms : List Msg} {r' :
     RState} (h : StepR Adm dec id B r ms r') : StepR Adm' dec id B r ms r'
+
+theorem StepR.mono_dec {Adm : List EntryM → CCState → Prop} {dec dec' : CCDec} {id : w64} {B : Int}
+    (hd : DecLe dec dec') {r : RState} {ms : List Msg} {r' : RState} (h : StepR Adm dec id B r ms
+    r') : StepR Adm dec' id B r ms r'
 
 def NoConfIn (l : List EntryM) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : EntryM), lo ≤ k → k < hi → l[k]? = some e → ¬IsConfEnt e

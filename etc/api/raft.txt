@@ -91,6 +91,7 @@ importable Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 importable Proof.go_etcd_io.raft.v3.Protocol.SnapMint
 importable Proof.go_etcd_io.raft.v3.Protocol.Model
 importable Proof.go_etcd_io.raft.v3.Protocol.CfgOverlap
+importable Proof.go_etcd_io.raft.v3.Protocol.DecMap
 importable Proof.go_etcd_io.raft.v3.Protocol.StepC
 importable Proof.go_etcd_io.raft.v3.Protocol.StepR
 importable Proof.go_etcd_io.raft.v3.Protocol.StepGhost
