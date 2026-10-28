@@ -516,8 +516,10 @@ so the branch can merge into `lean`: CI's checks pass.
 - **Fixed in Perennial, workarounds still here**: D2/G3's `pkgRef` substitution (`e5e31069a`; the
   controller's D2 exclusions and their body hypotheses, `Spec/**/*_body.lean`, remain), C4's `min`
   (`0227e444b`; `Backoff.Next`, `Transaction` names only), C1's range over a string
-  (`isWellFormed` names only). Next for phase 5: drop D2's exclusions and discharge the body
-  hypotheses by the generated unfolds.
+  (`isWellFormed` names only). D2's 15 body hypotheses checked at this pin: with the exclusions
+  dropped (a scratch run of `etc/goose.py`, reverted), each generated `X.impl` is byte for byte its
+  `X.body`. Next for phase 5: drop D2's exclusions and discharge the body hypotheses by the
+  generated unfolds.
 - Merge conflicts (`etc/gen-link.py`'s modes, `etc/goose.py`'s usage, the TCB baseline, this file)
   were unions. The superseded section is in `notes/status-history.md` ("`lean` merged into the
   DaemonSet branch: three Perennial pins, and a Goose blocker").
