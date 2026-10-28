@@ -53,17 +53,17 @@ is a `*DaemonSet` (`l`, read-only), as the DaemonSet controller passes. -/
 abbrev RealPodControl.createPods.spec : Prop :=
   ∀ [ApiDeps] (r : RealPodControl) (γ : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
-    (ctx : GoInterface) (ns : GoString) (p : Loc) (d : kd.core.Pod) (l : Loc)
+    (ctx : GoInterface) (ns : GoString) (p : Loc) (dq : DFrac) (d : kd.core.Pod) (l : Loc)
     (dd : kd.apps.DaemonSet) (cref : Loc) (Ψ : Except ApiErr (Bool × Obj) → IProp GF)
     (Ψ' : kd.core.Pod → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller ∗ ⌜ctx ≠ interface.nil⌝ ∗
       clientIs r.KubeClient' γ cfg ∗ recorderOk r.Recorder' ∗ dsAt l DFrac.discard dd ∗
-      podAt p (DFrac.own 1) d ∗ createAU γ cfg ns d Ψ ∗ onWriteOk r.OnWrite' cref Ψ Ψ' }}
+      podAt p dq d ∗ createAU γ cfg ns d Ψ ∗ onWriteOk r.OnWrite' cref Ψ Ψ' }}
     (App (App (App (App (App (Val #(methods RealPodControl.ty go!"createPods" #r)) (Val #ctx))
       (Val #ns)) (Val #p))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.api.apps.v1.DaemonSet.ty) #l :
         k8s_io.apimachinery.pkg.runtime.Object))) (Val #cref))
-  {{ (err : GoInterface), RET #err; podAt p (DFrac.own 1) d ∗
+  {{ (err : GoInterface), RET #err; podAt p dq d ∗
       ((⌜err = interface.nil⌝ ∗ ∃ dp, Ψ' dp) ∨
        (⌜err ≠ interface.nil⌝ ∗ ∃ oc, Ψ oc ∗ ⌜createErrOutcome cfg.AmbiguousWrites' oc⌝) ∨
        (⌜err ≠ interface.nil ∧ (d.ObjectMeta'.Labels'.getD ∅) = ∅⌝ ∗ createAU γ cfg ns d Ψ)) }}

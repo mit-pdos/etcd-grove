@@ -84,7 +84,72 @@ def onWriteOk (f : GoFunc) (cref : Loc) (Ψ : Except ApiErr (Bool × Obj) → IP
     ▷ (podAt p (DFrac.own 1) dp -∗ Ψ' dp -∗ Φ #()) -∗
     WP (App (App (Val #f) (Val #p)) (Val #cref)) {{ Φ }})
 
+/-- **A pod delete's linearization point**, the caller's (as `createAU`, over the model's
+`Delete`, `DeleteOut`, with the controller's default options). -/
+def deleteAU (γ : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+    (ns name : GoString) (Ψ : Except ApiErr Bool → IProp GF) : IProp GF :=
+  iprop(|={⊤, ∅}=> ∃ σ, apiState γ σ ∗
+    ∀ σ' oc, ⌜DeleteOut cfg.FailWrites' false .pods ns name kd.meta.DeleteOptions.zero σ oc σ'⌝ -∗
+      apiState γ σ' ={∅, ⊤}=∗ Ψ oc)
+
+/-- A pod template in the heap, owned at `dq`, with deep value `t`. -/
+def tmplAt (tp : Loc) (dq : DFrac) (t : kd.core.PodTemplateSpec) : IProp GF :=
+  iprop(∃ v : k8s_io.api.core.v1.PodTemplateSpec, tp ↦{dq} v ∗ kd.core.PodTemplateSpec.own v dq t)
+
+/-- **An owner reference, read-only for good** (persistent; `metav1.NewControllerRef`'s result,
+which nothing writes: the pod built from it shares its `*bool` fields). -/
+def refAt (cref : Loc) (r : kd.meta.OwnerReference) : IProp GF :=
+  iprop(∃ v : k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference, cref ↦□ v ∗
+    □ kd.meta.OwnerReference.own v DFrac.discard r)
+
+instance refAt_persistent (cref : Loc) (r : kd.meta.OwnerReference) :
+    Persistent (refAt (GF := GF) cref r) := by
+  unfold refAt; infer_instance
+
+/-- **The pod name validator** (`validation.ValidatePodName`, a package variable of a names-only
+package, `apimachineryvalidation.NameIsDNSSubdomain`): it holds a function that returns some
+slice. (A fact of `pkg/apis/core/validation`'s initialization, whose initializer is not
+translated: an assumption of the specs that call `getPodsPrefix` until the closed theorem's
+`Init.lean` gives it, from a trust-boundary statement of the initializer, pending approval.) -/
+def podNameValidatorOk : IProp GF :=
+  iprop(∃ f : GoFunc,
+    globalAddr k8s_io.kubernetes.pkg.apis.core.validation.ValidatePodName ↦□ f ∗
+    □ ∀ (s : GoString) (b : Bool) (Φ : val → IProp GF), ▷ (∀ sl : GoSlice, Φ #sl) -∗
+      WP (App (App (Val #f) (Val #s)) (Val #b)) {{ Φ }})
+
+instance podNameValidatorOk_persistent : Persistent (podNameValidatorOk (GF := GF)) := by
+  unfold podNameValidatorOk; infer_instance
+
 end defs
+
+section pure
+variable [FfiSyntax]
+
+/-- **`getPodsPrefix(name)`'s possible results**: `name + "-"`, or `name` when the validator
+rejects that. -/
+def prefixOk (name pfx : GoString) : Prop := pfx = name ++ go!"-" ∨ pfx = name
+
+/-- **The pod `GetPodFromTemplate(template, owner, ref)` builds**: the template's labels,
+annotations (copied into fresh maps, empty for none) and finalizers, the generated name
+`pfx`, the owner reference, the template's spec (a deep copy); every other field zero. -/
+def podFromTemplate (t : kd.core.PodTemplateSpec) (pfx : GoString)
+    (ref : Option kd.meta.OwnerReference) : kd.core.Pod :=
+  { kd.core.Pod.zero with
+    ObjectMeta' := { kd.meta.ObjectMeta.zero with
+      Labels' := some (t.ObjectMeta'.Labels'.getD ∅)
+      Annotations' := some (t.ObjectMeta'.Annotations'.getD ∅)
+      GenerateName' := pfx
+      Finalizers' := t.ObjectMeta'.Finalizers'
+      OwnerReferences' := ref.toList }
+    Spec' := t.Spec' }
+
+/-- **`validateControllerRef(ref)` accepts `r`**: an API version, a kind, `Controller` and
+`BlockOwnerDeletion` set to `true`. -/
+def ctlRefValid (r : kd.meta.OwnerReference) : Prop :=
+  r.APIVersion' ≠ go!"" ∧ r.Kind' ≠ go!"" ∧ r.Controller' = some true ∧
+    r.BlockOwnerDeletion' = some true
+
+end pure
 
 end dsctl
 end EtcdGrove

@@ -123,9 +123,9 @@ def recCovers (rc : Option consistency.Rec) (c : Nat) : Prop :=
 /-- **The accounting invariant** of the DaemonSet `u` (see the file header): each of its stored
 pods was added at a version seen by the informer for good (`≤ L`), or covered by the owner's
 record, or is pending. -/
-def acct (σ : St) (u : GoString) (L : Nat) (rc : Option consistency.Rec) (P : List Key) : Prop :=
+def acct (σ : St) (u : GoString) (L : Nat) (rc : Option consistency.Rec) (P : Key → Nat → Prop) : Prop :=
   ∀ k o, σ.pods.objs !! k = some o → dsPod u o →
-    ∃ c, addedRv σ.pods.log k = some c ∧ (c ≤ L ∨ recCovers rc c ∨ k ∈ P)
+    ∃ c, addedRv σ.pods.log k = some c ∧ (c ≤ L ∨ recCovers rc c ∨ P k c)
 
 /-- What `EnsureReady` succeeding gives for the pods (`readyRec`, with the store's contract
 `G podGR readRV`: the store has reached `decVal readRV`, which is well formed): the recorded
@@ -135,7 +135,8 @@ def readyPods (rc : Option consistency.Rec) (L' : Nat) : Prop :=
 
 /-- **`EnsureReady` succeeding**: the record goes, and every pod it covered is now at most the
 store's version `L'` (`L ≤ L'`: the bound only grows). -/
-theorem acct_ensureReady (σ : St) (u : GoString) (L L' : Nat) (rc : Option consistency.Rec) (P : List Key)
+theorem acct_ensureReady (σ : St) (u : GoString) (L L' : Nat) (rc : Option consistency.Rec)
+    (P : Key → Nat → Prop)
     (h : acct σ u L rc P) (hL : L ≤ L') (hr : readyPods rc L') : acct σ u L' none P := by
   intro k o hk hu
   obtain ⟨c, hc, hcase⟩ := h k o hk hu
@@ -147,7 +148,7 @@ theorem acct_ensureReady (σ : St) (u : GoString) (L L' : Nat) (rc : Option cons
 
 /-- With nothing pending and no record, every pod of `u` was added at a version the informer has
 reached (`≤ L`). -/
-theorem acct_seen (σ : St) (u : GoString) (L : Nat) (h : acct σ u L none []) :
+theorem acct_seen (σ : St) (u : GoString) (L : Nat) (h : acct σ u L none (fun _ _ => False)) :
     ∀ k o, σ.pods.objs !! k = some o → dsPod u o → ∃ c, addedRv σ.pods.log k = some c ∧ c ≤ L := by
   intro k o hk hu
   obtain ⟨c, hc, hcase⟩ := h k o hk hu
@@ -282,7 +283,8 @@ theorem ambiguous_create_breaks_S1 (K Op u n ns : GoString) (d : kd.core.Pod) (f
     σ0.wf ∧ S1 K Op σ0 u ∧
     -- (1) the create commits and may report the timeout; the pod is left pending
     CreateOut fail false .pods ns (.pod d) σ0 (.ok (true, o1)) σ1 ∧ mayHappen true false ∧
-    acct σ1 u σ0.rev.toNat none [o1.key] ∧ ¬ acct σ1 u σ0.rev.toNat none [] ∧
+    acct σ1 u σ0.rev.toNat none (fun k c => k = o1.key ∧ c = 2) ∧
+    ¬ acct σ1 u σ0.rev.toNat none (fun _ _ => False) ∧
     -- (2) the pod informer's store may still be at the version before it, with no pod of `u`
     View.ok σ1.pods.log ⟨∅, some σ0.rev.toNat⟩ ∧
     -- (3) the next sync's create commits: two pods of `u` on `n`
@@ -317,7 +319,7 @@ theorem ambiguous_create_breaks_S1 (K Op u n ns : GoString) (d : kd.core.Pod) (f
     rw [hobjs1] at hk
     by_cases hk' : o1.key = k
     · subst hk'
-      refine ⟨2, ?_, Or.inr (Or.inr (by simp))⟩
+      refine ⟨2, ?_, Or.inr (Or.inr ⟨rfl, rfl⟩)⟩
       rw [hlog1]; simp [addedRv]
     · simp [hk'] at hk
   · intro hacc
@@ -328,7 +330,7 @@ theorem ambiguous_create_breaks_S1 (K Op u n ns : GoString) (d : kd.core.Pod) (f
     rcases hcase with h1 | ⟨r, -, hr, -⟩ | h3
     · simp [σ0, St.empty] at h1
     · cases hr
-    · cases h3
+    · exact h3.elim
   · show (∅ : GMap Key Obj) = tableAt σ1.pods.log σ0.rev.toNat
     rw [hlog1]
     simp [tableAt, replay, σ0, St.empty]

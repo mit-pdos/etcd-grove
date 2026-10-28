@@ -54,7 +54,7 @@ theorem RealPodControl.createPods.wp_proof
     (wp_V : logr.Logger.V_ptr.spec (GF := GF) (hG := hG))
     (wp_Info : logr.Logger.Info.spec (GF := GF) (hG := hG)) :
     RealPodControl.createPods.spec (GF := GF) (hG := hG) := by
-  intro deps r γ cfg ctx ns p d l dd cref Ψ Ψ'
+  intro deps r γ cfg ctx ns p dq d l dd cref Ψ Ψ'
   haveI := h_body.1
   wp_start as H
   icases H with ⟨%Hctx, #Hcl, #Hrec, Hds, Hp, HAU, Hon⟩
@@ -82,7 +82,7 @@ theorem RealPodControl.createPods.wp_proof
     exact ⟨by simp, rfl⟩
   | some M =>
     ihave Hmd := (ownMapD_some m _ (some M) M rfl).1 $$ Hmd
-    wp_apply (wp_map_len_lt m M (DFrac.own 1)) $$ [Hmd] as ⟨Hmd, %hlt⟩
+    wp_apply (wp_map_len_lt m M dq) $$ [Hmd] as ⟨Hmd, %hlt⟩
     · iexact Hmd
     wp_if_destruct
     · -- empty labels: refused
@@ -124,7 +124,7 @@ theorem RealPodControl.createPods.wp_proof
       subst hy
       wp_auto
       wp_bind
-      iapply (wp_Create lp γ cfg ns false ctx p (DFrac.own 1) d (zero_val _)) $$ [Hlp Hp]
+      iapply (wp_Create lp γ cfg ns false ctx p dq d (zero_val _)) $$ [Hlp Hp]
       · simp only [objPtrAt]
         isplitr
         · iexact Hapi
@@ -234,7 +234,7 @@ theorem RealPodControl.createPods.wp_proof
           iunfold objAt at Hqo
           icases Hqo with ⟨%q', %hq', Hq⟩
           have hqq : q' = q := by
-            simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at hq'
+            simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, _root_.true_and] at hq'
             exact (go.intoVal_inj hq').symm
           subst hqq
           icases podAt_name q' _ dp $$ Hq with ⟨Hname, Hqback⟩
