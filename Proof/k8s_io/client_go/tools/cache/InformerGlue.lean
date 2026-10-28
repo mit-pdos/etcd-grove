@@ -607,11 +607,12 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
 
 /-- **Registering a fresh object** with the informer (the reflector, for each object a list or a
 watch event gives it): it becomes read-only and registered with its model object (`infObj`, the
-FIFO's and the store's contract). An object owned exclusively is not registered yet
-(`objAt_excl`). -/
+FIFO's and the store's contract), and its registry entry. An object owned exclusively is not
+registered yet (`objAt_excl`). -/
 theorem infInv_register (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames)
     (γi : InfNames) (x : GoInterface) (o : Obj) (hres : o.res = r) :
-    ⊢ infInv (GF := GF) γa r γf γt γi -∗ apimodel.objAt x (DFrac.own 1) o ={⊤}=∗ infObj γi r x := by
+    ⊢ infInv (GF := GF) γa r γf γt γi -∗ apimodel.objAt x (DFrac.own 1) o ={⊤}=∗
+      infObj γi r x ∗ x ↪[γi.reg]□ o := by
   iintro #Hinv Hx
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
@@ -652,6 +653,7 @@ theorem infInv_register (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNa
       · cases hy; exact hres
       · exact hres' y o' hy
     imodintro
+    iframe #
     unfold infObj
     iexists o
     iframe #
