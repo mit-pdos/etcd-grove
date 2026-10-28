@@ -7,7 +7,8 @@ carries under grpc's outgoing-metadata key (`metadata.NewOutgoingContext`,
 `AppendToOutgoingContext`; read by `FromOutgoingContext` and by grpc's transport, which sends it as
 the call's header fields), a function of the context value (`outgoingOf`, opaque) for the same
 reason: a context is immutable. `mdAdd md k v` is the metadata with `v` appended to the values of
-`k` (as `AppendToOutgoingContext(ctx, k, v)` adds it, for a lower-case `k`). The client's auth
+`k` (as `AppendToOutgoingContext(ctx, k, v)` adds it, for a lower-case `k`); `mdSet md k vs`, with
+them set to `vs` (`MD.Set`). The client's auth
 contract (`examples/authkv/ClientAuth.lean`, C1-C4) is stated over the two.
 -/
 module
@@ -32,9 +33,20 @@ def mdAdd (md : Option (GoString → Option (List GoString))) (k v : GoString) :
   some fun k' =>
     if k' = k then some (((md.bind fun m => m k).getD []) ++ [v]) else md.bind fun m => m k'
 
+/-- Metadata (`none`: no metadata) with the values of the key `k` set to `vs` (as `MD.Set(k,
+vs...)` on a copy sets them, or `Pairs(k, v)` makes them from none, for a lower-case `k`; the auth
+plan's E3zc: what `clientv3`'s `withVersion` does to the API version's key). -/
+def mdSet (md : Option (GoString → Option (List GoString))) (k : GoString) (vs : List GoString) :
+    Option (GoString → Option (List GoString)) :=
+  some fun k' => if k' = k then some vs else md.bind fun m => m k'
+
 /-- The values of the key `k` in the metadata `md` (none: `[]`). -/
 def mdVals (md : Option (GoString → Option (List GoString))) (k : GoString) : List GoString :=
   (md.bind fun m => m k).getD []
+
+theorem mdVals_mdSet_ne (md : Option (GoString → Option (List GoString))) (k k' : GoString)
+    (vs : List GoString) (h : k' ≠ k) : (mdSet md k vs).bind (fun m => m k') = md.bind fun m => m k' := by
+  simp [mdSet, h]
 
 theorem mdVals_mdAdd (md : Option (GoString → Option (List GoString))) (k v : GoString) :
     mdVals (mdAdd md k v) k = mdVals md k ++ [v] := by

@@ -1788,6 +1788,29 @@ theorem txnObjAt_conn (tp api : Loc) (addr addr' : List GoString) (ci : GoInterf
   iexists api0, cosl, csl, ssl, fsl, cps, sps, fps, iw
   iframe Hkvf Hk' Hrest
 
+/-- **A builder's `*kv` and its connection** (the auth plan's E3zc: what a metadata-indexed call's
+precondition speaks of, `txn.Commit.wp_generic`). -/
+theorem txnObjAt_kv (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) :
+    txnObjAt tp addr ci cd b ⊢ ∃ api conn, txnKvIs tp api ∗ kvObjAtC api conn addr ∗
+      txnObjAt tp addr ci cd b := by
+  iintro Hobj
+  iunfold txnObjAt at Hobj
+  icases Hobj with ⟨%Htp, %api0, %cosl, %csl, %ssl, %fsl, %cps, %sps, %fps, %iw, #Hkvf, #Hk, Hrest⟩
+  icases (kvObjAt_conn api0 addr).1 $$ Hk with ⟨%conn, #Hkc⟩
+  iexists api0, conn
+  isplitr
+  · unfold txnKvIs; iexact Hkvf
+  iframe Hkc
+  unfold txnObjAt
+  isplitl []
+  · ipureintro; exact Htp
+  iexists api0, cosl, csl, ssl, fsl, cps, sps, fps, iw
+  iframe Hkvf Hrest
+  iapply (kvObjAt_conn api0 addr).2
+  iexists conn
+  iexact Hkc
+
 end abstract
 
 section start_alloc

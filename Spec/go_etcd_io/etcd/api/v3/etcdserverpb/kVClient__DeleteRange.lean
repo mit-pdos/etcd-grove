@@ -23,17 +23,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.DeleteRange(ctx, in, opts...)` on a stub on a connection to the server at `addr` (`kvStubAt`),
-for a spec `Spec` the server registered for the method and the caller's `Φ`: `Invoke` of
+for a metadata-indexed spec `Spec` the server registered for the method (since 2026-10-28, the auth
+plan's E3zc; a plain one is `GrpcSpec.md`) and the caller's `Φ` at every metadata an attempt may
+deliver (`attemptPre`): `Invoke` of
 `"/etcdserverpb.KV/DeleteRange"` with `grpc.StaticMethod()` before the options, into a new
 `*DeleteRangeResponse`: the call's answer (`deleteCallOut`, the run's `Φ`); the request comes back. -/
 abbrev kVClient.DeleteRange.spec : Prop :=
-  ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
+  ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Φ : DelRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.DeleteRangeRequest) (k e : GoString) (opts : GoSlice)
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
-      reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (Spec (deleteReqOp req k e) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
+      reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn (GoInterface.ok ctx) Spec (deleteReqOp req k e) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

@@ -24958,3 +24958,38 @@ to be the specs in, e.g., node__Propose.lean."
 **Left (D4, a follow-up):** the other variant triples (`MemstorageAU.lean`'s `spec_tok`,
 `raft.applyConfChange.specS`, `confchange.Restore.specE`); a clean `node.ForgetLeader` spec.
 
+
+## E3zc of the auth plan: one client KV stack for both auth modes (2026-10-28 · `notes/auth-plan.md`; E3zb's "What is left", item 1; in progress)
+
+**The problem.** A member with auth on registers the metadata-indexed `On` specs
+(`client/v3/KVServiceOn.lean`), and `Work` needs what their replies add (a write's grant at the
+token the attempt carried, `writeGrantOn`; a read's check, `rangeAuthed`/`txnAuthed`). The
+client's KV stack (`kv.Do`/`Put`/`Get`/`Delete`, `txn.Commit`, `ClientPutGet`) was stated over the
+plain specs (`kvRegsAt`). Two parallel stacks (one per mode) were the first plan; the user: "Shouldn't
+we have one stack?" Taken: one stack, the plain statements its instance.
+
+**Step A (the transport, done).** Every layer between the retry interceptor and `kv.Do`/`txn.Commit`
+takes a metadata-indexed spec (`GrpcSpecMd`), registered with `isGrpcRpcsMd`, and the caller's
+request precondition at every metadata an attempt of the call may deliver:
+`attemptPre conn ctx Spec m Φ := ∀ md, ⌜clientAttemptMd conn ctx md⌝ -∗ Spec md m Φ`
+(`InvKVConn.lean`). `clientAttemptMd conn ctx md`: the retry interceptor sends each attempt on
+`withVersion(ctx)` and grpc's attempt on it delivers `md` (`grpcAttemptMd`); `withVersion`'s
+trust-boundary axiom now states its outgoing metadata (the caller's, with only `client-api-version`
+set: `metadata.mdSet`; true of `ctx.go`), so the attempts' metadata is tied to the caller's context
+(what C2/C4 of E2b speak of). Layers: `etcdInterceptorOk`/`etcdInterceptorOkM` (the interceptor's
+proof: two attempt sites, `attemptPre_attempt`), `etcdConn.InvokeMd` (the plain `etcdConn_Invoke`
+derived at `GrpcSpec.md`: the Auth and Lease stubs unchanged), `kVClient.{Put,Range,DeleteRange,Txn}`,
+`retryKVClient.*`, `kv.Do.wp_generic` (`doRunGen` now names the `*kv`'s connection,
+`kvObjAtC api conn addr`; `kvObjAt_conn`), `txn.Commit.wp_generic` (the builder's `*kv` and its
+connection, `txnObjAt_kv`, `kvObjAtC_agree`). The members' proofs instantiate them at `GrpcSpec.md`
+(`isGrpcRpcs_md`, `attemptPre_md`): no statement above `kv.Do.wp_generic` changed.
+
+**Step B (next): the members, mode-indexed.** A member with its auth mode (`SrvAtM`: the `SrvAt`
+and, with auth on, its server and request names, whose read names are the member's); its
+registrations at the mode (`GrpcSpec.md` of the plain specs, or the `On` specs); the members' calls'
+premises at the mode (with auth on: a delete's and a writing transaction's shapes, a read's lower
+bound of the published auth index) and their answers with the mode's facts at the attempt's
+metadata (`True` with auth off). One proof of `kv.Do`/`Put`/`Get`/`Delete`/`txn.Commit` over such
+members; the current `specM` statements (over `SrvAt`, `kvRegsAt`, `putAns`, ...) its instance at
+mode off, unchanged, so their ~30 users do not move. The answer's facts name the attempt's
+connection and context, which the call's caller knows (`isNewClient`'s connection).

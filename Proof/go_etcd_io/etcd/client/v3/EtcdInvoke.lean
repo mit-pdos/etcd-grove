@@ -66,11 +66,35 @@ abbrev etcdConn.Invoke.spec : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
         (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }}
 
-/-- **`Invoke` on an etcd client's connection** (`etcdConn.Invoke.spec`), from grpc's contract:
+/-- **`conn.Invoke` on an etcd client's connection, for a metadata-indexed spec** (the auth plan's
+E3zc): `etcdConn.Invoke.spec`'s, for a method registered with the metadata-indexed `Spec`
+(`isGrpcRpcsMd`) and the caller's request precondition at every metadata an attempt of the call
+may deliver (`attemptPre`: the retry interceptor's attempts are on `withVersion(ctx)`). A plain
+spec's is `etcdConn.Invoke.spec` (`etcdConn_Invoke`, at `GrpcSpec.md`). -/
+abbrev etcdConn.InvokeMd.spec : Prop :=
+  ∀ (conn : Loc) (addr : List GoString) (method : GoString) (Req Rep : ProtoMsg GF)
+    (Spec : GrpcSpecMd Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
+      isGrpcRpcsMd addr method Spec ∗
+      reqPre conn method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ) ∗ ctxOk ctx cd ∗
+      Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+    (App (App (App (App (App
+      (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
+      (Val #(GoInterface.ok ctx))) (Val #method))
+      (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)))
+      (Val #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface)))
+      (Val #opts))
+  {{ (err : GoInterface), RET #err;
+      Req.send inp m ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+        (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }}
+
+/-- **`Invoke` on an etcd client's connection, for a metadata-indexed spec** (`etcdConn.InvokeMd.spec`), from grpc's contract:
 the chain is the one interceptor, called with an invoker that behaves as grpc's `invoke`, which
 meets the attempt contract (`grpcInvokerOk_of_wp`); the interceptor's contract does the rest. -/
-theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
-    etcdConn.Invoke.spec (GF := GF) (hG := hG) := by
+theorem etcdConn_InvokeMd (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
+    etcdConn.InvokeMd.spec (GF := GF) (hG := hG) := by
   intro conn addr method Req Rep Spec m Φ ctx cd inp out opts vs
   iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
   iunfold reqPre at Hpre
@@ -112,6 +136,20 @@ theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG 
     simp only [modePre]
     iframe
     ipureintro; exact Hw
+
+/-- **`Invoke` on an etcd client's connection** (`etcdConn.Invoke.spec`): `etcdConn_InvokeMd` at the
+plain spec's metadata-indexed form (`GrpcSpec.md`, `isGrpcRpcs_md`, `attemptPre_md`). -/
+theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
+    etcdConn.Invoke.spec (GF := GF) (hG := hG) := by
+  intro conn addr method Req Rep Spec m Φ ctx cd inp out opts vs
+  iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+  iapply (etcdConn_InvokeMd wp_Invoke conn addr method Req Rep (GrpcSpec.md Spec) m Φ ctx cd inp out
+    opts vs) $$ [Hpre Hsend Hblank] HΨ
+  iframe #
+  iframe
+  isplitr
+  · iapply (isGrpcRpcs_md addr method Spec).1 $$ Hrpc
+  iapply (reqPre_mono conn method addr vs _ _ (attemptPre_md conn (GoInterface.ok ctx) Spec m Φ)) $$ Hpre
 
 end spec
 

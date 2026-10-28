@@ -58,6 +58,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import Perennial.Proof.context
 public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.google_golang_org.grpc.metadata.Outgoing
 
 @[expose] public section
 
@@ -756,13 +757,55 @@ theorem callOptsOk_singleton (v : GoInterface) : callOptOk (GF := GF) v ⊢ call
 
 /-! ## The connection -/
 
+/-- **An attempt of a call on an etcd client's connection `conn` with the caller's context `ctx`
+reaches a handler that sees the metadata `md`** (the auth plan's E3zc): the retry interceptor sends
+every attempt on `withVersion(ctx)`, a context whose outgoing metadata is `ctx`'s with the API
+version's key set (`withVersion.spec`), and grpc's attempt on it delivers `md`
+(`grpcAttemptMd`). -/
+def clientAttemptMd (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
+  ∃ (c : GoInterface) (v : GoString),
+    metadata.outgoingOf c = metadata.mdSet (metadata.outgoingOf ctx) go!"client-api-version" [v] ∧
+    grpcAttemptMd conn c md
+
+/-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
+for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with
+the context `ctx` may deliver (`clientAttemptMd`). At a plain spec (`GrpcSpec.md`) it is the
+spec's (`attemptPre_md`). -/
+def attemptPre {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface) (Spec : GrpcSpecMd Req Rep)
+    (m : Req.M) (Φ : Rep.M → IProp GF) : IProp GF :=
+  iprop(∀ md, ⌜clientAttemptMd conn ctx md⌝ -∗ Spec md m Φ)
+
+/-- A plain spec's precondition is one at every attempt. -/
+theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface)
+    (Spec : GrpcSpec Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) :
+    Spec m Φ ⊢ attemptPre conn ctx (GrpcSpec.md Spec) m Φ := by
+  iintro H
+  unfold attemptPre
+  iintro %md -
+  iexact H
+
+/-- The precondition at every attempt gives the attempt contract's, on `withVersion(ctx)`'s
+context `c` (`withVersion.spec`'s outgoing metadata). -/
+theorem attemptPre_attempt {Req Rep : ProtoMsg GF} (conn : Loc) (ctx c : GoInterface) (v : GoString)
+    (hc : metadata.outgoingOf c =
+      metadata.mdSet (metadata.outgoingOf ctx) go!"client-api-version" [v])
+    (Spec : GrpcSpecMd Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) :
+    attemptPre conn ctx Spec m Φ ⊢ ∀ md, ⌜grpcAttemptMd conn c md⌝ -∗ Spec md m Φ := by
+  iintro H %md %h
+  unfold attemptPre
+  iapply H
+  ipureintro
+  exact ⟨c, v, hc, h⟩
+
 /-- **The client's retry interceptor's contract** (persistent; unit P3a: what
 `Client.unaryClientInterceptor` returns, `Client__unaryClientInterceptor.lean`): called on a
 connection to `addr` (`grpcConn`, any interceptors) with an invoker making one attempt
-(`grpcInvokerOk`), for a method registered at `addr` with `Spec`, the request `inp`
-(`Req.send`, given back), a zero reply `out` (`Rep.blank`), the client's call options
-(`callOptsOk`) and the caller's `□ ▷ Spec m Φ` (persistent: the request may be delivered several
-times, the attempts), it returns
+(`grpcInvokerOk`), for a method registered at `addr` with the metadata-indexed `Spec`
+(`isGrpcRpcsMd`; since 2026-10-28, the auth plan's E3zc: a plain spec is `GrpcSpec.md`), the
+request `inp` (`Req.send`, given back), a zero reply `out` (`Rep.blank`), the client's call options
+(`callOptsOk`) and the caller's `□ ▷ attemptPre conn ctx Spec m Φ` (persistent: the request may be
+delivered several times, the attempts; at every metadata an attempt may deliver, `clientAttemptMd`),
+it returns
 * `nil`: an attempt succeeded, the last one (the loop returns at the first `nil`), and `out` holds
   its reply's copy of a response (`Rep.recv out m'`) with its run's `Φ m'`; other attempts may
   have run the handler: an attempt that failed with a gRPC `Canceled` or `DeadlineExceeded` while
@@ -771,12 +814,12 @@ times, the attempts), it returns
   about whether, or how often, the handler ran, nor about `out`. -/
 def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep)
       (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcs addr method Spec ∗
-        □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
+    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+        □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
@@ -813,12 +856,12 @@ def modePre (md : AttemptMode) (method : GoString) (addr : List GoString) (vs : 
 `etcdInterceptorOkW` (`.write`). -/
 def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep)
       (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcs addr method Spec ∗
-        modePre md method addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗
+    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+        modePre md method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ) ∗ ctxOk ctx cd ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
@@ -882,6 +925,16 @@ def reqPre (conn : Loc) (method : GoString) (addr : List GoString) (vs : List Go
 theorem reqPre_box (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
     (P : IProp GF) : (□ ▷ P : IProp GF) ⊢ reqPre conn method addr vs P := by
   unfold reqPre; iintro #H; ileft; iexact H
+
+/-- A request's precondition, weakened. -/
+theorem reqPre_mono (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
+    (P P' : IProp GF) (h : P ⊢ P') : reqPre (GF := GF) conn method addr vs P ⊢ reqPre conn method addr vs P' := by
+  unfold reqPre
+  iintro (#H | ⟨%Hw, H⟩)
+  · ileft; imodintro; inext; iapply h $$ H
+  · iright; isplitr
+    · ipureintro; exact Hw
+    inext; iapply h $$ H
 
 /-- Scalar options added to a call's options keep its precondition (the stubs' `StaticMethod`). -/
 theorem reqPre_scalar_app (conn : Loc) (method : GoString) (addr : List GoString)
@@ -978,6 +1031,53 @@ def kvObjAt (api : Loc) (addr : List GoString) : IProp GF :=
 
 instance kvObjAt_persistent (api : Loc) (addr : List GoString) : Persistent (kvObjAt (GF := GF) api addr) := by
   unfold kvObjAt; infer_instance
+
+/-- **The `*kv` `api` over the connection `conn`** (the auth plan's E3zc): `kvObjAt`'s, with the
+connection named, which a metadata-indexed call's precondition speaks of (`attemptPre`). -/
+def kvObjAtC (api conn : Loc) (addr : List GoString) : IProp GF :=
+  iprop(∃ (rkv : Loc) (sl : GoSlice),
+    structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
+        GoInterface) ∗
+    retryKVAt rkv conn ∗ isEtcdConn conn addr ∗
+    structFieldRef go_etcd_io.etcd.client.v3.kv go!"callOpts" api ↦□ sl ∗ callOptsAt sl)
+
+instance kvObjAtC_persistent (api conn : Loc) (addr : List GoString) :
+    Persistent (kvObjAtC (GF := GF) api conn addr) := by
+  unfold kvObjAtC; infer_instance
+
+/-- A `*kv` is one over some connection. -/
+theorem kvObjAt_conn (api : Loc) (addr : List GoString) :
+    kvObjAt (GF := GF) api addr ⊣⊢ ∃ conn, kvObjAtC api conn addr := by
+  unfold kvObjAt kvObjAtC
+  constructor
+  · iintro ⟨%rkv, %conn, %sl, H⟩
+    iexists conn, rkv, sl
+    iexact H
+  · iintro ⟨%conn, %rkv, %sl, H⟩
+    iexists rkv, conn, sl
+    iexact H
+
+/-- A `*kv` is over one connection (its fields are read-only). -/
+theorem kvObjAtC_agree (api conn conn' : Loc) (addr addr' : List GoString) :
+    kvObjAtC (GF := GF) api conn addr ∗ kvObjAtC api conn' addr' ⊢ ⌜conn = conn'⌝ := by
+  iintro ⟨H, H'⟩
+  iunfold kvObjAtC at H H'
+  icases H with ⟨%rkv, %sl, #Hr, #Hrkv, -⟩
+  icases H' with ⟨%rkv', %sl', #Hr', #Hrkv', -⟩
+  icombine Hr Hr' gives %Heq
+  simp at Heq
+  obtain rfl := go.intoVal_inj Heq
+  iunfold retryKVAt at Hrkv Hrkv'
+  icases Hrkv with ⟨%kc, #Hk, #Hs⟩
+  icases Hrkv' with ⟨%kc', #Hk', #Hs'⟩
+  icombine Hk Hk' gives %Heq
+  simp at Heq
+  obtain rfl := go.intoVal_inj Heq
+  iunfold kvStubAt at Hs Hs'
+  icombine Hs Hs' gives %Heq
+  simp at Heq
+  ipureintro; exact go.intoVal_inj Heq
 
 /-- **A request's precondition on a `*kv`** (D29): persistent, or ordinary over a refusal-free
 connection (a write: the `*kv` passes its client's call options, scalars, `callOptsAt`). -/

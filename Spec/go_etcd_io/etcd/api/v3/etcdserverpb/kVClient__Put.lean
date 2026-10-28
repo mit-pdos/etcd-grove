@@ -23,17 +23,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.Put(ctx, in, opts...)` on a stub on a connection to the server at `addr` (`kvStubAt`),
-for a spec `Spec` the server registered for the method and the caller's `Φ`: `Invoke` of
+for a metadata-indexed spec `Spec` the server registered for the method (since 2026-10-28, the auth
+plan's E3zc; a plain one is `GrpcSpec.md`) and the caller's `Φ` at every metadata an attempt may
+deliver (`attemptPre`): `Invoke` of
 `"/etcdserverpb.KV/Put"` with `grpc.StaticMethod()` before the options, into a new
 `*PutResponse`: the call's answer (`putCallOut`, the run's `Φ`); the request comes back. -/
 abbrev kVClient.Put.spec : Prop :=
-  ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
+  ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse)
     (Φ : PutRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.PutRequest) (k v : GoString) (opts : GoSlice)
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" Spec ∗
-      reqPre conn go!"/etcdserverpb.KV/Put" addr vs (Spec (putReqOp req k v) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Put" Spec ∗
+      reqPre conn go!"/etcdserverpb.KV/Put" addr vs (attemptPre conn (GoInterface.ok ctx) Spec (putReqOp req k v) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

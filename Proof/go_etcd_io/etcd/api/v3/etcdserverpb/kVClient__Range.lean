@@ -54,7 +54,7 @@ theorem kVClient.Range.wp_proof
   ihave Hblank : pbRangeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbRangeResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.KV/Range" pbRangeRequest pbRangeResponse Spec (rangeReqOp req k e) Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Range" pbRangeRequest pbRangeResponse Spec (rangeReqOp req k e) Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbRangeRequest (GF := GF)).ty = etcdserverpb.RangeRequest.ty from rfl,
     show (pbRangeResponse (GF := GF)).ty = etcdserverpb.RangeResponse.ty from rfl] at hI
