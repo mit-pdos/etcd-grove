@@ -25,14 +25,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
-/-- **`extractNodeFields(n)`** of a node in the heap: a new map, `nodeFieldsM` of its name. -/
+/-- **`extractNodeFields(n)`** of a node in the heap (its value `v`, deep value `d`: `nodeAt`
+unfolded, so that the caller keeps `v`, whose labels map `Match` passes on): a new map,
+`nodeFieldsM` of its name. -/
 abbrev extractNodeFields.spec : Prop :=
-  ∀ (n : Loc) (dq : DFrac) (d : kd.core.Node),
+  ∀ (n : Loc) (dq : DFrac) (v : k8s_io.api.core.v1.Node) (d : kd.core.Node),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_helpers.scheduling.corev1.nodeaffinity ∗
-      nodeAt n dq d }}
+      n ↦{dq} v ∗ kd.core.Node.own v dq d }}
     (App (Val (@! k8s_io.component_helpers.scheduling.corev1.nodeaffinity.extractNodeFields))
       (Val #n))
-  {{ (m : Loc), RET #m; nodeAt n dq d ∗ m ↦$ nodeFieldsM d.ObjectMeta'.Name' }}
+  {{ (m : Loc), RET #m; n ↦{dq} v ∗ kd.core.Node.own v dq d ∗
+      m ↦$ nodeFieldsM d.ObjectMeta'.Name' }}
 
 end spec
 

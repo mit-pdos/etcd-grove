@@ -425,8 +425,8 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
    *Status, first round (2026-10-28, branch `k8s-daemonset-proof`):* S1's invariant (pure:
    `S1Model`/`S1Steps`, the sync's steps proved, the ambiguous create a counterexample; Iris:
    `S1Inv`), the controller's predicates (`daemon/Defs.lean`), and its leaves proved (`createPods`,
-   the expectations, the pod/taint/node-affinity helpers, `GetTargetNodeName`); two `sorry`s
-   (`getPodsLabelSet`, `LazyErrorNodeSelector.Match`), not linked (`notes/STATUS.md`, "The
+   the expectations, the pod/taint/node-affinity helpers, `GetTargetNodeName`,
+   `getPodsLabelSet`, `LazyErrorNodeSelector.Match`), no `sorry`, not linked (`notes/STATUS.md`, "The
    DaemonSet controller, first round"). Next: `syncNodes`/`manage`, `syncDaemonSet`, the workers.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and
    `dsonepod_safe` through `etcd_adequate`'s pattern (`common/Adequacy.lean`); a TCB collection

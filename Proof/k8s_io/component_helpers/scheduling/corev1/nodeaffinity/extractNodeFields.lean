@@ -29,10 +29,8 @@ variable [package_sem : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.
 theorem extractNodeFields.wp_proof (h_body : extractNodeFields_body.spec (sem := sem)) :
     extractNodeFields.spec (GF := GF) (hG := hG) := by
   haveI := h_body
-  intro n dq d
-  wp_start as Hn
-  iunfold nodeAt at Hn
-  icases Hn with ⟨%v, Hl, Hd⟩
+  intro n dq v d
+  wp_start as ⟨Hl, Hd⟩
   icases node_name_eq v dq d $$ Hd with ⟨Hd, %Hname⟩
   wp_auto
   rw [go.make1_underlying, (go.is_underlying :
@@ -61,9 +59,6 @@ theorem extractNodeFields.wp_proof (h_body : extractNodeFields_body.spec (sem :=
     unfold nodeFieldsM
     rw [← Hname]; simp only [hne, ↓reduceIte, GMap.insert_empty]
     iframe
-    iunfold nodeAt
-    iexists v
-    iframe
   · have he : v.ObjectMeta'.Name' = [] := by
       have h1 : ¬ (0 : Int) < v.ObjectMeta'.Name'.length := by
         rw [← hz]; simpa [show sint.Z (W64 0) = 0 from rfl] using Hif
@@ -72,9 +67,6 @@ theorem extractNodeFields.wp_proof (h_body : extractNodeFields_body.spec (sem :=
     iapply HΦ
     unfold nodeFieldsM
     rw [← Hname]; simp only [he, ↓reduceIte]
-    iframe
-    iunfold nodeAt
-    iexists v
     iframe
 
 end proof

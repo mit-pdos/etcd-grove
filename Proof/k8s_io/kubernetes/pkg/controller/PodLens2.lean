@@ -58,6 +58,45 @@ theorem tmplAt_fields (tp : Loc) (dq : DFrac) (t : kd.core.PodTemplateSpec) :
     simp only [named]
     iframe
 
+/-- **A pod template's labels field**, read off its deep ownership, and put back. -/
+theorem tmplAt_labels (tp : Loc) (dq : DFrac) (t : kd.core.PodTemplateSpec) :
+    tmplAt (GF := GF) tp dq t ⊢ ∃ m : GoMap,
+      tp.[k8s_io.api.core.v1.PodTemplateSpec, go!"ObjectMeta"].[
+        k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta, go!"Labels"] ↦{dq} m ∗
+      ownMapD (GF := GF) (K := GoString) (V := GoString) m dq t.ObjectMeta'.Labels' ∗
+      (tp.[k8s_io.api.core.v1.PodTemplateSpec, go!"ObjectMeta"].[
+          k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta, go!"Labels"] ↦{dq} m -∗
+        ownMapD (GF := GF) (K := GoString) (V := GoString) m dq t.ObjectMeta'.Labels' -∗
+        tmplAt tp dq t) := by
+  unfold tmplAt
+  iintro ⟨%v, Hl, Hd⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+  iStructNamed Hl
+  icases typedPointsto_not_null_dup _ _ _ $$ ObjectMeta with ⟨ObjectMeta, %Hnn2⟩
+  iStructNamedPrefix ObjectMeta "M"
+  iunfold kd.core.PodTemplateSpec.own at Hd
+  icases Hd with ⟨DObjectMeta, DSpec⟩
+  iunfold kd.meta.ObjectMeta.own at DObjectMeta
+  icases DObjectMeta with ⟨DName, DGenerateName, DNamespace, DSelfLink, DUID, DResourceVersion,
+    DGeneration, DCreationTimestamp, DDeletionTimestamp, DDeletionGracePeriodSeconds, DLabels,
+    DAnnotations, DOwnerReferences, DFinalizers, DManagedFields⟩
+  iexists v.ObjectMeta'.Labels'
+  iframe MLabels DLabels
+  iintro MLabels DLabels
+  iexists v
+  isplitl [MName MGenerateName MNamespace MSelfLink MUID MResourceVersion MGeneration
+    MCreationTimestamp MDeletionTimestamp MDeletionGracePeriodSeconds MLabels MAnnotations
+    MOwnerReferences MFinalizers MManagedFields Spec]
+  · iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+    iapply typedPointsto_combine _ _ _ Hnn2
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  · unfold kd.core.PodTemplateSpec.own kd.meta.ObjectMeta.own
+    simp only [named]
+    iframe
+
 end lemmas
 
 end dsctl

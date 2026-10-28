@@ -182,6 +182,28 @@ theorem node_taints_acc (v : k8s_io.api.core.v1.Node) (dq : DFrac) (d : kd.core.
   simp only [named]
   iframe
 
+/-- **A node's labels field**, taken out of its points-to and put back. -/
+theorem node_labelsField (node : Loc) (dq : DFrac) (v : k8s_io.api.core.v1.Node) :
+    (node ↦{dq} v : IProp GF) ⊢
+      node.[k8s_io.api.core.v1.Node, go!"ObjectMeta"].[
+        k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta, go!"Labels"] ↦{dq} v.ObjectMeta'.Labels' ∗
+      (node.[k8s_io.api.core.v1.Node, go!"ObjectMeta"].[
+          k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta, go!"Labels"] ↦{dq}
+          v.ObjectMeta'.Labels' -∗ node ↦{dq} v) := by
+  iintro Hl
+  icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+  iStructNamed Hl
+  icases typedPointsto_not_null_dup _ _ _ $$ ObjectMeta with ⟨ObjectMeta, %Hnn2⟩
+  iStructNamedPrefix ObjectMeta "M"
+  iframe MLabels
+  iintro MLabels
+  iapply typedPointsto_combine _ _ _ Hnn
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe
+  iapply typedPointsto_combine _ _ _ Hnn2
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe
+
 end lemmas
 
 end dsctl

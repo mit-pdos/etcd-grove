@@ -31,7 +31,8 @@ section body
 noncomputable def ComputeHash.body [GooseExts] [GoGlobalContext] : val :=
   (LamV "template"
   (Lam "collisionCount"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "collisionCount" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType go.int32)))) (Var "collisionCount"))
   (Let "template" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty)))) (Var "template"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.hash.fnv.New32a []))) (Val #())) (Val #()))
@@ -39,11 +40,15 @@ noncomputable def ComputeHash.body [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint32 go.any))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.hash.Hash32.ty go!"Sum32"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash32.ty))) (Var "podTemplateSpecHasher"))) (Val #())))
+  (Let "$r0" (Let "$a0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint32 go.any))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.hash.Hash32.ty go!"Sum32"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash32.ty))) (Var "podTemplateSpecHasher"))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprint []))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.rand.SafeEncodeString []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.rand.SafeEncodeString []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.int32)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int32)))) (Var "collisionCount")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.int32)))) (Val UntypedNil))))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 8)))
   (Let "collisionCountBytes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -65,7 +70,8 @@ noncomputable def ComputeHash.body [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty)))) (Var "template"))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.kubernetes.pkg.util.hash.DeepHashObject []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.hash.Hash32.ty))) (Pair (Var "podTemplateSpecHasher") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.hash.Hash32.ty))) (Pair (Var "podTemplateSpecHasher") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 end body
 
