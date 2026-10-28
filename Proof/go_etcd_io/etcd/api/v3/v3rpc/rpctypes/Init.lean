@@ -6,7 +6,7 @@ Its fact (`rpctypesInit`, `cache/v3/Base.lean`): the errors `ErrFutureRev`, `Err
 (`EtcdError`s, whose `Error()` returns), the map `errStringToError` (its values `status.Error`
 errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, of
 the method set goose emits), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
-`ErrAuthOldRevision`, `ErrNoLeader` and the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors
+`ErrAuthOldRevision`, `ErrNoLeader`, `ErrAuthNotEnabled` and the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors
 `v3rpc`'s checks and interceptors return and its metadata keys, and (D19j) the `ErrGRPC*` errors its
 watch server returns, whose `Error()` returns. Its variables'
 initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
@@ -127,7 +127,6 @@ axiom opaqueInitsOk :
         ErrPermissionDenied.init,
         ErrRoleNotGranted.init,
         ErrPermissionNotGranted.init,
-        ErrAuthNotEnabled.init,
         ErrInvalidAuthMgmt.init,
         ErrClusterIDMismatch.init,
         ErrClusterIdMismatch.init,
@@ -188,6 +187,11 @@ axiom ErrGRPCNotSupportedForLearner_init :
 axiom ErrNoLeader_init :
     {{ (True : IProp GF) }} (App (Val ErrNoLeader.init) (Val #()))
     {{ RET #(); ∃ x : EtcdError, globalAddr ErrNoLeader ↦ interface.mkOk EtcdError.ty #x }}
+
+/-- `ErrAuthNotEnabled = Error(ErrGRPCAuthNotEnabled)` (`error.go`): an `EtcdError`. -/
+axiom ErrAuthNotEnabled_init :
+    {{ (True : IProp GF) }} (App (Val ErrAuthNotEnabled.init) (Val #()))
+    {{ RET #(); ∃ x : EtcdError, globalAddr ErrAuthNotEnabled ↦ interface.mkOk EtcdError.ty #x }}
 
 /-- `TokenFieldNameGRPC = "token"` (`metadatafields.go`): that string. -/
 axiom TokenFieldNameGRPC_init :
@@ -444,7 +448,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrPermissionDenied.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrRoleNotGranted.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrPermissionNotGranted.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrAuthNotEnabled.init (by mem_tac))
+  wp_apply ErrAuthNotEnabled_init as ⟨%xErrAuthNotEnabled, HErrAuthNotEnabled⟩
   wp_apply ErrInvalidAuthToken_init as ⟨%xErrInvalidAuthToken, HErrInvalidAuthToken, %DErrInvalidAuthToken⟩
   wp_apply ErrAuthOldRevision_init as ⟨%xErrAuthOldRevision, HErrAuthOldRevision, %DErrAuthOldRevision⟩
   wp_apply (opaqueInitsOk ErrInvalidAuthMgmt.init (by mem_tac))
@@ -501,6 +505,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrAuthOldRevision
   ipersist HErrGRPCNotSupportedForLearner
   ipersist HErrNoLeader
+  ipersist HErrAuthNotEnabled
   ihave #HFRS : iprop(□ ∀ e : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok e -∗
       go_etcd_io.etcd.cache.v3.errorStringSpec e) $$ []
   · iintro !> %e He

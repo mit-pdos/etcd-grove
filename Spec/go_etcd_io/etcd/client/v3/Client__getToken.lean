@@ -39,7 +39,7 @@ abbrev Client.getToken.spec : Prop :=
       -- (the auth plan's C1, 2026-10-28) the client ready (`c.Auth` over `conn`, the token's
       -- facts), its connection (later: the retry interceptor's refresh path calls this under its
       -- own induction hypothesis)
-      clientReady c conn eps ∗ ▷ isEtcdConn conn eps ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+      clientReady c conn eps ∗ ▷ isEtcdConn conn eps ∗ ctxOk ctx cd }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"getToken"))
       (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; clientErrOk err ∗

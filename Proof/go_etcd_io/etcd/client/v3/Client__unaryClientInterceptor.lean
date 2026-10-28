@@ -399,11 +399,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           iframe Hcg
           unfold etcdInterceptorOkG
           iexact IH
-        -- (C1, `notes/c1-plan.md`, finding 3) the context's `Err()` gives client errors:
-        -- `authClient.Authenticate`'s `ContextError`; not in the interceptor's contract yet
-        ihave #Hce : ctxErrClient ci { cd with Values := vsv } $$ []
-        · sorry
-        wp_apply wp_refresh c cconn ceps ci { cd with Values := vsv } $$ [$Hc $Hready $Hcc $Hctx' $Hce]
+        wp_apply wp_refresh c cconn ceps ci { cd with Values := vsv } $$ [$Hc $Hready $Hcc $Hctx']
           as %gt #Hgt
         cases gt with
         | ok gti =>

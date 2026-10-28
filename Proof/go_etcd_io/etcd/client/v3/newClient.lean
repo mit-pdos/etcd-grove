@@ -273,10 +273,10 @@ theorem newClient.wp_proof
       · ileft; ipureintro; exact Hup
       · obtain ⟨rfl, rfl⟩ := Hupc
         iunfold clientAuthPre at Hauth
-        icases Hauth with (%Hup | ⟨-, #Hreg⟩)
+        icases Hauth with (%Hup | ⟨-, #Hall, #Hreg⟩)
         · ileft; ipureintro; exact Hup
         · iright
-          iframe Hreg
+          iframe Hall Hreg
           iapply tokenBundleInv_nn
           iexact Hb
     ihave #Hconn : isEtcdConn (GF := GF) conn eps $$ []
@@ -315,10 +315,7 @@ theorem newClient.wp_proof
     wp_apply wp_getToken «$r0_ptr» conn eps cx cd $$ [$Hrc $Hready] as %terr ⟨-, -⟩
     · isplitr
       · inext; iexact Hconn
-      isplitr
-      · iapply ctxOk_of_isContext; iexact Hcx
-      -- (C1, `notes/c1-plan.md`, finding 3) the timeout context's `Err()` gives client errors
-      sorry
+      iapply ctxOk_of_isContext; iexact Hcx
     -- (E2d) the token's fetch failed (a client with a user name): the client closed, an error
     cases terr with
     | ok e =>

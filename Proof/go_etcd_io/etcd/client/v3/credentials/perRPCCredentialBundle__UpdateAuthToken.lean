@@ -28,7 +28,20 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 theorem credentials.perRPCCredentialBundle.UpdateAuthToken.wp_proof
     (wp_UpdateAuthToken : credentials.perRPCCredential.UpdateAuthToken.spec (GF := GF) (hG := hG)) :
     credentials.perRPCCredentialBundle.UpdateAuthToken.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro b P t
+  wp_start as ⟨Hb, #Ht⟩
+  unfold tokenBundleInv
+  icases Hb with ⟨%b', %rc, %h, #Hrc, #Hinv⟩
+  have hb : b = b' := by
+    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
+    exact GoGlobalContext.intoVal_inj_loc h
+  subst hb
+  wp_auto
+  wp_if_destruct
+  · iapply HΦ; ipureintro; trivial
+  wp_apply wp_UpdateAuthToken rc P t $$ [Hinv Ht]
+  · iframe Hinv Ht
+  iapply HΦ; ipureintro; trivial
 
 end proof
 

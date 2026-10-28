@@ -288,10 +288,6 @@ theorem rpctypes.wp_Error :
     EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
 
-theorem errors.wp_Is :
-    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.Is.wp_proof
-
 theorem rpctypes.EtcdError.wp_Code :
     EtcdGrove.rpctypes.EtcdError.Code.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rpctypes.EtcdError.Code.wp_proof
@@ -371,6 +367,10 @@ theorem v3.WatchResponse.wp_IsProgressNotify :
 theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.TODO.wp_proof
+
+theorem errors.wp_Is :
+    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Is.wp_proof
 
 theorem time.Time.wp_IsZero :
     EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
@@ -517,7 +517,7 @@ theorem credentials.perRPCCredentialBundle.wp_UpdateAuthToken :
 
 theorem v3.Client.wp_getToken :
     EtcdGrove.Client.getToken.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Client.getToken.wp_proof v3.authClient.wp_Authenticate credentials.perRPCCredentialBundle.wp_UpdateAuthToken errors.wp_Is
+  EtcdGrove.Client.getToken.wp_proof v3.authClient.wp_Authenticate credentials.perRPCCredentialBundle.wp_UpdateAuthToken errors.wp_IsStatusErr
 
 theorem v3.Client.wp_refreshToken :
     EtcdGrove.Client.refreshToken.spec (GF := GF) (hG := hG) :=

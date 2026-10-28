@@ -266,6 +266,9 @@ translate = [
   "PermWrite", "PermReadWrite", "RetryAuthClient", "retryAuthClient", "retryAuthClient.UserAdd",
   "retryAuthClient.UserGrantRole", "retryAuthClient.RoleAdd", "retryAuthClient.RoleGrantPermission",
   "retryAuthClient.AuthEnable",
+  # the auth plan's C1 phase 2 (2026-10-28): a user client's token (`getToken`, the client's
+  # `Authenticate` and its retrying wrapper's)
+  "Client.getToken", "authClient.Authenticate", "retryAuthClient.Authenticate",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata"]
 

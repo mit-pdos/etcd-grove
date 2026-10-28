@@ -34,6 +34,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 public import Proof.go_etcd_io.etcd.client.v3.credentials.Defs
 public import Proof.go_etcd_io.etcd.client.v3.InvLessor
+public import Perennial.Ghost.DGhostVar
 
 @[expose] public section
 
@@ -118,7 +119,8 @@ def clientAuthAt (c : Loc) (eps : List GoString) (P : GoString → IProp GF) : I
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"Token" c ↦□ tok ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"authTokenBundle" c ↦□ atb ∗
     (⌜atb = GoInterface.nil⌝ ∨ tokenBundleInv atb P) ∗ (⌜tok = go!""⌝ ∨ □ P tok) ∗
-    (⌜u = go!"" ∨ pw = go!""⌝ ∨ ⌜atb ≠ GoInterface.nil⌝ ∗ authTokReg eps u pw P))
+    (⌜u = go!"" ∨ pw = go!""⌝ ∨
+      ⌜atb ≠ GoInterface.nil⌝ ∗ client.ctxErrClientAll ∗ authTokReg eps u pw P))
 
 instance clientAuthAt_persistent (c : Loc) (eps : List GoString) (P : GoString → IProp GF) :
     Persistent (clientAuthAt c eps P) := by
@@ -427,16 +429,70 @@ theorem attemptTokOk_of (conn : Loc) (P : GoString → IProp GF) :
     rw [auth.mdTokenOf_eq md, mdGet_of_vals md _ (hne _), htok]
     simp
 
+/-! ## A quiet context's errors -/
+
+/-- A descriptor of a quiet context (never done): any names whose closed flag is `false` for
+good (as `InvServerKV`'s `todoCd`). -/
+abbrev quietCd (γ : context.ContextNames) : context.ContextDesc (IProp GF) :=
+  ⟨∅, none, γ, iprop(True)⟩
+
+/-- **A quiet context's `Err()` returns client errors** (`nil`, always), at a descriptor whose
+closed flag is `false` for good (as `ctxErrClient_todo`; the auth plan's C1). -/
+theorem ctxErrClient_quiet (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (ci : GoInterfaceOk) (γ : context.ContextNames) :
+    ctxQuiet (GF := GF) ci ∗ dghostVar γ.closedGn DFrac.discard false ⊢
+      ctxErrClient ci (quietCd γ) := by
+  iintro ⟨#Hq, #Hf⟩
+  unfold ctxErrClient
+  imodintro
+  iintro %cl %Φ Hcl HΦ
+  cases cl with
+  | Done =>
+    iunfold context.ContextClosed at Hcl
+    ihave %Hag := dghostVar_agree _ _ _ _ _ $$ Hf Hcl
+    simp at Hag
+  | _ =>
+    iunfold ctxQuiet at Hq
+    iapply Hq
+    inext
+    iapply HΦ
+    · simp only [↓reduceIte]; itrivial
+    · ipureintro
+      exact ⟨hAs, fun ii h => by cases h⟩
+    · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+    · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+
+/-- **A descriptor for a quiet context**, with `ctxErrClient` (the auth plan's C1: the client's
+token fetch calls `Authenticate` with a quiet caller's context at it). -/
+theorem quiet_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (ci : GoInterfaceOk) :
+    ctxQuiet (GF := GF) ci ⊢ |==> ∃ cd : context.ContextDesc (IProp GF),
+      ctxOk ci cd ∗ ctxErrClient ci cd := by
+  iintro #Hq
+  imod dghostVar_alloc (GF := GF) false with ⟨%γc, Hc⟩
+  imod dghostVar_persist γc 1 false $$ Hc with #Hc
+  imodintro
+  iexists (quietCd ⟨γc, γc⟩)
+  isplitl []
+  · unfold ctxOk
+    iright
+    iexact Hq
+  iapply ctxErrClient_quiet hAs ci ⟨γc, γc⟩
+  iframe #
+
 /-! ## What `New` takes and gives -/
 
 /-- **What `New` needs of a configuration's credentials** at the token predicate `P` (persistent;
 `cfg.Token` is `""`, `clientCfgOk`): no user name or no password (no bundle, no call), or
-`Authenticate` registered at the endpoints with the reply to them a token meeting `P`, and the
-bound on the credentials' readers (`authTokReg`, `credTokInv`). -/
+`Authenticate` registered at the endpoints with the reply to them a token meeting `P`, the bound
+on the credentials' readers (`authTokReg`, `credTokInv`), and every context's `Err()` returning
+client errors (`client.ctxErrClientAll`: `Authenticate`'s `ContextError`; a top-level result
+discharges it by `ctxErrClientAllW_of`; C1's review, F5). -/
 def clientAuthPre (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString)
     (P : GoString → IProp GF) : IProp GF :=
   iprop(⌜cfg.Username' = go!"" ∨ cfg.Password' = go!""⌝ ∨
-    ⌜threadBound GF ≤ 2 ^ 30⌝ ∗ authTokReg eps cfg.Username' cfg.Password' P)
+    ⌜threadBound GF ≤ 2 ^ 30⌝ ∗ client.ctxErrClientAll ∗
+      authTokReg eps cfg.Username' cfg.Password' P)
 
 instance clientAuthPre_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString)
     (P : GoString → IProp GF) : Persistent (clientAuthPre cfg eps P) := by

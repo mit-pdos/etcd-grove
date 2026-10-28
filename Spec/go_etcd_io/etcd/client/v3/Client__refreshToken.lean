@@ -31,7 +31,7 @@ abbrev Client.refreshToken.spec : Prop :=
   ∀ (c conn : Loc) (eps : List GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
       -- (C1) as `getToken`'s
-      clientReady c conn eps ∗ ▷ isEtcdConn conn eps ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+      clientReady c conn eps ∗ ▷ isEtcdConn conn eps ∗ ctxOk ctx cd }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"refreshToken")) (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; clientErrOk err }}

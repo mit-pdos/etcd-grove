@@ -24,7 +24,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 theorem credentials.perRPCCredential.RequireTransportSecurity.wp_proof :
     credentials.perRPCCredential.RequireTransportSecurity.spec (GF := GF) (hG := hG) := by
-  sorry -- C1 phase 2: translate `RequireTransportSecurity` (`return false`)
+  intro rc
+  wp_start as -
+  wp_auto
+  iapply HΦ
+  ipureintro; rfl
 
 end proof
 

@@ -59,6 +59,7 @@ axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.opaqueInitsOk
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthNotEnabled_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthOldRevision_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev_init
@@ -571,11 +572,3 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint64.wp_proof
-sorry Client.getToken.wp_proof
-sorry Client.unaryClientInterceptor.wp_proof
-sorry authClient.Authenticate.wp_proof
-sorry credentials.perRPCCredential.RequireTransportSecurity.wp_proof
-sorry credentials.perRPCCredentialBundle.UpdateAuthToken.wp_proof
-sorry etcdserverpb.authClient.Authenticate.wp_proof
-sorry newClient.wp_proof
-sorry retryAuthClient.Authenticate.wp_proof

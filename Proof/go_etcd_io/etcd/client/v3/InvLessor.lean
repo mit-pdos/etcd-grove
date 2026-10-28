@@ -303,7 +303,20 @@ theorem errNoLeader_of_init :
   iintro #Hp
   ihave Hi : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
-  icases Hi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%x, #Hx⟩⟩
+  icases Hi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%x, #Hx⟩, -⟩
+  iexists x
+  iexact Hx
+
+/-- **`rpctypes`' fact gives `ErrAuthNotEnabled`** (an `EtcdError`; the auth plan's C1). -/
+theorem errAuthNotEnabled_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ⊢
+      ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+        globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthNotEnabled ↦□
+          interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x := by
+  iintro #Hp
+  ihave Hi : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%x, #Hx⟩⟩
   iexists x
   iexact Hx
 

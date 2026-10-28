@@ -262,3 +262,28 @@ TaDa-style specs, Q8-Q10 minor.
   handler is proved: one registration for every mode. **Q10** (the watch path's `getToken` outside
   the gate) is recorded: the `ClientConn.NewStream` axiom's truth relies on whatever is stored being
   an `Authenticate` reply.
+
+## Phase 2: the proofs (2026-10-28)
+
+The client side is proved; C1's chain rests on no `sorry` but the served `Authenticate`.
+
+- Translated (`Code/**/*.toml`): `Client.getToken`, `authClient.Authenticate`,
+  `retryAuthClient.Authenticate`, the stub's `authClient.Authenticate` (and
+  `Auth_Authenticate_FullMethodName`), the bundle's `UpdateAuthToken`, the credentials'
+  `RequireTransportSecurity`; each proved. The credentials' `GetRequestMetadata` and
+  `UpdateAuthToken` stay the two trust-boundary axioms (finding 2).
+- `getToken` compares `Authenticate`'s error with `rpctypes.ErrAuthNotEnabled` (`errors.Is`, by the
+  status-error spec): rpctypes' facts gain it (`rpctypesInit`'s last conjunct, an `EtcdError`; the
+  trust-boundary axiom `ErrAuthNotEnabled_init` on its untranslated initializer, as `ErrNoLeader`'s).
+- **F5, revised**: `ctxErrClient` left `getToken`'s and `refreshToken`'s preconditions instead of
+  entering the interceptor's contract. Only a user client calls `Authenticate`, so `clientAuthPre`'s
+  and `clientAuthAt`'s user branches carry `client.ctxErrClientAll` (a top-level result discharges
+  it by `ctxErrClientAllW_of`, as `authkv`'s `Main` premises allow); `getToken` derives the call's
+  `ctxErrClient` from `ctxOk`: an `isContext` by it, a quiet context at a fresh descriptor of its
+  own (`quiet_ctx`, `InvClientAuth`). The interceptor's and `newClient`'s holes are gone.
+- Left: `etcd_kv_auth_served_onA` (`AuthnServedOn.lean`), a server-side stage of its own:
+  `EtcdServer.Authenticate` (translated, unproved: `CheckPassword`, the raft request, the retry on
+  `ErrAuthOldRevision`), the Authenticate request admitted by `reqPropOkOn` (as `adminPropOk`'s),
+  the apply path's `authStore.Authenticate` (`authenticated`) tied to `auth.tokIssued`,
+  `AuthServer.Authenticate` and the handler in `authRegs`. Then Q9 (one registration for every
+  mode) and Q2.

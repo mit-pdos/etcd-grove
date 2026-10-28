@@ -27,7 +27,7 @@ theorem Client.refreshToken.wp_proof
     (wp_getToken : Client.getToken.spec (GF := GF) (hG := hG)) :
     Client.refreshToken.spec (GF := GF) (hG := hG) := by
   intro c conn eps ctx cd
-  wp_start as ⟨#Hc, #Hr, #Hconn, Hctx, #Hce⟩
+  wp_start as ⟨#Hc, #Hr, #Hconn, Hctx⟩
   ihave #Hc' := Hc
   iunfold retryClientOk at Hc'
   icases Hc' with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb⟩
@@ -39,7 +39,7 @@ theorem Client.refreshToken.wp_proof
     iapply clientErrOk_nil
   | ok a =>
     wp_auto
-    wp_apply wp_getToken c conn eps ctx cd $$ [$Hc $Hr $Hconn $Hctx $Hce] as %err ⟨#Herr, -⟩
+    wp_apply wp_getToken c conn eps ctx cd $$ [$Hc $Hr $Hconn $Hctx] as %err ⟨#Herr, -⟩
     iapply HΦ
     iexact Herr
 
