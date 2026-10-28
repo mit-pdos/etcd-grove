@@ -17,7 +17,7 @@ specs that do not need the informer's invariant. Lean-first.
   reflector's `expectedType`).
 * `errChOk ch`: the reflector's `resyncerrc` (`make(chan error, 1)`), a channel nothing is ever
   sent on and never closed (with resync period `0`, `startResync` never sends; its spec says so).
-* `cbOk cb C L` (persistent): the callback `setLastSyncResourceVersion(rv, b)` takes `C i p rv` to
+* `watchCbOk cb C L` (persistent): the callback `setLastSyncResourceVersion(rv, b)` takes `C i p rv` to
   `L i p`.
 -/
 module
@@ -117,14 +117,14 @@ instance errChOk_persistent (ch : GoChan) : Persistent (errChOk (GF := GF) ch) :
 
 /-- **The watch's callback** `setLastSyncResourceVersion(rv, b)` takes `C i p rv` to `L i p`
 (persistent). -/
-def cbOk (cb : GoFunc) (C : Nat → Pos' → GoString → IProp GF) (L : Nat → Pos' → IProp GF) :
+def watchCbOk (cb : GoFunc) (C : Nat → Pos' → GoString → IProp GF) (L : Nat → Pos' → IProp GF) :
     IProp GF :=
   iprop(□ ∀ (i : Nat) (p : Pos') (rv : GoString) (b : Bool) (Φ : val → IProp GF),
     C i p rv -∗ ▷ (L i p -∗ Φ #()) -∗ WP (App (App (Val #cb) (Val #rv)) (Val #b)) {{ Φ }})
 
-instance cbOk_persistent (cb : GoFunc) (C : Nat → Pos' → GoString → IProp GF)
-    (L : Nat → Pos' → IProp GF) : Persistent (cbOk cb C L) := by
-  unfold cbOk; infer_instance
+instance watchCbOk_persistent (cb : GoFunc) (C : Nat → Pos' → GoString → IProp GF)
+    (L : Nat → Pos' → IProp GF) : Persistent (watchCbOk cb C L) := by
+  unfold watchCbOk; infer_instance
 
 /-- **Each event's step** (persistent), what the caller of `handleAnyWatch` provides: after `i`
 events at the watch's position `p` (`L i p`), the `i`-th event `ev` of the watch `γw` (its contract

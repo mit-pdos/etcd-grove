@@ -37,7 +37,7 @@ abbrev handleWatch.spec : Prop :=
   bmTyOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ stableCtx ctx dch γd ∗
       watchAt w γa γw r go!"" bm inits ∗ watchCons γw n p ∗ L n p ∗ isFIFO f γ OK ∗
-      typeOfOk et r ∗ errChOk errCh ∗ evStepOk γa γw r bm inits γ OK L C ∗ cbOk cb C L }}
+      typeOfOk et r ∗ errChOk errCh ∗ evStepOk γa γw r bm inits γ OK L C ∗ watchCbOk cb C L }}
     (App (App (App (App (App (App (App (App (App (App (App
       (Val (@! k8s_io.client_go.tools.cache.handleWatch))
       (Val #(GoInterface.ok ctx))) (Val #start)) (Val #w))

@@ -22,7 +22,7 @@ each event received:
 * `ADDED`/`MODIFIED`/`DELETED` call the store's `Add`/`Update`/`Delete(event.Object)`,
   `BOOKMARK` the store's `Bookmark(rv)` (a `ReflectorBookmarkStore`, `bmTyOk`; `rv` the object's
   `GetResourceVersion()`); each through the FIFO's logically atomic update (`evAct`), its error
-  only logged; then `setLastSyncResourceVersion(rv, eventReceivedBesidesAdded)` (`cbOk`).
+  only logged; then `setLastSyncResourceVersion(rv, eventReceivedBesidesAdded)` (`watchCbOk`).
 * when the result channel closes, it returns (`nil`, or a `VeryShortWatchError` after a watch
   shorter than a second with no event); a deferred `w.Stop()` (`stopWatcher` stays true).
 So the caller's state `L` follows the watch's consumer side (`watchCons`) event by event, and
@@ -52,7 +52,7 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`handleAnyWatch(...)`** on the model's watch `w` (consumer side after `n` events at `p`) into
-the FIFO `f`, with the caller's per-event step (`evStepOk`) and callback (`cbOk`): back to the
+the FIFO `f`, with the caller's per-event step (`evStepOk`) and callback (`watchCbOk`): back to the
 caller's state `L` at the watch's consumer side where it stopped. -/
 abbrev handleAnyWatch.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (dch : GoChan) (γd : ChanNames) (start : time.Time) (w : GoInterface)
@@ -63,7 +63,7 @@ abbrev handleAnyWatch.spec : Prop :=
   bmTyOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ stableCtx ctx dch γd ∗
       watchAt w γa γw r go!"" bm inits ∗ watchCons γw n p ∗ L n p ∗ isFIFO f γ OK ∗
-      typeOfOk et r ∗ errChOk errCh ∗ evStepOk γa γw r bm inits γ OK L C ∗ cbOk cb C L }}
+      typeOfOk et r ∗ errChOk errCh ∗ evStepOk γa γw r bm inits γ OK L C ∗ watchCbOk cb C L }}
     (App (App (App (App (App (App (App (App (App (App (App (App
       (Val (@! k8s_io.client_go.tools.cache.handleAnyWatch))
       (Val #(GoInterface.ok ctx))) (Val #start)) (Val #w))

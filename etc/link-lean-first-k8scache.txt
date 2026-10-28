@@ -148,3 +148,51 @@ Reflector__setIsLastSyncResourceVersionUnavailable:
 Reflector__relistResourceVersion:
 Reflector__rewatchResourceVersion:
 Reflector__syncWith: RealFIFO__Replace
+#
+# the reflector's list-watch (reflector.go, DaemonSet plan phase 4, fifth round). Named hypotheses
+# (`?`, no axioms this round): outside client-go, names-only: klog's FromContext, logr's V/Info,
+# utilnet.IsConnectionRefused, rand.Float64, RealClock.After, wait.Group.Start; boundary pending
+# approval: the apierrors predicates, meta.ListAccessor/ExtractListWithAlloc/LenList, Trace.Step;
+# gaps: handleAnyWatch (D4), retryWithDeadlineImpl.After (Perennial's time lacks Time.IsZero);
+# not proved this round: isTooLargeResourceVersionError
+v2_FromContext: ?
+logr_Logger__V_ptr: ?
+logr_Logger__Info: ?
+logr_Logger__Info_ptr: ?
+errors_IsResourceExpired: ?
+errors_IsGone: ?
+errors_IsTooManyRequests: ?
+errors_IsInternalError: ?
+net_IsConnectionRefused: ?
+rand_Float64: ?
+clock_RealClock__After: ?
+wait_Group__Start: ?
+meta_ListAccessor: ?
+meta_ExtractListWithAlloc: ?
+meta_LenList: ?
+trace_Trace__Step: ?
+handleAnyWatch: ?
+retryWithDeadlineImpl__After: ?
+isTooLargeResourceVersionError: ?
+# the trust boundary (existing axioms)
+clock_RealClock__Now:
+time_Duration__Seconds_ptr:
+fmt_Errorf: @
+# proved
+handleWatch: handleAnyWatch
+isExpiredError: errors_IsResourceExpired errors_IsGone
+isWatchErrorRetriable: net_IsConnectionRefused errors_IsTooManyRequests
+isUnsupportedTableListObject:
+NewRetryWithDeadline:
+retryWithDeadlineImpl__reset:
+retryWithDeadlineImpl__ShouldRetry: retryWithDeadlineImpl__reset clock_RealClock__Now =_root_.Perennial.time.Time.wp_Sub
+pager_New:
+pager_SimplePageFunc:
+pager_ListPager__list: meta_ListAccessor errors_IsResourceExpired
+pager_ListPager__ListWithAlloc: pager_ListPager__list
+Reflector__resyncChan:
+Reflector__startResync: Reflector__resyncChan v2_FromContext
+Reflector__watch: handleWatch Reflector__LastSyncResourceVersion Reflector__setLastSyncResourceVersion NewRetryWithDeadline retryWithDeadlineImpl__After retryWithDeadlineImpl__ShouldRetry isExpiredError isWatchErrorRetriable v2_FromContext logr_Logger__V_ptr logr_Logger__Info logr_Logger__Info_ptr clock_RealClock__Now clock_RealClock__After rand_Float64 time_Duration__Seconds_ptr errors_IsTooManyRequests errors_IsInternalError
+Reflector__list: Reflector__relistResourceVersion Reflector__setIsLastSyncResourceVersionUnavailable Reflector__setLastSyncResourceVersion Reflector__syncWith isExpiredError isTooLargeResourceVersionError isUnsupportedTableListObject pager_New pager_SimplePageFunc pager_ListPager__ListWithAlloc meta_ListAccessor meta_ExtractListWithAlloc meta_LenList trace_New trace_Trace__LogIfLong trace_Trace__Step fmt_Errorf
+Reflector__watchWithResync: Reflector__watch Reflector__startResync wait_Group__Start
+Reflector__ListAndWatchWithContext: Reflector__list Reflector__watchWithResync v2_FromContext logr_Logger__V_ptr logr_Logger__Info

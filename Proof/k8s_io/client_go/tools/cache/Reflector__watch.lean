@@ -308,7 +308,7 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
       wp_apply (wp_handleWatch ctx dch γd t wv γa γw res _ [] f γf (infObj γi res) et name td _ c
         errCh 0 (logStart (σw.tbl res).log n0, n0) (wL r γa γi res) (wC r γa γi res) hbm)
         $$ [$Hctx $Hwat $Hcons $HL0 $Hfifo $Hty $Herr $Hstep] as %err' Hpost
-      · unfold cbOk
+      · unfold watchCbOk
         imodintro
         iintro %i %p %rv %b %Φ' HC HΦ'
         iunfold wC at HC
