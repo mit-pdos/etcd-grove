@@ -15,6 +15,7 @@ reflector's fields): `watch` returns at once. It returns either way with the ref
 some positive version, or the context seen done.
 
 Premises besides the reflector's: `rvuTyOk` (`*RealFIFO` is not a `ResourceVersionUpdater`),
+`bmTyOk` (it is a `ReflectorBookmarkStore`),
 `errIsOk` (`errors.Is` returns), Go's `int64(f)` (`Float64ToInt64Semantics`, the watch timeout).
 -/
 module
@@ -62,13 +63,13 @@ abbrev Reflector.watch.spec : Prop :=
     (dch : GoChan) (γd : ChanNames) (errCh : GoChan) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (k : Nat),
-  rvuTyOk →
+  rvuTyOk → bmTyOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ reflFixed r f lw et dh ∗
       reflEnv γa cfg res γf γt γi f lw et ∗ stableCtx ctx dch γd ∗ errChOk errCh ∗ errIsOk ∗
-      (reflSt r γi (some k) ∨ ctxSeen dch γd) }}
+      (reflSt r γa γi (some k) ∨ ctxSeen dch γd) }}
     (App (App (App (Val (r @!! go.GoType.PointerType Reflector.ty @!! go!"watch"))
       (Val #(GoInterface.ok ctx))) (Val #(interface.nil : GoInterface))) (Val #errCh))
-  {{ (err : GoInterface), RET #err; (∃ k', reflSt r γi (some k')) ∨ ctxSeen dch γd }}
+  {{ (err : GoInterface), RET #err; (∃ k', reflSt r γa γi (some k')) ∨ ctxSeen dch γd }}
 
 end spec
 

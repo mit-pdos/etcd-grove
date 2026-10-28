@@ -27,11 +27,11 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 theorem handleWatch.wp_proof (wp_handleAnyWatch : handleAnyWatch.spec (GF := GF) (hG := hG)) :
     handleWatch.spec (GF := GF) (hG := hG) := by
-  intro ctx dch γd start w γa γw r bm inits f γ OK et name tname cb clk errCh n p L C
+  intro ctx dch γd start w γa γw r bm inits f γ OK et name tname cb clk errCh n p L C hbm
   wp_start as ⟨#Hctx, #Hw, Hcons, HL, #Hf, #Hty, #Herr, #Hstep, #Hcb⟩
   wp_auto
   wp_apply (wp_handleAnyWatch ctx dch γd start w γa γw r bm inits f γ OK et name tname cb clk
-    errCh n p L C) $$ [$Hctx $Hw $Hcons $HL $Hf $Hty $Herr $Hstep $Hcb] as %b %err Hpost
+    errCh n p L C hbm) $$ [$Hctx $Hw $Hcons $HL $Hf $Hty $Herr $Hstep $Hcb] as %b %err Hpost
   (try wp_auto)
   iapply HΦ
   iexact Hpost

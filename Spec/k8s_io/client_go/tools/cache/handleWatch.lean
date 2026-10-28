@@ -34,6 +34,7 @@ abbrev handleWatch.spec : Prop :=
     (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (et : reflect.Type')
     (name tname : GoString) (cb : GoFunc) (clk : k8s_io.utils.clock.RealClock) (errCh : GoChan)
     (n : Nat) (p : Pos') (L : Nat → Pos' → IProp GF) (C : Nat → Pos' → GoString → IProp GF),
+  bmTyOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ stableCtx ctx dch γd ∗
       watchAt w γa γw r go!"" bm inits ∗ watchCons γw n p ∗ L n p ∗ isFIFO f γ OK ∗
       typeOfOk et r ∗ errChOk errCh ∗ evStepOk γa γw r bm inits γ OK L C ∗ cbOk cb C L }}

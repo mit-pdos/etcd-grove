@@ -1,7 +1,7 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -82,8 +82,9 @@ local macro "ret_refl" : tactic => `(tactic| (
     ileft
     iexists p'.2.toNat
     unfold reflSt
-    iexists (rvStr p'.2), u2
+    iexists (rvStr p'.2), u2, σ2
     iframe
+    iframe #
     ipureintro; exact hrv2))
 
 set_option hygiene false in
@@ -96,8 +97,9 @@ local macro "cont_refl" : tactic => `(tactic| (
     ileft
     iexists p'.2.toNat
     unfold reflSt
-    iexists (rvStr p'.2), u2
+    iexists (rvStr p'.2), u2, σ2
     iframe
+    iframe #
     ipureintro; exact hrv2))
 
 set_option hygiene false in
@@ -130,7 +132,7 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
     (wp_IsTooManyRequests : apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG))
     (wp_IsInternalError : apierrors.IsInternalError.spec (GF := GF) (hG := hG)) :
     Reflector.watch.spec (GF := GF) (hG := hG) := by
-  intro r f lw et dh ctx dch γd errCh γa cfg res γf γt γi k hrvu
+  intro r f lw et dh ctx dch γd errCh γa cfg res γf γt γi k hrvu hbm
   wp_start as ⟨#Hfix, #Henv, #Hctx, #Herr, #HerrIs, Hst⟩
   ihave #Hm : (k8s_io.apiserver.pkg.storage.cacher.k8sCacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -162,11 +164,12 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
   icases Hf2 with ⟨%name, %td, %ps, %md, %sr, %weh, #Hdhf, #Hname, #Htd, #Hps, #Hmd, #Hsr, #Hweh⟩
   (try wp_auto)
   wp_apply (wp_FromContext (GoInterface.ok ctx)) $$ [$Hklog] as %lg -
+  · ipureintro; simp
   (try wp_auto)
   wp_apply (wp_NewRetryWithDeadline md _ c) as %rt Hrt
   (try wp_auto)
   ihave HI : iprop(∃ (e rt : GoInterface), "err" ∷ err_ptr ↦ e ∗ "retry" ∷ retry_ptr ↦ rt ∗
-      "Hrt" ∷ retryOwn rt ∗ "Hst" ∷ ((∃ k', reflSt r γi (some k')) ∨ ctxSeen dch γd))
+      "Hrt" ∷ retryOwn rt ∗ "Hst" ∷ ((∃ k', reflSt r γa γi (some k')) ∨ ctxSeen dch γd))
     $$ [err retry Hrt Hst]
   · iexists _, rt
     iframe
@@ -176,8 +179,8 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
   wp_for HI
   icases Hst with (⟨%k', Hst⟩ | #Hseen)
   · iunfold reflSt at Hst
-    icases Hst with ⟨%v, %u, Hown, Hmisc, Hlast, %hrv⟩
-    obtain ⟨⟨w0, hk', hv⟩, hpos⟩ := hrv
+    icases Hst with ⟨%v, %u, %σ0, Hown, Hmisc, Hlast, #Hσ0, %hrv⟩
+    obtain ⟨⟨w0, hk', hv⟩, hpos, hle0⟩ := hrv
     subst hv hk'
     have hpos0 : 1 ≤ w0.toNat := hpos _ rfl
     obtain ⟨hne1, hne0⟩ := rvStr_pos w0 hpos0
@@ -239,10 +242,11 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
         ileft
         iexists w0.toNat
         unfold reflSt reflMisc
-        iexists (rvStr w0), u
+        iexists (rvStr w0), u, σ0
         iframe
+        iframe #
         ipureintro
-        exact ⟨⟨w0, rfl, rfl⟩, hpos⟩
+        exact ⟨⟨w0, rfl, rfl⟩, hpos, hle0⟩
       · wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl
@@ -274,10 +278,11 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
           ileft
           iexists w0.toNat
           unfold reflSt reflMisc
-          iexists (rvStr w0), u
+          iexists (rvStr w0), u, σ0
           iframe
+          iframe #
           ipureintro
-          exact ⟨⟨w0, rfl, rfl⟩, hpos⟩
+          exact ⟨⟨w0, rfl, rfl⟩, hpos, hle0⟩
     · subst he
       icases Hw with ⟨%γw, %inits, %n0, #Hwat, Hcons, #Hσw, %hstart⟩
       have hst' := hstart
@@ -301,7 +306,7 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
         exact ⟨hpos0, curOk_start res σw n0 ⟨_, hiss⟩⟩
       ihave #Hstep := watch_evStepOk r γa res γf γt γi γw _ $$ Hinv Hkeys
       wp_apply (wp_handleWatch ctx dch γd t wv γa γw res _ [] f γf (infObj γi res) et name td _ c
-        errCh 0 (logStart (σw.tbl res).log n0, n0) (wL r γa γi res) (wC r γa γi res))
+        errCh 0 (logStart (σw.tbl res).log n0, n0) (wL r γa γi res) (wC r γa γi res) hbm)
         $$ [$Hctx $Hwat $Hcons $HL0 $Hfifo $Hty $Herr $Hstep] as %err' Hpost
       · unfold cbOk
         imodintro
@@ -327,8 +332,9 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
       iunfold wL at HL'
       icases HL' with ⟨%u2, %σ2, Hown, Hmisc, Hlast, #Hσ2, %hl2⟩
       obtain ⟨hpos2, hcur2⟩ := hl2
-      have hrv2 : rvRel (rvStr p'.2) (some p'.2.toNat) ∧ lastPos (some p'.2.toNat) :=
-        ⟨⟨p'.2, rfl, rfl⟩, fun k hk => by cases hk; exact hpos2⟩
+      have hrv2 : rvRel (rvStr p'.2) (some p'.2.toNat) ∧ lastPos (some p'.2.toNat) ∧
+          rvLe (some p'.2.toNat) (some σ2.rev.toNat) :=
+        ⟨⟨p'.2, rfl, rfl⟩, fun k hk => by cases hk; exact hpos2, hcur2.2⟩
       iunfold retryOwn at Hrt
       icases Hrt with ⟨%rl, %rv, %rc, %hrt, Hrl, %hrv⟩
       subst hrt
@@ -349,8 +355,9 @@ theorem Reflector.watch.wp_proof [Float64ToInt64Semantics]
         ileft
         iexists p'.2.toNat
         unfold reflSt
-        iexists (rvStr p'.2), u2
+        iexists (rvStr p'.2), u2, σ2
         iframe
+        iframe #
         ipureintro; exact hrv2
       | ok e' =>
         (try wp_auto)

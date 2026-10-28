@@ -15,8 +15,8 @@ specs that do not need the informer's invariant. Lean-first.
   sends none).
 * `typeOfOk et r` (persistent): `reflect.TypeOf` of a `*T` of resource `r` returns `et` (the
   reflector's `expectedType`).
-* `errChOk ch`: the reflector's `resyncerrc`, a channel nothing is ever sent on (with resync period
-  `0`, `startResync` never sends) or closed.
+* `errChOk ch`: the reflector's `resyncerrc` (`make(chan error, 1)`), a channel nothing is ever
+  sent on and never closed (with resync period `0`, `startResync` never sends; its spec says so).
 * `cbOk cb C L` (persistent): the callback `setLastSyncResourceVersion(rv, b)` takes `C i p rv` to
   `L i p`.
 -/
@@ -57,6 +57,26 @@ def resListTy : Res → go.GoType
   | .nodes => k8s_io.api.core.v1.NodeList.ty
   | .daemonSets => k8s_io.api.apps.v1.DaemonSetList.ty
   | .revisions => k8s_io.api.apps.v1.ControllerRevisionList.ty
+
+/-- **The deep value of a `ListOptions` literal** whose `SendInitialEvents` is `nil`, its timeout
+pointer's target `ts`. -/
+def loOf (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (ts : Option w64) :
+    kd.meta.ListOptions :=
+  ⟨⟨v.TypeMeta'.Kind', v.TypeMeta'.APIVersion'⟩, v.LabelSelector', v.FieldSelector', v.Watch',
+    v.AllowWatchBookmarks', v.ResourceVersion', v.ResourceVersionMatch', ts, v.Limit', v.Continue',
+    none, v.ShardSelector'⟩
+
+open Iris.ProofMode in
+theorem lo_own_intro (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (ts : Option w64)
+    (dq : DFrac) (hsie : v.SendInitialEvents' = null) :
+    ownPtrD (GF := GF) ownBaseD v.TimeoutSeconds' dq ts ⊢ kd.meta.ListOptions.own v dq (loOf v ts) := by
+  iintro H
+  unfold kd.meta.ListOptions.own kd.meta.TypeMeta.own loOf
+  iframe
+  simp only [ownPtrD]
+  iframe
+  ipureintro
+  simp [hsie]
 
 /-- **The FIFO's logically atomic update** `op`, then `K`. -/
 def fifoAU (γ : FifoNames) (op : FQ → FQ) (K : IProp GF) : IProp GF :=
@@ -145,6 +165,12 @@ variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSeman
 method (`the_real_fifo.go`), so the watch's callback's `r.store.(ResourceVersionUpdater)` fails. -/
 def rvuTyOk : Prop :=
   go.typeSetContains (go.GoType.PointerType RealFIFO.ty) ResourceVersionUpdater.ty = false
+
+/-- **`*RealFIFO` is a `ReflectorBookmarkStore`** (a method-set fact, a premise as `rvuTyOk`): it has
+`Bookmark(string) error` (`the_real_fifo.go`), so `handleAnyWatch`'s `store.(ReflectorBookmarkStore)`
+succeeds and a bookmark reaches the FIFO. -/
+def bmTyOk : Prop :=
+  go.typeSetContains (go.GoType.PointerType RealFIFO.ty) ReflectorBookmarkStore.ty = true
 
 end tyOk
 

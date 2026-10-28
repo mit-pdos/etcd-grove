@@ -188,7 +188,7 @@ theorem daemonSetClient.List.wp_proof
             simp only [TypedPointsto.typedPointstoDef]
             iframe
           isplitr
-          · ipureintro; exact ⟨hlist.2, Hos⟩
+          · ipureintro; exact ⟨hlist.2, rfl, Hos⟩
           iframe
         isplitr
         · ipureintro; exact hlist.1

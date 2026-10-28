@@ -26,10 +26,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.klog.v2.Assumptions]
 
-/-- `klog.FromContext(ctx)`: some logger. -/
+/-- `klog.FromContext(ctx)` of a non-`nil` context (`nil` panics in `ctx.Value`): some logger. -/
 abbrev klog.FromContext.spec : Prop :=
   ∀ (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 ∗ ⌜ctx ≠ interface.nil⌝ }}
     (App (Val (@! k8s_io.klog.v2.FromContext)) (Val #ctx))
   {{ (l : github_com.go_logr.logr.Logger), RET #l; True }}
 

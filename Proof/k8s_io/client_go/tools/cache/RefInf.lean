@@ -13,7 +13,8 @@ pushes (`infInv_pushChangeAU`, `infInv_pushBookmarkAU`, `infInv_pushReplaceAU`).
   version, `n` (`reflLast`), the Go string the decimal of `n` (`rvRel`), positive.
 * `lwOk lw γa cfg res` (persistent): the list-watch lists and watches resource `res` of the model
   API server, all namespaces, as its typed clients do (`typedListRet`, `watchRet`), every error
-  printable (`fmt.argOk`). In `Main` the typed informers' list-watch closures do (gap D2: their
+  printable (`fmt.argOk`); a list is of a state at least any past state the caller knew before the
+  call (the typed clients' `List` is logically atomic: it reads the current state). In `Main` the typed informers' list-watch closures do (gap D2: their
   constructors are names-only), so for `Main` this is a named hypothesis of the construction.
 * `keysOk γa` (persistent): every state the server reaches has keys without a slash (the store's
   key strings are injective on them, `keyGood`; the informer invariant keeps it). A property of
@@ -187,10 +188,11 @@ variable [sem : go.Semantics]
 the file header. -/
 def lwOk (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res) : IProp GF :=
   iprop(□ (∀ (ctx : GoInterface) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions)
-      (dq : DFrac) (lo : kd.meta.ListOptions) (Φ : val → IProp GF),
-      kd.meta.ListOptions.own opts dq lo -∗
+      (dq : DFrac) (lo : kd.meta.ListOptions) (σ0 : apimodel.St) (Φ : val → IProp GF),
+      kd.meta.ListOptions.own opts dq lo -∗ pastSt γa σ0 -∗
       ▷ (∀ (q : Loc) (err : GoInterface) (σ : apimodel.St), kd.meta.ListOptions.own opts dq lo -∗
           typedListRet γa cfg.FailReads' false res go!"" lo σ q err -∗ fmt.argOk err -∗
+          ⌜apimodel.St.le σ0 σ⌝ -∗
           Φ (PairV #(interface.mkOk (go.GoType.PointerType (resListTy res)) #q) #err)) -∗
       WP (App (App (Val #(methods lw.ty go!"ListWithContext" lw.v)) (Val #ctx)) (Val #opts))
         {{ Φ }}) ∗
@@ -205,25 +207,6 @@ def lwOk (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_g
 instance lwOk_persistent (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res) :
     Persistent (lwOk (GF := GF) lw γa cfg res) := by
   unfold lwOk; infer_instance
-
-/-- **The deep value of a `ListOptions` literal** whose `SendInitialEvents` is `nil`, its timeout
-pointer's target `ts`. -/
-def loOf (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (ts : Option w64) :
-    kd.meta.ListOptions :=
-  ⟨⟨v.TypeMeta'.Kind', v.TypeMeta'.APIVersion'⟩, v.LabelSelector', v.FieldSelector', v.Watch',
-    v.AllowWatchBookmarks', v.ResourceVersion', v.ResourceVersionMatch', ts, v.Limit', v.Continue',
-    none, v.ShardSelector'⟩
-
-theorem lo_own_intro (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (ts : Option w64)
-    (dq : DFrac) (hsie : v.SendInitialEvents' = null) :
-    ownPtrD (GF := GF) ownBaseD v.TimeoutSeconds' dq ts ⊢ kd.meta.ListOptions.own v dq (loOf v ts) := by
-  iintro H
-  unfold kd.meta.ListOptions.own kd.meta.TypeMeta.own loOf
-  iframe
-  simp only [ownPtrD]
-  iframe
-  ipureintro
-  simp [hsie]
 
 open Iris.ProofMode in
 /-- An API error is not `nil`. -/
@@ -325,10 +308,11 @@ def reflMisc (r : Loc) : IProp GF :=
   iprop(∃ (pr : Bool) (mn mx : time.Duration), r.[Reflector, go!"paginatedResult"] ↦ pr ∗
     r.[Reflector, go!"minWatchTimeout"] ↦ mn ∗ r.[Reflector, go!"maxWatchTimeout"] ↦ mx)
 
-/-- **The reflector goroutine's state**: see the file header. -/
-def reflSt (r : Loc) (γi : InfNames) (n : Option Nat) : IProp GF :=
-  iprop(∃ (v : GoString) (u : Bool), reflOwn r v u ∗ reflMisc r ∗ reflLast γi n ∗
-    ⌜rvRel v n ∧ lastPos n⌝)
+/-- **The reflector goroutine's state**: see the file header; and a past state `σ0` whose version is
+at least the reflector's last (so a later list is at least it). -/
+def reflSt (r : Loc) (γa : ApiNames) (γi : InfNames) (n : Option Nat) : IProp GF :=
+  iprop(∃ (v : GoString) (u : Bool) (σ0 : apimodel.St), reflOwn r v u ∗ reflMisc r ∗ reflLast γi n ∗
+    pastSt γa σ0 ∗ ⌜rvRel v n ∧ lastPos n ∧ rvLe n (some σ0.rev.toNat)⌝)
 
 /-- **The watch loop's state after an event** (`handleAnyWatch`'s `L`): the reflector's fields at
 the watch's version `p.2`, the informer's last version it, the cursor in a past state's log. -/

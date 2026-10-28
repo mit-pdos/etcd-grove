@@ -398,26 +398,27 @@ def listedAt (γ : ApiNames) (r : Res) (ns : GoString) (σ : St) (sl : GoSlice) 
     ([∗list] x;o ∈ xs;os, objAt x (DFrac.own 1) o) ∗ ⌜listOk r ns σ os ∧ rv = rvStr σ.rev⌝ ∗
     pastSt γ σ)
 
-/-- **A typed list** (`*PodList`, ...) at `q`: its version `rv` and its items, owned deeply with
+/-- **A typed list** (`*PodList`, ...) at `q`: its version `rv`, no continue token, and its items, owned deeply with
 the objects `os`. -/
 def typedListAt (r : Res) (q : Loc) (os : List Obj) (rv : GoString) : IProp GF :=
   match r with
   | .pods => iprop(∃ (lv : k8s_io.api.core.v1.PodList) (vs : List k8s_io.api.core.v1.Pod)
-      (ds : List kd.core.Pod), q ↦ lv ∗ ⌜lv.ListMeta'.ResourceVersion' = rv ∧ os = ds.map .pod⌝ ∗
+      (ds : List kd.core.Pod), q ↦ lv ∗ ⌜lv.ListMeta'.ResourceVersion' = rv ∧ lv.ListMeta'.Continue' = go!"" ∧ os = ds.map .pod⌝ ∗
       lv.Items' ↦* vs ∗ [∗list] v;d ∈ vs;ds, kd.core.Pod.own v (DFrac.own 1) d)
   | .nodes => iprop(∃ (lv : k8s_io.api.core.v1.NodeList) (vs : List k8s_io.api.core.v1.Node)
-      (ds : List kd.core.Node), q ↦ lv ∗ ⌜lv.ListMeta'.ResourceVersion' = rv ∧ os = ds.map .node⌝ ∗
+      (ds : List kd.core.Node), q ↦ lv ∗ ⌜lv.ListMeta'.ResourceVersion' = rv ∧ lv.ListMeta'.Continue' = go!"" ∧ os = ds.map .node⌝ ∗
       lv.Items' ↦* vs ∗ [∗list] v;d ∈ vs;ds, kd.core.Node.own v (DFrac.own 1) d)
   | .daemonSets => iprop(∃ (lv : k8s_io.api.apps.v1.DaemonSetList)
       (vs : List k8s_io.api.apps.v1.DaemonSet) (ds : List kd.apps.DaemonSet), q ↦ lv ∗
-      ⌜lv.ListMeta'.ResourceVersion' = rv ∧ os = ds.map .ds⌝ ∗
+      ⌜lv.ListMeta'.ResourceVersion' = rv ∧ lv.ListMeta'.Continue' = go!"" ∧ os = ds.map .ds⌝ ∗
       lv.Items' ↦* vs ∗ [∗list] v;d ∈ vs;ds, kd.apps.DaemonSet.own v (DFrac.own 1) d)
   | .revisions => iprop(∃ (lv : k8s_io.api.apps.v1.ControllerRevisionList)
       (vs : List k8s_io.api.apps.v1.ControllerRevision) (ds : List kd.apps.ControllerRevision),
-      q ↦ lv ∗ ⌜lv.ListMeta'.ResourceVersion' = rv ∧ os = ds.map .cr⌝ ∗
+      q ↦ lv ∗ ⌜lv.ListMeta'.ResourceVersion' = rv ∧ lv.ListMeta'.Continue' = go!"" ∧ os = ds.map .cr⌝ ∗
       lv.Items' ↦* vs ∗ [∗list] v;d ∈ vs;ds, kd.apps.ControllerRevision.own v (DFrac.own 1) d)
 
-/-- **What a typed list returns**: as `listRet`, the list a typed list. -/
+/-- **What a typed list returns**: as `listRet`, the list a typed list (with no continue token:
+the model ignores `Limit`). -/
 def typedListRet (γ : ApiNames) (failReads admin : Bool) (r : Res) (ns : GoString)
     (lo : kd.meta.ListOptions) (σ : St) (q : Loc) (err : GoInterface) : IProp GF :=
   if lo.LabelSelector' ≠ go!"" ∨ lo.FieldSelector' ≠ go!"" then
