@@ -237,7 +237,8 @@ func validConf(cs *pb.ConfState, cc *pb.ConfChangeV2) bool {
 		_, after, err = chg.Simple(cc.GetChanges()...)
 	}
 	// the configurations the protocol admits have fewer than 2^62 members (never reached here, with
-	// at most maxReplicas of them, but checked so that the answer is the rule's)
+	// at most maxReplicas of them, but checked so that a change it accepts is one raft's protocol
+	// allows: the store's decision on a committed conf entry, the same at every replica)
 	return err == nil && uint64(len(after)) < 1<<62
 }
 
