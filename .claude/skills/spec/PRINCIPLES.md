@@ -19,11 +19,18 @@ internal helper's spec, used only inside its own package, may simply mirror its 
 
 A spec that breaks one of these is wrong, whatever else it does well, and is not done.
 
-- **True of the code**, including no panic under its precondition (a WP excludes panics); a
+- **Sound: true of the code**, including no panic under its precondition (a WP excludes panics); a
   trust-boundary axiom true of the library's code or documented behavior.
-- **Sufficient for every caller**: each caller can establish the precondition and gets from the
-  postcondition what its proof needs. All callers, not the one in mind; when the vocabulary changes,
-  the callers as restated.
+- **Complete: sufficient for every caller**: each caller can establish the precondition and gets from
+  the postcondition what its proof needs. All callers, not the one in mind; when the vocabulary
+  changes, the callers as restated.
+- **Local**: a spec is about its function's footprint, the state that function touches, and nothing
+  else, so that a change elsewhere (a new feature, a conjunct added to some other component's
+  predicate) leaves the spec and every proof that uses it untouched. Take the footprint, not an
+  aggregate that contains it (a whole server row, a boot bundle every stage adds to); a caller
+  holding the aggregate splits it, `core ∗ rest`. (The snapshot work, 2026-10-19 to 10-27: a spec
+  over the server's whole apply row broke when auth added a conjunct to the row; one index had to be
+  "kept by every frame", about 50 files; the boot contract accreted a clause per stage.)
 - **Faithful to concurrency**: concurrent callers need a persistent contract; a once-only or
   exclusive use needs a token.
 - **No unneeded premise**: each is one the code needs, one a stronger result needs, or a scope

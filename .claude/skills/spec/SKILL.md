@@ -5,7 +5,8 @@ description: Design a spec in this repository — write one for a Go function or
 
 # Designing specs
 
-**Goal:** the spec of the target is the best contract its clients can have: true of the Go code, as
+**Goal:** the spec of the target is the best contract its clients can have: sound (true of the Go
+code), complete (sufficient for every caller), local (about its function's footprint only), as
 strong as the code allows, stated in abstract terms, with the laws its clients need. Start from
 whatever exists, including nothing. How to get there is up to you.
 
