@@ -348,9 +348,11 @@ axiom RollingUpdateDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val
 
 axiom OnDeleteDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val
 
-axiom DaemonSetTemplateGenerationKey [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DaemonSetTemplateGenerationKey [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"pod-template-generation")
 
-axiom DefaultDaemonSetUniqueLabelKey [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultDaemonSetUniqueLabelKey [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"controller-revision-hash")
 
 axiom PathTypeExact [FfiSyntax] [GoGlobalContext] : val
 

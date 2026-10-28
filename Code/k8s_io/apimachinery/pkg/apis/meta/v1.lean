@@ -392,7 +392,8 @@ axiom GroupName [FfiSyntax] [GoGlobalContext] : val
 
 axiom WatchEventKind [FfiSyntax] [GoGlobalContext] : val
 
-axiom ObjectNameField [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ObjectNameField [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"metadata.name")
 
 axiom FinalizerOrphanDependents [FfiSyntax] [GoGlobalContext] : val
 

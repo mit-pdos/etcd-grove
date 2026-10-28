@@ -1,6 +1,8 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-daemonset-goose.md: what the DaemonSet controller and its example name).
-translate = ["!*"]
+# The selection operators the DaemonSet controller reads (phase 5 of
+# notes/k8s-daemonset-plan.md): a names-only constant is a value of unknown shape.
+translate = ["!*", "DoesNotExist", "Exists", "GreaterThan", "In", "LessThan", "NotIn", "Equals", "DoubleEquals", "NotEquals"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

@@ -9,7 +9,18 @@
 translate = ["!*", "Pod.Get*", "Pod.Set*", "Node.Get*", "Node.Set*",
   # the constants the model reads (a names-only constant is a value of unknown shape)
   "DefaultTerminationGracePeriodSeconds", "PodPending", "PodFailed", "PodSucceeded",
-  "RestartPolicyAlways", "DNSClusterFirst", "DefaultSchedulerName"]
+  "RestartPolicyAlways", "DNSClusterFirst", "DefaultSchedulerName",
+  # the constants the DaemonSet controller reads (phase 5 of notes/k8s-daemonset-plan.md): the
+  # target node's affinity, the daemon pods' tolerations, the pod conditions and phases, the
+  # event types, the namespace cause (exact names: a pattern matches the types' methods too)
+  "NodeSelectorOpIn", "NodeSelectorOpNotIn", "NodeSelectorOpExists",
+  "NodeSelectorOpDoesNotExist", "NodeSelectorOpGt", "NodeSelectorOpLt",
+  "TaintEffectNoExecute", "TaintEffectNoSchedule", "TaintNodeNotReady",
+  "TaintNodeUnreachable", "TaintNodeDiskPressure", "TaintNodeMemoryPressure",
+  "TaintNodePIDPressure", "TaintNodeUnschedulable", "TaintNodeNetworkUnavailable",
+  "TolerationOpExists", "ConditionTrue", "PodReady", "ContainersReady", "PodRunning",
+  "PodUnknown", "EventTypeNormal", "EventTypeWarning", "NamespaceTerminatingCause",
+  "RestartPolicyNever", "RestartPolicyOnFailure"]
 imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1", "k8s.io/apimachinery/pkg/types",
   "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/api/resource",
   "k8s.io/apimachinery/pkg/util/intstr"]

@@ -8,7 +8,10 @@
 translate = ["!*", "DaemonSet.Get*", "DaemonSet.Set*", "ControllerRevision.Get*",
   "ControllerRevision.Set*",
   # the constants the model reads (a names-only constant is a value of unknown shape)
-  "RollingUpdateDaemonSetStrategyType", "DeprecatedTemplateGeneration"]
+  "RollingUpdateDaemonSetStrategyType", "DeprecatedTemplateGeneration",
+  # the constants the DaemonSet controller reads (phase 5 of notes/k8s-daemonset-plan.md)
+  "ControllerRevisionHashLabelKey", "DefaultDaemonSetUniqueLabelKey",
+  "OnDeleteDaemonSetStrategyType"]
 imports = ["!*", "k8s.io/api/core/v1", "k8s.io/apimachinery/pkg/apis/meta/v1",
   "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/util/intstr"]
 

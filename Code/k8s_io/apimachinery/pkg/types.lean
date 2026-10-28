@@ -42,17 +42,23 @@ attribute [irreducible] UID.ty
 
 axiom Separator [FfiSyntax] [GoGlobalContext] : val
 
-axiom JSONPatchType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def JSONPatchType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"application/json-patch+json")
 
-axiom MergePatchType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MergePatchType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"application/merge-patch+json")
 
-axiom StrategicMergePatchType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StrategicMergePatchType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"application/strategic-merge-patch+json")
 
-axiom ApplyPatchType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ApplyPatchType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"application/apply-patch+yaml")
 
-axiom ApplyYAMLPatchType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ApplyYAMLPatchType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"application/apply-patch+yaml")
 
-axiom ApplyCBORPatchType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ApplyCBORPatchType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"application/apply-patch+cbor")
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.types where
   pkgImportedPkgs := []

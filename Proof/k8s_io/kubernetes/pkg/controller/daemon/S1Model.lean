@@ -48,6 +48,11 @@ variable [FfiSyntax]
 
 /-! ## The target node, the owner, S1 -/
 
+/-- `metav1.ObjectNameField` (a translated constant since phase 5). -/
+def keyName : GoString := go!"metadata.name"
+/-- `v1.NodeSelectorOpIn` (a translated constant since phase 5). -/
+def opIn : GoString := go!"In"
+
 /-- The first `MatchFields` requirement with key `K` and operator `Op` of the terms, in order
 (`GetTargetNodeName`'s loop). -/
 def nameReq (K Op : GoString) : List kd.core.NodeSelectorTerm → Option kd.core.NodeSelectorRequirement

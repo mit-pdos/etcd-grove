@@ -1991,7 +1991,8 @@ axiom SIGRTMAXMINUS1 [FfiSyntax] [GoGlobalContext] : val
 
 axiom SIGRTMAX [FfiSyntax] [GoGlobalContext] : val
 
-axiom ConditionTrue [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ConditionTrue [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"True")
 
 axiom ConditionFalse [FfiSyntax] [GoGlobalContext] : val
 
@@ -2008,7 +2009,8 @@ axiom ResourceHealthMessageMaxLength [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def PodPending [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"Pending")
 
-axiom PodRunning [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PodRunning [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Running")
 
 @[reducible] noncomputable def PodSucceeded [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"Succeeded")
@@ -2016,13 +2018,16 @@ axiom PodRunning [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def PodFailed [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"Failed")
 
-axiom PodUnknown [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PodUnknown [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Unknown")
 
-axiom ContainersReady [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ContainersReady [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"ContainersReady")
 
 axiom PodInitialized [FfiSyntax] [GoGlobalContext] : val
 
-axiom PodReady [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PodReady [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Ready")
 
 axiom PodScheduled [FfiSyntax] [GoGlobalContext] : val
 
@@ -2061,9 +2066,11 @@ axiom PodResizeStatusInfeasible [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def RestartPolicyAlways [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"Always")
 
-axiom RestartPolicyOnFailure [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RestartPolicyOnFailure [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"OnFailure")
 
-axiom RestartPolicyNever [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RestartPolicyNever [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Never")
 
 axiom ContainerRestartPolicyAlways [FfiSyntax] [GoGlobalContext] : val
 
@@ -2091,25 +2098,34 @@ axiom DNSNone [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def DefaultTerminationGracePeriodSeconds [FfiSyntax] [GoGlobalContext] : val :=
   #(30 : Int)
 
-axiom NodeSelectorOpIn [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NodeSelectorOpIn [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"In")
 
-axiom NodeSelectorOpNotIn [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NodeSelectorOpNotIn [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"NotIn")
 
-axiom NodeSelectorOpExists [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NodeSelectorOpExists [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Exists")
 
-axiom NodeSelectorOpDoesNotExist [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NodeSelectorOpDoesNotExist [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"DoesNotExist")
 
-axiom NodeSelectorOpGt [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NodeSelectorOpGt [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Gt")
 
-axiom NodeSelectorOpLt [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NodeSelectorOpLt [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Lt")
 
-axiom TaintEffectNoSchedule [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintEffectNoSchedule [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"NoSchedule")
 
 axiom TaintEffectPreferNoSchedule [FfiSyntax] [GoGlobalContext] : val
 
-axiom TaintEffectNoExecute [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintEffectNoExecute [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"NoExecute")
 
-axiom TolerationOpExists [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TolerationOpExists [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Exists")
 
 axiom TolerationOpEqual [FfiSyntax] [GoGlobalContext] : val
 
@@ -2269,7 +2285,8 @@ axiom NamespaceActive [FfiSyntax] [GoGlobalContext] : val
 
 axiom NamespaceTerminating [FfiSyntax] [GoGlobalContext] : val
 
-axiom NamespaceTerminatingCause [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NamespaceTerminatingCause [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"NamespaceTerminating")
 
 axiom NamespaceDeletionDiscoveryFailure [FfiSyntax] [GoGlobalContext] : val
 
@@ -2287,9 +2304,11 @@ axiom LogStreamStderr [FfiSyntax] [GoGlobalContext] : val
 
 axiom LogStreamAll [FfiSyntax] [GoGlobalContext] : val
 
-axiom EventTypeNormal [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def EventTypeNormal [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Normal")
 
-axiom EventTypeWarning [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def EventTypeWarning [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Warning")
 
 axiom LimitTypePod [FfiSyntax] [GoGlobalContext] : val
 
@@ -2492,19 +2511,26 @@ axiom LabelNodeExcludeBalancers [FfiSyntax] [GoGlobalContext] : val
 
 axiom LabelMetadataName [FfiSyntax] [GoGlobalContext] : val
 
-axiom TaintNodeNotReady [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintNodeNotReady [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"node.kubernetes.io/not-ready")
 
-axiom TaintNodeUnreachable [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintNodeUnreachable [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"node.kubernetes.io/unreachable")
 
-axiom TaintNodeUnschedulable [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintNodeUnschedulable [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"node.kubernetes.io/unschedulable")
 
-axiom TaintNodeMemoryPressure [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintNodeMemoryPressure [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"node.kubernetes.io/memory-pressure")
 
-axiom TaintNodeDiskPressure [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintNodeDiskPressure [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"node.kubernetes.io/disk-pressure")
 
-axiom TaintNodeNetworkUnavailable [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintNodeNetworkUnavailable [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"node.kubernetes.io/network-unavailable")
 
-axiom TaintNodePIDPressure [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def TaintNodePIDPressure [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"node.kubernetes.io/pid-pressure")
 
 axiom TaintNodeOutOfService [FfiSyntax] [GoGlobalContext] : val
 

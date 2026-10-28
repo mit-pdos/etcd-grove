@@ -25,23 +25,32 @@ noncomputable def Operator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Operator.ty
 
-axiom DoesNotExist [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DoesNotExist [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"!")
 
-axiom Equals [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Equals [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"=")
 
-axiom DoubleEquals [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DoubleEquals [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"==")
 
-axiom In [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def In [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"in")
 
-axiom NotEquals [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NotEquals [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"!=")
 
-axiom NotIn [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NotIn [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"notin")
 
-axiom Exists [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Exists [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"exists")
 
-axiom GreaterThan [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def GreaterThan [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"gt")
 
-axiom LessThan [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def LessThan [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"lt")
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.selection where
   pkgImportedPkgs := []

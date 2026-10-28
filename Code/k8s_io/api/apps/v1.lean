@@ -221,7 +221,8 @@ attribute [irreducible] ControllerRevisionList.ty
 
 axiom GroupName [FfiSyntax] [GoGlobalContext] : val
 
-axiom ControllerRevisionHashLabelKey [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ControllerRevisionHashLabelKey [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"controller-revision-hash")
 
 axiom StatefulSetRevisionLabel [FfiSyntax] [GoGlobalContext] : val
 
@@ -265,9 +266,11 @@ axiom DeploymentReplicaFailure [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def RollingUpdateDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"RollingUpdate")
 
-axiom OnDeleteDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def OnDeleteDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"OnDelete")
 
-axiom DefaultDaemonSetUniqueLabelKey [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultDaemonSetUniqueLabelKey [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"controller-revision-hash")
 
 axiom ReplicaSetReplicaFailure [FfiSyntax] [GoGlobalContext] : val
 

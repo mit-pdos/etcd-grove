@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+# The patch types the DaemonSet controller reads (phase 5 of notes/k8s-daemonset-plan.md).
+translate = ["!*", "MergePatchType", "StrategicMergePatchType", "JSONPatchType", "ApplyPatchType", "ApplyYAMLPatchType", "ApplyCBORPatchType"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

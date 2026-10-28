@@ -2,6 +2,12 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import GeneratedProof.k8s_io.api.core.v1
+public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
+public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
+public import GeneratedProof.k8s_io.apimachinery.pkg.watch
+public import GeneratedProof.k8s_io.klog.v2
 public import Perennial.Golang.Theory
 public import Code.k8s_io.client_go.tools.record
 
@@ -15,25 +21,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace k8s_io.client_go.tools.record
-
-namespace EventSink
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventSink_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventSink :=
-  sorry -- axiomatized type
-
-noncomputable instance EventSink_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventSink k8s_io.client_go.tools.record.EventSink.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventSink
 
 namespace CorrelatorOptions
 section def_
@@ -54,25 +41,6 @@ noncomputable instance CorrelatorOptions_into_val_typed :
 end def_
 end CorrelatorOptions
 
-namespace EventRecorder
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventRecorder_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventRecorder :=
-  sorry -- axiomatized type
-
-noncomputable instance EventRecorder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventRecorder k8s_io.client_go.tools.record.EventRecorder.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventRecorder
-
 namespace EventRecorderLogger
 section def_
 
@@ -91,25 +59,6 @@ noncomputable instance EventRecorderLogger_into_val_typed :
 
 end def_
 end EventRecorderLogger
-
-namespace EventBroadcaster
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventBroadcaster_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventBroadcaster :=
-  sorry -- axiomatized type
-
-noncomputable instance EventBroadcaster_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventBroadcaster k8s_io.client_go.tools.record.EventBroadcaster.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventBroadcaster
 
 namespace EventRecorderAdapter
 section def_
@@ -227,44 +176,6 @@ noncomputable instance recorderImplLogger_into_val_typed :
 end def_
 end recorderImplLogger
 
-namespace EventSpamKeyFunc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventSpamKeyFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventSpamKeyFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance EventSpamKeyFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventSpamKeyFunc k8s_io.client_go.tools.record.EventSpamKeyFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventSpamKeyFunc
-
-namespace EventFilterFunc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventFilterFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventFilterFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance EventFilterFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventFilterFunc k8s_io.client_go.tools.record.EventFilterFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventFilterFunc
-
 namespace EventSourceObjectSpamFilter
 section def_
 
@@ -302,44 +213,6 @@ noncomputable instance spamRecord_into_val_typed :
 
 end def_
 end spamRecord
-
-namespace EventAggregatorKeyFunc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventAggregatorKeyFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventAggregatorKeyFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance EventAggregatorKeyFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventAggregatorKeyFunc k8s_io.client_go.tools.record.EventAggregatorKeyFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventAggregatorKeyFunc
-
-namespace EventAggregatorMessageFunc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventAggregatorMessageFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventAggregatorMessageFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance EventAggregatorMessageFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventAggregatorMessageFunc k8s_io.client_go.tools.record.EventAggregatorMessageFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventAggregatorMessageFunc
 
 namespace EventAggregator
 section def_
@@ -388,12 +261,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance eventLog_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.eventLog :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.eventLog where
+  typedPointstoDef l v dq := iprop(
+    "count" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq ∗
+    "firstTimestamp" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq ∗
+    "name" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq ∗
+    "resourceVersion" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance eventLog_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.eventLog k8s_io.client_go.tools.record.eventLog.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.eventLog k8s_io.client_go.tools.record.eventLog.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance eventLog_access_load_count (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventLog_access_store_count (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (count' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) count' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := count' } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventLog_access_load_firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventLog_access_store_firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (firstTimestamp' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) firstTimestamp' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstTimestamp' := firstTimestamp' } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventLog_access_load_name (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventLog_access_store_name (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (name' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) name' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventLog_access_load_resourceVersion (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventLog_access_store_resourceVersion (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (resourceVersion' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) resourceVersion' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := resourceVersion' } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end eventLog
@@ -500,12 +445,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance EventCorrelateResult_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventCorrelateResult :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventCorrelateResult where
+  typedPointstoDef l v dq := iprop(
+    "Event" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq ∗
+    "Patch" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq ∗
+    "Skip" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance EventCorrelateResult_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventCorrelateResult k8s_io.client_go.tools.record.EventCorrelateResult.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventCorrelateResult k8s_io.client_go.tools.record.EventCorrelateResult.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance EventCorrelateResult_access_load_Event (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance EventCorrelateResult_access_store_Event (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (Event' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) Event' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Event' := Event' } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance EventCorrelateResult_access_load_Patch (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance EventCorrelateResult_access_store_Patch (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (Patch' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) Patch' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Patch' := Patch' } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance EventCorrelateResult_access_load_Skip (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance EventCorrelateResult_access_store_Skip (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (Skip' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) Skip' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Skip' := Skip' } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end EventCorrelateResult
