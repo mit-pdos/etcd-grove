@@ -46,13 +46,30 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 variable [errors_sem : _root_.Perennial.errors.Assumptions]
 
-/-- **An admin entry's application with auth on** (see the file header): the triple. -/
+/-- **An `Authenticate` entry's response** (C1's A2, 2026-10-28): unless the entry is not an
+`Authenticate` or was not dispatched, the result at `ar` holds the response (`Resp`, a pointer to
+an `AuthenticateResponse`) and its error, and the response is what the store returned
+(`apply.authnOut`: an error and no response, or a token issued to the request's user). -/
+def adminAuthnAr (γa : auth.AuthNames) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) :
+    IProp GF :=
+  iprop(⌜apply.dispatchKind rq ≠ .authenticate ∨ ∀ o b, out ≠ .dispatched o b⌝ ∨
+    ∃ (am : apply.AuthenticateModel) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result)
+      (resp : Loc),
+      ⌜rq.authenticate = some am ∧
+        v.Resp' = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)
+          #resp⌝ ∗
+      ar ↦□ v ∗ apply.authnOut γa am.name resp v.Err')
+
+/-- **An admin entry's application with auth on** (see the file header): the triple. (C1's A2) An
+`Authenticate` entry too (`adminKindOk`; it needs no admin permission): with `v3`, the right to
+its token at the index `ConsistentIndex()` reads under what it borrows from `Pre`
+(`apply.adminExtra`), giving back the response (`adminAuthnAr`). -/
 abbrev adminEntryOn.spec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : apply.AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : apply.IRRModel) (id : w64) (RD : IProp GF)
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (γa : auth.AuthNames)
     (stl bel : Loc) (T : IProp GF) (st : auth.AuthState) (rs : apply.RestM),
-    E.authMode = .on γa → apply.needAdminPermission rq = true → apply.noSideEffect rq = false →
+    E.authMode = .on γa → apply.noSideEffect rq = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         Perennial.EtcdGrove.apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
@@ -68,7 +85,7 @@ abbrev adminEntryOn.spec : Prop :=
         (∃ (hs : List auth.AuthState), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
           ⌜hs.getLast? = some st⌝) ∗
         T ∗ auth.tpAdmin stl (.on γa) ∗ authWBackendAt bel (.on γa) E.P E.f T ∗
-        roLendsAuthBe E.RO stl bel ∗ E.RO rs ∗ ⧗ 1 }}
+        roLendsAuthBe E.RO stl bel ∗ E.RO rs ∗ ⧗ 1 ∗ (if v3 then apply.adminExtra E γa rq Pre else iprop(True)) }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
         (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
     {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
@@ -86,112 +103,15 @@ abbrev adminEntryOn.spec : Prop :=
           ∃ (hs' : List auth.AuthState) (st' : auth.AuthState),
             auth.authOwnFu γa hs' ∗ auth.tieRes stl (.on γa) hs' ∗
             ⌜hs'.getLast? = some st' ∧ (if v3 then adminStateR rq st st' else st' = st)⌝ ∗
-            (if v3 then adminTieAr ar rq st st' out else iprop(True)) }}
+            (if v3 then adminTieAr ar rq st st' out else iprop(True)) ∗
+          (if v3 then adminAuthnAr γa ar rq out else iprop(True)) }}
 
 /-- **An admin entry's application with auth on** (see the file header). -/
 theorem apply_admin_entry_on
     (hAL : Perennial.EtcdGrove.apply.Apply.adminSpecL (GF := GF) (hG := hG)) :
     adminEntryOn.spec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot γa stl bel T st rs hM hn hns
-  iintro %Φ ⟨#Hpkg, #Hsteps, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, %Hprem, %Hch,
-    ⟨%hs, Hfu, Htie, %Hl⟩, HT, Htp, #Hwa, #Hro, HRO, Hrc⟩ HΦ
-  obtain ⟨Hdec, Hid, Hadm, Hdk, Hrb⟩ := Hprem
-  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
-  · iPkgInit
-  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨-, -, #Hev⟩
-  -- the store's half of `be` borrowed from the rest, as the admin steps' write resource
-  iunfold roLendsAuthBe at Hro
-  ihave ⟨Hbe, Hback⟩ := Hro $$ %rs HRO
-  ihave HW : iprop(adminW stl bel (.on γa) E.P E.f T) $$ [Hbe HT Htp]
-  · iunfold adminW
-    iframe Htp
-    iapply adminW_of_beOn stl bel (.on γa) E.P E.f T
-    iframe Hbe Hwa HT
-  iapply (hAL lg e m ua w v3 E Pre Q Post x rq id RD K G ot (adminW stl bel (.on γa) E.P E.f T) γa
-      hs (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-      (auth.latestRes stl (.on γa)) (fun h => auth.ownFuT_lend stl γa h))
-    $$ [HRD HK Hhook HPre Hkv Hfu Htie Hrc HW]
-  · iframe Hpkg Hsteps Hwok HRD HK He HPre Hkv Hrc HW Hhook
-    isplitr
-    · ipureintro; exact Hlg
-    isplitr
-    · ipureintro; exact ⟨Hdec, Hid, Hadm, Hdk, hM, Hrb⟩
-    isplitr
-    · ipureintro; exact Hch
-    iframe Hfu Htie
-  iintro !> %ar %id' ⟨HRD, HPP, #Hok, Htr, %Hid', %x', %out, Hkv, %Hst, %Hlat, Hres, Hwv, HW, Hout,
-    #HRE⟩
-  have hout : out = .rejected ∨ ∃ o b, out = .dispatched o b := by
-    cases out with
-    | skipped =>
-      obtain ⟨h, -⟩ := Hst
-      rw [hns] at h; cases h
-    | rejected => exact Or.inl rfl
-    | dispatched o b => exact Or.inr ⟨o, b, rfl⟩
-  have hOut : apply.adminOut (GF := GF)
-      (fun γa' h => iprop(auth.authOwnFu (GF := GF) γa' h ∗ auth.tieRes stl (.on γa) h))
-      γa E.authMode hs rq v3 ar out =
-      apply.adminOut (GF := GF)
-        (fun γa' h => iprop(auth.authOwnFu (GF := GF) γa' h ∗ auth.tieRes stl (.on γa) h))
-        γa (.on γa) hs rq v3 ar out := by rw [hM]
-  irevert Hout
-  rw [hOut]
-  iintro Hout
-  -- the half of `be` back to the rest
-  iunfold adminW at HW
-  icases HW with ⟨⟨%be, HWbe⟩, Htp⟩
-  ihave ⟨Hbe, HT⟩ := beOn_of_adminW stl bel (.on γa) E.P E.f T be $$ HWbe
-  ihave HRO := Hback $$ Hbe
-  have hk := applyStep_admin_keepV rq v3 x x' out Hadm Hst
-  cases v3 with
-  | false =>
-    -- replayed: the authority back at the same history
-    ihave Hown : iprop(auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs) $$ [Hout]
-    · rcases hout with rfl | ⟨o, b, rfl⟩
-      · simp only [apply.adminOut]
-        icases Hout with ⟨Ho, -⟩
-        iexact Ho
-      · simp only [apply.adminOut, apply.adminDone, Bool.false_eq_true, ↓reduceIte]
-        iexact Hout
-    icases Hown with ⟨Hfu, Htie⟩
-    simp only [Bool.false_eq_true, ↓reduceIte] at *
-    iapply HΦ
-    iframe HRD HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp
-    isplitr
-    · ipureintro; exact Hid'
-    isplitr
-    · ipureintro; exact ⟨Hst, hk⟩
-    iexists hs, st
-    iframe Hfu Htie
-    isplitr
-    · ipureintro; exact ⟨Hl, rfl⟩
-    itrivial
-  | true =>
-    -- the result's error is not `ErrNoSpace`'s, read off the outcome before it is consumed
-    ihave ⟨Hres, Hout, #Hnn⟩ := applyResultIs_notNoSpaceAdmin
-      (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) γa (.on γa) hs rq
-      x.log ar out $$ [] Hres Hout HRE
-    · iframe Pauth Hev
-    -- the outcome as the model's admin step
-    have hrj := Hlat.1
-    have hps := Hlat.2
-    rw [hM] at hrj hps
-    ihave ⟨%hs', %st', %Hm, Hown, #HtA⟩ := adminOut_model γa
-      (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) hs st rq ar out Hl
-      hn hrj (fun o b h => hps o b h) hout $$ Hout
-    icases Hown with ⟨Hfu, Htie⟩
-    simp only [↓reduceIte] at *
-    iapply HΦ
-    iframe HRD HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
-    isplitr
-    · ipureintro; exact Hid'
-    isplitr
-    · ipureintro; exact ⟨Hst, hk⟩
-    iexists hs', st'
-    iframe Hfu Htie HtA
-    ipureintro; exact Hm
+  -- (C1's A2) phase 1 of the spec-first stage: the proof (at 2040bccc8a) is redone in phase 2
+  sorry
 
 end proof
 

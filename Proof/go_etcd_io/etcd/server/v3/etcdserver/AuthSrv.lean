@@ -83,7 +83,7 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         authPublishM M stl ∗
         -- (E3zb) with auth on, the request side bound to the request context's token
         □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
-        authApplyResPre M stl (auth.bump auth.bootState) d ∗
+        authApplyResPre M stl (auth.bump auth.bootState) d RD ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
         □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) }})
@@ -309,7 +309,7 @@ theorem authStoreKit_on
   · iframe Hown' Hen Hca
   -- (E3l) the store's admin steps, keeping its backend, at the server's admin resource; (E3n) at
   -- whichever post-lock hook the server freezes
-  ihave HAR : authApplyResPre (.on γa) stp (auth.bump auth.bootState) d $$ [Hown' Hfu HT' HX HtpAd Hfr]
+  ihave HAR : authApplyResPre (.on γa) stp (auth.bump auth.bootState) d (auth.authRd stp R (.on γa)) $$ [Hown' Hfu HT' HX HtpAd Hfr]
   · unfold authApplyResPre
     iexists [auth.bootState, auth.bump auth.bootState], P, f, T, (authBkIface abl)
     iunfold auth.authOwnFu

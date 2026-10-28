@@ -151,15 +151,16 @@ theorem applyStep_admin_keep (rq : apply.IRRModel) (x x' : apply.ApplyKV) (out :
     x'.log = x.log ∧ x'.chain = x.chain := by
   have hkd : apply.dispatchKind rq = .authUserAdd ∨ apply.dispatchKind rq = .authRoleAdd ∨
       apply.dispatchKind rq = .authUserGrantRole ∨
-      apply.dispatchKind rq = .authRoleGrantPermission ∨ apply.dispatchKind rq = .authEnable := by
+      apply.dispatchKind rq = .authRoleGrantPermission ∨ apply.dispatchKind rq = .authEnable ∨
+      apply.dispatchKind rq = .authenticate := by
     unfold apply.adminKindOk at hk
     split at hk <;> simp_all
   have hpv : apply.preV3Kind (apply.dispatchKind rq) = false := by
-    rcases hkd with h | h | h | h | h <;> rw [h] <;> rfl
+    rcases hkd with h | h | h | h | h | h <;> rw [h] <;> rfl
   have hsk : apply.storeKind (apply.dispatchKind rq) = false := by
-    rcases hkd with h | h | h | h | h <;> rw [h] <;> rfl
+    rcases hkd with h | h | h | h | h | h <;> rw [h] <;> rfl
   have hna : apply.dispatchKind rq ≠ .alarm := by
-    rcases hkd with h | h | h | h | h <;> rw [h] <;> decide
+    rcases hkd with h | h | h | h | h | h <;> rw [h] <;> decide
   cases out with
   | skipped => obtain ⟨-, rfl⟩ := h; exact ⟨rfl, rfl⟩
   | rejected => obtain ⟨-, rfl⟩ := h; exact ⟨rfl, rfl⟩
@@ -270,7 +271,7 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
     exact Or.inr (fun o b h => by cases h)
   · have ha := adminOk_of_passL γa hs st rq hl hn (hpass o b rfl)
     simp only [apply.adminOut, apply.adminDone, ↓reduceIte]
-    iintro ⟨%v, %ad, %had, #Hv, Hres⟩
+    iintro ⟨%v, %ad, %resp, ⟨%had, -⟩, #Hv, Hres⟩
     unfold apply.adminReqOf at had
     split at had <;> rename_i hkd
     · -- `UserAdd`
@@ -399,6 +400,10 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
       unfold adminStepO
       rw [hkd]
       exact apply.authEnableR_on γa en st o' h2
+    · -- `Authenticate` (C1's A2, phase 1 of the spec-first stage): the lemma's premise `hn` then
+      -- contradicts `adminKindOk`'s; phase 2 (the lemma takes `adminKindOk rq`, or its caller
+      -- splits `Authenticate` off)
+      sorry
     · cases had
 
 end res2

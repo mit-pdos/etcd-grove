@@ -671,12 +671,14 @@ admin side's resource `A` (the auth plan's S5d, 2026-10-25):
   `invalidateUser` reads outside the provider's mutex; etcd's callers serialize the three:
   `enable`/`disable` under the store's `enabledMu`, `invalidateUser` on the apply thread);
 - `assign(ctx, username, rev)` (appended, S5) returns a token and an error; with no error the
-  token was issued to `username` (`tokOk`); on an `Authenticate` context (`authnCtx`: its index
-  and prefix, and the right to issue the token; S5b).
+  token was issued to `username` (`tokOk`), else the error is one of the package's (`authErrOf`,
+  C1's A2: `Authenticate` returns it as its own); on an `Authenticate` context (`authnCtx`: its
+  index and prefix, and the right to issue the token; S5b).
 The simple provider meets it (`auth/TokenSimple.lean`, S5b-S5d) but for `info`'s context premise:
 its `info` waits on the raft index its token names and on the context's `Done()`, which this
 module (generic in the later credits, Perennial's contexts are not) cannot state; the JWT
-provider's binding is its signature's. -/
+provider's binding is its signature's, and it does not meet `assign`'s error clause (its
+`ErrVerifyOnly` and its signing errors are not the package's variables): out of scope. -/
 def tokenProviderOkA (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
     □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
@@ -694,7 +696,8 @@ def tokenProviderOkA (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp GF
         (App (App (App (Val #(methods ti.ty go!"assign" ti.v)) (Val #ctx))
           (Val #user)) (Val #rev))
       {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
-          ⌜err ≠ GoInterface.nil⌝ ∨ tokOk M t user }}))
+          (⌜err = GoInterface.nil⌝ ∗ tokOk M t user) ∨
+            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}))
 
 instance tokenProviderOkA_persistent (tp : GoInterface) (M : AuthMode) (A : IProp GF) :
     Persistent (tokenProviderOkA (GF := GF) tp M A) := by
@@ -719,7 +722,8 @@ def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
         (App (App (App (Val #(methods ti.ty go!"assign" ti.v)) (Val #ctx))
           (Val #user)) (Val #rev))
       {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
-          ⌜err ≠ GoInterface.nil⌝ ∨ tokOk M t user }}))
+          (⌜err = GoInterface.nil⌝ ∗ tokOk M t user) ∨
+            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}))
 
 instance tokenProviderOk_persistent (tp : GoInterface) (M : AuthMode) :
     Persistent (tokenProviderOk (GF := GF) tp M) := by

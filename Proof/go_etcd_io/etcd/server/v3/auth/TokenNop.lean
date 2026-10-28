@@ -69,7 +69,14 @@ theorem auth.tokenNop_ok (p : Loc) (M : AuthMode) :
     wp_method_call; wp_call
     (try wp_auto)
     iapply HΦ
-    ileft; ipureintro; simp
+    iright
+    isplitr
+    · ipureintro; simp
+    iexists .authFailed
+    iunfold authErrOf
+    iexists eAF
+    simp only [AuthErr.var]
+    iframe HeAF
 
 end proof
 

@@ -25011,3 +25011,24 @@ Not yet: the `*Client` wrappers (`ClientPutGet`'s `client_Put_any`, ..., over `i
 `conn` field), and the answers above speak of the `*kv`'s connection: the client's token (C1, over
 `clientAttemptMd`) is a fact of the client's connection, so the wrappers come with C1, which may
 tie the two in `isNewClient` (`NewKV(c)` stores `c.conn`).
+
+## C1's A2, spec-first: the served `Authenticate`'s statements (2026-10-28 · `notes/c1-plan.md`, "A2, spec-first")
+
+Drafted before any proof (the user's instruction). What changed in existing statements, and why:
+- **The consistent index's value** (`AEnv.ciC : IProp GF → w64 → Prop`; `isConsistentIndexer`
+  returns `x` under `C` for `ciC C x`; `ciSplitAt`): before, the apply layer knew only that
+  `ConsistentIndex()` returns some value; the token `<prefix>.<index>` needs the index named, and
+  the right to issue it (`tokFresh`) is per index.
+- **`isAuthStepsX` takes the reader resource `RD`** it lends to `Authenticate` (`IsAuthEnabled`
+  read-locks `enabledMu`): the kit's `E.RD`, which `kvOwn` holds, not a new slot in the server's
+  `W` (the plan's first idea, which would have needed the construction's spare slots).
+- **The applier's `Authenticate` borrows from `Pre`** (`ciSplitAt E Pre x`), not a separate frame
+  `C` (the plan's first idea): the resource `ConsistentIndex()` reads under is inside the critical
+  section's precondition, which the hook needs.
+- **The provider's `assign` returns one of the package's errors** (`tokenProviderOk(A)`): the
+  store returns `assign`'s error as its own, and the server's NOSPACE branch needs the apply
+  result's error to be an auth one. Excludes the JWT provider (out of scope).
+- **`adminKindOk` admits `Authenticate` only in a request needing no admin permission**: else the
+  auth applier's admin check passes on another field and `Authenticate` is dispatched, a step the
+  admin model has no successor for.
+- **`authnOut` owns the response** (`resp ↦ v`): the gRPC reply sends the whole message.

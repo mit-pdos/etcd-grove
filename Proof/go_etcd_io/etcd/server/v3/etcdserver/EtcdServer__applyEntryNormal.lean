@@ -530,10 +530,10 @@ theorem EtcdServer.applyEntryNormal.wp_proof
             uint.Z st.p < uint.Z m.index ∧ uint.Z (ciEff γ st.k) < uint.Z m.index⌝) $$ []
       · iunfold apply.ciSplit
         iintro !> ⟨Hst', Happ', Hbe', %Hf'⟩
-        iexists iprop(applyThread γ st ∗ applyBackend γ ci b)
+        iexists iprop(applyThread γ st ∗ applyBackend γ ci b), ciEff γ st.k
         iframe Hst' Hbe'
         isplitr
-        · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp, hld⟩
+        · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp, hld, rfl⟩
         iintro ⟨Hst', Hbe'⟩
         iframe Hst' Happ' Hbe'
         ipureintro; exact Hf'
@@ -1125,7 +1125,6 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         have hkeep := applyStep_plain_false rq x x' out hp Hstep
         tail_off
       · -- an admin request: the auth row's admin steps (`adminEntryOn`), nothing applied
-        have hna := adminKindOk_needAdmin rq hadm
         icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hasf, #Hlend,
           #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
         ihave #HUA := srv_uberAuthStepsL_at hUA hRA hUGR hRGP hAE hApplyL hApply s ua E γa stl bel T hM
@@ -1137,9 +1136,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         (try wp_auto)
         wp_apply hAd fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
           (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
-          bel T sa _ hM hna hns $$ [HKV HRD Hfu Htie HT Htp HRS Hlc]
+          bel T sa _ hM hns $$ [HKV HRD Hfu Htie HT Htp HRS Hlc]
           as %ar %id ⟨HRD, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, #Hdel, -, -, HRS, HT,
-            Htp, %hs', %sa', Hfu, Htie, %Hsa', -⟩
+            Htp, %hs', %sa', Hfu, Htie, %Hsa', -, -⟩
         · simp only [↓reduceIte, Bool.false_eq_true]
           iframe HUA Hwok' HRD He HKV HT Htp Hwba Hlend HRS Hlc
           isplitr
@@ -1283,10 +1282,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               uint.Z st.p < uint.Z m.index ∧ uint.Z (ciEff γ st.k) < uint.Z m.index⌝) $$ []
         · iunfold apply.ciSplit
           iintro !> ⟨Hst', Happ', Hbe', %Hf'⟩
-          iexists iprop(applyThread γ st ∗ applyBackend γ ci b)
+          iexists iprop(applyThread γ st ∗ applyBackend γ ci b), ciEff γ st.k
           iframe Hst' Hbe'
           isplitr
-          · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp, hld⟩
+          · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp, hld, rfl⟩
           iintro ⟨Hst', Hbe'⟩
           iframe Hst' Happ' Hbe'
           ipureintro; exact Hf'
@@ -1407,7 +1406,11 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             $$ Hev HRes
           tail_on sa
       · -- an admin request: the auth row's admin steps (`adminEntryOn`)
-        have hna := adminKindOk_needAdmin rq hadm
+        by_cases hka : apply.dispatchKind rq = .authenticate
+        · -- (C1's A2) an `Authenticate`: the token minted at the entry's index (`srvTokRights`),
+          -- the response to the requester (A3); phase 2 of the spec-first stage
+          sorry
+        have hna := adminKindOk_needAdmin rq hadm hka
         obtain ⟨hkv', hfl⟩ := adminKindOk_kinds rq hadm
         icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hasf, #Hlend,
           #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
@@ -1426,9 +1429,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
               applyBackend γ ci b) x rq id0 RD
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
-            bel T sa _ hM hna hns $$ [Hst Happ Hbe HKV HRD Hfu Htie HT Htp HRS Hlc Hhk]
+            bel T sa _ hM hns $$ [Hst Happ Hbe HKV HRD Hfu Htie HT Htp HRS Hlc Hhk]
             as %ar %id ⟨HRD, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
-              HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0⟩
+              HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0, -⟩
         · simp only [↓reduceIte]
           iframe HUA Hwok' HRD He HKV HT Htp Hwba Hlend HRS Hlc Hhk
           isplitr
@@ -1444,7 +1447,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           · ipureintro; exact ⟨hdec, hid, hadm, HaOn ▸ hdk, Hrb⟩
           isplitr
           · ipureintro; rw [Hch, hAuthOn]; rfl
-          iexists hs; iframe Hfu Htie; ipureintro; exact Hhl
+          isplitl [Hfu Htie]
+          · iexists hs; iframe Hfu Htie; ipureintro; exact Hhl
+          iapply apply.adminExtra_of_ne _ _ _ _ hka
         obtain ⟨Hstep, hl', hc'⟩ := Hstep0
         have Hstep0 : apply.applyStep rq true x x' out ∧ apply.applyFloorOk rq true F x.log out :=
           ⟨Hstep, applyFloorOk_nonFloor rq true F x.log out hfl⟩

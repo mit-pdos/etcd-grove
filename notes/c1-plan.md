@@ -363,3 +363,86 @@ consistent index, the last conjunct of `applyBuiltNAOn`, `applyBuiltOn` and `app
 (`applyResOn`: before its pure facts). Threaded through `applyEntryNormal.specOn` (post: at
 `m.index` on a v3 entry, else unchanged), `apply`, `applyEntries`, `applyAll` (pre and post at
 `ciEff γ st.k`) and `run`'s job bodies. Nothing mints yet (A2). No axiom or `sorry` changed.
+
+## A2, spec-first (2026-10-28)
+
+The user's instruction: as C1, the statements first (phase 1: drafted, glued, stubs `sorry`, the
+build green), a fresh spec review (phase 1b), the proofs after (phase 2).
+
+**The path.** An `Authenticate` entry, with auth on, goes the admitted admin requests' way:
+`applyEntryNormal` → `adminEntryOn` (server) → `apply.Apply.adminSpecL` → `uberApplier.Apply`
+(`adminSpecL`) → `dispatch.adminSpec` → the chain's admin triples (`adminTriples`, promoted through
+the wrappers: none overrides `Authenticate`) → the backend's `fuelSpecX`/`stepSpecX` →
+`isAuthStepsX` → the store (`authStore.Authenticate`). `needAdminPermission` is false for it, so the
+auth applier's check passes (`adminPassL_of_not_need`).
+
+**The phase-1 statements** (as drafted; the items as planned changed in two places, below).
+1. **The consistent index's value** (vocabulary): `AEnv.ciC : IProp GF → w64 → Prop` (the resource
+   `C` under which `ConsistentIndex()` returns `x`); `isConsistentIndexer`'s triple returns that `x`
+   (`{{ C }} ConsistentIndex() {{ RET #x; C }}` for `ciC C x`), `ciSplit` gives `C` with its value,
+   `ciSplitAt E Pre x` at a known `x`; the server's `srvCiC γ ci C x` adds `x = ciEff γ st.k`
+   (`wp_ci_get`'s value). Stronger, true, and what lets the apply layer name the token's index.
+2. **The store** (`auth`): `authStore.Authenticate.specTB`, `Authenticate.spec` at the tie's
+   resources (`authWRxB`, as the five admin steps' `specTB`), with a reader slot of `enabledMu`
+   (`enabledRd`: `IsAuthEnabled` read-locks it), and its error `ErrAuthNotEnabled`'s or
+   `ErrAuthFailed`'s (`authErrOf`; the NOSPACE branch needs the error to be an auth one).
+3. **`isAuthStepsX`** gains `Authenticate` and a parameter `RD`, the reader slot it lends: from
+   `RD`, `authnCtx`, the authority, `X hs` and `W`, all back, with `authenticated`. *Changed:* no
+   `enabledRd` slot in the server's `W`; `RD` is the kit's `E.RD` (in the mode on `authRd = enabledRd
+   ∗ cacheRd ∗ beRd ∗ R`), which `kvOwn` holds and lends (`kvOwn_rd`). `authApplyResB`,
+   `authStepsAtHook`, `authApplyResPre` take it (`E.RD`; the construction's `authRd stp R`).
+4. **The backend**: `applierV3backend.Authenticate.specX`: `authenticateIs r am`, `ciSplitAt E Pre
+   x` and the right `tokFresh γa (simpleTok am.simpleToken x)`; post: the authority, `X`, `W` back,
+   `authnOut γa am.name resp err` (an auth error and no response, or a response whose token is
+   issued to `am.name`, `tokIssued`, read-only).
+5. **The chain** (`AdminChain`): `AdminReq.authenticate name pre`, its `respTy`, its
+   `extraPre E γa Pre` (`∃ x, ciSplitAt E Pre x ∗ tokFresh …`; `True` for the other five), its
+   `result` at the response `resp` (`Own γa hs ∗ authnOut`; the five ignore `resp`); `adminTriples`'
+   pre adds `ar.extraPre E γa Pre`. *Changed:* the plan had a frame `C` beside `Pre`; but `C`
+   (`applyThread ∗ applyBackend`) is inside the critical section's `Pre` (the hook needs it), so the
+   method borrows it from `Pre` as the KV methods do (`ciSplit`), at the index the right is for.
+6. **Dispatch and `Apply`**: `adminReqOf` maps `authenticate`; `adminExtra E γa rq Pre`
+   (`adminExtra_of_ne`: free for the other kinds); `dispatch.adminSpec`,
+   `uberApplier.Apply.adminSpec(L)`, `apply.Apply.adminSpec(L)`: pre `if v3 then adminExtra … else
+   True`; `adminDone` with the response pointer (`Resp = mkOk (respTy) resp`).
+7. **Admission**: `adminKindOk`'s `.authenticate => needAdminPermission rq = false` (no name
+   bound: `GetUser` only reads; review 1: a request with an admin field beside `Authenticate` would
+   pass the admin check and dispatch `Authenticate`, whose `adminTieAr` is then false; the server
+   proposes it alone, so A3 can give it); `adminKindOk_needAdmin` takes `kind ≠ authenticate`.
+8. **The server**: `adminEntryOn.spec` without `needAdminPermission rq = true`, with
+   `if v3 then adminExtra … else True`; its post adds `adminAuthnAr γa ar rq out` (with `v3`: unless
+   not an `Authenticate` or not dispatched, `ar ↦□ v` with `Resp` the response and `authnOut`, for
+   A3). `adminStateR` is `st' = st` for `Authenticate` already. `applyEntryNormal`'s statement does
+   not change: its proof mints (`freshBelow_mint` at `x = ciEff γ st.k`) and gives `ciSplitAt` at
+   its `Pre`.
+
+**Phase-1 stubs** (`sorry`, to prove in phase 2; the proofs at `2040bccc8a` are the start):
+`auth.authStore.Authenticate.wp_tieB`; `isAuthStepsX_of_authInvT`/`TB`'s `Authenticate` clause;
+`applierV3backend.Authenticate.wp_specX`; `applierAdmin_backendX`'s `authenticate` case;
+`dispatch.wp_admin`; `uberApplier.Apply.wp_admin`/`wp_adminL`; `apply.Apply.wp_admin`/`wp_adminL`;
+`adminOut_model`'s `authenticate` case (`ApplyTieOn`); `apply_admin_entry_on`; `applyEntryNormal`'s
+`Authenticate` branch (the mint, and A3's response).
+
+**Phase 1b, the reviews** (two fresh `spec-reviewer` rounds, 2026-10-28). Review 1's four defects,
+repaired: (1) the store's error: `assign` passes its error through, which the provider contract
+left unconstrained; `tokenProviderOk(A)`'s `assign` now returns `(nil ∗ tokOk) ∨ (≠ nil ∗
+authErrOf)` (the simple and no-op providers meet it; JWT, out of scope, does not), and the store's
+`specTB` and `isAuthStepsX`'s clause say `nil ∨ authErrOf`; (2) `isAuthStepsX`'s clause carried no
+error fact; (3) `adminKindOk` (item 7); (4) `authnOut` split the response into persistent fields,
+which the gRPC reply (`pbAuthenticateResponse.send`, `resp ↦ v`) cannot be rebuilt from: now
+`∃ v, resp ↦ v ∗ tokIssued γa v.Token' name`. Laws added: `ciSplit_of_at`,
+`adminExtra_authenticate`. Review 2 (on the repaired drafts), left open:
+- **`specX` needs `context.WithValue`'s `Value`** (a trust-boundary axiom of this repository,
+  `Spec/context/WithValue.lean`): the store's `authnCtx` needs `ctx.Value(AuthenticateParamIndex{})`
+  to return the index, and the axiom says nothing of `Value`. Strengthening it is a change to a
+  trusted statement: the user's to approve.
+- The consumers do not yet take the new specs as premises (`applierAdmin_backendX` the backend's
+  `specX`, `isAuthStepsX_of_authInvTB` the store's `specTB`; `isAuthStepsX_of_authInvT`, used by
+  `Results.apply_auth_steps_tie`, would need an any-mode `specT`): phase 2's gluing.
+- `adminOut_model` still takes `needAdminPermission rq = true`; for `Authenticate` it gives
+  `hs' = hs`, `st' = st` (phase 2).
+- Restore the proofs at `2040bccc8a` (`dispatch.wp_admin`, the four `Apply` admin proofs,
+  `apply_admin_entry_on`) with the `sorry` confined to the `Authenticate` case, as
+  `applierAdmin_backendX` has it.
+- A3 will want a law from `adminAuthnAr` without its "not dispatched" case (an `Authenticate` with
+  `v3` is dispatched) and one from `authnOut` to `pbAuthenticateResponse.send` with `tokIssued`.

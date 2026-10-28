@@ -658,7 +658,7 @@ theorem NewServer.wp_proofM (on : Bool)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authRoles" (by decide)
   (try wp_auto)
   -- (E3u) the start's auth state published, for the applied index's invariant
-  imod authApplyResPre_publish M astl _ _ $$ HstPub HAres with ⟨HAres, #Hpub0⟩
+  imod authApplyResPre_publish M astl _ _ RD $$ HstPub HAres with ⟨HAres, #Hpub0⟩
   -- the compactor is off (`AutoCompactionRetention = 0`)
   rw [Hacr]
   (try wp_auto)
@@ -1339,7 +1339,7 @@ theorem NewServer.wp_proofM (on : Bool)
   -- (E3n) the construction's resource at the server's frozen hook, and (C1's A1) the token rights'
   -- empty authority
   ihave HABfi := authApplyResB_of_pre M astl srvAuthSt0 d (mvcc.lateW d.gx)
-      (batchLockInv γA (metaTM d.γB d.P)) hook $$ [HAres]
+      (batchLockInv γA (metaTM d.γB d.P)) RD hook $$ [HAres]
   · iframe HB Hhook
     isplitl [HAres]
     · iExactEq HAres
@@ -1725,12 +1725,12 @@ theorem NewServer.wp_proofM (on : Bool)
       iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       isplitr
       · ipureintro; rfl
-      iintro !> %C %HC
-      obtain ⟨cst, cb, hC, hcp, -⟩ := HC
-      subst hC
+      iintro !> %C %x %HC
+      obtain ⟨cst, cb, hC, hcp, -, hx⟩ := HC
+      subst hC hx
       iintro %Φ' !> Hpre HΦ'
-      iapply (wp_wand (Φ := fun w => iprop((∀ x : w64,
-          iprop(applyThread γA cst ∗ applyBackend γA cil cb) -∗ Φ' #x) ∗
+      iapply (wp_wand (Φ := fun w => iprop((
+          iprop(applyThread γA cst ∗ applyBackend γA cil cb) -∗ Φ' #(ciEff γA cst.k)) ∗
           (⌜w = #(ciEff γA cst.k)⌝ ∗ applyThread γA cst ∗ applyBackend γA cil cb))))
         $$ [Hpre HΦ']
       · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)

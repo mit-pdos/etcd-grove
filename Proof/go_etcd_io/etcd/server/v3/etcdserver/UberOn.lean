@@ -205,8 +205,8 @@ theorem srv_uberAuthStepsL_on
   icombine Hauf Hf gives %Hst
   have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
   subst Hst'
-  have hB : authApplyResB (GF := GF) E.authMode stl st bel E.P E.f =
-      authApplyResB (GF := GF) (.on γa) stl st bel E.P E.f := by rw [hM]
+  have hB : authApplyResB (GF := GF) E.authMode stl st bel E.P E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st bel E.P E.f E.RD := by rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB

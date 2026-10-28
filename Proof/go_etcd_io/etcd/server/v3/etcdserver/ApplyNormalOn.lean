@@ -238,13 +238,14 @@ theorem dispatchKind_field (rq : apply.IRRModel) :
     repeat (first | assumption | obtain ⟨_, hd⟩ := hd)
 
 /-- **An admitted admin request needs the admin permission.** -/
-theorem adminKindOk_needAdmin (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+theorem adminKindOk_needAdmin (rq : apply.IRRModel) (h : apply.adminKindOk rq)
+    (ha : apply.dispatchKind rq ≠ .authenticate) :
     apply.needAdminPermission rq = true := by
   have hk : apply.dispatchKind rq = .authUserAdd ∨ apply.dispatchKind rq = .authRoleAdd ∨
       apply.dispatchKind rq = .authUserGrantRole ∨
       apply.dispatchKind rq = .authRoleGrantPermission ∨ apply.dispatchKind rq = .authEnable := by
     unfold apply.adminKindOk at h
-    cases hd : apply.dispatchKind rq <;> rw [hd] at h <;> simp at h ⊢
+    cases hd : apply.dispatchKind rq <;> rw [hd] at h ha <;> simp at h ha ⊢
   obtain ⟨h1, h2, h3, h4, h5⟩ := dispatchKind_field rq
   unfold apply.needAdminPermission
   rcases hk with hk | hk | hk | hk | hk
@@ -506,7 +507,7 @@ theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
       srvAuthStoreAddr s ↦□ auth.authIface stl ∗ roLendsAuthBe E.RO stl bel ∗
       authWBackendAt bel (.on γa) E.P E.f T ∗
       apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) E.P E.f T) ∗
+        (adminW stl bel (.on γa) E.P E.f T) E.RD ∗
       auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗ ⌜hs.getLast? = some st⌝ ∗ T ∗
       auth.tpAdmin stl (.on γa) ∗
       (∀ (hs' : List auth.AuthState) (st' : auth.AuthState), auth.authOwnFu γa hs' -∗
@@ -515,8 +516,8 @@ theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
   iintro HR
   iunfold srvAuthApplyResB at HR
   icases HR with ⟨%stl, %bel, #Hf, HB, #Hlens, #Hro⟩
-  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' bel E.P E.f =
-      authApplyResB (GF := GF) (.on γa) stl st' bel E.P E.f := by intro; rw [hM]
+  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' bel E.P E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st' bel E.P E.f E.RD := by intro; rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB
@@ -619,7 +620,7 @@ theorem srv_uberAuthStepsL_at
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
       apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) E.P E.f T) ⊢
+        (adminW stl bel (.on γa) E.P E.f T) E.RD ⊢
       apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
         (auth.latestRes stl (.on γa)) := by

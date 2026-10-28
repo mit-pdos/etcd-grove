@@ -201,7 +201,7 @@ abbrev apply.uberApplier.Apply.adminSpecL : Prop :=
       ⌜E.authMode = .on γa ∧ apply.adminKindOk rq ∧ apply.dispatchOk E.authOn rq ∧
         receiptBound GF ≤ 2 ^ 48⌝ ∗ ⌜skip = true → rq.txn.isSome = true⌝ ∗
       ⌜x.chain = apply.baseChain E.authOn⌝ ∗
-      Own γa hs ∗ ⧗ 1 ∗ W }}
+      Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
@@ -497,102 +497,8 @@ theorem apply.applierAdmL_cur (E : apply.AEnv GF) (p : Loc) (a : GoInterface)
 theorem apply.uberApplier.Apply.wp_adminL
     (hD : apply.uberApplier.dispatch.adminSpec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.adminSpecL (GF := GF) (hG := hG) := by
-  intro E p opts x r rq skip v3 Pre Q Post W γa hs Own L hsplit
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, Hcs, #Hbase, %Hok, %Hskip, %Hch, Ho, Hrc, HW⟩
-  ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
-  · iPkgInit
-  icases Hbase with ⟨%base, #Hbf, #Hst, #HstL⟩
-  iunfold apply.uberOwn at Hown
-  icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
-  ihave #Had := apply.applierAdmin_curG E W Own p x.chain a $$ [Hsh]
-  · iframe #
-    try (iexists base; iframe #)
-  ihave #Hsh' : apply.uberShape E p (apply.baseChain E.authOn) a $$ []
-  · rw [← Hch]; iexact Hsh
-  ihave #HAL : apply.applierAdmL E x.chain a L $$ []
-  · rw [Hch]
-    iapply apply.applierAdmL_cur
-    iframe Hsh'
-    try (iexists base; iframe #)
-  ihave #Hs' := Hs
-  iunfold apply.applierSpec at Hs'
-  icases Hs' with ⟨%ai, %Hai, -⟩
-  subst Hai
-  iunfold apply.applierAdmL at HAL
-  icases HAL with ⟨%ai', %Hai', #HApply⟩
-  cases Hai'
-  ihave ⟨HL, Hback⟩ := hsplit hs $$ Ho
-  wp_auto
-  iapply wp_fupd
-  wp_apply HApply $$ %r %rq %skip %v3
-      %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
-      %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗ apply.kvOwn E x.log ∗
-        apply.cPre v3 E.P E.f Pre Q Post ∗ (L hs -∗ Own γa hs) ∗ ⧗ 1 ∗ W))
-      %(fun ar => iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
-        ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
-          ⌜apply.dispatchStep x.chain rq v3 x.log o⌝ ∗ apply.resTrace ar ∗
-          apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar))
-      %hs [Ha Hkv Hcs Hback Hrc HW HL] as %ar Hpost
-  · iframe Hw Ha Hkv Hcs Hback Hrc HW HL
-    imodintro
-    iintro %Φ' ⟨Hres, ⟨Ha, Hkv, Hcs, Hback, Hrc, HW⟩, HL⟩ HΦ'
-    ihave Ho := Hback $$ HL
-    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post (apply.principalOf rq) W γa hs Own)
-      $$ [Hres Ha Hkv Hcs Ho Hrc HW]
-    · iframe #
-      iframe Hres Ha Hkv Hcs Ho Hrc HW
-      ipureintro; exact ⟨Hok, HcE⟩
-    inext
-    iintro %ar ⟨Hres, Ha, Hrest⟩
-    iapply HΦ'
-    simp only []
-    iframe Hres Ha Hrest
-  icases Hpost with (⟨⟨Ha', %o, Hkv, HPP, %Hst', Htr, Hres, HW, Hdone⟩, %Hpass⟩ |
-    ⟨%Hrj, ⟨Ha, Hkv, Hcs, Hback, Hrc, HW⟩, HL, Hrej⟩)
-  · imodintro
-    iapply HΦ
-    iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
-    simp only [apply.applyResultIs, apply.adminOut, apply.adminRejErr]
-    iframe Hkv HPP Htr Hres HW Hdone
-    isplitl [Ha']
-    · iunfold apply.uberOwn; iexists _; iframe Ha' Hs Hsh; ipureintro; exact HcE
-    isplitr
-    · ipureintro; exact ⟨⟨Hskip, Hst', rfl, Or.inl rfl⟩, Or.inr ⟨o, rfl⟩⟩
-    ipureintro
-    refine ⟨fun h => (by cases h), fun _ _ => Hpass⟩
-  · ihave Ho := Hback $$ HL
-    iunfold apply.rejectResultIsA at Hrej
-    icases Hrej with ⟨%Harn, %v, Hv, %Hvf, #HeA⟩
-    ihave #HeI := authApplyErrIs_apply _ $$ HeA
-    ipersist Hv
-    imodintro
-    iapply HΦ
-    iexists x, .rejected
-    simp only [apply.applyResultIs, apply.adminOut]
-    iframe Hkv Ho Hrc HW
-    isplitl [Ha]
-    · iunfold apply.uberOwn; iexists _; iframe Ha Hs Hsh; ipureintro; exact HcE
-    isplitl [Hcs]
-    · iapply apply.cPost_of_pre
-      iapply apply.cPre_pre
-      iexact Hcs
-    isplitr
-    · ipureintro; exact ⟨⟨Hrj.1, rfl⟩, by simp⟩
-    isplitr
-    · ipureintro
-      exact ⟨fun _ => Hrj, fun _ h => by cases h⟩
-    isplitl []
-    · iapply apply.resTrace_err ar v Hvf.1 $$ Hv
-    isplitr
-    · iunfold apply.rejectedResultIs
-      isplitr
-      · ipureintro; exact Harn
-      iexists v
-      iframe Hv HeI
-      ipureintro; exact Hvf
-    simp only [apply.adminRejErr]
-    iexists v
-    iframe Hv HeA
+  -- (C1's A2) phase 1 of the spec-first stage: the proof (at 2040bccc8a) is redone in phase 2
+  sorry
 
 end proof
 

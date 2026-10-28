@@ -4,6 +4,7 @@ Proof of the spec of the same name (the auth plan's S5, 2026-10-24). Lean-first 
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Authenticate
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Proof.go_etcd_io.etcd.server.v3.auth.VerdictLemmas
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Revision
@@ -29,6 +30,17 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+/-- **`Authenticate.specTB`** (C1's A2; phase 1 of the spec-first stage: `sorry` until phase 2). -/
+theorem auth.authStore.Authenticate.wp_tieB
+    (h_IsAuthEnabled : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
+    (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG))
+    (h_redactToken : auth.redactToken.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Check : zap.Logger.Check.spec (GF := GF) (hG := hG))
+    (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG)) :
+    auth.authStore.Authenticate.specTB (GF := GF) (hG := hG) := by
+  sorry
 
 theorem auth.authStore.Authenticate.wp_proof
     (h_IsAuthEnabled : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
@@ -126,7 +138,8 @@ theorem auth.authStore.Authenticate.wp_proof
       iunfold authenticated
       ileft; ipureintro; exact ⟨by simp, rfl⟩
     | nil =>
-      icases Htok with (%Hne | #Htok)
+      icases Htok with (⟨-, #Htok⟩ | ⟨%Hne, -⟩)
+      rotate_left
       · exact absurd rfl Hne
       (try wp_auto)
       (try wp_auto)
@@ -232,7 +245,8 @@ theorem auth.authStore.Authenticate.wp_proof
       iunfold authenticated
       ileft; ipureintro; exact ⟨by simp, rfl⟩
     | nil =>
-      icases Htok with (%Hne | #Htok)
+      icases Htok with (⟨-, #Htok⟩ | ⟨%Hne, -⟩)
+      rotate_left
       · exact absurd rfl Hne
       (try wp_auto)
       (try wp_auto)

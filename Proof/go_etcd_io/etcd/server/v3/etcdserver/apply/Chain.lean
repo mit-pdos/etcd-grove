@@ -289,7 +289,11 @@ only, the names within bbolt's key bound (the step specs' premise; the fuel boun
 `AuthFuel.lean`). `SetUp`'s five: `UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`
 (whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds.
 A `UserAdd`'s password choice cannot fail (`UserAddModel.pwSure`, the server's own form, which
-`EtcdServer.UserAdd` proposes: E2x), so its outcome is the step's alone (E3a). -/
+`EtcdServer.UserAdd` proposes: E2x), so its outcome is the step's alone (E3a). (C1's A2,
+2026-10-28) And `Authenticate`, which writes nothing (`GetUser` only reads its name: no key bound),
+in a request needing no admin permission (`needAdminPermission` reads the request's fields, the
+dispatch its first: a request with an admin field beside it would pass the admin check and still
+dispatch `Authenticate`; the server proposes it alone). -/
 def adminKindOk (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
@@ -298,6 +302,7 @@ def adminKindOk (rq : IRRModel) : Prop :=
   | .authRoleGrantPermission =>
       ∀ n w, rq.authRoleGrantPermission = some (n, w) → n.length ≤ backend.maxKeySize
   | .authEnable => True
+  | .authenticate => needAdminPermission rq = false
   | _ => False
 
 /-- **The per-request premise in the auth mode `M`** (E2m, continued): `rqOk`, or, in the mode `on`
@@ -344,8 +349,9 @@ structure AEnv (GF : BundledGFunctors) where
   FS : IProp GF
   /-- the apply thread's resources `ConsistentIndex` reads under (D14i: the server's apply
   protocol's state with the consistent index's owner share), lent out of the critical section's
-  precondition (`ciSplit`) -/
-  ciC : IProp GF → Prop
+  precondition (`ciSplit`), with the value `ConsistentIndex` returns under each (`ciC C x`: under
+  `C` it returns `x`; C1's A2, 2026-10-28: the authenticate request's token index) -/
+  ciC : IProp GF → w64 → Prop
   /-- (D22, 2026-10-23: the backend over every bucket) the apply thread's resource of the rest
   buckets and the cluster's in-memory members at their value (`RestModel.lean`): the cluster's
   `SetVersion` and `UpdateAttributes` change it (`isCluster`) -/
@@ -935,12 +941,33 @@ theorem traceRes_null : ⊢ traceRes (GF := GF) null := by
 
 /-- **The consistent index's resources, lent out of `Pre`** (D14i, 2026-10-17): the critical
 section's precondition `Pre` holds a resource `C` that `ConsistentIndex` reads under
-(`E.ciC C`), which a method may take out and put back before it locks. -/
+(`E.ciC C x`, at the value `x` it reads), which a method may take out and put back before it
+locks. -/
 def ciSplit (E : AEnv GF) (Pre : IProp GF) : IProp GF :=
-  iprop(□ (Pre -∗ ∃ C : IProp GF, ⌜E.ciC C⌝ ∗ C ∗ (C -∗ Pre)))
+  iprop(□ (Pre -∗ ∃ (C : IProp GF) (x : w64), ⌜E.ciC C x⌝ ∗ C ∗ (C -∗ Pre)))
 
 instance ciSplit_persistent (E : AEnv GF) (Pre : IProp GF) : Persistent (ciSplit E Pre) := by
   unfold ciSplit; infer_instance
+
+/-- **`ciSplit` at a known index** (C1's A2, 2026-10-28): the resource `C` lent out of `Pre` is
+one under which `ConsistentIndex` reads `x`. -/
+def ciSplitAt (E : AEnv GF) (Pre : IProp GF) (x : w64) : IProp GF :=
+  iprop(□ (Pre -∗ ∃ C : IProp GF, ⌜E.ciC C x⌝ ∗ C ∗ (C -∗ Pre)))
+
+instance ciSplitAt_persistent (E : AEnv GF) (Pre : IProp GF) (x : w64) :
+    Persistent (ciSplitAt E Pre x) := by
+  unfold ciSplitAt; infer_instance
+
+theorem ciSplit_of_at (E : AEnv GF) (Pre : IProp GF) (x : w64) :
+    ciSplitAt (GF := GF) E Pre x ⊢ ciSplit E Pre := by
+  iintro #H
+  iunfold ciSplit
+  iintro !> HP
+  iunfold ciSplitAt at H
+  ihave ⟨%C, %h, HC, Hb⟩ := H $$ HP
+  iexists C, x
+  iframe HC Hb
+  ipureintro; exact h
 
 /-- **The method triples of the `applierV3` value `ai` of the chain `c`** in the environment
 `E` (each persistent: `dispatch` calls one per request). Each takes the principal `info` the

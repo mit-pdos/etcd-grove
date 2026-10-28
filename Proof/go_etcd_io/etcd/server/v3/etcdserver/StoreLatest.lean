@@ -126,41 +126,41 @@ at every schema auth backend on `bel` (`authWBackendAt`) and the store's admin s
 (`apply.isAuthStepsX`), both at the backend's post-lock hook `Pk f` (the server's: the apply
 environment's `E.P`, `E.f`, `srvAuthApplyResB`). -/
 def authApplyResB (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (bel : Loc)
-    (Pk : IProp GF) (f : val) : IProp GF :=
+    (Pk : IProp GF) (f : val) (RD : IProp GF) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f0 : val) (T : IProp GF)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
       auth.authWBackendOk be (.on γa) P f0 T ∗ T ∗ auth.tpAdmin stl (.on γa) ∗
       ⌜hs.getLast? = some st⌝ ∗ authWBackendAt bel (.on γa) Pk f T ∗
       apply.isAuthStepsX (auth.authIface stl) Pk f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) Pk f T))
+        (adminW stl bel (.on γa) Pk f T) RD)
   | _ => iprop(True)
 
 /-- **The admin steps' facts at whichever post-lock hook the server will freeze** (E3n; persistent):
 for the real backend `d` with its frozen hook `f'` (not `nil`) at the batch lock `Pk'`, the write
 contract at every schema auth backend on `d`'s backend and the store's admin steps there, at the
 write token `T`. -/
-def authStepsAtHook (stl : Loc) (d : mvcc.KBReal) (γa : auth.AuthNames) (T : IProp GF) : IProp GF :=
+def authStepsAtHook (stl : Loc) (d : mvcc.KBReal) (γa : auth.AuthNames) (T RD : IProp GF) : IProp GF :=
   iprop(□ ∀ (W' Pk' : IProp GF) (f' : GoFunc),
     backend.isBackend d.γB d.P W' Pk' d.be -∗ backend.plHookRO d.γB f' -∗ ⌜f' ≠ func.nil⌝ -∗
     authWBackendAt d.be (.on γa) Pk' #f' T ∗
       apply.isAuthStepsX (auth.authIface stl) Pk' #f' (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl d.be (.on γa) Pk' #f' T))
+        (adminW stl d.be (.on γa) Pk' #f' T) RD)
 
-instance authStepsAtHook_persistent (stl : Loc) (d : mvcc.KBReal) (γa : auth.AuthNames) (T : IProp GF) :
-    Persistent (authStepsAtHook (GF := GF) stl d γa T) := by
+instance authStepsAtHook_persistent (stl : Loc) (d : mvcc.KBReal) (γa : auth.AuthNames) (T RD : IProp GF) :
+    Persistent (authStepsAtHook (GF := GF) stl d γa T RD) := by
   unfold authStepsAtHook; infer_instance
 
 /-- **The apply thread's auth resource before the hook is frozen** (E3n): `authApplyResB`'s with
 its hook-dependent facts for every frozen hook (`authStepsAtHook`), what the store's construction
 gives (`authStoreKit`'s post); `authApplyResB_of_pre` instantiates it at the server's hook. -/
-def authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (d : mvcc.KBReal) :
-    IProp GF :=
+def authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (d : mvcc.KBReal)
+    (RD : IProp GF) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f0 : val) (T : IProp GF)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
       auth.authWBackendOk be (.on γa) P f0 T ∗ T ∗ auth.tpAdmin stl (.on γa) ∗
-      ⌜hs.getLast? = some st⌝ ∗ authStepsAtHook stl d γa T ∗
+      ⌜hs.getLast? = some st⌝ ∗ authStepsAtHook stl d γa T RD ∗
       ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit))
   | _ => iprop(True)
 
@@ -180,7 +180,7 @@ hook (`E.P`, `E.f`), and the equation of the backend names: the environment's wr
 the store's half of `be` on `bel`, and (E3n) so does its rest resource, at the same rest value. -/
 def srvAuthApplyResB (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) : IProp GF :=
   iprop(∃ (stl bel : Loc), structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer
-      go!"authStore" s ↦□ (auth.authIface stl) ∗ authApplyResB E.authMode stl st bel E.P E.f ∗
+      go!"authStore" s ↦□ (auth.authIface stl) ∗ authApplyResB E.authMode stl st bel E.P E.f E.RD ∗
     rwLens E.RW (authBeOn stl bel) ∗ roLendsAuthBe E.RO stl bel)
 
 /-- **Publication, in the mode `M`** (the auth plan's E3t, 2026-10-27; persistent): in the mode
@@ -311,9 +311,9 @@ omit auth_sem in
 /-- **The construction's apply resource publishes its latest state** (E3u): `authPubAt_publish` at
 `authApplyResPre`, before the server's applied index's invariant is allocated. -/
 theorem authApplyResPre_publish (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
-    (d : mvcc.KBReal) :
-    authPublishM (GF := GF) M stl ⊢ authApplyResPre M stl st d ={⊤}=∗
-      authApplyResPre M stl st d ∗ authPubAt M st := by
+    (d : mvcc.KBReal) (RD : IProp GF) :
+    authPublishM (GF := GF) M stl ⊢ authApplyResPre M stl st d RD ={⊤}=∗
+      authApplyResPre M stl st d RD ∗ authPubAt M st := by
   cases M with
   | on γa =>
     iintro #Hp H
@@ -346,8 +346,8 @@ open Iris.ProofMode
 
 /-- `authApplyResB` forgets its admin steps' facts into `authApplyResAt`. -/
 theorem authApplyResAt_of_B (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (bel : Loc)
-    (Pk : IProp GF) (f : val) :
-    authApplyResB (GF := GF) M stl st bel Pk f ⊢ authApplyResAt M stl st := by
+    (Pk : IProp GF) (f : val) (RD : IProp GF) :
+    authApplyResB (GF := GF) M stl st bel Pk f RD ⊢ authApplyResAt M stl st := by
   cases M with
   | on γa =>
     unfold authApplyResB authApplyResAt
@@ -361,10 +361,10 @@ theorem authApplyResAt_of_B (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState
 /-- **The construction's auth resource at the server's frozen hook** (E3n): `authApplyResPre`
 instantiated at a real backend `d` on `bel` with its frozen hook `f` at the batch lock `Pk`. -/
 theorem authApplyResB_of_pre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
-    (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) :
-    authApplyResPre (GF := GF) M stl st d ∗ backend.isBackend d.γB d.P W Pk d.be ∗
+    (d : mvcc.KBReal) (W Pk RD : IProp GF) (f : GoFunc) :
+    authApplyResPre (GF := GF) M stl st d RD ∗ backend.isBackend d.γB d.P W Pk d.be ∗
       backend.plHookRO d.γB f ∗ ⌜f ≠ func.nil⌝ ⊢
-      authApplyResB M stl st d.be Pk #f ∗ authFreshInit M := by
+      authApplyResB M stl st d.be Pk #f RD ∗ authFreshInit M := by
   cases M with
   | on γa =>
     unfold authApplyResPre authApplyResB authFreshInit

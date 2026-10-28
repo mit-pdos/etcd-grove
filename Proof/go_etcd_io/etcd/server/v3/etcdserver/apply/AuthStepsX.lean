@@ -18,6 +18,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthFuel
 public import Proof.go_etcd_io.etcd.server.v3.auth.TieRes
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_tieSure
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
+public import Spec.context.WithValue
 
 @[expose] public section
 
@@ -66,9 +68,10 @@ variable [sem : go.Semantics]
 
 /-- **The auth store `st`'s five `SetUp` admin operations as model steps carrying `X`** (see the
 file header): as `isAuthSteps`'s, with `X hs` beside the authority and given back at the history
-after (`auth.adminOutX`). -/
+after (`auth.adminOutX`); and (C1's A2) its `Authenticate`, at the reader resource `RD` the apply
+thread lends (`kvOwn`'s `E.RD`; the real store's `auth.authRd`). -/
 def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode)
-    (X : List auth.AuthState → IProp GF) (W : IProp GF) : IProp GF :=
+    (X : List auth.AuthState → IProp GF) (W RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF),
       {{ ⌜M.isOn = true⌝ ∗ auth.authOwn M hs ∗ X hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
@@ -111,11 +114,23 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode)
         (App (Val #(methods ai.ty go!"RoleGrantPermission" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
-          auth.adminOutX M (ownX M X) hs (auth.roleGrantPermissionR name w) auth.noExtra err }}))
+          auth.adminOutX M (ownX M X) hs (auth.roleGrantPermissionR name w) auth.noExtra err }}) ∗
+    -- (C1's A2) `Authenticate`, which writes nothing: at the reader resource `RD` (`IsAuthEnabled`
+    -- read-locks the flag) and the context `authnCtx` (the token's index, prefix and right); its
+    -- error one of the auth package's
+    □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (ctx : GoInterface)
+        (name pw : GoString),
+      {{ ⌜M.isOn = true⌝ ∗ RD ∗ auth.authOwn M hs ∗ X hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
+          auth.authnCtx M ctx }}
+        (App (App (App (Val #(methods ai.ty go!"Authenticate" ai.v)) (Val #ctx)) (Val #name))
+          (Val #pw))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ RD ∗
+          auth.authOwn M hs ∗ X hs ∗ W ∗ auth.authenticated M hs name resp err ∗
+          (⌜err = GoInterface.nil⌝ ∨ ∃ e : auth.AuthErr, auth.authErrOf e err) }}))
 
 instance isAuthStepsX_persistent (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode)
-    (X : List auth.AuthState → IProp GF) (W : IProp GF) :
-    Persistent (isAuthStepsX st P f M X W) := by
+    (X : List auth.AuthState → IProp GF) (W RD : IProp GF) :
+    Persistent (isAuthStepsX st P f M X W RD) := by
   unfold isAuthStepsX; infer_instance
 
 /-- **The `*applierV3backend` `p`'s auth store's admin steps carrying `X`**
@@ -123,7 +138,7 @@ instance isAuthStepsX_persistent (st : GoInterface) (P : IProp GF) (f : val) (M 
 def backendAuthStepsX (E : AEnv GF) (p : Loc) (X : List auth.AuthState → IProp GF) (W : IProp GF) :
     IProp GF :=
   iprop(∃ opts : ApplierOptions, structFieldRef applierV3backend go!"options" p ↦□ opts ∗
-    isAuthStepsX opts.AuthStore' E.P E.f E.authMode X W)
+    isAuthStepsX opts.AuthStore' E.P E.f E.authMode X W E.RD)
 
 instance backendAuthStepsX_persistent (E : AEnv GF) (p : Loc) (X : List auth.AuthState → IProp GF)
     (W : IProp GF) : Persistent (backendAuthStepsX E p X W) := by
@@ -210,7 +225,7 @@ theorem isAuthStepsX_of_authInvT
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
-        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) := by
+        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) (auth.authRd st R M) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold isAuthStepsX
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
@@ -289,6 +304,7 @@ theorem isAuthStepsX_of_authInvT
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe HPP HW HA Ha Hresp; iexact Hout
+  isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
@@ -305,6 +321,8 @@ theorem isAuthStepsX_of_authInvT
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe HPP HW HA Ha Hresp; iexact Hout
+  -- (C1's A2) `Authenticate`: phase 2 of the spec-first stage
+  sorry
 
 /-- **`isAuthStepsX` of the real store, keeping its backend** (the auth plan's E3l): as
 `isAuthStepsX_of_authInvT`, with the write resource's backend `be` kept by each step (E3l's
@@ -321,7 +339,7 @@ theorem isAuthStepsX_of_authInvTB
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
         iprop((∃ be : go_etcd_io.etcd.server.v3.auth.AuthBackend, ((auth.aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗
-          auth.authWBackendOk be M P f T) ∗ T) ∗ Ψ be) ∗ auth.tpAdmin st M) := by
+          auth.authWBackendOk be M P f T) ∗ T) ∗ Ψ be) ∗ auth.tpAdmin st M) (auth.authRd st R M) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold isAuthStepsX
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
@@ -415,6 +433,7 @@ theorem isAuthStepsX_of_authInvTB
     isplitl [Hbe HT]
     · iexists be; iframe Hbe HT HΨ
     iexact Hout
+  isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
@@ -435,6 +454,8 @@ theorem isAuthStepsX_of_authInvTB
     isplitl [Hbe HT]
     · iexists be; iframe Hbe HT HΨ
     iexact Hout
+  -- (C1's A2) `Authenticate`: phase 2 of the spec-first stage
+  sorry
 
 end proof
 
@@ -613,6 +634,37 @@ abbrev applierV3backend.AuthEnable.fuelSpecX : Prop :=
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
           (authEnableR E.authMode en) auth.noExtra err }}
 
+/-- **What an `Authenticate` returns, with auth on** (C1's A2, 2026-10-28): an error (one of the
+auth package's, `auth.authErrOf`) and no response; or no error and the response, owned (the reply
+the server sends), whose token is issued to `name` (`auth.tokIssued`). (The margin: the token is
+`<prefix>.<x>` at the entry's index, `auth.simpleTok`; no client needs it.) -/
+def authnOut (γa : auth.AuthNames) (name : GoString) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ ∃ e : auth.AuthErr, auth.authErrOf e err) ∨
+    ⌜err = GoInterface.nil⌝ ∗ ∃ v : etcdserverpb.AuthenticateResponse,
+      resp ↦ v ∗ auth.tokIssued γa v.Token' name)
+
+/-- **`a.Authenticate(r)` with auth on, carrying `X`** (C1's A2, 2026-10-28): the store's
+`Authenticate` (`isAuthStepsX`'s) at a context holding the consistent index `x` that
+`ConsistentIndex()` returns under the resource it borrows from the critical section's precondition
+(`ciSplitAt`) and the request's token prefix, with the right to issue `<prefix>.<x>`
+(`auth.tokFresh`); the authority, `X` and `W` back as they were (it writes nothing), the result
+`authnOut`. -/
+abbrev applierV3backend.Authenticate.specX : Prop :=
+  ∀ (E : AEnv GF) (γa : auth.AuthNames) (X : List auth.AuthState → IProp GF) (W : IProp GF)
+    (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (am : AuthenticateModel) (x : w64),
+    E.authMode = .on γa →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ authenticateIs r am ∗
+        ciSplitAt E Pre x ∗ auth.tokFresh γa (auth.simpleTok am.simpleToken x) ∗
+        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Authenticate")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
+      authnOut γa am.name resp err }}
+
 end stepSpecs
 
 section applier
@@ -763,7 +815,7 @@ theorem applierV3backend.RoleGrantPermission.wp_stepX
   iunfold apply.backendAuthStepsX at Hs'
   icases Hs' with ⟨%opts, #Hopts, #Hst⟩
   iunfold apply.isAuthStepsX at Hst
-  icases Hst with ⟨%ai, %Hai, -, -, -, -, #HM⟩
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, #HM, -⟩
   iStructNamed Hopts
   wp_auto
   rw [Hai]
@@ -951,6 +1003,13 @@ theorem applierV3backend.AuthEnable.wp_fuelX
   · iframe
   iapply HΦ
   iframe; iframe #
+
+/-- **`Authenticate.specX`** (C1's A2; phase 1 of the spec-first stage: `sorry` until phase 2). -/
+theorem applierV3backend.Authenticate.wp_specX
+    (hWV : context.WithValue.spec (GF := GF) (hG := hG))
+    (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
+    applierV3backend.Authenticate.specX (GF := GF) (hG := hG) := by
+  sorry
 
 end applier
 

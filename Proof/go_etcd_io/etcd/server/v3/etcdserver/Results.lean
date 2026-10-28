@@ -1471,7 +1471,7 @@ theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : 
     (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       EtcdGrove.apply.isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
-        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) :=
+        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) (auth.authRd st R M) :=
   EtcdGrove.apply.isAuthStepsX_of_authInvT auth_auth_enable_tie
     (auth.authStore.UserAdd.wp_tieSure auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String

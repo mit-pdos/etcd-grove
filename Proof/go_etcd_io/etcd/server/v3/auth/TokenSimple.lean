@@ -438,7 +438,8 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
       (App (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"assign" #p))
         (Val #ctx)) (Val #user)) (Val #rev))
     {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ tokOk (.on γa) t user }} := by
+        (⌜err = GoInterface.nil⌝ ∗ tokOk (.on γa) t user) ∨
+            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }} := by
   wp_start as ⟨#Hok, Hctx⟩
   iunfold authnCtx at Hctx
   icases Hctx with ⟨%ci, %idx, %pre, %Hci, #HV, Hfr⟩
@@ -472,7 +473,9 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
   · iframe #; iunfold freshOk at Hfr; iexact Hfr
   (try wp_auto)
   iapply HΦ
-  iright
+  ileft
+  isplitr
+  · ipureintro; rfl
   iunfold tokOk; iexact Hiss
 
 end proof
