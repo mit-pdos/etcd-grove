@@ -25159,3 +25159,22 @@ the storage holds (`storHoldsLb`) ..., its term fixed in the post"): the certifi
 term the storage stamps, and a storage fact relating that term to the committed log's (the storage
 holds raft's log; its entries up to the applied index are committed). A change to a public raft spec
 (`CreateSnapshot.spec`, used by kv and the other examples that snapshot), so it waits for the user.
+
+**2026-10-28 · the coordinator's decision: a new variant `MemoryStorage.CreateSnapshot.unifiedSpec`
+(candidate 12's K4 triple: today's token, record, mask and keys; the term fixed to the storage's at `i`,
+the certificate asked only there), with a minimal storage fact from `node.Advance.unifiedSpec`'s post,
+valid until the client's next write. Not started (this session's budget); what it takes, found on the way:**
+- The storage's state carries no fact about its entries below the floor: `HistOk` (`InvMemstorage.lean`)
+  orders the floors and numbers the entries, nothing more, and `storFloor`/`memFloorTok` give a history
+  lower bound whose last state's floor is at least `x`. So the fact is new ghost content, on three
+  layers: (1) the storage model (`class StorageModel`, `InvStorage.lean`: a new predicate, e.g.
+  `storTermsAt st l`, "the storage's entries at positions below `|l|` above its boundary are `l`'s, with
+  their terms", exclusive or tied to the snapshot token's view so that the client's next write ends it),
+  proved for `MemoryStorage` (`MemstorageInstance.lean`, the lock invariant `memstorageInv` relating the
+  current state to the owner's sanctioned one) and for kv's wrapper (`KVStorageInstance.lean`);
+  (2) raft's side: `run`'s floor raise at the `advancec` rendezvous (`advInv`, `InvNodeChan.lean`)
+  produces it from raft's own view of the storage (`ownStorage σ` in the `RawNode`, whose entries up to
+  the applied index are the delivered committed log: the `RawNode` invariant's log/storage agreement),
+  and the raw `node.Advance` post carries it with `reqWit`; (3) `CreateSnapshot.unifiedSpec`'s proof
+  reads the term under the lock from the current state, which the fact pins.
+- kv then uses it at its one `CreateSnapshot` call (right after `Advance`, before any write).
