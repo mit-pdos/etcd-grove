@@ -150,7 +150,7 @@ theorem RawNode.Propose.wp_proof
   simp only [MsgProp]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %Htm, %_, -, -, Herr⟩
   have Hc := Href.commit_mono
-  have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
+  have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hc' (by msg_ne); subst c'
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move

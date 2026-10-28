@@ -61,7 +61,8 @@ commit per lemma.
 - **U3. RawNode in one mode.** Lift `DynNoSnap` (`RawNode.Step` supplies `GMode.SnapDyn` from the
   message's certificate), the `"%Hsnap"` clause (a pending snapshot in the dynamic invariant), the
   `MsgStorageAppendResp`/`ApplyResp` snapshot cases (`StepR.applySnap`), `RNState.cfg/capplied`
-  following a restore.
+  following a restore. (2026-10-28: U3a, the model, and U3b, `raft.Step`'s two storage-response cases,
+  done; U3c, the `RawNode`, and U3d, the node, left: `notes/decisions.md`, "Stages U2, U3".)
 - **U4. Allocation without `reNoSnap`, joiners.** `ownRaftGhost_alloc_core` for a dynamic cluster with
   snapshots and an empty or bootstrap log; `joinAuth`; `RestartNode` from `γ.c0`; a joiner (empty log,
   configuration `c0`) in the protocol invariant beside the founders; pre-votes granted at term 0 with

@@ -286,7 +286,7 @@ theorem ownRaftGhost_step_app_resp [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : R
 
 theorem isMessage_snap_prefix [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (m : Msg) (Hty : m.ty =
     MsgType.snap) : ⊢ isMessage γ m -∗ ∃ fp, ⌜FullOk { term' := m.logterm, index' := m.index } fp⌝ ∗
-    logRecs γ base0 fp
+    logRecs γ base0 fp ∗ isCommitted γ fp
 
 theorem ownRaftGhost_inv_md [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (s :
     PState) : ⊢ ownRaftGhost γ id s md -∗ raftCommitInv γ

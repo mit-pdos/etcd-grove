@@ -556,7 +556,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     ipureintro
     rw [Htrm]
     exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
-  have e1 := Href.keep (by not_net) Hs; subst e1
+  have e1 := Href.keep (by not_net) Hs (fun h => absurd h (by not_net)); subst e1
   have e2 := Hcc (fun h => absurd h (by not_net)); subst c'
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hs (by not_net) (fun h => absurd h (by not_net))
   obtain ⟨Ht1, -, Ht3, Hip4, Ht5, Hpcs⟩ := Htm Hs
@@ -812,7 +812,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       iframe Hpd
       ipureintro; exact HErrPropDropped
   have Hc := Href.commit_mono
-  have e1 := Href.keep (by msg_ne') (by msg_ne'); subst e1
+  have e1 := Href.keep (by msg_ne') (by msg_ne') (fun h => absurd h (by msg_ne')); subst e1
   have e2 := Hcc (by msg_ne'); subst c'
   obtain ⟨Hfr', Hap, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne')) (.inl Hty)
   have Hap' := Hap (fun Hc => by rw [Hty] at Hc; simp [MsgProp, MsgStorageApplyResp] at Hc)
@@ -1079,10 +1079,7 @@ theorem wp_applyConf_dyn
   have Hnoc' : NoConfIn (rOf s g).full g.cidx k :=
     NoConfIn_prefix Hdp (Nat.le_of_lt Hk2) Hnoc
   -- the configuration the code sees is the model's
-  -- (2026-10-28, stage U0) no snapshot pending in the dynamic mode (`Hsnap`)
-  have Hns0 : (rOf s g).snap = false := by
-    simp only [rOf, Hsnap (.inr (by rw [hm]; rfl))]; rfl
-  have Hgood : CCGood rs.cfg := cfgFold_good h1 (HI.cfg Hns0)
+  have Hgood : CCGood rs.cfg := cfgFold_good h1 HI.cfg
   have Hcfg : cfgStateC cf = rs.cfg := by rw [← Hgc]; exact cfgStateC_of_good Hgood
   obtain ⟨Happ, Hsz⟩ := ccStepB_some Hstep
   -- no candidate: a candidate has no conf entry past `applied` (`RInv.cand`)
@@ -1115,7 +1112,7 @@ theorem wp_applyConf_dyn
       cs' := by
     refine ⟨?_, rfl⟩
     unfold AdmFold
-    have H0 := cfgFold_noConf dec c0 Hnoc' Hk1 (HI.cfg Hns0)
+    have H0 := cfgFold_noConf dec c0 Hnoc' Hk1 HI.cfg
     rw [show (rOf s g).full.take (k + 1) = (rOf s g).full.take k ++ [e] by
       rw [List.take_add_one, Hfull_k]; rfl, cfgFold_snoc, H0, Option.bind_some]
     unfold entStep
@@ -1123,8 +1120,7 @@ theorem wp_applyConf_dyn
     exact Hstep'
   have HR1 : StepR (AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1))) dec id 0 (rOf s g) []
       (rOf s g') :=
-    StepR.applyConf (rOf s g) k e op' cs'
-      (by simp [rOf, Hsnap (.inr (by rw [hm]; rfl))]) Hk1 Hkc Hfull_k Hconf
+    StepR.applyConf (rOf s g) k e op' cs' Hk1 Hkc Hfull_k Hconf
       Hnoc'.noUndec (by rw [Htake]; exact Hdec) Hstep' Hadm
   have HR2 := applyCCOkC_stepR (B := 0) (Adm := AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)))
     (dec := dec) cs'.cfg id s s' g' Hok rfl

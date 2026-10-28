@@ -137,7 +137,8 @@ mode afterwards is the node's at some `ca'`, moved only by a `MsgStorageApplyRes
 most the new `applied` (`CidxMove`), and not at all in the static mode. -/
 theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List EntryM}
     {c : CfgM} {id : w64} {m : MessageM} {s s' : NState} {md' : GMode}
-    (H : (mode.toG ⟨ca, cfg, fp⟩).StepOut c id m s s' md') (hs : m.Type' ≠ MsgSnap) :
+    (H : (mode.toG ⟨ca, cfg, fp⟩).StepOut c id m s s' md') (hs : m.Type' ≠ MsgSnap)
+    (ha : m.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied) :
     ∃ ca', md' = mode.toG ⟨ca', cfg, fp⟩ ∧ ca ≤ ca' ∧
       ca' ≤ max ca (uint.nat s'.logst.applied) ∧ (mode = .static → ca' = ca) ∧
       (m.Type' ≠ MsgStorageApplyResp → ca' = ca) := by
@@ -146,13 +147,14 @@ theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List 
     exact ⟨ca, H.1, Nat.le_refl _, Nat.le_max_left _ _, fun _ => rfl, fun _ => rfl⟩
   | dyn dec c0 h0 _ =>
     obtain ⟨g', Hcm, rfl, -⟩ := H
-    rcases Hcm with h | h | ⟨hty, h⟩
+    rcases Hcm with h | h | ⟨hty, h⟩ | ⟨hty, h, -⟩
     · exact absurd h hs
     · subst h
       exact ⟨ca, rfl, Nat.le_refl _, Nat.le_max_left _ _, fun h => (by cases h), fun _ => rfl⟩
     · subst h
       exact ⟨_, rfl, Nat.le_max_left _ _, Nat.le_refl _, fun h => (by cases h),
         fun hm => absurd hty hm⟩
+    · exact absurd (ha hty) h
 
 
 -- (2026-10-16, stage R5) `hsAbs`, `nodeHardstate`, `nodeSoftstate`,
@@ -785,7 +787,7 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
         (∀ sv, sn = some sv →
           snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
           uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-          md.isDyn = false ∧ s.role = .follower ∧ SnapAckOk γ id sv ∧
+          s.role = .follower ∧ ((md.isDyn = false ∧ SnapAckOk γ id sv) ∨ SnapAckDyn md s sv) ∧
           (s.logst.snap ≠ none → s.logst.lent = false →
             uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
           (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index')) ∧
@@ -1771,17 +1773,6 @@ scoped instance (priority := high) rawNodeOwn_access_store_stepsOnAdvance (l : L
   rawNodeOwn_access H_stepsOnAdvance
 
 end RawNodeOwnAccess
-
-/-- A node's committed prefix, with records, is a prefix of the global committed log (persistent;
-read off the ghost state's log ghost). -/
-theorem ownRaftGhost_cmt (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
-    ownRaftGhost (GF := GF) γ id ps md ⊢
-      ∃ fp, ⌜FullOk ps.base fp⌝ ∗ logRecs γ base0 fp ∗ isCommitted γ (cprefix fp ps) := by
-  iintro Hg
-  iunfold ownRaftGhost at Hg
-  icases Hg with ⟨%γv, %voted, %kl, Hg⟩
-  iNamed Hg
-  iapply ownLogGhost_cmt γ id ps kl $$ Hlg
 
 /-- In the dynamic mode, a committed log no longer than the node's commit index -- the committed
 log a `RawNode` handed out, `delivered` -- is a prefix of the node's full log (2026-10-14,

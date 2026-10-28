@@ -33,8 +33,8 @@ theorem full_take_eq_pure (F1 F2 : List EntryM) (c : w64) (Hw1 : PlogWf base0 F1
 
 theorem ownRaftGhostR_env [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     : CfgOk c0) (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (id : w64) (r : RState) (HI : RInv dec
-    c0 r) (Hs : r.snap = false) : ⊢ logRecs γ base0 r.fp -∗ (∀ x, isCampK γ id r.p.term r.full
-    r.p.commit) -∗ dynEnv γ id r.cfg.cfg r.p
+    c0 r) : ⊢ logRecs γ base0 r.fp -∗ (∀ x, isCampK γ id r.p.term r.full r.p.commit) -∗ dynEnv γ id
+    r.cfg.cfg r.p
 
 theorem cfgAt_of_fold {γ : RaftNames} {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0} (HD : γ.dyn =
     some (DynCfg.ofFold dec c0 h0)) {P : List EntryM} {s : CCState} (h : cfgFold dec c0 P = some s)

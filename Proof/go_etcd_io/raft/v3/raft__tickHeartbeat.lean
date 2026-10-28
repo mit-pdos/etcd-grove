@@ -156,7 +156,7 @@ theorem raft.tickHeartbeat.wp_proof
       simp only [hP]
       iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, %Htm, -, -, -, Herr⟩
       have Hcm0 := Href.commit_mono
-      have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
+      have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
       have e2 := Hcc (by msg_ne); subst c'
       -- the step keeps the term and the log's frame: a tick from `s0` is one from `s`
       have Htr0 : ∀ s', TickStep s0 s' → TickStep s s' := by
@@ -301,7 +301,7 @@ theorem raft.tickHeartbeat.wp_proof
     simp only [hP]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, -, Herr⟩
     have Hcm := Href.commit_mono
-    have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
+    have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
     have e2 := Hcc (by msg_ne); subst c'
     icases Herr with (%Herr | ⟨%Hc', -⟩)
     · subst Herr

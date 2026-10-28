@@ -469,7 +469,7 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
-## Raft unified, stages U2 (done) and U3 (not started): snapshots in the dynamic mode (2026-10-28, branch `raft-unified`)
+## Raft unified, stages U2 (done) and U3 (in part): snapshots in the dynamic mode (2026-10-28, branch `raft-unified`)
 
 U2: the dynamic snapshot certificate is made and read. Raft's names may name a registry of the
 snapshots the application made (`RaftNames.reSnapReg`, `none` in every allocation until U4); a
@@ -479,10 +479,19 @@ configuration (`snapAtOk`). `Protocol/SnapCertDyn.lean`: `raftSnapCert_make_dyn`
 is the only full log with records ending at its id). `SnapsMade.lean` (internal, `ApiImpl`):
 `ownSnapsMade`/`snapMade`/`snapMade_elem`, `snapshotCert_make`, `snapshotCert_made` over
 `RuleNames γ r c0` (the rule and `c0` explicit until U9). Two departures from candidate 12 (a fancy
-update; a `SnapListsOk` premise, which `Membership.Valid` does not imply: a design question for U9).
-No new `sorry` or axiom; no exported statement moved. U3 (the dynamic `RawNode` with snapshots) is
-not started; what it needs, starting with `StepR.snapRestore` keeping `cidx`: `notes/decisions.md`,
-"Stages U2, U3".
+update; a `SnapListsOk` premise, kept by decision, with derivation laws for clients still to state).
+
+U3a (the model) and U3b (`raft.Step`) done: a restore keeps the configuration index (its prefix
+extends the node's committed prefix, from the message's commit fact), so the configuration is the
+fold of the full log's prefix also with a snapshot pending (`RInv.cfg` unconditional); conf changes
+and apply acknowledgements of a `Ready` handed out before a restore go on with the snapshot pending
+(`applyConf`, `advance`); `applySnap` applies a snapshot at or below the boundary (the pending one or
+an older one), moving the configuration index there. `raft.Step`'s snapshot acknowledgement is proved
+in the dynamic mode too (premise `SnapAckDyn`; `GMove`'s fourth case), and its `MsgStorageApplyResp`
+no longer needs no snapshot pending. Nothing supplies the dynamic premises yet: U3c (the dynamic
+`RawNode` with a pending snapshot: `DynNoSnap`, `"%Hsnap"`, `wp_step_snapack`, `RNState.cfg/capplied`)
+and U3d (`node.run`) are not started. No new `sorry` or axiom; no exported statement moved.
+`notes/decisions.md`, "Stages U2, U3" (what U3a/U3b changed, what U3c/U3d need).
 
 ## Raft unified, stages U1 and U6m: the conf-change decision, the API's vocabulary (2026-10-28, branch `raft-unified`)
 

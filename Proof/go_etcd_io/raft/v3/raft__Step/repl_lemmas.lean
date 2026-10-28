@@ -452,7 +452,7 @@ theorem stepCDS_handle_snap (c : CfgM) (id : w64) (s t : NState) (m : MessageM)
   by_cases Hr : SnapRestores id t sv voters
   · -- a restore: `StepR.snapRestore`
     have Hstep := step_handle_snap (B := B) c id _ _ m sv voters s' Ht Hto Hterm Hnl Hfid Hres
-    refine ⟨Hstep, fun Adm dec g fp' cs' hgc hfp hcs hA => ?_⟩
+    refine ⟨Hstep, fun Adm dec g fp' cs' hgc hfp hag hcs hA => ?_⟩
     have Htm : t.term = (toPState s).term := congrArg PState.term Ht
     have Hb : t.logst.prev = (toPState s).base := congrArg PState.base Ht
     have Hl : t.logst.sents ++ t.logst.uents = (toPState s).log := congrArg PState.log Ht
@@ -462,7 +462,7 @@ theorem stepCDS_handle_snap (c : CfgM) (id : w64) (s t : NState) (m : MessageM)
     rcases Hres with ⟨Hle, -⟩ | ⟨Hlt, -, Hm, -⟩ | ⟨Hlt, Hin, Hnm, rfl⟩
     · exact Hle.elim (fun H => absurd Hr.1 (Int.not_lt.2 H)) (fun H => absurd Hr.2.1 H)
     · exact absurd Hm Hr.2.2
-    refine ⟨⟨uint.nat (snapId sv).index', g.cfg, fp'⟩, hgc, ?_⟩
+    refine ⟨⟨g.cidx, g.cfg, fp'⟩, hgc, ?_⟩
     rw [Hc] at Hlt; rw [Hb, Hl] at Hnm
     have Hp : toPState (sendMsgs { t with logst := logRestore t.logst (snapTrip sv voters) }
         [appResp id t m.From' false (snapId sv).index' (W64 0) (W64 0)]) =
@@ -482,7 +482,7 @@ theorem stepCDS_handle_snap (c : CfgM) (id : w64) (s t : NState) (m : MessageM)
       rw [Hs, Ht]
       simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId]
     exact stepR_snap_restore s _ g (absSnap m sv voters) fp' cs' rfl Hto Hfid Hterm Hnls Hlt Hnm
-      hfp (by rw [hcs]; exact snapCfg_ids Hin) hA Hp
+      hfp hag (by rw [hcs]; exact snapCfg_ids Hin) hA Hp
       (by simp [sendMsgs, logRestore, Htl]) (by simp [sendMsgs, logRestore])
       (by simp [sendMsgs, Htr])
   · -- no restore: a frame step at `c`

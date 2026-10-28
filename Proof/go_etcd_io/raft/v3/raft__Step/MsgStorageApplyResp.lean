@@ -41,7 +41,7 @@ private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : MessageM) (s : NStat
     (Hac : uint.Z s.logst.applied ≤ uint.Z s.logst.committed) :
     StepCD c id B m s [] { s with logst := logAppliedTo s.logst idx sz } := by
   refine ⟨by rw [toPState_logAppliedTo]; exact .refl _, fun Adm dec g hc hd => ?_⟩
-  obtain ⟨Hsn, Ha1⟩ := hd.2.2.2.1 Hty
+  have Ha1 := hd.2.2.2.1 Hty
   refine ⟨max g.cidx (uint.nat (w64Max idx s.logst.applied)), .inr ⟨Hty, rfl⟩, ?_⟩
   have Hr : rOf { s with logst := logAppliedTo s.logst idx sz }
       { g with cidx := max g.cidx (uint.nat (w64Max idx s.logst.applied)) } =
@@ -51,7 +51,7 @@ private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : MessageM) (s : NStat
     rw [toPState_logAppliedTo]
     simp [logAppliedTo]
   rw [Hr]
-  refine StepR.advance (rOf s g) (w64Max idx s.logst.applied) (by simp [rOf, Hsn]) ?_ ?_ Ha1.noUndec
+  refine StepR.advance (rOf s g) (w64Max idx s.logst.applied) ?_ ?_ Ha1.noUndec
   · show uint.Z s.logst.applied ≤ uint.Z (w64Max idx s.logst.applied)
     unfold w64Max; split <;> word
   · show uint.Z (w64Max idx s.logst.applied) ≤ uint.Z s.logst.committed

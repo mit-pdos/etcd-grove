@@ -22,10 +22,11 @@ theorem snapOkIf_of_cert [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF]
     scfg) -∗ GMode.SnapDyn γ md sv scfg -∗ GMode.SnapOkIf γ id md sv scfg ∗ ownRaftGhost γ id ps
     md.isDyn
 
-def GMove (m : MessageM) (s' : NState) (g g' : RGh) : Prop :=
+def GMove (m : MessageM) (s s' : NState) (g g' : RGh) : Prop :=
   m.Type' = MsgSnap ∨
     g' = g ∨
-      m.Type' = MsgStorageApplyResp ∧ g' = { cidx := max g.cidx (uint.nat s'.logst.applied), cfg := g.cfg, fp := g.fp }
+      m.Type' = MsgStorageApplyResp ∧ g' = { cidx := max g.cidx (uint.nat s'.logst.applied), cfg := g.cfg, fp := g.fp } ∨
+        m.Type' = MsgStorageAppendResp ∧ s'.logst.applied ≠ s.logst.applied ∧ g'.fp = g.fp
 
 theorem ghost_stepCDS [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM) (Hms : m.Type' = MsgSnap) (sv :
@@ -37,6 +38,10 @@ theorem ghost_stepCDS [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [I
     (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗ GMode.SnapOkIf γ id md sv scfg -∗ ownRaftGhost γ id
     (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
     ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s'
+
+theorem ownRaftGhost_cmt [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
+    RaftNames) (id : w64) (ps : PState) {md : Bool} : ownRaftGhost γ id ps md ⊢ ∃ fp, ⌜FullOk
+    ps.base fp⌝ ∗ logRecs γ base0 fp ∗ isCommitted γ (cprefix fp ps)
 
 def GMode.SnapOkIf [ReceiptGS GF] (γ : RaftNames) (id : w64) : GMode → SnapshotM → CSLists → IProp
     GF :=
@@ -58,7 +63,7 @@ def GMode.StepOut (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (s s' : NSta
   | GMode.static => md' = GMode.static ∧ ∃ B recv, StepC c id B (toPState s) recv (toPState s')
   | GMode.dyn dec c0 h0 g =>
     ∃ g',
-      GMove m s' g g' ∧
+      GMove m s s' g g' ∧
         md' = GMode.dyn dec c0 h0 g' ∧ ∃ B recv, StepR (AdmFold dec c0) dec id B (rOf s g) recv (rOf s' g')
 
 theorem NsLink.boot [GoGlobalContext] [GoSemanticsFunctions] {γ : RaftNames} {s : NState} (H :
@@ -208,7 +213,7 @@ def certLink [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (st : Storage) : IProp G
 theorem GMode.StepOut.keep [GoGlobalContext] [GoSemanticsFunctions] {md : GMode} {c : CfgM} {id :
     w64} {m : MessageM} {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md') (hm : m.Type'
     ≠ MsgStorageApplyResp) (hs : m.Type' ≠ MsgSnap := by first | assumption | (intro h; simp_all) |
-    decide) : md' = md
+    decide) (ha : m.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied) : md' = md
 
 def ownStepGhost [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s :
     NState) : IProp GF :=
@@ -246,8 +251,7 @@ def GMode.Pre (md : GMode) (m : MessageM) (ents : List EntryM) (s : NState) : Pr
   | GMode.dyn dec c0 h0 g =>
     PreGuardF g.fp s ∧
       (m.Type' = MsgStorageApplyResp →
-          s.logst.snap = none ∧
-            ∀ (e : EntryM), ents.getLast? = some e → NoConfIn (rOf s g).full g.cidx (uint.nat e.Index')) ∧
+          ∀ (e : EntryM), ents.getLast? = some e → NoConfIn (rOf s g).full g.cidx (uint.nat e.Index')) ∧
         (m.Type' = MsgProp → plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64)
 
 theorem GMode.Pre.of_other [GoGlobalContext] [GoSemanticsFunctions] {md : GMode} {m : MessageM}

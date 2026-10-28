@@ -234,7 +234,9 @@ private theorem wp_step_pending
          (∀ ce, p = .applyAck ce → ∀ e, ce.getLast? = some e →
             uint.Z e.Index' ≤ uint.Z s'.logst.applied) ∧
          -- (2026-10-28, stage U0) a non-follower with a snapshot pending afterwards was one
-         SnapRoleBack s s'⌝ }} := by
+         SnapRoleBack s s' ∧
+         -- (2026-10-28, stage U3) an append acknowledgement does not move `applied`
+         (st.msg.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied)⌝ }} := by
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, Hlc⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
@@ -292,7 +294,7 @@ private theorem wp_step_pending
       refine ⟨Hwf', Hstp, by not_self, fun _ => by not_self, Hfr'.1, Hfr'.2.2.1, Hfr'.2.1, Htm.1, ?_,
         Hfr'.2.2.2.1, Hfr'.2.2.2.2.1, Hfr'.2.2.2.2.2.1, Hfr'.2.2.2.2.2.2.1, Hfr'.2.2.2.2.2.2.2.1, ?role,
         fun _ => PreGuardF.step Htm, Hfr'.2.2.2.2.2.2.2.2.1, Hfr'.2.2.2.2.2.2.2.2.2, (fun _ h => by cases h),
-        Htm.2.2.2.2.2.2⟩
+        Htm.2.2.2.2.2.2, fun h => absurd h (by not_self)⟩
       case role =>
         intro h
         obtain ⟨Ht, Hor⟩ := Htm.2.2.2.2.2.1 h
@@ -365,7 +367,7 @@ private theorem wp_step_pending
     · inext
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -, %Hterm, -⟩
       have e2 := Hcc (fun _ => rfl); subst c'
-      obtain ⟨Hfr, Hap, -⟩ := Hloc.1 (fun _ => rfl) (.inr (.inl rfl))
+      obtain ⟨Hfr, Hap, -, Hapa⟩ := Hloc.1 (fun _ => rfl) (.inr (.inl rfl))
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
       ipureintro
@@ -374,7 +376,7 @@ private theorem wp_step_pending
         Hfr.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.1,
         fun h => ⟨by rw [← Hfr.2.2.2.2.2.2.2.2.2.1]; exact h, Hfr.1⟩,
         fun _ => PreGuardF.step (Hterm (by msg_ne)), Hfr.2.2.2.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.2.2.2, (fun _ h => by cases h),
-        (Hterm (by msg_ne)).2.2.2.2.2.2⟩
+        (Hterm (by msg_ne)).2.2.2.2.2.2, Hapa⟩
   | applyAck ce =>
     unfold pendingRel
     icases Hp with ⟨%Hm, -⟩
@@ -416,7 +418,7 @@ private theorem wp_step_pending
     · inext
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -, %Hterm, -⟩
       have e2 := Hcc (fun h => absurd h (by msg_ne)); subst c'
-      obtain ⟨Hfr, Hap, Happ⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inr (.inr rfl))
+      obtain ⟨Hfr, Hap, Happ, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inr (.inr rfl))
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
       ipureintro
@@ -426,7 +428,7 @@ private theorem wp_step_pending
         fun h => ⟨by rw [← Hfr.2.2.2.2.2.2.2.2.2.1]; exact h, Hfr.1⟩,
         fun _ => PreGuardF.step (Hterm (by msg_ne)), Hfr.2.2.2.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.2.2.2,
         fun ce' h => by injection h with h; subst h; exact Happ rfl,
-        (Hterm (by msg_ne)).2.2.2.2.2.2⟩
+        (Hterm (by msg_ne)).2.2.2.2.2.2, fun h => absurd h (by msg_ne)⟩
 
 /-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s acknowledgement** through `Step`'s spec, its receipt
 absorbed: the storage at the pending snapshot (`sat`), in the `sapp` window, where its `stableTo`
@@ -525,13 +527,14 @@ private theorem wp_step_snapack
   have Hsnp : ∀ sv', some sv = some sv' →
       snapHit s.logst.snap sv'.Metadata'.Index' = s.logst.sat ∧
       uint.Z sv'.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-      GMode.isDyn .static = false ∧ s.role = .follower ∧ SnapAckOk γ id sv' ∧
+      s.role = .follower ∧
+        ((GMode.isDyn .static = false ∧ SnapAckOk γ id sv') ∨ SnapAckDyn .static s sv') ∧
       (s.logst.snap ≠ none → s.logst.lent = false →
         uint.Z sv'.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
       (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv'.Metadata'.Index') := by
     intro sv' hsv
     cases hsv
-    exact ⟨Hhit, Hle, rfl, Hrole, Hack, Hsxp, Hkxp⟩
+    exact ⟨Hhit, Hle, Hrole, .inl ⟨rfl, Hack⟩, Hsxp, Hkxp⟩
   iapply wp_raft_Step c .static γ r id s ml (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) [] [] (some sv) []
     (by simp [StepMsg, stepMsgTypes, appendAckM])
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -961,7 +964,7 @@ theorem RawNode.Advance.wp_proof
           (fun _ _ h => by cases h)
           $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
         obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
-          -, Hfl2, Hap2, Hack2, Hsrb2⟩ := Hst2
+          -, Hfl2, Hap2, Hack2, Hsrb2, -⟩ := Hst2
         have Hc12 := Hout2.commit_mono
         obtain ⟨rfl, -⟩ := Hout2
         rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
@@ -1502,7 +1505,7 @@ theorem RawNode.Advance.wp_proof
         intro ce m' hp hty
         subst hp
         refine ⟨by have H := Hpf1.1; rw [hm] at H; exact H,
-          fun _ => ⟨Hs1.2.2.1.trans (Hsnap (.inr (by rw [hm]; rfl))), fun e He => ?_⟩,
+          fun _ e He => ?_,
           fun h => absurd (hty.symm.trans h) (by simp [MsgStorageApplyResp, MsgProp])⟩
         have He' := (Hpok e He).2
         rw [Hs1.1] at He'
@@ -1516,10 +1519,10 @@ theorem RawNode.Advance.wp_proof
       (by rw [Hsg1.2.2, ← Hrs_unst]; exact Hunst0) Hpf1 Hpre1
       $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
     obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
-      Hpg2, Hfl2, Hap2, Hack2, Hsrb2⟩ := Hst2
+      Hpg2, Hfl2, Hap2, Hack2, Hsrb2, Hapa2⟩ := Hst2
     have Hsg2 := And.intro Hsg2 (And.intro Hsg2' Hsg2'')
     have Hc12 := Hout2.commit_mono
-    obtain ⟨ca', rfl, Hca1, Hca2, Hca3, -⟩ := RNMode.stepOut_ca Hout2 Hns2
+    obtain ⟨ca', rfl, Hca1, Hca2, Hca3, -⟩ := RNMode.stepOut_ca Hout2 Hns2 Hapa2
     icases ownRaftPhysC_logwf cf rnv.raft' id s2 $$ Hphys with ⟨%Hlw2, Hphys⟩
     -- `stepsOnAdvance[i] = nil`
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]

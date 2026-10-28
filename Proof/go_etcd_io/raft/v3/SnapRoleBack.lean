@@ -8,6 +8,7 @@ exposes only its triple (`etc/api/raft-layout.txt`).
 module
 
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
+public import Proof.go_etcd_io.raft.v3.InvRaftlog
 
 @[expose] public section
 
@@ -36,6 +37,25 @@ def SnapAckOk [GooseExts] (γ : RaftNames) (id : w64) (sv : SnapshotM) : Prop :=
   SnapScope sv sv.Metadata'.ConfState'.lists ∧
   CfgStatic γ (snapCfg sv sv.Metadata'.ConfState'.lists) ∧
   TrackedOk γ (snapCfg sv sv.Metadata'.ConfState'.lists) id
+
+/-- (2026-10-28, stage U3) What the **dynamic** mode needs of the acknowledgement of a snapshot
+`sv` (`appliedSnap`, the model's `StepR.applySnap`), in place of `SnapAckOk`'s static clauses: its
+`ConfState` well formed (`SnapScope`); `applied` below its index (in Go nothing is applied past a
+pending snapshot's index before the snapshot: `restore` is past the commit index, and no entries
+are handed out while one is pending); with no snapshot pending afterwards (none was, or it was the
+acknowledged one) the snapshot at the log's boundary; and the configuration its `ConfState` denotes
+the fold of the node's full prefix up to its index (what the snapshot's certificate says,
+`raftSnapCert`'s dynamic clause, of that prefix). Never in the static mode. -/
+def SnapAckDyn [GooseExts] (md : GMode) (s : NState) (sv : SnapshotM) : Prop :=
+  match md with
+  | .static => False
+  | .dyn dec c0 _ g =>
+    SnapScope sv sv.Metadata'.ConfState'.lists ∧
+    uint.Z s.logst.applied < uint.Z sv.Metadata'.Index' ∧
+    (s.logst.snap = none ∨ snapHit s.logst.snap sv.Metadata'.Index' = true →
+      sv.Metadata'.Index' = s.logst.prev.index') ∧
+    ∃ cs', cfgFold dec c0 (g.fp.take (uint.nat sv.Metadata'.Index')) = some cs' ∧
+      cs'.cfg = snapCfg sv sv.Metadata'.ConfState'.lists
 
 /-- (2026-10-28, stage U0) The snapshot/role clause of `PreCandStep` for a concrete end state:
 a follower's, or the role and the pending snapshot kept. -/

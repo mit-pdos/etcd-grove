@@ -56,15 +56,14 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                       sn = some sv →
                                         snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
                                           uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-                                            md.isDyn = false ∧
-                                              s.role = PRole.follower ∧
-                                                SnapAckOk γ id sv ∧
-                                                  (s.logst.snap ≠ none →
-                                                      s.logst.lent = false →
-                                                        uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
-                                                    ∀ (k : SnapTrip),
-                                                      s.gh.snp = some k →
-                                                        uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') ∧
+                                            s.role = PRole.follower ∧
+                                              (md.isDyn = false ∧ SnapAckOk γ id sv ∨ SnapAckDyn md s sv) ∧
+                                                (s.logst.snap ≠ none →
+                                                    s.logst.lent = false →
+                                                      uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
+                                                  ∀ (k : SnapTrip),
+                                                    s.gh.snp = some k →
+                                                      uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') ∧
                                     uint.Z m.Term' ≤ uint.Z s.term ∧
                                       (m.Term' = W64 0 ∨ m.Term' = s.term →
                                           m.Index' ≠ W64 0 →

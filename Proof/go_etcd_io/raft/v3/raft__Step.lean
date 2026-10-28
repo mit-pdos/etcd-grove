@@ -750,7 +750,8 @@ theorem raft.Step.wp_proof
     · ipureintro; exact fun _ => rfl
     isplitr
     · ipureintro
-      exact ⟨fun _ _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne))⟩,
+      exact ⟨fun _ _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne)),
+          fun h => absurd h (by rw [Hty]; w32_ne)⟩,
         fun h => absurd h (by rw [Hty]; w32_ne)⟩
     isplitr
     · ipureintro; exact fun _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
@@ -783,7 +784,7 @@ theorem raft.Step.wp_proof
       wp_apply (wp_Step_MsgStorageAppendResp_none P Q c r id s ml m sn ctx rs ents HtyA Hsn Hle
           Hstok' Hghoff Hwf)
         $$ [$Hphys $Hmi]
-        as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hpk, %Hst, %Herr⟩
+        as %err %s' ⟨Hphys, %Hwf', %Hfr, %Happ0, %Hpk, %Hst, %Herr⟩
       imod ghost_step_md0 γ md c id m s s' Hst
         (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne))
           (fun h => absurd (HtyA.symm.trans h) (by w32_ne)) hmd HI) Hfr.1.nsst
@@ -799,7 +800,8 @@ theorem raft.Step.wp_proof
       · ipureintro; exact fun _ => rfl
       isplitr
       · ipureintro
-        exact ⟨fun _ _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne))⟩,
+        exact ⟨fun _ _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne)),
+          fun _ => Happ0⟩,
           fun _ sv h => absurd (Hsn.symm.trans h) (by simp)⟩
       isplitr
       · ipureintro; exact fun _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
@@ -816,31 +818,53 @@ theorem raft.Step.wp_proof
     · -- (D22 S-d2) with a snapshot: `appliedSnap` (after `stableTo` in the current-term arm),
       -- invisible to the protocol, in the static mode
       subst Hsv
-      obtain ⟨Hhit, Hle', Hdyn, Hrole, Hack, Hsxp, Hkxp⟩ := Hsnp sv rfl
-      have Hmd : md = .static := by
-        cases md with
-        | static => rfl
-        | dyn => simp [GMode.isDyn] at Hdyn
-      subst Hmd
+      obtain ⟨Hhit, Hle', Hrole, Hmode, Hsxp, Hkxp⟩ := Hsnp sv rfl
+      have Hscope : SnapScope sv sv.Metadata'.ConfState'.lists := by
+        rcases Hmode with ⟨-, h⟩ | h
+        · exact h.1
+        · cases md with
+          | static => exact h.elim
+          | dyn => exact h.1
       -- (2026-10-28, stage U0) `appliedSnap`'s rebuild: a follower's tally is empty
       ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
       have Hvotes : s.votes = ∅ := followerVotesOk_phys s Hfv0 Hrole
       wp_apply (wp_Step_MsgStorageAppendResp_snap P Q c r id s ml m sv ctx rs ents HtyA Hhit Hle'
-          Hrole Hvotes Hack.1 Hle Hstok Hghoff Hwf Hsxp Hkxp)
+          Hrole Hvotes Hscope Hle Hstok Hghoff Hwf Hsxp Hkxp)
         $$ [$Hphys $Hmi] as %err ⟨Hphys, %Herr⟩
       icases Hphys with ⟨%prs, %pvs, %il, Hphys⟩
       obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5⟩ := ackSnapLog_proto s.logst m s.term sv
       have Hps : toPState { s with logst := ackSnapLog s.logst m s.term sv, progress := prs,
                                    prvals := pvs, isLearner := il } = toPState s := by
         simp only [toPState, Hp1, Hp2, Hp3, Hrole]; rfl
-      -- the node at the snapshot's configuration, static (`SnapAckOk`)
-      imod ghost_step_static0' γ c (snapCfg sv sv.Metadata'.ConfState'.lists) id m s
+      -- the node at the snapshot's configuration: statically `SnapAckOk`, (2026-10-28, stage U3)
+      -- dynamically `SnapAckDyn` (`StepR.applySnap`)
+      obtain ⟨Hsa1, Hsa2⟩ := ackSnapLog_snapAck s.logst m s.term sv
+      have Hmode' : (md.isDyn = false ∧ CfgStatic γ (snapCfg sv sv.Metadata'.ConfState'.lists) ∧
+            TrackedOk γ (snapCfg sv sv.Metadata'.ConfState'.lists) id) ∨
+          (∃ dec c0 h0 g, md = .dyn dec c0 h0 g ∧
+            s.role = .follower ∧
+            (ackSnapLog s.logst m s.term sv).applied = sv.Metadata'.Index' ∧
+            uint.Z s.logst.applied < uint.Z sv.Metadata'.Index' ∧
+            uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
+            ((ackSnapLog s.logst m s.term sv).snap = none →
+              sv.Metadata'.Index' = s.logst.prev.index') ∧
+            ∃ cs', cfgFold dec c0 (g.fp.take (uint.nat sv.Metadata'.Index')) = some cs' ∧
+              cs'.cfg = snapCfg sv sv.Metadata'.ConfState'.lists) := by
+        rcases Hmode with ⟨h1, h2⟩ | h
+        · exact .inl ⟨h1, h2.2⟩
+        · right
+          cases md with
+          | static => exact h.elim
+          | dyn dec c0 h0 g =>
+            obtain ⟨-, Hlt, Hsn, cs', Hf, Hc⟩ := h
+            refine ⟨dec, c0, h0, g, rfl, Hrole, ?_, Hlt, Hle', fun h => Hsn (Hsa2 h), cs', Hf, Hc⟩
+            rw [Hsa1]; unfold w64Max; split <;> word
+      imod ghost_step_snapack γ md c (snapCfg sv sv.Metadata'.ConfState'.lists) id m s
         { s with logst := ackSnapLog s.logst m s.term sv, progress := prs, prvals := pvs,
-                 isLearner := il }
-        (by rw [Hps]; exact (StepCF.refl _).toC) ⟨rfl, Hp4⟩ Hack.2 $$ Hlc Hghost Hrest
-        with ⟨%Hout, Hghost⟩
+                 isLearner := il } sv.Metadata'.Index' HtyA Hps rfl ⟨rfl, Hp4⟩ Hmode'
+        $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
       imodintro
-      iapply HΦ $$ %err %_ %_ %GMode.static
+      iapply HΦ $$ %err %_ %_ %md'
       iframe Hphys Hghost
       isplitr
       · ipureintro; exact Hwf
@@ -888,7 +912,8 @@ theorem raft.Step.wp_proof
     · ipureintro; exact fun _ => rfl
     isplitr
     · ipureintro
-      exact ⟨fun _ _ => ⟨Hfr.1, fun H => Hfr.2 (H HtyB), fun _ => Happ2⟩,
+      exact ⟨fun _ _ => ⟨Hfr.1, fun H => Hfr.2 (H HtyB), fun _ => Happ2,
+          fun h => absurd h (by rw [HtyB]; w32_ne)⟩,
         fun h => absurd h (by rw [HtyB]; w32_ne)⟩
     isplitr
     · ipureintro; exact fun _ h => absurd HtyB h

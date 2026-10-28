@@ -149,7 +149,8 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     have Hcf := stepCF_higher_term_snap c id (toPState s) m sv scfg Hgt Hto Hfid
     rw [← e] at Hcf
     refine StepCDS.trans_frame Hcf ⟨by simp [becomeFollower, resetTo, resetTo0],
-      by simp [becomeFollower, resetTo, resetTo0], fun h => by simp [becomeFollower] at h⟩ ?_
+      by simp [becomeFollower, resetTo, resetTo0], fun h => by simp [becomeFollower] at h⟩
+      (by rw [e]; exact ⟨rfl, rfl⟩) ?_
     exact stepCDS_handle_snap c id _ _ m sv scfg s1
       (adopt_follower _ m.From' rfl rfl) rfl (by simp [becomeFollower]) rfl Hto
       (by simp [toPState, becomeFollower, resetTo, resetTo0]) Hfid Hhs

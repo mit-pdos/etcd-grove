@@ -87,6 +87,8 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
+        -- (2026-10-28, stage U3) `applied` not moved
+        "%Happ0" ∷ ⌜s'.logst.applied = s.logst.applied⌝ ∗
         -- (2026-10-25, T-M M2b) a pre-candidate keeps its log and commit index (`PreKeep`)
         "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
@@ -144,7 +146,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       iframe Hphys
       ipureintro
       exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
-        fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
+        rfl, fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
         StepCD.frame (.refl _) (RFrame.refl _), rfl⟩
   -- `Term = 0` or `Term = r.Term`: the switch's case
   have Hmt : m.Term' = W64 0 ∨ m.Term' = s.term := by
@@ -181,7 +183,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
     iframe Hphys
     ipureintro
     exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
-        fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
+        rfl, fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
       StepCD.frame (.refl _) (RFrame.refl _), rfl⟩
   · rw [decide_eq_false Hi0]
     wp_auto
@@ -212,6 +214,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       by unfold logStableTo; split <;> rfl,
       by rw [show (logStableTo s.logst (entryID.mk m.LogTerm' m.Index')).applied = s.logst.applied
         by unfold logStableTo; split <;> rfl]; exact Int.le_refl _⟩, Hap⟩,
+      by unfold logStableTo; split <;> rfl,
       fun _ => ⟨by unfold logStableTo; split <;> rfl, logStableTo_concat _ _, by unfold logStableTo; split <;> rfl, fun h => Hsn'.trans h,
         by rw [show (logStableTo s.logst (entryID.mk m.LogTerm' m.Index')).applied = s.logst.applied
           by unfold logStableTo; split <;> rfl]; exact Int.le_refl _⟩, ?_, rfl⟩
@@ -297,6 +300,39 @@ theorem ackSnapLog_keep (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM
       rw [ha', ha]
       unfold w64Max
       split <;> word
+  have hsA : (ackLog ls (some sv)).snap = ls.snap := (ackLog_fields ls sv).2.2.2.2.1
+  have haA : (ackLog ls (some sv)).applied = ls.applied := by
+    unfold ackLog
+    by_cases h : ls.sat = true
+    · rw [if_pos h]
+    · rw [if_neg h]
+  unfold ackSnapLog
+  split
+  · exact Hk _ (by unfold logStableTo; split <;> exact hsA)
+      (by unfold logStableTo; split <;> exact haA)
+  · exact Hk _ hsA haA
+
+/-- (2026-10-28, stage U3) What the dynamic model's `StepR.applySnap` reads of a snapshot's
+acknowledgement: `applied` moved to the snapshot's index (when below), and no snapshot pending
+afterwards only where none was or the acknowledged one was it. -/
+theorem ackSnapLog_snapAck (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) :
+    (ackSnapLog ls m t sv).applied = w64Max sv.Metadata'.Index' ls.applied ∧
+    ((ackSnapLog ls m t sv).snap = none →
+      ls.snap = none ∨ snapHit ls.snap sv.Metadata'.Index' = true) := by
+  have Hk : ∀ L : LogState, L.snap = ls.snap → L.applied = ls.applied →
+      (logAppliedTo (logStableSnap L sv.Metadata'.Index') sv.Metadata'.Index' (W64 0)).applied =
+        w64Max sv.Metadata'.Index' ls.applied ∧
+      ((logAppliedTo (logStableSnap L sv.Metadata'.Index') sv.Metadata'.Index' (W64 0)).snap = none →
+        ls.snap = none ∨ snapHit ls.snap sv.Metadata'.Index' = true) := by
+    intro L hs ha
+    have ha' := (logStableSnap_fields L sv.Metadata'.Index').2.2.2.2.1
+    refine ⟨?_, fun h => ?_⟩
+    · simp only [logAppliedTo]; rw [ha', ha]
+    · simp only [logAppliedTo] at h
+      unfold logStableSnap at h
+      split at h
+      · rename_i hh; right; rw [← hs]; exact hh
+      · left; rw [← hs]; exact h
   have hsA : (ackLog ls (some sv)).snap = ls.snap := (ackLog_fields ls sv).2.2.2.2.1
   have haA : (ackLog ls (some sv)).applied = ls.applied := by
     unfold ackLog

@@ -24840,7 +24840,8 @@ CCDec` decides by the rule at the membership the prefix folds to (`none` ↦ `re
 
 ## Stages U2, U3: snapshots in the dynamic mode (2026-10-28 · `notes/raft-unified-plan.md`)
 
-**2026-10-28 · U2 taken; U3 not started (see "U3: what it needs" below)**
+**2026-10-28 · U2 taken; U3 in part (U3a, U3b below: the model and `raft.Step`; the `RawNode` and
+node layers not started)**
 
 **Why.** The unified API certifies a snapshot from a committed prefix (candidate 12's
 `snapshotCert_make`) and reads a certificate back (`snapshotCert_made`), with a client-owned
@@ -24900,3 +24901,70 @@ up to the index, `isMessage`), so `RInv.cfg` holds while a snapshot is pending; 
 `snapRestore` case), `raft.Step`'s two storage-response cases in the dynamic mode, the dynamic
 `RawNode` invariant with a pending snapshot (`RNState.cfg/capplied` following `applySnap`), and
 `RawNode.Step` supplying `GMode.SnapDyn` from the message's certificate.
+
+**2026-10-28 · U3a, U3b taken (the model and `raft.Step`; U3c, the `RawNode`, and U3d, the node, not
+started).**
+
+*Decision recorded (the coordinator's, taken before U3).* `snapshotCert_make` keeps `SnapListsOk` as a
+premise (not folded into `Membership.Valid`), with derivation laws for clients: a fold-reachable
+membership has no id `0` (confchange skips `NodeID 0`; `c0` has none), and a membership with fewer than
+`2^60` ids meets the lists' total bound. The laws are not stated yet (their first client is U10's).
+
+*U3a, the model (`Protocol/StepR.lean`, `StepRInv.lean`; no exported result moved).*
+- `StepR.snapRestore` keeps `cidx` (until now it moved to the snapshot's index) and takes a new premise
+  `r.full.take (uint.nat r.p.commit) <+: fp'`: the restored prefix extends the node's full log up to its
+  (old) commit index. So `RInv.cfg` holds with a snapshot pending: **`RInv.cfg` is now unconditional**
+  (`cfgFold dec c0 (r.full.take r.cidx) = some r.cfg`; until now `r.snap = false →`), and
+  `RInv.snap_base` (`snap → cidx = base`) is gone: nothing needed it once `applySnap` sets `cidx`.
+- `StepR.applyConf` and `StepR.advance` drop `r.snap = false`: the conf entries and the applied ones of a
+  `Ready` handed out before a restore are applied and acknowledged with the snapshot pending, against the
+  pre-restore configuration (`k < commit` is checked against the raised commit index; the entries agree
+  below the old one).
+- `StepR.applySnap r j sn cs'` (until now `r cs'`, the pending snapshot only): a snapshot at index `j`
+  at or below the boundary applied -- the pending one, or (Go's `appliedSnap` of an older snapshot a
+  `Ready` handed out before a second restore, which leaves the newer one pending) an older one: premises
+  `r.p.role = .follower`, `applied ≤ j ≤ base`, `sn = false → j = base`, `Adm (r.fp.take j) cs'`;
+  effect `applied := j`, `snap := sn`, `cidx := j`, `cfg := cs'` (until now `cidx` stayed at the base,
+  where the restore had put it). `RInv_applySnap` holds for any prior `cidx` (the configuration is the
+  fold at `j`).
+- The refinement (`RefinementDyn.lean`) is unchanged but for the arities; `ownRaftGhostR_env` no longer
+  takes `r.snap = false`. The new premise of `snapRestore` comes from the message: `isMessage_snap_prefix`
+  (`Refinement.lean`) now also gives `isCommitted γ fp` of the prefix it shows, the node's own committed
+  prefix is committed (`ownRaftGhost_cmt`, moved from `InvRawnode.lean` to `StepGhostMode.lean`), and two
+  committed logs are prefixes one of the other (`isCommitted_agree`): `StepCDS`'s witness takes that
+  comparability (`SnapAgree s g fp'`, `StepLemmasR.lean`), from which `SnapAgree.restore` gives the
+  premise at a restore (the snapshot is past the commit index). `StepCDS.trans_frame` takes that the frame
+  step keeps the log and the commit index.
+- `GMode.Pre`/`DynHyp` at a `MsgStorageApplyResp` no longer require `s.logst.snap = none`.
+
+*U3b, `raft.Step`'s snapshot acknowledgement in the dynamic mode (`Spec/.../raft__Step.lean`).*
+- The `MsgStorageAppendResp` premise `md.isDyn = false ∧ s.role = .follower ∧ SnapAckOk γ id sv` is now
+  `s.role = .follower ∧ ((md.isDyn = false ∧ SnapAckOk γ id sv) ∨ SnapAckDyn md s sv)`.
+  `SnapAckDyn` (`SnapRoleBack.lean`, `False` statically): `SnapScope` of the snapshot; `applied` below its
+  index; with none pending or the acknowledged one pending, the index the boundary; and a `cs'` with
+  `cfgFold dec c0 (g.fp.take index) = some cs'` and `cs'.cfg = snapCfg sv lists` (the certificate's
+  dynamic clause at the node's prefix, for the caller to supply). The proof's new ghost step
+  `ghost_step_snapack` (`raft__Step/Base.lean`) does `StepR.applySnap` in the dynamic mode.
+- `GMove` (`StepGhostMode.lean`) takes `s` and gains a fourth case: a `MsgStorageAppendResp` that moves
+  `applied` may move the configuration index and the configuration (the full prefix kept). So that a
+  client can still tell an acknowledgement of no snapshot keeps the mode, `LocalStepOk` (raft.Step's
+  `"%Hlocal"`) gains `m.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied`;
+  `GMode.StepOut.keep` and `RNMode.stepOut_ca` take that (`keep`: a third argument; its 16 callers pass
+  `fun h => absurd h (by msg_ne)`), and `RawNode.Advance`'s `wp_step_pending` passes it on.
+- The callers (`RawNode.Advance`, `InvRawnode.lean`'s premise list for a network message) take the
+  static disjunct: nothing yet supplies `SnapAckDyn` (U3c).
+
+*U3c, U3d: what is left.* The dynamic `RawNode` still excludes snapshots: `DynNoSnap`
+(`RawNode.Step`'s premise; `node.run`'s `netP`), `"%Hsnap"` (`InvRawnode.lean`, `InvRawnodeReady.lean`:
+`rs.mode.isDyn = true → s.logst.snap = none`), `wp_step_snapack` (`RawNode__Advance.lean`) static only,
+`DynNames.reNoSnap = true`. To lift them: the invariant with a pending snapshot in the dynamic mode (the
+loan machinery, `ackInv`, `loanCom`, `SnapFol`, at a dynamic configuration; `certLink` is already
+mode-independent); `RNState.cfg`/`capplied` following `applySnap` (`capplied := index`, `cfg :=` the
+fold, `delivered` the snapshot's prefix); `SnapAckDyn` at `Advance` from the snapshot's certificate in
+`ksn` (`raftSnapCert`'s dynamic clause at `g.fp.take index`, which needs `FullOk (snapId sv)` of that
+prefix: the pending snapshot is the node's boundary, `snap = some (snapId sv)`) and `applied < index`
+(`SipOk`'s `applying < prev` while not handed out, kept to the acknowledgement); `RawNode.Step` supplying
+`GMode.SnapDyn` from the message's certificate (`snapOkIf_of_cert`'s dynamic case) so `DynNoSnap` goes;
+then `node.run`/`InvNodeRun` (the conf-change step and `readySnap_dynamic`), U4's allocation without
+`reNoSnap`.
+

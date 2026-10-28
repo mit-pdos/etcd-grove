@@ -220,7 +220,7 @@ theorem RawNode.Step.wp_proof
         ipureintro
         rw [Htrm]
         exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
-      have e1 := Href.keep (by not_net) Hs; subst e1
+      have e1 := Href.keep (by not_net) Hs (fun h => absurd h (by not_net)); subst e1
       have e2 := Hcc (fun h => absurd h (by not_net)); subst c'
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hs (by not_net) (fun h => absurd h (by not_net))
       obtain ⟨Ht1, -, Ht3, Hip4, Ht5, Hpcs⟩ := Htm Hs

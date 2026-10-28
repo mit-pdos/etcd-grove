@@ -185,7 +185,10 @@ def LocalStepOk [GooseExts] (m : MessageM) (ents : List EntryM)
    s'.logst.applying = s.logst.applying) ∧
   -- (D19i part 1) an apply acknowledgement moves `applied` up to its last entry
   (m.Type' = MsgStorageApplyResp →
-      ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied)
+      ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied) ∧
+  -- (2026-10-28, stage U3) an append acknowledgement (of no snapshot) does not move it (what tells
+  -- it from a snapshot's, whose `appliedSnap` moves the dynamic mode's ghost part, `GMove`)
+  (m.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied)
 
 /-- What every `Step` but a `MsgSnap`'s and a `MsgStorageApplyResp`'s leaves of the log's
 state beyond the protocol (2026-10-09): `applying` (only `appliedTo` moves it), the pending
@@ -569,16 +572,17 @@ abbrev raft.Step.spec : Prop :=
   -- (D22 S-d2, 2026-10-21) It may carry a snapshot (until then `sn = none`), the one the
   -- storage is at if it is the pending one (`sat`; the application's receipt absorbed before
   -- the step), at or below the log's boundary (the pending one, or older after a second restore),
-  -- in the static mode (the dynamic mode takes no snapshot), with `appliedTo`'s auto-leave
+  -- (until stage U3, 2026-10-28, in the static mode only), with `appliedTo`'s auto-leave
   -- premise; the `StableOk` is of the log in the window the arm opens (`ackLog`).
   (m.Type' = MsgStorageAppendResp →
      (∀ sv, sn = some sv →
         snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
         uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-        md.isDyn = false ∧
         -- (2026-10-28, stage U0; until then `appliedTo`'s auto-leave premise, `c.autoLeave = true →
-        -- s.role ≠ .leader`) `appliedSnap`'s rebuild: a follower, the snapshot as `SnapAckOk`
-        s.role = .follower ∧ SnapAckOk γ id sv ∧
+        -- s.role ≠ .leader`) `appliedSnap`'s rebuild: a follower, the snapshot as `SnapAckOk` in
+        -- the static mode, and (stage U3; until then the static mode only) as `SnapAckDyn` in the
+        -- dynamic one
+        s.role = .follower ∧ ((md.isDyn = false ∧ SnapAckOk γ id sv) ∨ SnapAckDyn md s sv) ∧
         -- (D22 S-d4 item 3) with a snapshot pending and the storage back, the storage holds the
         -- log up to the acknowledged snapshot (`LogState.sxt`; `appliedSnap` moves `applying` there)
         (s.logst.snap ≠ none → s.logst.lent = false →

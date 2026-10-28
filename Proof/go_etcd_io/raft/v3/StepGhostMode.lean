@@ -61,16 +61,18 @@ def GMode.Pre (md : GMode) (m : MessageM) (ents : List EntryM) (s : NState) : Pr
   | .dyn _ _ _ g =>
     PreGuardF g.fp s ∧
     (m.Type' = MsgStorageApplyResp →
-      s.logst.snap = none ∧
       ∀ e, ents.getLast? = some e → NoConfIn (rOf s g).full g.cidx (uint.nat e.Index')) ∧
     (m.Type' = MsgProp → plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64)
 
 /-- How a step moves the dynamic mode's ghost part (2026-10-14, stage B7 part 2): only a
 snapshot (`StepR.snapRestore`) moves it freely; a `MsgStorageApplyResp` moves the configuration
-index to the new `applied` when below (`CidxMove`); any other step keeps it. -/
-def GMove (m : MessageM) (s' : NState) (g g' : RGh) : Prop :=
+index to the new `applied` when below (`CidxMove`); (2026-10-28, stage U3) a snapshot's
+acknowledgement (`StepR.applySnap`), which moves `applied`, moves the configuration index and the
+configuration, keeping the full prefix; any other step keeps it. -/
+def GMove (m : MessageM) (s s' : NState) (g g' : RGh) : Prop :=
   m.Type' = MsgSnap ∨ g' = g ∨
-    (m.Type' = MsgStorageApplyResp ∧ g' = { g with cidx := max g.cidx (uint.nat s'.logst.applied) })
+    (m.Type' = MsgStorageApplyResp ∧ g' = { g with cidx := max g.cidx (uint.nat s'.logst.applied) }) ∨
+    (m.Type' = MsgStorageAppendResp ∧ s'.logst.applied ≠ s.logst.applied ∧ g'.fp = g.fp)
 
 /-- The step in the mode's model: `StepC c` statically, `StepR` at the dynamic configurations
 (`AdmFold`: since 2026-10-14, stage B8, a snapshot's restore included; until then no snapshot
@@ -81,7 +83,7 @@ def GMode.StepOut (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (s s' : NSta
     (md' : GMode) : Prop :=
   match md with
   | .static => md' = .static ∧ ∃ B recv, StepC c id B (toPState s) recv (toPState s')
-  | .dyn dec c0 h0 g => ∃ g', GMove m s' g g' ∧ md' = .dyn dec c0 h0 g' ∧
+  | .dyn dec c0 h0 g => ∃ g', GMove m s s' g g' ∧ md' = .dyn dec c0 h0 g' ∧
       ∃ B recv, StepR (AdmFold dec c0) dec id B (rOf s g) recv (rOf s' g')
 
 /-! ### The commit index never moves back, in either model (2026-10-14, stage B7 part 2)
@@ -154,20 +156,23 @@ theorem GMode.StepOut.commit_mono {md : GMode} {c : CfgM} {id : w64} {m : Messag
     obtain ⟨g', -, -, B, recv, H⟩ := H
     exact StepR.commit_mono H
 
-/-- A step of any message but a `MsgStorageApplyResp` keeps the mode (the configuration index
-does not move, `CidxMove`). -/
+/-- A step of any message but a `MsgStorageApplyResp`, a `MsgSnap` and (2026-10-28, stage U3) a
+snapshot's acknowledgement (a `MsgStorageAppendResp` that moves `applied`) keeps the mode (the
+configuration index does not move, `CidxMove`). -/
 theorem GMode.StepOut.keep {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
     {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md')
-    (hm : m.Type' ≠ MsgStorageApplyResp) (hs : m.Type' ≠ MsgSnap := by first | assumption | (intro h; simp_all) | decide) :
+    (hm : m.Type' ≠ MsgStorageApplyResp) (hs : m.Type' ≠ MsgSnap := by first | assumption | (intro h; simp_all) | decide)
+    (ha : m.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied) :
     md' = md := by
   cases md with
   | static => exact H.1
   | dyn dec c0 h0 g =>
     obtain ⟨g', Hcm, rfl, -⟩ := H
-    rcases Hcm with h | rfl | ⟨h, -⟩
+    rcases Hcm with h | rfl | ⟨h, -⟩ | ⟨h, h2, -⟩
     · exact absurd h hs
     · rfl
     · exact absurd h hm
+    · exact absurd (ha h) h2
 
 /-- (2026-10-25, T-M M2b) The dynamic mode's campaign guard of a pre-candidate (`PreGuard`, at the
 ghost part's full prefix); nothing in the static mode. -/
@@ -205,7 +210,7 @@ theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
     (HI : RInv dec c0 (rOf s g)) : DynHyp m s s' g := by
   subst hmd
   obtain ⟨h2, h3, h4⟩ := h
-  refine ⟨Hns, h2 HI.full.1, HI.full, fun hty => ⟨(h3 hty).1, ?_⟩, h4⟩
+  refine ⟨Hns, h2 HI.full.1, HI.full, fun hty => ?_, h4⟩
   have Hac : uint.nat s.logst.applied ≤ g.cidx := HI.applied_cidx
   have Hempty : ∀ n, n ≤ g.cidx → NoConfIn (rOf s g).full g.cidx n :=
     fun n hn k e hk1 hk2 => absurd (Nat.lt_of_lt_of_le hk2 hn) (Nat.not_lt.2 hk1)
@@ -214,7 +219,7 @@ theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
   · rw [ha]
     unfold w64Max
     split
-    · exact (h3 hty).2 e he
+    · exact h3 hty e he
     · exact Hempty _ Hac
 
 end mode
@@ -309,8 +314,7 @@ theorem ghostRest_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s 
 /-- (2026-10-25, T-M M2c) The node's configuration has a voter, in either mode: statically the
 ghost state's voters (`RaftNames.reCfg_ne`), dynamically a fold of the changes from a good
 configuration (`cfgFold_ok`). What a leader that need not be a voter itself (removed without
-`StepDownOnRemoval`) needs for its quorums: at a leader (2026-10-28, stage U0: dynamically, a
-node with a snapshot pending keeps the configuration of a log it no longer has, `RInv.cfg`). -/
+`StepDownOnRemoval`) needs for its quorums. -/
 theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ghostRest (GF := GF) γ md c id s ⊢ ⌜s.role = .leader → c.voters ≠ ∅⌝ ∗ ghostRest γ md c id s := by
   have Hne : ∀ c : CfgM, c.incoming ≠ ∅ → c.voters ≠ ∅ := by
@@ -337,10 +341,8 @@ theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
     iintro ⟨%Hn, ⟨%Hd, H1, H2⟩, #Hl⟩
     isplitr
     · ipureintro
-      intro hl
-      have hs : (rOf s g).snap = false :=
-        Hd.2.2.lead_snap (by simp only [rOf, toPState_role, hl]; rfl)
-      have Hok := cfgFold_ok (Hd.2.2.cfg hs) h0
+      intro _
+      have Hok := cfgFold_ok Hd.2.2.cfg h0
       rw [← Hd.2.1]; exact Hne _ Hok.2.1
     iframe Hl H1 H2
     ipureintro; exact ⟨Hn, Hd⟩
@@ -500,7 +502,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
       refine ⟨_, ?_, rfl, B, recv, StepR.mono (fun _ _ h => h.1) HR⟩
       rcases Hcm with h | ⟨h1, h2⟩
       · exact .inr (.inl (by rw [h]))
-      · exact .inr (.inr ⟨h1, by rw [h2]⟩)
+      · exact .inr (.inr (.inl ⟨h1, by rw [h2]⟩))
     iframe Hfr'
     isplitr
     · ipureintro; exact ⟨HD, hc, HI'⟩
@@ -673,6 +675,17 @@ theorem snapOkIf_of_cert (γ : RaftNames) (md : GMode) (id : w64) (ps : PState)
     simp only [GMode.SnapOkIf, GMode.SnapDyn]
     iexact Hd
 
+/-- A node's committed prefix, with records, is a prefix of the global committed log (persistent;
+read off the ghost state's log ghost). -/
+theorem ownRaftGhost_cmt (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
+    ownRaftGhost (GF := GF) γ id ps md ⊢
+      ∃ fp, ⌜FullOk ps.base fp⌝ ∗ logRecs γ base0 fp ∗ isCommitted γ (cprefix fp ps) := by
+  iintro Hg
+  iunfold ownRaftGhost at Hg
+  icases Hg with ⟨%γv, %voted, %kl, Hg⟩
+  iNamed Hg
+  iapply ownLogGhost_cmt γ id ps kl $$ Hlg
+
 /-- A `MsgSnap` branch's step updates the mode's ghost state (2026-10-14, stage B8): statically
 `ownRaftGhost_stepC`, the configuration afterwards still the ghost state's (`GMode.SnapOk`);
 dynamically `ownRaftGhostR_stepR` at the snapshot's prefix `fp0`, the one the message shows
@@ -711,12 +724,21 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     -- the snapshot's prefix, from the message, and A3 of it
-    icases isMessage_snap_prefix γ a Ha.1 $$ Hm with ⟨%fp0, %Hfp0, #Hr0⟩
+    icases isMessage_snap_prefix γ a Ha.1 $$ Hm with ⟨%fp0, %Hfp0, #Hr0, #Hc0⟩
     rw [Ha.2] at Hfp0
     ihave %Hsc := Hso $$ %fp0 Hr0 %Hfp0
     obtain ⟨-, cs, Hfold, Hcs⟩ := Hsc
+    -- (2026-10-28, stage U3) the prefix and the node's committed prefix: both committed
+    icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ id (toPState s)))) $$ Hg
+      with ⟨Hg, %fp1, %Hf1, #Hfr1, #Hc1⟩
+    icases FullOk_unique γ (toPState s).base fp1 g.fp Hf1 HI.full $$ Hfr1 Hfr with %He
+    icases isCommitted_agree γ _ _ $$ Hc1 Hc0 with %Hag0
+    have Hag : SnapAgree s g fp0 := by
+      unfold cprefix at Hag0; rw [He] at Hag0
+      unfold SnapAgree
+      rw [show (rOf s g).full = g.fp ++ (toPState s).log from rfl, ← toNat_uZ]; exact Hag0
     obtain ⟨g', hg', HR⟩ := Hstep.2 (AdmS dec c0 (fun fp => fp = fp0)) dec g fp0 cs hc Hfp0
-      Hcs.symm ⟨Hfold, rfl⟩
+      Hag Hcs.symm ⟨Hfold, rfl⟩
     ihave Hown : ownRaftGhostR γ dec c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
       iframe Hg Hfr
