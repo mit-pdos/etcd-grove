@@ -102,3 +102,13 @@ mind) missed one (`fmt.argsOk` in `New`); the fresh reviewer found it by reading
 [...]` and positional `icases` of a package fact in the callers' proofs, filtered by the defining
 module), not from memory; and a package's proof-only definitions (a loop invariant) go in a module
 only that proof imports, not the package's public `Defs`.
+
+## 2026-10-28, the compactor pilot's freeze test (M2's S3 glue)
+
+The first revision after the freeze: the frozen `v3compactor.compactableOk` and the pilot's
+`EtcdServer.Compact.spec` let `Compact` run under any context, but `Compact`'s body
+(`traceutil.EnsureTrace`) reads `ctx.Value(TraceKey{})` and writes to a trace it finds there; five
+review rounds checked the contract against `Compact.spec`, itself an unproved `sorry`. Rule (the
+reviewer's "Failure patterns"): when a contract is checked against its implementation's spec and
+that spec is unproved, check it against the implementation's Go body too: every value the body
+reads from an argument (a context's `Value`, a field) needs a premise.

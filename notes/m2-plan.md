@@ -253,3 +253,35 @@ proof):
   member, D21 M3's no-snapshot bound) gets the compactor; `Restore` keeps its frozen premise for
   compaction-off servers.
 Counted as the stage's phase-1 scope revisions (found by drafting, not by proof).
+
+## Phase 1, S2-S4: the fork's result, and the freeze test (2026-10-28)
+
+Committed: `0e344652a6` (S4 statements and glue: the server's `compactorOk` split into the
+persistent contract and a one-shot `compactorRun`, spent by `start`'s `Run`; `run`'s
+`Pause`/`Resume`; `newServer.wp_proofCompact` over `NewServer.specCompact`), `872a204cd7` (S2
+statements: `CompactMode.lean`, `reqPropOkC`, `dispatchOkC`, `irrNoDelPut`,
+`processInternalRaftRequestOnce.specCompact`). The mode is a variant per statement (as auth's
+`specOn`); compaction-off statements and proofs unchanged. Open `sorry`s (new cases):
+`NewServer.wp_proofCompact` (the compactor's environment, the apply thread's compaction right),
+`processInternalRaftRequestOnce.wp_proofCompact` (the apply's compaction arm), `Compact.wp_proof`,
+and S1's `syncWatchers` (2) and `RestorePre` (1).
+
+**The freeze test failed: one revision after the freeze.** `EtcdServer.Compact` (`v3_server.go`)
+calls `traceutil.EnsureTrace(ctx, …)`, which reads `ctx.Value(TraceKey{})` and, if it finds a
+trace, writes to it; the frozen `v3compactor.compactableOk` and the pilot's `Compact.spec` give
+the call only `context.isContext ctx cd`, which says nothing of `Value` for other keys, so
+`Compact.spec` is unprovable. Cause: CALLER (a need of the callee's body, found by S3's glue).
+The criterion that should have caught it: "a contract with no resource over a callee that needs
+one" -- the reviews checked `compactableOk` against `Compact.spec`, itself an unproved `sorry`,
+not against `Compact`'s Go body. **Repair (the user's): the context carries no trace.**
+`compactableOk`'s per-call premise and `Compact.spec` gain `traceutil.ctxTraceIs ctx none`;
+`Run` proves it for its `WithCancel(Background())` from `ctxTraceIs_background` and a law that
+`WithCancel` passes `Value` to its parent for other keys (missing in Perennial:
+`notes/perennial-changes.md`; meanwhile a local lemma over Perennial's context, a justified unfold
+like `isContextDef`'s).
+
+**Findings for the review** (the fork's): the compaction mode is not enforced by the statements
+(`NewServer.specCompact`'s post still hands out the 64 watch readers; the request path's variant
+takes a plain `isServerReq`); `Compact`'s callee hypotheses lack `Trace.AddField`; the callee-free
+`NewServer.wp_proofCompact` stub hides `NewServer`'s axioms from the `m2` collection's baseline (not
+updated).

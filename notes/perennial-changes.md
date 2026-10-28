@@ -852,3 +852,13 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   trivial⟩`.
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
+
+## `WithCancel`'s `Value` delegates to its parent (2026-10-28, M2)
+
+Perennial's `context.WithCancel` spec gives `isContext` of the child, whose `Value` is specified only
+for `cancelCtxKey`. etcd's server reads `ctx.Value(TraceKey{})` (`traceutil.EnsureTrace`) on the
+auto-compactor's context, `WithCancel(Background())`; proving that it carries no trace needs: for a
+key other than `cancelCtxKey`, the child's `Value(k)` is the parent's (Go's `cancelCtx.Value`,
+`value(c.Context, key)`). General (every derived context: `WithCancel`, `WithTimeout`,
+`WithDeadline`). Meanwhile: a local lemma over Perennial's context, justified in
+`notes/m2-plan.md` (the compactor's freeze repair).

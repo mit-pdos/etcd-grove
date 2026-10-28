@@ -92,6 +92,10 @@ Each found by a past review (`notes/spec-first-study/pilot-review-1.md`, the com
   `icases` of `<pkg>Init` by position). Each is a missing law of that package; report it with the
   law to add. (Phase 3 of the compactor pilot: the reviews never counted these, and both `Run`
   proofs took `ErrCompacted` from mvcc's initializer fact by its 31st conjunct.)
+- **A contract checked only against an unproved spec.** When the implementing function's spec is
+  itself a `sorry`, check the contract against the function's Go body: every value it reads from
+  an argument (a context's `Value(key)`, a field) needs a premise. (The compactor's freeze failed
+  on `EtcdServer.Compact`'s `ctx.Value(TraceKey{})`: M2, 2026-10-28.)
 - **A premise stricter than the Go parser.** Compare a configuration premise with what the Go code
   accepts (`time.ParseDuration` accepts negative durations; an integer flag may be parsed elsewhere).
 
