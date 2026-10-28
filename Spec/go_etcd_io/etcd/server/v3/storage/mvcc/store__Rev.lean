@@ -28,7 +28,7 @@ of the committed log it read. As `store.Read`'s, the log read is pinned between 
 certificate `log₀` and its `m` revision tokens (with every token left, at the sole writer, it is
 the writer's log); `m = 0`, `log₀ = []` is the plain spec. The store's `ReadView` field holds the
 `readView` `NewStore` returns (`isReadView`). Of a store that may be compacted (`storeReaderC`;
-2026-10-13, unit 6a); the frozen statement (`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+2026-10-13, unit 6a); the readers' statement (`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.store.Rev.spec : Prop :=
   ∀ (s rv : Loc) (γ : mvcc.StoreNames) (m : Nat) (log₀ : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗

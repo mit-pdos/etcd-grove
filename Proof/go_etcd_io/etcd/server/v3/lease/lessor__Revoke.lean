@@ -150,7 +150,7 @@ theorem lease.lessor.Revoke.wp_proof
     -- `txn := le.rd()`: the watchable store's write transaction, the hook run on `Pre`
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, #Htr, Hupd⟩
-    wp_apply Hrdt $$ %log %P %Pre %Q %f [$Hrdr $Hwt $Hww $Hhook $HPre $Htr] as %tw %trace ⟨Htx, HQ, Hhook⟩
+    wp_apply Hrdt $$ %log %P %Pre %Q %f [$Hrdr $Hwt $Hww $Hhook $HPre $Htr] as %tw %trace ⟨⟨%crev, Htx⟩, HQ, Hhook⟩
     · ipureintro; exact Hlen.1
     (try wp_auto)
     -- `keys := l.Keys()`: the keys the owner's item map puts on `id`
@@ -198,7 +198,7 @@ theorem lease.lessor.Revoke.wp_proof
         "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗ "Hk" ∷ key_ptr ↦ kv0 ∗
         "%Hj" ∷ ⌜j ≤ ks'.length⌝ ∗
         "Htx" ∷ mvcc.isTxnWrite mw st γw.st trace log ((ks'.take j).map mvcc.Change.del)
-          (W64 0) dl (W64 0) ∗
+          (W64 0) dl (W64 0) crev ∗
         "Hown" ∷ leaseOwn γw.st.leases L (mvcc.pendItems log ((ks'.take j).map mvcc.Change.del)))
         $$ [i key Htx Hown]
     · iexists 0, _, W64 0
@@ -253,13 +253,13 @@ theorem lease.lessor.Revoke.wp_proof
         | none => simp only [hf] at h; cases h
         | some _ => rfl
       ihave Htx : mvcc.isTxn mw st γw.st trace
-          (.write log ((ks'.take j).map mvcc.Change.del) (W64 0) dl (W64 0)) $$ [Htx]
+          (.write log ((ks'.take j).map mvcc.Change.del) (W64 0) dl (W64 0)) crev $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
-      ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw st γw.st _ $$ Htx
+      ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw st γw.st _ crev $$ Htx
       ihave Htx : mvcc.isTxnWrite mw st γw.st trace log ((ks'.take j).map mvcc.Change.del)
-          (W64 0) dl (W64 0) $$ [Htx]
+          (W64 0) dl (W64 0) crev $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
-      ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw st γw.st log _ _ _ _ $$ Htx
+      ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw st γw.st log _ _ _ _ crev $$ Htx
       have hdk : mvcc.delKeys log ((ks'.take j).map mvcc.Change.del) true kj [] = [kj] := by
         rw [txn.delKeys_eq log _ Hok.1 Hfx.1]
         unfold txn.srvSel txn.srvInRange
@@ -271,7 +271,7 @@ theorem lease.lessor.Revoke.wp_proof
       iapply mvcc.tw_wp2 _ _ mw go!"DeleteRange" (by unfold mvcc.twMethod; simp)
       iframe Hwrap
       wp_apply (hDel trace mw st γw.st log ((ks'.take j).map mvcc.Change.del) (W64 0) dl (W64 0)
-          ksb slice.nil kj [] L) $$ [$Htx $Hksb $Hnil $Hown] as %n %rv ⟨Htx, Hown, -⟩
+          ksb slice.nil kj [] L crev) $$ [$Htx $Hksb $Hnil $Hown] as %n %rv ⟨Htx, Hown, -⟩
       try rw [show decide ((slice.nil : GoSlice) = slice.nil) = true from decide_eq_true rfl]
       rw [hdk]
       (try wp_auto)
@@ -334,12 +334,12 @@ theorem lease.lessor.Revoke.wp_proof
       wp_apply (wp_mapDelete lm2 M2 id LeaseID.ty (go.GoType.PointerType Lease.ty)) $$ HM as HM
       -- the write transaction, packed: its batch transaction is the backend's
       ihave Hwtx : mvcc.isWatchTxnWrite tw ws st γw trace log (ks'.map mvcc.Change.del) (W64 0) dl
-          (W64 0) $$ [Htx Htoks Hwlog]
+          (W64 0) crev $$ [Htx Htoks Hwlog]
       · iunfold mvcc.isWatchTxnWrite
         iexists mw
         simp only [named]
         iframe Htw Hws Htx Hcert Htoks Hwlog
-      icases mvcc.isWatchTxnWrite_bt _ _ _ _ _ _ _ _ _ _ _ $$ Hwtx with ⟨Hwtx, %bt, #HbtB⟩
+      icases mvcc.isWatchTxnWrite_bt _ _ _ _ _ _ _ _ _ _ _ _ $$ Hwtx with ⟨Hwtx, %bt, #HbtB⟩
       have hbt : mvcc.storeBt (GF := GF) γw.st bt = mvcc.bkBt d.be bt := by
         unfold mvcc.storeBt mvcc.kbBt; rw [hkb]
       ihave #HbtB' : mvcc.bkBt d.be bt $$ []
@@ -362,14 +362,15 @@ theorem lease.lessor.Revoke.wp_proof
       icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bL, #HLeaseG, -⟩⟩
       wp_apply (hUDL ⟨go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ «$a1_ptr» (DFrac.own 1) _ bL
-          iprop(mvcc.isWatchTxnWrite tw ws st γw trace log (ks'.map mvcc.Change.del) (W64 0) dl (W64 0) ∗
+          iprop(mvcc.isWatchTxnWrite tw ws st γw trace log (ks'.map mvcc.Change.del) (W64 0) dl (W64 0)
+            crev ∗
             mvcc.storeRb γw.st r)
           iprop(mvcc.isWatchTxnWrite tw ws st γw trace log (ks'.map mvcc.Change.del) (W64 0) dl (W64 0)
-            true ∗ mvcc.storeRb γw.st (mvcc.rbDel r mvcc.leaseName (u64Le id).reverse)))
+            crev true ∗ mvcc.storeRb γw.st (mvcc.rbDel r mvcc.leaseName (u64Le id).reverse)))
         $$ [$«$a1» $Hwtx $Hrb] as ⟨-, Hwtx, Hrb⟩
       · iframe HLeaseG
         iintro !> %key %Φ' !> ⟨#Hkey, Hwtx, Hrb⟩ HΦ'
-        icases mvcc.isWatchTxnWrite_leaseDel _ _ _ _ _ _ _ _ _ _ $$ Hwtx with ⟨%bt2, #HbtB2, Hd⟩
+        icases mvcc.isWatchTxnWrite_leaseDel _ _ _ _ _ _ _ _ _ _ _ $$ Hwtx with ⟨%bt2, #HbtB2, Hd⟩
         ihave #Hb2 : mvcc.bkBt d.be bt2 $$ []
         · rw [← (show mvcc.storeBt (GF := GF) γw.st bt2 = mvcc.bkBt d.be bt2 by
             unfold mvcc.storeBt mvcc.kbBt; rw [hkb])]; iexact HbtB2
@@ -391,7 +392,7 @@ theorem lease.lessor.Revoke.wp_proof
       icases (mvcc.hookIs_split γw.st P f).1 $$ Hhook with ⟨#HhookOk, Hfrag⟩
       ihave Hhook : mvcc.hookIs γw.st P f $$ [Hfrag]
       · iapply (mvcc.hookIs_split γw.st P f).2; iframe HhookOk Hfrag
-      wp_apply (hEnd trace tw ws st γw log (ks'.map mvcc.Change.del) (W64 0) dl (W64 0) P f true)
+      wp_apply (hEnd trace tw ws st γw log (ks'.map mvcc.Change.del) (W64 0) dl (W64 0) P f crev true)
         $$ [$Hwtx $Hhook $HP $Hcn] as ⟨Hrdr, #Hcc, Hww, -, Hfrag⟩
       ihave Hhook : mvcc.hookIs γw.st P f $$ [Hfrag]
       · iapply (mvcc.hookIs_split γw.st P f).2; iframe HhookOk Hfrag

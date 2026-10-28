@@ -52,16 +52,18 @@ def rangeResultIs (rr : Loc) (rev count : w64) (vs : List EtcdKv) : IProp GF :=
     rr ↦ ({ KVs' := sl, Rev' := rev, Count' := count } : RangeResult) ∗ kvsOwnAt sl l)
 
 /-- **What `executeRange` (and `Range`) return** for the request `o` on the read transaction of
-the committed log `log` at revision `rev`, with `withTotal`:
+the committed log `log` at revision `rev` whose compaction revision is `crev`, with `withTotal`:
 * a future revision (`o.base.rev > rev`): no response, mvcc's `ErrFutureRev`;
 * the context done (mvcc's `rangeOutcome`: a full read checks `ctx.Done()`): no response and
   `fmt.Errorf`'s error (`mvcc.errorfIs`: an `*errors.errorString` in Perennial's model; 2026-10-12,
   the request path's unit 3b);
 * else a response at header revision `rev`, its key-values and `More` the server's selection
   of the state at the revision read (`rangeRev rev o.base.rev`: `srvRangeOk`), its count
-  `srvCount`. -/
-def rangeResult (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull)
-    (withTotal : Bool) : IProp GF :=
+  `srvCount`;
+* (M2, `notes/m2-plan.md`, S1) a revision read below `crev`: no response, mvcc's `ErrCompacted`
+  (`rangeOutcomeC`). -/
+def rangeResult (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (crev : Int)
+    (o : OpFull) (withTotal : Bool) : IProp GF :=
   iprop(
     (⌜sint.Z rev < sint.Z o.base.rev ∧ resp = null⌝ ∗
       ∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
@@ -70,7 +72,9 @@ def rangeResult (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ err = GoInterface.nil⌝ ∗ ∃ (kvs : List EtcdKv) (more : Bool),
       rangeResponseIs resp rev kvs more
         (srvCount o (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) withTotal) ∗
-      ⌜srvRangeOk o (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) kvs more⌝))
+      ⌜srvRangeOk o (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) kvs more⌝) ∨
+    (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ sint.Z (mvcc.rangeRev rev o.base.rev) < crev ∧ resp = null⌝ ∗
+      ∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝))
 
 /-- **A successful range's response header, its four id fields owned** (not persistent; beside
 the persistent `rangeResult`): if the read succeeded, `respHdrOwn` of the response's `Header`
@@ -81,23 +85,25 @@ def rangeHdr (resp : Loc) (err : GoInterface) : IProp GF :=
     respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp))
 
 /-- **What `checkRange` returns** for the request `o` on a read transaction at revision `rev`
-(whose first revision is `-1`): `nil` for revision `0` or in `[-1, rev]`; mvcc's `ErrFutureRev`
-above `rev`; mvcc's `ErrCompacted` below `-1`. -/
-def checkRangeErr (rev : w64) (o : OpFull) (err : GoInterface) : IProp GF :=
+whose first revision (its compaction revision) is `crev`: `nil` for revision `0` or in
+`[crev, rev]`; mvcc's `ErrFutureRev` above `rev`; mvcc's `ErrCompacted` below `crev` (M2,
+`notes/m2-plan.md`, S1; until then of a store never compacted, `crev = -1`). -/
+def checkRangeErr (rev : w64) (crev : Int) (o : OpFull) (err : GoInterface) : IProp GF :=
   iprop(
     ⌜err = GoInterface.nil ∧
-      (o.base.rev = W64 0 ∨ (sint.Z o.base.rev ≤ sint.Z rev ∧ -1 ≤ sint.Z o.base.rev))⌝ ∨
+      (o.base.rev = W64 0 ∨ (sint.Z o.base.rev ≤ sint.Z rev ∧ crev ≤ sint.Z o.base.rev))⌝ ∨
     (⌜o.base.rev ≠ W64 0 ∧ sint.Z rev < sint.Z o.base.rev⌝ ∗
       ∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
-    (⌜o.base.rev ≠ W64 0 ∧ sint.Z o.base.rev ≤ sint.Z rev ∧ sint.Z o.base.rev < -1⌝ ∗
+    (⌜o.base.rev ≠ W64 0 ∧ sint.Z o.base.rev ≤ sint.Z rev ∧ sint.Z o.base.rev < crev⌝ ∗
       ∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝))
 
 instance rangeResult_persistent (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64)
-    (o : OpFull) (withTotal : Bool) : Persistent (rangeResult (GF := GF) resp err log rev o withTotal) := by
+    (crev : Int) (o : OpFull) (withTotal : Bool) :
+    Persistent (rangeResult (GF := GF) resp err log rev crev o withTotal) := by
   unfold rangeResult; infer_instance
 
-instance checkRangeErr_persistent (rev : w64) (o : OpFull) (err : GoInterface) :
-    Persistent (checkRangeErr (GF := GF) rev o err) := by
+instance checkRangeErr_persistent (rev : w64) (crev : Int) (o : OpFull) (err : GoInterface) :
+    Persistent (checkRangeErr (GF := GF) rev crev o err) := by
   unfold checkRangeErr; infer_instance
 
 end defs

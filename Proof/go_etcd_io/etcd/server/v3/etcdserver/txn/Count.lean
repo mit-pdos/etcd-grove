@@ -47,7 +47,7 @@ theorem txn.Count.wp_proof
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
   wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀ ot te) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx $Hct $Hto]
-    as %resp %tr %err ⟨Hrd, Htoks, %Htr, -, -, %log, %rev, #Hcert, -, %Hpin, #Hres, -, -⟩
+    as %resp %tr %err ⟨Hrd, Htoks, %Htr, -, -, %log, %rev, %crev, #Hcert, -, #Hlb, %Hpin, #Hres, -, -⟩
   · isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     isplitr
@@ -59,16 +59,17 @@ theorem txn.Count.wp_proof
     intro h; rw [heff] at h; rcases h with h | h <;> cases h
   have hrevo : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).base.rev = revision := rfl
   iunfold txn.rangeResult at Hres
-  icases Hres with (⟨%Hf, %ef, #Hef, %Herr⟩ | ⟨%Hce, -⟩ | ⟨%Hok, %kvs, %more, #Hresp, %Hsrv⟩)
+  icases Hres with (⟨%Hf, %ef, #Hef, %Herr⟩ | ⟨%Hce, -⟩ | ⟨%Hok, %kvs, %more, #Hresp, %Hsrv⟩ |
+    ⟨%Hcmp, %ec, #Hec, %Herr⟩)
   · subst Herr
     wp_auto
     iapply HΦ
     iframe Hrd Htoks
-    iexists log, rev
-    iframe Hcert
+    iexists log, rev, crev
+    iframe Hcert Hlb
     isplitr
     · ipureintro; exact Hpin
-    iright
+    iright; ileft
     iframe Hef
     ipureintro
     rw [hrevo] at Hf
@@ -83,14 +84,28 @@ theorem txn.Count.wp_proof
     wp_auto
     iapply HΦ
     iframe Hrd Htoks
-    iexists log, rev
-    iframe Hcert
+    iexists log, rev, crev
+    iframe Hcert Hlb
     isplitr
     · ipureintro; exact Hpin
     ileft
     ipureintro
     refine ⟨rfl, hle, ?_⟩
     simp [txn.srvCount, txn.countOp, txn.rangeOpOf]
+  · -- (M2, S1) below the compaction revision: `ErrCompacted`, `0`
+    subst Herr
+    wp_auto
+    iapply HΦ
+    iframe Hrd Htoks
+    iexists log, rev, crev
+    iframe Hcert Hlb
+    isplitr
+    · ipureintro; exact Hpin
+    iright; iright
+    iframe Hec
+    ipureintro
+    rw [hrevo] at Hcmp
+    exact ⟨⟨Hcmp.1, Hcmp.2.1, rfl⟩, rfl⟩
 
 end proof
 

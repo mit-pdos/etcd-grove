@@ -142,3 +142,95 @@ later stage. A scope revision of phase 0 (decision 4), found in phase 1's design
   (`etc/tcb-collections/m2.txt`); S4 merges the two. The same applies to every generalized
   statement of S1-S4: a generalization's unproved case goes in a variant, linked by hand
   (`putgetc/MainLinked.lean`), until it is proved.
+
+## Phase 1, S1: the readers' statements, drafted (2026-10-27; for the user's approval)
+
+**What uses the frozen store today** (measured): mvcc's frozen layer (`FrozenSpecs.lean`: 14 specs
+restated at compaction revision `-1`, `<fn>.specFrozen`, with corollaries `<fn>.spec_frozen`), used
+by 31 mvcc proofs and 14 above mvcc (txn 8, apply 1, v3rpc 1, etcdserver 4); the `crevFrozen`
+fact itself in the watchable store (`syncWatchers`, `newWatchableStore`, `rangeEvents`,
+`InvCompact`, `InvRoTxn`), `store.Restore`/`watchableStore.Restore`, `NewStore`, and the server's
+restore (`RestorePre`, `SnapApplyDefs`) and allocation (`Results`). The watchable store must be
+generalized even with watches out of scope: its `syncWatchers` goroutine runs in every server,
+`putgetc`'s too, and its invariant assumes no compaction.
+
+**The drafts:**
+1. **`mvcc.storeReader s γ := storeReaderC s γ`** (the frozen fact dropped; the name kept, phase 0's
+   decision). `crevFrozen`, `crevFrozen_alloc` and the frozen layer go; `NewServer` keeps the
+   compaction right (`compactRight γ (-1)`) for the apply thread instead of freezing it.
+2. **The frozen layer becomes the readers' layer** (`ReaderSpecs.lean`, `<fn>.specR`): each
+   `specFrozen` with the observed compaction revision exposed instead of fixed at `-1`: the read
+   transaction `isTxnRead mw s γ trace log rev crev True` (the tag `True`, as the general spec's
+   compacting clients), `crevLb γ.idx crev`, `crev < log.length` (a compaction revision is one of
+   the log's); a range's outcome `rangeOutcomeC … crev` (`ErrCompacted` exactly below `crev`)
+   instead of `rangeOutcome`, with the lemma that a latest read (`ro.Rev = 0`) is never compacted
+   (generalizing `rangeOutcomeC_neg`).
+3. **txn**: `checkRangeErr rev crev o err`: `ErrCompacted` when `o.rev ≠ 0 ∧ o.rev ≤ rev ∧
+   o.rev < crev` (was `< -1`); `txn.Range`/`Txn`/`Count`/`checkRange`/`checkTxn`'s posts gain
+   `∃ crev, crevLb γ.idx crev ∗ ⌜crev ≤ rev⌝` and their results are over it (`rangeResult … crev`);
+   `Range`'s never-done clause gains the compacted case. `Put`/`DeleteRange` only read at the
+   current revision: unchanged.
+4. **The watchable store**: its invariant drops `st.compacted = false`; `chooseAll`/`choose` lose the
+   premise excluding their compaction branch; `watcher.send`'s `CompactRevision = 0` becomes the
+   compaction revision's value when the store compacted the watcher; `rangeEvents`' snapshot misses
+   no event above the compaction revision; `syncWatchers` over the observed revision.
+5. **Restore**: `store.Restore`/`watchableStore.Restore` from the compaction right at its current
+   revision (was: frozen at `-1`); `RestorePre`/`SnapApplyDefs` carry the right, not the frozen fact.
+6. **Above txn** (apply, the server's `Range`/`Txn`, v3rpc, the client): the range's error case is
+   already unconstrained (survey), so only the reader's name and the `specR` corollaries change.
+
+What the user approves here: (1)'s definition and (3)-(5)'s statements (trusted: they are the
+statements of linked results, e.g. `txn.Range`'s).
+
+## Phase 1, S2-S4: the statements, drafted (2026-10-28)
+
+**Redirected (the user's, 2026-10-28): the skeleton before the proofs.** S1's re-proofs stop at
+its statements (the proofs that are more than threading become `sorry`s); S2-S4's statements are
+drafted and their glue proved; a `spec-reviewer` round runs on the whole skeleton; only then the
+proofs. (S1 had gone to re-proving about 45 files before S2-S4 existed: the old order.)
+
+**S2, the apply's compaction arm.**
+- `apply.dispatchOk on rq` loses `dispatchKind rq ≠ .compaction` (`apply/InvUber.lean`).
+- `dispatchStep` needs no change: compaction is not a `storeKind`, so the log is unchanged
+  (`o.logAfter log = log`), which is true (a compaction changes no value at a revision it keeps).
+- The arm's spec (`applierV3backend.Compaction`, over `store.Compact`): the apply thread holds the
+  compaction right (`compactRight γ c`, given by `NewServer` instead of frozen) and passes it
+  through; a request at `r ≤ c` answers `ErrCompacted`, above the log `ErrFutureRev`.
+- `reqPropOk` gains a compaction form: `⌜dispatchKind rq = .compaction ∧ ¬ physical rq⌝` with a
+  trivial result (`Qr = True`). No permit: C3 is deferred, and a latest read is never compacted
+  whatever the revision (so `EtcdServer.Compact.spec`'s "any revision" stays).
+- `applyEntries_model`'s "neither a compaction" premise goes.
+- **Open: the delete-then-put premise** (`store.Compact` needs `NoDelPutAt log r`,
+  `issues/etcd-compaction-delete-then-put.md`). The server's specs are generic in their clients
+  (any gRPC client can send `Then(OpDelete(k, WithFromKey()), OpPut(k, v))`), so the workload
+  cannot discharge it at the apply. Choices:
+  (a) a premise on the admitted writes, in compaction mode only: the server's request forms
+      (`reqPropOk`'s write forms, through `isServerReqM`'s mode) exclude a transaction that
+      deletes and puts one key; it reaches the clients' `Txn` specs only when the compactor is
+      on (`putgetc` issues none), citing the issue;
+  (b) fix the Go: upstream's PRs (etcd-io/etcd#22377, `keyIndex.doCompact`; #22395, the gRPC
+      path) in the fork, so `store.Compact` needs no premise; re-proves mvcc's `doCompact` and
+      `store.Compact` (proved, about 500 lines with `updateCompactRev`).
+  (a) is phase 0's scope (decision 3) made precise; (b) removes the premise for every later
+  widening. **Taken: (a)** (the user's, 2026-10-28).
+
+**S3, `EtcdServer.Compact`'s glue** over `processInternalRaftRequestOnce` with `reqPropOk`'s
+compaction form; its statement unchanged (the pilot's). Checked while drafting: its `idCred` is
+persistent (the time-receipt bound), so the compactor's `R` can hold it across calls.
+
+**S4, the server with the compactor.**
+- `NewServer.spec`/`specOn`: `AutoCompactionRetention = 0` becomes `retention = 0 ∨ (mode =
+  "revision" ∧ 0 < retention)` (phase 0's scope).
+- The server's `compactorOk c` (`InvRun.lean`): `⌜c = nil⌝ ∨ ∃ T P, v3compactor.compactorOk c T P`
+  (persistent: `run`'s `Pause`/`Resume`); new `compactorRun c` in `start`'s resources: `⌜c = nil⌝ ∨
+  ∃ T, v3compactor.compactorOk c T (runPre E (revPermit E.RevLb ret)) ∗ T ∗ runPre …`, spent by
+  `s.compactor.Run()`.
+- `E` (the compactor's environment, built by `NewServer`): `E.rg` the store (`s.kv`, its `Rev` over
+  `storeReader`), `E.c` the server (`EtcdServer.Compact.spec`), `E.R := srvLeadTimeReader s ∗ E.RD ∗
+  storeReaderC ∗ ownToks γ.revs m` (all given back by both calls) with `□ idCred`, `E.RevLb n := ∃
+  log, idxCert log ∗ ⌜n ≤ log.length - 1⌝`.
+- `newServer.specCompact` merges into `newServer.spec` (`0 ≤ retention`).
+
+**The glue to prove before the review**: `newServer` (both cases), `start`'s `Run` call, `run`'s
+`Pause`/`Resume` calls, `NewServer`'s construction of `E` and the `New` call (the compactor case),
+`EtcdServer.Compact`, `putgetc.Main` (done).

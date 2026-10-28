@@ -42,3 +42,4 @@ axiom zap.Logger.Warn.wp_proof
 axiom zap.NewNop.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Uint32.wp_proof
+sorry mvcc.watchableStore.syncWatchers.wp_proof

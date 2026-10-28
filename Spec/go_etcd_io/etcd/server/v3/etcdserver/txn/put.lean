@@ -34,10 +34,10 @@ before and after. -/
 abbrev txn.put.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (p : Loc) (o : OpFull) (prev : Loc) (L : List w64) (tyX : go.GoType) (vX : val),
+    (p : Loc) (o : OpFull) (prev : Loc) (L : List w64) (tyX : go.GoType) (vX : val) (crev : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx (some trace) ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ mvcc.twWrap tyX vX mw ∗
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev ∗ mvcc.twWrap tyX vX mw ∗
       txn.putRequestIs p o ∗
       (if txn.readsPrev o then txn.prevKvIs prev (txn.pendState ilog pend) o.key
         else ⌜prev = null⌝) ∗
@@ -49,7 +49,7 @@ abbrev txn.put.spec : Prop :=
   {{ (resp : Loc), RET #resp;
       (∃ puts' putSize' : w64, mvcc.isTxnWrite mw s γ trace ilog
         (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState ilog pend))]) puts' deletes
-        putSize') ∗
+        putSize' crev) ∗
       txn.putResponseIs resp (W64 (ilog.length : Int))
         (if o.base.prevKV then mvcc.findKey o.key (txn.pendState ilog pend) else none) ∗
       txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗

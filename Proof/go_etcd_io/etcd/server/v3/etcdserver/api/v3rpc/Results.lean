@@ -613,7 +613,8 @@ theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
         ⌜EtcdStateWf pfx (underPfx pfx (stateAfter log))⌝ ∗
         etcdReached (EM := etcdModelOfServer E) r ∗
         (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
-        txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true := by
+        (∃ crev : Int,
+          txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) := by
   iintro ⟨#Hsm, Hok⟩
   iunfold rangeAnsOk at Hok
   icases Hok with ⟨%log, #H, #Hcok, %Hl, Hlin, -, Hres⟩

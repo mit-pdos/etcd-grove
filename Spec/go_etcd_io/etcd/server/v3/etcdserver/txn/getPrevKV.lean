@@ -31,11 +31,11 @@ key-value (`IgnoreValue`, `IgnoreLease` or `PrevKv`), the transaction's range re
 if it has one (`prevKvIs`); else `nil`. -/
 abbrev txn.getPrevKV.spec : Prop :=
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (p : Loc) (o : OpFull)
-    (tyX : go.GoType) (vX : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind ∗
+    (tyX : go.GoType) (vX : val) (crev : Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind crev ∗
       mvcc.twWrap tyX vX mw ∗ txn.putRequestIs p o }}
     (App (App (App (Val (@! txn.getPrevKV)) (Val #trace)) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #p))
-  {{ (r : Loc), RET (PairV #r #(GoInterface.nil)); mvcc.isTxn mw s γ trace kind ∗
+  {{ (r : Loc), RET (PairV #r #(GoInterface.nil)); mvcc.isTxn mw s γ trace kind crev ∗
       if txn.readsPrev o then txn.prevKvIs r (txn.kindState kind) o.key else ⌜r = null⌝ }}
 
 end spec

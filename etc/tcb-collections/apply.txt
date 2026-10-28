@@ -41,3 +41,4 @@ axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
+sorry apply.rangeOutcomeIs_errIs

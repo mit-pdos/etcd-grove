@@ -147,9 +147,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- A read transaction's log is well formed (its certificate), not empty, and its revision is
 the log's last. -/
-theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    mvcc.isTxnRead (GF := GF) mw s γ trace log rev ⊢
-      mvcc.isTxnRead mw s γ trace log rev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
+theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) :
+    mvcc.isTxnRead (GF := GF) mw s γ trace log rev crev ⊢
+      mvcc.isTxnRead mw s γ trace log rev crev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
   iintro H
   iunfold mvcc.isTxnRead at H
   iNamed H
@@ -168,8 +168,9 @@ theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
     exact ⟨LogOk.of_cert Hp HneT, HneT, HrevT⟩
 
 /-- A read transaction's certificate. -/
-theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    mvcc.isTxnRead (GF := GF) mw s γ trace log rev ⊢ mvcc.isTxnRead mw s γ trace log rev ∗ mvcc.idxCert γ.idx log := by
+theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) :
+    mvcc.isTxnRead (GF := GF) mw s γ trace log rev crev ⊢
+      mvcc.isTxnRead mw s γ trace log rev crev ∗ mvcc.idxCert γ.idx log := by
   iintro H
   iunfold mvcc.isTxnRead at H
   iNamed H
@@ -199,9 +200,9 @@ open go_etcd_io.etcd.server.v3.storage.mvcc in
 /-- **`rangeResult` in the client model's terms**: a success's key-values are `rangeKvsOk` of
 the client's selection `rangeSel` of the state read, up to the lease of a fast keys-only read
 (`leaseZ`), and `More` is the client's below the largest limit; the other outcomes as in
-`rangeResult`. -/
-def rangeResultClient (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull)
-    (withTotal : Bool) : IProp GF :=
+`rangeResult` (the compacted one since M2, S1). -/
+def rangeResultClient (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (crev : Int)
+    (o : OpFull) (withTotal : Bool) : IProp GF :=
   iprop(
     (⌜sint.Z rev < sint.Z o.base.rev ∧ resp = null⌝ ∗
       ∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
@@ -215,7 +216,9 @@ def rangeResultClient (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w
         kvs = kvs'.map (leaseZ (fastKeysOnly o)) ∧
         (o.base.countOnly = false → sint.Z o.base.limit < 2 ^ 63 - 1 →
           more = decide (0 < sint.Z o.base.limit ∧ sint.Z o.base.limit <
-            ((rangeSel (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) o).length : Int)))⌝))
+            ((rangeSel (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) o).length : Int)))⌝) ∨
+    (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ sint.Z (mvcc.rangeRev rev o.base.rev) < crev ∧ resp = null⌝ ∗
+      ∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝))
 
 /-- A range request's `sortSet` is the client's (`rangeOpOf`). -/
 theorem rangeRequestIs_sortSet (r : Loc) (o : OpFull) :
@@ -232,16 +235,16 @@ theorem rangeRequestIs_sortSet (r : Loc) (o : OpFull) :
 
 /-- **The server's range in the client's terms**, unless the sort is cut early. -/
 theorem rangeResult_client (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64)
-    (o : OpFull) (withTotal : Bool)
+    (crev : Int) (o : OpFull) (withTotal : Bool)
     (hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
     (hcut : ¬ cutEarly o) :
-    rangeResult (GF := GF) resp err log rev o withTotal ⊢
-      rangeResultClient resp err log rev o withTotal := by
+    rangeResult (GF := GF) resp err log rev crev o withTotal ⊢
+      rangeResultClient resp err log rev crev o withTotal := by
   unfold rangeResult rangeResultClient
-  iintro (H | H | ⟨%H, %kvs, %more, Hresp, %Hok⟩)
+  iintro (H | H | ⟨%H, %kvs, %more, Hresp, %Hok⟩ | H)
   · ileft; iexact H
   · iright; ileft; iexact H
-  · iright; iright
+  · iright; iright; ileft
     obtain ⟨kvs', h1, h2, h3⟩ := srvRangeOk_rangeKvsOk o _ kvs more hset Hok hcut
     isplitr
     · ipureintro; exact H
@@ -249,6 +252,7 @@ theorem rangeResult_client (resp : Loc) (err : GoInterface) (log : mvcc.Log) (re
     iframe Hresp
     ipureintro
     exact ⟨h1, h2, h3⟩
+  · iright; iright; iright; iexact H
 
 end client
 

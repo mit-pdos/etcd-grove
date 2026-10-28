@@ -40,9 +40,9 @@ theorem txn.txn.wp_proof
     (hZErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLgErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     txn.txn.spec (GF := GF) (hG := hG) := by
-  intro trace ctx cd nd lg s γ tw ro ilog rt t pl skip L
+  intro trace ctx cd nd lg s γ tw ro ilog rt t pl skip L crev
   wp_start as ⟨Htw, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre⟩
-  ihave %Htwok := txn.txnWriteIs_ok tw s γ ro ilog [] $$ Htw
+  ihave %Htwok := txn.txnWriteIs_ok tw s γ ro ilog [] crev $$ Htw
   obtain ⟨twi, rfl⟩ := Htwok
   ihave #Hpl' : pl ↦*□ (txnPath (mvcc.stateAfter ilog) t ++ []) $$ []
   · rw [List.append_nil]; iexact Hpl
@@ -60,7 +60,7 @@ theorem txn.txn.wp_proof
   ihave Hown : (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L (mvcc.pendItems ilog [])) $$ [Hown]
   · rw [show mvcc.pendItems ilog [] = mvcc.leaseItemsOf (mvcc.stateAfter ilog) from rfl]
     iexact Hown
-  wp_apply (hExec trace ctx cd nd lg s γ (GoInterface.ok twi) ro ilog [] rt t pl [] resp skip L)
+  wp_apply (hExec trace ctx cd nd lg s γ (GoInterface.ok twi) ro ilog [] rt t pl [] resp skip L crev)
     $$ [$Htw $Hctx $Hct $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown] as %n2 %err Hres
   · ipureintro
     refine ⟨Hpre.1, ?_, ?_, fun h => (Hpre.2.2.2 h).1⟩
@@ -87,10 +87,10 @@ theorem txn.txn.wp_proof
     wp_auto
     wp_apply hLgErr $$ []
     · iframe #; ipureintro; exact hlg
-    icases txnWriteIs_kind _ s γ true ilog _ $$ Htw with ⟨%kind, Hv, %Hk⟩
-    ihave Htw := txnWriteIs_of_view _ s γ true ilog _ kind Hk.1 $$ Hv
-    wp_apply (wp_txnWrite_Rev hRev hRoRev twi s γ true ilog _) $$ [$Htw] as Htw
-    wp_apply (wp_txnWrite_Changes hCh hRoCh twi s γ true ilog _) $$ [$Htw] as %chs ⟨-, Htw⟩
+    icases txnWriteIs_kind _ s γ true ilog _ crev $$ Htw with ⟨%kind, Hv, %Hk⟩
+    ihave Htw := txnWriteIs_of_view _ s γ true ilog _ crev kind Hk.1 $$ Hv
+    wp_apply (wp_txnWrite_Rev hRev hRoRev twi s γ true ilog _ crev) $$ [$Htw] as Htw
+    wp_apply (wp_txnWrite_Changes hCh hRoCh twi s γ true ilog _ crev) $$ [$Htw] as %chs ⟨-, Htw⟩
     iapply wp_fupd
     wp_join iprop(∃ rv : w64, rev_ptr ↦ rv) with [rev] as ⟨%rv, rev⟩
     ipersist Hrev
@@ -120,12 +120,12 @@ theorem txn.txn.wp_proof
   obtain ⟨rfl, -⟩ := Herr
   wp_auto
   try simp only [List.nil_append] at *
-  icases txnWriteIs_kind _ s γ ro ilog _ $$ Htw with ⟨%kind, Hv, %Hk⟩
-  ihave Htw := txnWriteIs_of_view _ s γ ro ilog _ kind Hk.1 $$ Hv
+  icases txnWriteIs_kind _ s γ ro ilog _ crev $$ Htw with ⟨%kind, Hv, %Hk⟩
+  ihave Htw := txnWriteIs_of_view _ s γ ro ilog _ crev kind Hk.1 $$ Hv
   have hne : ilog ≠ [] := Hk.2.2.2.1
   have hlen : ilog.length < 2 ^ 63 := Hk.2.2.2.2
-  wp_apply (wp_txnWrite_Rev hRev hRoRev twi s γ ro ilog _) $$ [$Htw] as Htw
-  wp_apply (wp_txnWrite_Changes hCh hRoCh twi s γ ro ilog _) $$ [$Htw] as %chs ⟨⟨%Hchs, %Hchs0⟩, Htw⟩
+  wp_apply (wp_txnWrite_Rev hRev hRoRev twi s γ ro ilog _ crev) $$ [$Htw] as Htw
+  wp_apply (wp_txnWrite_Changes hCh hRoCh twi s γ ro ilog _ crev) $$ [$Htw] as %chs ⟨⟨%Hchs, %Hchs0⟩, Htw⟩
   unfold srvRunTxn
   have hps : pendState ilog [] = mvcc.stateAfter ilog := rfl
   rw [hps] at Hchs

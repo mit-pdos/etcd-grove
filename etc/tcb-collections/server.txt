@@ -306,3 +306,5 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.Compact.wp_proof
+sorry apply.rangeOutcomeIs_errIs
+sorry mvcc.watchableStore.syncWatchers.wp_proof

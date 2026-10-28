@@ -3,7 +3,7 @@ The server's transactions in the heap (txn unit 3): the transaction `Txn` writes
 responses of a transaction, the skeleton `newTxnResp` allocates, the leases a run may attach.
 Lean-first; see `TxnRun.lean` (the pure run) and `notes/decisions.md`, "The server's txn", unit 3.
 
-**The transaction** (`txnViewIs tw s γ trace kind ro`): the `mvcc.TxnWrite`/`ReadView` interface value
+**The transaction** (`txnViewIs tw s γ trace kind crev ro`): the `mvcc.TxnWrite`/`ReadView` interface value
 `tw` is a transaction of the store behind a `*metricsTxnWrite` (`ro = false`: `store.Read`'s or
 `store.Write`'s, `isTxn` of either kind), or (`ro = true`) the read-only wrapper
 `NewReadOnlyTxnWrite` makes of a read transaction (`isRoTxnWrite`, of kind `.read log rev`).
@@ -65,15 +65,15 @@ behind a `*metricsTxnWrite` `mw` (`tw` is `mw` or, for a watchable store's write
 wrapper over `mw`: `twWrap`, unit N4), or (`ro`) the read-only wrapper of a read transaction of
 `kind`. -/
 def txnViewIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (kind : mvcc.TxnKind)
-    (ro : Bool) :
+    (crev : Int) (ro : Bool) :
     IProp GF :=
   if ro then
     iprop(∃ (trw : Loc) (log : mvcc.Log) (rev : w64),
       ⌜tw = interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw ∧ kind = .read log rev⌝ ∗
-      mvcc.isRoTxnWrite trw s γ trace log rev)
+      mvcc.isRoTxnWrite trw s γ trace log rev crev)
   else
     iprop(∃ (mw : Loc) (tyX : go.GoType) (vX : val), ⌜tw = interface.mkOk tyX vX⌝ ∗
-      mvcc.twWrap tyX vX mw ∗ mvcc.isTxn mw s γ trace kind)
+      mvcc.twWrap tyX vX mw ∗ mvcc.isTxn mw s γ trace kind crev)
 
 /-- The kind of `executeTxn`'s transaction: a write transaction of `ilog` with `pend` pending,
 or (`ro`) a read transaction of `ilog` (nothing pending). -/
@@ -82,11 +82,12 @@ def KindIs (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (kind : mvcc.
   else ∃ puts deletes putSize, kind = .write ilog pend puts deletes putSize
 
 /-- **`executeTxn`'s transaction**: a write transaction of the committed log `ilog` with the
-pending changes `pend`, or (`ro`) the read-only wrapper of a read transaction of `ilog`. -/
+pending changes `pend`, or (`ro`) the read-only wrapper of a read transaction of `ilog`, at the
+compaction revision `crev` it observed (M2, S1). -/
 def txnWriteIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (ro : Bool)
     (ilog : mvcc.Log)
-    (pend : List mvcc.Change) : IProp GF :=
-  iprop(∃ kind : mvcc.TxnKind, txnViewIs tw s γ trace kind ro ∗ ⌜KindIs ro ilog pend kind⌝)
+    (pend : List mvcc.Change) (crev : Int) : IProp GF :=
+  iprop(∃ kind : mvcc.TxnKind, txnViewIs tw s γ trace kind crev ro ∗ ⌜KindIs ro ilog pend kind⌝)
 
 /-! ## The responses -/
 
@@ -301,9 +302,9 @@ theorem sortSmall_of_sortOk (o : OpFull) (log : mvcc.Log) (hok : LogOk log) (r :
   exact srvPre_small o _ (stateAt_small log hok.len (h hs) _)
 
 /-- A transaction behind a `*metricsTxnWrite`. -/
-theorem txnViewIs_mw (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) :
+theorem txnViewIs_mw (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) :
     txnViewIs (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) s γ trace kind
-      false ⊣⊢ mvcc.isTxn mw s γ trace kind := by
+      crev false ⊣⊢ mvcc.isTxn mw s γ trace kind crev := by
   unfold txnViewIs
   simp only [Bool.false_eq_true, ↓reduceIte]
   constructor
@@ -325,9 +326,9 @@ theorem txnViewIs_mw (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) :
 /-- **A write transaction over `mw`** (the store's, or a watchable store's wrapper:
 `twWrap`, unit N4). -/
 theorem txnViewIs_wrap (tyX : go.GoType) (vX : val) (mw s : Loc) (γ : mvcc.StoreNames)
-    (kind : mvcc.TxnKind) :
+    (kind : mvcc.TxnKind) (crev : Int) :
     mvcc.twWrap (GF := GF) tyX vX mw ⊢
-      (txnViewIs (interface.mkOk tyX vX) s γ trace kind false ∗-∗ mvcc.isTxn mw s γ trace kind) := by
+      (txnViewIs (interface.mkOk tyX vX) s γ trace kind crev false ∗-∗ mvcc.isTxn mw s γ trace kind crev) := by
   iintro #Hw
   unfold txnViewIs
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -345,9 +346,9 @@ theorem txnViewIs_wrap (tyX : go.GoType) (vX : val) (mw s : Loc) (γ : mvcc.Stor
     ipureintro; rfl
 
 /-- The read-only wrapper of a read transaction. -/
-theorem txnViewIs_ro (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
+theorem txnViewIs_ro (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) :
     txnViewIs (GF := GF) (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) s γ trace
-      (.read log rev) true ⊣⊢ mvcc.isRoTxnWrite trw s γ trace log rev := by
+      (.read log rev) crev true ⊣⊢ mvcc.isRoTxnWrite trw s γ trace log rev crev := by
   unfold txnViewIs
   simp only [↓reduceIte]
   constructor
@@ -363,13 +364,14 @@ theorem txnViewIs_ro (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev 
     ipureintro; exact ⟨rfl, rfl⟩
 
 /-- The read-only wrapper's read transaction: a well-formed log, read at its last revision. -/
-theorem isRoTxnWrite_pure (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    mvcc.isRoTxnWrite (GF := GF) trw s γ trace log rev ⊢
-      mvcc.isRoTxnWrite trw s γ trace log rev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
+theorem isRoTxnWrite_pure (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
+    (crev : Int) :
+    mvcc.isRoTxnWrite (GF := GF) trw s γ trace log rev crev ⊢
+      mvcc.isRoTxnWrite trw s γ trace log rev crev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
   iintro H
   iunfold mvcc.isRoTxnWrite at H
   icases H with ⟨%mw, Hf, Htx⟩
-  icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hp⟩
+  icases isTxnRead_pure mw s γ log rev crev $$ Htx with ⟨Htx, %Hp⟩
   isplitl
   · iunfold mvcc.isRoTxnWrite
     iexists mw
@@ -503,15 +505,15 @@ open Iris.ProofMode in
 /-- **The transaction's trace, borrowed** (`mvcc.isTxn_trace_acc`, `isRoTxnWrite_trace_acc`): its
 owner steps it while the transaction is live. -/
 theorem txnViewIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc)
-    (kind : mvcc.TxnKind) (ro : Bool) :
-    txnViewIs (GF := GF) tw s γ trace kind ro ⊢
+    (kind : mvcc.TxnKind) (crev : Int) (ro : Bool) :
+    txnViewIs (GF := GF) tw s γ trace kind crev ro ⊢
       (∃ te, traceutil.ownTrace trace te) ∗
-        ((∃ te, traceutil.ownTrace trace te) -∗ txnViewIs tw s γ trace kind ro) := by
+        ((∃ te, traceutil.ownTrace trace te) -∗ txnViewIs tw s γ trace kind crev ro) := by
   unfold txnViewIs
   cases ro
   · simp only [Bool.false_eq_true, ↓reduceIte]
     iintro ⟨%mw, %tyX, %vX, %h, #Hw, H⟩
-    icases mvcc.isTxn_trace_acc mw s γ trace kind $$ H with ⟨Ht, Hb⟩
+    icases mvcc.isTxn_trace_acc mw s γ trace kind crev $$ H with ⟨Ht, Hb⟩
     iframe Ht
     iintro Ht
     iexists mw, tyX, vX
@@ -521,7 +523,7 @@ theorem txnViewIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) 
     iapply Hb $$ Ht
   · simp only [↓reduceIte]
     iintro ⟨%trw, %log, %rev, %h, H⟩
-    icases mvcc.isRoTxnWrite_trace_acc trw s γ trace log rev $$ H with ⟨Ht, Hb⟩
+    icases mvcc.isRoTxnWrite_trace_acc trw s γ trace log rev crev $$ H with ⟨Ht, Hb⟩
     iframe Ht
     iintro Ht
     iexists trw, log, rev
@@ -532,13 +534,13 @@ theorem txnViewIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) 
 open Iris.ProofMode in
 /-- The transaction's trace, borrowed, at `txnWriteIs`. -/
 theorem txnWriteIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc)
-    (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) :
-    txnWriteIs (GF := GF) tw s γ trace ro ilog pend ⊢
+    (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) :
+    txnWriteIs (GF := GF) tw s γ trace ro ilog pend crev ⊢
       (∃ te, traceutil.ownTrace trace te) ∗
-        ((∃ te, traceutil.ownTrace trace te) -∗ txnWriteIs tw s γ trace ro ilog pend) := by
+        ((∃ te, traceutil.ownTrace trace te) -∗ txnWriteIs tw s γ trace ro ilog pend crev) := by
   unfold txnWriteIs
   iintro ⟨%kind, H, %Hk⟩
-  icases txnViewIs_trace_acc tw s γ trace kind ro $$ H with ⟨Ht, Hb⟩
+  icases txnViewIs_trace_acc tw s γ trace kind crev ro $$ H with ⟨Ht, Hb⟩
   iframe Ht
   iintro Ht
   iexists kind

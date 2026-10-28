@@ -110,7 +110,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   · iPkgInit
   iunfold mvcc.watchReader at HR
   icases HR with ⟨Hsr0, Hmur⟩
-  iunfold mvcc.storeReader at Hsr0
+  iunfold mvcc.storeReader at Hsr0; iunfold mvcc.storeReaderC at Hsr0
   iNamedSuffix Hsr0 "R"
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -136,10 +136,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     iapply HΦ
     iunfold mvcc.watchReader
     iframe Hmur
-    iunfold mvcc.storeReader
+    iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
     simp only [named]
     iframe
-    iframe #
   ihave #Hs0 : mvcc.isStore st γ.st $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -176,7 +175,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iunfold mvcc.revMuBody at HQ
   icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
-  imod mvcc.crevFrozen_agree γ.st _ cQ HcQ.1 $$ HfrzR HcrevQ with ⟨HcrevQ, %HcQ1⟩
+  -- (M2, `notes/m2-plan.md`, S1 step 4) the store's compaction revision: `-1` while the reader
+  -- carried the frozen fact; the watchable store's generalization to compaction is S1 step 4
+  have HcQ1 : cQ = -1 := sorry -- M2 S1: re-prove from 6e23b02e5d:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__syncWatchers.lean (S1 step 4: the watchable store over a compacting store)
   subst HcQ1
   icases persistent_entails_right (mvcc.idxLogAuth_cert_prefix _ _ _ _) $$ [$HlogQ $Hcert]
     with ⟨%HpC, HlogQ, -⟩
@@ -300,7 +301,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
   ihave #HfrzP : mvcc.crevFrozen (γ.st.withPhys p) $$ []
-  · rw [mvcc.crevFrozen_withPhys]; iexact HfrzR
+  · sorry -- M2 S1: re-prove from 6e23b02e5d:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__syncWatchers.lean (S1 step 4: `rangeEvents` over a compacting store)
   ihave #HcertP : mvcc.idxCert (γ.st.withPhys p).idx C $$ []
   · rw [mvcc.idxCert_withPhys]; iexact HcertQ
   ihave #HbkS := mvcc.isKeyBackendG_wand $$ HbkS
@@ -1174,10 +1175,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iapply HΦ
   iunfold mvcc.watchReader
   iframe Hmur
-  iunfold mvcc.storeReader
+  iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
   simp only [named]
   iframe
-  iframe #
 
 end proof
 end EtcdGrove

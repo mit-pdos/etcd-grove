@@ -23,8 +23,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `rv.Range(ctx, key, end, ro)`: a read transaction opened at the last revision of a
 committed log, its range, and closed: at the compaction revision `crev` it observed, at or above
-the caller's lower bound `c` (`rangeOutcomeC`; 2026-10-13, unit 6a). The frozen statement
-(`storeReader`, `rangeOutcome`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+the caller's lower bound `c` (`rangeOutcomeC`; 2026-10-13, unit 6a). The readers' statement
+(`storeReader`, `rangeOutcome`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.readView.Range.spec : Prop :=
   ∀ (rv s : Loc) (γ : mvcc.StoreNames)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key endk : GoSlice) (k e : GoString)

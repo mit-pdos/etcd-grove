@@ -621,7 +621,8 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗ readIndexOk γr c ∗
             (∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
               ⌜L₀ <+: log⌝) ∗
-            txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
+            (∃ crev : Int,
+              txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
@@ -664,7 +665,8 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗
-            txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
+            (∃ crev : Int,
+              txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
@@ -688,7 +690,9 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iframe Hcert Hown
     isplitr
     · ipureintro; exact ⟨Hlen.1, Hlen.2.1⟩
-    iapply txn.rangeResult_client _ _ _ _ o true Hset hcut $$ Hres
+    icases Hres with ⟨%crev, #Hres⟩
+    iexists crev
+    iapply txn.rangeResult_client _ _ _ _ crev o true Hset hcut $$ Hres
   · iright; iexact H
 
 /-- **`txn_readonly`** (see the section header). -/
@@ -845,7 +849,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   -- the compaction right's half given up, the readers those of a never-compacted store (as the
   -- watchable store's `newWatchableStore` does)
   imod mvcc.crevFrozen_alloc γ ⊤ $$ Hright with #Hfrz
-  ihave Hrds := mvcc.storeReaders_of s γ _ $$ [$Hfrz $Hrds]
+  ihave Hrds := mvcc.storeReaders_of s γ _ $$ Hrds
   imodintro
   iapply HΦ
   iexists γ

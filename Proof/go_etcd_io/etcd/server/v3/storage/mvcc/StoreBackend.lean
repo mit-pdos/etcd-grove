@@ -20,7 +20,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -142,8 +142,10 @@ theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG 
         □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ traceutil.ownTrace trace te }}
       (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} := by
-  have hWrite := mvcc.store.Write.spec_frozen hWrite
+        (∃ (ilog : mvcc.Log) (crev : Int),
+          mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev) ∗
+        Q }} := by
+  have hWrite := mvcc.store.Write.spec_R hWrite
   have hwt : mvcc.storeWT (GF := GF) γ = backend.wbTok d.γB := by
     unfold mvcc.storeWT mvcc.kbWT; rw [hk]
   rw [← hwt]
@@ -151,9 +153,11 @@ theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG 
   iapply (hWrite s γ trace P Pre Q f te) $$ %Φ [H]
   · iexact H
   inext
-  iintro %mw ⟨Htx, HQ, -⟩
+  iintro %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, -⟩
   iapply HΦ
-  iframe Htx HQ
+  iframe HQ
+  iexists ilog, crev
+  iexact Htx
 
 end proof
 
