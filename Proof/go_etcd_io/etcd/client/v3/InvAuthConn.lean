@@ -9,8 +9,10 @@ shape of the KV path's (`InvKVConn.lean`). Lean-first (no Rocq counterpart); the
 (`UserAddW`: the name and the password; a grant: the user and the role; a role's name; a
 permission grant: the role's name and the permission `auth.PermW`; `AuthEnable`: nothing), the
 sender's message the owned struct (its `Options`, its `Perm`, read-only), the decoded copy the
-auth store's own predicates (`auth.userAddReqIs`, `auth.userGrantRoleReqIs`, `auth.roleAddReqIs`,
-`auth.roleGrantPermissionReqIs`, `auth/Requests.lean`), what the server's handlers read. A
+auth store's own predicates (`auth.userGrantRoleReqIs`, `auth.roleAddReqIs`,
+`auth.roleGrantPermissionReqIs`, `auth/Requests.lean`), what the server's handlers read; a decoded
+`*AuthUserAddRequest` its name and options read-only and (E3za, `recvOwn`) its `Password` and
+`HashedPassword` the handler's own: `EtcdServer.UserAdd` replaces the password by its hash. A
 response's model is nothing (`Unit`): `SetUp` reads none of the replies.
 
 **The calls** are specified, as the KV calls, for any spec `Spec` the server registered for the
@@ -76,9 +78,11 @@ def pbAuthUserAddRequest : ProtoMsg GF where
   send inp m := iprop(∃ req : etcdserverpb.AuthUserAddRequest, inp ↦ req ∗
     ⌜req.Name' = m.name ∧ req.Password' = m.pw ∧ req.HashedPassword' = []⌝ ∗
     userOptsFalse req.Options')
-  recv r m := iprop(auth.userAddReqIs r m.name ∗
-    structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦□ m.pw)
-  recv_persistent _ _ := by unfold auth.userAddReqIs; infer_instance
+  recv r m := iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" r ↦□ m.name ∗
+    ∃ o : Loc, structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ userOptsFalse o)
+  recv_persistent _ _ := inferInstance
+  recvOwn r m := iprop(structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦ m.pw ∗
+    structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦ ([] : GoString))
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthUserAddRequest))
   own l := iprop(∃ v : etcdserverpb.AuthUserAddRequest, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H

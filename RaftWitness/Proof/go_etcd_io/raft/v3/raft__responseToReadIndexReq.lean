@@ -58,12 +58,14 @@ local macro "ri_local" : tactic => `(tactic| (
     have Hsz : go.arrayLiteralSize [KeyedElement none (ElementExpression ReadState.ty
         #(ReadState.mk idx ds))] = 1 := rfl
     simp only [Hsz]
+    iapply wp_fupd
     wp_apply wp_slice_append_persistent (V := ReadState) rsl vs _ [ReadState.mk idx ds] (DFrac.own 1)
         $$ [$(frameH `Hvs) $(frameH `HreadStates_cap) $(frameH `Hsl)]
       as %rs' ⟨Hvs', HreadStates_cap, -⟩
-    wp_alloc lresp as Hresp
+    irename «$r0» => Hresp
+    generalize «$r0_ptr» = lresp at *
     imod msgOwn_zero lresp ⊤ $$ Hresp with Hresp
-    wp_auto
+    imodintro
     iapply HΦ
     rw [ite_eq_left Hlocal]
     ihave Hphys := Hback $$ %rs' %ro %pr
@@ -135,9 +137,11 @@ theorem raft.responseToReadIndexReq.wp_proof
       iNamed Hreq2
       wp_auto
       imod cellRO_alloc $$ «$v2» with #cIx
+      iapply wp_fupd
       wp_apply wp_Message_GetEntries.1 req DFrac.discard DFrac.discard false ⟨m, e :: es, sn, ctx, rs⟩
         $$ [$Hreq] as %esl %els ⟨#Hesl, #Hents', -, -⟩
-      wp_alloc lresp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = lresp at *
       simp only
       ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
       · iapply ownSlice_nil
@@ -155,7 +159,7 @@ theorem raft.responseToReadIndexReq.wp_proof
         simp only [snapOpt]
         repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
         ipureintro; trivial
-      wp_auto
+      imodintro
       iapply HΦ
       rw [if_neg (show ¬(m.From' = W64 0 ∨ m.From' = id) by rintro (h | h) <;> contradiction)]
       iframe Hphys Hresp

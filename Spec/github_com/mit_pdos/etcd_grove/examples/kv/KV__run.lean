@@ -4,7 +4,7 @@
 `Ready`'s snapshot (its data, decoded, replaces the store's state, `install`, which answers this
 replica's waiters among the operations it covers (2026-10-22); `ApplySnapshot`), append each
 `Ready`'s entries to the storage, send its messages (`send`, a callback, gets what a
-transport needs: each message sent, `Draft.sentMsg`, with its credits), note its read states, apply its committed entries (counting them: the
+transport needs: each message sent, `sentMsg`, with its credits), note its read states, apply its committed entries (counting them: the
 applied index), answer the reads whose index is applied (`answer`), `Advance`; (D22 S-r) every `snapEvery`
 applied entries take a snapshot (`encodeState`, `CreateSnapshot`) and compact (`Compact`).
 -/
@@ -36,7 +36,7 @@ abbrev KV.run.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isReplica γr γp r id n st ∗
       -- the node's driver token, idle at its start, on the store's storage
-      Draft.nodeDriver n γr.cluster kvRaftN (Draft.NodeDriverState.init (kvStorIface st)) ∗
+      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
       runOwn γr r [] ∗
       -- the storage's snapshot token, at a fresh storage (`runStor`)
       runStor γr st memStorEmpty ∗

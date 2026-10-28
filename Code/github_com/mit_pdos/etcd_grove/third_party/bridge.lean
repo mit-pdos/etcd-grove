@@ -58,7 +58,8 @@ noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newBridge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dialer"
   (Lam "listener"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType bridge.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "listener" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (Var "listener"))
   (Let "dialer" (App (Val (GoInstruction (GoAlloc Dialer.ty))) (Var "dialer"))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc bridge.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad Dialer.ty))) (Var "dialer"))
@@ -74,8 +75,12 @@ noncomputable def newBridge.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridge.ty) go!"serveListen"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType bridge.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #()))))))))
@@ -86,17 +91,15 @@ noncomputable def newBridge.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"pausec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))))
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType bridge.ty)))) (Pair (Var "b") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType bridge.ty)))) (Pair (Var "b") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "$res0"))))))
 
 /-- go: bridge.go:68:18 -/
 noncomputable def bridge.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -114,18 +117,16 @@ noncomputable def bridge.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #()))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Listener.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Listener.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))))) (Val #()))))))
+  (Val #()))))
 
 /-- go: bridge.go:80:18 -/
 noncomputable def bridge.DropConnections.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -149,17 +150,15 @@ noncomputable def bridge.DropConnections.impl [GooseExts] [GoGlobalContext] : va
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #())))))))
+  (Val #()))))
 
 /-- go: bridge.go:89:18 -/
 noncomputable def bridge.PauseConnections.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -168,17 +167,15 @@ noncomputable def bridge.PauseConnections.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (StructFieldRef bridge.ty go!"pausec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #()))))))
+  (Val #()))))
 
 /-- go: bridge.go:95:18 -/
 noncomputable def bridge.UnpauseConnections.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -190,18 +187,16 @@ noncomputable def bridge.UnpauseConnections.impl [GooseExts] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #()))))]))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #()))))))
+  (Val #()))))
 
 /-- go: bridge.go:105:18 -/
 noncomputable def bridge.serveListen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
@@ -300,10 +295,7 @@ noncomputable def bridge.serveListen.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -325,31 +317,27 @@ noncomputable def bridge.serveListen.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #()))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Listener.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))))) (Val #())))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Listener.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))))) (Val #())))))
+  (Val #())))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #()))))))))))))))))
+  (App (Var "$oldf") (Val #())))))))))))))
+  (Val #()))))
 
 /-- go: bridge.go:146:18 -/
 noncomputable def bridge.serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "bc"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
   (Let "bc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -359,13 +347,11 @@ noncomputable def bridge.serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.net.Conn.ty _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"out"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc")))))
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.net.Conn.ty _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"in"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc")))))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridge.ty) go!"ioCopy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))) (Var "$a0")) (Var "$a1")))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridge.ty) go!"ioCopy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))) (Var "$a0")) (Var "$a1")))))))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -375,7 +361,8 @@ noncomputable def bridge.serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.net.Conn.ty _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"in"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc")))))
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.net.Conn.ty _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"out"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc")))))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridge.ty) go!"ioCopy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))) (Var "$a0")) (Var "$a1")))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridge.ty) go!"ioCopy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))) (Var "$a0")) (Var "$a1")))))))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
@@ -390,10 +377,7 @@ noncomputable def bridge.serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0"))))))))
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -413,51 +397,46 @@ noncomputable def bridge.serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridgeConn.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))) (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))))
-  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))
+  (Val #())))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #())))))))))))))))))
+  (App (Var "$oldf") (Val #()))))))))))))))
+  (Val #()))))
 
 /-- go: bridge.go:177:23 -/
 noncomputable def bridgeConn.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "bc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridgeConn.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridgeConn.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))) (Val #()))))))
+  (Val #()))))
 
 /-- go: bridge.go:182:23 -/
 noncomputable def bridgeConn.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "bc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"out"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))))) (Val #())))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"in"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"in"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))))) (Val #()))))))
+  (Val #()))))
 
 /-- go: bridge.go:187:18 -/
 noncomputable def bridge.Blackhole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -466,17 +445,15 @@ noncomputable def bridge.Blackhole.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"blackholec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))))
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #()))))))
+  (Val #()))))
 
 /-- go: bridge.go:193:18 -/
 noncomputable def bridge.Unblackhole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType (go.GoType.PointerType bridgeConn.ty) (go.GoType.StructType []))]))) (Val #())) (Val #()))
@@ -500,7 +477,8 @@ noncomputable def bridge.Unblackhole.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bridgeConn.ty)))) (Pair (Var "bc") (Var "$key")))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #()))))))
+  (Val #()))))
 
 /-- ref. https://github.com/golang/go/blob/master/src/io/io.go copyBuffer
 
@@ -509,8 +487,9 @@ noncomputable def bridge.ioCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "dst"
   (Lam "src"
-  (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res0" (Var "err")
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bridge.ty)))) (Var "b"))
   (Let "src" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "src"))
   (Let "dst" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "dst"))
@@ -518,8 +497,12 @@ noncomputable def bridge.ioCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -556,13 +539,21 @@ noncomputable def bridge.ioCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "nr")) (App (Val (GoInstruction (GoLoad go.int))) (Var "nw"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.ErrShortWrite))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.ErrShortWrite))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "ew")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "ew"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "ew")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -579,8 +570,12 @@ noncomputable def bridge.ioCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
   (Val #()))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.Discard))) (Val #())))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "src"))
@@ -588,21 +583,33 @@ noncomputable def bridge.ioCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam BAnon
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
 /-- go: dialer.go:14:17 -/
 noncomputable def dialer.Dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Conn.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "d" (App (Val (GoInstruction (GoAlloc dialer.ty))) (Var "d"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef dialer.ty go!"network"))) (Var "d")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef dialer.ty go!"addr"))) (Var "d")))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Dial []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1"))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- New starts a bridge that accepts on l and forwards each connection to the TCP address addr,
     as etcd's integration framework does for a member's gRPC address (`UseBridge`).
@@ -611,15 +618,21 @@ noncomputable def dialer.Dial.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "l"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Bridge.ty))) (App (Val (GoInstruction (GoZeroVal Bridge.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (Var "l"))
   (Let "addr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "addr"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType bridge.ty) Bridge.ty))) (Let "$a0" (App (Val (GoInstruction (Convert dialer.ty Dialer.ty))) (Let "$v0" (Val #(go!"tcp"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType bridge.ty) Bridge.ty))) (Let "$a0" (App (Val (GoInstruction (Convert dialer.ty Dialer.ty))) (Let "$v0" (Val #(go!"tcp"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
   (App (Val (GoInstruction (CompositeLiteral dialer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"network")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"addr")) (ElementExpression go.string (Var "$v1")))])))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "l"))
-  (App (App (App (Val (GoInstruction (FuncResolve newBridge []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve newBridge []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Bridge.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Bridge.ty))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge where
   pkgImportedPkgs := [pkg_id.io, pkg_id.net, pkg_id.sync]

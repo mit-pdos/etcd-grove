@@ -30,13 +30,15 @@ theorem newClonedSnapshot.wp_proof
   have wp_Clone : btree.BTree.Clone.modelSpec (GF := GF) (hG := hG) := btree.BTree.Clone.modelSpec_of wp_Clone
   intro rev t m
   wp_start as ⟨Ht, #Hkvs, %Hsorted⟩
+  iapply wp_fupd
   wp_auto
   wp_apply wp_Clone $$ [$Ht] as %t2 ⟨Ht, Ht2⟩
   · ipureintro; exact kvLess_swo
   imod ownBTree_persist _ _ _ _ _ _ $$ Ht2 with #Ht2
-  wp_alloc p as Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
   ipersist Hp
-  wp_auto
+  imodintro
   iapply HΦ
   iframe Ht
   unfold snapIs

@@ -59,6 +59,7 @@ theorem SetUp.wp_proof
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply wp_Principals as %psl Hpsl

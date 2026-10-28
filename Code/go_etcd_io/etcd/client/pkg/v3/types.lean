@@ -96,11 +96,17 @@ noncomputable def parse [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def URLs.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "us"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "us" (App (Val (GoInstruction (GoAlloc URLs.ty))) (Var "us"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "us"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [URLs.ty]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "us"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [URLs.ty]))) (Val #())) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.types where
   pkgImportedPkgs := [pkg_id.net.url]

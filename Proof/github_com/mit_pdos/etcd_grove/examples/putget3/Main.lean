@@ -63,7 +63,7 @@ theorem dir3_host (id₁ id₂ id₃ id : w64) (h : GoString)
 
 /-- **`Main`'s directory is well formed** (`netDirOk`, `NewServer`'s premise; rafthttp stage 6d):
 no member `0`, each peer address one member's, plain `http://` URLs. -/
-theorem dir3_ok (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List Draft.LogEntry)
+theorem dir3_ok (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry)
     (Hbf : BootFacts id₁ id₂ id₃ ctxs bl) :
     netDirOk (dir3 id₁ id₂ id₃) := by
   obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
@@ -105,15 +105,15 @@ theorem Main.wp_proof
   iunfold bootPremise at Hb₁
   iunfold bootPremise at Hb₂
   iunfold bootPremise at Hb₃
-  ihave #Hc₁ := common.bootPremise_of N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+  ihave #Hc₁ := common.bootPremise_of N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₁
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) id₁ (cfgOk name₁)
       (urlsOk peerAddr₁ clientAddr₁) (fun _ h => h) (fun _ h => h) $$ Hb₁
-  ihave #Hc₂ := common.bootPremise_of N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+  ihave #Hc₂ := common.bootPremise_of N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₂
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) id₂ (cfgOk name₂)
       (urlsOk peerAddr₂ clientAddr₂) (fun _ h => h) (fun _ h => h) $$ Hb₂
-  ihave #Hc₃ := common.bootPremise_of N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+  ihave #Hc₃ := common.bootPremise_of N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₃
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) id₃ (cfgOk name₃)
       (urlsOk peerAddr₃ clientAddr₃) (fun _ h => h) (fun _ h => h) $$ Hb₃
@@ -221,15 +221,15 @@ theorem Main.wp_proof
   have hd₂ : go!"http://" ++ peerAddr₂ ∈ dir3 id₁ id₂ id₃ id₂ := by simp [dir3, hn12.symm]
   have hd₃ : go!"http://" ++ peerAddr₃ ∈ dir3 id₁ id₂ id₃ id₃ := by
     simp [dir3, hn13.symm, hn23.symm]
-  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    simp [Draft.LogEntry.toEntries, hblen0]
+  have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    simp [LogEntry.toEntries, hblen0]
   -- the three members (`StartMember`), the thread token passed along
   wp_apply (wp_StartMember N name₁ peerAddr₁ clientAddr₁ go!"putget3"
       (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) [id₁, id₂, id₃]
-      (Draft.LogEntry.toEntries boot 0) ctxs
+      (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn Htb Hrb48 HrbN
       hvs hdyn hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁] as %s₁ %err₁ Hr₁
@@ -253,7 +253,7 @@ theorem Main.wp_proof
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) [id₁, id₂, id₃]
-      (Draft.LogEntry.toEntries boot 0) ctxs
+      (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn Htb Hrb48 HrbN
       hvs hdyn hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂] as %s₂ %err₂ Hr₂
@@ -276,7 +276,7 @@ theorem Main.wp_proof
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) [id₁, id₂, id₃]
-      (Draft.LogEntry.toEntries boot 0) ctxs
+      (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn Htb Hrb48 HrbN
       hvs hdyn hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃] as %s₃ %err₃ Hr₃
@@ -339,7 +339,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the client's invariant, the floor, no options
   rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot)]
-  imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))) go!"k" go!"v" ⊤)
+  imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v" ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []

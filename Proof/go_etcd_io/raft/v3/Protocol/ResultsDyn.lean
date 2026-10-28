@@ -17,7 +17,7 @@ configuration (`raft__Step.lean`); stage B7 connects it to `StepR` and to this g
 * `raft_dyn_election_safety`: two leaders of a term are one node.
 * `raft_dyn_read_states`, `raft_dyn_read_index` (2026-10-14, stage B6, **the read-index
   guarantee**): every `ReadState` a node holds (hands out at `StepR.takeReads`) is
-  `readStateOk`, so the committed prefix of any node whose commit index reaches its index
+  `readStateRaw`, so the committed prefix of any node whose commit index reaches its index
   extends the committed log the request was created knowing.
 
 Assumptions (model restrictions, `notes/STATUS.md`, "Reconfiguration, stage B5"): A1

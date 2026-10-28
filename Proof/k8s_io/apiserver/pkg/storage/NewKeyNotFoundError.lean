@@ -31,8 +31,8 @@ theorem storage.NewKeyNotFoundError.wp_proof :
   intro key rv
   wp_start
   wp_auto
-  wp_alloc e as He
-  wp_auto
+  irename «$r0» => He
+  generalize «$r0_ptr» = e at *
   iapply HΦ
   iexact He
 

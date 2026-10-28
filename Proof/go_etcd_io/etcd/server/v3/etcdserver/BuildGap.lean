@@ -87,7 +87,7 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
 entries, every entry of a committed log `A` being a filler (which claims nothing) or of the same
 type and data as one of the server's log. -/
 theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryModel)
-    (hA : srvIdxOkW ai₀ A) (h : Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
+    (hA : srvIdxOkW ai₀ A) (h : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
     ([∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ [∗list] m ∈ A, entryClaim γi m := by
   have key : ∀ (k : Nat) (m : EntryModel), A[k]? = some m →
       iprop(□ [∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ entryClaim γi m := by
@@ -97,8 +97,8 @@ theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryMode
       iunfold entryClaim
       ileft; ipureintro; exact .inr hd
     · obtain ⟨j, hj⟩ := List.getElem?_of_mem hm'
-      have h1 := congrArg Draft.LogEntry.type he
-      have h2 := congrArg Draft.LogEntry.data he
+      have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       iintro #HL
       ihave #Hc := (BigSepL.bigSepL_lookup (Φ := fun _ m => entryClaim (GF := GF) γi m) hj) $$ HL
@@ -135,8 +135,8 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
     intro m hm
     rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
-    · have h1 := congrArg Draft.LogEntry.type he
-      have h2 := congrArg Draft.LogEntry.data he
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       have := Hsh m' hm'
       unfold entryShape at this ⊢
@@ -145,8 +145,8 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
     intro m hm
     rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · intro h; exact absurd ht h
-    · have h1 := congrArg Draft.LogEntry.type he
-      have h2 := congrArg Draft.LogEntry.data he
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       rw [← h1, ← h2]; exact Hccl m' hm'
   ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl

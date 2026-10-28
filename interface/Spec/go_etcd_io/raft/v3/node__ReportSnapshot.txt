@@ -3,10 +3,10 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ReportSnapshot.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64) (st : SnapshotStatus),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP
               (((intoVal
@@ -14,5 +14,5 @@ def node.ReportSnapshot.spec : Prop :=
                       go!"ReportSnapshot"
                       (intoVal n)))
                   (intoVal to))
-                (intoVal st))
+                (intoVal status))
               {{ Φ }}

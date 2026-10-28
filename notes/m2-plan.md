@@ -292,7 +292,7 @@ Round 1 (`notes/spec-first-study/m2-review-1.md`) found the compaction mode in n
 repair (`8950d80bf2`: `isServerReqC`, `kvInvC`, `CompactEnv.lean`'s `compactableOk_server`) showed
 that enforcing it means a compaction-mode family through the whole serving stack (the request
 path's `Put`/`Range`/`Txn`/`DeleteRange`, v3rpc, the client, `common`), beside the off family:
-against the rule "no special-case spec family beside the general one" (`LESSONS.md`). **Taken:
+against the rule "no special-case spec family beside the general one" (`.claude/skills/spec/PRINCIPLES.md`). **Taken:
 one family.** The delete-then-put decision changes from (a) to (b): upstream's fix
 (etcd-io/etcd#22377, `keyIndex.doCompact`; #22395, the gRPC path) in the fork, mvcc's
 `doCompact`/`store.Compact` re-proved without `NoDelPutAt`, the etcd pin bumped. Then one KV

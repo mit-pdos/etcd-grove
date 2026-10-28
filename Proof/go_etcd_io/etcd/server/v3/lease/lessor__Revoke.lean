@@ -56,6 +56,7 @@ theorem lease.lessor.Revoke.wp_proof
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
   icases Hinv' with ⟨%Hlp, #Hpin, #Hmu⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩

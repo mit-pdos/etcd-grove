@@ -48,6 +48,11 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterMaintenanceServe
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterWatchServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SetProgressReportInterval
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_AuthEnable_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_RoleAdd_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_RoleGrantPermission_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_UserAdd_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_UserGrantRole_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler
@@ -641,6 +646,26 @@ theorem grpc_prometheus.ServerMetrics.wp_InitializeMetrics :
 theorem wp_Server :
     EtcdGrove.v3rpc.Server.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.Server.wp_proof grpc.wp_CustomCodec grpc.wp_StatsHandler otelgrpc.wp_NewServerHandler grpc.wp_ChainUnaryInterceptor grpc.wp_ChainStreamInterceptor grpc.wp_MaxRecvMsgSize grpc.wp_MaxSendMsgSize grpc.wp_MaxConcurrentStreams grpc.wp_NewServer wp_getServerMetrics wp_newLogUnaryInterceptor grpc_prometheus.ServerMetrics.wp_UnaryServerInterceptor wp_newUnaryInterceptor grpc_prometheus.ServerMetrics.wp_StreamServerInterceptor wp_newStreamInterceptor config.ServerConfig.wp_MaxRequestBytesWithOverhead wp_NewQuotaKVServer etcdserverpb.wp_RegisterKVServer wp_NewWatchServer etcdserverpb.wp_RegisterWatchServer wp_NewQuotaLeaseServer etcdserverpb.wp_RegisterLeaseServer wp_NewClusterServer etcdserverpb.wp_RegisterClusterServer wp_NewAuthServer etcdserverpb.wp_RegisterAuthServer health.wp_NewServer wp_newHealthNotifier grpc_health_v1.wp_RegisterHealthServer wp_NewMaintenanceServer etcdserverpb.wp_RegisterMaintenanceServer grpc_prometheus.ServerMetrics.wp_InitializeMetrics
+
+theorem etcdserverpb.wp__Auth_AuthEnable_Handler :
+    EtcdGrove.etcdserverpb._Auth_AuthEnable_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Auth_AuthEnable_Handler.wp_proof
+
+theorem etcdserverpb.wp__Auth_RoleAdd_Handler :
+    EtcdGrove.etcdserverpb._Auth_RoleAdd_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Auth_RoleAdd_Handler.wp_proof
+
+theorem etcdserverpb.wp__Auth_RoleGrantPermission_Handler :
+    EtcdGrove.etcdserverpb._Auth_RoleGrantPermission_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Auth_RoleGrantPermission_Handler.wp_proof
+
+theorem etcdserverpb.wp__Auth_UserAdd_Handler :
+    EtcdGrove.etcdserverpb._Auth_UserAdd_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Auth_UserAdd_Handler.wp_proof
+
+theorem etcdserverpb.wp__Auth_UserGrantRole_Handler :
+    EtcdGrove.etcdserverpb._Auth_UserGrantRole_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Auth_UserGrantRole_Handler.wp_proof
 
 theorem etcdserverpb.wp__KV_DeleteRange_Handler :
     EtcdGrove.etcdserverpb._KV_DeleteRange_Handler.spec (GF := GF) (hG := hG) :=

@@ -27,7 +27,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-- The extension with no operations, no values and no state. -/
 @[reducible] def trivialExt : GooseExt where
-  Op := Empty
+  name := "github.com/mit-pdos/etcd-grove/examples/common.trivialExt"
   Val := Empty
   LocalState := Unit
   GlobalState := Unit

@@ -30,7 +30,6 @@ theorem tryUpdateFor.wp_proof (wp_updated : updated.spec (GF := GF) (hG := hG)) 
   iapply wp_fupd
   (try wp_auto)
   ipersist «in»
-  rw [recv_eq_func_mk]
   imodintro
   iapply HΦ
   iunfold tryUpdateD

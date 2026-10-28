@@ -71,7 +71,9 @@ with the proposer's view of the server, the wait's results and the KV model of t
 and the auth layer's verdict the model's grant there, `authTie`), and the proposal's permission at the header the server stamps
 (`reqPropOkM`: in the mode `on` the check reads the request's principal, which the server fills in
 from the context before it proposes; the result `Qh hm` is at that header `hm`, the one the post
-names); (E3t, 2026-10-27) with auth on, the auth state after the entry published (`pubAfterM`). At
+names); (E3t, 2026-10-27) with auth on, the auth state after the entry published (`pubAfterM`);
+(E3zb, 2026-10-28) with auth on, the stamped header's user bound to the context (`hdrBoundM`: the
+store's `AuthInfoFromCtx` reads the context's token, `srvAuthBound` in `isServerReqM true`). At
 `on = false` it is `spec` (`EtcdServer.processInternalRaftRequestOnce.wp_proof` is
 derived from it, a constant `Qh`). -/
 abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
@@ -90,7 +92,7 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
           ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗
-            pubAfterM on E ρ rq' L ∗ □ Qh hm L) ∨
+            pubAfterM on E ρ rq' L ∗ □ Qh hm L ∗ hdrBoundM on s E (GoInterface.ok ctx) hm) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 

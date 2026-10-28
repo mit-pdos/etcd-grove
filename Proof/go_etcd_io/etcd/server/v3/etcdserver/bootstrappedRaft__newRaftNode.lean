@@ -1,7 +1,7 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrappedRaft__newRaftNode.lean`.
 Lean-first (no Rocq counterpart). Its callees with specs: raft's node API's `StartNode`
-(`Draft.StartNode.spec` in a static cluster, `Draft.StartNode.dynamicSpec` in a dynamic one; at the
+(`StartNode.spec` in a static cluster, `StartNode.dynamicSpec` in a dynamic one; at the
 cluster's storage model, `srvStor`) and `newRaftNode`; Perennial's `sync.Mutex.Lock`/`Unlock` are
 its linked results, used directly; the rest are the contracts the spec takes
 (`InvNodeStart.lean`). (2026-10-27: over the node API; until then raft's `StartNode.spec`.)
@@ -34,9 +34,9 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 set_option maxHeartbeats 0 in
 theorem bootstrappedRaft.newRaftNode.wp_proof
     (wp_StartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.StartNode.spec (GF := GF) (hG := hG))
+      StartNode.spec (GF := GF) (hG := hG))
     (wp_StartNode_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.StartNode.dynamicSpec (GF := GF) (hG := hG))
+      StartNode.dynamicSpec (GF := GF) (hG := hG))
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E γr b ss wal cl dq bv cv lok γs pre pv ps ctxs

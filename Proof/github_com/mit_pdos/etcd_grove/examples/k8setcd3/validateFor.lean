@@ -28,7 +28,6 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   iapply wp_fupd
   (try wp_auto)
   ipersist reject
-  rw [recv_eq_func_mk]
   imodintro
   iapply HΦ
   iunfold validateD

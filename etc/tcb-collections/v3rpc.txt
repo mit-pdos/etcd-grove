@@ -16,6 +16,11 @@
 # Unit W-S (2026-10-14): the watch service (watch.go) adds mvcc's watch stream (its Link) and
 # the watch path's trust boundary: `isClientCtxErr`, `math/rand.Int63n`, `(*time.Duration).Seconds`,
 # zap's `NewNop`/`Debug`/`Duration`, verify's `Assert`, time's ticker (see watch.txt).
+# The auth plan's E3y (2026-10-27): `userAdd_end_to_end_on` reaches bcrypt's hashing,
+# `bcrypt.GenerateFromPassword` (the trust boundary, already in the repository's trust base). E3za
+# (2026-10-27): `etcd_auth_served` serves the Auth service's methods over grpc's serving axioms
+# (`grpc.serve`, `grpcServerAt`, `grpcServes`, `grpcServes_persistent`; `etcd_kv_served`'s, in the
+# client's collection).
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
@@ -33,6 +38,7 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
+axiom bcrypt.GenerateFromPassword.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithValue.wp_proof
@@ -50,12 +56,16 @@ axiom grpc.MaxSendMsgSize.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.StatsHandler.wp_proof
+axiom grpc.serve
 axiom grpc.serveStream
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
+axiom grpcServerAt
+axiom grpcServes
 axiom grpcServesStream
 axiom grpcServesStream_persistent
+axiom grpcServes_persistent
 axiom grpcSrvNew
 axiom grpcSrvOpt
 axiom grpcStatsHandlerOk

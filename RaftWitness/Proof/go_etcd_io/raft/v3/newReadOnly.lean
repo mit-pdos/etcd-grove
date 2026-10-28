@@ -26,8 +26,8 @@ theorem newReadOnly.wp_proof : newReadOnly.spec (GF := GF) (hG := hG) := by
   wp_start
   wp_auto
   wp_apply wp_map_make1 as %mref Hmref
-  wp_alloc ro' as Hro'
-  wp_auto
+  irename «$r0» => Hro'
+  generalize «$r0_ptr» = ro' at *
   iapply HΦ
   unfold ownReadOnly
   iexists _, []

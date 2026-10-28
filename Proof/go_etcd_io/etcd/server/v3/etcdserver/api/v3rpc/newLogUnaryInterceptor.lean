@@ -36,10 +36,11 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   wp_start as ⟨#Hlg, %Hlgn, #Hwd⟩
   wp_pures
   wp_alloc_auto
+  wp_pures
+  wp_alloc_auto
   irename : (s_ptr ↦ s : IProp GF) => Hs
   ipersist Hs
   wp_auto
-  rw [recv_eq_func_mk]
   iapply HΦ
   iintro !> %Q
   unfold srvInterceptorOk

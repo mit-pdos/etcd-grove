@@ -84,7 +84,7 @@ theorem Main.wp_proof
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] (Draft.LogEntry.toEntries boot 0) ctxs (k8setcd3Dir id) go!"k8setcd3" go!"k8setcd3"
+  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (k8setcd3Dir id) go!"k8setcd3" go!"k8setcd3"
       (common.urls1 go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
@@ -115,13 +115,13 @@ theorem Main.wp_proof
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
-  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    simp [Draft.LogEntry.toEntries, hblen0]
+  have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    simp [LogEntry.toEntries, hblen0]
   -- `StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (k8setcd3Dir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg (Draft.LogEntry.toEntries boot 0) ctxs
+  wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg (LogEntry.toEntries boot 0) ctxs
       (k8setcd3Dir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hdyn hboot hblen hγn1 hγn2 Hdirok
       (by simp [k8setcd3Dir, dirOne]) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
@@ -131,6 +131,7 @@ theorem Main.wp_proof
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Herr
@@ -162,6 +163,7 @@ theorem Main.wp_proof
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hserr
@@ -196,6 +198,7 @@ theorem Main.wp_proof
   · cases cerr with
     | nil => exact absurd rfl Hcfail
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hcerr
@@ -211,11 +214,11 @@ theorem Main.wp_proof
   · iunfold client.kvRegsAt
     iframe #
   -- the seeding, from the server's start state (`σb`: no key, revision `1`)
-  have hboot0 : kvModelSt ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0)) = σb := by
-    have h : kvModel ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0)) = [[], []] := by
+  have hboot0 : kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = σb := by
+    have h : kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = [[], []] := by
       unfold kvModel
-      rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) [id] (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
-    rw [kvModelSt_boot _ (fun _ _ => True) _ (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), h]; rfl
+      rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) [id] (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
+    rw [kvModelSt_boot _ (fun _ _ => True) _ (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), h]; rfl
   imod (seedInv_alloc ρ.rd.kv σb ⊤) $$ [Hetcd] with ⟨%γs, #Hsi, Hs⟩
   · rw [← hboot0]; iexact Hetcd
   ihave #Hkc' := Hkc
@@ -226,6 +229,7 @@ theorem Main.wp_proof
     iframe Hs
   icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0⟩)
   · subst Hok
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hok

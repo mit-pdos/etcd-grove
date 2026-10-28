@@ -28,18 +28,20 @@ theorem notify.NewNotifier.wp_proof : notify.NewNotifier.spec (GF := GF) (hG := 
   wp_start as -
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  iapply wp_fupd
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %ch %γch ⟨#Hch, %_, Hoc⟩
   imod alloc_broadcast_chan (E := ⊤) (iprop(True) : IProp GF) γch ch $$ Hch Hoc with Hbc
   icases ownBroadcastChan_open _ _ _ _ $$ Hbc with ⟨%γi, #Hint, Hpend⟩
-  wp_alloc n as Hn
+  irename «$r0» => Hn
+  generalize «$r0_ptr» = n at *
   iStructNamed Hn
   imod ghostVar_alloc (NotifyCur.mk ch γch γi) with ⟨%γ, Hcur⟩
   imod sync.init_RWMutex (notifyLockInv n γ) (notifyMuAddr n) $$ [channel Hcur Hpend] mu with Hslots
   · inext; iunfold notifyLockInv; iexists NotifyCur.mk ch γch γi; simp only [named]; iframe
     iexact Hint
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
-  wp_auto
+  imodintro
   iapply HΦ
   isplitr
   · iunfold isNotifier; iexists γ; iexact Hguard

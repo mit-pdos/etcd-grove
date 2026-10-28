@@ -112,6 +112,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   icases HR with ⟨Hsr0, Hmur⟩
   iunfold mvcc.storeReader at Hsr0; iunfold mvcc.storeReaderC at Hsr0
   iNamedSuffix Hsr0 "R"
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hwl, HP⟩

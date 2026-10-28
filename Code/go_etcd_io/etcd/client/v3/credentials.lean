@@ -46,19 +46,31 @@ noncomputable def NewPerRPCCredentialBundle [GooseExts] [GoGlobalContext] : GoSt
 /-- go: credentials.go:39:6 -/
 noncomputable def NewPerRPCCredentialBundle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc PerRPCCredentialsBundle.ty))) (App (Val (GoInstruction (GoZeroVal PerRPCCredentialsBundle.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType perRPCCredentialBundle.ty) PerRPCCredentialsBundle.ty))) (App (Val (GoInstruction (GoAlloc perRPCCredentialBundle.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc perRPCCredential.ty))) (App (Val (GoInstruction (CompositeLiteral perRPCCredential.ty))) (LiteralValue [])))
+  (App (Val (GoInstruction (CompositeLiteral perRPCCredentialBundle.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"rc")) (ElementExpression (go.GoType.PointerType perRPCCredential.ty) (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType perRPCCredentialBundle.ty) PerRPCCredentialsBundle.ty))) (App (Val (GoInstruction (GoAlloc perRPCCredentialBundle.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc perRPCCredential.ty))) (App (Val (GoInstruction (CompositeLiteral perRPCCredential.ty))) (LiteralValue [])))
-  (App (Val (GoInstruction (CompositeLiteral perRPCCredentialBundle.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"rc")) (ElementExpression (go.GoType.PointerType perRPCCredential.ty) (Var "$v0")))]))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore PerRPCCredentialsBundle.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad PerRPCCredentialsBundle.ty))) (Var "$res0")))))
 
 /-- go: credentials.go:57:34 -/
 noncomputable def perRPCCredentialBundle.PerRPCCredentials.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType perRPCCredentialBundle.ty)))) (Var "b"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType perRPCCredential.ty) _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredential.ty)))) (App (Val (GoInstruction (StructFieldRef perRPCCredentialBundle.ty go!"rc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredentialBundle.ty)))) (Var "b")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType perRPCCredential.ty) _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredential.ty)))) (App (Val (GoInstruction (StructFieldRef perRPCCredentialBundle.ty go!"rc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredentialBundle.ty)))) (Var "b"))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.credentials where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.google_golang_org.grpc.credentials]

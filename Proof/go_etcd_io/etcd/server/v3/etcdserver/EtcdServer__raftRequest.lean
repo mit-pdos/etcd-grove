@@ -44,7 +44,7 @@ local macro "rr_ok" : tactic => `(tactic| (
   iexists hm, rq', L
   isplitr
   · ipureintro; exact Hwire
-  iframe HL HpAf
+  iframe HL HpAf Hhb
   isplitr [HQL]
   · iunfold appliedOkM
     iexists y, y', o, skip
@@ -76,7 +76,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
   wp_apply hP s E ρ ctx cd p rq Qh F Hid0 $$ [Hrd Hard Hcred Hhdr Hok] as %res %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hhdr Hok
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, %L, #HL, Hri, #HpAf, HQL⟩ | ⟨%Hres, #HaE, Hdep⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, %L, #HL, Hri, #HpAf, HQL, #Hhb⟩ | ⟨%Hres, #HaE, Hdep⟩)
   · subst Herr
     (try wp_auto)
     iunfold resPostM at Hri
@@ -106,6 +106,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
         · rw [← hve]; iexact HerrIs
         ileft
         iexists hm, rq'
+        iframe Hhb
         isplitr
         · ipureintro; exact Hwire
         iunfold appliedErr
@@ -139,6 +140,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
         · rw [← hve]; iexact HerrIs
         ileft
         iexists hm, rq'
+        iframe Hhb
         isplitr
         · ipureintro; exact Hwire
         iunfold appliedErr
@@ -246,7 +248,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.specM_false_of_spec
     iexists L
     iframe HL HQ
     isplitl [Hri]; rotate_left
-    · unfold pubAfterM; itrivial
+    · unfold pubAfterM hdrBoundM; isplit <;> itrivial
     iunfold resultIsW at Hri
     icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
     iunfold resPostM
@@ -284,7 +286,7 @@ theorem EtcdServer.raftRequest.wp_proof
   iintro !> %resp %err ⟨Hrd, Hard, Hpost⟩
   iapply HΦ
   iframe Hrd Hard
-  icases Hpost with (⟨%He, %hm, %rq', %L, %Hw, #HL, Hok, -, #HQ⟩ | Herr)
+  icases Hpost with (⟨%He, %hm, %rq', %L, %Hw, #HL, Hok, -, #HQ, -⟩ | Herr)
   · ileft
     isplitr
     · ipureintro; exact He
@@ -301,7 +303,14 @@ theorem EtcdServer.raftRequest.wp_proof
     iexists L
     iframe HL HQ
     ipureintro; exact Hst.2.2.2.1
-  · iright; iexact Herr
+  · iright
+    icases Herr with ⟨%Hr, #HaE, (⟨%hm, %rq', %Hw, Ha, -⟩ | Hdep)⟩
+    · iframe HaE
+      isplitr
+      · ipureintro; exact Hr
+      ileft; iexists hm, rq'; iframe Ha; ipureintro; exact Hw
+    · iframe HaE Hdep
+      ipureintro; exact Hr
 
 end proof
 

@@ -35,6 +35,7 @@ theorem schema.authBackend.GetRole.wp_proof
     schema.authBackend.GetRole.spec (GF := GF) (hG := hG) := by
   intro abe bi lg R Held name
   wp_start as ⟨#Hbe, #Hlg, %Hlgnn, #HBE, HR⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (hRT abe bi lg R Held) $$ [$Hbe $Hlg $HBE] as %tx ⟨%l, %rt, %Htx, #Htxf, #Hlgf, #Hrtx⟩

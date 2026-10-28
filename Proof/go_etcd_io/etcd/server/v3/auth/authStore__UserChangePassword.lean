@@ -62,6 +62,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply HBatch as %tx Htx
@@ -256,7 +257,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
       wp_apply h_Info
       · ipureintro; exact Hlgnn
       (try wp_auto)
-      wp_alloc resp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
@@ -367,7 +369,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
     wp_apply h_Info
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_alloc resp as Hresp
+    irename «$r0» => Hresp
+    generalize «$r0_ptr» = resp at *
     icases typedPointsto_split _ _ _ $$ Hresp with Hresp
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hresp

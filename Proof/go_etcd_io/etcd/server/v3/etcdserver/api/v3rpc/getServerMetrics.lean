@@ -54,6 +54,7 @@ theorem v3rpc.getServerMetrics.wp_proof
   · iPkgInit
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hvars] as ⟨Hlocked, HP⟩

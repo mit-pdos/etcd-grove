@@ -49,6 +49,7 @@ theorem txn.DeleteRange.wp_proof
   ihave #Hdr0 := Hdr
   iunfold txn.deleteRangeRequestIs at Hdr0
   icases Hdr0 with ⟨%Hdnn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, #He, #Hes, #Hpk, %Ho, -⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply wp_bytes_to_string $$ [$Hks] as -
@@ -61,7 +62,7 @@ theorem txn.DeleteRange.wp_proof
   iintro %fsl ⟨Hfsl, Hfslc⟩
   (try wp_auto)
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto Hfsl Hfslc]
-    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iunfold traceutil.ownFields
     iexists _
     iframe Hfsl Hfslc

@@ -33,7 +33,7 @@ theorem EtcdServer.getAppliedIndex.wp_proofM (on : Bool) :
   iunfold srvAppliedInvM at Hl
   wp_auto
   wp_apply_core sync.atomic.Uint64.wp_Load (structFieldRef EtcdServer go!"appliedIndex" s)
-    (DFrac.own 1) $$ [] [HΦ]
+    (DFrac.own 1) $$ [] [HΦ «$res0»]
   · iexact Hatomic
   iinv Hl with Hi Hclose
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)

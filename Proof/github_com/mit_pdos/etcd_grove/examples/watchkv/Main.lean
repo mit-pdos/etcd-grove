@@ -165,16 +165,16 @@ theorem Main.wp_proof
   obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
   -- watchkv's invariant over the KV state's half, at the plan: the bootstrap log changes no KV
   -- state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
-  have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))).changes = [[]] := by
+  have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes = [[]] := by
     unfold kvModelSt kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) _ (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
+    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) _ (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
     rfl
   imod (wkInv_alloc ρ.rd.kv _ (trs.map pairOf) (by rw [hσ0]; exact wkW_start _))
     $$ Hetcd with ⟨%γc, #Hwk⟩
-  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    simp [Draft.LogEntry.toEntries, hblen0]
+  have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    simp [LogEntry.toEntries, hblen0]
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] (Draft.LogEntry.toEntries boot 0) ctxs (wkDir id) go!"watchkv" go!"watchkv"
+  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (wkDir id) go!"watchkv" go!"watchkv"
       (common.urls1 go!"watchkv" go!"127.0.0.1:23882" go!"127.0.0.1:23872") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
@@ -184,7 +184,7 @@ theorem Main.wp_proof
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (wkDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartServer N go!"watchkv" go!"127.0.0.1:23882" go!"127.0.0.1:23872" lg (Draft.LogEntry.toEntries boot 0) ctxs
+  wp_apply (wp_StartServer N go!"watchkv" go!"127.0.0.1:23882" go!"127.0.0.1:23872" lg (LogEntry.toEntries boot 0) ctxs
       (wkDir id) id γ ρ E₀ Φs γn Htb31
       Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2 Hdirok
       (by simp [wkDir, dirOne]) Hlg Hck Haf Hbuq Hdbo)

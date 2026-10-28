@@ -49,6 +49,7 @@ theorem lessor.resetRecv.wp_proof
   · iPkgInit
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply context.wp_WithCancel_any sc scd $$ [] as %sctx %γs %cancel ⟨#Hcancel, #Hsctx⟩

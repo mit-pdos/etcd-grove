@@ -69,7 +69,7 @@ theorem k8setcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)

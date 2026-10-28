@@ -1,6 +1,6 @@
 /-
 **The node API's results at the server's storage model** (2026-10-27, the server port): the node
-API's specs (`NodeApiDraft.lean`) are stated over any raft storage model (`[StorageModel GF]`);
+API's specs (`Spec/go_etcd_io/raft/v3/`) are stated over any raft storage model (`[StorageModel GF]`);
 the server states its node premises at the cluster's, `srvStor γr` (the `MemoryStorage` registry
 of its `SrvRaft`), for every `γr` it allocates. These are the node API's linked results at it, the
 terms `Link.lean` passes (`=` callees of `etc/link-lean-first-server.txt`); and raft's
@@ -11,6 +11,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Proof.go_etcd_io.raft.v3.Link
+public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -31,56 +32,56 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem srvApi_wp_StartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.StartNode.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.wp_StartNode
+    StartNode.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact wp_StartNode
 
 theorem srvApi_wp_StartNode_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.StartNode.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.wp_StartNode_dynamic
+    StartNode.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact RaftLink.wp_StartNode_dynamic
 
 theorem srvApi_wp_Ready : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.Ready.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_Ready
+    node.Ready.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_Ready
 
 theorem srvApi_wp_Advance : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.Advance.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_Advance
+    node.Advance.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_Advance
 
 theorem srvApi_wp_Advance_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.Advance.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_Advance_dynamic
+    node.Advance.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact RaftLink.node.wp_Advance_dynamic
 
 theorem srvApi_wp_Tick : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.Tick.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_Tick
+    node.Tick.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_Tick
 
 theorem srvApi_wp_ReadIndex : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.ReadIndex.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_ReadIndex
+    node.ReadIndex.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_ReadIndex
 
 theorem srvApi_wp_Propose : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.Propose.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_Propose
+    node.Propose.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_Propose
 
 theorem srvApi_wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_ApplyConfChange
+    node.ApplyConfChange.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_ApplyConfChange
 
 theorem srvApi_wp_ApplyConfChange_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_ApplyConfChange_dynamic
+    node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact RaftLink.node.wp_ApplyConfChange_dynamic
 
 theorem srvApi_wp_Step : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.Step.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_Step
+    node.Step.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_Step
 
 theorem srvApi_wp_ReportUnreachable : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.ReportUnreachable.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_ReportUnreachable
+    node.ReportUnreachable.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_ReportUnreachable
 
 theorem srvApi_wp_ReportSnapshot : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    Draft.node.ReportSnapshot.spec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact Draft.node.wp_ReportSnapshot
+    node.ReportSnapshot.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_ReportSnapshot
 
 /-- `MemoryStorage.Snapshot`'s application triple (raft's linked result, whose `[StorageModel GF]`
 its statement does not use), at the server's any-storage model. -/

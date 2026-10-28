@@ -48,7 +48,8 @@ noncomputable def NewAlarmStore [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def AlarmStore.Recover.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "be"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))
   (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (Var "be"))
@@ -58,8 +59,12 @@ noncomputable def AlarmStore.Recover.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)]))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AlarmStore.ty) go!"restore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AlarmStore.ty) go!"restore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"types"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -71,23 +76,29 @@ noncomputable def AlarmStore.Recover.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: alarms.go:95:22 -/
 noncomputable def AlarmStore.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "at"
-  (App (Val wrapDefer)
-  (Lam "$defer"
   (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Val #())))
+  (Let "$res0" (Var "ret")
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))
   (Let "at" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty))) (Var "at"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Var "ret"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Var "ret")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (App (Val (map.lookup1 _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"types"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty))) (Var "at")))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)))) (Val #())))
   (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))) (Var "$range"))
@@ -107,8 +118,12 @@ noncomputable def AlarmStore.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty))) (Var "at")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType_NONE))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Var "ret"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Var "ret")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"types"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))))
   (Let "t" (App (Val (GoInstruction (GoAlloc alarmSet.ty))) (App (Val (GoInstruction (GoZeroVal alarmSet.ty))) (Val #())))
   (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)) (Var "$range"))
@@ -146,7 +161,8 @@ noncomputable def AlarmStore.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #())))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema]

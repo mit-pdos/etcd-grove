@@ -137,6 +137,8 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   obtain ⟨Hs0, Hpl⟩ := Hs0
   -- the steps up to `atomic.AddUint64`'s resolution, one by one (`wp_auto` would take that step
   -- too, and its receipt with it)
+  wp_alloc res_ptr as Hres
+  wp_pures
   wp_alloc g_ptr as Hgl
   wp_pure
   wp_pure
@@ -153,7 +155,7 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   inext
   iintro Hr -
   iapply wp_value'
-  wp_apply_core sync.atomic.wp_AddUint64 $$ [] [HΦ Hc Hgl Hr]
+  wp_apply_core sync.atomic.wp_AddUint64 $$ [] [HΦ Hc Hgl Hr Hres]
   · iexact Hat
   iinv Hinv with Hi Hclose
   icases Hi with ⟨%k, %L, %S, >Hsuf, >Hcr, >Hcnt, >HS, >%Hdom⟩

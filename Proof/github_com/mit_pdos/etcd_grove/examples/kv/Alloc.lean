@@ -9,7 +9,7 @@ What a cluster's set-up gives the replicas' `NewStorage` and `New`:
   ghost map at the registry's name (allocated first, `ghost_map_alloc_empty`, and made the
   `KVStor` instance).
 * `rkvInv_alloc`: the store's invariant over raft's cluster, from what the cluster's allocation
-  (`Draft.cluster_alloc_static`) hands the client -- the committed requested entries (none) and the
+  (`cluster_alloc_static`) hands the client -- the committed requested entries (none) and the
   read contexts (none used) -- with the client's half of the value (the empty store, `kvEmpty`)
   and the replicas' sequence-number tokens at `S0` (for `New`, each at 0).
 -/
@@ -52,11 +52,11 @@ theorem kvStorInv_alloc (E : CoPset) :
   itrivial
 
 /-- The store's invariant over raft's cluster `γ`, from what its allocation hands the client
-(`Draft.cluster_alloc_static`): the committed requested entries, none, and the read contexts, none
+(`cluster_alloc_static`): the committed requested entries, none, and the read contexts, none
 used; with the client's half of the value and the sequence-number tokens of `S0` (`New` takes
 `id ↪[γr.seq] 0`). -/
-theorem rkvInv_alloc (E : CoPset) (γ : Draft.Cluster) (S0 : GMap w64 w64) :
-    ⊢ Draft.ownCommittedOps (GF := GF) γ [] -∗ Draft.ownReadCtxs γ ∅ ={E}=∗
+theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (S0 : GMap w64 w64) :
+    ⊢ ownCommittedOps (GF := GF) γ [] -∗ ownReadCtxs γ ∅ ={E}=∗
       ∃ γr : RKVNames, ⌜γr.cluster = γ⌝ ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗
         [∗map] id ↦ s ∈ S0, id ↪[γr.seq] s := by
   iintro Hops HU
@@ -72,7 +72,7 @@ theorem rkvInv_alloc (E : CoPset) (γ : Draft.Cluster) (S0 : GMap w64 w64) :
     iexists [], _, ∅, ∅, ∅
     isplitl
     · unfold kvCore
-      simp only [show logHist ([] : List Draft.LogEntry) = [] from rfl]
+      simp only [show logHist ([] : List LogEntry) = [] from rfl]
       iframe Hops Hv1 HU HS HMi HO
       ipureintro
       refine ⟨⟨?_, ?_, ?_⟩, ?_, ?_⟩

@@ -85,28 +85,35 @@ noncomputable def NewServerStats [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewLeaderStats.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "id"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaderStats.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType LeaderStats.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "id" (App (Val (GoInstruction (GoAlloc go.string))) (Var "id"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc LeaderStats.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc LeaderStats.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "id"))
   (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.PointerType FollowerStats.ty))]))) (Val #())) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral leaderStats.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Leader")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Followers")) (ElementExpression (go.GoType.MapType go.string (go.GoType.PointerType FollowerStats.ty)) (Var "$v1")))]))))
-  (App (Val (GoInstruction (CompositeLiteral LeaderStats.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"leaderStats")) (ElementExpression leaderStats.ty (Var "$v1")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral LeaderStats.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"leaderStats")) (ElementExpression leaderStats.ty (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaderStats.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaderStats.ty)))) (Var "$res0"))))))
 
 /-- go: leader.go:67:24 -/
 noncomputable def LeaderStats.Follower.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ls"
   (Lam "name"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType FollowerStats.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType FollowerStats.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "ls" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaderStats.ty)))) (Var "ls"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
@@ -122,8 +129,12 @@ noncomputable def LeaderStats.Follower.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType FollowerStats.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc FollowerStats.ty))) (App (Val (GoInstruction (CompositeLiteral FollowerStats.ty))) (LiteralValue [])))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -149,7 +160,8 @@ noncomputable def LeaderStats.Follower.impl [GooseExts] [GoGlobalContext] : val 
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType LeaderStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaderStats.ty)))) (Var "ls"))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType LeaderStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaderStats.ty)))) (Var "ls"))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.raft.v3]

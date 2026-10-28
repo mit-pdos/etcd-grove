@@ -850,17 +850,17 @@ given (`v3rpc.Server`: `NewQuotaKVServer(s)`, the `*quotaKVServer` `q`), with et
 `Put`'s witness at the request path's read names `γw`, 2026-10-14, unit C2a). -/
 def etcdKVMethods (q : Loc) (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
     List (GrpcMethod GF) :=
-  [⟨go!"/etcdserverpb.KV/Put", pbPutRequest, pbPutResponse, etcdPutSpec E γw cid mid,
+  [⟨go!"/etcdserverpb.KV/Put", pbPutRequest, pbPutResponse, GrpcSpec.md (etcdPutSpec E γw cid mid),
      (@! etcdserverpb._KV_Put_Handler),
      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/Range", pbRangeRequest, pbRangeResponse, etcdRangeSpec E γr cid mid,
+   ⟨go!"/etcdserverpb.KV/Range", pbRangeRequest, pbRangeResponse, GrpcSpec.md (etcdRangeSpec E γr cid mid),
      (@! etcdserverpb._KV_Range_Handler),
      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
    ⟨go!"/etcdserverpb.KV/DeleteRange", pbDeleteRangeRequest, pbDeleteRangeResponse,
-     etcdDeleteSpec E γw cid mid, (@! etcdserverpb._KV_DeleteRange_Handler),
+     GrpcSpec.md (etcdDeleteSpec E γw cid mid), (@! etcdserverpb._KV_DeleteRange_Handler),
      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
    ⟨go!"/etcdserverpb.KV/Txn", pbTxnRequest, pbTxnResponse,
-     etcdTxnSpec E γw γr cid mid, (@! etcdserverpb._KV_Txn_Handler),
+     GrpcSpec.md (etcdTxnSpec E γw γr cid mid), (@! etcdserverpb._KV_Txn_Handler),
      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩]
 
 /-- **What `RegisterKVServer(gs, q)` registers of the KV service's unary methods we specify**
@@ -1554,7 +1554,9 @@ theorem etcd_putMethodOk (q : Loc) (E : apply.AEnv GF)
       v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.PutRequest.ty) #l)) $$ []
   · iintro !> %l -
     iapply putReq_learnerOk
-  iapply (v3rpc.etcdserverpb.wp__KV_Put_Handler pbPutRequest pbPutResponse (etcdPutSpec E γr cid mid)
+  ihave #Hh' := (grpcHandlerOk_md _ _ _).1 $$ Hh
+  iapply (v3rpc.etcdserverpb.wp__KV_Put_Handler pbPutRequest pbPutResponse
+    (GrpcSpec.md (etcdPutSpec E γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
@@ -1585,8 +1587,9 @@ theorem etcd_rangeMethodOk (q : Loc) (E : apply.AEnv GF)
     rw [show (pbRangeRequest (GF := GF)).recv l m = txn.rangeRequestIs l m from rfl]
     iapply (v3rpc.learnerReqOk_range l m)
     iexact Hr
+  ihave #Hh' := (grpcHandlerOk_md _ _ _).1 $$ Hh
   iapply (v3rpc.etcdserverpb.wp__KV_Range_Handler pbRangeRequest pbRangeResponse
-    (etcdRangeSpec E γr cid mid)
+    (GrpcSpec.md (etcdRangeSpec E γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
@@ -1615,8 +1618,9 @@ theorem etcd_deleteMethodOk (q : Loc) (E : apply.AEnv GF)
       v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.DeleteRangeRequest.ty) #l)) $$ []
   · iintro !> %l -
     iapply deleteReq_learnerOk
+  ihave #Hh' := (grpcHandlerOk_md _ _ _).1 $$ Hh
   iapply (v3rpc.etcdserverpb.wp__KV_DeleteRange_Handler pbDeleteRangeRequest pbDeleteRangeResponse
-    (etcdDeleteSpec E γr cid mid)
+    (GrpcSpec.md (etcdDeleteSpec E γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
@@ -1651,7 +1655,9 @@ theorem etcd_txnMethodOk (q : Loc) (E : apply.AEnv GF)
       v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnRequest.ty) #l)) $$ []
   · iintro !> %l -
     iapply txnReq_learnerOk
-  iapply (v3rpc.etcdserverpb.wp__KV_Txn_Handler pbTxnRequest pbTxnResponse (etcdTxnSpec E γw γr cid mid)
+  ihave #Hh' := (grpcHandlerOk_md _ _ _).1 $$ Hh
+  iapply (v3rpc.etcdserverpb.wp__KV_Txn_Handler pbTxnRequest pbTxnResponse
+    (GrpcSpec.md (etcdTxnSpec E γw γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
@@ -1732,6 +1738,10 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
   · iframe #
   ihave #Hmt := etcd_txnMethodOk q E ρ.rd γr cid mid _ _ _ $$ [Hqt Ppb Hics]
   · iframe #
+  ihave #Hmp' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmp
+  ihave #Hmr' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmr
+  ihave #Hmd' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmd
+  ihave #Hmt' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmt
   imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdKVMethods q E ρ.rd γr cid mid)
     (etcdGrpcSlot s E γr) N (by simp only [etcdKVMethods, List.map]; decide)
     (by
@@ -1748,6 +1758,10 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
     itrivial
   simp only [etcdKVMethods]
   icases Hrpcs with ⟨#H1, #H2, #H3, #H4, -⟩
+  ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
+  ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+  ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
+  ihave #H4' := (isGrpcRpc_md _ _ _).2 $$ H4
   imodintro
   iframe #
 
@@ -2867,12 +2881,12 @@ handlers of `Lease_ServiceDesc` with the service value `RegisterLeaseServer` is 
 the apply environment `E`. -/
 def etcdLeaseMethods (q : Loc) (E : apply.AEnv GF) : List (GrpcMethod GF) :=
   [⟨go!"/etcdserverpb.Lease/LeaseGrant", pbLeaseGrantRequest, pbLeaseGrantResponse,
-     etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E),
+     GrpcSpec.md (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E)),
      (@! etcdserverpb._Lease_LeaseGrant_Handler),
      interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩,
    ⟨go!"/etcdserverpb.Lease/LeaseRevoke", pbLeaseRevokeRequest, pbLeaseRevokeResponse,
-     etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E),
+     GrpcSpec.md (etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E)),
      (@! etcdserverpb._Lease_LeaseRevoke_Handler),
      interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩]
@@ -2911,7 +2925,7 @@ theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ⊢
       [∗list] m ∈ etcdLeaseMethods q E,
-        grpcMethodOk m.handler m.srv [il, im, iu] (etcdLeaseSlot s S) m.spec := by
+        grpcMethodOkMd m.handler m.srv [il, im, iu] (etcdLeaseSlot s S) m.spec := by
   iintro ⟨#Pv, #Ps, #Hsrv, #HNR, #Hat, #HL, #Hq, #Hil, #Him, #Hiu⟩
   ihave #Hg := etcd_leaseGrantHandlerOk lp s A cid mid E S $$ []
   · iframe #
@@ -2938,6 +2952,8 @@ theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
   · iframe #
   ihave #Hmr := etcd_leaseRevokeMethodOk q _ _ _ _ $$ [Hqr Ppb Hics]
   · iframe #
+  ihave #Hmg' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmg
+  ihave #Hmr' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmr
   simp only [etcdLeaseMethods]
   unfold etcdLeaseSlot
   iframe #
@@ -2983,6 +2999,8 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
     iexact Hms
   simp only [etcdLeaseMethods]
   icases Hrpcs with ⟨#H1, #H2, -⟩
+  ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
+  ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
   imodintro
   iframe #
 
@@ -3059,6 +3077,10 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
   · iframe #
   ihave #Hmt := etcd_txnMethodOk q E ρ.rd γr cid mid _ _ _ $$ [Hqt Ppb Hics]
   · iframe #
+  ihave #Hmp' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmp
+  ihave #Hmr' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmr
+  ihave #Hmd' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmd
+  ihave #Hmt' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmt
   ihave #Hms := etcd_leaseMethodsOk lp ql s _ E ρ lcid lmid (etcdRunSlot s E γr) il im iu $$ []
   · iframe #
   imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdKVMethods q E ρ.rd γr cid mid ++
@@ -3089,6 +3111,12 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
   simp only [etcdKVMethods, etcdLeaseMethods]
   icases Hkv with ⟨#H1, #H2, #H3, #H4, -⟩
   icases Hle with ⟨#H5, #H6, -⟩
+  ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
+  ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+  ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
+  ihave #H4' := (isGrpcRpc_md _ _ _).2 $$ H4
+  ihave #H5' := (isGrpcRpc_md _ _ _).2 $$ H5
+  ihave #H6' := (isGrpcRpc_md _ _ _).2 $$ H6
   imodintro
   iframe #
 

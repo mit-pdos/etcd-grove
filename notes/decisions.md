@@ -23671,6 +23671,10 @@ statement was weakened, none was dropped.
 
 ## Raft's node API over an abstract log (2026-10-27 · the user's decisions; draft statements)
 
+*Superseded in part* (2026-10-28, "The node API's specs in the per-function files", below): its file
+layout (the specs in `NodeApiDraft.lean`, namespace `Draft`, over `NodeApiImpl*.lean`); not its
+statements.
+
 **Why:** locality. Raft's specs are sound (proved) and complete enough (kv and etcd are built on
 them); what is slow is evolving proofs on top, because clients depend on raft's internals: they open
 `raftLogInv`/`raftRegInv`, unfold `propDataIs`, `rLog`, `propArg`, track minted data, and avoid
@@ -24592,6 +24596,51 @@ up to order.**
 `etcd_auth_served`); a member started with auth on (`grpcUp`'s Auth registration); `setupAuthOk`;
 `examples/authkv` and the closed theorem.
 
+## E3za of the auth plan: the gRPC Auth layer (2026-10-27 · `notes/auth-plan.md`, E3z's first left item, `setupAuthOk`'s second prerequisite)
+
+`setupAuthOk` asks, for each of the five admin methods `SetUp` calls, `isGrpcRpc ep method Spec`:
+the generated handler served at the member's address, meeting a spec over the client's wire
+models (`client/v3/InvAuthConn.lean`). E3y proved the `AuthServer` methods below the handlers
+with auth on (`*_end_to_end_on`); this stage puts grpc above them.
+
+- **The handlers.** `_Auth_{UserAdd,UserGrantRole,RoleAdd,RoleGrantPermission,AuthEnable}_Handler`
+  translated (`etcdserverpb.toml`) and proved by the generic unary handler lemma, as the KV
+  service's (`UnaryHandlerLemmas.lean`; the build checks each body is `unaryHandlerImpl`), linked in
+  the v3rpc `Link.lean`.
+- **A decoded request a handler writes.** `EtcdServer.UserAdd` replaces the decoded request's
+  `Password` by `""` and sets `HashedPassword`; the wire model gave a decoded request only a
+  read-only predicate (`ProtoMsg.recv`, persistent), so E3y's `UserAdd` result, which takes the
+  two fields exclusively, could not be met. Considered: making `recv` non-persistent (every
+  generic grpc lemma and the KV proofs rely on its persistence; a large change), and a `UserAdd`
+  model that never writes (false to the Go code). Chosen: an exclusive part beside it,
+  `ProtoMsg.recvOwn` (default `True`), which grpc's decode also hands the caller (`grpcDecOk`):
+  decoding fills a fresh message the handler owns, so this states more of what the runtime does
+  and changes no axiom's count; only `pbAuthUserAddRequest` sets it (its `Password` at the sent
+  password, `HashedPassword` at `""`, which the client sends; its name and options stay
+  read-only). Handlers that may write their request meet `grpcHandlerOwnOk` (`recvOwn` in the
+  precondition); `wp_unaryHandlerOwn` proves the generic handler for them and `wp_unaryHandler`
+  (the KV and Lease handlers', unchanged) follows from it (`grpcHandlerOk_own`). All five Auth
+  handlers use the `Own` form.
+- **The specs** (`v3rpc/AuthService.lean`): `etcdUserAddSpec E ρ m Φ` = the name's bound
+  (`maxKeySize`, what the admission needs) and `userAddReplied E ρ m.name -∗ Φ ()`; likewise for
+  the others (`adminReplied E ρ rq`: the request applied at the committed prefix before its entry,
+  its admin step succeeding there, the auth state after it published, its step determinate:
+  `adminOutOn`'s success less the response's memory and the store's certificates). The client
+  gives no resource: the run's slot is the server's (`authSlot`: a reader slot of `leadTimeMu` and
+  `E.RD`, back on every answer, `adminOutOn_reply`), the id budget `□ |==> idCred` the server's
+  start, the index certificate minted (`idxCert_nil`). Each spec is a predicate on a persistent
+  reply, so `setupAuthOk`'s `□ ▷ Spec m (fun _ => Q)` holds with `Q` the reply.
+- **Serving** (`api/v3rpc/Results.lean`): `etcd_*HandlerOk` (each E3y result under the slot,
+  `authWrapOut_admin`/`authWrapOut_userAdd`), `etcd_*MethodOk` (the handler under any chain of
+  transparent interceptors, `authServer_isAuthServer` the method-set fact), `etcd_auth_served`
+  (as `etcd_kv_served`: `grpc_serve_rpcs` over the five; trust base unchanged).
+
+Left for the next step: `etcd_auth_served`, like `etcd_kv_served`, consumes the server object
+`grpcServerAt` (one `grpc.serve` per server), so a member serving both needs one serve of the KV
+and Auth methods together, under one run slot; and the start's registration of the Auth service
+(`RegisterAuthServer` in `v3rpc.Server`, the Auth `ServiceDesc`'s methods in `etcdserverpbDescs`,
+now only `pbDescOk`).
+
 ## The compactor pilot's specs after their first review (2026-10-27)
 
 **2026-10-27 · taken (the user for the clock and C1; the rest the review's)**
@@ -24641,6 +24690,273 @@ empty or justified here. For the compactor:
 - **Left, justified (phase 4): `context.cancelSpec`**, unfolded by `Periodic.Stop`/`Revision.Stop` to
   call the cancel function; no Perennial law yet (`notes/perennial-changes.md`, "a law for calling a
   `cancelSpec` cancel function"). Not a statement change: the frozen specs are unchanged.
+
+## E3zb of the auth plan: the auth-on member's KV layer, and what its replies must carry (2026-10-28 · `notes/auth-plan.md`, E3za's first left item; in progress)
+
+**Done.** (1) `v3rpc.Server` registers the Auth service's admin methods: the Auth `ServiceDesc`'s
+methods stated exactly (`authDescMethods`, in `svcDescsOk` and `etcdserverpbDescs`; `gen-init.py`
+follows), so `v3rpc.Server.spec`'s post reports the `*AuthServer` `pa` (`authServerIs`) and its
+five registrations (`authRegs`), which `etcd_auth_served` takes. (2) The KV handlers with auth on:
+`v3rpc/ServerKVOn.lean`'s `srvKVAnsOn` (the server's answers as `raftKV`'s parameters with auth
+on) and `raftKV_of_serverOn`, from the linked `EtcdServer.{Put,DeleteRange,Txn}.specOn`,
+`Range.specOn` and `Txn.specOnR`; `v3rpc/Results.lean`'s `raftKV_serverOn` and
+`{put,deleteRange,range,txn}_end_to_end_on`. `srvKVAns`'s shape is kept (the `kvServer` proofs are
+generic in it), with: a call's lower bound `n` of the published auth index (`authPubLbM`, `0`
+free); requests of the permission cache's shape (`kvDepPreOn`: a delete's `reqShape`, a writing
+transaction's `kvShapeAll`; a put's non-empty key is the gRPC check's); reads at the mode-`on`
+model (`rangeDepQOn`, `rangeAnsOkOn`, `txnReadAnsOn`) with their checks' class (`rangeAuthed`,
+`txnAuthed`: granted at states recorded at an index `m ≥ n`, and for a linearizable read no older
+than the read index's).
+
+**Found: a write's reply must carry its grant.** `authkv`'s `Work` panics (`refused`) when a
+request its principal may not make succeeds, so `Main`'s proof must derive an error from the
+history being `setupSt` after `SetUp` (E2b). For reads the answers carry what is needed
+(`rangeAuthed`/`txnAuthed` at a bound `n` taken after `SetUp`: the state checked is `setupSt`). For
+writes they do not: `Put.specOn`'s success gives the client's result `Q` (fired only if granted,
+`grantedRes`) and the published state after the entry (`pubAfterM`), but not that the request
+with the stamped header `hm` (its principal) was granted at the committed prefix `L` before its
+entry (`grantedAt ρ.kv srvAuthSt0 (withHeader rq hm) L`), which the proof has (`modelOutM true`
+of the dispatched result: `grantedRes_applied`'s first step). The grant is of the stamped header
+`hm`, so the client also needs `hm`'s principal to be its context's: the user its token was issued
+to, or none (`principalBound`, E1/E2c), which today only the admin guards state (`adminOutB`); the
+KV writes' header comes from `raftRequest`'s `AuthInfoFromCtx`, whose bound variant
+(`ctxBoundOrTLS`) needs the server's store bound (`srvAuthBound`), not yet among `isServerReqM
+true`'s facts.
+
+**Done (3): the grant and the bound header in the writes' posts.** `isServerReqM true` now holds
+`srvAuthBound` (`ReqOn.lean`; from the kit's `authStoreKit` through `srvUberBase`, which carries
+`isReqAuthBound` when auth is on). `processInternalRaftRequestOnce.specM` and `raftRequest.specM`
+report the stamped header bound to the request's context (`hdrBoundM on s E ctx hm`: off `True`;
+on, the empty user, or `principalBound` of the header's user), on success and, for `raftRequest`,
+on an applied error; the proof calls `AuthInfoFromCtx` through `AuthInfoFromCtx.wpM` (the bound
+spec when on, a new premise `hAuthB : on = true → AuthInfoFromCtx.boundSpec`). `Put`, `DeleteRange`
+and the writing `Txn`'s `specOn` add the grant at the committed prefix (`grantedAt`, from
+`grantedAt_of_applied`) and the bound header to their success, and the bound header to an applied
+error (`txnErrOkOn` for `Txn`). The empty user is allowed in `hdrBoundM` rather than excluded:
+the header of an `Authenticate`, or of a context the store finds no user in, has it, and the
+apply thread grants such a header no key; a client that needs its principal named shows its
+token is not empty.
+
+**The context `raftRequest` sees is not the caller's.** `Put` and `Txn` call it with a
+`context.WithValue` of `Tracer.Start`'s context (and `Txn` of `EnsureTrace`'s), so the binding is
+to that context; it transfers to the caller's because the token is read from the incoming gRPC
+metadata (`auth.ctxTokenOf` of `metadata.incomingOf`), which the three keep:
+`metadata.FromIncomingContext` reads `Value(mdIncomingKey{})`, and none of them stores under grpc's
+key (`hdrBoundM_ctx`). `incomingOf` is opaque (a function of the context value), so this is stated
+in the derived context's spec: `context.WithValue.spec` and `traceutil.Tracer.Start.spec` (both
+trust-boundary axioms) post `incomingOf c' = incomingOf parent`, and `traceutil.EnsureTrace.spec`
+(proved) follows. The alternative, defining `incomingOf` from the context description's `Values`,
+would tie the opaque function to Perennial's context model, which does not describe a context's
+values by key; the per-call fact is the same kind of statement as the specs' trace facts
+(`ctxTraceIs`), which they already make.
+
+**Done (4): the grant in the KV answers.** `srvKVAnsOn` takes the caller's token `tok` (a call
+is at a context with `auth.ctxTokenOf ctx = tok`; the gRPC level picks it per call, as it picks
+the deposit `d`: `kvServerAt` reads the answers only through `revR`), rather than adding the
+context to `KVAns`'s `ok`/`err` (about fifty files for the same fact). A successful write's answer
+adds `writeGrantOn s E ρ tok rq0`: for the request with the stamped header `hm`, granted at the
+committed log `L` before its entry, `hm`'s user the empty one or the one `tok` was issued to
+(`hdrBoundT`, or the TLS fallback), and `L` with the write's entry committed (`pubAfterM`).
+`*_end_to_end_on` state it at `auth.ctxTokenOf ctx`. The last part is what makes the grant usable:
+`authkv` knows the set-up's entries are committed (its admin replies' `pubAfterM`), the write's
+entry carries a non-empty user, which no set-up entry does, so `L` extends the set-up's prefix and
+the auth state there is `setupSt`.
+
+**The refusal side is not needed.** `Work` panics only when a request its principal may not make
+succeeds; an error answer is never checked against the model. So nothing is added to the error
+answers (the bound header stays in `Put`/`DeleteRange`/`Txn.specOn`'s error posts, unused).
+
+Next, in order: the gRPC-level specs with auth on (`etcdPutSpecOn`, ...: the client's
+bound `n`, the shape premises, the grant and the read class in the replies), the handlers as grpc
+runs them and one serve of the KV and Auth methods.
+
+**The gRPC specs see the attempt's metadata (2026-10-28).** A gRPC spec (`GrpcSpec`, a predicate
+transformer over the request and reply) had no context, so an auth-on reply could not say which
+token its grant is at (`writeGrantOn s E ρ (auth.ctxTokenOf h)`, `h` the handler's context, which
+only grpc's runtime knows). Options weighed:
+- a spec per token (`etcdPutSpecOn … tok`): one registration per method, so no;
+- the reply quantifies over the token, the client learning nothing of it: useless to `authkv`,
+  whose `Work` needs the token to be its own principal's (C1) or the bad one (C2, C4);
+- **the spec indexed by the metadata the handler sees** (chosen): `GrpcSpecMd := GrpcMd →
+  GrpcSpec`, a run's precondition at `metadata.incomingOf` of its context (`grpcMethodOkMd`,
+  `grpcHandlerOkMd`, `isGrpcRpcMd`, `GrpcMethod.spec`), and the attempt contract
+  (`grpcInvokerOk`) hands the spec any metadata `md` with `grpcAttemptMd conn ctx md` (opaque: what
+  grpc delivers of the call's outgoing metadata and the connection's per-RPC credentials). E2b's
+  C1-C4 become facts about `grpcAttemptMd` (stated with `authkv`'s client side, not yet).
+  A plain spec is one at every metadata (`GrpcSpec.md`); the plain definitions stay, each equal to
+  its metadata-indexed one at a plain spec by `rfl` (`grpcMethodOk_md`, `isGrpcRpc_md`, ...), so
+  the auth-off proofs are unchanged but for the generated handlers' lemma (`wp_unaryHandlerMd`,
+  the plain one its instance) and the places that build `GrpcMethod`s. Trust base: the axiom
+  `grpc.serve` now takes `grpcMethodOkMd` (the plain one is its instance), and `grpcInvokerOk`
+  (the restatement of `ClientConn.Invoke`'s promise) gives the spec at the delivered metadata
+  instead of at none: both true of grpc-go, which delivers a call's metadata as its handler's
+  incoming metadata.
+
+**Found: a read's check must be the caller's too.** `rangeAuthed`'s auth info (the one whose
+permission the check saw) was not tied to the caller: a range of `u` outside `u`'s keys could
+succeed as root's for all the answer said. `doSerialize.specM` with auth on now also gives the
+info bound to the context (`infoBoundM`, `hdrBoundM`'s for an auth info), from
+`AuthInfoFromCtx`'s binding (moved from `processInternalRaftRequestOnce`'s proof to `ReqOn`,
+`EtcdServer.AuthInfoFromCtx.wpM`), and `Range.specOn`/`Txn.specOnR` and the read answers carry it.
+
+**Trust base.** No axiom or `sorry` added; two axioms' statements are stronger (`context.WithValue`,
+`traceutil.Tracer.Start`: the incoming metadata kept, above).
+
+**Done (5c): the gRPC-level KV specs with auth on, and one serve of KV and Auth.**
+`client/v3/KVServiceOn.lean`: `etcdPutSpecOn`, `etcdRangeSpecOn`, `etcdDeleteSpecOn`,
+`etcdTxnSpecOn`, metadata-indexed, at the token the metadata carries (`auth.mdTokenOf`, which is
+`auth.ctxTokenOf` of the context by definition, `auth.ctxTokenOf_md`). Each is the auth-off spec
+with what auth on adds: a write's reply carries its grant (`writeGrantOn`); a read takes the
+caller's lower bound `n` of the published auth index (`auth.authPubLbM`, `0` is free) and its reply
+carries the check (`rangeAuthed`; for a transaction, `txnAuthOn`: a read-only one's check, a
+writing one's grant); a delete's key and range end, and a writing transaction's permissions, are of
+the shape the permission cache decides (`auth.reqShape`, `kvShapeAll`: what `kvDepPreOn` asks).
+The replies are otherwise the auth-off ones (`putReplied`, `rangeReplyOk`, ...): the mode-`on`
+model's state is `kvStateOf` of its log, so the auth-off reply shapes hold at the log read
+(`readQ_of_ansOn`).
+`client/v3/ServedOn.lean`: the handlers meet them (`etcd_*HandlerOn`, from `*_end_to_end_on` at
+the run's context, writes at `n = 0`), as grpc runs them (`etcd_*MethodOn`), served alone
+(`etcd_kv_served_on`) and with the Auth methods in one `grpc.serve` (`etcd_kv_auth_served_on`; the
+Auth methods' slot `authSlot` is part of the KV methods' `etcdGrpcSlot`, `grpcMethodOkMd_slot`).
+The generated KV handlers' specs (`_KV_Put_Handler.spec`, ...) and the quota wrapper's
+(`quotaKVServer.{Put,Txn}.spec`) now take a metadata-indexed spec (proved by
+`wp_unaryHandlerMd`; the plain spec is the instance at `GrpcSpec.md`), since a spec of a
+handler's caller should not be weaker than what its proof gives. The persistence instances of
+`rangeAuthed`/`txnAuthed` are not found by `icases`'s `#` at their use in `ServedOn` (they are
+found by `inferInstance` there), so the proofs keep the facts spatial; not chased.
+
+**Done (5d): `Start` with auth on.** `EtcdServer.Start.specOn` (`server_Start_on`): `start.specOn`,
+then the goroutines `Start` attaches. Its three names-only monitors' contracts (`publishV3`,
+`monitorClusterVersions`, `monitorStorageVersion`, trust-boundary axioms) now take the auth mode:
+the request view in the mode (`isServerReqM on`) and, for the two that propose, the proposal
+permission in the mode for their cluster requests (`srvMonitorPermitM on`, `MonitorsOn.lean`; in
+the mode `on`, `reqPropOkOn`'s first case, which a cluster request meets: no permission, so
+`kvShapeAll`). The Go is the same in either mode; the statements at `on = false` are the old
+ones. `Start.wp_proof` passes `false`. The read loop runs at the mode-`on` model's state.
+Next: `v3rpc.Server`'s configuration (`grpcCfgOk`) from a server started with auth on, and the
+examples' member start with auth on; `start.specOn`'s `srvLessorNil` (the lessor finds no lease)
+is a named premise there, to be discharged for `authkv` (which grants no lease) or carried.
+
+**Done (5e): the examples' `Serve` with auth on.** `common.Serve.specOn` (`Serve.wp_proofOn`):
+`Serve.spec`'s, for a server started with auth on (`isServerReqM true`, `isServerReadM true`,
+`srvAuthLb`; `grpcCfgOk_of_started_on_w`, `ServeFromStartOn.lean`), whose caller's ghost step
+receives `grpcUpOn` (`grpcUp` with the answers with auth on, `srvKVAnsOn`, the Auth service's
+registrations `v3rpc.authRegs` and its server `v3rpc.authServerIs`), from which
+`etcd_kv_auth_served_on` gives the four KV methods at their md specs and the five Auth methods.
+`gen-link.py` links only `.spec`, so `Serve.specOn` is linked by hand where it is used.
+
+**Done (5f): the member started with auth on.** `authkv.startServer` (`authkv_startServer`, linked
+in `authkv/Results.lean`): `NewServer.specM true` (`server_new_auth_on`, with its two named
+premises), then `Start.specOn`, giving `common.memberUpOn` (the member's views in the mode `on`
+and `srvAuthLb`, at the auth names `γa`) from `common.memberBootOn` (`memberBoot` with the start
+chain's auth layer on and `kvInvM true`). Three things it needed:
+- *`start.specOn`'s `srvLessorNil` is no longer a premise.* The server makes its lessor's grant
+  guard `False` (`srvGrantGuard`, D45), and every lease of the lessor's map was granted
+  (`lessorAuth`'s `leaseGranted`, kept by `Grant`, `Revoke`, and `Recover`, which empties the map).
+  `NewLessor`'s token-free `Lookup` clause (a trust-boundary axiom, the clause stated there for
+  want of a reader slot) now says so: a lease it returns has the guard's predicate of its id
+  (`□ GA id`, not `leaseGranted`, whose agreement is under a later that the lookup's lock step
+  strips but a postcondition cannot). `lookupNil_of_guard` (`UberOn.lean`) gives `lookupNil` at
+  the guard `False`, and `NewServer.specM`'s post carries `srvLessorNil srv` in either mode.
+- *The mode is `.on γa`.* `NewServer.specM true`'s post said only `E.authOn = true` (`.any` would
+  do), while `Start.specOn` takes `E.authMode = .on γa`. `authSrvTP`'s mode now says `.on γa` when
+  on, which `srv_auth_tp_on` builds, and `NewServer.specM`'s post passes it on.
+- *A finding in authkv's own Go, fixed:* its configuration left `TokenTTL` at `0`, its comment
+  saying the provider has a default; `ServerConfig` has none (`embed` sets `300`), and the simple
+  provider's tokens with TTL `0` expire at its keeper's next tick. `NewServer.specM true` asks
+  a positive TTL. `examples/authkv` now sets `300` (etcd's `--auth-token-ttl` default).
+
+**Done (5g): `setupAuthOk`.** `authkv/SetupServed.lean`'s `setupAuthOk_of_served`
+(`authkv_setup_auth_served`): at etcd's specs of the five Auth methods, which
+`etcd_kv_auth_served_on` serves, `SetUp`'s Auth premise needs only the five registrations: each
+call's precondition is its name's length bound and the caller's continuation from what the reply
+carries, so `Q` is that (`setupQ`: `userAddReplied` for the `UserAdd`s, `adminReplied` of the request
+otherwise). What `Main` then knows after `SetUp` is the eight replies' facts: each admin step done
+on the committed prefix (`adminDoneM`), the prefix in raft's log, its publication.
+
+**What is left, in order** (2026-10-28, while the user was away; each a stage of its own):
+1. *The client's KV stack at the metadata-indexed specs.* `SetUp` and `Work` call the client's
+   `Put`/`Get`/`Delete`/`Txn`, whose specs take `kvRegsAt` (the plain `etcdPutSpec`, ...). The
+   member with auth on registers the On specs; `Put`'s converts to the plain one by weakening
+   (`isGrpcRpcMd_mono`, the grant dropped), but `DeleteRange`'s and `Txn`'s add shape premises,
+   so `kvRegsAt` is not derivable. Plan: the client's calls over a member's four md specs as a
+   family (`kvRegsAtMd`), each call's reply at the attempt's metadata (`grpcAttemptMd`); the
+   plain specs the family's instance at `GrpcSpec.md` (as the server side did), so the auth-off
+   clients' proofs do not change. About 80 files name `kvRegsAt`/`isKV`.
+2. *The client's auth contract C1-C4 over `grpcAttemptMd`* (E2b): no user name, the attempt's
+   metadata is its context's outgoing metadata (C2, C4); a user client's attempts carry no token
+   or one issued to its user (C1), which needs `Authenticate` served with auth on (its handler
+   and `etcdAuthenticateSpec`, the reply's token `tokIssued` to the request's name, S5's) and
+   `Client.getToken`'s axiom to say what the token bundle then holds.
+3. *Watch with auth on.* A created watch's response carries the check's class (`watchAuthed`, A4)
+   on the server's stream, but neither a lower bound on the state checked (`IsRangePermitted`
+   has `specLb`; `isWatchPermitted` does not use it) nor the info's binding to the stream's
+   token reaches the client's channel (`WatchRun`). `Work`'s refused watch needs both: an event
+   on it means a created response whose check passed at a state no older than the set-up's,
+   for the principal's token, which `setupSt` refuses. `u`'s watch of `[a, b)` needs nothing of
+   auth (its events are in its range).
+4. *The history.* `CheckHistory` needs every committed write after the set-up up to `z/end` to
+   be one its key's principal was permitted. The grant (`writeGrantOn`) is at the stamped
+   header's user, bound to the request's token; a write by root's token is permitted anywhere,
+   so the proof must also know root's client writes only `z/end`. Plan: an `authkv` invariant on
+   the KV log through the clients' updates (`kvOpAu1`), each fired only when granted
+   (`kv_prop_au_on`); the update then needs the grant at the commit to refute an ungranted
+   write. To be designed against `kv_prop_au_on`'s statement.
+5. `Work` (per principal, at its client's specs), then `Main` (the cluster's allocation with auth
+   on, `server_member_alloc_on`; `startServer`, `Serve.specOn`, `SetUp`, the user clients, the
+   goroutines, root's write and watch, the checks).
+
+## The node API's specs in the per-function files (2026-10-28 · the user's decisions)
+
+**2026-10-28 · taken (the user: the target state and D1-D4; the rest by them)**
+
+**What was wrong.** The clean node API (2026-10-27, above) lived beside the standard layout: its
+specs in `NodeApiDraft.lean` (namespace `Draft`), sealed predicates re-sealed there over
+`NodeApiImpl.lean`/`NodeApiImplDyn.lean` (each predicate defined twice, each law stated twice, and the
+specs a third time as `ApiImpl` copies), and each spec's proof a wrapper `wp_*_impl (h : <old
+spec>) : <clean spec>`, so every `node` function had two triples: the old one over raft's internals
+in `Spec/<fn>.lean`, the clean one in the draft. The user: "The files like NodeApiImpl.lean and
+NodeApiDraft.lean should not be in the proof. The clean specs they were used to establish are meant
+to be the specs in, e.g., node__Propose.lean."
+
+**Now.**
+- `Spec/go_etcd_io/raft/v3/<fn>.lean` holds the clean triple, in the package namespace, for
+  `StartNode`, `RestartNode`, `node.{Propose, ProposeConfChange, ReadIndex, Ready, Advance, Step, Tick,
+  TransferLeadership, ApplyConfChange, ReportUnreachable, ReportSnapshot}`.
+- `Proof/go_etcd_io/raft/v3/<fn>.lean` proves it from the callees' specs (`etc/gen-link.py` links it,
+  unchanged). The old triple and its proof are `private` there (`<fn>.specRaw`, `<fn>.wp_raw`: no
+  other file can use them, D2), and the wrapper (`ApiImpl.<...>_impl`, opening with an `unfold` of the
+  sealed names) derives the spec from it. Not a separate file: Lean's `private` is per file, and a
+  separate file builds no faster (the wrapper needs its statement). `node__ReadIndexReq.lean` (the
+  `specReq` variant the wrapper used) became `node__ReadIndex`'s raw triple; the old `ReadIndex`
+  triple and `node.Ready`'s were dead (their wrappers did not use them) and are gone.
+- **The API module is `InvNode.lean` (D3):** the sealed predicates (over the implementation) and
+  their laws, as the draft had them, in the package namespace. `node.readyRecv` is a law there
+  (`node.wp_readyRecv`, a triple of `chan.receive`), not a spec: it is no Go function. The previous
+  `InvNode.lean` (the older sealed node API over `NodeNames`) is `InvNodeChan.lean`, internal; its
+  names that clashed are renamed (`isNode`, `nodeDriver`, `isReadyChan` -> `isNodeChan`,
+  `nodeDriverChan`, `isReadyChanRaw`; `Protocol/GhostState`'s `readStateOk` -> `readStateRaw`).
+- The implementation: `InvApi.lean`, `InvApiDyn.lean` (the definitions and laws of `NodeApiImpl*`,
+  namespace `ApiImpl`), internal; `NodeApiVocab.lean` (pure) moved out of `Draft`.
+- **D1, the static/dynamic pairs stay for now:** `StartNode`, `node.Advance`, `node.ApplyConfChange`
+  keep `spec` and `dynamicSpec` in one spec file, proved by `wp_proof` and `wp_proof_dynamic`, the
+  latter linked by hand in `Linked.lean` (`RaftLink.wp_StartNode_dynamic`, ...: `gen-link` links only
+  `wp_proof`). The known exception to one triple per function, until one cluster kind takes snapshots
+  and reconfiguration (the user's direction, 2026-10-28: start from the static, snapshot-taking
+  proof, and add reconfiguration to it).
+- **`ProposeConfChange`'s raw proof calls the clean `node.Step`** (its callee's spec is the clean one
+  now): its raw triple also takes the node's `ApiImpl.isNode` in the API's cluster with `NodeOk`, and
+  builds `stepIn` (`∀ γn', NodeOk γ γn' -∗ stepP γn' id ml`) from its forwarded proposal's `fwdP`,
+  which reads only `γn.raft`, which `NodeOk` fixes.
+- `InvNodeCtx` no longer re-exports `InvNodeChan` (nothing in it needed it), so the API module does not
+  reach the internal one publicly; `node__ForgetLeader`'s spec (still over `isNodeChan`, never part of
+  the clean API) is off the importable list and `Api.lean`.
+- kv's `run` calls the law `node.wp_readyRecv` (no callee hypothesis); its `Link.lean` is generated
+  again (the node's callees were edited by hand), with `proto_UnmarshalConfChange` and
+  `node__ApplyConfChange` added to its list.
+
+**Left (D4, a follow-up):** the other variant triples (`MemstorageAU.lean`'s `spec_tok`,
+`raft.applyConfChange.specS`, `confchange.Restore.specE`); a clean `node.ForgetLeader` spec.
 
 ## The compactor's contract after the freeze: the context carries no trace (2026-10-28)
 

@@ -166,7 +166,7 @@ theorem raftNode.start.wp_proof
       icases Htok with ⟨%sent, %cums, Hdrv, Hprod, Hauth, %Hcums, %Hix⟩
       iunfold rnDrv at Hdrv
       icases Hdrv with ⟨Hdrv, Hcfg⟩
-      icases Draft.isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p) _ rfl
+      icases isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p) _ rfl
         $$ Hrc Hisn Hdrv with ⟨%γc, #Hch, Hau⟩
       iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γc
       isplitr

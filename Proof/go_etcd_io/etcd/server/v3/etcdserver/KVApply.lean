@@ -149,8 +149,8 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   ipureintro
   refine ⟨srv_entry_transfer γ.ai0 B L plainEntry ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
   · intro m m' he h ht hd rq hdec
-    have h1 := congrArg Draft.LogEntry.type he
-    have h2 := congrArg Draft.LogEntry.data he
+    have h1 := congrArg LogEntry.type he
+    have h2 := congrArg LogEntry.data he
     simp only [EntryModel.toLE] at h1 h2
     exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
   · intro m _ hd _ h; exact absurd hd h

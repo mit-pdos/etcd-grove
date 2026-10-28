@@ -44,6 +44,12 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   which the translation imports, as in Perennial's `Perennial/TrustedCode`; each docstring says
   why the model is faithful. Part of the trust base. `ManualProof/<pkg>.lean` is the (empty)
   module the generated proof of such a package imports;
+- `GooseLang/Ext/<Name>/{Impl,Specs}.lean`, `Proof/<Name>Prelude.lean`: this repository's own
+  GooseLang extensions, as Perennial's (`Perennial/GooseLang/Ext/`): `Impl` the trusted semantics
+  (the extension's `name` is the path of the Go package it implements), `Specs` the ghost state
+  and WP specs, the proof prelude both. The package's `TrustedCode` models call the extension's
+  operations by name (`ExternalOp E.name "Read"`); goose needs to know nothing of it.
+  `durableExt` (`examples/durable`, whole-file durable state) is the first;
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);
@@ -163,10 +169,11 @@ report.
 
 ## Feedback on specs
 
-When the user critiques a spec (yours, a reviewer's, or a candidate), make the repository
-learn from it, minimally: an entry in `.claude/skills/spec-repair/LESSONS.md` (date, target,
-what the user said, the rule it became) and the smallest change to that skill's `SKILL.md`
-(or its `evals/`) that would have avoided the mistake; a fix to the spec itself is not enough.
+The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what makes a good spec:
+`PRINCIPLES.md`, and `examples/` of specs the user reviewed. When the user critiques a spec
+(yours, a reviewer's, or a candidate), make it learn from it, minimally: a new or sharpened
+principle; and when the user approves a spec, an example (its first version, each critique with
+what it changed, the approved spec). A fix to the spec itself is not enough.
 
 ## Trust base
 

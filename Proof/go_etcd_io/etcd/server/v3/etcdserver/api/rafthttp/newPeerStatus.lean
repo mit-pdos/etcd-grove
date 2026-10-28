@@ -28,10 +28,12 @@ theorem rafthttp.newPeerStatus.wp_proof :
     rafthttp.newPeerStatus.spec (GF := GF) (hG := hG) := by
   intro lg lid id Hlg
   wp_start as -
+  iapply wp_fupd
   wp_auto
   rw [_root_.decide_eq_false Hlg]
   wp_auto
-  wp_alloc ps as Hps
+  irename «$r0» => Hps
+  generalize «$r0_ptr» = ps at *
   iStructNamed Hps
   ipersist lg; ipersist local'; ipersist id
   imod sync.init_Mutex (peerStatusInv ps) ⊤
@@ -40,7 +42,7 @@ theorem rafthttp.newPeerStatus.wp_proof :
     iunfold peerStatusInv
     iexists _, _
     iframe
-  (try wp_auto)
+  imodintro
   iapply HΦ
   iunfold peerStatusOk
   iexists lg, lid, id

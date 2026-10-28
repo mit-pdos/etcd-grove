@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- The generated handler of `KV.Txn`: decode a `*TxnRequest`, call `srv.Txn` (directly or
 through the interceptor chain, with `info.FullMethod = "/etcdserverpb.KV/Txn"`), as every
-generated unary handler (`wp_unaryHandler`; the build checks that this handler's body is
+generated unary handler (`wp_unaryHandlerMd`; the build checks that this handler's body is
 `unaryHandlerImpl` at these arguments). -/
 theorem etcdserverpb._KV_Txn_Handler.wp_proof :
     etcdserverpb._KV_Txn_Handler.spec (GF := GF) (hG := hG) :=
-  wp_unaryHandler etcdserverpb._KV_Txn_Handler etcdserverpb.KVServer.ty
+  wp_unaryHandlerMd etcdserverpb._KV_Txn_Handler etcdserverpb.KVServer.ty
     etcdserverpb.TxnRequest.ty etcdserverpb.TxnResponse.ty go!"Txn" go!"/etcdserverpb.KV/Txn"
 
 end proof

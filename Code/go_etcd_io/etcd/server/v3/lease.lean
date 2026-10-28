@@ -204,27 +204,30 @@ noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "ttl"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Lease.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ttl" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "ttl"))
   (Let "id" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (Var "id"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc Lease.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Lease.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "ttl"))
   (Let "$v2" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType LeaseItem.ty (go.GoType.StructType []))]))) (Val #())) (Val #()))
   (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral Lease.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression LeaseID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"ttl")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"itemSet")) (ElementExpression (go.GoType.MapType LeaseItem.ty (go.GoType.StructType [])) (Var "$v2"))), (KeyedElement (some (KeyField go!"revokec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v3")))])))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Lease.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression LeaseID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"ttl")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"itemSet")) (ElementExpression (go.GoType.MapType LeaseItem.ty (go.GoType.StructType [])) (Var "$v2"))), (KeyedElement (some (KeyField go!"revokec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v3")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "$res0"))))))
 
 /-- go: lease.go:55:17 -/
 noncomputable def Lease.persistTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "b"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (Var "l"))
   (Let "b" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "b"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ttl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"remainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
@@ -251,7 +254,8 @@ noncomputable def Lease.persistTo.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty))) (Pair (Var "lpb") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty))) (Pair (Var "lpb") (Var "$r0")))))))))))
+  (Val #()))))
 
 /-- TTL returns the TTL of the Lease.
 
@@ -259,10 +263,16 @@ noncomputable def Lease.persistTo.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Lease.TTL.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (Var "l"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ttl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ttl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- getRemainingTTL returns the last checkpointed remaining TTL of the lease.
 
@@ -270,16 +280,26 @@ noncomputable def Lease.TTL.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Lease.getRemainingTTL.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (Var "l"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ttl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ttl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"remainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #(W64 0)))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"remainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"remainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"remainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- refresh refreshes the expiry of the lease.
 
@@ -287,13 +307,10 @@ noncomputable def Lease.getRemainingTTL.impl [GooseExts] [GoGlobalContext] : val
 noncomputable def Lease.refresh.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "extend"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (Var "l"))
   (Let "extend" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "extend"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "extend")) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Lease.ty) go!"getRemainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))) (Val #())) (Val _root_.Perennial.time.Second)))))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"Add"))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))) (Var "$a0")))
   (Let "newExpiry" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
@@ -312,7 +329,8 @@ noncomputable def Lease.refresh.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"expiryMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "newExpiry") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "newExpiry") (Var "$r0")))))))))))
+  (Val #()))))
 
 /-- forever sets the expiry of lease to be forever.
 
@@ -320,12 +338,9 @@ noncomputable def Lease.refresh.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Lease.forever.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (Var "l"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GlobalVarAddr forever))) (Val #())))
@@ -338,7 +353,8 @@ noncomputable def Lease.forever.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"expiryMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"expiryMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #())))))))
+  (Val #()))))
 
 /-- Keys returns all the keys attached to the lease.
 
@@ -346,7 +362,8 @@ noncomputable def Lease.forever.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Lease.Keys.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (Var "l"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.string)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseItem.ty (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"itemSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
@@ -355,8 +372,12 @@ noncomputable def Lease.Keys.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseItem.ty (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"itemSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
@@ -376,43 +397,53 @@ noncomputable def Lease.Keys.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "keys") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0"))))))
 
 /-- go: lease_queue.go:33:22 -/
 noncomputable def LeaseQueue.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pq"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc LeaseQueue.ty))) (Var "pq"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [LeaseQueue.ty]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [LeaseQueue.ty]))) (Val #())) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: lease_queue.go:35:22 -/
 noncomputable def LeaseQueue.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pq"
   (Lam "i"
   (Lam "j"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc LeaseQueue.ty))) (Var "pq"))
   (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef LeaseWithTime.ty go!"time"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (App (Val (GoInstruction (IndexRef LeaseQueue.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (App (Val (GoInstruction (StructFieldRef LeaseWithTime.ty go!"time"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (App (Val (GoInstruction (IndexRef LeaseQueue.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef LeaseWithTime.ty go!"time"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (App (Val (GoInstruction (IndexRef LeaseQueue.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (App (Val (GoInstruction (StructFieldRef LeaseWithTime.ty go!"time"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (App (Val (GoInstruction (IndexRef LeaseQueue.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (Var "$a0")))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
 /-- go: lease_queue.go:39:22 -/
 noncomputable def LeaseQueue.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pq"
   (Lam "i"
   (Lam "j"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc LeaseQueue.ty))) (Var "pq"))
   (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$l0" (App (Val (GoInstruction (IndexRef LeaseQueue.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
   (Let "$l1" (App (Val (GoInstruction (IndexRef LeaseQueue.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (App (Val (GoInstruction (IndexRef LeaseQueue.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "pq")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
@@ -429,18 +460,16 @@ noncomputable def LeaseQueue.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseWithTime.ty)))) (Pair (Var "$l1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseWithTime.ty)))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseWithTime.ty)))) (Pair (Var "$l0") (Var "$r0")))))))))))))
+  (Val #())))))
 
 /-- go: lease_queue.go:45:23 -/
 noncomputable def LeaseQueue.Push.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pq"
   (Lam "x"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseQueue.ty)))) (Var "pq"))
   (Let "x" (App (Val (GoInstruction (GoAlloc go.any))) (Var "x"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseQueue.ty)))) (Var "pq")))
   (App (App (Val (GoInstruction (FuncResolve go.len [LeaseQueue.ty]))) (Val #())) (Var "$a0")))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -461,13 +490,15 @@ noncomputable def LeaseQueue.Push.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseWithTime.ty)))) (Pair (Var "item") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
+  (Val #()))))
 
 /-- go: lease_queue.go:52:23 -/
 noncomputable def LeaseQueue.Pop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pq"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pq" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseQueue.ty)))) (Var "pq"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseQueue.ty)))) (Var "pq")))
   (Let "old" (App (Val (GoInstruction (GoAlloc LeaseQueue.ty))) (App (Val (GoInstruction (GoZeroVal LeaseQueue.ty))) (Val #())))
@@ -484,8 +515,12 @@ noncomputable def LeaseQueue.Pop.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "old"))
   (App (Val (GoInstruction (Slice LeaseQueue.ty))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1)))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType LeaseWithTime.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (Var "item")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType LeaseWithTime.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (Var "item"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore LeaseQueue.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseQueue.ty)))) (Var "pq")) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -495,27 +530,31 @@ noncomputable def LeaseQueue.Pop.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore LeaseQueue.ty))) (Pair (Var "old") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore LeaseQueue.ty))) (Pair (Var "old") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
 
 /-- go: lease_queue.go:68:6 -/
 noncomputable def newLeaseExpiredNotifier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc LeaseExpiredNotifier.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType LeaseID.ty (go.GoType.PointerType LeaseWithTime.ty))]))) (Val #())) (Val #()))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc LeaseExpiredNotifier.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType LeaseID.ty (go.GoType.PointerType LeaseWithTime.ty))]))) (Val #())) (Val #()))
   (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make2 [LeaseQueue.ty]))) (Val #())) (Val #(W64 0)))
-  (App (Val (GoInstruction (CompositeLiteral LeaseExpiredNotifier.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"m")) (ElementExpression (go.GoType.MapType LeaseID.ty (go.GoType.PointerType LeaseWithTime.ty)) (Var "$v0"))), (KeyedElement (some (KeyField go!"queue")) (ElementExpression LeaseQueue.ty (Var "$v1")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral LeaseExpiredNotifier.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"m")) (ElementExpression (go.GoType.MapType LeaseID.ty (go.GoType.PointerType LeaseWithTime.ty)) (Var "$v0"))), (KeyedElement (some (KeyField go!"queue")) (ElementExpression LeaseQueue.ty (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (Var "$res0")))))
 
 /-- go: lease_queue.go:83:33 -/
 noncomputable def LeaseExpiredNotifier.RegisterOrUpdate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mq"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "mq" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (Var "mq"))
   (Let "item" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseWithTime.ty)))) (Var "item"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "__p" (App (App (Val (map.lookup2 LeaseID.ty (go.GoType.PointerType LeaseWithTime.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType LeaseWithTime.ty))))) (App (Val (GoInstruction (StructFieldRef LeaseExpiredNotifier.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (Var "mq"))))) (App (Val (GoInstruction (GoLoad LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef LeaseWithTime.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (Var "item")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -545,7 +584,8 @@ noncomputable def LeaseExpiredNotifier.RegisterOrUpdate.impl [GooseExts] [GoGlob
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseWithTime.ty)))) (Pair (Var "old") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseWithTime.ty)))) (Pair (Var "old") (Var "$r0")))))))))))))))
+  (Val #()))))
 
 /-- isPrimary indicates if this lessor is the primary lessor. The primary
     lessor manages lease expiration and renew.
@@ -565,22 +605,25 @@ noncomputable def LeaseExpiredNotifier.RegisterOrUpdate.impl [GooseExts] [GoGlob
 noncomputable def lessor.isPrimary.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"demotec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val UntypedNil)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"demotec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val UntypedNil))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: lessor.go:267:19 -/
 noncomputable def lessor.SetRangeDeleter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam "rd"
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "rd" (App (Val (GoInstruction (GoAlloc RangeDeleter.ty))) (Var "rd"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad RangeDeleter.ty))) (Var "rd"))
@@ -593,14 +636,17 @@ noncomputable def lessor.SetRangeDeleter.impl [GooseExts] [GoGlobalContext] : va
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #())))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))
+  (Val #()))))
 
 /-- go: lessor.go:281:19 -/
 noncomputable def lessor.Grant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam "id"
   (Lam "ttl"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Lease.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "ttl" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "ttl"))
@@ -623,8 +669,16 @@ noncomputable def lessor.Grant.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType lessor.ty) go!"isPrimary"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Val #()))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc LeaseWithTime.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"expiry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
@@ -673,8 +727,16 @@ noncomputable def lessor.Grant.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseExists))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseExists))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -692,21 +754,39 @@ noncomputable def lessor.Grant.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "l") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "ttl")) (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val MaxLeaseTTL)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseTTLTooLarge))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseTTLTooLarge))) (Val #())))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals LeaseID.ty))) (Pair (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id")) (Val NoLease))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #())))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: lessor.go:326:19 -/
 noncomputable def lessor.Revoke.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam "id"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "id" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (Var "id"))
@@ -732,8 +812,12 @@ noncomputable def lessor.Revoke.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty go!"Inc"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr leaseRevoked))) (Val #())))) (Val #()))))))
   (App (Val doExecute)
@@ -777,8 +861,12 @@ noncomputable def lessor.Revoke.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore TxnDelete.ty))) (Pair (Var "txn") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals RangeDeleter.ty))) (Pair (App (Val (GoInstruction (GoLoad RangeDeleter.ty))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"rd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (App (Val (GoInstruction (Convert go.untypedNil RangeDeleter.ty))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -792,8 +880,12 @@ noncomputable def lessor.Revoke.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #())))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Lease.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil)))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #()))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))
   (App (Val doExecute)
@@ -801,14 +893,16 @@ noncomputable def lessor.Revoke.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "l") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: lessor.go:367:19 -/
 noncomputable def lessor.Checkpoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam "id"
   (Lam "remainingTTL"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "remainingTTL" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "remainingTTL"))
@@ -816,8 +910,12 @@ noncomputable def lessor.Checkpoint.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "__p" (App (App (Val (map.lookup2 LeaseID.ty (go.GoType.PointerType Lease.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType Lease.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))) (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -858,48 +956,66 @@ noncomputable def lessor.Checkpoint.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- go: lessor.go:385:19 -/
 noncomputable def lessor.shouldPersistCheckpoints.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve cluster.ty go!"Version"))) (App (Val (GoInstruction (GoLoad cluster.ty))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))) (Val #()))
   (Let "cv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"checkpointPersist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #true) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Var "cv")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Val UntypedNil))))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Var "cv")))
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"checkpointPersist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #true) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Var "cv")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Val UntypedNil))))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Var "cv")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_6))) (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve greaterOrEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))))))
+  (App (App (App (Val (GoInstruction (FuncResolve greaterOrEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (Var "cv") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (Var "cv") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: lessor.go:390:6 -/
 noncomputable def greaterOrEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "first"
   (Lam "second"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "second" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Var "second"))
   (Let "first" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Var "first"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Var "first"))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Var "first"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Var "second"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.version.LessThan []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.version.LessThan []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: lessor.go:458:19 -/
 noncomputable def lessor.Lookup.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam "id"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Lease.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "id" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (Var "id"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 LeaseID.ty (go.GoType.PointerType Lease.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType Lease.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))) (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (map.lookup1 LeaseID.ty (go.GoType.PointerType Lease.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType Lease.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))) (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -907,18 +1023,16 @@ noncomputable def lessor.Lookup.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "$res0"))))))
 
 /-- go: lessor.go:534:19 -/
 noncomputable def lessor.Demote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -958,7 +1072,8 @@ noncomputable def lessor.Demote.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #())))))))
+  (Val #()))))
 
 /-- Attach attaches items to the lease with given ID. When the lease
     expires, the attached items will be automatically removed.
@@ -969,7 +1084,8 @@ noncomputable def lessor.Attach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam "id"
   (Lam "items"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType LeaseItem.ty)))) (Var "items"))
@@ -983,8 +1099,12 @@ noncomputable def lessor.Attach.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType LeaseItem.ty)))) (Var "items"))
@@ -1008,8 +1128,12 @@ noncomputable def lessor.Attach.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Lease.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1021,13 +1145,15 @@ noncomputable def lessor.Attach.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- go: lessor.go:573:19 -/
 noncomputable def lessor.GetLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam "item"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (App (Val (GoInstruction (GoZeroVal LeaseID.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "item" (App (Val (GoInstruction (GoAlloc LeaseItem.ty))) (Var "item"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1035,14 +1161,19 @@ noncomputable def lessor.GetLease.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "id" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (App (Val (GoInstruction (GoZeroVal LeaseID.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore LeaseID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore LeaseID.ty))) (Pair (Var "id") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "$res0"))))))
 
 /-- Detach detaches items from the lease with given ID.
     If the given lease does not exist, an error will be returned.
@@ -1052,7 +1183,8 @@ noncomputable def lessor.Detach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam "id"
   (Lam "items"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType LeaseItem.ty)))) (Var "items"))
@@ -1066,8 +1198,12 @@ noncomputable def lessor.Detach.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType LeaseItem.ty)))) (Var "items"))
@@ -1093,8 +1229,12 @@ noncomputable def lessor.Detach.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Lease.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Lease.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #()))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1106,42 +1246,45 @@ noncomputable def lessor.Detach.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- go: lessor.go:611:19 -/
 noncomputable def lessor.ExpiredLeasesC.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.SliceType (go.GoType.PointerType Lease.ty))) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"expiredC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.SliceType (go.GoType.PointerType Lease.ty))) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"expiredC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (Var "$res0"))))))
 
 /-- go: lessor.go:689:19 -/
 noncomputable def lessor.clearScheduledLeasesCheckpoints.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [LeaseQueue.ty]))) (Val #())) (Val #(W64 0)))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore LeaseQueue.ty))) (Pair (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseCheckpointHeap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore LeaseQueue.ty))) (Pair (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseCheckpointHeap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Var "$r0")))))))
+  (Val #()))))
 
 /-- go: lessor.go:693:19 -/
 noncomputable def lessor.clearLeaseExpiredNotifier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve newLeaseExpiredNotifier []))) (Val #())) (Val #()))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseExpiredNotifier"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseExpiredNotifier"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Var "$r0")))))))
+  (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.lease where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.container.heap, pkg_id.context, pkg_id.errors, pkg_id.sort, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.github_com.prometheus.client_golang.prometheus]

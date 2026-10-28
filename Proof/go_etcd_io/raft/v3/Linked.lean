@@ -19,6 +19,8 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
 public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Spec.go_etcd_io.raft.v3.StartNode
+public import Spec.go_etcd_io.raft.v3.node__Advance
+public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 import Proof.go_etcd_io.raft.v3.Link
 
 @[expose] public section
@@ -45,6 +47,24 @@ theorem wp_StartNode [StorageModel GF] :
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.wp_RestartNode
+
+/-! The dynamic variants (2026-10-28: the known exception to one spec per function, until a cluster
+takes both snapshots and reconfiguration; `etc/gen-link.py` links only a function's `wp_proof`, so
+they are linked here, from the same callees). -/
+
+theorem wp_StartNode_dynamic [StorageModel GF] :
+    StartNode.dynamicSpec (GF := GF) (hG := hG) :=
+  StartNode.wp_proof_dynamic _root_.Perennial.EtcdGrove.wp_setupNode
+    _root_.Perennial.EtcdGrove.node.wp_run
+
+theorem node.wp_Advance_dynamic [StorageModel GF] :
+    node.Advance.dynamicSpec (GF := GF) (hG := hG) :=
+  node.Advance.wp_proof_dynamic
+
+theorem node.wp_ApplyConfChange_dynamic [StorageModel GF] :
+    node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) :=
+  node.ApplyConfChange.wp_proof_dynamic _root_.Perennial.EtcdGrove.raftpb.ConfChange.wp_AsV2
+    _root_.Perennial.EtcdGrove.raftpb.ConfChangeV2.wp_AsV2
 
 end linksLC
 

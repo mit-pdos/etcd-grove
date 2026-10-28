@@ -127,9 +127,9 @@ theorem snapDirs_alloc : ∀ (ps : List w64), ps.Nodup →
 
 /-- `c` of the cluster's read credits for each member of `ps`, out of `n` (D21e (A): `c = 2 ^ 48`;
 2026-10-27: the node API's `readCredits`, until then raft's `rdCred`). -/
-theorem readCredits_members (cl : Draft.Cluster) (c : Nat) :
+theorem readCredits_members (cl : Cluster) (c : Nat) :
     ∀ (ps : List w64) (n : Nat), ps.length * c ≤ n →
-      Draft.readCredits (GF := GF) cl n ⊢ [∗list] _id ∈ ps, Draft.readCredits cl c
+      readCredits (GF := GF) cl n ⊢ [∗list] _id ∈ ps, readCredits cl c
   | [], _, _ => by
     iintro -
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
@@ -137,20 +137,20 @@ theorem readCredits_members (cl : Draft.Cluster) (c : Nat) :
   | _ :: ps, n, h => by
     rw [List.length_cons, Nat.succ_mul] at h
     iintro H
-    ihave H' : iprop(Draft.readCredits cl (c + (n - c))) $$ [H]
+    ihave H' : iprop(readCredits cl (c + (n - c))) $$ [H]
     · rw [show c + (n - c) = n by omega]
       iexact H
-    icases (Draft.readCredits_split cl _ _).1 $$ H' with ⟨H1, H2⟩
+    icases (readCredits_split cl _ _).1 $$ H' with ⟨H1, H2⟩
     iapply BigSepL.bigSepL_cons.2
     iframe H1
     iapply (readCredits_members cl c ps (n - c) (by omega)) $$ H2
 
 /-- The node API's bootstrap log, as the server's entries, is the node API's log. -/
-theorem bootEntries_toLE (boot : List Draft.LogEntry) :
-    (bootEntries (Draft.LogEntry.toEntries boot 0)).map EntryModel.toLE = boot := by
+theorem bootEntries_toLE (boot : List LogEntry) :
+    (bootEntries (LogEntry.toEntries boot 0)).map EntryModel.toLE = boot := by
   apply List.ext_getElem?
   intro n
-  unfold bootEntries Draft.LogEntry.toEntries
+  unfold bootEntries LogEntry.toEntries
   simp only [List.map_map, List.getElem?_map, List.getElem?_mapIdx]
   cases boot[n]? <;> rfl
 
@@ -166,17 +166,17 @@ read contexts, and each member's share: its prefix's entry of the claims, `2 ^ 4
 cluster's read credits, its boot token and its snapshot directory. The pure premises (D21e (A),
 `issues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
 `0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). -/
-theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (HB : Draft.BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
-    (hcc : ∀ e ∈ Draft.LogEntry.toEntries boot 0,
+    (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
+    (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
       ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
-    ⊢ bootMarshal (GF := GF) ps ctxs (Draft.LogEntry.toEntries boot 0) ={⊤}=∗
+    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt : GName) (γk : KVNames),
-        ⌜γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = Draft.LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
+        ⌜γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
@@ -184,7 +184,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          Draft.readCredits γ.cl (2 ^ 48) ∗ Draft.nodeBoot γ.cl srvClusterN ps ctxs id ∗
+          readCredits γ.cl (2 ^ 48) ∗ nodeBoot γ.cl srvClusterN ps ctxs id ∗
           -- (2026-10-26, D22 J2) and its snapshot directory, empty (`SrvRaft.snapLoc`)
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
@@ -197,14 +197,14 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     cases ps with
     | nil => exact absurd rfl Hne
     | cons a _ => exact ⟨a, rfl⟩
-  have hnf : ∀ m ∈ bootEntries (Draft.LogEntry.toEntries boot 0), ¬ m.toLE.isFiller := by
+  have hnf : ∀ m ∈ bootEntries (LogEntry.toEntries boot 0), ¬ m.toLE.isFiller := by
     intro m hm hf
     obtain ⟨-, h⟩ := hf
     simp only [EntryModel.toLE] at h
     rw [hty m hm] at h
     have h10 : (W32 1 : w32) ≠ W32 0 := by decide
     exact h10 h
-  have hnn : ∀ m ∈ bootEntries (Draft.LogEntry.toEntries boot 0), m.typ ≠ W32 0 := by
+  have hnn : ∀ m ∈ bootEntries (LogEntry.toEntries boot 0), m.typ ≠ W32 0 := by
     intro m hm
     rw [hty m hm]
     decide
@@ -213,24 +213,24 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
   imod (idWait_alloc_list (GF := GF) (idPfxsOf ps) Hpnd) with ⟨%wn, Hwns⟩
   imod (snapDirs_alloc (GF := GF) ps Hnd) with ⟨%sl, Hsd⟩
   -- the node API's static cluster, leader transfer off, no snapshot's data vouched for
-  imod (Draft.cluster_alloc (GF := GF) srvClusterN ps ctxs boot (fun _ _ => False) false ⊤ Hrb
+  imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot (fun _ _ => False) false ⊤ Hrb
       Hrb2 HB Hnd Hne Hnz) $$ Hmarsh
     with ⟨%cl, Hops, Hctxs, HrdC, #Hst, #Hxo, #Hfits, Hboots⟩
   -- the server's raft names over it, its log of requested entries at the bootstrap log
-  imod (srvLogInv_alloc (GF := GF) cl ps false (srvDec (W64 0) (Draft.LogEntry.toEntries boot 0))
-      (Draft.LogEntry.toEntries boot 0) reg sl (bootEntries (Draft.LogEntry.toEntries boot 0)) ⊤
+  imod (srvLogInv_alloc (GF := GF) cl ps false (srvDec (W64 0) (LogEntry.toEntries boot 0))
+      (LogEntry.toEntries boot 0) reg sl (bootEntries (LogEntry.toEntries boot 0)) ⊤
       hidx hnf hnn) $$ [Hops]
     with ⟨%γ, %Hγ, #Hli, HL, #Hlb0, Hfresh, Hrdf⟩
   · rw [bootEntries_toLE]; iexact Hops
   obtain ⟨hcl, hvs, hdyn, -, hbt, hreg, hsl⟩ := Hγ
   -- the cluster's kind: the allocation's facts, its companions, started from the bootstrap log
   ihave Hboots2 := BigSepL.bigSepL_mono (PROP := IProp GF)
-    (Φ := fun _ id => Draft.nodeBoot (GF := GF) cl srvClusterN ps ctxs id)
-    (Ψ := fun _ id => iprop(Draft.nodeBoot (GF := GF) cl srvClusterN ps ctxs id ∗
-      Draft.bootedCluster cl))
-    (fun {k x} _ => Draft.nodeBoot_booted cl srvClusterN ps ctxs x Hne) $$ Hboots
+    (Φ := fun _ id => nodeBoot (GF := GF) cl srvClusterN ps ctxs id)
+    (Ψ := fun _ id => iprop(nodeBoot (GF := GF) cl srvClusterN ps ctxs id ∗
+      bootedCluster cl))
+    (fun {k x} _ => nodeBoot_booted cl srvClusterN ps ctxs x Hne) $$ Hboots
   icases (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).1 $$ Hboots2 with ⟨Hboots, Hbts⟩
-  ihave #Hbt := (BigSepL.bigSepL_lookup (Φ := fun _ _ => Draft.bootedCluster (GF := GF) cl) hp0)
+  ihave #Hbt := (BigSepL.bigSepL_lookup (Φ := fun _ _ => bootedCluster (GF := GF) cl) hp0)
     $$ Hbts
   ihave #Hcok : srvClusterOk (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
   · iunfold srvClusterOk
@@ -273,8 +273,8 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     exact ⟨hvs, hdyn, hbt, hreg, rfl, rfl, rfl, rfl⟩
   isplitl [Hps Hcr Hsd Hboots]
   · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
-    ihave Hbc : iprop([∗list] id ∈ ps, (Draft.readCredits γ.cl (2 ^ 48) ∗
-        Draft.nodeBoot γ.cl srvClusterN ps ctxs id ∗
+    ihave Hbc : iprop([∗list] id ∈ ps, (readCredits γ.cl (2 ^ 48) ∗
+        nodeBoot γ.cl srvClusterN ps ctxs id ∗
         ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth (GF := GF) γd 1 (∅ : GMap w64 Unit)))
       $$ [Hcr Hsd Hboots]
     · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2

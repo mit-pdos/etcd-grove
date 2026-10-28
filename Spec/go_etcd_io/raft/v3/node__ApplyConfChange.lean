@@ -1,40 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-## `node.ApplyConfChange(cc)` (node.go:556), 2026-10-13 (reconfiguration stage D)
+## `node.ApplyConfChange`
 
-From any goroutine: `cc.AsV2()` onto `confc` (`confcP`: its changes, read-only, keep the
-voters and only drop learners -- `CCShrink`; until 2026-10-13 an unchanged configuration), which `run` applies (`raft.applyConfChange`, the ghost step inside,
-`wp_rn_raft_applyConfChange`) and answers with the `ConfState` on `confstatec`
-(`confstateP`), which this returns, by pointer. `n.done` never fires.
-
-**Scope**, as `RawNode.ApplyConfChange`'s: a change whose model answer keeps the voters and
-some of the learners (`CCShrink` of `ccV2Of o`), e.g. a `ConfChange` with `NodeId = 0`, or a
-`RemoveNode` of a learner. The change is held read-only (`DFrac.discard`): `run` reads its `Changes`
-on its own goroutine.
-
-**Order with `Advance`** (`issues/raft-advance-before-applyconfchange.md`): an application
-must apply a `Ready`'s conf-change entries before it calls `Advance` for that `Ready`, which
-node.go's documentation does not say (it allows `Advance` while applying). For the changes
-covered here the order does not matter (the configuration in use does not change), so no
-premise; a configuration-changing `ApplyConfChange` will need one.
-
-**The dynamic mode (2026-10-15, stage N).** In a node of the dynamic mode (`γ.mode`, from
-`RestartNode`), any change the driver applies in order: the change of the next conf-change
-entry `e` of the committed log `ds` it was handed (`dlvLb`), at position `k` past its
-configuration index `ca` (`DynCCPreOp`: the decoder's change, which applies to its
-configuration `cfg` with no `confchange` error and is no auto-leave joint configuration). The
-driver's view `nodeCfg γ ca cfg` goes along with the change on `confc` (`confcP`) and comes back
-on `confstatec` at `(k + 1, cs')` (`confstateP`, recognized by the answer slot `ccq`); the run
-loop checks the premises against its `RawNode` (`runCfg_confc`) and applies the change there
-(`StepR.applyConf`, a removed leader stepping down). The answer is the new configuration's
-`ConfState` (`confstateOk`). A1 at `Advance` (`node.Advance.spec`) is what makes the order
-matter.
-
-**raft v3.7 (2026-10-16, stage R5).** `cc.AsV2()` is a `*pb.ConfChangeV2` (for a
-`*ConfChangeV2`, `cc` itself), sent on `confc` read-only (`confcP`: `ownConfChangeV2 v □`, hence
-`ownConfChangeI c □`); the answer is the `*pb.ConfState` `run`'s `applyConfChange` returned, owned
-(`csPts csp 1 cs true`), its lists the record's (`confstateS`/`confstateOk` pure). Go returns
-`nil` if `done` fires first, which it never does.
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.ApplyConfChange.specRaw`.)
 -/
 module
 
@@ -56,28 +26,42 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- **`node.ApplyConfChange(cc)`** in a static cluster of the voters `vs`, from any goroutine: a
+change that keeps the voters and drops only learners (`CCShrink`: e.g. a `ConfChange` with
+`NodeId = 0`, or a `RemoveNode` of a learner), which the client states of a change it requested
+(its committed requested entries say which). The answer is a fresh `ConfState`: the voters, no
+learner among them, not joint. (2026-10-27: raft's static case, `node__ApplyConfChange.lean`.) -/
 abbrev node.ApplyConfChange.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM)
-    -- (2026-10-15, stage N) the dynamic mode's: the committed log the driver was handed (a
-    -- lower bound of `run`'s), its view of the configuration, the conf entry applied (at
-    -- position `k`) and the configuration it gives
-    (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat) (e : EntryM)
-    (cs' : CCState),
-  -- the static mode (the voters fixed): a change that keeps the voters, drops learners
-  (γ.mode = .static → CCShrink γ.raft.reCfg (ccV2Of o).1 (ccV2Of o).2) →
-  -- the dynamic mode: the next committed conf entry's decoded change, which applies
-  (∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 → DynCCPreOp dec ds ca cfg (ccV2Of o) k e cs') →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      ownConfChangeI c DFrac.discard (some o) ∗
-      (⌜γ.mode = .static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds) }}
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (vs : List w64)
+    (snapOk : List LogEntry → List w8 → Prop) (c : GoInterface) (o : ConfChangeIM),
+  CCShrink (GMap.listToSet vs) (ccV2Of o).1 (ccV2Of o).2 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
+      isStaticCluster γ N vs snapOk ∗ ownConfChangeI c DFrac.discard (some o) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
-  {{ (csp : Loc) (cs : ConfStateM), RET #csp;
-      -- (2026-10-16, stage R5) `applyConfChange`'s fresh `*pb.ConfState`, owned (`confstateP`;
-      -- until then `csp ↦ cs` with the slices in `confstateS`/`confstateOk`)
-      csPts csp (DFrac.own 1) cs true ∗
-      ((⌜γ.mode = .static⌝ ∗ ⌜confstateS γ cs⌝) ∨
-       (⌜γ.mode.isDyn = true⌝ ∗ nodeCfg γ (k + 1) cs' ∗ ⌜confstateOk cs cs'.cfg⌝)) }}
+  {{ (csp : Loc) (cs : ConfStateM), RET #csp; csPts csp (DFrac.own 1) cs true ∗
+      ⌜cs.Voters' ≡ₚ vs ∧ (∀ k ∈ cs.Learners', k ∉ vs) ∧ cs.VotersOutgoing' = [] ∧
+        cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ }}
+
+/-- **`node.ApplyConfChange(cc)`** in a dynamic cluster, from any goroutine: the change of the next
+conf-change entry `e` of the committed log delivered to the node, at position `k` past its view's
+configuration index (no conf-change entry between), as the decoder gives it (`o'`), or any change
+`o` with its effect on the view's membership; the result not left automatically (no auto-leave
+joint configuration). The view moves past the entry, to the membership the change gives; the answer
+is a fresh `ConfState` reporting it. (Today the dynamic case of `node__ApplyConfChange.lean`,
+`DynCCPreOp`, `nodeCfg`, `dlvLb`.) -/
+abbrev node.ApplyConfChange.dynamicSpec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c0 : Membership)
+    (decode : ConfChangeDecoder) (c : GoInterface) (o o' : ConfChangeIM) (l : List LogEntry)
+    (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
+  v.applied ≤ k → l[k]? = some e → e.isConfChange → NoConfChangeIn l v.applied k →
+  decode (l.take k) e = some o' → Membership.applyChange o' v.membership = some m' →
+  Membership.applyChange o v.membership = some m' → m'.autoLeave = false →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
+      isDynamicCluster γ N c0 decode ∗ ownConfChangeI c DFrac.discard (some o) ∗
+      nodeConfig n γ N v ∗ deliveredLogLb n γ N l }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
+  {{ (csp : Loc) (cs : ConfStateM), RET #csp; csPts csp (DFrac.own 1) cs true ∗
+      nodeConfig n γ N ⟨k + 1, m'⟩ ∗ ⌜confStateIs cs m'⌝ }}
 
 end spec
 

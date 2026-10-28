@@ -223,7 +223,6 @@ axiom Perennial.google_golang_org.grpc.metadata.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.reflection.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
-axiom Perennial.iter.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.errors.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.meta.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.validate.content.opaqueInitsOk

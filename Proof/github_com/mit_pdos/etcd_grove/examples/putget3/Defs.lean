@@ -51,12 +51,12 @@ header). (2026-10-27, the server port: the bootstrap log `bl` with the peers' co
 node API's `BootLog`, each entry a conf change of id `0` that the server's `applyConfChange` takes;
 until then `srvBootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog`, under the conf-change
 policy `ccOk`, over raft's records.) -/
-structure BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List Draft.LogEntry) :
+structure BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry) :
     Prop where
   idLow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup
   idLow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0
-  boot : Draft.BootLog [id₁, id₂, id₃] ctxs bl
-  cc : ∀ e ∈ Draft.LogEntry.toEntries bl 0,
+  boot : BootLog [id₁, id₂, id₃] ctxs bl
+  cc : ∀ e ∈ LogEntry.toEntries bl 0,
     ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id₁, id₂, id₃]) e.Data'
 
 /-- A URL `http://<host>`. -/
@@ -149,20 +149,20 @@ instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := b
 member's apply thread's write tokens, the member ids, the peers' contexts and the bootstrap log;
 (2026-10-27, the server port) with `proto.Marshal`'s contract at the bootstrap log's conf changes
 (`bootMarshal`, which the cluster's allocation takes; until then `bootstrap`'s contract gave it). -/
-def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry) :
+def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     IProp GF :=
   iprop(
-    bootPremise N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₁ peerAddr₁ clientAddr₁ id₁ ∗
-    bootPremise N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₂ peerAddr₂ clientAddr₂ id₂ ∗
-    bootPremise N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₃ peerAddr₃ clientAddr₃ id₃ ∗
-    bootMarshal [id₁, id₂, id₃] ctxs (Draft.LogEntry.toEntries boot 0) ∗
+    bootMarshal [id₁, id₂, id₃] ctxs (LogEntry.toEntries boot 0) ∗
     commonPremises)
 
 instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8))
-    (boot : List Draft.LogEntry) :
+    (boot : List LogEntry) :
     Persistent (premises (GF := GF) N id₁ id₂ id₃ ctxs boot) := by
   unfold premises; infer_instance
 

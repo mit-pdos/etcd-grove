@@ -94,6 +94,7 @@ theorem store.Create.wp_proof
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
   ihave %Hobjn := c.S.objAt_ne_nil obj o rv $$ Hobj
+  wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

@@ -118,7 +118,7 @@ theorem makeEntries.wp_proof
       rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Ho]; rfl
     have Htl : (ops.take (sint.nat n)).length = sint.nat n := by
       rw [List.length_take]; omega
-    iframe HΦ Hs
+    iframe HΦ Hs «$res0»
     iexists n + W64 1, s5, o
     simp only [named, Htake, rawEntries_snoc, Htl, List.append_assoc, List.cons_append,
       List.nil_append]

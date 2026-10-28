@@ -15,7 +15,7 @@ Lemmas of the `node` API (`node.go`; raft v3.7 retarget, stage R5 phase 3, group
 module
 
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange

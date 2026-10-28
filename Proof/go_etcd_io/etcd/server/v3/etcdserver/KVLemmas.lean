@@ -94,7 +94,7 @@ section opsModel
 variable [GooseExts]
 
 /-- **A requested entry's effect** on the model's state, above the consistent index. -/
-def kvOpSt (ch : apply.Chain) (s : mvcc.Log × LeaseTable) (x : Draft.LogEntry) :
+def kvOpSt (ch : apply.Chain) (s : mvcc.Log × LeaseTable) (x : LogEntry) :
     mvcc.Log × LeaseTable :=
   kvEntrySt (W64 0) ch s ⟨x.term, W64 1, x.type, x.data⟩
 
@@ -116,7 +116,7 @@ theorem kvEntrySt_filler (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseT
 theorem kvRaftSt_ops (c₀ : w64) (ch : apply.Chain) :
     ∀ (A : List EntryModel) (s : mvcc.Log × LeaseTable),
       (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
-      kvRaftSt c₀ ch s A = (Draft.opsOf (A.map EntryModel.toLE)).foldl (kvOpSt ch) s
+      kvRaftSt c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpSt ch) s
   | [], _, _ => rfl
   | m :: A, s, h => by
     have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index := fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
@@ -124,14 +124,14 @@ theorem kvRaftSt_ops (c₀ : w64) (ch : apply.Chain) :
     rw [List.foldl_cons]
     by_cases hf : m.toLE.isFiller
     · rw [kvEntrySt_filler c₀ ch s m hf]
-      have : Draft.opsOf ((m :: A).map EntryModel.toLE) = Draft.opsOf (A.map EntryModel.toLE) := by
-        simp [Draft.opsOf, hf]
+      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
       rw [this]
       exact kvRaftSt_ops c₀ ch A s hA
     · rw [kvEntrySt_above c₀ ch s m (h m (List.mem_cons_self ..))]
-      have : Draft.opsOf ((m :: A).map EntryModel.toLE) =
-          m.toLE :: Draft.opsOf (A.map EntryModel.toLE) := by
-        simp [Draft.opsOf, hf]
+      have : opsOf ((m :: A).map EntryModel.toLE) =
+          m.toLE :: opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
       rw [this, List.foldl_cons]
       exact kvRaftSt_ops c₀ ch A _ hA
 

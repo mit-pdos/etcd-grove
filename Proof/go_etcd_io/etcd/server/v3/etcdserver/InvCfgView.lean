@@ -1,14 +1,14 @@
 /-
 **The driver's configuration view at the server** (D43 M3, 2026-10-25; `notes/membership-plan.md`,
-M3; 2026-10-27, branch `server-port`: over raft's node API, `Draft.nodeConfig`). In a dynamic
-cluster the application owns its view of the configuration (`Draft.nodeConfig n γ N v`: the
+M3; 2026-10-27, branch `server-port`: over raft's node API, `nodeConfig`). In a dynamic
+cluster the application owns its view of the configuration (`nodeConfig n γ N v`: the
 position past the last applied conf entry and the membership) and applies every conf entry of the
 committed log handed out, in order, before `Advance` (`node.Advance.dynamicSpec`). At the server
 the view is the raft loop's while it drives raft and the apply thread's while it applies a batch
 with a conf entry (`raftNode.start` hands it over with the `toApply`; the second `notifyc` send
 gives it back, `NotifyC.lean`).
 
-- `srvDec c0 boot`: the server's decoder (the cluster's `Draft.ConfChangeDecoder`), a `ConfChange`
+- `srvDec c0 boot`: the server's decoder (the cluster's `ConfChangeDecoder`), a `ConfChange`
   entry's bytes as `pbutil.MustUnmarshal` reads them (`ccDecodeV1`), the change as
   `applyConfChange` hands it to raft after the log before it (D43 M5d: `ccRaftEff`, `NodeId` `0`
   when it does not validate).
@@ -40,7 +40,7 @@ section pure
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 
 /-- A committed log from index `1`, as the server's records: each entry at its position. -/
-def withIdx (l : List Draft.LogEntry) : List EntryModel :=
+def withIdx (l : List LogEntry) : List EntryModel :=
   l.mapIdx fun i x => ⟨x.term, W64 ((i : Int) + 1), x.type, x.data⟩
 
 /-- A log consecutive from index `1` is its entries at their positions. -/
@@ -68,7 +68,7 @@ entry): a `ConfChange` entry's change as `applyConfChange` hands it to raft: the
 validates against the member buckets the log before it leaves (`restModel` from the start's
 consistent index `c0` and the boot log `boot`), else with `NodeId` `0` (`ccRaftEff`); none for any
 other entry (the server proposes no `ConfChangeV2`). -/
-def srvDec (c0 : w64) (boot : List EntryM) : Draft.ConfChangeDecoder := fun pre e =>
+def srvDec (c0 : w64) (boot : List EntryM) : ConfChangeDecoder := fun pre e =>
   if e.type = W32 1 then
     (ccDecodeV1 e.data).map (fun m =>
       .v1 (membership.ccRaftEff (restModel c0 boot (withIdx pre)).bk m))
@@ -108,28 +108,28 @@ theorem gset_size_delete_le (W : GSet w64) (y : w64) :
 /-- **The node API's dynamic `ApplyConfChange`'s premise** (`node.ApplyConfChange.dynamicSpec`'s,
 at the decoder `dec`): the change of the next conf entry `e` at position `k` of the committed log
 `l` past the view, as the decoder gives it or `o`, its effect on the view's membership `m'`. -/
-def srvDynCCPre (dec : Draft.ConfChangeDecoder) (l : List Draft.LogEntry) (v : Draft.ConfigView)
-    (o : ConfChangeIM) (k : Nat) (e : Draft.LogEntry) (m' : Draft.Membership) : Prop :=
-  v.applied ≤ k ∧ l[k]? = some e ∧ e.isConfChange ∧ Draft.NoConfChangeIn l v.applied k ∧
-  ∃ o', dec (l.take k) e = some o' ∧ Draft.Membership.applyChange o' v.membership = some m' ∧
-    Draft.Membership.applyChange o v.membership = some m' ∧ m'.autoLeave = false
+def srvDynCCPre (dec : ConfChangeDecoder) (l : List LogEntry) (v : ConfigView)
+    (o : ConfChangeIM) (k : Nat) (e : LogEntry) (m' : Membership) : Prop :=
+  v.applied ≤ k ∧ l[k]? = some e ∧ e.isConfChange ∧ NoConfChangeIn l v.applied k ∧
+  ∃ o', dec (l.take k) e = some o' ∧ Membership.applyChange o' v.membership = some m' ∧
+    Membership.applyChange o v.membership = some m' ∧ m'.autoLeave = false
 
 /-- The pure part of the view: after the log `D`, the configuration index past every conf entry
 of it, the membership a simple one of voters `W` of `V`, each voter of `V` out of `W` removed by a
 `RemoveNode` of `D`, `W` within raft's bounds. -/
-def srvCfgOk (V : GSet w64) (D : List EntryModel) (v : Draft.ConfigView) : Prop :=
-  v.applied ≤ D.length ∧ Draft.NoConfChangeIn (D.map EntryModel.toLE) v.applied D.length ∧
-  ∃ W : GSet w64, v.membership = Draft.Membership.simple W ∧ (∀ x, x ∈ W → x ∈ V) ∧
+def srvCfgOk (V : GSet w64) (D : List EntryModel) (v : ConfigView) : Prop :=
+  v.applied ≤ D.length ∧ NoConfChangeIn (D.map EntryModel.toLE) v.applied D.length ∧
+  ∃ W : GSet w64, v.membership = Membership.simple W ∧ (∀ x, x ∈ W → x ∈ V) ∧
     (∀ x, x ∈ V → x ∉ W → RemovedIn D x) ∧ W64 0 ∉ W ∧ GMap.size W < 2 ^ 62
 
 /-- The view at the start: nothing handed out, the voters' membership. -/
 theorem srvCfgOk_nil (V : GSet w64) (h0 : W64 0 ∉ V) (hs : GMap.size V < 2 ^ 62) :
-    srvCfgOk V [] ⟨0, Draft.Membership.simple V⟩ :=
+    srvCfgOk V [] ⟨0, Membership.simple V⟩ :=
   ⟨Nat.le_refl _, fun _ _ _ h2 _ => absurd h2 (by simp),
     ⟨V, rfl, fun _ h => h, fun _ h1 h2 => absurd h1 h2, h0, hs⟩⟩
 
 /-- An entry that is no conf entry keeps the view. -/
-theorem srvCfgOk_snoc_noConf {V : GSet w64} {D : List EntryModel} {v : Draft.ConfigView}
+theorem srvCfgOk_snoc_noConf {V : GSet w64} {D : List EntryModel} {v : ConfigView}
     (h : srvCfgOk V D v) (m : EntryModel) (hm : ¬ m.toLE.isConfChange) :
     srvCfgOk V (D ++ [m]) v := by
   obtain ⟨h1, h2, ⟨W, h3, h3a, h3b, h3c⟩⟩ := h
@@ -153,13 +153,13 @@ takes (an `AddNode` of `ccApplyOk`, or a `RemoveNode` of a member of `V`), under
 positional policy (`srvDynPol`, the local member `lid` a member of `V`), meets the node API's
 premise for the change etcd hands raft (`ccRaftEff` at the member buckets after `D`, the server's
 decoder's), and the view after it is at `⟨|D| + 1, m'⟩`. -/
-theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : Draft.ConfigView}
+theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : ConfigView}
     (h : srvCfgOk V D v) (c0 : w64) (boot : List EntryM) (m : EntryModel) (rest : List EntryModel)
     (cm : ConfChangeM) (Hty : m.typ = W32 1) (Hdec : ccDecodeV1 m.data = some cm)
     (nb : Nat) (lid : w64) (hpol : srvDynPol nb lid (D ++ [m])) (hlid : lid ∈ V)
     (Hcm : ccApplyOk V cm ∨ (cm.type = W32 1 ∧ cm.nodeId ∈ V))
     (Hwi : withIdx (D.map EntryModel.toLE) = D) :
-    ∃ m' : Draft.Membership,
+    ∃ m' : Membership,
       srvDynCCPre (srvDec c0 boot) ((D ++ m :: rest).map EntryModel.toLE) v
         (.v1 (membership.ccRaftEff (restModel c0 boot D).bk cm)) D.length m.toLE m' ∧
       srvCfgOk V (D ++ [m]) ⟨D.length + 1, m'⟩ := by
@@ -175,7 +175,7 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : Draft.ConfigView}
     obtain ⟨p, e, cc, hp, het, hd, hct, hcn⟩ := hrem lid hlid hl
     exact ((hpD p e cc hp (by rw [het]; decide) hd).2 hct).2 hcn
   have hne : W ≠ ∅ := fun he => by rw [he] at hlW; exact GMap.not_elem_of_empty _ hlW
-  have hval : (Draft.Membership.simple W).Valid := Draft.Membership.simple_valid W hne hW0 hsz
+  have hval : (Membership.simple W).Valid := Membership.simple_valid W hne hW0 hsz
   generalize heff : membership.ccRaftEff (restModel c0 boot D).bk cm = eff
   have hEff : eff = cm ∨ eff = { cm with nodeId := W64 0 } := by
     rw [← heff]; unfold membership.ccRaftEff; split
@@ -183,12 +183,12 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : Draft.ConfigView}
     · exact .inr rfl
   -- the step: the voters `W'`
   have hstep : ∃ W' : GSet w64,
-      Draft.Membership.applyChange (.v1 eff) (Draft.Membership.simple W) =
-        some (Draft.Membership.simple W') ∧
+      Membership.applyChange (.v1 eff) (Membership.simple W) =
+        some (Membership.simple W') ∧
       (∀ x, x ∈ W' → x ∈ W) ∧ (∀ x, x ∈ W → x ∉ W' → cm.type = W32 1 ∧ cm.nodeId = x) ∧
       GMap.size W' < 2 ^ 62 := by
     by_cases h0 : eff.nodeId = W64 0
-    · exact ⟨W, Draft.Membership.applyChange_nodeZero W eff h0 hval, fun _ h => h,
+    · exact ⟨W, Membership.applyChange_nodeZero W eff h0 hval, fun _ h => h,
         fun _ h1 h2 => absurd h1 h2, hsz⟩
     have hec : eff = cm := by
       rcases hEff with h | h
@@ -204,7 +204,7 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : Draft.ConfigView}
         have := (List.getElem?_eq_some_iff.1 hp).1
         have := hpm.1 ht
         omega
-      exact ⟨W, Draft.Membership.applyChange_addVoter W eff ht hinW hval, fun _ h => h,
+      exact ⟨W, Membership.applyChange_addVoter W eff ht hinW hval, fun _ h => h,
         fun _ h1 h2 => absurd h1 h2, hsz⟩
     · -- a `RemoveNode` of another member than the local one
       have hnl : eff.nodeId ≠ lid := (hpm.2 ht).2
@@ -215,18 +215,18 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : Draft.ConfigView}
             (gset_elem_delete W _ lid).2 ⟨fun e => hnl e.symm, hlW⟩
           rw [he] at this; exact GMap.not_elem_of_empty _ this
         refine ⟨GMap.delete eff.nodeId W,
-          Draft.Membership.applyChange_removeVoter W eff ht h0 hx hdne hval,
+          Membership.applyChange_removeVoter W eff ht h0 hx hdne hval,
           fun x h => ((gset_elem_delete W _ x).1 h).2, fun x h1 h2 => ⟨ht, ?_⟩,
           Nat.lt_of_le_of_lt (gset_size_delete_le W _) hsz⟩
         refine Classical.byContradiction fun hne' => h2 ?_
         exact (gset_elem_delete W _ x).2 ⟨fun e => hne' e.symm, h1⟩
-      · exact ⟨W, Draft.Membership.applyChange_removeAbsent W eff ht h0 hx hval, fun _ h => h,
+      · exact ⟨W, Membership.applyChange_removeAbsent W eff ht h0 hx hval, fun _ h => h,
           fun _ h1 h2 => absurd h1 h2, hsz⟩
   obtain ⟨W', hs, hW'W, hW'r, hsz'⟩ := hstep
   rw [← hcfg] at hs
   have hk : ((D ++ m :: rest).map EntryModel.toLE)[D.length]? = some m.toLE := by
     rw [List.map_append, List.getElem?_append_right (by simp), List.length_map, Nat.sub_self]; rfl
-  have hnc : Draft.NoConfChangeIn ((D ++ m :: rest).map EntryModel.toLE) v.applied D.length := by
+  have hnc : NoConfChangeIn ((D ++ m :: rest).map EntryModel.toLE) v.applied D.length := by
     intro k e hk1 hk2 he
     rw [List.map_append, List.getElem?_append_left (by simpa using hk2)] at he
     exact h2 k e hk1 hk2 he
@@ -237,7 +237,7 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : Draft.ConfigView}
     rw [htake]
     unfold srvDec
     simp only [EntryModel.toLE, Hty, ↓reduceIte, Hdec, Option.map_some, Hwi, heff]
-  refine ⟨Draft.Membership.simple W', ⟨h1, hk, .inl Hty, hnc, ⟨_, hdec, hs, hs, rfl⟩⟩, ?_⟩
+  refine ⟨Membership.simple W', ⟨h1, hk, .inl Hty, hnc, ⟨_, hdec, hs, hs, rfl⟩⟩, ?_⟩
   refine ⟨by simp, fun _ _ h1 h2 _ => absurd h2 (by simp at h1 ⊢; omega),
     ⟨W', rfl, fun x hx => hWV x (hW'W x hx), fun x hx hw => ?_,
       fun h0 => hW0 (hW'W _ h0), hsz'⟩⟩
@@ -258,7 +258,7 @@ variable [sem : go.Semantics]
 header): the node API's `nodeConfig` of the node `n` with `srvCfgOk` at the cluster's voters. -/
 def srvCfgView (γs : ServerRaftNames) (n : Loc) (pre L : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γs.raft
-  iprop(∃ v : Draft.ConfigView, Draft.nodeConfig n γs.raft.cl srvClusterN v ∗
+  iprop(∃ v : ConfigView, nodeConfig n γs.raft.cl srvClusterN v ∗
     ⌜srvCfgOk γs.raft.cfg (pre ++ L) v⌝)
 
 /-- **The node API's `ApplyConfChange` in a dynamic cluster, as the server calls it** (persistent;
@@ -268,15 +268,15 @@ with the driver's view, it returns the new `*ConfState`, owned, and the view at 
 def raftApplyCCDyn (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) : IProp GF :=
   letI := srvStor (GF := GF) γs.raft
   iprop(∃ ni : GoInterfaceOk, ⌜nd = GoInterface.ok ni⌝ ∗ ⌜γs.raft.dyn = true⌝ ∗
-    □ (∀ (c : GoInterface) (cm : ConfChangeM) (l : List Draft.LogEntry) (v : Draft.ConfigView)
-        (k : Nat) (e : Draft.LogEntry) (m' : Draft.Membership),
+    □ (∀ (c : GoInterface) (cm : ConfChangeM) (l : List LogEntry) (v : ConfigView)
+        (k : Nat) (e : LogEntry) (m' : Membership),
       ⌜srvDynCCPre γs.raft.dec l v (.v1 cm) k e m'⌝ -∗
       {{ ownConfChangeI c DFrac.discard (some (.v1 cm)) ∗
-          Draft.nodeConfig n γs.raft.cl srvClusterN v ∗
-          Draft.deliveredLogLb n γs.raft.cl srvClusterN l }}
+          nodeConfig n γs.raft.cl srvClusterN v ∗
+          deliveredLogLb n γs.raft.cl srvClusterN l }}
         (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
       {{ (csp : Loc), RET #csp; (∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true) ∗
-          Draft.nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ }}))
+          nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ }}))
 
 instance raftApplyCCDyn_persistent (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) :
     Persistent (raftApplyCCDyn (GF := GF) γs n nd) := by
@@ -327,7 +327,7 @@ def dvRes (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryMod
   match dv with
   | none => iprop(True)
   | some n => letI := srvStor (GF := GF) γs.raft; iprop(srvRaftNodeDyn s γs n ∗
-      Draft.deliveredLogLb n γs.raft.cl srvClusterN (srvLE γs L))
+      deliveredLogLb n γs.raft.cl srvClusterN (srvLE γs L))
 
 instance dvRes_persistent (s : Loc) (γs : ServerRaftNames) (dv : Option Loc)
     (L : List EntryModel) : Persistent (dvRes (GF := GF) s γs dv L) := by
@@ -345,19 +345,19 @@ def dvOk (γs : ServerRaftNames) (kc0 : w64) (dv : Option Loc) (c f0 : w64)
 
 /-- The dynamic resources of `applyConfChange` (its precondition's): with a view, the node's
 dynamic contract, the driver's `nodeConfig` at `v` and the committed log `l` delivered. -/
-def dvCCPre (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (v : Draft.ConfigView)
-    (l : List Draft.LogEntry) : IProp GF :=
+def dvCCPre (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (v : ConfigView)
+    (l : List LogEntry) : IProp GF :=
   match dv with
   | none => iprop(True)
-  | some n => letI := srvStor (GF := GF) γs.raft; iprop(srvRaftNodeDyn s γs n ∗ Draft.nodeConfig n γs.raft.cl srvClusterN v ∗
-      Draft.deliveredLogLb n γs.raft.cl srvClusterN l)
+  | some n => letI := srvStor (GF := GF) γs.raft; iprop(srvRaftNodeDyn s γs n ∗ nodeConfig n γs.raft.cl srvClusterN v ∗
+      deliveredLogLb n γs.raft.cl srvClusterN l)
 
 /-- `applyConfChange`'s dynamic answer: with a view, `nodeConfig` at `⟨k + 1, m'⟩`. -/
-def dvCCPost (γs : ServerRaftNames) (dv : Option Loc) (k : Nat) (m' : Draft.Membership) :
+def dvCCPost (γs : ServerRaftNames) (dv : Option Loc) (k : Nat) (m' : Membership) :
     IProp GF :=
   match dv with
   | none => iprop(True)
-  | some n => letI := srvStor (GF := GF) γs.raft; Draft.nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩
+  | some n => letI := srvStor (GF := GF) γs.raft; nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩
 
 /-- A normal entry keeps the view. -/
 theorem dvView_normal (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryModel)
@@ -373,7 +373,7 @@ theorem dvView_normal (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryM
     ipureintro
     rw [← List.append_assoc]
     refine srvCfgOk_snoc_noConf Hok _ ?_
-    unfold Draft.LogEntry.isConfChange
+    unfold LogEntry.isConfChange
     simp only [EntryModel.toLE, hm]
     intro h
     rcases h with h | h <;> simp at h
@@ -390,7 +390,7 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
       srvDynPol γs.raft.boot.length lid (γs.pre ++ L ++ [m]) ∧ lid ∈ γs.raft.cfg ∧
       withIdx ((γs.pre ++ L).map EntryModel.toLE) = γs.pre ++ L) :
     dvView (GF := GF) γs dv L ∗ dvRes s γs dv (L ++ m :: rest) ⊢
-      ∃ (v : Draft.ConfigView) (m' : Draft.Membership),
+      ∃ (v : ConfigView) (m' : Membership),
         dvCCPre s γs dv v (srvLE γs (L ++ m :: rest)) ∗
         ⌜∀ n, dv = some n →
           srvDynCCPre (srvDec kc0 γs.raft.boot) (srvLE γs (L ++ m :: rest)) v
@@ -400,7 +400,7 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
   unfold dvView dvRes dvCCPre dvCCPost
   rcases dv with _ | n
   · iintro -
-    iexists ⟨0, Draft.Membership.simple ∅⟩, Draft.Membership.simple ∅
+    iexists ⟨0, Membership.simple ∅⟩, Membership.simple ∅
     isplitr
     · itrivial
     isplitr

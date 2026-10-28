@@ -53,7 +53,7 @@ def ids (id₁ id₂ id₃ : w64) : List w64 := [id₁, id₂, id₃]
 
 /-- **`bootstrap`'s results, as Go computes them**: putget3's, in the members' id order (see the
 file header). -/
-abbrev BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List Draft.LogEntry) : Prop :=
+abbrev BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop :=
   putget3.BootFacts id₁ id₂ id₃ ctxs bl
 
 /-- The members' names. -/
@@ -131,20 +131,20 @@ contract for each member, at the cluster `ids id₁ id₂ id₃` and the directo
 `proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`, 2026-10-27, the
 server port: the cluster's allocation's premise; until then `bootstrap`'s contract gave it), and
 the premises the members share. -/
-def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry) :
+def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     IProp GF :=
   iprop(
-    bootPremise N (ids id₁ id₂ id₃) (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₁ peerAddr₁ clientAddr₁ id₁ ∗
-    bootPremise N (ids id₁ id₂ id₃) (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₂ peerAddr₂ clientAddr₂ id₂ ∗
-    bootPremise N (ids id₁ id₂ id₃) (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₃ peerAddr₃ clientAddr₃ id₃ ∗
-    bootMarshal (ids id₁ id₂ id₃) ctxs (Draft.LogEntry.toEntries boot 0) ∗
+    bootMarshal (ids id₁ id₂ id₃) ctxs (LogEntry.toEntries boot 0) ∗
     putget3.commonPremises)
 
 instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8))
-    (boot : List Draft.LogEntry) :
+    (boot : List LogEntry) :
     Persistent (premises (GF := GF) N id₁ id₂ id₃ ctxs boot) := by
   unfold premises; infer_instance
 

@@ -192,14 +192,14 @@ theorem NewServer.wp_proofM (on : Bool)
     (h7 : types.ID.String_ptr.spec (GF := GF) (hG := hG))
     (h8 : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
     -- (2026-10-27) the node API's node specs, at the cluster's storage model
-    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Ready.spec (GF := GF) (hG := hG))
+    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
     (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.spec (GF := GF) (hG := hG))
+      node.Advance.spec (GF := GF) (hG := hG))
     (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.dynamicSpec (GF := GF) (hG := hG))
-    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Tick.spec (GF := GF) (hG := hG))
+      node.Advance.dynamicSpec (GF := GF) (hG := hG))
+    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
     (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReadIndex.spec (GF := GF) (hG := hG))
+      node.ReadIndex.spec (GF := GF) (hG := hG))
     (h13 : types.URLs.StringSlice.spec (GF := GF) (hG := hG))
     (h14 : idutil.NewGenerator.spec (GF := GF) (hG := hG))
     (h15 : notify.NewNotifier.spec (GF := GF) (hG := hG))
@@ -261,7 +261,7 @@ theorem NewServer.wp_proofM (on : Bool)
     (h76 : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (h77 : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
     (h78 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Propose.spec (GF := GF) (hG := hG))
+      node.Propose.spec (GF := GF) (hG := hG))
     (h79 : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (h80 : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (h81 : EtcdServer.Term.spec (GF := GF) (hG := hG))
@@ -270,15 +270,15 @@ theorem NewServer.wp_proofM (on : Bool)
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG))
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG))
+      node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (h86d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
     -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
-    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Step.spec (GF := GF) (hG := hG))
+    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
     (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportUnreachable.spec (GF := GF) (hG := hG))
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (h89 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportSnapshot.spec (GF := GF) (hG := hG))
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
     (h90 : EtcdServer.Process.spec (GF := GF) (hG := hG))
     (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
@@ -303,6 +303,7 @@ theorem NewServer.wp_proofM (on : Bool)
   ihave #Hwci : waitClosecInit (GF := GF) $$ []
   · iapply waitClosecInit_of_pkg
     iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hzpkg : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -364,9 +365,9 @@ theorem NewServer.wp_proofM (on : Bool)
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrvs, Hrbok⟩ := Hraft
   -- (2026-10-27) `StartNode`'s certificates: a dynamic cluster's storage at the cap `1`, a static
   -- cluster's storage's registry tied to the cluster (`NewMemoryStorage`'s authority)
-  imod Draft.storageCertInv_alloc γ.cl srvClusterN γs ⊤ $$ Hcauth with #Hci
+  imod storageCertInv_alloc γ.cl srvClusterN γs ⊤ $$ Hcauth with #Hci
   ihave #Hcert : iprop(if γ.dyn then storCap (memStorIface bv.storage') 1
-      else Draft.storageCertLink γ.cl srvClusterN (memStorIface bv.storage')) $$ []
+      else storageCertLink γ.cl srvClusterN (memStorIface bv.storage')) $$ []
   · cases hd : γ.dyn
     · simp only [Bool.false_eq_true, ↓reduceIte]
       iapply memStorCertLink_intro γ.reg γ.cl srvClusterN bv.storage' γs
@@ -378,8 +379,8 @@ theorem NewServer.wp_proofM (on : Bool)
   imod (srvSendKey_alloc (GF := GF)) with ⟨%γk, Hk⟩
   ihave #Htkok' : rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) $$ []
   · iapply rnTickerOk_srvErM_S $$ Htkok
-  ihave Hnboot' : iprop(if γ.dyn then Draft.nodeDynamicBoot γ.cl srvClusterN ps ctxs cv.ID'
-      else Draft.nodeBoot γ.cl srvClusterN ps ctxs cv.ID') $$ [Hnboot]
+  ihave Hnboot' : iprop(if γ.dyn then nodeDynamicBoot γ.cl srvClusterN ps ctxs cv.ID'
+      else nodeBoot γ.cl srvClusterN ps ctxs cv.ID') $$ [Hnboot]
   · rw [← Hrvs, Hrid]; iexact Hnboot
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) bs.raft'
     bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs pv ps ctxs ρ.ids.issued Hrlg Hrhb Hrvalid Hrlok
@@ -517,11 +518,14 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard) (backend.rbData d.P D))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
     iframe Hopen Hwl Hrbo
     ipureintro; exact ⟨Hlgnn, Hckok, by simp, hDl go!"lease" (by decide)⟩
+  -- (the auth plan's E3zb) its `Lookup` at the guard `False`: no lease, and the weaker clause
+  ihave #Hlnil := lookupNil_of_guard lp $$ Hllk'
+  ihave #Hllk := lookupOk_of_guard lp srvGrantGuard $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -646,7 +650,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, #HstLb, #HstPub, HAres, #HauR⟩
+      #HstL, #HstLb, #HstPub, #HbBk, HAres, #HauR⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -1133,7 +1137,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iintro !> %m HM
     simp only [srvErM]
     rw [Hγn.1, ← hργ]
-    ihave #Hxo : Draft.leaderTransferOff ρ.raft.raft.cl srvClusterN $$ []
+    ihave #Hxo : leaderTransferOff ρ.raft.raft.cl srvClusterN $$ []
     · ihave #Hsrl' := Hsrl
       iunfold srvRaftLogInv at Hsrl'
       icases Hsrl' with ⟨-, #Hcl0, -⟩
@@ -1355,7 +1359,13 @@ theorem NewServer.wp_proofM (on : Bool)
     · iapply rwLens_authBeOn
     -- (E3n) and so does the rest resource, at the same rest value
     iapply roLends_authBeOn
+  -- (the auth plan's E3zb) the lessor finds no lease
+  ihave #HLnil : srvLessorNil s $$ []
+  · iunfold srvLessorNil
+    iexists (lease.lessorIface lp)
+    iframe Hlnil lessor
   imodintro
+  wp_auto
   iapply HΦ
   iright
   isplitr
@@ -1366,8 +1376,9 @@ theorem NewServer.wp_proofM (on : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
+  iframe HLnil
   isplitr
-  · icases HM with %HM; ipureintro; exact ⟨hγs, HM⟩
+  · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr
   · unfold srvWatchBuilt
     iexists ws, γw
@@ -1768,7 +1779,8 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (E3t) publication, from the construction
     isplitr
     · iexact HstPub
-    iexact HstL
+    iframe HstL
+    iexact HbBk
   isplitr
   · iunfold apply.applierFor
     iexists up, uopts
@@ -1783,7 +1795,7 @@ theorem NewServer.wp_proofM (on : Bool)
   -- (the chain's auth layer is the environment's mode: by `HM`, not by unfolding)
   · icases HM with %HM'
     iExactEq Huo
-    simp only [apply.AEnv.authOn, HM']
+    simp only [apply.AEnv.authOn, HM'.1]
   iunfold apply.kvOwn
   ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA HtrA]
   · iunfold mvcc.writerOwn; iframe HrtA HtrA
@@ -1822,14 +1834,14 @@ theorem NewServer.wp_proof
     (h7 : types.ID.String_ptr.spec (GF := GF) (hG := hG))
     (h8 : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
     -- (2026-10-27) the node API's node specs, at the cluster's storage model
-    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Ready.spec (GF := GF) (hG := hG))
+    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
     (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.spec (GF := GF) (hG := hG))
+      node.Advance.spec (GF := GF) (hG := hG))
     (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.dynamicSpec (GF := GF) (hG := hG))
-    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Tick.spec (GF := GF) (hG := hG))
+      node.Advance.dynamicSpec (GF := GF) (hG := hG))
+    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
     (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReadIndex.spec (GF := GF) (hG := hG))
+      node.ReadIndex.spec (GF := GF) (hG := hG))
     (h13 : types.URLs.StringSlice.spec (GF := GF) (hG := hG))
     (h14 : idutil.NewGenerator.spec (GF := GF) (hG := hG))
     (h15 : notify.NewNotifier.spec (GF := GF) (hG := hG))
@@ -1892,7 +1904,7 @@ theorem NewServer.wp_proof
     (h76 : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (h77 : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
     (h78 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Propose.spec (GF := GF) (hG := hG))
+      node.Propose.spec (GF := GF) (hG := hG))
     (h79 : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (h80 : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (h81 : EtcdServer.Term.spec (GF := GF) (hG := hG))
@@ -1901,15 +1913,15 @@ theorem NewServer.wp_proof
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG))
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG))
+      node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (h86d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
     -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
-    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Step.spec (GF := GF) (hG := hG))
+    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
     (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportUnreachable.spec (GF := GF) (hG := hG))
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (h89 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportSnapshot.spec (GF := GF) (hG := hG))
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
     (h90 : EtcdServer.Process.spec (GF := GF) (hG := hG))
     (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
@@ -1935,14 +1947,14 @@ theorem NewServer.wp_proof
   iintro !> %srv %err Hpost
   iapply HΦ
   icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, H13, H14⟩)
+    H8, H9, H10, H11, H12, H13, H14, -⟩)
   · ileft; iexact Hl
   iright
   isplitr
   · ipureintro; exact He
   iexists γA, ci, TM, E, γrn, b, γk, τ
   isplitr
-  · ipureintro; exact H1
+  · ipureintro; exact ⟨H1.1, H1.2.1⟩
   iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
 
 

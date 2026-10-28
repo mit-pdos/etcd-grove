@@ -297,6 +297,7 @@ theorem apply.authApplierV3.Apply.wp_latest
     apply.authApplierV3.Apply.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq skip v3 af A B L hs
   wp_start as ⟨#Hauth, #HauthL, #Hinner, #Hw, HA, HL, #Haf⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -426,9 +427,10 @@ theorem apply.authApplierV3.Apply.wp_latest
     exact apply.adminPassL_of_verdict _ _ _ Hv
   | ok e =>
     wp_auto
-    wp_alloc ar as Har
+    irename «$r0» => Har
+    generalize «$r0_ptr» = ar at *
     ihave ⟨Har, %Harn⟩ := typedPointsto_not_null_dup _ _ _ $$ Har
-    wp_auto
+    (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
     · inext
       iframe Hard

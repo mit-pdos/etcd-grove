@@ -54,6 +54,7 @@ theorem rafthttp.pipeline.post.wp_proof
   iunfold pipeSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, #Htr, #Hpk, #Hsc, #Hec,
     #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg, %Hmem, %Hturls⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

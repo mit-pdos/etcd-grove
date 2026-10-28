@@ -76,6 +76,7 @@ theorem watchCache.waitUntilFreshLocked.wp_proof
   icases HP with ⟨%st, HP⟩
   iunfold wcLockPSt at HP
   icases HP with ⟨Hrv, Hown⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_if_destruct

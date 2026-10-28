@@ -34,6 +34,7 @@ theorem v2stats.LeaderStats.Follower.wp_proof :
   icases Hfo with ⟨%fm, %FM, #Hf, Hm, %Hnn⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_method_call

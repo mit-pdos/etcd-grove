@@ -79,8 +79,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proofM (on : Bool)
     EtcdServer.parseProposeCtxErr.specM (GF := GF) (hG := hG) on := by
   intro s E ρ err start Herr
   wp_start as ⟨#Hsrv, Hrd, #Herrv⟩
-  iunfold isServerReqM at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr,
     #Hpeers, -, -, -, -⟩

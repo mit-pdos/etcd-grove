@@ -31,9 +31,9 @@ theorem ensureWatchHeader.wp_proof : ensureWatchHeader.spec (GF := GF) (hG := hG
   wp_start
   wp_auto
   wp_if_destruct
-  · wp_alloc h as Hh
+  · irename «$r0» => Hh
+    generalize «$r0_ptr» = h at *
     ihave %Hhn := typedPointsto_not_null _ _ _ $$ Hh
-    wp_auto
     iapply HΦ
     isplitl []
     · ipureintro; exact Hhn

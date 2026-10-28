@@ -82,6 +82,7 @@ theorem rafthttp.snapshotSender.post.wp_proof
   have e1 : xES = cES := by injection h1 with h1; injection h1 with _ h1; exact go.intoVal_inj (V := Loc) h1
   have e3 : xMR = cMR := by injection h3 with h3; injection h3 with _ h3; exact go.intoVal_inj (V := Loc) h3
   subst e1 e3
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply hBackground
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

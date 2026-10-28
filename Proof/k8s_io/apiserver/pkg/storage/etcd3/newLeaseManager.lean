@@ -31,8 +31,8 @@ theorem newLeaseManager.wp_proof : newLeaseManager.spec (GF := GF) (hG := hG) :=
   intro cl rs pct moc
   wp_start
   wp_auto
-  wp_alloc l as Hl
-  wp_auto
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iapply HΦ
   itrivial
 

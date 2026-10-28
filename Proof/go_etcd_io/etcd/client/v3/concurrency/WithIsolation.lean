@@ -30,7 +30,6 @@ theorem WithIsolation.wp_proof : WithIsolation.spec (GF := GF) (hG := hG) := by
   wp_auto
   ipersist lvl
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold stmOptSpec
   imodintro

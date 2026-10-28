@@ -42,12 +42,14 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GuardBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchClass
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthService
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
 
 @[expose] public section
 
@@ -326,6 +328,197 @@ theorem txn_end_to_end
     simp only [hc, kvOut, srvKVAns]
     iexact Hpost
 
+/-- **The server's contract with auth on, discharged** (`raftKV_of_serverOn` at the linked results
+with auth on, the auth plan's E3zb). -/
+theorem raftKV_serverOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat) (tok : Option GoString) (γa : auth.AuthNames)
+    (hγa : E.authMode = .on γa) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ⊢
+      raftKV s (srvKVAnsOn s E ρ γr c F d na tok) :=
+  raftKV_of_serverOn server_put_on server_delete_range_on server_range_on server_txn_on
+    server_txn_ro_on EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Cluster
+    membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_Term EtcdServer.wp_Leader
+    s E ρ γr c F d na tok γa hγa
+
+/-- **`put_end_to_end` with auth on** (the auth plan's E3zb; `srvKVAnsOn` at the caller's token):
+a success also carries the grant (`writeGrantOn`: the put with the header the server stamped was
+granted at the committed log before its entry, whose user is the empty one or the one the
+context's token was issued to). -/
+theorem put_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat)
+    (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode na ∗ txn.putRequestIs r o ∗ kvDepOwn ρ γr d ∗
+        ⌜kvDepPreOn d (.put o)⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match putCheck o with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
+              hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗ srvRdCall s E γr c ∗
+              putAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
+              writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrPut o)) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ putErrOk s E ρ F o e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_serverOn s E ρ γr c F d na (auth.ctxTokenOf ctx) γa hγa $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_Put p s (srvKVAnsOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsOn]; iframe Hc Hc0 Hdep HF Hna; ipureintro; exact ⟨trivial, Hpre⟩
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : putCheck o with
+  | some e =>
+    simp only [hc, srvKVAnsOn]
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep', -, -⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAnsOn]
+    iexact Hpost
+
+/-- **`deleteRange_end_to_end` with auth on** (the auth plan's E3zb; `srvKVAnsOn`): as `put_end_to_end_on`, for `DeleteRange`. -/
+theorem deleteRange_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : KVDep GF) (na : Nat)
+    (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode na ∗ txn.deleteRangeRequestIs r o ∗
+        kvDepOwn ρ γr d ∗ ⌜kvDepPreOn d (.deleteRange o)⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"DeleteRange")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match deleteCheck o with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ deleteAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
+              writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrDeleteRange o)) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ deleteErrOk s E ρ F o e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_serverOn s E ρ γr c F d na (auth.ctxTokenOf ctx) γa hγa $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_DeleteRange p s (srvKVAnsOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsOn]; iframe Hc Hc0 Hdep HF Hna; ipureintro; exact ⟨trivial, Hpre⟩
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : deleteCheck o with
+  | some e =>
+    simp only [hc, srvKVAnsOn]
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep', -, -⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAnsOn]
+    iexact Hpost
+
+/-- **`range_end_to_end` with auth on** (the auth plan's E3zb; `srvKVAnsOn`): `range_end_to_end`'s at the mode-`on` model (`rangeAnsOkOn`), with the read's check (`rangeAuthed`: the permissions it saw granted at states no older than the caller's bound `na`, and for a linearizable read no older than the read index's). -/
+theorem range_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : KVDep GF) (na : Nat)
+    (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode na ∗ txn.rangeRequestIs r o ∗
+        kvDepOwn ρ γr d ∗ ⌜kvDepPreOn d (.range o)⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Range")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match rangeCheck o with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
+              rangeAnsOkOn E γr c F o resp rv (rangeDepQOn γr.kv d) ∗
+              rangeAuthed s E γr c na (auth.ctxTokenOf ctx) o) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
+            srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_serverOn s E ρ γr c F d na (auth.ctxTokenOf ctx) γa hγa $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_Range p s (srvKVAnsOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsOn]; iframe Hc Hc0 Hdep HF Hna; ipureintro; exact ⟨trivial, Hpre⟩
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : rangeCheck o with
+  | some e =>
+    simp only [hc, srvKVAnsOn]
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep', -, -⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAnsOn]
+    iexact Hpost
+
+/-- **`txn_end_to_end` with auth on** (the auth plan's E3zb; `srvKVAnsOn`): `txn_end_to_end`'s at the mode-`on` model, a read-only transaction's with its checks (`txnAuthed`). -/
+theorem txn_end_to_end_on
+    (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (cs : List CmpModel)
+    (ts es : List ReqOp) (F : mvcc.Log) (d : KVDep GF) (na : Nat)
+    (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode na ∗ txnReqIs r cs ts es ∗ txnReqWire r ts es ∗
+        ⌜txnInModel cs ts es⌝ ∗ kvDepOwn ρ γr d ∗ ⌜kvDepPreOn d (.txn cs ts es)⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match txnAllCheck (sint.Z n) cs ts es with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
+              ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
+                if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
+                  txnReadAnsOn E γr c F t (rangeDepQOn γr.kv d) resp rv ∗ txnAuthed s E γr c na (auth.ctxTokenOf ctx) t)
+                else iprop(txnAppliedAns E ρ.rd F t (opDepQ d) resp rv ∗
+                  ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
+                    writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrTxn tw))) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
+            ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
+              if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, #Hw, %Hin, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_serverOn s E ρ γr c F d na (auth.ctxTokenOf ctx) γa hγa $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_Txn p s (srvKVAnsOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n
+    ctx r cs ts es) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsOn]; iframe Hc Hc0 Hdep HF Hna; ipureintro; exact ⟨Hin, Hpre⟩
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : txnAllCheck (sint.Z n) cs ts es with
+  | some e =>
+    simp only [hc, srvKVAnsOn]
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep', -, -⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAnsOn]
+    iexact Hpost
+
 /-- **What a successful gRPC `Put` applied** (pure; with `put_end_to_end`'s `putAppliedOk`):
 through the uber-applier's chain `alarmChain on ns cr`, the put was applied by the client model:
 the log after is the log the entry met with the put's one change (`putChangeOf`, the client's
@@ -562,7 +755,503 @@ theorem userAdd_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
       (userAddAnsOn s E ρ ctx cd F name b)) $$ [Hpw Hhpw HP] HΦ
   iframe # Hpw Hhpw HP
 
+/-- `UserAdd`'s answer (`authWrapOut` of `userAddAnsOn`, the password choice `false`): the run's
+slot back and, on `nil`, the reply (`userAddReplied`). -/
+theorem authWrapOut_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString) (resp : Loc)
+    (err : GoInterface) :
+    v3rpc.authWrapOut (userAddAnsOn s E ρ ctx cd F name false) resp err ⊢
+      authSlot s E ∗ (⌜err = GoInterface.nil⌝ -∗ userAddReplied E ρ name) := by
+  iintro H
+  iunfold v3rpc.authWrapOut at H
+  icases H with (⟨%He, H⟩ | ⟨%Hr, %e0, %He0, H⟩)
+  · subst He
+    iunfold userAddAnsOn at H
+    icases H with (⟨%Hc, -⟩ | H)
+    · exact absurd rfl Hc.2
+    iunfold userAddOutOn at H
+    icases H with ⟨%um, %Hum, H⟩
+    ihave ⟨Hs, Hrep⟩ := adminOutOn_reply s E ρ (irrUserAdd um) F _ resp GoInterface.nil $$ H
+    iframe Hs
+    iintro -
+    unfold userAddReplied
+    iexists um
+    isplitr
+    · ipureintro; exact Hum
+    iapply Hrep
+    ipureintro; rfl
+  · iunfold userAddAnsOn at H
+    icases H with (⟨-, HP⟩ | H)
+    · iunfold adminPreOn at HP
+      icases HP with ⟨-, -, Hlt, Hrd, -⟩
+      unfold authSlot
+      iframe Hlt Hrd
+      iintro %He
+      exact absurd He Hr.2
+    · iunfold userAddOutOn at H
+      icases H with ⟨%um, -, H⟩
+      ihave ⟨Hs, -⟩ := adminOutOn_reply s E ρ (irrUserAdd um) F _ null e0 $$ H
+      iframe Hs
+      iintro %He
+      exact absurd He Hr.2
+
+/-- **`*AuthServer` implements `pb.AuthServer`** (a method-set fact, from the method sets goose
+emits; `RegisterAuthServer`'s `grpcImplements`). -/
+theorem authServer_isAuthServer :
+    go.typeSetContains (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty)
+      etcdserverpb.AuthServer.ty = true := by
+  go_type_set
+
+/-- **etcd's `UserAdd`, as the service runs it** (`grpcHandlerOwnOk`; the auth plan's E3za): the
+`*AuthServer` `p` of the server `s` with auth on (`isServerReqM true`, the id budget
+`□ |==> idCred ρ.ids 1`), whose auth store hashes at a valid cost (`bcryptCostOk`): given the run's
+slot (`authSlot`), the decoded request (its `Password` and `HashedPassword` the run's own) and
+`etcdUserAddSpec`, its slot back and on success the reply (`userAddReplied`). -/
+theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ast : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.authServerIs p s ∗ isServerReqM true s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
+        structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗ bcryptCostOk ast ⊢
+      grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserAdd")
+        (authSlot s E) (etcdUserAddSpec E ρ) := by
+  iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR, #Hast, #Hcost⟩
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Ho, Hspec⟩ HΨ
+  simp only [pbAuthUserAddRequest]
+  icases Hr with ⟨%Hrn, #HN, %o, #Ho', #Hopts⟩
+  iunfold userOptsFalse at Hopts
+  icases Ho with ⟨Hpw, Hhpw⟩
+  iunfold authSlot at Hslot
+  icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold etcdUserAddSpec at Hspec
+  icases Hspec with ⟨%Hn, Hk⟩
+  ihave Hu := HNR
+  imod Hu with Hid
+  imod (mvcc.idxCert_nil (GF := GF) E.γ.idx) with #HF
+  iapply (userAdd_end_to_end_on p s E ρ ci cd ast r m.name m.pw [] o false []) $$
+    [Hpw Hhpw Hlt Hrd Hid]
+  · unfold adminPreOn
+    iframe; iframe #
+    try (ipureintro; exact ⟨Hrn, Hn⟩)
+  inext
+  iintro %resp %err Hout
+  ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name resp err $$ Hout
+  iapply HΨ
+  iframe Hs
+  iintro %He
+  iexists ()
+  isplitr
+  · simp only [pbAuthUserAddResponse]; itrivial
+  iapply Hk
+  iapply Hrep
+  ipureintro; exact He
+
+/-- **etcd's `RoleAdd`, as the service runs it** (as `etcd_userAddHandlerOk`; it does not write its
+request). -/
+theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.authServerIs p s ∗ isServerReqM true s E ρ ∗ □ (|==> idCred ρ.ids 1) ⊢
+      grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"RoleAdd")
+        (authSlot s E) (etcdRoleAddSpec E ρ) := by
+  iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  iunfold authSlot at Hslot
+  icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold etcdRoleAddSpec at Hspec
+  icases Hspec with ⟨%Hn, Hk⟩
+  ihave Hu := HNR
+  imod Hu with Hid
+  imod (mvcc.idxCert_nil (GF := GF) E.γ.idx) with #HF
+  iapply (roleAdd_end_to_end_on p s E ρ ci cd r m []) $$ [Hlt Hrd Hid]
+  · unfold adminPreOn
+    simp only [apply.authRoleAddIs, auth.roleAddReqIs, pbAuthRoleAddRequest]
+    iframe; iframe #
+    ipureintro; exact Hn
+  inext
+  iintro %resp %err Hout
+  ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ (irrRoleAdd m) [] _ resp err $$ Hout
+  iapply HΨ
+  iframe Hs
+  iintro %He
+  iexists ()
+  isplitr
+  · simp only [pbAuthRoleAddResponse]; itrivial
+  iapply Hk
+  iapply Hrep
+  ipureintro; exact He
+
+/-- **etcd's `UserGrantRole`, as the service runs it** (as `etcd_userAddHandlerOk`; it does not write its
+request). -/
+theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.authServerIs p s ∗ isServerReqM true s E ρ ∗ □ (|==> idCred ρ.ids 1) ⊢
+      grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserGrantRole")
+        (authSlot s E) (etcdUserGrantRoleSpec E ρ) := by
+  iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  iunfold authSlot at Hslot
+  icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold etcdUserGrantRoleSpec at Hspec
+  icases Hspec with ⟨%Hn, Hk⟩
+  ihave Hu := HNR
+  imod Hu with Hid
+  imod (mvcc.idxCert_nil (GF := GF) E.γ.idx) with #HF
+  iapply (userGrantRole_end_to_end_on p s E ρ ci cd r m.1 m.2 []) $$ [Hlt Hrd Hid]
+  · unfold adminPreOn
+    simp only [apply.authUserGrantRoleIs, pbAuthUserGrantRoleRequest]
+    iframe; iframe #
+    ipureintro; exact Hn
+  inext
+  iintro %resp %err Hout
+  ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ (irrUserGrantRole m.1 m.2) [] _ resp err $$ Hout
+  iapply HΨ
+  iframe Hs
+  iintro %He
+  iexists ()
+  isplitr
+  · simp only [pbAuthUserGrantRoleResponse]; itrivial
+  iapply Hk
+  iapply Hrep
+  ipureintro; exact He
+
+/-- **etcd's `RoleGrantPermission`, as the service runs it** (as `etcd_userAddHandlerOk`; it does not write its
+request). -/
+theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.authServerIs p s ∗ isServerReqM true s E ρ ∗ □ (|==> idCred ρ.ids 1) ⊢
+      grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"RoleGrantPermission")
+        (authSlot s E) (etcdRoleGrantPermissionSpec E ρ) := by
+  iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  iunfold authSlot at Hslot
+  icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold etcdRoleGrantPermissionSpec at Hspec
+  icases Hspec with ⟨%Hn, Hk⟩
+  ihave Hu := HNR
+  imod Hu with Hid
+  imod (mvcc.idxCert_nil (GF := GF) E.γ.idx) with #HF
+  iapply (roleGrantPermission_end_to_end_on p s E ρ ci cd r m.1 (some m.2) []) $$ [Hlt Hrd Hid]
+  · unfold adminPreOn
+    simp only [apply.authRoleGrantPermissionIs, pbAuthRoleGrantPermissionRequest]
+    iframe; iframe #
+    ipureintro; exact Hn
+  inext
+  iintro %resp %err Hout
+  ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ (irrRoleGrantPermission m.1 (some m.2)) [] _ resp err $$ Hout
+  iapply HΨ
+  iframe Hs
+  iintro %He
+  iexists ()
+  isplitr
+  · simp only [pbAuthRoleGrantPermissionResponse]; itrivial
+  iapply Hk
+  iapply Hrep
+  ipureintro; exact He
+
+/-- **etcd's `AuthEnable`, as the service runs it** (as `etcd_userAddHandlerOk`; it does not write its
+request). -/
+theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.authServerIs p s ∗ isServerReqM true s E ρ ∗ □ (|==> idCred ρ.ids 1) ⊢
+      grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"AuthEnable")
+        (authSlot s E) (etcdAuthEnableSpec E ρ) := by
+  iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hk⟩ HΨ
+  simp only [pbAuthEnableRequest] at *
+  iunfold authSlot at Hslot
+  icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold etcdAuthEnableSpec at Hk
+  ihave Hu := HNR
+  imod Hu with Hid
+  imod (mvcc.idxCert_nil (GF := GF) E.γ.idx) with #HF
+  iapply (authEnable_end_to_end_on p s E ρ ci cd r []) $$ [Hlt Hrd Hid]
+  · unfold adminPreOn
+    iframe; iframe #
+  inext
+  iintro %resp %err Hout
+  ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ irrAuthEnable [] _ resp err $$ Hout
+  iapply HΨ
+  iframe Hs
+  iintro %He
+  iexists ()
+  isplitr
+  · simp only [pbAuthEnableResponse]; itrivial
+  iapply Hk
+  iapply Hrep
+  ipureintro; exact He
+
+/-- **etcd's `UserAdd`, as grpc runs it** (`grpcMethodOk`; as `etcd_putMethodOk`): the generated
+`_Auth_UserAdd_Handler` on the `*AuthServer` `p` whose `UserAdd` meets etcd's spec, under a chain of
+transparent interceptors. -/
+theorem etcd_userAddMethodOk (p : Loc) (Spec : GrpcSpec (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse)
+    (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserAdd") S Spec ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOk (@! etcdserverpb._Auth_UserAdd_Handler)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthUserAddRequest) -∗
+      (pbAuthUserAddRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbAuthUserAddRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbAuthUserAddRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthUserAddRequest.ty, etcdserverpb.RangeRequest.ty]))
+  iapply (v3rpc.etcdserverpb.wp__Auth_UserAdd_Handler pbAuthUserAddRequest pbAuthUserAddResponse Spec
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
+/-- **etcd's `RoleAdd`, as grpc runs it** (`grpcMethodOk`; as `etcd_putMethodOk`): the generated
+`_Auth_RoleAdd_Handler` on the `*AuthServer` `p` whose `RoleAdd` meets etcd's spec, under a chain of
+transparent interceptors. -/
+theorem etcd_roleAddMethodOk (p : Loc) (Spec : GrpcSpec (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse)
+    (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"RoleAdd") S Spec ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOk (@! etcdserverpb._Auth_RoleAdd_Handler)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthRoleAddRequest) -∗
+      (pbAuthRoleAddRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbAuthRoleAddRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbAuthRoleAddRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthRoleAddRequest.ty, etcdserverpb.RangeRequest.ty]))
+  iapply (v3rpc.etcdserverpb.wp__Auth_RoleAdd_Handler pbAuthRoleAddRequest pbAuthRoleAddResponse Spec
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
+/-- **etcd's `UserGrantRole`, as grpc runs it** (`grpcMethodOk`; as `etcd_putMethodOk`): the generated
+`_Auth_UserGrantRole_Handler` on the `*AuthServer` `p` whose `UserGrantRole` meets etcd's spec, under a chain of
+transparent interceptors. -/
+theorem etcd_userGrantRoleMethodOk (p : Loc) (Spec : GrpcSpec (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse)
+    (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserGrantRole") S Spec ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOk (@! etcdserverpb._Auth_UserGrantRole_Handler)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthUserGrantRoleRequest) -∗
+      (pbAuthUserGrantRoleRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbAuthUserGrantRoleRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbAuthUserGrantRoleRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthUserGrantRoleRequest.ty, etcdserverpb.RangeRequest.ty]))
+  iapply (v3rpc.etcdserverpb.wp__Auth_UserGrantRole_Handler pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse Spec
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
+/-- **etcd's `RoleGrantPermission`, as grpc runs it** (`grpcMethodOk`; as `etcd_putMethodOk`): the generated
+`_Auth_RoleGrantPermission_Handler` on the `*AuthServer` `p` whose `RoleGrantPermission` meets etcd's spec, under a chain of
+transparent interceptors. -/
+theorem etcd_roleGrantPermissionMethodOk (p : Loc) (Spec : GrpcSpec (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse)
+    (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"RoleGrantPermission") S Spec ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOk (@! etcdserverpb._Auth_RoleGrantPermission_Handler)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthRoleGrantPermissionRequest) -∗
+      (pbAuthRoleGrantPermissionRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbAuthRoleGrantPermissionRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbAuthRoleGrantPermissionRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthRoleGrantPermissionRequest.ty, etcdserverpb.RangeRequest.ty]))
+  iapply (v3rpc.etcdserverpb.wp__Auth_RoleGrantPermission_Handler pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse Spec
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
+/-- **etcd's `AuthEnable`, as grpc runs it** (`grpcMethodOk`; as `etcd_putMethodOk`): the generated
+`_Auth_AuthEnable_Handler` on the `*AuthServer` `p` whose `AuthEnable` meets etcd's spec, under a chain of
+transparent interceptors. -/
+theorem etcd_authEnableMethodOk (p : Loc) (Spec : GrpcSpec (GF := GF) pbAuthEnableRequest pbAuthEnableResponse)
+    (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"AuthEnable") S Spec ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOk (@! etcdserverpb._Auth_AuthEnable_Handler)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthEnableRequest) -∗
+      (pbAuthEnableRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbAuthEnableRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbAuthEnableRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthEnableRequest.ty, etcdserverpb.RangeRequest.ty]))
+  iapply (v3rpc.etcdserverpb.wp__Auth_AuthEnable_Handler pbAuthEnableRequest pbAuthEnableResponse Spec
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
 end endToEnd
+
+/-! ## The Auth service over gRPC (the auth plan's E3za, 2026-10-27)
+
+The five admin methods `examples/authkv`'s `SetUp` calls, as grpc runs them (`etcd_*MethodOk`, from
+each handler's E3y result, `etcd_*HandlerOk`), and served at an address (`etcd_auth_served`), with
+etcd's specs (`AuthService.lean`). -/
+
+section authGrpc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
+
+/-- **etcd's Auth methods** as registered, with etcd's specs. -/
+def etcdAuthMethods (p : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : List (GrpcMethod GF) :=
+  [⟨go!"/etcdserverpb.Auth/UserAdd", pbAuthUserAddRequest, pbAuthUserAddResponse, GrpcSpec.md (etcdUserAddSpec E ρ),
+     (@! etcdserverpb._Auth_UserAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
+   ⟨go!"/etcdserverpb.Auth/UserGrantRole", pbAuthUserGrantRoleRequest, pbAuthUserGrantRoleResponse, GrpcSpec.md (etcdUserGrantRoleSpec E ρ),
+     (@! etcdserverpb._Auth_UserGrantRole_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
+   ⟨go!"/etcdserverpb.Auth/RoleAdd", pbAuthRoleAddRequest, pbAuthRoleAddResponse, GrpcSpec.md (etcdRoleAddSpec E ρ),
+     (@! etcdserverpb._Auth_RoleAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
+   ⟨go!"/etcdserverpb.Auth/RoleGrantPermission", pbAuthRoleGrantPermissionRequest, pbAuthRoleGrantPermissionResponse, GrpcSpec.md (etcdRoleGrantPermissionSpec E ρ),
+     (@! etcdserverpb._Auth_RoleGrantPermission_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
+   ⟨go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequest, pbAuthEnableResponse, GrpcSpec.md (etcdAuthEnableSpec E ρ),
+     (@! etcdserverpb._Auth_AuthEnable_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩]
+
+/-- **etcd's server serves its Auth methods** (the auth plan's E3za; as `etcd_kv_served`): the gRPC
+server at `addr` built with the chain `ics` of transparent interceptors (with their per-run
+resources `Rs`), with the Auth service registered on the `*AuthServer` `p` (`v3rpc.authRegs p` among
+the registered methods), that hands the runtime `N` run slots (`authSlot` and the interceptors'),
+registers etcd's specs of `UserAdd`, `UserGrantRole`, `RoleAdd`, `RoleGrantPermission` and
+`AuthEnable` at `addr` (`isGrpcRpc`). Premises: the server's with auth on (`isServerReqM true`,
+the id budget `□ |==> idCred ρ.ids 1`), the `*AuthServer` over it (`authServerIs`: what
+`NewAuthServer(s)` returns), its auth store's bcrypt cost (`bcryptCostOk`), the interceptors'
+contracts, the packages'. -/
+theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (ast : GoInterfaceOk) (ics : List GoFunc) (Rs : List (IProp GF))
+    (regs : List (GoString × val × GoInterface)) (N : Nat)
+    (hregs : ∀ x ∈ v3rpc.authRegs p, x ∈ regs) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.authServerIs p s ∗ isServerReqM true s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
+        structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗ bcryptCostOk ast ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ∗
+        grpcServerAt addr ics regs ∗
+        ([∗list] _x ∈ List.replicate N (), iprop(authSlot s E ∗ [∗list] R ∈ Rs, R)) ⊢
+      |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.Auth/UserAdd" (etcdUserAddSpec E ρ) ∗
+        isGrpcRpc addr go!"/etcdserverpb.Auth/UserGrantRole" (etcdUserGrantRoleSpec E ρ) ∗
+        isGrpcRpc addr go!"/etcdserverpb.Auth/RoleAdd" (etcdRoleAddSpec E ρ) ∗
+        isGrpcRpc addr go!"/etcdserverpb.Auth/RoleGrantPermission" (etcdRoleGrantPermissionSpec E ρ) ∗
+        isGrpcRpc addr go!"/etcdserverpb.Auth/AuthEnable" (etcdAuthEnableSpec E ρ) := by
+  iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR, #Hast, #Hcost, #Hics, Hl, Hslots⟩
+  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+  · iPkgInit
+  ihave #Hu := etcd_userAddHandlerOk p s E ρ ast $$ []
+  · iframe #
+  ihave #Hg := etcd_userGrantRoleHandlerOk p s E ρ $$ []
+  · iframe #
+  ihave #Hr := etcd_roleAddHandlerOk p s E ρ $$ []
+  · iframe #
+  ihave #Hp := etcd_roleGrantPermissionHandlerOk p s E ρ $$ []
+  · iframe #
+  ihave #He := etcd_authEnableHandlerOk p s E ρ $$ []
+  · iframe #
+  ihave #Hmu := etcd_userAddMethodOk p _ _ ics Rs $$ [Hu Ppb Hics]
+  · iframe #
+  ihave #Hmg := etcd_userGrantRoleMethodOk p _ _ ics Rs $$ [Hg Ppb Hics]
+  · iframe #
+  ihave #Hmr := etcd_roleAddMethodOk p _ _ ics Rs $$ [Hr Ppb Hics]
+  · iframe #
+  ihave #Hmp := etcd_roleGrantPermissionMethodOk p _ _ ics Rs $$ [Hp Ppb Hics]
+  · iframe #
+  ihave #Hme := etcd_authEnableMethodOk p _ _ ics Rs $$ [He Ppb Hics]
+  · iframe #
+  ihave #Hmu' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmu
+  ihave #Hmg' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmg
+  ihave #Hmr' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmr
+  ihave #Hmp' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmp
+  ihave #Hme' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hme
+  imod (grpc_serve_rpcs addr ics regs (etcdAuthMethods p E ρ)
+    iprop(authSlot s E ∗ [∗list] R ∈ Rs, R) N (by simp only [etcdAuthMethods, List.map]; decide)
+    (by
+      intro x hx
+      apply hregs
+      simp only [etcdAuthMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
+      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [v3rpc.authRegs])) $$ [Hl Hslots] with Hrpcs
+  · iframe
+    imodintro
+    simp only [etcdAuthMethods]
+    iframe #
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  simp only [etcdAuthMethods]
+  icases Hrpcs with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
+  ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
+  ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+  ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
+  ihave #H4' := (isGrpcRpc_md _ _ _).2 $$ H4
+  ihave #H5' := (isGrpcRpc_md _ _ _).2 $$ H5
+  imodintro
+  iframe #
+
+end authGrpc
 
 /-! ## The vertical slice, unit V1 (2026-10-13): the clients' model implemented
 
@@ -1041,6 +1730,7 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.roleAdd_end_to_end_on
 #print axioms Perennial.EtcdGrove.v3rpc.userGrantRole_end_to_end_on
 #print axioms Perennial.EtcdGrove.v3rpc.roleGrantPermission_end_to_end_on
+#print axioms Perennial.EtcdGrove.v3rpc.etcd_auth_served
 
 end EtcdGrove
 end Perennial

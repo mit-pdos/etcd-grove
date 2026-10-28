@@ -18,7 +18,8 @@ is then a diff to review.
 the proof file `Proof/<pkg>/<F>.lean` of a spec file exposes only `<F>.wp_proof`. The violations
 found are compared with `etc/api/<pkg>-layout.txt` (`--update` rewrites it): only new ones fail.
 
-It never builds: the modules must be up to date (`lake build`), else it stops.
+It never builds: the modules must be up to date (`lake build`), else it stops. `$LAKE_OPTS` is
+passed to lake (`--packages=...` in a worktree on another Perennial pin), as for `etc/tcb-report.py`.
 
 usage: etc/gen-interface.py etc/api/raft.txt [--check] [--layout] [--update]
   --check   exit 1 if interface/ differs from what the build gives (or, with --layout, if
@@ -26,6 +27,7 @@ usage: etc/gen-interface.py etc/api/raft.txt [--check] [--layout] [--update]
 """
 import argparse
 import difflib
+import os
 import pathlib
 import re
 import subprocess
@@ -46,6 +48,8 @@ WIDTH = 100
 
 
 def run(cmd, **kw):
+    if cmd[0] == "lake":  # `$LAKE_OPTS` (`--packages=...`), as `etc/tcb-report.py`
+        cmd = ["lake", *os.environ.get("LAKE_OPTS", "").split(), *cmd[1:]]
     return subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, **kw)
 
 

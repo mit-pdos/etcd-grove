@@ -43,6 +43,7 @@ theorem mvcc.store.Restore.wp_proof
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   -- `s.mu.Lock()`: all of `s.mu`'s resource

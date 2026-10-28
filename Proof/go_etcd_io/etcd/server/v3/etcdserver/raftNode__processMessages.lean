@@ -163,7 +163,7 @@ theorem raftNode.processMessages.wp_proof
     rotate_left
     · -- removed member: `continue`
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0»
       iexists k - W64 1, out, outL, b
       rw [hk1]
       iframe
@@ -175,7 +175,7 @@ theorem raftNode.processMessages.wp_proof
       rotate_left
       · wp_auto
         wp_for_post
-        iframe HΦ
+        iframe HΦ «$res0»
         iexists k - W64 1, out, outL, true
         rw [hk1]
         iframe
@@ -190,7 +190,7 @@ theorem raftNode.processMessages.wp_proof
       wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
         as %out' ⟨Hout, Hcap, -⟩
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0»
       iexists k - W64 1, out', outL ++ [m], _
       rw [hk1]
       iframe r ms i messages Hout Hcap sentAppResp Hall
@@ -249,7 +249,7 @@ theorem raftNode.processMessages.wp_proof
                 imodintro
                 wp_auto
                 wp_for_post
-                iframe HΦ
+                iframe HΦ «$res0»
                 iexists k - W64 1, out, outL, _
                 rw [hk1]
                 iframe
@@ -264,7 +264,7 @@ theorem raftNode.processMessages.wp_proof
                 imodintro
                 wp_auto
                 wp_for_post
-                iframe HΦ
+                iframe HΦ «$res0»
                 iexists k - W64 1, out, outL, _
                 rw [hk1]
                 iframe
@@ -279,7 +279,7 @@ theorem raftNode.processMessages.wp_proof
         · -- `default`: dropped
           wp_auto
           wp_for_post
-          iframe HΦ
+          iframe HΦ «$res0»
           iexists k - W64 1, out, outL, _
           rw [hk1]
           iframe
@@ -334,7 +334,7 @@ theorem raftNode.processMessages.wp_proof
           wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
             as %out' ⟨Hout, Hcap, -⟩
           wp_for_post
-          iframe HΦ
+          iframe HΦ «$res0»
           iexists k - W64 1, out', outL ++ [m], _
           rw [hk1]
           iframe r ms i messages Hout Hcap sentAppResp Hall
@@ -357,7 +357,7 @@ theorem raftNode.processMessages.wp_proof
           wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
             as %out' ⟨Hout, Hcap, -⟩
           wp_for_post
-          iframe HΦ
+          iframe HΦ «$res0»
           iexists k - W64 1, out', outL ++ [m], _
           rw [hk1]
           iframe r ms i messages Hout Hcap sentAppResp Hall
@@ -378,7 +378,7 @@ theorem raftNode.processMessages.wp_proof
       wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
         as %out' ⟨Hout, Hcap, -⟩
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0»
       iexists k - W64 1, out', outL ++ [m], _
       rw [hk1]
       iframe r ms i messages Hout Hcap sentAppResp Hall

@@ -49,7 +49,7 @@ theorem v3rpc.quotaKVServer.Txn.wp_proof
     cases Hc
   | nil =>
     wp_auto
-    iunfold grpcHandlerOk at Hh
+    iunfold grpcHandlerOkMd at Hh
     wp_apply Hh $$ %m %Φ' %ci %cd %r [HS HSpec] as %resp %err' ⟨HS, Hres⟩
     · iframe; iframe #
     iapply HΦ

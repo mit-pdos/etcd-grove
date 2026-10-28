@@ -47,7 +47,7 @@ abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.Assumptions] [k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
     [k8s_io.apiserver.pkg.storage.Assumptions] [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64),
   putget.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
