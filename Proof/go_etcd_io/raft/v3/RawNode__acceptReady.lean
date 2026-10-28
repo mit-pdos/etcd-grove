@@ -101,7 +101,7 @@ theorem readyNstate_guard {fp : List EntryM} {s : NState} {L : Option SnapLoan} 
   rw [h2, h3, h4, h5]; exact hn
 
 /-- (2026-10-28, stage U0) A `Ready` keeps the role and the pending snapshot (`SnapFol`). -/
-theorem readyNstate_snapFol {s : NState} {L : Option SnapLoan} {ce : List EntryM}
+private theorem readyNstate_snapFol {s : NState} {L : Option SnapLoan} {ce : List EntryM}
     {sz : w64} (h : SnapFol s) : SnapFol (readyNstate s L ce sz) := by
   have e : (readyNstate s L ce sz).logst.snap = s.logst.snap := by
     unfold readyNstate logAcceptApplying logAcceptUnstable rdyLs

@@ -57,13 +57,14 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                         snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
                                           uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
                                             md.isDyn = false ∧
-                                              (c.autoLeave = true → s.role ≠ PRole.leader) ∧
-                                                (s.logst.snap ≠ none →
-                                                    s.logst.lent = false →
-                                                      uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
-                                                  ∀ (k : SnapTrip),
-                                                    s.gh.snp = some k →
-                                                      uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') ∧
+                                              s.role = PRole.follower ∧
+                                                SnapAckOk γ id sv ∧
+                                                  (s.logst.snap ≠ none →
+                                                      s.logst.lent = false →
+                                                        uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
+                                                    ∀ (k : SnapTrip),
+                                                      s.gh.snp = some k →
+                                                        uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') ∧
                                     uint.Z m.Term' ≤ uint.Z s.term ∧
                                       (m.Term' = W64 0 ∨ m.Term' = s.term →
                                           m.Index' ≠ W64 0 →
@@ -137,7 +138,9 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                 "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
                                                                   "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
                                                                     "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
-                                                                      "%Hcfg'" ∷ ⌜m.Type' ≠ MsgSnap → c' = c⌝ ∗
+                                                                      "%Hcfg'" ∷
+                                                                          ⌜(m.Type' = MsgStorageAppendResp → sn = none) →
+                                                                              c' = c⌝ ∗
                                                                         "%Hlocal" ∷
                                                                             ⌜((m.Type' = MsgStorageAppendResp →
                                                                                     sn = none) →
@@ -145,24 +148,31 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                 (m.Type' = MsgStorageAppendResp →
                                                                                   ∀ (sv : SnapshotM),
                                                                                     sn = some sv →
-                                                                                      s' =
-                                                                                        { term := s.term, vote := s.vote,
-                                                                                          lead := s.lead, role := s.role,
-                                                                                          votes := s.votes,
-                                                                                          outbox := s.outbox,
-                                                                                          stepfn := s.stepfn,
-                                                                                          ticking := s.ticking,
-                                                                                          progress := s.progress,
-                                                                                          log := s.log,
-                                                                                          logst :=
-                                                                                            ackSnapLog s.logst m s.term
-                                                                                              sv,
-                                                                                          prvals := s.prvals,
-                                                                                          prevote := s.prevote,
-                                                                                          gh := s.gh, rd := s.rd,
-                                                                                          lt := s.lt, pci := s.pci,
-                                                                                          isLearner := s.isLearner,
-                                                                                          sdr := s.sdr, cq := s.cq })⌝ ∗
+                                                                                      c' =
+                                                                                          snapCfg sv
+                                                                                            sv.Metadata'.ConfState'.lists ∧
+                                                                                        ∃ prs pvs il,
+                                                                                          s' =
+                                                                                            { term := s.term,
+                                                                                              vote := s.vote,
+                                                                                              lead := s.lead,
+                                                                                              role := s.role,
+                                                                                              votes := s.votes,
+                                                                                              outbox := s.outbox,
+                                                                                              stepfn := s.stepfn,
+                                                                                              ticking := s.ticking,
+                                                                                              progress := prs,
+                                                                                              log := s.log,
+                                                                                              logst :=
+                                                                                                ackSnapLog s.logst m
+                                                                                                  s.term sv,
+                                                                                              prvals := pvs,
+                                                                                              prevote := s.prevote,
+                                                                                              gh := s.gh, rd := s.rd,
+                                                                                              lt := s.lt, pci := s.pci,
+                                                                                              isLearner := il,
+                                                                                              sdr := s.sdr,
+                                                                                              cq := s.cq })⌝ ∗
                                                                           "%Hframe" ∷
                                                                               ⌜m.Type' ≠ MsgSnap →
                                                                                   m.Type' ≠ MsgStorageApplyResp →
@@ -175,10 +185,9 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                 "%Hsnapfr" ∷
                                                                                     ⌜m.Type' = MsgSnap →
                                                                                         SnapStep m s s' ∧
-                                                                                          SnapCfgOut id sn c c' ∧
-                                                                                            ∀ (sv : SnapshotM),
-                                                                                              sn = some sv →
-                                                                                                SnapLogStep sv m s s'⌝ ∗
+                                                                                          ∀ (sv : SnapshotM),
+                                                                                            sn = some sv →
+                                                                                              SnapLogStep sv m s s'⌝ ∗
                                                                                   "%Htrunc" ∷
                                                                                       ⌜m.Type' = MsgApp →
                                                                                           AppTrunc m ents s s'⌝ ∗

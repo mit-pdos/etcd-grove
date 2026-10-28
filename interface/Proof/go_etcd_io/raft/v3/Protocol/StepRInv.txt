@@ -40,17 +40,16 @@ theorem RInv_commit {dec : CCDec} {c0 : CCState} {r : RState} (n : w64) (H : RIn
           rd := __src.rd },
       applied := r.applied, pci := r.pci, snap := r.snap, cidx := r.cidx, cfg := r.cfg, fp := r.fp }
 
-theorem RInv_snapRestore {dec : CCDec} {c0 : CCState} {r : RState} (m : Msg) (fp' : List EntryM)
-    (cs' : CCState) (ms : List Msg) (H : RInv dec c0 r) (hc : uint.Z r.p.commit < uint.Z m.index)
-    (hfull : FullOk { term' := m.logterm, index' := m.index } fp') (hcfg : cfgFold dec c0 fp' = some
-    cs') : RInv dec c0 { p :=
+theorem RInv_snapRestore {dec : CCDec} {c0 : CCState} {r : RState} (m : Msg) (fp' : List EntryM) (ms
+    : List Msg) (H : RInv dec c0 r) (hc : uint.Z r.p.commit < uint.Z m.index) (hfull : FullOk {
+    term' := m.logterm, index' := m.index } fp') : RInv dec c0 { p :=
         psendMsgs
           (have __src := padoptLeader r.p m.src;
           { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role, votes := __src.votes,
             outbox := __src.outbox, base := { term' := m.logterm, index' := m.index }, log := [], commit := m.index,
             matched := __src.matched, rd := __src.rd })
           ms,
-      applied := r.applied, pci := r.pci, snap := true, cidx := uint.nat m.index, cfg := cs', fp := fp' }
+      applied := r.applied, pci := r.pci, snap := true, cidx := uint.nat m.index, cfg := r.cfg, fp := fp' }
 
 theorem RInv_propose {dec : CCDec} {c0 : CCState} {r : RState} (id : w64) (m : Msg) (cs : List
     (Option ConfChangeIM)) (ms : List Msg) (H : RInv dec c0 r) (hrole : r.p.role = Role.leader) (hcs
@@ -199,9 +198,9 @@ theorem cctypes_iff {ents : List EntryM} {cs : List (Option ConfChangeIM)} (H : 
 theorem RInv.full_length {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r) :
     ↑r.full.length = plogLastIndexZ r.p.base r.p.log
 
-theorem RInv_applySnap {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r) (hs : r.snap =
-    true) : RInv dec c0 { p := r.p, applied := r.p.base.index', pci := r.pci, snap := false, cidx :=
-    r.cidx, cfg := r.cfg, fp := r.fp }
+theorem RInv_applySnap {dec : CCDec} {c0 : CCState} {r : RState} (cs' : CCState) (H : RInv dec c0 r)
+    (hs : r.snap = true) (hcfg : cfgFold dec c0 r.fp = some cs') : RInv dec c0 { p := r.p, applied
+    := r.p.base.index', pci := r.pci, snap := false, cidx := r.cidx, cfg := cs', fp := r.fp }
 
 theorem rUnat_eq (w : w64) : ↑(uint.nat w) = uint.Z w
 

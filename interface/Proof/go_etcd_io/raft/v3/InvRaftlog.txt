@@ -6,7 +6,10 @@ def pendKsn (p : Loc) (snap : Option entryID) (K : List SnapTrip) : IProp GF :=
   iprop(□
       ∀ sid,
         ⌜snap = some sid⌝ -∗
-          ∃ sv, ownSnapS p DFrac.discard sv ∗ ⌜snapId sv = sid⌝ ∗ ⌜snapTrip sv sv.Metadata'.ConfState'.lists ∈ K⌝)
+          ∃ sv,
+            ownSnapS p DFrac.discard sv ∗
+              ⌜snapId sv = sid⌝ ∗
+                ⌜snapTrip sv sv.Metadata'.ConfState'.lists ∈ K⌝ ∗ ⌜∃ x, sv.Metadata'.ConfState'.lists.Has x⌝)
 
 def initKsnCert (st : Storage) (σ : StorState) : IProp GF :=
   [∗list] k ∈ initKsn σ, storCert st k

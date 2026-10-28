@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 public import Spec.go_etcd_io.raft.v3.raft__restore
 -- (2026-10-14, stage B7) the ghost modes
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
+public import Proof.go_etcd_io.raft.v3.SnapRoleBack
 public import Proof.go_etcd_io.raft.v3.StepLemmas
 -- `MsgBeat`
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
@@ -266,14 +267,6 @@ def HupFact [GooseExts] (s s' : NState) : Prop :=
   uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied ∧
   uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64
 
-/-- (2026-10-28, stage U0) **A node that is no follower with a snapshot pending was one before**:
-a step makes a follower a candidate or a pre-candidate only through `hup`, which checks that no
-snapshot is pending (`promotable`), and keeps a non-follower's pending snapshot or clears it. What
-keeps `SnapFol` (`InvRawnode.lean`: a pending snapshot is a follower's), which `appliedSnap`'s
-rebuild of the tracker needs (`raft.Step`'s snapshot acknowledgement). -/
-def SnapRoleBack [GooseExts] (s s' : NState) : Prop :=
-  s'.role ≠ .follower → s'.logst.snap ≠ none → s.role ≠ .follower ∧ s.logst.snap ≠ none
-
 /-- (2026-10-25, T-M M2b) and a pre-candidate that stays one keeps its log, commit and pending
 snapshot (`PreKeep`: nothing of its term reached it, which would have made it a follower), and
 one that a `MsgHup` made one has `hup`'s check (`HupFact`): what keeps `StepR.campaign`'s guard
@@ -283,41 +276,7 @@ def PreCandStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
     ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s'))) ∧
   SnapRoleBack s s'
 
-/-- (2026-10-28, stage U0) The snapshot/role clause of `PreCandStep` for a concrete end state:
-a follower's, or the role and the pending snapshot kept. -/
-macro "srb_tac" : tactic => `(tactic| first
-  | (intro h1 h2; exact ⟨h1, h2⟩)
-  | (intro h1 _; exact absurd rfl h1)
-  | (intro h1 h2; simp only at h1 h2 ⊢; exact ⟨h1, h2⟩)
-  | (intro h1; exfalso; apply h1; simp_all; done)
-  | (intro h1 h2; simp_all))
-
-/-- `PreCandStep` for a concrete end state: the role, term and log kept, or a role that is no
-pre-candidate's (2026-10-17); and (stage U0) `srb_tac`. -/
-macro "pc1_tac" : tactic => `(tactic| first
-  | (intro h; exact ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩)
-  | (intro h; cases h)
-  | (intro h; exact absurd h (by decide))
-  | (intro h; simp_all)
-  | (intro h; exact ⟨rfl, .inl ⟨h, by simp_all [PreKeep]⟩⟩))
-
 macro "pc_tac" : tactic => `(tactic| (refine ⟨?_, ?_⟩; pc1_tac; srb_tac))
-
-/-- `PreCandStep` from its pre-candidate clause, the snapshot/role one by `srb_tac` (2026-10-28,
-stage U0). -/
-theorem PreCandStep.mk' [GooseExts] {m : MessageM} {s s' : NState}
-    (h1 : s'.role = .preCandidate → s'.term = s.term ∧
-      ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s')))
-    (h2 : SnapRoleBack s s' := by srb_tac) : PreCandStep m s s' := ⟨h1, h2⟩
-
-/-- (2026-10-28, stage U0) What `hup` leaves (`HupGuard`), its log kept: a campaign checked that no
-snapshot is pending. -/
-theorem HupGuard.snapRoleBack [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM}
-    {id : w64} {s s' : NState} (h : HupGuard c id s s') (hl : s'.logst = s.logst) :
-    SnapRoleBack s s' := fun h1 h2 => by
-  rcases h with rfl | ⟨-, -, Hsn, -⟩
-  · exact ⟨h1, h2⟩
-  · exact absurd (by rw [hl]; exact Hsn) h2
 
 def TermStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
@@ -473,17 +432,6 @@ def SnapLogStep [GooseExts] (sv : SnapshotM) (m : MessageM) (s s' : NState) : Pr
 theorem SnapLogStep.refl [GooseExts] (sv : SnapshotM) (m : MessageM) (s : NState) :
     SnapLogStep sv m s s :=
   .inl ⟨rfl, rfl, rfl, rfl⟩
-
-/-- (2026-10-28, stage U0) What the acknowledgement of a snapshot `sv` needs of it, beyond the
-log's facts: its `ConfState` well formed (`SnapScope`: `appliedSnap` rebuilds the tracker from
-it) and, statically, the ghost state's voters, not joint, within the tracked bound (`CfgStatic`,
-`TrackedOk`: the node is at that configuration afterwards). The `RawNode` has them from the
-snapshot's certificate (`raftSnapCert`). (From 2026-10-20, D22 S-c, to stage U0 a `MsgSnap`'s
-restore switched the configuration, `SnapCfgOut`.) -/
-def SnapAckOk [GooseExts] (γ : RaftNames) (id : w64) (sv : SnapshotM) : Prop :=
-  SnapScope sv sv.Metadata'.ConfState'.lists ∧
-  CfgStatic γ (snapCfg sv sv.Metadata'.ConfState'.lists) ∧
-  TrackedOk γ (snapCfg sv sv.Metadata'.ConfState'.lists) id
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

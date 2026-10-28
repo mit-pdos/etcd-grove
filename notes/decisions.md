@@ -24743,3 +24743,58 @@ to be the specs in, e.g., node__Propose.lean."
 **Left (D4, a follow-up):** the other variant triples (`MemstorageAU.lean`'s `spec_tok`,
 `raft.applyConfChange.specS`, `confchange.Restore.specE`); a clean `node.ForgetLeader` spec.
 
+
+## Stage U0: the configuration switches at appliedSnap (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · taken (stage U0 of the plan; the design the coordinator gave, adjusted where the code
+showed it short)**
+
+**Why.** The fork's `raft37-goose-lean-a2` (`565c2bd`, the fix of
+`issues/raft-snapshot-during-apply-stale-confchange.md`) moves the tracker's rebuild from a snapshot's
+`ConfState` (`MakeProgressTracker`, `confchange.Restore`, `switchToConfig`,
+`assertConfStatesEquivalent`) from `raft.restore` to `raft.appliedSnap`: the node keeps its
+configuration while a restored snapshot is pending.
+
+**The changed statements.**
+- `raft.restore.spec` (`Spec/.../raft__restore.lean`): the post at `c` (`restoreCfg` is gone);
+  `RestoreResult`'s restore case keeps the tracker (`s' = { s with logst := logRestore ... }`). The
+  premises are unchanged (the scope and `s.votes = ∅` are no longer read; they stay so that the
+  statement moves only in its post). `HandleSnapResult`'s restore case likewise;
+  `raft.handleSnapshot.spec` loses its `c'` and `SnapCfgOk` (deleted); `FollowerStepResultC` and
+  `CandidateStepResultC` say `c' = c` for every message.
+- `raft.appliedSnap.spec`: new premises `s.role = .follower`, `s.votes = ∅`, `cl = lists`,
+  `SnapScope sv cl` (what `restore` had; its auto-leave premise is implied by the first and dropped),
+  the snapshot owned (`ownSnapM sp (own 1) sv`: `EnsureConfState` may write `AutoLeave`; `raft.Step`
+  holds its message's snapshot at `1`, `msgIn`); post at `snapCfg sv cl` with the tracker rebuilt
+  (`∃ prs pvs il`). The proof takes `restore`'s old rebuild (helpers moved to `LemmasSnapCfg.lean`).
+- `raft.Step.spec`: the snapshot acknowledgement's premise `(c.autoLeave → role ≠ leader)` becomes
+  `s.role = .follower ∧ SnapAckOk γ id sv` (new: `SnapScope` and, statically, `CfgStatic`/`TrackedOk`
+  of `snapCfg sv cl`); `Hcfg'` is `(MsgStorageAppendResp → sn = none) → c' = c` and `Hlocal` gives
+  `c' = snapCfg sv cl` and the rebuilt tracker after an acknowledgement; `SnapCfgOut` is gone (a
+  `MsgSnap` keeps `c`). `PreCandStep` gains a clause `SnapRoleBack s s'` (a node that is no follower
+  with a snapshot pending afterwards was one before: `hup` checks `promotable`); `TickStep` too.
+- Raft-internal, not in any exported statement: `RNPv` carries `SnapFol s` (a pending snapshot is a
+  follower's); `pendKsn`, `unstable.restore`/`raftLog.restore` (premise), `unstable.nextSnapshot`/
+  `raftLog.nextUnstableSnapshot` (post), `SnapRdy` and `loanCom` carry `∃ x, lists.Has x` (the pending
+  snapshot's `ConfState` names a node: `restore` found the node), which with the snapshot's
+  certificate (`ksn`'s `Hkcert`, `storCertOk`) gives `SnapAckOk` at `RawNode.Advance`.
+- The model: `StepR.snapRestore` no longer sets `cfg` (it still moves `cidx` to the snapshot's index
+  and checks the snapshot's `cs'`); `StepR.applySnap r cs'` (with `Adm r.fp cs'`) sets it. `RInv.cfg`
+  holds only with no snapshot pending (`r.snap = false →`): in between the configuration is the one
+  before the restore, of a log the node no longer has; every rule that reads the configuration is a
+  leader's, a candidate's or a campaign's, which have none (`ownRaftGhostR_env` takes `r.snap =
+  false`; `ghostRest_voters_ne` is now at a leader).
+
+**Found on the way (why the design grew).** `appliedSnap`'s rebuild needs what `restore` had, and
+nothing carried it to the acknowledgement: that the node is a follower (a leader's `switchToConfig`
+would need its peers' `Match` values kept, a candidate's its tally) -- true in Go only because `hup`
+checks `promotable`, so it became an invariant (`SnapFol`, through every step's `SnapRoleBack`); and
+that the acknowledged snapshot names a node and is certified (else the static ghost state could not
+be at its configuration). Both are internal; no exported statement moved.
+
+**Not done (the coordinator's note).** With the fix, a node may apply conf changes from a `Ready`
+handed out before a restore while the snapshot is pending, to the pre-snapshot configuration. The
+model still has `StepR.applyConf`'s `r.snap = false` and `snapRestore` moving `cidx`: allowing the
+former needs the pre-restore prefix in the model (the entries applied are of a log the node no longer
+has). The dynamic mode excludes snapshots at the node API (`reNoSnap`), and the static mode's steps are
+`StepC`'s (no `applyConf`), so no proof needs it in U0; it is U3's (a `RawNode` in one mode).

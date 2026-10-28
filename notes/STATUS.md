@@ -469,6 +469,20 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, stage U0: the configuration switches at appliedSnap (2026-10-28, branch `raft-unified`)
+
+Raft translated from the fork's local `raft37-goose-lean-a2` (`565c2bd`, not pushed: the pin moves
+with the user's approval), which switches to a snapshot's configuration when it is applied (the fix
+of `issues/raft-snapshot-during-apply-stale-confchange.md`). Re-proved at it, no new `sorry` or axiom:
+`raft.restore` keeps the configuration, `raft.appliedSnap` rebuilds the tracker (a follower, the
+`ConfState` well formed, `SnapScope`); `raft.Step` switches after a snapshot's acknowledgement
+(`SnapAckOk`), not after a `MsgSnap`; the model's `StepR.applySnap` installs the snapshot's
+configuration, `snapRestore` no longer does (`RInv.cfg` with no snapshot pending); the `RawNode`
+keeps `SnapFol` (a pending snapshot is a follower's, `SnapRoleBack` in every step's `PreCandStep`) and
+the pending snapshot's `ConfState` naming a node (`pendKsn`, `loanCom`). Statements and reasons:
+`notes/decisions.md`, "Stage U0". Left for U3: conf changes applied while a snapshot is pending
+(`StepR.applyConf` still requires none).
+
 ## `examples/kvreconf`: snapshots and reconfiguration together, Go only (2026-10-28, branch `kv-snap-reconf`)
 
 A key-value store on `raft.Node` whose test program is meant as a specification of how an

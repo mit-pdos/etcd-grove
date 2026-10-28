@@ -27,10 +27,8 @@ theorem raft.handleSnapshot.wp_proof [package_sem : Assumptions] (wp_raft_restor
                                 msgIn ml DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } ∗
                               "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
                         (▷
-                            ∀ s' c',
-                              ownRaftPhysCV c' c'.voters r id s' ∗
-                                  ⌜HandleSnapResult id s m sv cl s'⌝ ∗ ⌜SnapCfgOk id c s sv cl c'⌝ -∗
-                                Φ (intoVal ())) -∗
+                            ∀ s',
+                              ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ -∗ Φ (intoVal ())) -∗
                           WP
                             ((intoVal
                                 (methods raft.ty.PointerType

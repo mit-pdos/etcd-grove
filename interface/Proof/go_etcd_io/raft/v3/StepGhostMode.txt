@@ -154,8 +154,8 @@ theorem storCertOk_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (st : S
     (storCertOk γ st)
 
 theorem ghostRest_voters_ne [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
-    RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : ghostRest γ md c id s ⊢ ⌜c.voters ≠
-    ∅⌝ ∗ ghostRest γ md c id s
+    RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : ghostRest γ md c id s ⊢ ⌜s.role =
+    PRole.leader → c.voters ≠ ∅⌝ ∗ ghostRest γ md c id s
 
 theorem ghost_stepCDSM [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM) (Hms : m.Type' = MsgSnap) (sv :

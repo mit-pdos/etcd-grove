@@ -145,7 +145,7 @@ theorem stepR_snap_restore [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {A
     := [], commit := m.index, matched := __src.matched, rd := __src.rd }) [Msg.mk MsgType.appResp id
     m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []]) (Ha : s'.logst.applied =
     s.logst.applied) (Hsn : s'.logst.snap.isSome = true) (Hl' : s'.role ≠ PRole.leader) : StepR Adm
-    dec id B (rOf s g) [m] (rOf s' { cidx := uint.nat m.index, cfg := cs', fp := fp' })
+    dec id B (rOf s g) [m] (rOf s' { cidx := uint.nat m.index, cfg := g.cfg, fp := fp' })
 
 theorem StepCD.of_excluded [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c : CfgM} {id : w64}
     {m : MessageM} {s : NState} {recv : List Msg} {s' : NState} (h : StepC c id B (toPState s) recv

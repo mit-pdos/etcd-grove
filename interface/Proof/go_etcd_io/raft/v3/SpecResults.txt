@@ -27,12 +27,11 @@ def RestoreResult (id : w64) (s : NState) (sv : SnapshotM) (cl : CSLists) (b : B
         cl.Has id ∧
           ¬PlogMatches ls.prev es sid ∧
             b = true ∧
-              ∃ prs pvs il,
-                s' =
-                  { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes, outbox := s.outbox,
-                    stepfn := s.stepfn, ticking := s.ticking, progress := prs, log := s.log,
-                    logst := logRestore ls (snapTrip sv cl), prvals := pvs, prevote := s.prevote, gh := s.gh, rd := s.rd,
-                    lt := s.lt, pci := s.pci, isLearner := il, sdr := s.sdr, cq := s.cq }
+              s' =
+                { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes, outbox := s.outbox,
+                  stepfn := s.stepfn, ticking := s.ticking, progress := s.progress, log := s.log,
+                  logst := logRestore ls (snapTrip sv cl), prvals := s.prvals, prevote := s.prevote, gh := s.gh,
+                  rd := s.rd, lt := s.lt, pci := s.pci, isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
 
 def LocalApplyThread : w64 :=
   W64 18446744073709551614
@@ -45,9 +44,6 @@ def snapCfg (sv : SnapshotM) (cl : CSLists) : CfgM :=
 
 def SnapScopeIf (id : w64) (sv : SnapshotM) (cl : CSLists) : Prop :=
   (cl.Has id → SnapScope sv cl) ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61
-
-def restoreCfg (c : CfgM) (sv : SnapshotM) (cl : CSLists) (b : Bool) : CfgM :=
-  if b = true then snapCfg sv cl else c
 
 def HupGuard [GoGlobalContext] [GoSemanticsFunctions] (c : CfgM) (id : w64) (s s' : NState) : Prop
     :=

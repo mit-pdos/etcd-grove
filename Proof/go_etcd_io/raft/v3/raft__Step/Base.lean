@@ -247,6 +247,27 @@ def DynHypFor (md : GMode) (m : MessageM) (s s' : NState) : Prop :=
   ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
     RInv dec c0 (rOf s g) → DynHyp m s s' g
 
+section u0
+variable [GooseExts]
+
+/-- `PreCandStep` from its pre-candidate clause, the snapshot/role one by `srb_tac` (2026-10-28,
+stage U0). -/
+theorem PreCandStep.mk' {m : MessageM} {s s' : NState}
+    (h1 : s'.role = .preCandidate → s'.term = s.term ∧
+      ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s')))
+    (h2 : SnapRoleBack s s' := by srb_tac) : PreCandStep m s s' := ⟨h1, h2⟩
+
+/-- (2026-10-28, stage U0) What `hup` leaves (`HupGuard`), its log kept: a campaign checked that no
+snapshot is pending. -/
+theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM}
+    {id : w64} {s s' : NState} (h : HupGuard c id s s') (hl : s'.logst = s.logst) :
+    SnapRoleBack s s' := fun h1 h2 => by
+  rcases h with rfl | ⟨-, -, Hsn, -⟩
+  · exact ⟨h1, h2⟩
+  · exact absurd (by rw [hl]; exact Hsn) h2
+
+end u0
+
 namespace StepProof
 
 /-- The frame and the term step of a branch that keeps the term and the log's fields
