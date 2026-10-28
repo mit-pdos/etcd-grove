@@ -9,6 +9,7 @@ internals, now the proof's private `node.Advance.specRaw`.)
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -66,6 +67,37 @@ abbrev node.Advance.dynamicSpec : Prop :=
           ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
       | some l => ∃ m : Membership,
           nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
+          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝ }}
+
+/-- **`node.Advance()` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
+`isCluster`, `InvNodeRule.lean`): as `node.Advance.dynamicSpec`, with the snapshot path reachable.
+After a `Ready` with a snapshot (its loan `l`), the view is at the snapshot's index and the membership
+`m` after the committed log up to it (`confAt`), which its `ConfState` reports. Premises of the
+snapshot path, all of what the client has from the `Ready` (`readySnap`): the snapshot's
+certificate and its index the length of its committed log; and (as `RawNode.Advance`'s, until stage
+U5) its `ConfState` no auto-leave one. (As `node.Advance.dynamicSpec`, every conf entry of the
+committed log delivered is applied, after a snapshot `Ready` too: the loop's A1 at `run`'s
+`RawNode.Advance`, over the snapshot's committed log.) -/
+abbrev node.Advance.unifiedSpec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) (es : List EntryM)
+    (L : Option SnapLoan) (v : ConfigView),
+  st.handling = some (es, L) →
+  NoConfChangeIn st.delivered v.applied st.delivered.length →
+  (∀ l, L = some l → l.snap.Metadata'.ConfState'.AutoLeave' = false ∧
+    l.dlv.length = uint.nat l.snap.Metadata'.Index') →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗
+      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v ∗
+      (match L with
+       | none => True
+       | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
+      match L with
+      | none => nodeConfig n γ N v ∗
+          ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
+      | some l => ∃ m : Membership,
+          nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
+          confAt γ (uint.nat l.snap.Metadata'.Index') m ∗
           ⌜confStateIs l.snap.Metadata'.ConfState' m⌝ }}
 
 end spec

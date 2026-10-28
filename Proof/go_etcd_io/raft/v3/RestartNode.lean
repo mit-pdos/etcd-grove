@@ -16,6 +16,8 @@ public import Proof.go_etcd_io.raft.v3.ApiVocab
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiRule
+import all Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -470,6 +472,88 @@ private theorem wp_RestartNode_impl
   · ipureintro; rfl
   iexact Hdrv
 
+/-- `RestartNode.unifiedSpec` from the raw triple (2026-10-28, stage U4a): the node in the cluster's
+dynamic mode (the rule's), taking `MsgSnap`s (`snapIn`), its ghost state the dynamic one at the
+initial state (`ownRaftGhostR_rinit`), its table entry inserted (`nodeTabOk`), its view at the
+voters' membership. -/
+private theorem wp_RestartNode_unified_impl
+    (hS : EtcdGrove.RestartNode.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.RestartNode.unifiedSpec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.RestartNode.unifiedSpec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver
+    EtcdGrove.nodeFounder EtcdGrove.storageCertLink EtcdGrove.nodeConfig
+  intro γ N vs c cv lok si σ hs csm H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln
+    Hal Hid Hfl
+  iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, #Hinst, Hboot, #Hlink⟩ HΦ
+  iunfold nodeFounderU at Hboot
+  icases Hboot with ⟨#Hcl, %Hpf, Hg, #Hc0, #Hbinv, #Htlb, ⟨%g, %Hg0, Ha⟩⟩
+  obtain ⟨Hcfg, ⟨r, Hmr⟩, Hne, Hnd, Hnz, Hlen⟩ := Hpf
+  ihave #Hcl' := Hcl
+  iunfold isClusterU at Hcl'
+  icases Hcl' with ⟨%Hu, #Hci⟩
+  obtain ⟨-, Hsl, Hcert⟩ := Hu
+  have Hdyn := Hmr.1.2.2.1
+  have Hns := Hmr.1.2.2.2.1
+  obtain ⟨h0, h1, Hmd⟩ := Hmr.mode
+  subst Hv
+  ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
+  iapply wp_fupd
+  iapply (hS γ.raft (γ.mode inferInstance) γ.bud c cv lok si σ hs csm true
+    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz (by omega) Hvo Hl Hln Hal Hcfg Hid
+    Hfl (fun _ => Hns)) $$ [Hc Hown Hg]
+  · iframe Hinit Hc Hlog Hstor Hown Hinst Hc0 Hbinv Htlb
+    isplitl [Hg]
+    · rw [Hmd]
+      unfold rnInit
+      isplitr
+      · ipureintro; exact ⟨Hdyn, stOf_simple _⟩
+      iapply ownRaftGhostR_rinit $$ Hg
+    · unfold certLink; iright; iexact Hok'
+  iintro !> %nd ⟨%γn, %n, %Hf, #Hnode, Hdrv, Hcf⟩
+  obtain ⟨Hγr, Hγb, Hγs, Hmd', Hsn, Hnd'⟩ := Hf
+  have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, Hmd', .inl Hsn⟩
+  have Hdy : γn.mode.isDyn = true := by rw [Hmd', Hmd]; rfl
+  imod ghost_map_insert_persist cv.ID' (cfgNamesOf γn) (GMap.lookup_empty _) $$ Ha with ⟨-, #He⟩
+  ihave #Htb : nodeTabOk (GF := GF) γ cv.ID' γn $$ []
+  · unfold nodeTabOk; iexists g; iframe He; ipureintro; exact Hg0
+  imodintro
+  iapply HΦ
+  iexists n
+  isplitr
+  · ipureintro; exact Hnd'
+  isplitr
+  · unfold isNode
+    iexists γn
+    iframe Hnode Hci
+    ipureintro; exact Hnok
+  isplitl [Hdrv]
+  · unfold nodeDriver NodeDriverState.init
+    iexists γn, cv.ID', []
+    isplitr
+    · ipureintro; exact ⟨Hnok, Hγs, rfl⟩
+    iframe Hci
+    isplitr
+    · iapply isCommittedLogLb_nil_impl
+    isplitr
+    · ileft; ipureintro; exact Hdy
+    isplitr
+    · iright; iframe Htb
+      isplitr
+      · unfold hsCommitted; ileft; ipureintro; rfl
+      iright; iexact Hlink
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexact Hdrv
+  unfold nodeConfig
+  iexists γn, cv.ID'
+  iframe Hnode Htb
+  isplitr
+  · ipureintro
+    refine ⟨Hnok, Hdy, ?_⟩
+    show CCGood (stOf (Membership.simple (GMap.listToSet csm.Voters')))
+    rw [stOf_simple]; exact ccGood_cfgState _
+  rw [stOf_simple]; iexact Hcf
+
 end wrap
 
 end ApiImpl
@@ -487,6 +571,13 @@ theorem RestartNode.wp_proof
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) :=
   ApiImpl.wp_RestartNode_impl (RestartNode.wp_raw wp_NewRawNode wp_newNode wp_node_run)
+
+theorem RestartNode.wp_proof_unified
+    (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
+    (wp_newNode : newNode.spec (GF := GF) (hG := hG))
+    (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
+    RestartNode.unifiedSpec (GF := GF) (hG := hG) :=
+  ApiImpl.wp_RestartNode_unified_impl (RestartNode.wp_raw wp_NewRawNode wp_newNode wp_node_run)
 
 end proof
 

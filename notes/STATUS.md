@@ -469,6 +469,34 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, stage U4a: a cluster with snapshots and reconfiguration (2026-10-28, branch `raft-unified`)
+
+Raft side done, no new `sorry` or axiom; kv's port **not started: waiting for the user** (its
+exported `kv_New` and `kv_run` restate `New.spec` and `KV.run.spec`, which name the static cluster,
+`isStaticCluster ... kvVoters kvSnapOk`, and must change; the coordinator's brief: stop and report
+before changing an exported statement). New, beside today's families (`InvNodeRule.lean`, importable,
+sealed over `InvApiRule.lean`/`InvApiRuleAlloc.lean`):
+- `cluster_alloc_rule N vs r`: a cluster of the voters `vs` with an empty log, raft's dynamic mode of
+  the rule `r` (`ConfRule.toDec`) from the voters' membership, **outside the no-snapshot mode**, every
+  snapshot's data admitted, the registry of the snapshots made allocated
+  (`ownRaftGhost_alloc_core_reg`, `Protocol/Facts.lean`: `ownRaftGhost_alloc_core` with the caller's
+  `reSnapReg`); its post `isCluster γ N`, `confPolicy γ r`, `confAt γ 0 c0`, `ownSnapsMade γ []`,
+  leader transfer on, one `nodeFounder` per voter.
+- Candidate 13's shapes over it: `confAt γ k m`, `confDecided γ k d` (`ConfDecision`), with
+  `confAt_agree`, `confAt_valid`, `confAt_noConf`, `confAt_decided`, and the interim
+  `confPolicy_decide` (the rule's decision; candidate 13's `confPolicyInv`); `ownSnapsMade`,
+  `snapMade`, `snapMade_elem`, `snapshotCert_make` (over `confAt`), `snapshotCert_made`.
+- The specs' `unifiedSpec` variants over `isCluster`, proved from the raw triples:
+  `RestartNode.unifiedSpec` (a founder of `c0` on an empty storage; post with `nodeConfig ⟨0, c0⟩`),
+  `node.ApplyConfChange.unifiedSpec` (`confDecided γ k (.apply o')` in place of the decoder),
+  `node.Advance.unifiedSpec` (**the snapshot path proved**: after a snapshot `Ready`, `nodeConfig` at
+  the snapshot's index and the membership `m` after its committed log, `confAt`, `confStateIs`;
+  premises the snapshot's certificate, its index the loan's length, no auto-leave). Linked in
+  `Linked.lean` (`wp_RestartNode_unified`, `node.wp_Advance_unified`, `node.wp_ApplyConfChange_unified`).
+Remaining for U4a: kv's port (the proposed statements, `notes/decisions.md`, "Stage U4a"), a
+`StartNode` from a bootstrap log in this cluster. `notes/decisions.md`, "Stage U4a: kv's adequacy
+over the dynamic half with snapshots".
+
 ## Raft unified, stages U2, U3 (done): snapshots in the dynamic mode (2026-10-28, branch `raft-unified`)
 
 U2: the dynamic snapshot certificate is made and read. Raft's names may name a registry of the

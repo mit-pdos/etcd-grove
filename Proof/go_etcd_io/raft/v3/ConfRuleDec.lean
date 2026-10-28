@@ -56,6 +56,30 @@ theorem strip_snoc (pre : List EntryM) (e : EntryM) :
     strip (pre ++ [e]) = strip pre ++ [LogEntry.ofEntryM e] := by
   unfold strip; rw [List.map_append]; rfl
 
+/-- **A fold from a valid membership is valid** (for any rule: a change keeps a membership valid,
+`Membership.applyChange_valid`). -/
+theorem Membership.foldFrom_valid (r : ConfRule) (pre : List LogEntry) (m m' : Membership)
+    (l : List LogEntry) (hm : m.Valid) (h : Membership.foldFrom r pre m l = some m') : m'.Valid := by
+  induction l generalizing pre m with
+  | nil => simp only [Membership.foldFrom, Option.some.injEq] at h; subst h; exact hm
+  | cons e l ih =>
+    simp only [Membership.foldFrom] at h
+    cases hs : Membership.foldStep r pre m e with
+    | none => rw [hs] at h; cases h
+    | some m1 =>
+      rw [hs, Option.bind_some] at h
+      apply ih (pre ++ [e]) m1 _ h
+      unfold Membership.foldStep at hs
+      split at hs
+      · split at hs
+        · cases hs; exact hm
+        · exact memApply_valid _ m m1 hm hs
+      · cases hs; exact hm
+
+theorem Membership.fold_valid (r : ConfRule) (c0 m : Membership) (l : List LogEntry)
+    (h0 : c0.Valid) (h : Membership.fold r c0 l = some m) : m.Valid :=
+  Membership.foldFrom_valid r [] c0 m l h0 h
+
 /-- **The protocol's fold is the API's**: from a valid `c0`, `cfgFold` of the rule's decoder over a
 log is `Membership.fold` of the log as a client sees it, each membership as its canonical state. -/
 theorem cfgFold_toDec (r : ConfRule) (c0 : Membership) (h0 : c0.Valid) (L : List EntryM) :

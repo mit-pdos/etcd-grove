@@ -1181,8 +1181,10 @@ theorem entsData_keys (γ : RaftNames) (L : List EntryM) :
 start (`γ.reBoot = L`, `BootWf`: the bootstrap log, or `[]`), in either mode (`dyn`; until
 2026-10-25, T-M M2a, static unless `L` is empty), the client's continuation at `L` (`allocClientGen`). The instances:
 `ownRaftGhost_alloc_gen` (`[]`, either mode), `ownRaftGhost_alloc_boot` (the bootstrap log,
-static). -/
-theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
+static). (2026-10-28, stage U4a) With the registry of the snapshots made (`RaftNames.reSnapReg`)
+the caller's `reg`: `ownRaftGhost_alloc_core_reg`; `ownRaftGhost_alloc_core` is its instance at
+`none`. -/
+theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
     (dyn : Option ((e : GooseExts) → @DynCfg e))
     -- (2026-10-15, stage N) the conf-change bytes the cluster admits
     (ccOk : w32 → List w8 → Prop)
@@ -1201,7 +1203,9 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-27) the commit invariant's namespace (`RaftNames.reNs`)
     (nsN : Namespace)
     -- (2026-10-27) the snapshot-certificate registries' namespace (`RaftNames.reCertNs`)
-    (certN : Namespace) :
+    (certN : Namespace)
+    -- (2026-10-28, stage U4a) the registry of the snapshots made (`RaftNames.reSnapReg`)
+    (reg : Option GName) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1209,7 +1213,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     ⊢ allocClientGen E cfg dyn ccOk L C nsN -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
-          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = none⌝ ∗
+          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1250,7 +1254,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, none⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1382,6 +1386,33 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   · iapply alloc_nodes γ0 ids t L (by rw [Hγ0]) Hnz eB HwfL Hlen Hones Ht
       $$ Hinv' Hc0 HrL Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcinv' Hcr0
   iframe HCl Hcr Hcinv'
+
+/-- **The allocation's core**, with no registry of the snapshots made
+(`ownRaftGhost_alloc_core_reg` at `none`). -/
+theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
+    (dyn : Option ((e : GooseExts) → @DynCfg e))
+    (ccOk : w32 → List w8 → Prop)
+    (L : List EntryM) (t : w64) (C : RaftNames → IProp GF)
+    (trk : Option (GSet w64)) (Htrk : ∀ T, trk = some T → cfg ⊆ T ∧ dyn = none)
+    (ns : Bool) (Hns : ns = true → L ≠ [])
+    (nx : Bool) (Hnx : nx = true → L ≠ [])
+    (sok : List BootEntry → List w8 → Prop)
+    (sl : w64 → Option GName)
+    (nsN : Namespace)
+    (certN : Namespace) :
+    cfg ≠ ∅ →
+    W64 0 ∉ ids →
+    BootWf L → (L ≠ [] → 1 ≤ uint.Z t) →
+    ⊢ allocClientGen E cfg dyn ccOk L C nsN -∗
+      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
+          γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
+          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = none⌝ ∗
+        raftCommitInv (GF := GF) γ ∗
+        isCommitted γ L ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
+        C γ ∗
+        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) :=
+  ownRaftGhost_alloc_core_reg E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN none
 
 
 /-- The allocation, in either mode (2026-10-14, stage B5: `dyn` is the ghost state's mode,

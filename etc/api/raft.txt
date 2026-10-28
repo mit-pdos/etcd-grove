@@ -22,6 +22,10 @@ importable Proof.go_etcd_io.raft.v3.NodeApiVocab
 # (2026-10-28, stage U1) the unified API's configuration vocabulary: `ConfRule`, `Membership.fold`,
 # `RaftLeave`, `opsOfRule`, with their laws (over `InvNode`'s sealed `Valid`/`applyChange`)
 importable Proof.go_etcd_io.raft.v3.ConfRule
+# (2026-10-28, stage U4a) a cluster with snapshots and reconfiguration, of a conf-change rule fixed at
+# allocation (the interim of candidate 13's decisions): `isCluster`, `confAt`, `confDecided`,
+# `confPolicy`, `ownSnapsMade`, `snapMade`, `nodeFounder`, `cluster_alloc_rule`, sealed, with laws
+importable Proof.go_etcd_io.raft.v3.InvNodeRule
 importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.RestartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance

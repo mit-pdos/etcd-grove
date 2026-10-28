@@ -50,11 +50,6 @@ variable [GooseExts]
 def _root_.Perennial.EtcdGrove.SnapRec.Matches (s : SnapRec) (key : w64 × List w8) : Prop :=
   uint.nat key.1 = s.index ∧ key.2 = s.data
 
-/-- The lists of a `ConfState` report the membership `m` (`confStateIs`, on the lists). -/
-def _root_.Perennial.EtcdGrove.CSLists.Is (cl : CSLists) (m : Membership) : Prop :=
-  cl.voters ≡ₚ GMap.elements m.voters ∧ cl.outgoing ≡ₚ GMap.elements m.votersOutgoing ∧
-    cl.learners ≡ₚ GMap.elements m.learners ∧ cl.learnersNext ≡ₚ GMap.elements m.learnersNext
-
 theorem forall₂_mem_right {α β : Type} {R : α → β → Prop} {S : List α} {K : List β} {b : β}
     (h : List.Forall₂ R S K) (hb : b ∈ K) : ∃ a ∈ S, R a b := by
   induction h with

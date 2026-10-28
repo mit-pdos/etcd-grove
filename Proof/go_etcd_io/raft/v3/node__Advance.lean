@@ -12,6 +12,8 @@ public import Spec.go_etcd_io.raft.v3.NewRawNode
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiRule
+import all Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -311,6 +313,147 @@ private theorem node.wp_Advance_dynamic_impl
   ipureintro
   rw [← Hds, strip_length]; exact Hle
 
+/-- A busy token with a snapshot's loan holds the loan's committed log. -/
+private theorem busy_dlv (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+    (p : HardStateM) (l : SnapLoan) :
+    nodeDriverBusy (GF := GF) γn id n ds es p (some l) ⊢
+      nodeDriverBusy γn id n ds es p (some l) ∗ ⌜ds = l.dlv⌝ := by
+  unfold nodeDriverBusy
+  iintro ⟨#Hn, #Hlb, %d, %ce, %p0, H1, H2, H3, %Hds, %q, Hq1, Hq2⟩
+  isplitl [H1 H2 H3 Hq1 Hq2]
+  · iframe Hn Hlb
+    iexists d, ce, p0
+    iframe H1 H2 H3
+    isplitr; · ipureintro; exact Hds
+    iexists q; iframe Hq1 Hq2
+  · ipureintro; exact Hds
+
+/-- `node.Advance.unifiedSpec` from the raw triple (2026-10-28, stage U4a). After a snapshot
+`Ready`, the view the raw triple returns is at the loan's committed log and its fold
+(`loanCfg`, `RNMode.foldCfg`); the snapshot's certificate (`snapshotCert_made`) names a committed
+prefix of the snapshot's index, at the rule's fold `m`, which is the loan's committed log (both
+committed, one length), so the view is at `m`, and its lists report `m`. -/
+private theorem node.wp_Advance_unified_impl
+    (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.node.Advance.unifiedSpec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.node.Advance.unifiedSpec EtcdGrove.Cluster EtcdGrove.isCluster EtcdGrove.nodeConfig
+    EtcdGrove.nodeDriver EtcdGrove.snapshotCert EtcdGrove.confAt
+  intro n γ N st es L v Hh Hno Hloan
+  iintro %Φ ⟨#Hinit, #Hdc, Hdrv, Hrc, Hcfg, Hcert⟩ HΦ
+  iunfold isClusterU at Hdc
+  icases Hdc with ⟨%Hu, -⟩
+  obtain ⟨⟨r, c0, Hmr⟩, -, -⟩ := Hu
+  obtain ⟨h0, h1, Hmd0⟩ := Hmr.mode
+  have Hns : γ.raft.reNoSnap = false := Hmr.1.2.2.2.1
+  iunfold nodeDriver at Hdrv
+  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hstc, #Hdy, Htok⟩
+  obtain ⟨Hnok, Hγs, Hds⟩ := Hf
+  have Hmd : γn.mode = .dyn (r.toDec c0) (stOf c0) h0 h1 := by rw [Hnok.2.2.2.1, Hmd0]
+  have Hd : γn.mode.isDyn = true := by rw [Hmd]; rfl
+  icases Hdy with (%Hc | ⟨#Htb, #Hhc⟩)
+  · rw [Hd] at Hc; cases Hc
+  icases Htok with (⟨%Hh', -⟩ | ⟨%es0, %L0, %Hh', Htok⟩)
+  · rw [Hh] at Hh'; cases Hh'
+  rw [Hh] at Hh'
+  cases Hh'
+  ihave ⟨Htok, #Hn1, -⟩ := busy_isNode_lb γn id n ds es st.hardState L $$ Htok
+  ihave %Hdl : ⌜∀ l, L = some l → ds = l.dlv⌝ $$ [Htok]
+  · cases L with
+    | none => ipureintro; intro l h; cases h
+    | some l =>
+      icases busy_dlv γn id n ds es st.hardState l $$ Htok with ⟨-, %H⟩
+      ipureintro; intro l' h; cases h; exact H
+  iunfold nodeConfig at Hcfg
+  icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
+  icases isNode_id_agree γn γn2 id id2 n $$ Hn1 Hn2 with %Hid
+  subst Hid
+  icases nodeTabOk_agree γ id γn γn2 $$ Htb Htab2 with %Hnm
+  ihave Hcf := nodeCfg_names γn2 γn Hnm.symm _ _ $$ Hcf
+  have HA1 : NoConfIn ds v.applied ds.length := by
+    have := noConfIn_of_strip ds v.applied ds.length
+    rw [Hds] at this
+    apply this
+    have Hl : ds.length = st.delivered.length := by rw [← Hds, strip_length]
+    rw [Hl]; exact Hno
+  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L (fun _ => HA1)
+    (fun l hl _ _ => (Hloan l hl).1)) $$ [Htok Hrc Hcf]
+  · iframe Hinit Htok Hcf
+    rw [Hγs]; iexact Hrc
+  iintro !> ⟨Hdrv, Hcf, -, #Hw⟩
+  iapply HΦ
+  isplitl [Hdrv Hstc]
+  · unfold nodeDriver
+    iexists γn, id, ds
+    isplitr
+    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
+    iframe Hci Hlb0 Hstc
+    isplitr
+    · iright; iframe Htb Hhc
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexact Hdrv
+  cases L with
+  | none =>
+    simp only
+    rw [loanCfg_none]
+    isplitl [Hcf]
+    · unfold nodeConfig
+      iexists γn, id
+      iframe Hn1 Htb Hcf
+      ipureintro; exact ⟨Hnok, Hd, Hf2.2.2⟩
+    iunfold reqOf at Hw
+    iunfold reqWit at Hw
+    icases Hw with ⟨%x, #Hx, %Hle⟩
+    iexists x
+    rw [← Hγs]
+    iframe Hx
+    ipureintro
+    rw [← Hds, strip_length]; exact Hle
+  | some l =>
+    simp only
+    obtain ⟨-, Hli⟩ := Hloan l rfl
+    have Hdsl := Hdl l rfl
+    subst Hdsl
+    icases ApiImpl.snapshotCert_made γ N r c0 _ Hmr.1 $$ Hcert with ⟨%L', %m, #HL', -, %P⟩
+    obtain ⟨HL'len, -, HL'f, Hcl, Hal⟩ := P
+    icases isCommittedLogLb_agree_impl γ st.delivered L' $$ [Hlb0 HL'] with %Hcmp
+    · iframe Hlb0 HL'
+    have Hlen : st.delivered.length = L'.length := by
+      rw [← Hds, strip_length, Hli, HL'len]; rfl
+    have HeqL : st.delivered = L' := by
+      rcases Hcmp with h | h
+      · exact h.eq_of_length Hlen
+      · exact (h.eq_of_length Hlen.symm).symm
+    have Hv0 := Hmr.valid
+    have Hfold : cfgFold (r.toDec c0) (stOf c0) l.dlv = some (stOf m) := by
+      rw [cfgFold_toDec r c0 Hv0 l.dlv, Hds, HeqL, HL'f]; rfl
+    have Hlc : loanCfg γn.mode (some l) (v.applied, stOf v.membership) =
+        (uint.nat l.snap.Metadata'.Index', stOf m) := by
+      unfold loanCfg
+      simp only
+      rw [ite_eq_left Hd, Hmd]
+      simp only [RNMode.foldCfg, Hfold, Option.getD_some, Hli]
+    rw [Hlc]
+    have Hmv : m.Valid := Membership.fold_valid r c0 m L' Hv0 HL'f
+    iexists m
+    isplitl [Hcf]
+    · unfold nodeConfig
+      iexists γn, id
+      iframe Hn1 Htb Hcf
+      ipureintro; exact ⟨Hnok, Hd, Hmv.2⟩
+    isplitr
+    · unfold confAtU
+      iexists L'
+      iframe HL'
+      ipureintro
+      have HL'i : uint.nat l.snap.Metadata'.Index' = L'.length := HL'len.symm
+      refine ⟨by rw [HL'i]; exact Nat.le_refl _, r, c0, Hmr, ?_⟩
+      rw [HL'i, List.take_length]; exact HL'f
+    ipureintro
+    obtain ⟨c1, c2, c3, c4⟩ := Hcl
+    exact ⟨c1, c2, c3, c4, Hal⟩
+
 end wrap
 
 end ApiImpl
@@ -329,6 +472,10 @@ theorem node.Advance.wp_proof :
 theorem node.Advance.wp_proof_dynamic :
     node.Advance.dynamicSpec (GF := GF) (hG := hG) :=
   ApiImpl.node.wp_Advance_dynamic_impl (node.Advance.wp_raw)
+
+theorem node.Advance.wp_proof_unified :
+    node.Advance.unifiedSpec (GF := GF) (hG := hG) :=
+  ApiImpl.node.wp_Advance_unified_impl (node.Advance.wp_raw)
 
 end proof
 

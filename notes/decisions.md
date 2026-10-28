@@ -25066,3 +25066,83 @@ the `RawNode`, the snapshot's `ConfState` no auto-leave one), which `runCfg_adva
   `runCfgR_a1` (new), `wp_rn_raft_applyConfChange_dyn`, `node.Advance.specRaw` (the view
   `loanCfg γ.mode L (ca, cfg)`, `L ≠ none → reNoSnap = false`), `StartNode`/`RestartNode`'s raw
   `sn = true → reNoSnap = false`; `ApiImpl.nodeDriver`, `hsCommitted`.
+
+## Stage U4a: kv's adequacy over the dynamic half with snapshots (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · the raft side taken; kv's port waits for the user (an exported statement must change)**
+
+**Why.** Stages U2-U3d taught the dynamic half to take snapshots, but every dynamic cluster was
+allocated in the no-snapshot mode (`DynNames.reNoSnap = true`), so none of it was reachable. The
+user wants an adequacy check of that path: examples/kv's `kv_porcupine_safe` re-proved over a
+dynamic cluster with snapshots.
+
+**The cluster (`InvNodeRule.lean`, importable; definitions and proofs in `InvApiRule.lean`,
+`InvApiRuleAlloc.lean`).** A new cluster predicate beside the static and the decoder-dynamic ones:
+`isCluster γ N` (candidate 13's name), raft's dynamic mode of a `ConfRule` from `c0`, snapshots on
+(`RuleNames`, stage U2: the registry `reSnapReg`, every data admitted). The rule is the interim of
+candidate 13's decisions (`notes/spec-first-study/raft-node-unified-candidate-13.md`, section 13), so
+it is confined to the allocation (`cluster_alloc_rule N vs r`) and one predicate, `confPolicy γ r`
+(the stand-in for candidate 13's client-library `confPolicyInv`, with its law `confPolicy_decide`);
+everything else is in candidate 13's shapes: `confAt γ k m` (the membership after the first `k`
+committed entries), `confDecided γ k d` (`ConfDecision.apply o | skip`), the laws `confAt_agree`,
+`confAt_valid`, `confAt_noConf` (candidate 13's `confAt_normal` over a range), `confAt_decided`,
+`snapshotCert_make` over `confAt`, `snapshotCert_made` giving `confAt`, `ownSnapsMade`/`snapMade`
+/`snapMade_elem`. The rule is existential in every predicate (`ModeRule γ r c0`: the snapshot names
+and the nodes' mode the rule's); two rules of one cluster fold every log alike
+(`ModeRule.fold_eq`, from `RuleNames.fold`), which is how the predicates agree.
+- *The allocation* needs a registry in raft's names: `ownRaftGhost_alloc_core_reg` (`Protocol/
+  Facts.lean`) is the core with the caller's `reSnapReg`, `ownRaftGhost_alloc_core` its instance at
+  `none` (its 20 callers unchanged). An empty log, so `ns = false` is allowed; leader transfer on
+  (the no-transfer mode needs a bootstrap log). Its premise `vs.length < 2^62` (strict:
+  `Membership.Valid`'s bound).
+- *`ConfDecision.step`* is candidate 13's without the `Valid` filter (a change keeps a valid
+  membership valid). `CSLists.Is` moved from `SnapsMade.lean` to `ConfRule.lean` (public vocabulary
+  of `snapshotCert_made`); `Membership.fold_valid` is internal (`ConfRuleDec.lean`: it reads
+  `memApply_valid`; the public `Membership.applyChange_valid` takes the Goose instances).
+- `confDecided`'s definition records the rule's decision up to the change's effect (`DecMatch`:
+  `ccV2Of o = ccV2Of o'`), and the membership after the entry defined, so `confAt_decided` needs no
+  premise; `confPolicy_decide` asks that the decision have a result (candidate 13's `confDecide`
+  premise `d.step m = some m'`): no `rule.Ok` premise at allocation.
+
+**The specs (new statements, approved shape pending).** Beside today's, a known exception to one spec
+per function as the dynamic variants (`etc/api/raft-layout.txt`), named `unifiedSpec` (not
+`dynamicSpec`: those are over `isDynamicCluster`):
+- `RestartNode.unifiedSpec` (`Spec/go_etcd_io/raft/v3/RestartNode.lean`): `RestartNode.spec`'s
+  premises with `nodeFounder γ N vs cv.ID'` for `nodeRestartBoot`; post adds `nodeConfig n γ N ⟨0,
+  Membership.simple (listToSet vs)⟩`. The founder's token carries the voters' facts and the node's
+  table; the wrapper turns the allocation's ghost state into the dynamic one at `rinit c0`
+  (`ownRaftGhostR_rinit`), the node takes `MsgSnap`s (`snapIn`), and its `nodeDriver` carries the
+  storage's certificate link in the dynamic clause (stage U3d).
+- `node.ApplyConfChange.unifiedSpec`: `dynamicSpec`'s with `confDecided γ k (.apply o')` for the
+  decoder premise (candidate 13's shape).
+- `node.Advance.unifiedSpec`: `dynamicSpec`'s, the snapshot path **proved** (U3d's statement was
+  vacuous): after a snapshot `Ready` (loan `l`), `∃ m, nodeConfig ⟨index, m⟩ ∗ confAt γ index m ∗
+  ⌜confStateIs (l's ConfState) m⌝`. It takes, for a loan, the snapshot's certificate (the client has
+  it from `readySnap`), `l.dlv.length = index` (likewise) and the `ConfState` no auto-leave one
+  (`RawNode.Advance`'s, until U5). The wrapper reads the raw view at `loanCfg` (the fold of the loan's
+  committed log), and the certificate's committed prefix (`snapshotCert_made`), one length with the
+  loan's committed log (the busy token's `ds = l.dlv`, `busy_dlv`), so the fold is the certificate's
+  membership. **Departure from candidate 12/13:** the A1 premise `NoConfChangeIn st.delivered
+  v.applied st.delivered.length` holds for a snapshot `Ready` too (the raw triple's, over the loan's
+  committed log), where candidate 12 has it only without a snapshot: a client whose snapshot skips
+  conf entries it has not applied must apply them (`ApplyConfChange`, which the loan's
+  `deliveredLogLb` allows, U3d) before `Advance`, which applications do not do. kv meets it (its
+  snapshots' prefixes have no conf entry); lifting it is the raw triple's (A1 at `run`'s
+  `RawNode.Advance`), for U9.
+
+**kv (not started; the user's approval needed).** kv's exported results restate its specs
+(`Results.lean`: `kv_New : kv.New.spec`, `kv_run : kv.KV.run.spec`); `New.spec` names
+`isStaticCluster γr.cluster kvRaftN kvVoters kvSnapOk`, and `run` must hold the node's view of its
+configuration (`nodeConfig`), which neither spec has. The proposed statements (the rest unchanged):
+`New.spec`: `isStaticCluster ...` replaced by `isCluster γr.cluster kvRaftN`, plus `nodeConfig n
+γr.cluster kvRaftN ⟨0, kvMembership⟩` (`kvMembership := Membership.simple (listToSet kvVoters)`);
+`KV.run.spec`: plus the same `nodeConfig`; `isReplica` (kv's predicate under every `KV.*` spec) with
+`isCluster`, `confPolicy γr.cluster kvRule`, `confAt γr.cluster 0 kvMembership` and an invariant of
+the snapshot registry (`ownSnapsMade γ S`, each record's data `encState` of its committed prefix, its
+membership `kvMembership`, its prefix with no conf entry) in place of `isStaticCluster`; `kvSnapOk`
+gone. `kv_porcupine_safe`, `kv_Main`, `kv_Check`, `kv_StartCluster`, `kv_Put`/`Get`/`Append`/`Read`,
+`kv_RemoveMember` (its premise `RmShrink id` kept), `rkvInv_alloc` keep their text. kv's rule:
+`kvRule pre m e := ccDecode e` (the v1 change decoded); a committed conf entry is `RemoveMember`'s
+(`kv_committed_cc`), of a non-voter (`RmShrink`), so every decision keeps `kvMembership`
+(`Membership.applyChange_removeAbsent`, `_nodeZero`) and kv's configuration is `kvMembership` at
+every node and snapshot.

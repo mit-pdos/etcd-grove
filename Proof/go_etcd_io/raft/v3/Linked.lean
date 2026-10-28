@@ -66,6 +66,23 @@ theorem node.wp_ApplyConfChange_dynamic [StorageModel GF] :
   node.ApplyConfChange.wp_proof_dynamic _root_.Perennial.EtcdGrove.raftpb.ConfChange.wp_AsV2
     _root_.Perennial.EtcdGrove.raftpb.ConfChangeV2.wp_AsV2
 
+/-! The variants over a cluster with snapshots and reconfiguration (2026-10-28, stage U4a:
+`isCluster`, `InvNodeRule.lean`; the same exception, linked here from the same callees). -/
+
+theorem wp_RestartNode_unified [StorageModel GF] :
+    RestartNode.unifiedSpec (GF := GF) (hG := hG) :=
+  RestartNode.wp_proof_unified _root_.Perennial.EtcdGrove.wp_NewRawNode
+    _root_.Perennial.EtcdGrove.wp_newNode _root_.Perennial.EtcdGrove.node.wp_run
+
+theorem node.wp_Advance_unified [StorageModel GF] :
+    node.Advance.unifiedSpec (GF := GF) (hG := hG) :=
+  node.Advance.wp_proof_unified
+
+theorem node.wp_ApplyConfChange_unified [StorageModel GF] :
+    node.ApplyConfChange.unifiedSpec (GF := GF) (hG := hG) :=
+  node.ApplyConfChange.wp_proof_unified _root_.Perennial.EtcdGrove.raftpb.ConfChange.wp_AsV2
+    _root_.Perennial.EtcdGrove.raftpb.ConfChangeV2.wp_AsV2
+
 end linksLC
 
 section links

@@ -19,7 +19,9 @@ proof that uses one as a lemma rather than taking it as a callee's spec, are
   its `Ready` loop's token (`isNode`, `nodeDriver`), the messages (`sentMsg`, `stepIn`), the
   snapshots' certificates and the dynamic cluster's configuration, all **sealed** (`@[no_expose]`:
   a client sees their names, never their bodies), with their laws and the allocations
-  (`cluster_alloc`, `dynamicCluster_alloc`); its pure vocabulary in `NodeApiVocab.lean` (`LogEntry`,
+  (`cluster_alloc`, `dynamicCluster_alloc`); (2026-10-28, stage U4a) a cluster with snapshots and
+  reconfiguration in `InvNodeRule.lean` (`isCluster`, `confAt`, `confDecided`, `ownSnapsMade`,
+  `cluster_alloc_rule`; the specs' `unifiedSpec` variants); its pure vocabulary in `NodeApiVocab.lean` (`LogEntry`,
   `opsOf`, `Membership`, ...); the errors and contexts in `InvNodeCtx.lean`;
 - `Proof/go_etcd_io/raft/v3/ApiVocab.lean`: the records and predicates of those statements that
   raft's internals also use (`QMsg`, `SnapLoan`, `RNMode`, `RNState`, `NetMsgOk`, `SentMsgOk`,
@@ -60,5 +62,6 @@ public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
 public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.ApiVocab

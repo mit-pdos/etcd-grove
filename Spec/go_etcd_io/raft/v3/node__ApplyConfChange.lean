@@ -9,6 +9,7 @@ internals, now the proof's private `node.ApplyConfChange.specRaw`.)
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -58,6 +59,24 @@ abbrev node.ApplyConfChange.dynamicSpec : Prop :=
   Membership.applyChange o v.membership = some m' → m'.autoLeave = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
       isDynamicCluster γ N c0 decode ∗ ownConfChangeI c DFrac.discard (some o) ∗
+      nodeConfig n γ N v ∗ deliveredLogLb n γ N l }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
+  {{ (csp : Loc) (cs : ConfStateM), RET #csp; csPts csp (DFrac.own 1) cs true ∗
+      nodeConfig n γ N ⟨k + 1, m'⟩ ∗ ⌜confStateIs cs m'⌝ }}
+
+/-- **`node.ApplyConfChange(cc)` in a cluster with snapshots and reconfiguration** (2026-10-28, stage
+U4a; `isCluster`, `InvNodeRule.lean`): as `node.ApplyConfChange.dynamicSpec`, the decoder's change
+replaced by the recorded decision (candidate 13's shape): the conf entry at position `k` was decided
+to apply `o'` (`confDecided`), and the change `o` handed in has the effect of `o'` at the view's
+membership. (Until stage U5, no auto-leave result.) -/
+abbrev node.ApplyConfChange.unifiedSpec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o o' : ConfChangeIM)
+    (l : List LogEntry) (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
+  v.applied ≤ k → l[k]? = some e → e.isConfChange → NoConfChangeIn l v.applied k →
+  Membership.applyChange o' v.membership = some m' →
+  Membership.applyChange o v.membership = some m' → m'.autoLeave = false →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
+      isCluster γ N ∗ confDecided γ k (.apply o') ∗ ownConfChangeI c DFrac.discard (some o) ∗
       nodeConfig n γ N v ∗ deliveredLogLb n γ N l }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
   {{ (csp : Loc) (cs : ConfStateM), RET #csp; csPts csp (DFrac.own 1) cs true ∗

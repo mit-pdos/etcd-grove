@@ -225,7 +225,32 @@ theorem Membership.fold_total (r : ConfRule) (c0 : Membership) (l : List LogEntr
     simp only [Membership.foldFrom, h1, Option.bind_some]
     exact ih (pre ++ [e]) m1 hv1
 
+/-! ### Decisions (candidate 13's vocabulary, 2026-10-28, stage U4a) -/
+
+/-- **A decision on a committed conf entry** (candidate 13, section 13.1): apply the change `o`, or
+skip the entry (the application does not call `ApplyConfChange`). -/
+inductive ConfDecision where
+  | apply (o : ConfChangeIM)
+  | skip
+
+/-- The membership after a decision at `m`: an applied change's result (`none` where `confchange`
+refuses it), a skip keeps `m`. (Candidate 13 filters the result by `Valid`; a change keeps a valid
+membership valid, `Membership.applyChange_valid`, so the filter is the identity at a valid `m`.) -/
+def ConfDecision.step : ConfDecision → Membership → Option Membership
+  | .apply o, m => Membership.applyChange o m
+  | .skip, m => some m
+
+/-- A rule's answer as a decision: its change applied, its `none` a skip. -/
+def ConfDecision.ofRule : Option ConfChangeIM → ConfDecision
+  | some o => .apply o
+  | none => .skip
+
 /-! ### Snapshots -/
+
+/-- The lists of a `ConfState` report the membership `m` (`confStateIs`, on the lists). -/
+def CSLists.Is (cl : CSLists) (m : Membership) : Prop :=
+  cl.voters ≡ₚ GMap.elements m.voters ∧ cl.outgoing ≡ₚ GMap.elements m.votersOutgoing ∧
+    cl.learners ≡ₚ GMap.elements m.learners ∧ cl.learnersNext ≡ₚ GMap.elements m.learnersNext
 
 /-- **A snapshot the application made** (the candidate's `SnapRec`): the length of the committed
 prefix it covers, the membership of that prefix, its data. -/
