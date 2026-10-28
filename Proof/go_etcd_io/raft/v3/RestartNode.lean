@@ -225,7 +225,7 @@ private theorem RestartNode.wp_raw
         storage := interface.ok si, mode := md,
         cfg := cfgState (GMap.listToSet csm.Voters') ∅ } fp s := fun _ =>
     ⟨fun _ _ h => (by rw [Hr] at h; cases h), by rw [Hgh], by rw [Ht0, Hgh]; exact Int.le_refl _,
-      fun h => by rw [Hr] at h; cases h⟩
+      fun h => (by rw [Hr] at h; cases h), fun _ => Hr⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   icases ownRaftPhysC_sdr _ rnv.raft' cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
   -- (D19i part 1) the floor at most `applying`, which is `applied` (`0`)
