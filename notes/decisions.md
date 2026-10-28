@@ -24641,3 +24641,35 @@ empty or justified here. For the compactor:
 - **Left, justified (phase 4): `context.cancelSpec`**, unfolded by `Periodic.Stop`/`Revision.Stop` to
   call the cancel function; no Perennial law yet (`notes/perennial-changes.md`, "a law for calling a
   `cancelSpec` cancel function"). Not a statement change: the frozen specs are unchanged.
+
+## The compactor's contract after the freeze: the context carries no trace (2026-10-28)
+
+**2026-10-28 · taken (the user's repair; M2's S3 glue, `notes/m2-plan.md`)**
+
+**What it was.** The frozen `v3compactor.compactableOk` (the compactor pilot's freeze,
+`notes/compactor-pilot-plan.md`) let the server's `Compact` run under any context
+(`context.isContext ctx cd`), and the pilot's `EtcdServer.Compact.spec` said the same.
+
+**Why it changed: the freeze test.** M2's S3 glue (`EtcdServer.Compact`'s proof over the request
+path) found `Compact`'s body calling `traceutil.EnsureTrace(ctx, …)`, which reads
+`ctx.Value(TraceKey{})` and writes to a trace it finds there; Perennial's `isContext` specifies
+`Value` only for `cancelCtxKey`, so the statement was unprovable. The first revision after the
+pilot's freeze (cause: a callee body's need; the reviews had checked the contract against
+`Compact.spec`, itself an unproved `sorry`: `LESSONS.md`, 2026-10-28).
+
+**The repair.** `compactableOk`'s per-call precondition and `Compact.spec`/`specOn` gain
+`traceutil.ctxTraceIs ctx none`. The compactor's objects (`isRevision`, `isPeriodic`) carry it for
+their context, which their constructors make with `traceutil.wp_WithCancelBackground_noTrace`
+(`Proof/go_etcd_io/etcd/pkg/v3/traceutil/CtxLaws.lean`): `WithCancel(Background())` proved from
+Perennial's `wp_WithCancel_gen` (whose post gives the child's parent field) and
+`ctxTraceIs_cancelCtx_background` (the child's `Value(TraceKey{})` goes through `cancelCtx.Value`
+and `value` to `Background()`'s `nil`: an unfold of Perennial's context code, one lemma, pending
+the law that a derived context's `Value` delegates to its parent, `notes/perennial-changes.md`).
+The constructors no longer rest on the trust-boundary axiom `context.WithCancelBackground.wp_proof`.
+The `Run` proofs needed no change beyond the destructuring.
+
+**The server side, found by the same glue** (not frozen): `Compact.spec` also lacked the server's
+read facts and the logger's reader slot (`isServerRead s E γr`, `srvLgReader s`, given back: for
+`s.Logger()` and `s.kv.Rev()`), and the request path's compaction variant's result
+(`compactResultIs`) now owns the apply thread's trace whatever the error (`Compact` uses
+`result.Trace` before it checks `result.Err`).

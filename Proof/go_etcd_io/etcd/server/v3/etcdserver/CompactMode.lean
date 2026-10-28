@@ -40,6 +40,13 @@ Compaction: r}`): of the kind `compaction`, at some revision. -/
 def compactPropOk (rq : apply.IRRModel) : Prop :=
   apply.dispatchKind rq = .compaction ∧ ∃ r : w64, rq.compaction = some r
 
+/-- `&pb.InternalRaftRequest{Compaction: r}`, for `r` at the revision `rev` (`EtcdServer.Compact`'s). -/
+def irrCompaction (rev : w64) : apply.IRRModel := { apply.irrEmpty with compaction := some rev }
+
+/-- `Compact`'s request is a compaction. -/
+theorem compactPropOk_irrCompaction (rev : w64) : compactPropOk (irrCompaction rev) :=
+  ⟨by simp [apply.dispatchKind, irrCompaction, apply.irrEmpty], rev, rfl⟩
+
 /-- **A request that deletes no key it puts again** in the revision it makes (S2, option (a)):
 whatever the chain, a dispatch that appends a revision appends one with `mvcc.NoDelPutAt`, so a
 later compaction at that revision keeps the key's live value
@@ -76,11 +83,14 @@ def reqPropOkC (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → I
     ⌜compactPropOk rq ∧ Qr = fun _ => iprop(True)⌝)
 
 /-- **The result of a compaction** (S2-S3): the apply thread's `*apply.Result`, read-only, with
-the compaction's response (`*pb.CompactionResponse`, its header if any, owned: `Compact` writes
-the revision into it) or the error the request path reports (`applyErrIs`: the store's
-`ErrCompacted` or `ErrFutureRev`). -/
+its trace, if any, owned whatever the error (`apply.traceRes`: `Compact` uses `result.Trace`
+before it checks `result.Err`; the applier returns the compaction's trace with its error, S3's
+glue), and the compaction's response (`*pb.CompactionResponse`, its header if any, owned:
+`Compact` writes the revision into it) or the error the request path reports (`applyErrIs`: the
+store's `ErrCompacted` or `ErrFutureRev`). -/
 def compactResultIs (res : Loc) : IProp GF :=
   iprop(⌜res ≠ null⌝ ∗ ∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, res ↦□ v ∗
+    apply.traceRes v.Trace' ∗
     ((⌜v.Err' = GoInterface.nil⌝ ∗ ∃ rp : Loc,
         ⌜v.Resp' = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty) #rp⌝ ∗
         (⌜rp = null⌝ ∨ ∃ cv : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse, rp ↦ cv ∗

@@ -7,7 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newPeriodic
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic__getRetentions
-public import Spec.context.WithCancelBackground
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.CtxLaws
 
 @[expose] public section
 
@@ -28,8 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
 
 theorem v3compactor.newPeriodic.wp_proof
-    (hPeriodic_getRetentions : v3compactor.Periodic.getRetentions.spec (GF := GF) (hG := hG))
-    (hWithCancelBackground : context.WithCancelBackground.spec (GF := GF) (hG := hG)) :
+    (hPeriodic_getRetentions : v3compactor.Periodic.getRetentions.spec (GF := GF) (hG := hG)) :
     v3compactor.newPeriodic.spec (GF := GF) (hG := hG) := by
   intro lg clk h E H10
   wp_start as ⟨%Hlgnn, #Hclk⟩
@@ -60,7 +59,8 @@ theorem v3compactor.newPeriodic.wp_proof
   wp_apply (wp_slice_make3 (V := w64) (W64 0) n ⟨by word, by word⟩) as %sl ⟨Hsl, Hcap, %Hslc⟩
   (try wp_auto)
   wp_apply _root_.Perennial.context.wp_Background
-  wp_apply hWithCancelBackground as %ctx %γctx %cancel ⟨#Hcs, #Hctx⟩
+  -- `WithCancel(Background())`, carrying no trace (M2's freeze repair)
+  wp_apply traceutil.wp_WithCancelBackground_noTrace as %ctx %γctx %cancel ⟨#Hcs, #Hctx, #Htr⟩
   ipersist lg
   ipersist clock
   ipersist period

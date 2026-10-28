@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactReq
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Base
 public import Perennial.Proof.context
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.Ghost.DGhostVar
 
@@ -123,13 +124,16 @@ instance errTreeOk_persistent (err : GoInterface) : Persistent (errTreeOk (GF :=
   unfold errTreeOk; infer_instance
 
 /-- **The compactable** (`Compactable`, the server): `Compact(ctx, req)`, for a request at a
-permitted revision (`P r`) and any context, given and giving back the caller's resource `R` (what
+permitted revision (`P r`) and a context carrying no trace (`traceutil.ctxTraceIs ctx none`: the
+server's `Compact` reads `ctx.Value(TraceKey{})`, `traceutil.EnsureTrace`; the compactor's own
+`WithCancel(Background())` carries none), given and giving back the caller's resource `R` (what
 the server's proposal path consumes per request: `R` is the server's to define), returns a response
-and an error `errors.Is` can test. -/
+and an error `errors.Is` can test. (Until M2's freeze test, 2026-10-28, any context:
+`notes/decisions.md`, "The compactor's contract after the freeze".) -/
 def compactableOk (c : GoInterface) (P : Int → IProp GF) (R : IProp GF) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗
     □ (∀ (r : Int) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (p : Loc),
-        {{ P r ∗ R ∗ context.isContext ctx cd ∗ compactReqIs p r }}
+        {{ P r ∗ R ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ compactReqIs p r }}
           (App (App (Val #(methods ci.ty go!"Compact" ci.v)) (Val #(GoInterface.ok ctx))) (Val #p))
         {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗ errTreeOk err }}))
 
@@ -249,6 +253,7 @@ def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
     structFieldRef v3compactor.Periodic go!"c" pc ↦□ E.c ∗
     structFieldRef v3compactor.Periodic go!"ctx" pc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
+    traceutil.ctxTraceIs ctx none ∗
     structFieldRef v3compactor.Periodic go!"cancel" pc ↦□ cancel ∗
     context.cancelSpec cancel γctx iprop(True) ∗
     sync.isRWMutexGuard (structFieldRef v3compactor.Periodic go!"mu" pc) (perPausedInv pc))
@@ -284,6 +289,7 @@ def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
     structFieldRef v3compactor.Revision go!"c" rc ↦□ E.c ∗
     structFieldRef v3compactor.Revision go!"ctx" rc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
+    traceutil.ctxTraceIs ctx none ∗
     structFieldRef v3compactor.Revision go!"cancel" rc ↦□ cancel ∗
     context.cancelSpec cancel γctx iprop(True) ∗
     sync.isMutex (structFieldRef v3compactor.Revision go!"mu" rc) (revPausedInv rc))
