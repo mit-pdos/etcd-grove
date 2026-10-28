@@ -608,5 +608,3 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint64.wp_proof
-sorry apply.rangeOutcomeIs_errIs
-sorry mvcc.watchableStore.syncWatchers.wp_proof
