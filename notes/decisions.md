@@ -24711,10 +24711,15 @@ history being `setupSt` after `SetUp` (E2b). For reads the answers carry what is
 writes they do not: `Put.specOn`'s success gives the client's result `Q` (fired only if granted,
 `grantedRes`) and the published state after the entry (`pubAfterM`), but not that the request
 with the stamped header `hm` (its principal) was granted at the committed prefix `L` before its
-entry (`grantedAt ρ.kv srvAuthSt0 (withHeader rq hm) L`), which the proof has (the left disjunct of
-`grantedRes`, the result being dispatched). Next: strengthen the three writes' `specOn` success
-with that fact (a stronger post, interface diff), carry it and the header's principal (from the
-request context's token, E2c's `ctxBound`) into `srvKVAnsOn`'s write answers, then the
+entry (`grantedAt ρ.kv srvAuthSt0 (withHeader rq hm) L`), which the proof has (`modelOutM true`
+of the dispatched result: `grantedRes_applied`'s first step). The grant is of the stamped header
+`hm`, so the client also needs `hm`'s principal to be its context's: the user its token was issued
+to, or none (`principalBound`, E1/E2c), which today only the admin guards state (`adminOutB`); the
+KV writes' header comes from `raftRequest`'s `AuthInfoFromCtx`, whose bound variant
+(`ctxBoundOrTLS`) needs the server's store bound (`srvAuthBound`), not yet among `isServerReqM
+true`'s facts. Next, in order: `raftRequest.specM true`'s stamped header bound to the context
+(over `srvAuthBound`); the three writes' `specOn` success with the grant and the bound header (a
+stronger post, interface diff); both into `srvKVAnsOn`'s write answers; then the
 gRPC-level specs with auth on (`etcdPutSpecOn`, ...: the client's bound `n`, the shape premises,
 the grant and the read class in the replies), the handlers as grpc runs them and one serve of the
 KV and Auth methods.
