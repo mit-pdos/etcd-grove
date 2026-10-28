@@ -34,9 +34,11 @@ Designed with the spec skill: candidate (scratch file, outside the repository) a
   newcomers;
 - `nodeConfig` for every node; laws past non-conf and rejected entries; `Advance` of a snapshot moves it;
   `ApplyConfChange` of any valid change (joint, automatic leave);
-- persistent proposal updates (one fire per committed copy), the automatic leave a filler, message
-  credits the network may duplicate, the transfer-on message shapes;
-- `CreateSnapshot` up to the appended index (not the floor); a law for a storage wrapper;
+- one-shot proposal updates, with a client-owned registry of proposals so the client can pay for each
+  copy the network or a retry commits; raft's automatic leave told by its position (`RaftLeave`); the
+  transfer choice; no credits in the API;
+- `CreateSnapshot` above the storage's snapshot index, before `Advance` (`storWriter`); a law for a
+  storage wrapper;
 - new specs: `Campaign`, `ForgetLeader`, `Status`, `Stop`.
 
 ## Stages
@@ -58,15 +60,25 @@ commit per lemma.
   message's certificate), the `"%Hsnap"` clause (a pending snapshot in the dynamic invariant), the
   `MsgStorageAppendResp`/`ApplyResp` snapshot cases (`StepR.applySnap`), `RNState.cfg/capplied`
   following a restore.
-- **U4. Allocation without `reNoSnap`.** `ownRaftGhost_alloc_core` for a dynamic cluster with snapshots
-  and an empty or bootstrap log; `joinAuth`; `RestartNode` from `γ.c0`.
+- **U4. Allocation without `reNoSnap`, joiners.** `ownRaftGhost_alloc_core` for a dynamic cluster with
+  snapshots and an empty or bootstrap log; `joinAuth`; `RestartNode` from `γ.c0`; a joiner (empty log,
+  configuration `c0`) in the protocol invariant beside the founders; pre-votes granted at term 0 with
+  no `bootedCluster` premise (scope: newcomers start at `c0`, not on an empty `ConfState`).
 - **U5. Automatic leave.** `raft.appliedTo`'s leave proposal (its recursion into `r.Step`), so that
-  `c.autoLeave → role ≠ leader` goes from `appliedTo`, `appliedSnap`, `raft.Step`.
-- **U6. Rejection.** `nodeConfig_reject`, `nodeConfig_skip`; `Advance` with every delivered conf entry
-  applied or rejected.
-- **U7. Messages.** Persistent proposal updates; `msgCredits_readIndex`/`_prop`; `SentMsgShape` in
-  every mode; `MsgTransferLeader` stepped.
-- **U8. Storage.** `CreateSnapshot` up to the appended index; the wrapper law.
+  `c.autoLeave → role ≠ leader` goes from `appliedTo`, `appliedSnap`, `raft.Step`; the invariant that a
+  committed empty `EntryConfChangeV2` is raft's leave where the configuration is joint (`RaftLeave`, for
+  `opsOf`); the trust-base fact `ccDecodeV2 [] = some` the empty change (the user's approval).
+- **U6m. Rejection in the model.** The protocol's decoder a decision (`apply op | reject`); `entStep` of
+  a rejection keeps the state (joint configurations included); `applyConf` and `advance` require "no
+  undecided conf entry between".
+- **U6. Rejection in the API.** `nodeConfig_reject`, `nodeConfig_skip`; `Advance` with every delivered
+  conf entry applied or rejected.
+- **U7. Messages.** The proposal registry (`ownProposals`, `proposalReg`, `sentMsg_prop`) and
+  `msgCredits_intro` (a client-supplied update per copied `MsgProp` entry); `SentMsgShape` in every
+  cluster (a re-forwarded `MsgTransferLeader` never reaches `send`'s `Panicf`); the transfer choice;
+  raft's proofs take their own time receipts (no read or tick credits in the API).
+- **U8. Storage.** The writer's view `storWriter` and `storCommittedAt`; `CreateSnapshot` above the
+  storage's snapshot index, before `Advance`; the wrapper law.
 - **U9. The node specs.** One spec per function over `isCluster`; `Campaign`, `ForgetLeader`, `Status`,
   `Stop`; the static family and `dynamicSpec`s deleted; `interface/` regenerated; the unfold list of the
   clients emptied (laws).
