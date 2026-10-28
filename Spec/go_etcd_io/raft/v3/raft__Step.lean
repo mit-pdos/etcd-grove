@@ -436,12 +436,16 @@ theorem SnapLogStep.refl [GooseExts] (sv : SnapshotM) (m : MessageM) (s : NState
     SnapLogStep sv m s s :=
   .inl ⟨rfl, rfl, rfl, rfl⟩
 
-/-- (2026-10-20, D22 S-c) The configuration after a `MsgSnap` holding the snapshot `sn`: `c`, or the
-one the snapshot's `ConfState` denotes (`snapCfg`), after a restore. -/
-def SnapCfgOut [GooseExts] (id : w64) (sn : Option SnapshotM) (c c' : CfgM) : Prop :=
-  c' = c ∨ ∃ sv, sn = some sv ∧ c' = snapCfg sv sv.Metadata'.ConfState'.lists ∧
-    -- (D22 S-b′4) its `ConfState` naming the node
-    sv.Metadata'.ConfState'.lists.Has id
+/-- (2026-10-28, stage U0) What the acknowledgement of a snapshot `sv` needs of it, beyond the
+log's facts: its `ConfState` well formed (`SnapScope`: `appliedSnap` rebuilds the tracker from
+it) and, statically, the ghost state's voters, not joint, within the tracked bound (`CfgStatic`,
+`TrackedOk`: the node is at that configuration afterwards). The `RawNode` has them from the
+snapshot's certificate (`raftSnapCert`). (From 2026-10-20, D22 S-c, to stage U0 a `MsgSnap`'s
+restore switched the configuration, `SnapCfgOut`.) -/
+def SnapAckOk [GooseExts] (γ : RaftNames) (id : w64) (sv : SnapshotM) : Prop :=
+  SnapScope sv sv.Metadata'.ConfState'.lists ∧
+  CfgStatic γ (snapCfg sv sv.Metadata'.ConfState'.lists) ∧
+  TrackedOk γ (snapCfg sv sv.Metadata'.ConfState'.lists) id
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -585,7 +589,10 @@ abbrev raft.Step.spec : Prop :=
      (∀ sv, sn = some sv →
         snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
         uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-        md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader) ∧
+        md.isDyn = false ∧
+        -- (2026-10-28, stage U0; until then `appliedTo`'s auto-leave premise, `c.autoLeave = true →
+        -- s.role ≠ .leader`) `appliedSnap`'s rebuild: a follower, the snapshot as `SnapAckOk`
+        s.role = .follower ∧ SnapAckOk γ id sv ∧
         -- (D22 S-d4 item 3) with a snapshot pending and the storage back, the storage holds the
         -- log up to the acknowledged snapshot (`LogState.sxt`; `appliedSnap` moves `applying` there)
         (s.logst.snap ≠ none → s.logst.lent = false →
@@ -715,15 +722,20 @@ abbrev raft.Step.spec : Prop :=
       -- (2026-10-14, stage B7 part 2) and in the dynamic mode the configuration index moves only
       -- by a `MsgStorageApplyResp` (`CidxMove`)
       "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
-      -- the configuration afterwards: `c`, or the snapshot's after a `MsgSnap`
-      "%Hcfg'" ∷ ⌜m.Type' ≠ MsgSnap → c' = c⌝ ∗
+      -- the configuration afterwards: `c`, but the snapshot's after its acknowledgement (2026-10-28,
+      -- stage U0; until then after a `MsgSnap` that restored it)
+      "%Hcfg'" ∷ ⌜(m.Type' = MsgStorageAppendResp → sn = none) → c' = c⌝ ∗
       -- for the local messages `RawNode` steps, what is kept of the physical state
       -- (2026-10-09)
       -- (D22 S-d2) but for a snapshot's acknowledgement, which moves the log as `ackSnapLog` says
       -- and nothing else
       "%Hlocal" ∷ ⌜((m.Type' = MsgStorageAppendResp → sn = none) → LocalStepOk m ents s s') ∧
                    (m.Type' = MsgStorageAppendResp → ∀ sv, sn = some sv →
-                      s' = { s with logst := ackSnapLog s.logst m s.term sv })⌝ ∗
+                      -- (U0) at the snapshot's configuration, the tracker rebuilt
+                      c' = snapCfg sv sv.Metadata'.ConfState'.lists ∧
+                      ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool),
+                        s' = { s with logst := ackSnapLog s.logst m s.term sv, progress := prs,
+                                      prvals := pvs, isLearner := il })⌝ ∗
       -- for every other message but a snapshot (and its acknowledgement), what is kept of the
       -- log (2026-10-09)
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp →
@@ -733,8 +745,8 @@ abbrev raft.Step.spec : Prop :=
       -- and what a response does to the role and the term (2026-10-10)
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
       -- (2026-10-20, D22 S-c) for a snapshot, what is kept of the state and how the term moves
-      -- (`SnapStep`), and the configuration afterwards (`SnapCfgOut`)
-      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧ SnapCfgOut id sn c c' ∧
+      -- (`SnapStep`) (until stage U0 also the configuration afterwards, `SnapCfgOut`)
+      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧
                      -- (D22 S-d3b) and what it did to the log (`SnapLogStep`)
                      ∀ sv, sn = some sv → SnapLogStep sv m s s'⌝ ∗
       -- (D22 S-d3b, 2026-10-21) a `MsgApp`'s truncation's mark (`AppTrunc`)

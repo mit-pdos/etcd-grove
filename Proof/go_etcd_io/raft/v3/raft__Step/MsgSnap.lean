@@ -82,8 +82,8 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
-        -- (2026-10-14, stage B7) the snapshot's configuration after a restore
-        "%Hc'" ∷ ⌜c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id)⌝ ∗
+        -- (2026-10-28, stage U0) the configuration kept (from stage B7 the snapshot's after a restore)
+        "%Hc'" ∷ ⌜c' = c⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
@@ -104,7 +104,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iapply HΦ $$ %err %s' %c
       iframe Hphys
       ipureintro
-      exact ⟨Or.inl rfl, Hwf', Href, Herr, Hng, Hsf⟩
+      exact ⟨rfl, Hwf', Href, Herr, Hng, Hsf⟩
     · have Hteq : m.Term' = s.term := by word
       exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
         Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes

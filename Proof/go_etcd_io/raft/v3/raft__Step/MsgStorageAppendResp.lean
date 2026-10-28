@@ -382,7 +382,8 @@ absorbed (`sat` when it is the pending snapshot). By the term, as without a snap
   with the snapshot still pending), then `appliedSnap`;
 - `Term < r.Term`: the stale arm, which logs and runs `appliedSnap` alone.
 
-The log is `ackSnapLog`'s, the rest of the state kept; the protocol sees nothing. -/
+The log is `ackSnapLog`'s, the rest of the state kept but the tracker, rebuilt at the snapshot's
+configuration (2026-10-28, stage U0: `appliedSnap` switches to it); the protocol sees nothing. -/
 theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
@@ -390,7 +391,10 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
     m.Type' = MsgStorageAppendResp →
     snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat →
     uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' →
-    (c.autoLeave = true → s.role ≠ .leader) →
+    -- (U0) the rebuild's: a follower, with an empty tally, the `ConfState` well formed
+    s.role = .follower →
+    s.votes = ∅ →
+    SnapScope sv sv.Metadata'.ConfState'.lists →
     uint.Z m.Term' ≤ uint.Z s.term →
     (m.Term' = W64 0 ∨ m.Term' = s.term →
      m.Index' ≠ W64 0 →
@@ -404,9 +408,13 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, some sv, ctx, rs⟩ }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err;
-        "Hphys" ∷ ownRaftPhysCV c c.voters r id { s with logst := ackSnapLog s.logst m s.term sv } ∗
+        "Hphys" ∷ (∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool),
+          ownRaftPhysCV (snapCfg sv sv.Metadata'.ConfState'.lists)
+            (snapCfg sv sv.Metadata'.ConfState'.lists).voters r id
+            { s with logst := ackSnapLog s.logst m s.term sv, progress := prs, prvals := pvs,
+                     isLearner := il }) ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hhit Hle Hal Hlt Hstok Hghoff Hwf Hsx Hkx
+  intro Hty Hhit Hle Hrole Hvotes Hscope Hlt Hstok Hghoff Hwf Hsx Hkx
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -479,13 +487,14 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       ihave Hm := Hmb $$ Hsv
       wp_apply wp_GetSnapshot_some _Q _ _ _ _ _ sv rfl $$ [$Hm] as %ps' ⟨%Hps', Hsv, Hmb⟩
       obtain ⟨Hiff, Haps, Hle1⟩ := Hpre _ h5 Hsa0 (by rw [h8]; exact Hq0.2) h1
-      wp_apply _P.appliedSnap c r id { s with logst := ackLog s.logst (some sv) } _ _ sv Hiff Haps
-        Hle1 Hal Hghoff (fun h => by simp only [h5]; exact Hns h) (Hxa _ h5 Hak.1 Hak.2) Hkx
-        $$ [$Hphys $Hsv] as ⟨Hsv, Hphys⟩
+      wp_apply _P.appliedSnap c r id { s with logst := ackLog s.logst (some sv) } _ sv _ Hiff Haps
+        Hle1 Hrole Hvotes rfl Hscope Hghoff (fun h => by simp only [h5]; exact Hns h) (Hxa _ h5 Hak.1 Hak.2) Hkx
+        $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil
       isplitl [Hphys]
-      · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
+      · iexists prs, pvs, il
+        iapply ownRaftPhysC_eq _ r id _ _ ?_ $$ Hphys
         rw [ackSnapLog_none _ _ _ _ Hnone]
         try (first | rfl | (simp only [Hcq, Hpv]; done) | (simp only [Hcq]; done) | (simp only [Hpv]; done))
       ipureintro; rfl
@@ -524,13 +533,14 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       ihave Hm := Hmb $$ Hsv
       wp_apply wp_GetSnapshot_some _Q _ _ _ _ _ sv rfl $$ [$Hm] as %ps' ⟨%Hps', Hsv, Hmb⟩
       obtain ⟨Hiff, Haps, Hle1⟩ := Hpre _ h5 Hsa0 (by rw [h8]; exact Hq0.2) h1
-      wp_apply _P.appliedSnap c r id { s with logst := ackLog s.logst (some sv) } _ _ sv Hiff Haps
-        Hle1 Hal Hghoff (fun h => by simp only [h5]; exact Hns h) (Hxa _ h5 Hak.1 Hak.2) Hkx
-        $$ [$Hphys $Hsv] as ⟨Hsv, Hphys⟩
+      wp_apply _P.appliedSnap c r id { s with logst := ackLog s.logst (some sv) } _ sv _ Hiff Haps
+        Hle1 Hrole Hvotes rfl Hscope Hghoff (fun h => by simp only [h5]; exact Hns h) (Hxa _ h5 Hak.1 Hak.2) Hkx
+        $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil
       isplitl [Hphys]
-      · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
+      · iexists prs, pvs, il
+        iapply ownRaftPhysC_eq _ r id _ _ ?_ $$ Hphys
         rw [ackSnapLog_none _ _ _ _ Hnone]
         try (first | rfl | (simp only [Hcq, Hpv]; done) | (simp only [Hcq]; done) | (simp only [Hpv]; done))
       ipureintro; rfl
@@ -567,15 +577,16 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       ihave Hphys := ownRaftPhysCVW_eq c r id _
         { s with logst := logStableTo (ackLog s.logst (some sv)) ⟨m.LogTerm', m.Index'⟩ } rfl $$ Hphys
       wp_apply _P.appliedSnap c r id
-          { s with logst := logStableTo (ackLog s.logst (some sv)) ⟨m.LogTerm', m.Index'⟩ } _ _ sv
-          Hiff Haps Hle1 Hal Hghoff (fun h => by simp only [g3, h5]; exact Hns h)
+          { s with logst := logStableTo (ackLog s.logst (some sv)) ⟨m.LogTerm', m.Index'⟩ } _ sv _
+          Hiff Haps Hle1 Hrole Hvotes rfl Hscope Hghoff (fun h => by simp only [g3, h5]; exact Hns h)
           (Hxa _ (g3.trans h5) (by unfold logStableTo; split <;> exact Hak.1)
             (by unfold logStableTo; split <;> exact Hak.2)) Hkx
-        $$ [$Hphys $Hsv] as ⟨Hsv, Hphys⟩
+        $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil
       isplitl [Hphys]
-      · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
+      · iexists prs, pvs, il
+        iapply ownRaftPhysC_eq _ r id _ _ ?_ $$ Hphys
         rw [ackSnapLog_some _ _ _ _ _ Hsome]
         try (first | rfl | (simp only [Hcq, Hpv]; done) | (simp only [Hcq]; done) | (simp only [Hpv]; done))
       ipureintro; rfl

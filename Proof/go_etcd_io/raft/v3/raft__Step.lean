@@ -489,7 +489,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
   imod lastRec_receipt γ _ $$ Hlr with #Hrc0
   imod ghost_stepCDS γ md c c1 id m Hty sv scfg s recv s' (absSnap m sv scfg) ⟨rfl, rfl⟩ _ HL
-      Hstep Hc1 ⟨Hng, Hsf.1.2.2.2.1⟩ $$ Hrc0 Hm Hall [Hz] [] Hlc Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
+      Hstep (.inl Hc1) ⟨Hng, Hsf.1.2.2.2.1⟩ $$ Hrc0 Hm Hall [Hz] [] Hlc Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
   · rw [Hcnt]; iexact Hz
   · iapply msgsTks_noprop γ recv (fun x hx => by rw [Hrecv x hx]; simp [absSnap, absSnapFrom])
   imodintro
@@ -498,12 +498,10 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   iapply HΦ $$ %err %s' %c1 %md'
   iframe Hphys Hghost
   ipureintro
-  -- (2026-10-20, D22 S-c) the snapshot's frame and configuration (until then not claimed)
-  refine ⟨Hwf', Hout, by resp_other, ⟨Hsf.1, ?_, fun sv' h => ?_⟩, Herr⟩
-  · rcases Hc1 with h | h
-    · exact .inl h
-    · exact .inr ⟨sv, Hsn, by rw [h.1, Hcl], by rw [← Hcl]; exact h.2⟩
-  · rw [Hsn] at h; cases h; exact Hsf.2
+  -- (2026-10-20, D22 S-c) the snapshot's frame and configuration (until then not claimed; since
+  -- 2026-10-28, stage U0, the configuration kept)
+  refine ⟨Hwf', Hout, by resp_other, ⟨Hsf.1, Hc1, fun sv' h => ?_⟩, Herr⟩
+  rw [Hsn] at h; cases h; exact Hsf.2
 
 /-- `MsgReadIndex` (2026-10-13): a local or forwarded request, `Term = 0`. -/
 private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := hG))
@@ -818,33 +816,42 @@ theorem raft.Step.wp_proof
     · -- (D22 S-d2) with a snapshot: `appliedSnap` (after `stableTo` in the current-term arm),
       -- invisible to the protocol, in the static mode
       subst Hsv
-      obtain ⟨Hhit, Hle', Hdyn, Hal, Hsxp, Hkxp⟩ := Hsnp sv rfl
+      obtain ⟨Hhit, Hle', Hdyn, Hrole, Hack, Hsxp, Hkxp⟩ := Hsnp sv rfl
       have Hmd : md = .static := by
         cases md with
         | static => rfl
         | dyn => simp [GMode.isDyn] at Hdyn
       subst Hmd
+      -- (2026-10-28, stage U0) `appliedSnap`'s rebuild: a follower's tally is empty
+      ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
+      have Hvotes : s.votes = ∅ := followerVotesOk_phys s Hfv0 Hrole
       wp_apply (wp_Step_MsgStorageAppendResp_snap P Q c r id s ml m sv ctx rs ents HtyA Hhit Hle'
-          Hal Hle Hstok Hghoff Hwf Hsxp Hkxp)
+          Hrole Hvotes Hack.1 Hle Hstok Hghoff Hwf Hsxp Hkxp)
         $$ [$Hphys $Hmi] as %err ⟨Hphys, %Herr⟩
+      icases Hphys with ⟨%prs, %pvs, %il, Hphys⟩
       obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5⟩ := ackSnapLog_proto s.logst m s.term sv
-      have Hps : toPState { s with logst := ackSnapLog s.logst m s.term sv } = toPState s := by
-        simp only [toPState, Hp1, Hp2, Hp3]
-      imod ghost_step_static0 γ c id m s { s with logst := ackSnapLog s.logst m s.term sv }
-        (by rw [Hps]; exact (StepCF.refl _).toC) ⟨rfl, Hp4⟩ $$ Hlc Hghost Hrest
+      have Hps : toPState { s with logst := ackSnapLog s.logst m s.term sv, progress := prs,
+                                   prvals := pvs, isLearner := il } = toPState s := by
+        simp only [toPState, Hp1, Hp2, Hp3, Hrole]; rfl
+      -- the node at the snapshot's configuration, static (`SnapAckOk`)
+      imod ghost_step_static0' γ c (snapCfg sv sv.Metadata'.ConfState'.lists) id m s
+        { s with logst := ackSnapLog s.logst m s.term sv, progress := prs, prvals := pvs,
+                 isLearner := il }
+        (by rw [Hps]; exact (StepCF.refl _).toC) ⟨rfl, Hp4⟩ Hack.2 $$ Hlc Hghost Hrest
         with ⟨%Hout, Hghost⟩
       imodintro
-      iapply HΦ $$ %err %_ %c %GMode.static
+      iapply HΦ $$ %err %_ %_ %GMode.static
       iframe Hphys Hghost
       isplitr
       · ipureintro; exact Hwf
       isplitr
       · ipureintro; exact Hout
       isplitr
-      · ipureintro; exact fun _ => rfl
+      · ipureintro; exact fun h => absurd (h HtyA) (by simp)
       isplitr
       · ipureintro
-        exact ⟨fun h => absurd (h HtyA) (by simp), fun _ sv' h => by cases h; rfl⟩
+        exact ⟨fun h => absurd (h HtyA) (by simp),
+          fun _ sv' h => by cases h; exact ⟨rfl, prs, pvs, il, rfl⟩⟩
       isplitr
       · ipureintro; exact fun _ _ h => absurd (h HtyA) (by simp)
       isplitr
@@ -910,10 +917,10 @@ theorem raft.Step.wp_proof
       · ileft; ipureintro; exact Herr
       iframe Herr'
       ipureintro
-      exact ⟨Hwf', Href, fun h => absurd Hns h,
+      exact ⟨Hwf', Href, fun _ => Hsf.2.1,
         ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
          fun h => absurd h (by rw [Hns]; w32_ne)⟩,
-        fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => Hsf,
+        fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => ⟨Hsf.1, Hsf.2.2⟩,
         fun h => absurd h (by rw [Hns]; w32_ne)⟩
     icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hso, #Hm', #Hdat⟩
     obtain ⟨Hsn, Hcl, Hidx⟩ := Hsc
@@ -934,7 +941,7 @@ theorem raft.Step.wp_proof
       iapply HΦ $$ %err %s' %c' %md'
       iframe Hphys Hghost Herr
       ipureintro
-      exact ⟨Hwf', Href, Hc', ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
+      exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
           fun h => absurd h HtyA⟩,
         fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns, fun _ => Htr⟩
     ihave #Hm' := Hmsg0 $$ %MsgType.app %(by rw [HtyApp]; exact mtypeOf_MsgApp) %(by decide)
@@ -950,7 +957,7 @@ theorem raft.Step.wp_proof
     iframe Hphys Hghost Herr
     ipureintro
     -- `LocalStepOk` is about the three types handled above, `SnapStep` about the snapshot
-    exact ⟨Hwf', Href, Hc', ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
+    exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
         fun h => absurd h HtyA⟩,
       fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
   -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises

@@ -132,19 +132,19 @@ macro "rframe" : tactic =>
 section cfg_eq
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- Off a `MsgSnap`, `stepFollower` leaves the configuration. -/
+/-- `stepFollower` leaves the configuration (since 2026-10-28, stage U0, a `MsgSnap` too). -/
 theorem FollowerStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
     {m : MessageM} {ents : List EntryM} {sv : SnapshotM} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
-  have := H.1; rwa [ite_eq_right h] at this
+  exact H.1
 
-/-- Off a `MsgSnap`, `stepCandidate` leaves the configuration. -/
+/-- `stepCandidate` leaves the configuration (since stage U0, a `MsgSnap` too). -/
 theorem CandidateStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
     {m : MessageM} {ents : List EntryM} {sv : SnapshotM} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
-  have := H.1; rwa [ite_eq_right h] at this
+  exact H.1
 
 end cfg_eq
 
@@ -225,8 +225,9 @@ def stepPostT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s :
                (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err))) -∗ Φ #err)
 
 /-- (2026-10-20, D22 S-c) `stepPost` for a `MsgSnap` holding the snapshot `sn`: what the spec says of
-a snapshot's step (`SnapStep`, `SnapCfgOut`, `raft.Step.spec`), which `stepPost` does not carry;
-`dispatch_Snap`'s continuation. -/
+a snapshot's step (`SnapStep`, `raft.Step.spec`), which `stepPost` does not carry, and the
+configuration kept (since 2026-10-28, stage U0; until then the snapshot's after a restore,
+`SnapCfgOut`); `dispatch_Snap`'s continuation. -/
 def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (m : MessageM) (sn : Option SnapshotM) (Φ : val → IProp GF) : IProp GF :=
   iprop(£ 1 ∗ ∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
@@ -235,7 +236,7 @@ def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
      "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ SnapCfgOut id sn c c' ∧
+     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ c' = c ∧
                    -- (D22 S-d3b) what it did to the log
                    ∀ sv, sn = some sv → SnapLogStep sv m s s'⌝ ∗
      "%Herr" ∷ ⌜err = interface.nil⌝) -∗ Φ #err)
@@ -453,6 +454,31 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   isplitr
   · simp only [ghostRestM]; ipureintro; exact HC
   rw [Hng.2]; iexact Hcl
+
+/-- (2026-10-28, stage U0) `ghost_step_static0` to another static configuration `c'` (a snapshot's
+acknowledgement: `appliedSnap` switches to the snapshot's). -/
+theorem ghost_step_static0' (γ : RaftNames) (c c' : CfgM) (id : w64) (m : MessageM) (s s' : NState)
+    (Hstep : StepC c id (plogLastIndexZ (toPState s).base (toPState s).log) (toPState s) []
+      (toPState s'))
+    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
+    (HC' : CfgStatic γ c' ∧ TrackedOk γ c' id) :
+    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
+      ghostRest γ .static c id s ={⊤}=∗
+      ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c' id s' := by
+  iintro Hlc Hg Hrest
+  imod ghost_step_static0 γ c id m s s' Hstep Hng $$ Hlc Hg Hrest with ⟨%Hout, Hgh⟩
+  imodintro
+  isplitr
+  · ipureintro; exact Hout
+  iunfold ownStepGhost at Hgh
+  icases Hgh with ⟨Hg, Hrest⟩
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hnl, -, #Hcl⟩
+  unfold ownStepGhost ghostRest
+  iframe Hg Hcl
+  isplitr
+  · ipureintro; exact Hnl
+  simp only [ghostRestM]; ipureintro; exact HC'
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
