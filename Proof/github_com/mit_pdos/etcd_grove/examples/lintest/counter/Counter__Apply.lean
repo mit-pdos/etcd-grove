@@ -41,7 +41,7 @@ theorem Counter.Apply.wp_proof :
   unfold applySpec
   iintro %i
   imodintro
-  iintro %Φ %Hin HAU
+  iintro %Φ ⟨%Hin, Htt⟩ HAU
   obtain ⟨b, rfl⟩ := Hin
   wp_method_call
   wp_call
@@ -69,6 +69,7 @@ theorem Counter.Apply.wp_proof :
       iframe
     unfold boxI
     iapply HΦ
+    iframe Htt
     simp only [counterS]
     ipureintro
     exact ⟨⟨_, rfl⟩, _, rfl⟩

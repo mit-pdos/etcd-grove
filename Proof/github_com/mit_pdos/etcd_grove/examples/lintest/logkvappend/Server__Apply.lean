@@ -47,7 +47,7 @@ theorem Server.Apply.wp_proof
   unfold applySpec
   iintro %i
   imodintro
-  iintro %Φ %Hin HAU
+  iintro %Φ ⟨%Hin, Htt⟩ HAU
   obtain ⟨b, ap, w, rfl⟩ := Hin
   wp_method_call
   wp_call
@@ -73,6 +73,7 @@ theorem Server.Apply.wp_proof
     iintro -
     wp_auto
     iapply HΦ
+    iframe Htt
     simp only [regS]
     ipureintro
     exact ⟨true, ap, w, rfl, nofun⟩
@@ -96,6 +97,7 @@ theorem Server.Apply.wp_proof
       iintro -
       wp_auto
       iapply HΦ
+      iframe Htt
       simp only [regS]
       ipureintro
       exact ⟨false, true, w, rfl, fun _ => nofun⟩
@@ -119,6 +121,7 @@ theorem Server.Apply.wp_proof
       iintro -
       wp_auto
       iapply HΦ
+      iframe Htt
       simp only [regS]
       ipureintro
       exact ⟨false, false, w, rfl, fun _ _ => ⟨_, rfl⟩⟩

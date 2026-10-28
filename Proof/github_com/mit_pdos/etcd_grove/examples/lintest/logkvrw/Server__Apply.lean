@@ -6,7 +6,7 @@ through. A write calls `Put`, whose atomic update is the caller's: at its linear
 the register goes to the written value, and the model's step on the write with the output `""`
 (what `Apply` then returns) is that value (`regStep_put`). A read calls `Get`, whose update
 leaves the register at `x` and returns `x`: the model's step on the read with the output `x`
-leaves it at `x` (`regStep_get`). The caller's thread token (`applySpecTok`) goes to `Get`, which
+leaves it at `x` (`regStep_get`). The caller's thread token (`applySpec`) goes to `Get`, which
 needs it for its read lock, and back.
 -/
 module
@@ -42,7 +42,7 @@ theorem Server.Apply.wp_proof
     Server.Apply.spec (GF := GF) (hG := hG) := by
   intro γ s
   iintro #Hpkg #Hs
-  unfold applySpecTok
+  unfold applySpec
   iintro %i
   imodintro
   iintro %Φ ⟨%Hin, Htt⟩ HAU

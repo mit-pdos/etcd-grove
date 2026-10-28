@@ -37,11 +37,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvsna
 theorem New.wp_proof (wp_applyLoop : Server.applyLoop.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
   wp_start
-  wp_alloc sn as Hsn
-  wp_pures
-  wp_alloc s as Hs
-  iStructNamed Hs
   wp_auto
+  irename «$v0» => Hsn
+  generalize «$v0_ptr» = sn at *
+  irename «$r0» => Hs
+  generalize «$r0_ptr» = s at *
+  iStructNamed Hs
   wp_apply sync.wp_NewCond (muLocker s) as %c #Hcond
   ipersist cond
   ipersist Hsn

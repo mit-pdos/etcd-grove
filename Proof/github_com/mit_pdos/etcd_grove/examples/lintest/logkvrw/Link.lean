@@ -12,13 +12,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.New
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.RunTok
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server__Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server__Get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server__Put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server__applyLoop
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.runClientTok
-public import Proof.github_com.anishathalye.porcupine.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 
 @[expose] public section
@@ -51,14 +48,6 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Assumptions]
 variable [NaInvG GF]
 
-theorem logkvrw.wp_runClientTok :
-    EtcdGrove.lintest.logkvrw.runClientTok.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lintest.logkvrw.runClientTok.wp_proof
-
-theorem logkvrw.wp_RunTok :
-    EtcdGrove.lintest.logkvrw.RunTok.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lintest.logkvrw.RunTok.wp_proof logkvrw.wp_runClientTok porcupine.wp_CheckOperationsVerbose
-
 theorem logkvrw.wp_Model :
     EtcdGrove.lintest.logkvrw.Model.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lintest.logkvrw.Model.wp_proof
@@ -85,7 +74,7 @@ theorem logkvrw.Server.wp_Apply :
 
 theorem logkvrw.wp_Check :
     EtcdGrove.lintest.logkvrw.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lintest.logkvrw.Check.wp_proof logkvrw.wp_RunTok logkvrw.wp_Model logkvrw.wp_New logkvrw.Server.wp_Apply
+  EtcdGrove.lintest.logkvrw.Check.wp_proof wp_Run logkvrw.wp_Model logkvrw.wp_New logkvrw.Server.wp_Apply
 
 theorem logkvrw.wp_Main :
     EtcdGrove.lintest.logkvrw.Main.spec (GF := GF) (hG := hG) :=

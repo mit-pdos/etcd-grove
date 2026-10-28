@@ -30,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumpti
 
 theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
     fun σ S inOk libState clockVal Eapp Eclk n γ apply gen clock id ops lr HEapp HEclk Hid => by
-  wp_start as ⟨#Happly, #Hgen, #Hclock, #Hinv, Htok⟩
+  wp_start as ⟨#Happly, #Hgen, #Hclock, #Hinv, Htok, Htt⟩
   wp_auto
   ihave Hnil := ownSlice_nil (V := Operation) (GF := GF) (DFrac.own 1)
   ihave Hcap := ownSliceCap_nil (V := Operation) (GF := GF)
@@ -38,11 +38,11 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
       (lr' : w64),
       "i" ∷ i_ptr ↦ i ∗ "history" ∷ history_ptr ↦ hsl ∗ "Hh" ∷ hsl ↦* hc ∗
       "Hcap" ∷ ownSliceCap Operation hsl (DFrac.own 1) ∗
-      "Htok" ∷ clientTok γ (sint.nat id) (Lc, lr') ∗
+      "Htok" ∷ clientTok γ (sint.nat id) (Lc, lr') ∗ "Htt" ∷ threadTok ∗
       "%Hok" ∷ ⌜ClientOk id hc Lc⌝ ∗
       "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ (Lc.length : Int) = sint.Z i ∧
         (sint.Z i = 0 ∨ sint.Z i ≤ sint.Z ops)⌝ ∗
-      "#Hio" ∷ opsIoOk S hc : IProp GF) $$ [i history Hnil Hcap Htok]
+      "#Hio" ∷ opsIoOk S hc : IProp GF) $$ [i history Hnil Hcap Htok Htt]
   · iexists W64 0, slice.nil, [], [], lr
     iframe
     unfold named opsIoOk
@@ -64,7 +64,8 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
     wp_apply (lc := 1) wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id) (Lc, lr')
       HEclk $$ [$Hclock $Hinv $Hlc1 $Htok] as %call ⟨Htok, %Hcall⟩
     wp_apply (lc := 1) wp_apply_commit S inOk libState clockVal Eapp n γ apply (sint.nat id)
-      (Lc, call) input HEapp $$ [$Happly $Hin $Hinv $Hlc1 $Htok] as %output %τ ⟨Htok, %Hτ, #Hioo⟩
+      (Lc, call) input HEapp $$ [$Happly $Hin $Htt $Hinv $Hlc1 $Htok]
+      as %output %τ ⟨Htok, %Hτ, #Hioo, Htt⟩
     wp_apply wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id)
       (Lc ++ [((input, output), τ)], call) HEclk $$ [$Hclock $Hinv $Hlc1 $Htok]
       as %ret ⟨Htok, %Hret⟩

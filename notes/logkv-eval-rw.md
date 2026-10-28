@@ -163,3 +163,15 @@ was the main proof work, and an interface choice (Perennial's) plus an invariant
 theorem's execution bound to `2^30 - 1` steps through Perennial's tying of the thread bound to the
 execution length. Everything about the log, the slots and linearizability carried over, because
 the writer-side lemmas (`WLock.lean`) present the write lock in the base's terms.
+
+## Addendum (2026-10-28): the workaround replaced by the driver change
+
+The change proposed in "Changes outside my paths I would have made", item 1, was made with the
+user's approval (`notes/decisions.md`, "lintest: the library spec lends the client's thread
+token"): `lintest.applySpec` is this package's `applySpecTok`, `runClient.spec` passes the
+client's thread token, `Run` forks its clients with `wp_fork_tok_body`, and the libraries that
+need no token frame it in their own proofs. `DriverTok.lean`, `RunTok.lean`
+and `runClientTok.lean` (specs and proofs) are deleted; `Server.Apply.spec` is stated with the
+driver's `applySpec`, `Check` uses the driver's `Run`, and the link list and `Link.lean` link
+`Run` from `lintest`'s `Link.lean`. The record above is of the experiment as run (commit
+`7df4626a99`), and its numbers count the copies.

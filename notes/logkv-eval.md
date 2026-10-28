@@ -100,7 +100,7 @@ Every spec or invariant changed after it was first written, and why:
    kvwitness, linkvtxn, k8setcd3) are unchanged (they drop the premise, `_`). The `Gen.spec`s of
    linkvtxn and k8setcd3 are stated as `genSpec`, so they now say less than their Go code
    guarantees (any `id`); their only caller is `Run`. Not a Go bug (`Run` never passes a negative
-   `id`), so nothing in `issues/`.
+   `id`), so nothing in `issues/`. (Approved by the user, 2026-10-28.)
 2. **`Names` → `GName`** (from the spec reviewer): the first version had `γ : Names` (`st`, `req`)
    in every public spec, exposing the log's ghost list. Now the API takes the register's name
    only and `isServer γ s := ∃ γr c, …` hides the requests' name.

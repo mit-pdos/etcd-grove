@@ -25040,3 +25040,25 @@ path's compaction; `NewServer.specCompact`'s post, and `common`'s `memberBuilt`/
 coexist with `kvInvC` over the same names: a compaction-mode serving stack (the request path's
 `Put`/`Range`/`Txn`/`DeleteRange`, v3rpc, the client, `common`'s member predicates) is the family's
 remaining extent.
+
+## lintest: the library spec lends the client's thread token
+
+**2026-10-28 · accepted; approved by the user 2026-10-28** (branch `logkv-eval`,
+`notes/logkv-eval-rw.md`)
+
+`lintest.applySpec` gave the library nothing per call, and `Run` forked its clients with
+`wp_fork`, which keeps each goroutine's thread token out of reach. A library that read-locks a
+`sync.RWMutex` needs a reader slot, which Perennial lends against a thread token
+(`Perennial/Proof/sync/RWMutexThreads.lean`), so it could not meet `applySpec` (logkvrw worked
+around it with ~630 lines of local copies of `Run`/`runClient`). Now `applySpec` has `threadTok`
+in its pre and its post, `runClient.spec` takes and returns the client goroutine's `threadTok`
+(lending it to each `apply` through `wp_apply_commit`), and `Run`'s proof forks its clients with
+`wp_fork_tok_body`. `Run.spec` is stronger (its premise on the library is weaker); its statement
+changes only inside `applySpec`. One spec per function, no token-free form beside it (the
+user, 2026-10-28; a first version kept the old spec as `applySpecNoTok` with a framing lemma
+`applySpec_of_noTok`, removed): every library's `Apply` is stated with `applySpec`, and a library
+that needs no token frames it itself (counter, logkv, logkvcompact, logkvsnap, logkvappend:
+`⟨%Hin, Htt⟩` at the intro and `iframe Htt` at the return; kv, kvwitness, linkvtxn, linkv3p,
+k8setcd3, whose closures are proved inline in `Check`: the same, the token added to the
+continuation they pass on). logkvrw's `Apply` passes it to `Get`, and its copies of the driver
+are gone.

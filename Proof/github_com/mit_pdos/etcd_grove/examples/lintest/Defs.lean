@@ -13,7 +13,12 @@ Lean-first (no Rocq counterpart).
   porcupine's sequential model `S.M` over the library's abstract state `libState s`: given an
   input `i` with `inOk i`, at its linearization point it takes the state from `s` to `s'`
   with the output `o` it then returns, and `S.M.step s (i, o) = some s'`; it returns what
-  porcupine's `Step` needs of the input and output (`S.ioOk i o`).
+  porcupine's `Step` needs of the input and output (`S.ioOk i o`). It is lent the calling
+  goroutine's thread token (`threadTok`), which it gives back: every call is made by one of
+  `Run`'s clients, a goroutine of its own, and a library may need the token for a resource
+  bounded by the live threads (an `RWMutex`'s reader slot: Perennial lends them against thread
+  tokens, `Perennial/Proof/sync/RWMutexThreads.lean`). (Until 2026-10-28 it was given nothing,
+  which no library that read-locks an `RWMutex` can meet: `notes/logkv-eval-rw.md`.)
 - `genSpec f inOk`: the input generator, called with a client's index (`0 ≤ id`: `Run` calls it
   with `0, ..., clients - 1`), returns a value `i` with `inOk i`, persistently. (Until
   2026-10-28 it was required of every `id`, negative ones included, which a generator indexing a
@@ -70,12 +75,14 @@ def clockSpec (clockVal : w64 → IProp GF) (Eclk : CoPset) (f : GoFunc) : IProp
   iprop(<<{ ∀∀ t, clockVal t }>> (App (Val #f) (Val #())) @@ Eclk
     <<{ ∃∃ t', clockVal t' ∗ ⌜sint.Z t ≤ sint.Z t'⌝ }>> {{ RET #t'; True }})
 
-/-- A library operation, logically atomic against the model (see the file header). -/
+/-- A library operation, logically atomic against the model, lent the calling goroutine's
+thread token (see the file header). -/
 def applySpec (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF) (libState : σ → IProp GF)
     (Eapp : CoPset) (f : GoFunc) : IProp GF :=
   iprop(∀ i : GoInterface,
-    {{ inOk i }} <<{ ∀∀ s, libState s }>> (App (Val #f) (Val #i)) @@ Eapp
-    <<{ ∃∃ s' o, libState s' ∗ ⌜S.M.step s (i, o) = some s'⌝ }>> {{ RET #o; S.ioOk i o }})
+    {{ inOk i ∗ threadTok }} <<{ ∀∀ s, libState s }>> (App (Val #f) (Val #i)) @@ Eapp
+    <<{ ∃∃ s' o, libState s' ∗ ⌜S.M.step s (i, o) = some s'⌝ }>>
+    {{ RET #o; S.ioOk i o ∗ threadTok }})
 
 /-- The input generator (see the file header). -/
 def genSpec (f : GoFunc) (inOk : GoInterface → IProp GF) : IProp GF :=

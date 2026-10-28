@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*Server).Apply` (logkvappend.go): the method value `s.Apply` is logically atomic against the
-register's model (`applySpec`, `Proof/.../lintest/Defs.lean`), over the register's abstract state
+register's model (`applySpec`, `Proof/.../lintest/Defs.lean`; the caller's thread token is lent and given
+back untouched), over the register's abstract state
 (`regState γ`), with no invariant of its own (`Eapp = ∅`), for a boxed `Op` input (`regInOk`).
 -/
 module
