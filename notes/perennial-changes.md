@@ -17,36 +17,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### GooseLang: extensions outside Perennial, named in the syntax (2026-10-27, branch `worktree-durable-kv`)
-
-- **Missing.** An extension's operations were positions in the program's list of extensions
-  (`ExtsOp exts`), so the trusted model of a Go function implemented with one needed
-  `[ElemExt E]` (data: the position), which goose had to add to the generated `Assumptions` of
-  the package and of every importer, from a closed table of extension packages in goose
-  (`extMapping`), with prelude imports under `Perennial.`: a project could not define an
-  extension of its own.
-- **Needed by.** The durable-state extension `durableExt` (`GooseLang/Ext/Durable/`, the Go
-  package `examples/durable`) and `examples/durablekv`.
-- **Workaround here.** None needed for the translation: goose treats `examples/durable` as any
-  package, so `etc/goose.py --check` passes with the pin. The Lean modules of the extension and
-  of the two translations build only against the change (`GooseExt.name`, `extOp` without an
-  instance): `lake build --packages=.lake/manifest-extnames.json ...`, a manifest copy whose
-  `perennial` is `/home/ubuntu/perennial-ext-names-at-pin` (the change cherry-picked onto the
-  pin `f73703285`, branch `ext-names-at-pin`). Until the pin has it, a full build (CI) fails on
-  them, so the branch waits for the pin bump before it merges.
-- **The change.** Perennial branch `ext-names` (`6fa3a85cc`..`25bd32450`, off `lean` `edcadb1e5`; every
-  module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path) and no
-  type of operations; an operation is named by two strings, `ExternalOp ext op e` (stepping
-  with the program's first extension named `ext`, by its step of `op`), an opaque value by the
-  extension's name and its encoding (`ExtCode`, `extVal E v`); `ElemExt E` and `HasExt E` are propositions (closing off a program proves them by
-  `rfl`); goose knows nothing of extensions (its table, the binders and the extension preludes
-  are gone). It supersedes branch `goose-ext-flag` (goose's `-ext`, the first attempt).
-- **Status.** Landed on Perennial's `lean` as `25bd32450` (2026-10-28), after the trusted-base
-  review (verdict OK; its adversarial pass found that Grove's stutter made an unknown operation
-  name safe instead of stuck, fixed in `25bd32450`: only Grove's operations, `groveOps`,
-  stutter). Waiting for the pin to reach it: the bump regenerates every translation with the
-  new goose and rebuilds; then `.lake/manifest-extnames.json` and the helper branch
-  `ext-names-at-pin` go, and this entry moves to "Landed".
 ### Tactics: `wp_if_destruct` on a loop condition left as `#(decide P) = #true` (2026-10-27)
 
 - **Limitation.** After a `wp_for`, `wp_if_destruct` sometimes splits on `#(decide P) = #true`
@@ -574,6 +544,30 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### GooseLang: extensions outside Perennial, named in the syntax (2026-10-27, branch `worktree-durable-kv`)
+
+- **Missing.** An extension's operations were positions in the program's list of extensions
+  (`ExtsOp exts`), so the trusted model of a Go function implemented with one needed
+  `[ElemExt E]` (data: the position), which goose had to add to the generated `Assumptions` of
+  the package and of every importer, from a closed table of extension packages in goose
+  (`extMapping`), with prelude imports under `Perennial.`: a project could not define an
+  extension of its own.
+- **Needed by.** The durable-state extension `durableExt` (`GooseLang/Ext/Durable/`, the Go
+  package `examples/durable`) and `examples/durablekv`.
+- **Workaround here.** None (goose treats `examples/durable` as any package); until the pin
+  reached the change, the extension's Lean modules built only against it, so the branch waited.
+- **The change.** Perennial branch `ext-names` (`6fa3a85cc`..`25bd32450`, off `lean` `edcadb1e5`; every
+  module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path) and no
+  type of operations; an operation is named by two strings, `ExternalOp ext op e` (stepping
+  with the program's first extension named `ext`, by its step of `op`), an opaque value by the
+  extension's name and its encoding (`ExtCode`, `extVal E v`); `ElemExt E` and `HasExt E` are propositions (closing off a program proves them by
+  `rfl`); goose knows nothing of extensions (its table, the binders and the extension preludes
+  are gone). It supersedes branch `goose-ext-flag` (goose's `-ext`, the first attempt).
+- **Status.** Landed on Perennial's `lean` as `25bd32450` (2026-10-28), after the trusted-base
+  review (verdict OK; its adversarial pass found that Grove's stutter made an unknown operation
+  name safe instead of stuck, fixed in `25bd32450`: only Grove's operations, `groveOps`,
+  stutter). In the pin since 2026-10-28 (the bump from `edcadb1e5`; no translation but
+  `examples/durablekv`'s changed).
 ### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
 
 - **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
