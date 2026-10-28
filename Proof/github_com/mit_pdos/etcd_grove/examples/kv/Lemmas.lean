@@ -858,6 +858,37 @@ theorem kv_committed_cc (γr : RKVNames) (l : List LogEntry) (e : LogEntry) (E :
   ipureintro
   exact ⟨id, Hm, Hsh⟩
 
+/-- (2026-10-28) **A committed conf entry is a `RemoveMember`'s**, of type `1` (no
+`ConfChangeV2`): as `kv_committed_cc`, for any conf-change entry. -/
+theorem kv_committed_conf (γr : RKVNames) (l : List LogEntry) (e : LogEntry) (E : CoPset)
+    (HE : ↑rkvN ⊆ E) :
+    e ∈ l → e.isConfChange →
+    ⊢ rkvInv (GF := GF) γr -∗ isCommittedLogLb γr.cluster l ={E}=∗
+      ⌜e.type = W32 1 ∧ ∃ id, ccDecodeV1 e.data = some (rmCC id) ∧ RmShrink id⌝ := by
+  intro Hel Hcc
+  iintro #Hinv #Hl
+  unfold rkvInv rkvInvBody
+  iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
+  iunfold kvCore at Hc
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
+  ihave %Hpre := ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
+  · iframe Hops Hl
+  have Hne : e.type ≠ W32 0 := by
+    rcases Hcc with h | h <;> rw [h] <;> intro h' <;> revert h' <;> word
+  have Hnf : ¬ e.isFiller := fun h => Hne h.2
+  have Hin : e ∈ ops := Hpre.subset (List.mem_filter.mpr ⟨Hel, by simp [Hnf]⟩)
+  obtain ⟨Hty, id, Hm, Hsh⟩ := Hrm e Hin Hne
+  imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
+  · inext
+    iexists ops, S, Mi, O, U
+    iframe Hsl
+    unfold kvCore
+    iframe Hops Hv HU HS HMi HO
+    ipureintro; exact ⟨Hok, Hodm, Hrm⟩
+  imodintro
+  ipureintro
+  exact ⟨Hty, id, Hm, Hsh⟩
+
 end lemmas
 
 /-! ## Raft's read states, at the store

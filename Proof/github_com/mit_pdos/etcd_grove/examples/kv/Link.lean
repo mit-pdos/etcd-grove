@@ -51,6 +51,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.less
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.putBytes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.putMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.sortStrings
+public import Proof.go_etcd_io.raft.v3.Linked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.raft.v3.Link
 
@@ -169,7 +170,7 @@ theorem kv.wp_decodeState :
 
 theorem kv.KV.wp_run [KVStor GF] :
     kv.KV.run.spec (GF := GF) (hG := hG) :=
-  kv.KV.run.wp_proof kv.wp_fits kv.KV.wp_apply kv.KV.wp_answer kv.KV.wp_install kv.wp_encodeState kv.wp_decodeState node.wp_Ready node.wp_Advance MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_CreateSnapshot MemoryStorage.wp_Compact proto.wp_UnmarshalConfChange node.wp_ApplyConfChange raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
+  kv.KV.run.wp_proof kv.wp_fits kv.KV.wp_apply kv.KV.wp_answer kv.KV.wp_install kv.wp_encodeState kv.wp_decodeState node.wp_Ready RaftLink.node.wp_Advance_unified MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot RaftLink.MemoryStorage.wp_CreateSnapshot_unified MemoryStorage.wp_Compact proto.wp_UnmarshalConfChange RaftLink.node.wp_ApplyConfChange_unified raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
 
 theorem kv.wp_NewStorage [KVStor GF] :
     kv.NewStorage.spec (GF := GF) (hG := hG) :=
@@ -249,7 +250,7 @@ theorem kv.quietLogger.wp_Warningf :
 
 theorem kv.wp_StartCluster [KVStor GF] :
     kv.StartCluster.spec (GF := GF) (hG := hG) :=
-  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf wp_RestartNode MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries
+  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf RaftLink.wp_RestartNode_unified MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries
 
 theorem kv.wp_Main :
     kv.Main.spec (GF := GF) (hG := hG) :=

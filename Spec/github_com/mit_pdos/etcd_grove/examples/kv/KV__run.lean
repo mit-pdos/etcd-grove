@@ -35,8 +35,10 @@ abbrev KV.run.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isReplica γr γp r id n st ∗
-      -- the node's driver token, idle at its start, on the store's storage
+      -- the node's driver token, idle at its start, on the store's storage, and its view of its
+      -- configuration (2026-10-28), at the voters' membership, nothing applied
       nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
+      nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
       runOwn γr r [] ∗
       -- the storage's snapshot token, at a fresh storage (`runStor`)
       runStor γr st memStorEmpty ∗

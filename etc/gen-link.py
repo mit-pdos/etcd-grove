@@ -392,6 +392,8 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"],
+                 # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
+                 "--kv": ["Proof.go_etcd_io.raft.v3.Linked"],
                  # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
                  # rafthttp's proofs take as terms (`=` callees)
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",

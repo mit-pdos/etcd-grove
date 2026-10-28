@@ -288,7 +288,8 @@ abbrev kvVoters : List w64 := [W64 1, W64 2, W64 3]
 `kvVoters` -- removing `id` drops at most a learner, so `id` is not a voter. The premise
 `KV.RemoveMember` takes, which `node.ApplyConfChange` needs in raft's static cluster (it covers no
 change of the voters); unsatisfiable for a voter, the way the earlier proof's `CCAllowed` premise
-was in the static cluster. -/
+was in the static cluster. (2026-10-28, stage U4a: over raft's cluster with reconfiguration, what
+keeps every decision of the store's rule at the voters' membership, `kvMembership_rm`.) -/
 def RmShrink (id : w64) : Prop :=
   CCShrink (GMap.listToSet kvVoters) (ccV2Of (.v1 (rmCC id))).1 (ccV2Of (.v1 (rmCC id))).2
 
@@ -439,8 +440,81 @@ def lockInv (γr : RKVNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
     "Hwaiters" ∷ ([∗map] s ↦ ch ∈ W, waiterOk γr id s ch) ∗
     "Hrds" ∷ readsOwn γr id r ns)
 
-/-- Replica `id` at `r`, on node `n` of the store's static cluster (`isStaticCluster`, of
-the voters `kvVoters`, admitting snapshots of the store's data, `kvSnapOk`; leader transfer on),
+end ghost
+
+/-! ## The store's cluster (2026-10-28, stage U4a: raft's cluster with snapshots and
+reconfiguration, `InvNodeRule.lean`)
+
+The store's raft cluster is `isCluster`'s, its conf entries decided by the store's rule `kvRule`
+(each conf entry's change as `proto.Unmarshal` decodes it), from the voters' membership
+`kvMembership`. Every committed conf entry is a `RemoveMember` of a non-voter (`RmReqs`), so every
+decision keeps `kvMembership`. The snapshots the replicas make are in raft's registry
+(`ownSnapsMade`), which the store keeps in an invariant (`kvSnapInv`), each record with what it
+promises: the committed prefix it covers (no conf entry in it: a replica stops taking snapshots
+once it applied one), at `kvMembership`, its data the store's encoded state of that prefix
+(`kvSnapOk`). -/
+
+section cluster
+variable [GooseExts]
+
+/-- The store's rule: a conf entry's change, decoded (`ccDecode`). -/
+def kvRule : ConfRule := fun _ _ e => ccDecode e
+
+/-- The membership of the store's voters. -/
+abbrev kvMembership : Membership := Membership.simple (GMap.listToSet kvVoters)
+
+end cluster
+
+def kvSnapN : Namespace := nroot.@"kv_snaps"
+
+section clusterI
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [KVStor GF]
+
+/-- What a snapshot the store made promises: a committed prefix `L` of its index, with no conf
+entry, at the voters' membership, its data the store's encoded state of `L`. -/
+def kvSnapRecOk (γr : RKVNames) (s : SnapRec) : IProp GF :=
+  iprop(∃ L : List LogEntry, isCommittedLogLb γr.cluster L ∗
+    ⌜L.length = s.index ∧ s.conf = kvMembership ∧ kvSnapOk L s.data ∧
+      NoConfChangeIn L 0 L.length⌝)
+
+instance kvSnapRecOk_persistent (γr : RKVNames) (s : SnapRec) :
+    Persistent (kvSnapRecOk (GF := GF) γr s) := by
+  unfold kvSnapRecOk; infer_instance
+
+/-- **The store's registry of the snapshots made** (an invariant). -/
+def kvSnapInv (γr : RKVNames) : IProp GF :=
+  inv kvSnapN iprop(∃ S : List SnapRec, ownSnapsMade γr.cluster S ∗
+    [∗list] s ∈ S, kvSnapRecOk γr s)
+
+instance kvSnapInv_persistent (γr : RKVNames) : Persistent (kvSnapInv (GF := GF) γr) := by
+  unfold kvSnapInv; infer_instance
+
+/-- **The store's cluster** (persistent): raft's cluster with snapshots and reconfiguration, its
+conf entries decided by `kvRule`, the membership of no entry the voters', and the store's registry
+of the snapshots made. -/
+def kvCluster (γr : RKVNames) : IProp GF :=
+  iprop(isCluster γr.cluster kvRaftN ∗ confPolicy γr.cluster kvRule ∗
+    confAt γr.cluster 0 kvMembership ∗ kvSnapInv γr)
+
+instance kvCluster_persistent (γr : RKVNames) : Persistent (kvCluster (GF := GF) γr) := by
+  unfold kvCluster; infer_instance
+
+end clusterI
+
+section ghost2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [KVStor GF]
+
+/-- Replica `id` at `r`, on node `n` of the store's cluster (`kvCluster`; leader transfer on),
 with the storage `st` (persistent). -/
 def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) : IProp GF :=
   iprop(
@@ -450,7 +524,7 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#Hst" ∷ r.[RKV, go!"storage"] ↦□ st ∗
     "#Hsrec" ∷ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     "#HisNode" ∷ isNode n γr.cluster kvRaftN id ∗
-    "#Hstatic" ∷ isStaticCluster γr.cluster kvRaftN kvVoters kvSnapOk ∗
+    "#Hcl" ∷ kvCluster γr ∗
     "#Hxfer" ∷ leaderTransferOn γr.cluster kvRaftN ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
     "#Hinv" ∷ rkvInv γr)
@@ -520,7 +594,7 @@ def runStor (γr : RKVNames) (st : Loc) (σt : StorState) : IProp GF :=
     st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ kvVoters ∗
     ⌜γs.cap = 2 ^ 64 ∧ uint.Z σt.prev.index' ≤ uint.Z σt.ss.index'⌝)
 
-end ghost
+end ghost2
 
 end EtcdGrove
 end Perennial
