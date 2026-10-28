@@ -285,3 +285,19 @@ like `isContextDef`'s).
 takes a plain `isServerReq`); `Compact`'s callee hypotheses lack `Trace.AddField`; the callee-free
 `NewServer.wp_proofCompact` stub hides `NewServer`'s axioms from the `m2` collection's baseline (not
 updated).
+
+## After review round 1: one family, the Go bug fixed (2026-10-28, the user's)
+
+Round 1 (`notes/spec-first-study/m2-review-1.md`) found the compaction mode in no statement; the
+repair (`8950d80bf2`: `isServerReqC`, `kvInvC`, `CompactEnv.lean`'s `compactableOk_server`) showed
+that enforcing it means a compaction-mode family through the whole serving stack (the request
+path's `Put`/`Range`/`Txn`/`DeleteRange`, v3rpc, the client, `common`), beside the off family:
+against the rule "no special-case spec family beside the general one" (`LESSONS.md`). **Taken:
+one family.** The delete-then-put decision changes from (a) to (b): upstream's fix
+(etcd-io/etcd#22377, `keyIndex.doCompact`; #22395, the gRPC path) in the fork, mvcc's
+`doCompact`/`store.Compact` re-proved without `NoDelPutAt`, the etcd pin bumped. Then one KV
+invariant admits compaction entries for every server (no write restriction), `dispatchOk` loses its
+compaction conjunct, and the `…C` statements merge into the general ones. Restore is excluded by a
+`NewServer` configuration premise (compactor on only in the no-snapshot configuration); watchers by
+a persistent "no compactor" fact that off servers hand out and the watch API takes. A phase-1
+design revision found by review round 1 (decision 3 of phase 0 reversed).
