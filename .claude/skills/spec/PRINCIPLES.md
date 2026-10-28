@@ -54,8 +54,9 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 
 - **The spec of an API, not of an implementation**: another reasonable implementation of the same API
   would satisfy it unchanged (for a replicated server: a single in-memory server). No ghost names,
-  internal records or fields, internal namespaces in masks, or the implementation's own logs and
-  certificates. (`put.md`, critique 2)
+  fractions, helper definitions that hide part of the statement, internal records or fields,
+  internal namespaces in masks, or the implementation's own logs and certificates. (`put.md`,
+  critique 2; `notes/spec-first-plan.md`, phase 1b)
 - **The vocabulary is part of the spec**: improving a spec includes replacing the predicates it is
   written in, not only rearranging them. (`put.md`, critique 2)
 - **A client does not unfold the spec's definitions, or any other package's**: each unfold is a
