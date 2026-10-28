@@ -65,10 +65,19 @@ private abbrev node.Advance.specRaw : Prop :=
   -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration
   -- index (`issues/raft-advance-before-applyconfchange.md`)
   (γ.mode.isDyn = true → NoConfIn ds ca ds.length) →
+  -- (2026-10-28, stage U3d) dynamically, a snapshot's `ConfState` no auto-leave one
+  -- (`RawNode.Advance`'s, until U5)
+  (∀ l, L = some l → γ.mode.isDyn = true → γ.raft.reNoSnap = false →
+    l.snap.Metadata'.ConfState'.AutoLeave' = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor es L ∗ nodeCfg γ ca cfg }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriverChan γ id n ds p ∗ nodeCfg γ ca cfg ∗
+  {{ RET #(); nodeDriverChan γ id n ds p ∗
+      -- (2026-10-28, stage U3d) the view of the configuration: after a snapshot `Ready`,
+      -- dynamically, the snapshot's (`loanCfg`), which a snapshot `Ready` has only outside the
+      -- no-snapshot mode
+      nodeCfg γ (loanCfg γ.mode L (ca, cfg)).1 (loanCfg γ.mode L (ca, cfg)).2 ∗
+      ⌜L ≠ none → γ.raft.reNoSnap = false⌝ ∗
       -- (D19i part 1) the floor's witness for `ds`; (D22 S-d4) after a `Ready` without a snapshot,
       -- unless one was restored since (`reqWit`)
       reqWit γ (reqOf L ds) }}
@@ -87,12 +96,35 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The `dlv` halves move on past the `Ready` (`run` will recognize its record), one goes
 with the receipt on `advancec`; `n.done` never fires. -/
 private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n ds es ca cfg p' L HA1
+  intro γ id n ds es ca cfg p' L HA1 Hal
   wp_start as ⟨Hbusy, Hrcpt, Hcfg⟩
   unfold nodeDriverBusy
   icases Hbusy with ⟨#Hnode, #Hdlb, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
   ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
   · unfold nodeCfg; icases Hcfg with ⟨-, -, $⟩
+  -- (2026-10-28, stage U3d) after a snapshot `Ready` the view goes with the payload and comes
+  -- back moved (`capPay`, `capAns`)
+  ihave ⟨Hpay, Hback⟩ : capPay γ L (ca, cfg) ∗ (capAns γ (loanReq γ.mode L (ca, cfg)) -∗
+      nodeCfg γ (loanCfg γ.mode L (ca, cfg)).1 (loanCfg γ.mode L (ca, cfg)).2 ∗
+      ⌜L ≠ none → γ.raft.reNoSnap = false⌝) $$ [Hcfg]
+  · cases L with
+    | none =>
+      isplitr
+      · simp only [capPay]; itrivial
+      iintro -
+      rw [loanCfg_none]
+      iframe Hcfg
+      ipureintro; intro h; exact absurd rfl h
+    | some l =>
+      unfold nodeCfg
+      icases Hcfg with ⟨Hcap, Hccq, -⟩
+      isplitl [Hcap]
+      · simp only [capPay]; iexact Hcap
+      iintro Hans
+      simp only [capAns, loanReq, Option.map_some]
+      icases Hans with ⟨Hcap, #Hlb, %Hns⟩
+      iframe Hcap Hccq Hlb
+      ipureintro; intro _; exact Hns
   subst Hds
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -109,21 +141,26 @@ private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG)
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply isAdvChan_isChan $$ Hadvancec
-    iapply adv_send_au γ nv.rn' id nv.advancec' (dlvAfter d ce L) L q0
-      $$ [$Hlc1 $Hlc2 $Hlc3] Hadvancec [Hd1 Hrof Hrcpt] Hdlb Hr1 Hr2
+    iapply adv_send_au γ nv.rn' id nv.advancec' (dlvAfter d ce L) L (ca, cfg) q0
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hadvancec [Hd1 Hrof Hrcpt Hpay] Hdlb Hr1 Hr2
     · unfold advanceP
       iexists d, ce, es, p'
-      iframe Hd1 Hrof Hrcpt
+      iframe Hd1 Hrof Hrcpt Hpay
+      isplitr
+      · ipureintro; exact Hal
       iexists ca
       iframe Hcamlb
       ipureintro; exact HA1
     inext
-    iintro Hfl Hreq
+    iintro Hfl Hans Hreq
+    ihave ⟨Hcfg, %Hns⟩ := Hback $$ Hans
     wp_auto
     iapply HΦ
     iframe Hcfg Hfl
-    unfold nodeDriverChan
-    iframe Hnode Hd2 Hdlb Hreq
+    isplitl [Hd2 Hreq]
+    · unfold nodeDriverChan
+      iframe Hnode Hd2 Hdlb Hreq
+    ipureintro; exact Hns
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-n.done`: never
@@ -170,10 +207,11 @@ private theorem node.wp_Advance_impl
   rw [Hh] at Hh'
   cases Hh'
   iapply (hA γn id n ds es ca cfg st.hardState L
-    (fun h => by rw [Hmd] at h; cases h)) $$ [Htok Hrc Hcfg]
+    (fun h => by rw [Hmd] at h; cases h) (fun _ _ h _ => by rw [Hmd] at h; cases h)) $$ [Htok Hrc Hcfg]
   · iframe Hinit Htok Hcfg
     rw [Hγs]; iexact Hrc
-  iintro !> ⟨Hdrv, Hcfg, #Hw⟩
+  iintro !> ⟨Hdrv, Hcfg, -, #Hw⟩
+  rw [loanCfg_static (by rw [Hmd]; rfl)]
   iapply HΦ
   isplitl [Hdrv Hcfg]
   · unfold nodeDriver
@@ -232,11 +270,19 @@ private theorem node.wp_Advance_dynamic_impl
     apply this
     have Hl : ds.length = st.delivered.length := by rw [← Hds, strip_length]
     rw [Hl]; exact Hno
-  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L (fun _ => HA1))
-    $$ [Htok Hrc Hcf]
+  -- a dynamic cluster is in raft's no-snapshot mode: no snapshot `Ready`
+  have Hns : γn.raft.reNoSnap = true := by rw [Hnok.1]; exact Hdn.noSnap
+  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L (fun _ => HA1)
+    (fun _ _ _ h => by rw [Hns] at h; cases h)) $$ [Htok Hrc Hcf]
   · iframe Hinit Htok Hcf
     rw [Hγs]; iexact Hrc
-  iintro !> ⟨Hdrv, Hcf, #Hw⟩
+  iintro !> ⟨Hdrv, Hcf, %HLn, #Hw⟩
+  have HL : L = none := by
+    cases L with
+    | none => rfl
+    | some l => have := HLn (by simp); rw [Hns] at this; cases this
+  subst HL
+  rw [loanCfg_none]
   iapply HΦ
   isplitl [Hdrv Hstc]
   · unfold nodeDriver
@@ -250,23 +296,20 @@ private theorem node.wp_Advance_dynamic_impl
     isplitr
     · ipureintro; rfl
     iexact Hdrv
+  simp only
   isplitl [Hcf]
   · unfold nodeConfig
     iexists γn, id
     iframe Hn1 Htb Hcf
     ipureintro; exact ⟨Hnok, Hd, Hf2.2.2⟩
-  cases L with
-  | none =>
-    simp only
-    iunfold reqOf at Hw
-    iunfold reqWit at Hw
-    icases Hw with ⟨%x, #Hx, %Hle⟩
-    iexists x
-    rw [← Hγs]
-    iframe Hx
-    ipureintro
-    rw [← Hds, strip_length]; exact Hle
-  | some l => simp only; itrivial
+  iunfold reqOf at Hw
+  iunfold reqWit at Hw
+  icases Hw with ⟨%x, #Hx, %Hle⟩
+  iexists x
+  rw [← Hγs]
+  iframe Hx
+  ipureintro
+  rw [← Hds, strip_length]; exact Hle
 
 end wrap
 

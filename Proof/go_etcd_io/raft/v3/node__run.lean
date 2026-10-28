@@ -400,11 +400,10 @@ theorem node.run.wp_proof
       try wp_auto
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
       icases headRest_flw γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hflw, Hrest⟩
-      -- (D22 S-d4) a `MsgSnap` only at a node that takes snapshots: outside the no-snapshot mode, in
-      -- the static mode
+      -- (D22 S-d4) a `MsgSnap` only at a node that takes snapshots: outside the no-snapshot mode
       icases headRest_snapIn γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hsi, %Hrm, Hrest⟩
       have Hsnp : st.msg.Type' = MsgSnap → γ.raft.reNoSnap = false :=
-        fun h => (Hsi (Hpvb.2.2 h)).1
+        fun h => Hsi (Hpvb.2.2 h)
       -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit; (2026-10-17) the
       -- term ceiling raised to the bound, past the message's term (a granted pre-vote answers at
       -- it) and a transfer's campaign
@@ -1003,19 +1002,10 @@ theorem node.run.wp_proof
     icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, %Hr1⟩
     obtain ⟨Hstor1, Hunst1, Hunp1, HA⟩ := Hr1
     wp_auto
-    -- (2026-10-15, stage N) A1, from the driver's
-    icases runCfg_a1 γ { rs1 with flw := false } ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, Hcfg⟩
+    -- (2026-10-15, stage N) A1, from the driver's; (2026-10-28, stage U3d) dynamically after a
+    -- snapshot `Ready`, its `ConfState` no auto-leave one (the driver's, `advanceP`)
+    icases runCfgR_a1 γ rs1 ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, %Hal1, Hcfg⟩
     · ipureintro; exact HA
-    -- (2026-10-28, stage U3c) a loan only at a node that takes snapshots, in the static mode
-    icases runCfg_snap γ { rs1 with flw := false } $$ Hcfg with ⟨%Hsn1, Hcfg⟩
-    have Hal1 : ∀ l, rs1.slent = some l → rs1.mode.isDyn = true →
-        l.snap.Metadata'.ConfState'.AutoLeave' = false := by
-      intro l hl hd
-      obtain ⟨Hs1, Hs2, Hs3⟩ := Hsn1
-      cases hs : γ.snapIn
-      · rw [(Hs1 hs).2] at hl; cases hl
-      · have h3 : rs1.mode = γ.mode := Hs3
-        rw [h3, (Hs2 hs).2] at hd; cases hd
     wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1 Hal1
       $$ [$Hrn $Hlr] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
     ihave Hcfg := runCfg_advance γ rs1 t ca Hca HA1 $$ Hcfg

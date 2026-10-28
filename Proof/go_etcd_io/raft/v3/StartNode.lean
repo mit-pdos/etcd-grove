@@ -127,8 +127,8 @@ private abbrev StartNode.specRaw : Prop :=
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
-  -- outside the no-snapshot mode and (2026-10-25, T-M M2a) in the static mode
-  (sn = true → γ.reNoSnap = false ∧ md = .static) →
+  -- outside the no-snapshot mode (2026-10-25 to 2026-10-28, stage U3d: also in the static mode)
+  (sn = true → γ.reNoSnap = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)
@@ -211,7 +211,7 @@ private theorem StartNode.wp_raw
   icases dghostVar_halves _ _ $$ Hccq with ⟨Hccq1, Hccq2⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcam, Hcam, #Hcamlb⟩
   -- (D19i part 1) the driver's request on `advancec`
-  imod dghostVar_alloc (none : Option Nat) with ⟨%γreq, Hreq⟩
+  imod dghostVar_alloc (((none, none) : AdvReq)) with ⟨%γreq, Hreq⟩
   icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
   unfold newNodeChans
   icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
@@ -317,7 +317,7 @@ private theorem wp_StartNode_impl
   ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
   iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm R peers dq pv ps ctxs γ.raft.reBoot true
     H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid
-    Hcfg rfl Hok Hfl (fun _ => ⟨Hns, rfl⟩)) $$ [Hc Hown Hinst Hpeers Hg]
+    Hcfg rfl Hok Hfl (fun _ => Hns)) $$ [Hc Hown Hinst Hpeers Hg]
   · iframe Hinit Hc Hlog Hstor Hown Hinst Hpeers Hpc Hm Hc0 Hbinv Htlb
     isplitl [Hg]
     · unfold bootInit; iexact Hg
@@ -407,7 +407,10 @@ private theorem wp_StartNode_dynamic_impl
     isplitr
     · ileft; ipureintro; exact Hdy
     isplitr
-    · iright; iframe Htb; unfold hsCommitted; ileft; ipureintro; rfl
+    · iright; iframe Htb
+      isplitr
+      · unfold hsCommitted; ileft; ipureintro; rfl
+      ileft; ipureintro; exact Hns
     ileft
     isplitr
     · ipureintro; rfl

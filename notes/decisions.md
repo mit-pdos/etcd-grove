@@ -25008,3 +25008,61 @@ the node's configuration is shared with the client through `dghostVar γ.cap` (`
 half in `nodeConfig`): `node.Advance` would have to take `nodeConfig` back after a snapshot `Ready` (a
 public-spec change, U9's), or the configuration's half be held by the node's run loop. A design question
 for the coordinator before U3d.
+
+*Answered (2026-10-28, the coordinator): follow the frozen design. `node.Advance` takes `nodeConfig` and,
+after a snapshot `Ready`, returns it at the snapshot's index (stage U3d, below).*
+
+## Stage U3d: the node layer with snapshots in the dynamic mode (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · taken (the coordinator's answer to U3c's question: the frozen design's `node.Advance`)**
+
+**Why.** After U3c the dynamic `RawNode` takes, hands out and acknowledges snapshots; the node layer
+(`node.run`, the `advancec` protocol, `node.Advance`) still kept them out of the dynamic mode
+(`runCfg`'s `γ.snapIn = true → γ.raft.reNoSnap = false ∧ γ.mode = .static`).
+
+**How the view moves.** The driver's view of the configuration and `run`'s are the two halves of
+`dghostVar γ.cap`; `node.Advance` returns at the `advancec` rendezvous, before `run`'s
+`RawNode.Advance` installs the snapshot's configuration (`advRS`). So the halves move *at the
+rendezvous*: after a snapshot `Ready` the driver's payload carries its half (`advanceP γ L x`,
+`capPay`), `advance_complete` moves both to `loanCfg γ.mode L x` (dynamically
+`(|l.dlv|, foldCfg l.dlv)`, statically `x`) and `cam`'s authority to `|l.dlv|`, and the driver's
+half comes back (`capAns`): directly when the driver meets `run`, through the `RcvCommit` state when
+`run` meets it. For the second, the driver's request (`NodeNames.req`) now also names the view it
+expects back (`AdvReq := Option Nat × Option (Nat × CCState)`, `loanReq`), so that the half it takes
+from `RcvCommit` is at a value it knows. Between the rendezvous and `RawNode.Advance`, `run` holds
+`runCfgR` (`runCfgLoan` for a dynamic loan: the shared configuration already the snapshot's, A1 at
+the `RawNode`, the snapshot's `ConfState` no auto-leave one), which `runCfg_advance` turns into
+`runCfg (advRS ..)`.
+
+**Found on the way.**
+- *A conf change applied while a snapshot `Ready` is lent.* The driver's `deliveredLogLb` covers the
+  loan's committed log from the receive on (`readyPost`), so `ApplyConfChange` may apply one of its
+  conf entries before `Advance` -- an entry past the `RawNode`'s `delivered`. The model allows it
+  (U3a: `applyConf` with a snapshot pending, `k < commit`). Supported: `wp_applyConf_dyn`
+  (`InvNodeRun.lean`) takes the committed log `D` it applies from (with `|D| ≤ commit`), and
+  `node.run`'s `confc` arm passes `rsDlv rs` (while lent, the loan's: `loanCom`, `LoanOk`); `runCfg`'s
+  bounds are over `rsDlv rs` (`capplied ≤ |rsDlv rs|`, `NoConfIn (rsDlv rs) ca capplied`).
+  `RawNode.ApplyConfChange.spec` (not `node.run`'s path) still reads `rs.delivered`.
+- *The API's `nodeDriver` in a dynamic cluster with snapshots.* Its dynamic clause held only
+  `nodeTabOk` and `hsCommitted` (the hard state bounds the delivered log), and a snapshot `Ready`'s
+  certificate came from the static clause's `storageCertLink`. Now: `hsCommitted` has a third
+  disjunct `γ.raft.reNoSnap = false` (after a snapshot `Ready` the witness bounds the log before
+  the snapshot), and the dynamic clause carries `⌜γ.raft.reNoSnap = true⌝ ∨ storageCertLink`.
+  `nodeDriver_hardStateCommitted` (over `isDynamicCluster`, in the no-snapshot mode) is unchanged;
+  U9's unified driver must say what a client knows of the hard state after a snapshot.
+- `RawNode.Advance` takes, dynamically, the snapshot's `ConfState` not auto-leave (U3c, until U5):
+  the driver supplies it in `advanceP` (`node.Advance`'s raw premise, under `reNoSnap = false`).
+
+**The changed statements.**
+- `node.Advance.dynamicSpec` (`Spec/.../node__Advance.lean`, approved): the post is `nodeDriver ∗
+  match L with | none => nodeConfig v ∗ (the floor) | some l => ∃ m, nodeConfig ⟨index, m⟩ ∗
+  ⌜confStateIs (l's ConfState) m⌝`. Proved by refuting the second case (a dynamic cluster is in the
+  no-snapshot mode, and the raw post says a loan has `reNoSnap = false`). The fold
+  (`Membership.fold γ.rule γ.c0 (strip l.dlv) = some m`) is not stated: a decoder cluster has no
+  public fold; the rule cluster's spec (U4/U9) states it, from the readied snapshot's certificate.
+- Internal: `runCfg`, `readySnapData` (`snapIn → reNoSnap = false`, either mode), `readyDataL_none`
+  and its family (`reNoSnap ∨ ¬snapIn`), `advanceP`/`advInv`/`advRet`, `advance_complete`,
+  `adv_send_au`, `headRest_snapIn`, `runCfg_snap`, `runCfg_confc`, `runCfg_extend`, `runCfg_advance`,
+  `runCfgR_a1` (new), `wp_rn_raft_applyConfChange_dyn`, `node.Advance.specRaw` (the view
+  `loanCfg γ.mode L (ca, cfg)`, `L ≠ none → reNoSnap = false`), `StartNode`/`RestartNode`'s raw
+  `sn = true → reNoSnap = false`; `ApiImpl.nodeDriver`, `hsCommitted`.

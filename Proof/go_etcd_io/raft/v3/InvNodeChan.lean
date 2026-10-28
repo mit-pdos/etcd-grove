@@ -392,7 +392,8 @@ structure NodeNames [GooseExts] where
   out (`isRaftMsg`, whose `MsgApp`s are from it) -/
   id : w64
   /-- (D22 S-d4, 2026-10-21) **the application may deliver a `MsgSnap`** (`netP`), a parameter of
-  `StartNode`/`RestartNode`: only outside the no-snapshot mode and in the static mode (`runCfg`);
+  `StartNode`/`RestartNode`: only outside the no-snapshot mode (`runCfg`; 2026-10-28, stage U3d: in
+  either mode, until then only the static one);
   with it a `Ready` may hand out a snapshot (`readyDataL`). `false` for the server, putget,
   putget3 and the kv example. -/
   snapIn : Bool := false
@@ -614,8 +615,8 @@ theorem rsDlv_none {rs : RNState} (h : rs.slent = none) : rsDlv rs = rs.delivere
 `readyData`'s messages, read states, hard and soft state, committed log `d ++ ce` (with `ce = []`)
 and the entries `es` to append, and in place of the right to append them (and of `rd.Snapshot`
 `nil`) the snapshot -- at a node that takes snapshots (`snapIn`, so outside the no-snapshot mode
-and in the static mode: what a client that never delivers a `MsgSnap`, or is in the no-snapshot
-or the dynamic mode, refutes, `readyDataL_none`) -- half of it (`ownSnapS l.ptr ½`, every pointer field set, `rdSnapOut`;
+(2026-10-28, stage U3d: in either mode; until then the static one): what a client that never
+delivers a `MsgSnap`, or is in the no-snapshot mode, refutes, `readyDataL_none`) -- half of it (`ownSnapS l.ptr ½`, every pointer field set, `rdSnapOut`;
 the node's queued acknowledgement shares the pointer), the committed log up to it (`isCommitted
 l.dlv`, `LoanOut`: `|l.dlv|` its index, extending `d`), the storage itself (`readyOut`: nothing
 pending, at the loan's floor) and the snapshot's certificate in the storage's registry. The
@@ -636,8 +637,9 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     hsWit γ.raft p' (d ++ ce).length ∗
     softStateRO rd.SoftState' ∗
     readyIdx γ.raft d ce es ∗
-    -- the snapshot, at a node that takes snapshots
-    ⌜γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ γ.mode = .static⌝ ∗
+    -- the snapshot, at a node that takes snapshots (2026-10-28, stage U3d: in either mode; until
+    -- then the static one)
+    ⌜γ.snapIn = true ∧ γ.raft.reNoSnap = false⌝ ∗
     -- (D22 S-d4 item 4) every pointer field set: what `MemoryStorage.ApplySnapshot` takes
     ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
     -- (2026-10-26, D22 J2, R-loc) the snapshot local to the node (`snapLocal`: for a server, its
@@ -660,11 +662,11 @@ def readyDataL (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
   | none => readyData γ rd d ce es ms p p'
   | some l => readySnapData γ rd d ce es ms p p' l
 
-/-- (D22 S-d4) A client that cannot be handed a snapshot -- one in raft's no-snapshot mode, in the
-dynamic mode, or at a node that takes no `MsgSnap` (`snapIn` off) -- gets `readyData` as before. -/
+/-- (D22 S-d4) A client that cannot be handed a snapshot -- one in raft's no-snapshot mode or at a
+node that takes no `MsgSnap` (`snapIn` off) -- gets `readyData` as before. -/
 theorem readyDataL_none (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (ms : List QMsg) (p p' : HardStateM) (L : Option SnapLoan)
-    (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
+    (H : γ.raft.reNoSnap = true ∨ γ.snapIn = false) :
     readyDataL (GF := GF) γ rd d ce es ms p p' L ⊢ ⌜L = none⌝ ∗ readyData γ rd d ce es ms p p' := by
   cases L with
   | none =>
@@ -678,10 +680,9 @@ theorem readyDataL_none (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     iintro Hd
     icases Hd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, %Hs, -⟩
     exfalso
-    obtain ⟨H1, H2, H3⟩ := Hs
-    rcases H with h | h | h
+    obtain ⟨H1, H2⟩ := Hs
+    rcases H with h | h
     · rw [h] at H2; cases H2
-    · rw [H3] at h; cases h
     · rw [h] at H1; cases H1
 
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half
@@ -699,7 +700,7 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
 /-- (D22 S-d4) `readyP` for a client that cannot be handed a snapshot (`readyDataL_none`): as until
 then, the record at no loan. -/
 theorem readyP_none (γ : NodeNames) (rd : Ready)
-    (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
+    (H : γ.raft.reNoSnap = true ∨ γ.snapIn = false) :
     readyP (GF := GF) γ rd ⊢
       ∃ (d ce es : List EntryM) (ms : List QMsg) (p p' : HardStateM),
         dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
@@ -717,14 +718,39 @@ theorem readyP_none (γ : NodeNames) (rd : Ready)
 -- (2026-10-28) `advReceipt` moved to `ApiVocab.lean` (the storage contract's vocabulary, which
 -- `node.Advance`'s spec states)
 
+/-- (2026-10-28, stage U3d) The driver's view of the configuration in its `Advance` payload: after a
+snapshot `Ready`, `cap`'s half at `x` (the rendezvous moves it, `capAns`); nothing otherwise. -/
+def capPay (γ : NodeNames) (L : Option SnapLoan) (x : Nat × CCState) : IProp GF :=
+  match L with
+  | none => iprop(True)
+  | some _ => dghostVar γ.cap (DFrac.own (1 : Qp).half) x
+
+/-- (2026-10-28, stage U3d) What the driver gets back of its view at the rendezvous: after a
+snapshot `Ready` (`some y`, the view it expects, `loanReq`), `cap`'s half at `y` with the index's
+lower bound, and that the cluster takes snapshots; nothing otherwise. -/
+def capAns (γ : NodeNames) : Option (Nat × CCState) → IProp GF
+  | none => iprop(True)
+  | some y => iprop(dghostVar γ.cap (DFrac.own (1 : Qp).half) y ∗ monoNatLbOwn γ.cam y.1 ∗
+      ⌜γ.raft.reNoSnap = false⌝)
+
+/-- (2026-10-28, stage U3d) The driver's request on `advancec` (`NodeNames.req`): the floor's
+(`reqOf`) and the view it expects back (`loanReq`). -/
+abbrev AdvReq := Option Nat × Option (Nat × CCState)
+
 /-- An `Advance` on `advancec`: a `dlv` half after the last `Ready`, `run`'s record back,
 and the receipt of the append of the `Ready`'s entries. (D22 S-d4, 2026-10-21) For the `Ready`'s
 loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt for it
 (`advReceipt`). -/
-@[no_expose] def advanceP (γ : NodeNames) (L : Option SnapLoan) : IProp GF :=
+@[no_expose] def advanceP (γ : NodeNames) (L : Option SnapLoan) (x : Nat × CCState) : IProp GF :=
   iprop(∃ (d ce es : List EntryM) (p' : HardStateM),
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (dlvAfter d ce L, p') ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ advReceipt γ.stor es L ∗
+    -- (2026-10-28, stage U3d) after a snapshot `Ready`, the driver's view of the configuration
+    -- (`cap`'s half at `x`), which the rendezvous moves to the snapshot's (`loanCfg`), and
+    -- (dynamically) the snapshot's `ConfState` no auto-leave one (`RawNode.Advance`'s, until U5)
+    capPay γ L x ∗
+    ⌜∀ l, L = some l → γ.mode.isDyn = true → γ.raft.reNoSnap = false →
+      l.snap.Metadata'.ConfState'.AutoLeave' = false⌝ ∗
     -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
     -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
     ∃ ca : Nat, monoNatLbOwn γ.cam ca ∗
@@ -752,7 +778,7 @@ instance reqWit_persistent (γ : NodeNames) (q : Option Nat) :
 /-- (D22 S-d4) The floor's witness after a `Ready` without a snapshot. (Until D22 S-d4 item 3 it
 needed a client that cannot be handed a snapshot, `H`, now unused.) -/
 theorem reqWit_none (γ : NodeNames) (ds : List EntryM)
-    (_H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
+    (_H : γ.raft.reNoSnap = true ∨ γ.snapIn = false) :
     reqWit (GF := GF) γ (reqOf none ds) ⊢
       ∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ := by
   iintro Hw
@@ -786,22 +812,58 @@ N): the node's mode is `γ.mode`; the authority of the committed log handed out 
 configuration as of the last applied conf change, `(ca, rs.cfg)` (`cap`'s half, `cam`'s
 authority at `ca`); `Advance` may have moved the configuration index past `ca`, over no conf
 entry. (D22 S-d4, 2026-10-21) A node that takes snapshots (`snapIn`) is outside the no-snapshot
-mode and in the static mode; one that does not has no snapshot pending or lent (from D22 S-c to
-S-d4 none at all); while a snapshot `Ready` is lent the committed log handed out is the loan's
-(`rsDlv`), which extends `delivered`. -/
+mode (2026-10-28, stage U3d: in either mode; until then the static one); one that does not has no
+snapshot pending or lent (from D22 S-c to S-d4 none at all); while a snapshot `Ready` is lent the
+committed log handed out is the loan's (`rsDlv`), which extends `delivered`, and (U3d) the driver may
+apply a conf entry of it (the configuration index bounded by it, `rsDlv`). -/
 @[no_expose] def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
-  iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ rs.delivered.length ∧
+  iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ (rsDlv rs).length ∧
       -- (D19i part 1) the floor not raised past `applied` (`RNState.flw`): `run` raises it only
       -- in its `advancec` arm, right before `Advance`
       rs.flw = false ∧
       -- (D22 S-d4) no snapshot pending (`RNState.psnap`) or lent (`RNState.slent`) at a node that
       -- takes none (until then, from D22 S-c, at any node)
       (γ.snapIn = false → rs.psnap = false ∧ rs.slent = none) ∧
-      (γ.snapIn = true → γ.raft.reNoSnap = false ∧ γ.mode = .static) ∧
+      (γ.snapIn = true → γ.raft.reNoSnap = false) ∧
       (∀ l, rs.slent = some l → rs.delivered <+: l.dlv)⌝ ∗
     monoListAuthOwn γ.dlm 1 (rsDlv rs) ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
-      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ NoConfIn rs.delivered ca rs.capplied⌝)
+      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ NoConfIn (rsDlv rs) ca rs.capplied⌝)
+
+/-- (2026-10-28, stage U3d) `run`'s side of the configuration after the `advancec` rendezvous of a
+snapshot `Ready` in the dynamic mode (the loan `l`): the shared configuration already at the
+snapshot's (its index and the fold of its committed log, `loanCfg`), which `RawNode.Advance`
+installs (`advRS`), the committed log handed out the loan's; A1 at the `RawNode` (from the
+driver's) and the snapshot's `ConfState` no auto-leave one (`RawNode.Advance`'s premises). -/
+@[no_expose] def runCfgLoan (γ : NodeNames) (rs : RNState) (l : SnapLoan) : IProp GF :=
+  iprop(⌜rs.mode = γ.mode ∧ γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ rs.delivered <+: l.dlv ∧
+      NoConfIn rs.delivered rs.capplied rs.delivered.length ∧
+      l.snap.Metadata'.ConfState'.AutoLeave' = false⌝ ∗
+    monoListAuthOwn γ.dlm 1 l.dlv ∗
+    dghostVar γ.cap (DFrac.own (1 : Qp).half) (l.dlv.length, rs.mode.foldCfg l.dlv rs.cfg) ∗
+    monoNatAuthOwn γ.cam 1 l.dlv.length)
+
+/-- (2026-10-28, stage U3d) `run`'s side of the configuration after the `advancec` rendezvous
+(`advRet`): `runCfg` with the floor no longer raised, but after a snapshot `Ready` in the dynamic
+mode `runCfgLoan`. -/
+@[no_expose] def runCfgR (γ : NodeNames) (rs : RNState) : IProp GF :=
+  match rs.slent with
+  | none => runCfg γ { rs with flw := false }
+  | some l => if rs.mode.isDyn then runCfgLoan γ rs l else runCfg γ { rs with flw := false }
+
+theorem runCfgR_of_runCfg (γ : NodeNames) (rs : RNState)
+    (h : rs.slent = none ∨ rs.mode.isDyn = false) :
+    runCfgR (GF := GF) γ rs ⊣⊢ runCfg γ { rs with flw := false } := by
+  unfold runCfgR
+  rcases h with h | h
+  · rw [h]; exact .rfl
+  · cases rs.slent with
+    | none => exact .rfl
+    | some l => simp only [h, Bool.false_eq_true, ↓reduceIte]; exact .rfl
+
+theorem runCfgR_loan (γ : NodeNames) (rs : RNState) (l : SnapLoan) (hl : rs.slent = some l)
+    (hd : rs.mode.isDyn = true) : runCfgR (GF := GF) γ rs ⊣⊢ runCfgLoan γ rs l := by
+  unfold runCfgR; rw [hl]; simp only [hd, ↓reduceIte]; exact .rfl
 
 /-- (D22 S-d4) `runCfg` reads only these fields of the node's state. -/
 theorem runCfg_congr (γ : NodeNames) {rs rs' : RNState} (hm : rs'.mode = rs.mode)
@@ -854,7 +916,7 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
 (`rsDlv`, the loan's). -/
 @[no_expose] def advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ (rs : RNState) (ca_d : Nat), ownRawNode γ.raft rn id rs ∗
-    termLB γ.bud rs.tc ∗ runCfg γ { rs with flw := false } ∗
+    termLB γ.bud rs.tc ∗ runCfgR γ rs ∗
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rsDlv rs, rs.phs) ∗
     (∃ x : List EntryM × List EntryM × List EntryM × HardStateM × Option SnapLoan,
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
@@ -868,12 +930,14 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
   iprop(∃ s, "Hch" ∷ ownChan γ.advancec Unit s ∗
     (match s with
      | .Idle => iprop(True)
-     | .SndPending _ => iprop(∃ L : Option SnapLoan, advanceP γ L ∗ ∃ ds : List EntryM,
-         dghostVar γ.req (DFrac.own (1 : Qp).half) (reqOf L ds) ∗ dlvLb γ ds)
+     | .SndPending _ => iprop(∃ (L : Option SnapLoan) (x : Nat × CCState), advanceP γ L x ∗
+         ∃ ds : List EntryM,
+         dghostVar γ.req (DFrac.own (1 : Qp).half) ((reqOf L ds, loanReq γ.mode L x) : AdvReq) ∗
+         dlvLb γ ds)
      | .RcvPending => advDep γ rn id
      | .SndCommit _ => advRet γ rn id
-     | .RcvCommit => iprop(∃ q : Option Nat, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
-         reqWit γ q)
+     | .RcvCommit => iprop(∃ q : AdvReq, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
+         reqWit γ q.1 ∗ capAns γ q.2)
      | _ => iprop(False)))
 
 def advN : Namespace := nroot.@"raft_advancec"
@@ -966,7 +1030,7 @@ the last `Ready` it was handed with a non-empty one is `p` (`RNState.phs`; zero 
     IProp GF :=
   iprop(isNodeChan γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) (ds, p) ∗ dlvLb γ ds ∗
     -- (D19i part 1) the request on `advancec` (`advInv`)
-    ∃ q : Option Nat, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
+    ∃ q : AdvReq, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
       dghostVar γ.req (DFrac.own (1 : Qp).half) q)
 
 /-- The driver with a `Ready` in hand: it was handed the committed log `ds` (the last
@@ -980,7 +1044,7 @@ snapshot (`dlvAfter`), and the storage is the application's until `Advance` (`ad
     ∃ (d ce : List EntryM) (p : HardStateM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ ⌜ds = dlvAfter d ce L⌝ ∗
-    ∃ q : Option Nat, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
+    ∃ q : AdvReq, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
       dghostVar γ.req (DFrac.own (1 : Qp).half) q)
 
 /-- `readyc`, as the driver sees it (`Node.Ready()`'s result). -/
@@ -1027,11 +1091,11 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   ipureintro; rfl
 
 /-- (D22 S-d4) **Receiving a `Ready`**, for a client that cannot be handed a snapshot (in raft's
-no-snapshot mode, in the dynamic mode, or at a node that takes no `MsgSnap`): as until D22 S-d4,
+no-snapshot mode or at a node that takes no `MsgSnap`): as until D22 S-d4,
 `readyData` and the token busy with no loan (`readyDataL_none`). -/
 theorem node_ready_receive_ns (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
     (p : HardStateM)
-    (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
+    (H : γ.raft.reNoSnap = true ∨ γ.snapIn = false) :
     {{ isReadyChanRaw γ ch ∗ nodeDriverChan (GF := GF) γ id n ds p }}
       (App (Val (chan.receive Ready.ty)) (Val #ch))
     {{ (rd : Ready), RET (PairV #rd #true);
@@ -1115,7 +1179,7 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
 
 /-- `readyP_take` for a client that cannot be handed a snapshot (`readyDataL_none`). -/
 theorem readyP_take_ns (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : List EntryM)
-    (p : HardStateM) (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
+    (p : HardStateM) (H : γ.raft.reNoSnap = true ∨ γ.snapIn = false) :
     ⊢ readyP (GF := GF) γ rd -∗ nodeDriverChan γ id n ds p -∗
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM),
         readyData γ rd ds ce es ms p p' ∗ nodeDriverBusy γ id n (ds ++ ce) es p' ∗

@@ -46,6 +46,9 @@ theorem RawNode.ApplyConfChange.wp_proof
     | dyn dec c0 h0 h1 => exact .inl ⟨dec, c0, h0, h1, rfl⟩
   rcases Hmode with ⟨dec, c0, h0, h1, hm⟩ | hm
   · have Hpre := Hdyn dec c0 h0 h1 hm
+    icases ownRaftPhysC_logwf cf rnv.raft' id s $$ Hphys with ⟨%Hlw, Hphys⟩
+    have HDc : (rs.delivered.length : Int) ≤ uint.Z s.logst.committed := by
+      rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega
     rcases o with m | m
     · simp only [ownConfChangeI]
       icases Hc with ⟨%p, %Hcv, Hc1⟩
@@ -53,8 +56,8 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_auto_lc 1
       wp_apply wp_ConfChange_AsV2 p dq m $$ [$Hc1] as %v2 ⟨Hc1, Hch⟩
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
-          cs0 v2 m.asV2 (DFrac.own 1) Hpre s cf fp rnv sv hprev steps Hwf Hin
-          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+          cs0 v2 m.asV2 (DFrac.own 1) rs.delivered Hpre s cf fp rnv sv hprev steps Hwf Hin
+          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan HDc
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
@@ -77,8 +80,8 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_auto_lc 1
       wp_apply wp_ConfChangeV2_AsV2
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
-          cs0 p m dq Hpre s cf fp rnv sv hprev steps Hwf Hin
-          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+          cs0 p m dq rs.delivered Hpre s cf fp rnv sv hprev steps Hwf Hin
+          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan HDc
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto

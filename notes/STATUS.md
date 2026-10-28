@@ -469,7 +469,7 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
-## Raft unified, stages U2, U3a-U3c (done) and U3d (open): snapshots in the dynamic mode (2026-10-28, branch `raft-unified`)
+## Raft unified, stages U2, U3 (done): snapshots in the dynamic mode (2026-10-28, branch `raft-unified`)
 
 U2: the dynamic snapshot certificate is made and read. Raft's names may name a registry of the
 snapshots the application made (`RaftNames.reSnapReg`, `none` in every allocation until U4); a
@@ -496,11 +496,20 @@ dynamic mode's need is the message's certificate, and `StepCDS` asks a snapshot'
 when its lists name the node); `"%Hsnap"` holds in either mode; `Advance` of a dynamic snapshot `Ready`
 supplies `SnapAckDyn` from the certificate at the loan's committed log and moves the configuration
 index and configuration to the snapshot's (`advRS`, `RNMode.foldCfg`); it takes the snapshot's
-`ConfState` not auto-leave (dynamically, until U5). U3d (the node: `runCfg`'s static-only `snapIn`,
-`readyData`, `runCfg_advance`'s loan case, `DynNames.reNoSnap`) not started: the node's configuration
-is shared with `nodeConfig` (`dghostVar γ.cap`), so a dynamic snapshot's `Advance` at the node needs a
-design decision (node.Advance taking `nodeConfig`, a public-spec change). No new `sorry` or axiom; no
-exported statement moved. `notes/decisions.md`, "Stages U2, U3".
+`ConfState` not auto-leave (dynamically, until U5). No new `sorry` or axiom; no exported
+statement moved. `notes/decisions.md`, "Stages U2, U3".
+
+U3d done: the node layer takes snapshots in the dynamic mode (`runCfg`, `readySnapData`: a node that
+takes `MsgSnap`s is outside the no-snapshot mode, in either mode). The driver's view of the
+configuration moves at the `advancec` rendezvous after a snapshot `Ready` (its half in the payload,
+back at the snapshot's index and the fold of its committed log, `loanCfg`/`capPay`/`capAns`; `run`
+holds `runCfgR` until `RawNode.Advance`). A conf change applied while a snapshot `Ready` is lent (an
+entry of the loan's committed log) is supported (`wp_applyConf_dyn` over `rsDlv`). The API's
+`nodeDriver` carries the storage's certificate link in a dynamic cluster outside the no-snapshot mode,
+and `hsCommitted` says nothing there. `node.Advance.dynamicSpec`'s post (approved): after a snapshot
+`Ready`, `∃ m, nodeConfig ⟨index, m⟩ ∗ ⌜confStateIs cs m⌝`, vacuous today (dynamic clusters are in the
+no-snapshot mode). No new `sorry` or axiom. `notes/decisions.md`, "Stage U3d". U4 not started (2026-10-28: the user
+replaced the fixed `ConfRule` by a TaDa per-entry decision; U4's allocation waits for that design).
 
 ## Raft unified, stages U1 and U6m: the conf-change decision, the API's vocabulary (2026-10-28, branch `raft-unified`)
 

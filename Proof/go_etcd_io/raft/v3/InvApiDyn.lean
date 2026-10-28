@@ -413,7 +413,7 @@ theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     · icases drv_isNode_lb γn id n ds st.hardState $$ Htok with ⟨-, $⟩
     · icases busy_isNode_lb γn id n ds es st.hardState L $$ Htok with ⟨-, $⟩
   ihave #Htb : iprop(⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk (GF := GF) γ id γn) $$ []
-  · icases Hdy with (%H | ⟨#H, -⟩)
+  · icases Hdy with (%H | ⟨#H, -, -⟩)
     · ileft; ipureintro; exact H
     · iright; iexact H
   icases Hl with ⟨#Hnd, #Hdl⟩
@@ -465,16 +465,19 @@ theorem nodeDriver_hardStateCommitted_impl (n : Loc) (γ : Cluster) (N : Namespa
   unfold isDynamicCluster nodeDriver
   iintro ⟨⟨%Hdn, -⟩, %γn, %id, %ds, %Hf, #Hci, #Hlb0, Hst, #Hdy, Htok⟩
   have Hd := Hdn.isDyn Hf.1
-  icases Hdy with (%H | ⟨#Htb, #Hhc⟩)
+  icases Hdy with (%H | ⟨#Htb, #Hhc, #Hcl⟩)
   · rw [Hd] at H; cases H
   isplitl [Hst Htok]
   · iexists γn, id, ds
     iframe Hci Hlb0 Hst Htok
     isplitr
     · ipureintro; exact Hf
-    iright; iframe Htb Hhc
+    iright; iframe Htb Hhc Hcl
   iunfold hsCommitted at Hhc
-  iexact Hhc
+  icases Hhc with (%H | H | %H)
+  · ileft; ipureintro; exact H
+  · iright; iexact H
+  · exfalso; rw [Hdn.noSnap] at H; cases H
 
 /-- A `MsgSnap` carries no credit. -/
 theorem msgCredits_snapshot_impl (γ : Cluster) (N : Namespace) (st : MsgSt) :

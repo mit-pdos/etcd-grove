@@ -35,10 +35,12 @@ def node.Advance.dynamicSpec : Prop :=
                   ((nodeDriver n γ N
                         { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
                           handling := none } ∗
-                      nodeConfig n γ N v ∗
-                        match L with
-                        | none => ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
-                        | some val => True) -∗
+                      match L with
+                      | none => nodeConfig n γ N v ∗ ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
+                      | some l =>
+                        ∃ m,
+                          nodeConfig n γ N { applied := uint.nat l.snap.Metadata'.Index', membership := m } ∗
+                            ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) -∗
                     Φ (intoVal ())) -∗
                 WP
                   ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))

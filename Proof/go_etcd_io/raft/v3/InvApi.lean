@@ -1057,9 +1057,12 @@ theorem committedAtTerm_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE 
   ipureintro; rw [strip_length]; exact Hlen
 
 /-- (2026-10-27) What a hard state says, the committed log delivered with it of length `n` (raft's
-`hsWit`, as the client sees it). -/
+`hsWit`, as the client sees it). (2026-10-28, stage U3d) Or nothing outside raft's no-snapshot mode:
+after a snapshot `Ready` the witness bounds the log before the snapshot, not the one delivered up to
+it (a dynamic cluster in the no-snapshot mode keeps `nodeDriver_hardStateCommitted`). -/
 def hsCommitted (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) : IProp GF :=
-  iprop(⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝)
+  iprop(⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝ ∨
+    ⌜γ.raft.reNoSnap = false⌝)
 
 instance hsCommitted_persistent (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) :
     Persistent (hsCommitted (GF := GF) γ N h n) := by
@@ -1075,7 +1078,7 @@ theorem hsCommitted_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
   · imodintro; ileft; ipureintro; exact H
   imod committedAtTerm_of_raft γ N E HE _ _ $$ Hci Hw with #Hc
   imodintro
-  iright
+  iright; ileft
   iframe Hc
   ipureintro; exact Hn
 
@@ -1837,8 +1840,9 @@ instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : L
 log `ds` the client sees as `st.delivered`, which is committed. A static node's also holds the
 storage's certificate link and raft's view of the configuration (`nodeCfg`), which never moves; a
 dynamic node's (2026-10-27) its configuration names (`nodeTabOk`: its view of the configuration is
-`nodeConfig`, which the application holds apart) and the witness of its hard state
-(`hsCommitted`). -/
+`nodeConfig`, which the application holds apart), the witness of its hard state
+(`hsCommitted`) and (2026-10-28, stage U3d) outside raft's no-snapshot mode the storage's certificate
+link. -/
 def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
     ⌜NodeOk γ γn ∧ γn.stor = st.storage ∧ strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
@@ -1846,7 +1850,8 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
     (⌜γn.mode.isDyn = true⌝ ∨
       storageCertLink γ N st.storage ∗ ∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) ∗
     (⌜γn.mode.isDyn = false⌝ ∨
-      nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length) ∗
+      nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length ∗
+      (⌜γ.raft.reNoSnap = true⌝ ∨ storageCertLink γ N st.storage)) ∗
     ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState) ∨
      (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
        nodeDriverBusy γn id n ds es st.hardState L)))
@@ -2153,10 +2158,10 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     isplitr
     · rw [← Hds, ← strip_append]; iexact Hlb
     isplitr
-    · icases Hdy with (%Hd | ⟨#Htab, -⟩)
+    · icases Hdy with (%Hd | ⟨#Htab, -, #Hcl⟩)
       · ileft; ipureintro; exact Hd
       iright
-      iframe Htab
+      iframe Htab Hcl
       have HL : (st.delivered ++ strip ce).length = (ds ++ ce).length := by
         simp only [List.length_append, strip_length, Hlen]
       rw [HL, ← Hp']
@@ -2173,8 +2178,20 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       ⟨%h, Hhs, %Hp'⟩, -, Hss, #Hidx, %Hsf, Hsnap, #Hdlv, -, -, %Hfacts, Hout⟩
     obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
     subst Hce0
-    icases Hst with (%Hd | ⟨#Hlink, Hcfg⟩)
-    · exfalso; rw [Hsf.2.2] at Hd; cases Hd
+    -- (2026-10-28, stage U3d) the storage's certificate link, in either mode (dynamically, outside
+    -- the no-snapshot mode, which a snapshot `Ready` is in)
+    ihave ⟨#Hlink, Hst⟩ : storageCertLink γ N st.storage ∗ (⌜γn.mode.isDyn = true⌝ ∨
+        storageCertLink γ N st.storage ∗ ∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) $$ [Hst]
+    · icases Hst with (%Hd | ⟨#Hl, Hcfg⟩)
+      · icases Hdy with (%Hd' | ⟨-, -, (%Hns' | #Hl)⟩)
+        · exfalso; rw [Hd] at Hd'; cases Hd'
+        · exfalso; have := Hsf.2; rw [Hγr, Hns'] at this; cases this
+        · isplitr
+          · iexact Hl
+          ileft; ipureintro; exact Hd
+      · isplitr
+        · iexact Hl
+        iright; iframe Hl Hcfg
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ []) $$ Hci [Hcom] with ⟨#Hlb, -⟩
     · rw [Hγr]; iexact Hcom
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top l.dlv $$ Hci [Hdlv] with ⟨#Hlbd, %Hidxd⟩
@@ -2229,10 +2246,16 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     · ipureintro
       exact ⟨Hnok, Hγs, rfl⟩
     iframe Hci Hlbd
-    isplitl [Hcfg]
-    · iright; iframe Hlink Hcfg
+    isplitl [Hst]
+    · iexact Hst
     isplitr
-    · ileft; ipureintro; rw [Hsf.2.2]; rfl
+    · icases Hdy with (%Hd | ⟨#Htab, -, -⟩)
+      · ileft; ipureintro; exact Hd
+      iright
+      iframe Htab
+      isplitr
+      · unfold hsCommitted; iright; iright; ipureintro; rw [← Hγr]; exact Hsf.2
+      iright; iexact Hlink
     iright
     iexists es, some l
     isplitr

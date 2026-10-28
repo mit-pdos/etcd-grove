@@ -1069,6 +1069,26 @@ def RNMode.foldCfg : RNMode → List EntryM → CCState → CCState
   | .static, _, c => c
   | .dyn dec c0 _ _, L, c => (cfgFold dec c0 L).getD c
 
+/-- (2026-10-28, stage U3d) **The driver's view of the configuration after `Advance`** of a `Ready`
+with the loan `L` (`node.Advance`), from `x` (its configuration index and configuration) before:
+after a snapshot `Ready`, dynamically, at the snapshot's index and the fold of its committed log
+(what `advRS` installs, `RNMode.foldCfg`); otherwise `x`. -/
+def loanCfg (md : RNMode) (L : Option SnapLoan) (x : Nat × CCState) : Nat × CCState :=
+  match L with
+  | none => x
+  | some l => if md.isDyn then (l.dlv.length, md.foldCfg l.dlv x.2) else x
+
+theorem loanCfg_none (md : RNMode) (x : Nat × CCState) : loanCfg md none x = x := rfl
+
+/-- (U3d) The view the driver expects back on `advancec` after a `Ready` with the loan `L`: none
+without a snapshot (the driver keeps its view), `loanCfg` after one. -/
+def loanReq (md : RNMode) (L : Option SnapLoan) (x : Nat × CCState) : Option (Nat × CCState) :=
+  L.map fun _ => loanCfg md L x
+
+theorem loanCfg_static {md : RNMode} (h : md.isDyn = false) (L : Option SnapLoan)
+    (x : Nat × CCState) : loanCfg md L x = x := by
+  cases L <;> simp [loanCfg, h]
+
 /-- (D22 S-d3a) The node after `Advance` (`RawNode.Advance.spec`): the queue stepped, the term `t`,
 the configuration index `ca`, the floor no longer raised; after a snapshot `Ready` also the loan
 returned, nothing unpersisted and the committed log handed out up to the snapshot; (2026-10-28, stage
