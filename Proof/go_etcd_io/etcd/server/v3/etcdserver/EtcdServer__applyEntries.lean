@@ -277,7 +277,7 @@ theorem EtcdServer.applyEntries.wp_proofOn
   have hGI := wp_entryAt_GetIndex hGI
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hM hRB Hms Hai1 Hok hEok
     hdv
-  wp_start as ⟨#Hsrv, #Hlnil, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR⟩
+  wp_start as ⟨#Hsrv, #Hlnil, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, HtokR⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -399,12 +399,12 @@ theorem EtcdServer.applyEntries.wp_proofOn
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
       (ai + 1) ep cs rac st a t x γr A γp dv w γa sa hM hRB hne' hfrom' hok' hEok hdv
-      $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR]
-      as %appt %appi %stop ⟨Hfs, Hdv, HAR, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
+      $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR HtokR]
+      as %appt %appi %stop ⟨Hfs, Hdv, HAR, %st', %a', %at', %csl, Hst, HtokR, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
         ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
       iframe Hsrv Hlnil Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW HWA Hfs Hbc' Hlog Hka HRS Hkb'
-        Hdv Hdvr2 HAR
+        Hdv Hdvr2 HAR HtokR
     obtain ⟨hli, hlt, hok2, hci2, hstop⟩ := Hpost
     -- `apply` never asks to stop (D19m: no member removed), so `stopWithDelay` is not reached
     subst hstop

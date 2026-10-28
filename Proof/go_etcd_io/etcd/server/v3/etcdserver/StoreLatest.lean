@@ -160,7 +160,8 @@ def authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (d : m
   | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f0 : val) (T : IProp GF)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
       auth.authWBackendOk be (.on γa) P f0 T ∗ T ∗ auth.tpAdmin stl (.on γa) ∗
-      ⌜hs.getLast? = some st⌝ ∗ authStepsAtHook stl d γa T)
+      ⌜hs.getLast? = some st⌝ ∗ authStepsAtHook stl d γa T ∗
+      ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit))
   | _ => iprop(True)
 
 /-- **The rest resource lends the store's half of `be` at the same rest value** (E3n; persistent):
@@ -317,7 +318,7 @@ theorem authApplyResPre_publish (M : auth.AuthMode) (stl : Loc) (st : auth.AuthS
   | on γa =>
     iintro #Hp H
     unfold authApplyResPre
-    icases H with ⟨%hs, %P, %f0, %T, %be, Hfu, Ht, Hwb, HT, Htp, %Hl, Hhk⟩
+    icases H with ⟨%hs, %P, %f0, %T, %be, Hfu, Ht, Hwb, HT, Htp, %Hl, Hhk, Hfr⟩
     iunfold auth.authOwnFu at Hfu
     icases Hfu with ⟨Ho, Hfuel⟩
     imod authPubAt_publish γa stl hs st Hl $$ Hp Ho Ht with ⟨Ho, Ht, #Hpa⟩
@@ -325,7 +326,7 @@ theorem authApplyResPre_publish (M : auth.AuthMode) (stl : Loc) (st : auth.AuthS
     iframe Hpa
     iexists hs, P, f0, T, be
     iunfold auth.authOwnFu
-    iframe Ho Hfuel Ht Hwb HT Htp Hhk
+    iframe Ho Hfuel Ht Hwb HT Htp Hhk Hfr
     ipureintro; exact Hl
   | _ =>
     iintro - H
@@ -362,19 +363,21 @@ instantiated at a real backend `d` on `bel` with its frozen hook `f` at the batc
 theorem authApplyResB_of_pre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
     (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) :
     authApplyResPre (GF := GF) M stl st d ∗ backend.isBackend d.γB d.P W Pk d.be ∗
-      backend.plHookRO d.γB f ∗ ⌜f ≠ func.nil⌝ ⊢ authApplyResB M stl st d.be Pk #f := by
+      backend.plHookRO d.γB f ∗ ⌜f ≠ func.nil⌝ ⊢
+      authApplyResB M stl st d.be Pk #f ∗ authFreshInit M := by
   cases M with
   | on γa =>
-    unfold authApplyResPre authApplyResB
-    iintro ⟨⟨%hs, %P, %f0, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, #Hat⟩, #HB, #Hhk, %Hnn⟩
+    unfold authApplyResPre authApplyResB authFreshInit
+    iintro ⟨⟨%hs, %P, %f0, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, #Hat, Hfr⟩, #HB, #Hhk, %Hnn⟩
     iunfold authStepsAtHook at Hat
     ihave ⟨#Hwa, #Hst⟩ := Hat $$ %W %Pk %f HB Hhk []
     · ipureintro; exact Hnn
+    iframe Hfr
     iexists hs, P, f0, T, be
     iframe Ho HX Hw HT Htp Hwa Hst
     ipureintro; exact Hl
-  | off => unfold authApplyResPre authApplyResB; iintro -; itrivial
-  | any => unfold authApplyResPre authApplyResB; iintro -; itrivial
+  | off => unfold authApplyResPre authApplyResB authFreshInit; iintro -; isplit <;> itrivial
+  | any => unfold authApplyResPre authApplyResB authFreshInit; iintro -; isplit <;> itrivial
 
 /-- `srvAuthApplyResB` forgets into `srvAuthApplyResAt`. -/
 theorem srvAuthApplyResAt_of_B (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) :

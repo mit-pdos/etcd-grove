@@ -96,6 +96,7 @@ local macro "tail_skip" : tactic => `(tactic| (
   iframe Hbe Hlr Hgr HFS HKV
   (try simp only [↓reduceIte])
   iframe Happ
+  (try iframe Htok)
   iexists st.eff
   have hfin : { stLoaded γ { st with p := m.index } with k := m.index } =
       ({ k := m.index, p := m.index, eff := st.eff, pending := false } : ApplyState) := by
@@ -120,6 +121,7 @@ local macro "tail_done" : tactic => `(tactic| (
   iframe Hbe Hlr Hgr HFS HKV
   (try simp only [↓reduceIte])
   iframe Happ
+  (try iframe Htok)
   iexists m.index
   have hfin : stLoaded γ ⟨m.index, m.index, m.index, false⟩ =
       ({ k := m.index, p := m.index, eff := m.index, pending := false } : ApplyState) := by
@@ -770,6 +772,7 @@ local macro "tail_off" : tactic => `(tactic| (
   imodintro
   first | iapply HΦ | (wp_pure; wp_pure; iapply HΦ)
   iframe Hbe Hst Hlr Hgr HFS
+  (try iframe Htok)
   iexists x', out, sa
   iframe Hpre Hka HRS
   isplitl
@@ -973,7 +976,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A γa sa hM
   wp_start as ⟨#Hsrv, #Hlnil, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, HFS, Hlc, Hao, #HLv,
-    #Hcm, Hka, HRS, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩
+    #Hcm, Hka, HRS, #HAm, %HkA, %Hvi, %Hpo, Hv3, Htok⟩
   obtain ⟨Hp, Hok, Htyp, Hrb⟩ := Hpo
   have hAuthOn : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
   wp_apply wp_with_defer as %defer defer
@@ -1063,7 +1066,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       cases ldr
       · (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr Hgr HFS HKV
+        iframe Hbe Hst Hlr Hgr HFS HKV Htok
       · (try wp_auto)
         wp_apply hE (srvCfgAddr s) fv.electionTicks fv.tickMs as %dur -
         · iframe Het Htm
@@ -1074,7 +1077,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         wp_apply HP
         (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr Hgr HFS HKV
+        iframe Hbe Hst Hlr Hgr HFS HKV Htok
     · -- data: the applier, with nothing to write
       have hdata : m.data ≠ [] := by
         intro h; apply Hif
@@ -1165,6 +1168,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     obtain ⟨hi, hlt, hce, hld⟩ := Hv3
     have hi0 : m.index ≠ W64 0 := by intro h; rw [h] at hlt; simp at hlt
     have hv : uint.Z γr.kv.c0 < uint.Z m.index := of_decide_eq_true HkA.2.symm
+    ihave Htok := srvTokRights_mono E _ m.index (Int.le_of_lt hce) $$ Htok
     wp_auto
     wp_if_destruct
     · -- no data: processed with no writes

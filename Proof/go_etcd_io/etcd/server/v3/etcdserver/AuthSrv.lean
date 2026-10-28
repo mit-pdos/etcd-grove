@@ -214,8 +214,8 @@ theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
 set_option maxRecDepth 16384 in
 /-- **The kit in the mode `on γa`** (see the file header): the store's proof in the mode `on γa`
 at the boot state, over D22's named premise, with the admin side's authority, the batch lock's
-half and the other half of the latest state's variable at the boot state, and the provider's
-contract with its admin resource `A`. -/
+half and the other half of the latest state's variable at the boot state, the provider's
+contract with its admin resource `A`, and the token rights' empty authority (C1's A1). -/
 theorem authStoreKit_on
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (h_Int : zap.Int'.spec (GF := GF) (hG := hG))
@@ -243,14 +243,15 @@ theorem authStoreKit_on
     (hD22 : ⊢ authSchemaSrv (GF := GF))
     (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF) :
     auth.tokenProviderOkA tp (.on γa) A ∗ A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
-      auth.authStoreInit γa auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ⊢
+      auth.authStoreInit γa auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ∗
+      ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit) ⊢
       authStoreKit (GF := GF) (.on γa) tp := by
-  iintro ⟨#HtpA, HA, Hown, Hcur, HI⟩
+  iintro ⟨#HtpA, HA, Hown, Hcur, HI, Hfr⟩
   iunfold authStoreKit
   iexists iprop(A ∗ auth.authOwn (.on γa) [auth.bootState] ∗ auth.authStoreInit γa auth.bootState ∗
-    auth.authLockI (.on γa) auth.bootState)
-  iframe HA Hown Hcur HI
-  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI⟩, #Hpkg, %Hlg, %Htp,
+    auth.authLockI (.on γa) auth.bootState ∗ ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit))
+  iframe HA Hown Hcur HI Hfr
+  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI, Hfr⟩, #Hpkg, %Hlg, %Htp,
     %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, %Hr⟩ HΦ
   ihave #HD := hD22
   -- (E2k) the fuel at the history the store starts at (`[bootState, bump bootState]`)
@@ -308,11 +309,11 @@ theorem authStoreKit_on
   · iframe Hown' Hen Hca
   -- (E3l) the store's admin steps, keeping its backend, at the server's admin resource; (E3n) at
   -- whichever post-lock hook the server freezes
-  ihave HAR : authApplyResPre (.on γa) stp (auth.bump auth.bootState) d $$ [Hown' Hfu HT' HX HtpAd]
+  ihave HAR : authApplyResPre (.on γa) stp (auth.bump auth.bootState) d $$ [Hown' Hfu HT' HX HtpAd Hfr]
   · unfold authApplyResPre
     iexists [auth.bootState, auth.bump auth.bootState], P, f, T, (authBkIface abl)
     iunfold auth.authOwnFu
-    iframe Hown' Hfu HT' HX HtpAd Hwok
+    iframe Hown' Hfu HT' HX HtpAd Hwok Hfr
     isplitr
     · ipureintro; rfl
     iunfold authStepsAtHook
@@ -390,7 +391,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact Htp
   iintro %Herr
-  icases Hres with (%Hno | ⟨%p, %γt, %γf, %Hp, -, #Hok, HA, -⟩)
+  icases Hres with (%Hno | ⟨%p, %γt, %γf, %Hp, -, #Hok, HA, Hfr⟩)
   · exfalso; rcases Hno with h | h
     · exact h hopts
     · omega
@@ -406,7 +407,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
     hRoleGrantPermissionB hD22 _ γa (auth.simpleAdmin p))
-    $$ [$HtpA $HA $Hown $Hcur $HI]
+    $$ [$HtpA $HA $Hown $Hcur $HI $Hfr]
 
 end proof
 

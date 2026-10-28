@@ -1336,22 +1336,29 @@ theorem NewServer.wp_proofM (on : Bool)
     simp only
     iframe Hpool kv Hws Htag
     iframe Hwrx
+  -- (E3n) the construction's resource at the server's frozen hook, and (C1's A1) the token rights'
+  -- empty authority
+  ihave HABfi := authApplyResB_of_pre M astl srvAuthSt0 d (mvcc.lateW d.gx)
+      (batchLockInv γA (metaTM d.γB d.P)) hook $$ [HAres]
+  · iframe HB Hhook
+    isplitl [HAres]
+    · iExactEq HAres
+      rfl
+    ipureintro; exact Hhknn
+  icases HABfi with ⟨HAresB, HFI⟩
+  ihave HTR : srvTokRights (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF)
+      (ciEff γA (⟨W64 0, W64 0, W64 0, false⟩ : ApplyState).k) $$ [HFI]
+  · iapply srvTokRights_init
+    iexact HFI
   -- (the auth plan's E2k) the auth store's resources for the apply thread
   ihave HAR : srvAuthApplyResB s
-      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) srvAuthSt0 $$ [HAres]
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) srvAuthSt0 $$ [HAresB]
   · unfold srvAuthApplyResB
     iexists astl, d.be
     rw [← Hastl]
     iframe authStore
-    isplitl [HAres]
-    · -- (E3n) the construction's resource at the server's frozen hook
-      iapply (authApplyResB_of_pre M astl srvAuthSt0 d (mvcc.lateW d.gx)
-        (batchLockInv γA (metaTM d.γB d.P)) hook)
-      iframe HB Hhook
-      isplitl [HAres]
-      · iExactEq HAres
-        rfl
-      ipureintro; exact Hhknn
+    isplitl [HAresB]
+    · iexact HAresB
     -- (E3l) the equation of the backend names: the write right lends the store's half on `d.be`
     isplitr
     · iapply rwLens_authBeOn
@@ -1493,12 +1500,12 @@ theorem NewServer.wp_proofM (on : Bool)
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive]
+  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HTR]
   · -- `Happ` (E3c: the mode-`on` row, the auth resource at the store's start state)
     iapply applyBuiltNAM_of_On
     unfold applyBuiltNAOn srvBemuReaderAt
     iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
-    iframe Hthr Happ Hlr5 Hbmr Haown forceDiskSnapshot
+    iframe Hthr Happ Hlr5 Hbmr Haown forceDiskSnapshot HTR
     isplitr
     · ipureintro
       have hm0 := Hci.2

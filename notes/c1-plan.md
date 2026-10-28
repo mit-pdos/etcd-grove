@@ -352,3 +352,14 @@ decimal having no `.`); `freshBelow_mint` mints `<pre>.<x>` for any `x ≥ n`, m
   value `ciEff γ st.k`, `Pre` being `applyThread γ st ∗ …`). Only this proof calls the contract, so
   nothing else changes. `R` travels with the request through the admin-on chain (`applierAdmin`,
   `applierAdmL`), with A2.
+
+**A1 done (2026-10-28): the plumbing.** `srvTokRights` and `authFreshInit` are in
+`AuthApplyRes.lean` (below `StartOn`, which needs them), with `srvTokRights_mono`, `_congr` and
+`_init` (`authFreshInit E.authMode ⊢ srvTokRights E k`). The authority's route: `authSrvTP_on`
+keeps `NewTokenProvider`'s `ghostMapAuth γf 1 ∅`, `authStoreKit_on` takes it into its resource and
+its post's `authApplyResPre` (mode `on`), `authApplyResB_of_pre` hands it back as `authFreshInit M`,
+and `NewServer`'s construction (generic in the mode) turns it into `srvTokRights` at the boot's
+consistent index, the last conjunct of `applyBuiltNAOn`, `applyBuiltOn` and `applyStartOn`
+(`applyResOn`: before its pure facts). Threaded through `applyEntryNormal.specOn` (post: at
+`m.index` on a v3 entry, else unchanged), `apply`, `applyEntries`, `applyAll` (pre and post at
+`ciEff γ st.k`) and `run`'s job bodies. Nothing mints yet (A2). No axiom or `sorry` changed.
