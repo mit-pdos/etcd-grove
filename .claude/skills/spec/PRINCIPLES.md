@@ -130,4 +130,4 @@ phase 1b)
   turning what it holds into the spec's precondition and reshaping the postcondition into what it
   needs next. A spec that fits its callers costs about one line, the `wp_apply`; dozens mean its
   shape is wrong for them (the server's `Put` once cost its gRPC handler about 60 lines of
-  repackaging, `put.md`).
+  repackaging, `kvPutOk_of_server` in `api/v3rpc/ServerKV.lean`, 2026-10-27).
