@@ -94,6 +94,11 @@ instance confPolicy_persistent (γ : Cluster) (r : ConfRule) :
 /-- **The snapshots the client made** (exclusive): the records `S`, in the cluster's registry. -/
 @[no_expose] def ownSnapsMade (γ : Cluster) (S : List SnapRec) : IProp GF := ApiImpl.ownSnapsMadeU γ S
 
+/-- No later credit to open an invariant holding it. -/
+instance ownSnapsMade_timeless (γ : Cluster) (S : List SnapRec) :
+    Timeless (ownSnapsMade (GF := GF) γ S) := by
+  unfold ownSnapsMade; exact ApiImpl.ownSnapsMadeU_timeless γ S
+
 /-- **The snapshot `s` was made** (persistent). -/
 @[no_expose] def snapMade (γ : Cluster) (s : SnapRec) : IProp GF := ApiImpl.snapMadeU γ s
 

@@ -33,7 +33,7 @@ after `if rd.Snapshot != nil` (`wp_join`) at the committed log applied `D0`, the
 and the right to append the `Ready`'s entries with the receipt `Advance` takes (`advReceipt`):
 
 * with a snapshot: its certificate's snapshot is one the store made (`kv_snap_read`, the store's
-  registry `kvSnapInv`, a later credit): the data encodes the
+  registry `kvSnapInv`): the data encodes the
   replicated state of a committed log as long as the snapshot's index, with no conf entry, which
   is the one the
   `Ready` hands out (`isCommittedLogLb_agree`); its decoded maps (`decodeState`) are
@@ -49,7 +49,7 @@ witness (`Advance`'s, `kvStorFloor_at`) bounds the index, the data is `encodeSta
 (`stateEnc_intro`), the configuration the cluster's voters (`Storage.voters`), the term the applied
 log's last entry's, which the storage has there (`Advance`'s `storTermsAt`, `kvStorTerms_at`); it
 is certified at the voters' membership (`kv_snap_make`: `snapshotCert_make`, recorded in the
-store's registry, a later credit) and registered at that term (`storageCert_register`), and
+store's registry) and registered at that term (`storageCert_register`), and
 `MemoryStorage.CreateSnapshot.unifiedSpec` takes it (`CreateSnapshot.unifiedSpec_tok_of`); then
 `Compact`s to `snapMargin` below it -- unless `reconf` is set (a conf entry applied: the snapshot's
 prefix would hold one).
@@ -349,11 +349,11 @@ theorem KV.run.wp_proof
       try wp_auto
       try rw [← Hptr]
       -- `decodeState(rd.Snapshot.GetData())`
-      wp_apply (lc := 1) wp_Snapshot_GetData_S l.ptr _ l.snap $$ [$Hpbinit $Hsn]
+      wp_apply wp_Snapshot_GetData_S l.ptr _ l.snap $$ [$Hpbinit $Hsn]
         as %dsl ⟨Hd, Hdback⟩
       -- its data: the replicated state of the committed log up to it (2026-10-28: the store's
       -- registry, `kv_snap_read`)
-      imod kv_snap_read γr _ ⊤ (CoPset.subseteq_top) $$ Hlc1 Hcl Hscert
+      imod kv_snap_read γr _ ⊤ (CoPset.subseteq_top) $$ Hcl Hscert
         with ⟨%L', #HcL', #HcaL, %HL'⟩
       ihave %Hag := isCommittedLogLb_agree γr.cluster L' dl $$ [HcL' Hdl]
       · iframe HcL' Hdl
@@ -771,7 +771,7 @@ theorem KV.run.wp_proof
         iNamed Hrun
         wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
         try wp_auto
-        wp_apply (lc := 1) wp_encodeState mK mA K A (DFrac.own 1) (DFrac.own 1) $$ [$Hpkg $HK $HA]
+        wp_apply wp_encodeState mK mA K A (DFrac.own 1) (DFrac.own 1) $$ [$Hpkg $HK $HA]
           as %dsl ⟨HK, HA, %kvs, %ops, Hdsl, %Hko⟩
         try wp_auto
         wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HR]
@@ -811,7 +811,7 @@ theorem KV.run.wp_proof
         imod kv_snap_make γr (D0 ++ ce) a' t (encState kvs ops) Hlen' Hlast
             (snapListsOk_voters kvVoters t a' _ (by decide) (by decide) (by decide) (by decide) Ha61)
             HSE (Hv.2.2 rfl)
-          $$ Hlc1 Hcl Hap Hcafull with #Hrc
+          $$ Hcl Hap Hcafull with #Hrc
         imod storageCert_register γr.cluster kvRaftN γs _ ⊤ CoPset.subseteq_top
           $$ Hci Hrc with #Hmc
         -- `r.storage.CreateSnapshot(applied, cs, data)`: newer than the application's snapshot

@@ -7,12 +7,15 @@ API takes (`kv_ccAu`: the change's entry carries no datum, so the store does not
 promised of the outcome.
 
 **Premise (2026-10-27): the change keeps the voters** (`RmShrink id`: a `CCShrink` of `kvVoters`,
-so `id` is not a voter -- removing it drops at most a learner). Raft's node API covers
-`node.ApplyConfChange` only in a static cluster, for such changes; `run` applies every committed
-conf change, so the store may propose only those. The premise is unsatisfiable for a voter, which
-is what `RemoveMember` is for in Go (`TestRemoveMember` removes replica 3): the spec covers only the
-calls that leave the voters as they are, the way the earlier proof's `CCAllowed` premise did in the
-static cluster. Removing a voter needs raft's dynamic `ApplyConfChange` in the node API.
+so `id` is not a voter -- removing it drops at most a learner). Since 2026-10-28 (stage U4a) the
+store runs over raft's cluster with snapshots and reconfiguration (`kvCluster`: `isCluster`, its
+conf entries decided by the store's rule `kvRule`); `run` applies every committed conf change
+(`node.ApplyConfChange.unifiedSpec`), and the premise is what keeps each decision at the voters'
+membership (`kvMembership_rm`), which the store's snapshots (`kvSnapInv`, at `kvMembership`) and
+its fixed voters (`Storage.voters`) assume. The premise is unsatisfiable for a voter, which is
+what `RemoveMember` is for in Go (`TestRemoveMember` removes replica 3): the spec covers only the
+calls that leave the voters as they are. Removing a voter needs the store to follow a changing
+membership (its snapshots' `ConfState`, its voters).
 -/
 module
 

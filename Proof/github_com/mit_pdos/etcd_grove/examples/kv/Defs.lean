@@ -286,10 +286,10 @@ abbrev kvVoters : List w64 := [W64 1, W64 2, W64 3]
 
 /-- **`RemoveMember(id)`'s change keeps the store's voters** (2026-10-27): it is a `CCShrink` of
 `kvVoters` -- removing `id` drops at most a learner, so `id` is not a voter. The premise
-`KV.RemoveMember` takes, which `node.ApplyConfChange` needs in raft's static cluster (it covers no
-change of the voters); unsatisfiable for a voter, the way the earlier proof's `CCAllowed` premise
-was in the static cluster. (2026-10-28, stage U4a: over raft's cluster with reconfiguration, what
-keeps every decision of the store's rule at the voters' membership, `kvMembership_rm`.) -/
+`KV.RemoveMember` takes: over raft's cluster with reconfiguration (2026-10-28, stage U4a), what
+keeps every decision of the store's rule at the voters' membership (`kvMembership_rm`);
+unsatisfiable for a voter. (2026-10-27 to 2026-10-28 it was what `node.ApplyConfChange` needed in
+raft's static cluster.) -/
 def RmShrink (id : w64) : Prop :=
   CCShrink (GMap.listToSet kvVoters) (ccV2Of (.v1 (rmCC id))).1 (ccV2Of (.v1 (rmCC id))).2
 
@@ -484,6 +484,10 @@ def kvSnapRecOk (γr : RKVNames) (s : SnapRec) : IProp GF :=
 
 instance kvSnapRecOk_persistent (γr : RKVNames) (s : SnapRec) :
     Persistent (kvSnapRecOk (GF := GF) γr s) := by
+  unfold kvSnapRecOk; infer_instance
+
+instance kvSnapRecOk_timeless (γr : RKVNames) (s : SnapRec) :
+    Timeless (kvSnapRecOk (GF := GF) γr s) := by
   unfold kvSnapRecOk; infer_instance
 
 /-- **The store's registry of the snapshots made** (an invariant). -/

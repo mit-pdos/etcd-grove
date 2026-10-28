@@ -25291,6 +25291,11 @@ since the `Ready`); kv's port not started.**
 - *The registry's later.* `ownSnapsMade` is not timeless (its records carry `snapConfAt`), so each
   opening of `kvSnapInv` spends a later credit (`wp_apply (lc := 1)` at `GetData` and at
   `encodeState`). Adding a `Timeless` law to raft's API would have avoided them; not needed.
+  *Superseded (2026-10-28):* `ownSnapsMade` is timeless (`snapConfAt` is an existential over the
+  timeless `isCommittedLogLb`, the registry a `monoListAuthOwn`); raft's API states it
+  (`ownSnapsMade_timeless`, `InvNodeRule.lean`, from `ApiImpl.ownSnapsMadeU_timeless` and
+  `SnapsMade.lean`'s), with `kvSnapRecOk_timeless`, so `kv_snap_read`/`kv_snap_make` open
+  `kvSnapInv` timelessly (`iinv ... with >Hb`) and take no `£ 1`; the two credits are gone.
 - *`CreateSnapshot`* with the token in hand at the known term: `CreateSnapshot.unifiedSpec_tok_of`
   (`Reconf.lean`), as `MemstorageAU.lean`'s `spec_tok_of` (its `wp_later_frame` is private, copied).
   The term: the applied log's last (`kv_terms_last`), at `ts = (D0 ++ ce).map term` from

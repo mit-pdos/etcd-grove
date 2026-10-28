@@ -514,7 +514,8 @@ invariant (`kvSnapInv`, over `ownSnapsMade`). Approved spec changes: `kv.New.spe
 `Read`, `kv_RemoveMember`, `rkvInv_alloc` and `Results.lean`/`Adequacy*.lean` unchanged; kv's TCB
 collection at its baseline. New: `examples/kv/Reconf.lean` (the lemmas), `kv_committed_conf`; kv's
 `Link.lean` takes raft's unified variants as `=RaftLink.*` terms (`etc/gen-link.py`'s
-`EXTRA_IMPORTS["--kv"]`). Remaining for U4a: a `StartNode` from a bootstrap log in this cluster.
+`EXTRA_IMPORTS["--kv"]`). (2026-10-28, later) `ownSnapsMade_timeless` added to raft's API: kv opens
+`kvSnapInv` without a later credit. Remaining for U4a: a `StartNode` from a bootstrap log in this cluster.
 `notes/decisions.md`, "Stage U4a: kv's adequacy over the dynamic half with snapshots".
 
 ## Raft unified, stages U2, U3 (done): snapshots in the dynamic mode (2026-10-28, branch `raft-unified`)

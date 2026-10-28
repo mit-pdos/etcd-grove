@@ -13,8 +13,8 @@ What `run`, `New` and `StartCluster` use of the store's cluster (`kvCluster`, `D
 * **The snapshots' registry** (`kvSnapInv`): allocated empty (`kvSnapInv_alloc`); a snapshot the
   store certifies at a committed prefix of the voters' membership with no conf entry, its data the
   encoded state, is recorded (`kv_snap_make`); a certificate's snapshot is one of those
-  (`kv_snap_read`). Each opening of the invariant spends a later credit (raft's `ownSnapsMade` is
-  not timeless).
+  (`kv_snap_read`). The invariant's contents are timeless (raft's `ownSnapsMade_timeless`): opening
+  it spends no later credit.
 * **`CreateSnapshot` with the token in hand, at a known term** (`CreateSnapshot.unifiedSpec_tok_of`):
   `MemoryStorage.CreateSnapshot.unifiedSpec` as `MemoryStorage.CreateSnapshot.spec_tok` is of
   `.spec` (`MemstorageAU.lean`).
@@ -173,19 +173,18 @@ theorem kvSnapInv_alloc (γr : RKVNames) (E : CoPset) :
 index with no conf entry, at the voters' membership (its lists report it, no auto-leave), its data
 the encoded state of the prefix. -/
 theorem kv_snap_read (γr : RKVNames) (k : SnapTrip) (E : CoPset) (HE : ↑kvSnapN ⊆ E) :
-    ⊢ £ 1 -∗ kvCluster (GF := GF) γr -∗ snapshotCert γr.cluster kvRaftN k ={E}=∗
+    ⊢ kvCluster (GF := GF) γr -∗ snapshotCert γr.cluster kvRaftN k ={E}=∗
       ∃ L : List LogEntry, isCommittedLogLb γr.cluster L ∗ confAt γr.cluster L.length kvMembership ∗
         ⌜L.length = uint.nat k.sid.index' ∧ kvSnapOk L k.dat ∧ NoConfChangeIn L 0 L.length ∧
           k.cl.Is kvMembership ∧ k.al = false⌝ := by
-  iintro Hlc #Hcl #Hcert
+  iintro #Hcl #Hcert
   ihave #Hcl' := Hcl
   unfold kvCluster
   icases Hcl' with ⟨#Hc, -, -, #Hinv⟩
   icases snapshotCert_made γr.cluster kvRaftN k $$ [Hc Hcert] with ⟨%l, %m, #Hl, #Ha, #Hmade, %Hp⟩
   · iframe Hc Hcert
   unfold kvSnapInv
-  iinv Hinv with Hb Hclose
-  imod lc_fupd_elim_later $$ Hlc Hb with Hb
+  iinv Hinv with >Hb Hclose
   icases Hb with ⟨%S, Hown, #HS⟩
   ihave %Hel := snapMade_elem γr.cluster S _ $$ [Hown Hmade]
   · iframe Hown Hmade
@@ -216,15 +215,14 @@ theorem kv_snap_make (γr : RKVNames) (l : List LogEntry) (i t : w64) (d : List 
     (Hlen : l.length = uint.nat i) (Hlast : Option.map LogEntry.term l.getLast? = some t)
     (Hok : SnapListsOk ⟨⟨t, i⟩, (kv.kvConfState kvVoters).lists, false, d⟩)
     (Hd : kvSnapOk l d) (Hnc : NoConfChangeIn l 0 l.length) :
-    ⊢ £ 1 -∗ kvCluster (GF := GF) γr -∗ isCommittedLogLb γr.cluster l -∗
+    ⊢ kvCluster (GF := GF) γr -∗ isCommittedLogLb γr.cluster l -∗
       confAt γr.cluster l.length kvMembership ={⊤}=∗
       snapshotCert γr.cluster kvRaftN ⟨⟨t, i⟩, (kv.kvConfState kvVoters).lists, false, d⟩ := by
-  iintro Hlc #Hcl #Hl #Ha
+  iintro #Hcl #Hl #Ha
   unfold kvCluster
   icases Hcl with ⟨#Hc, -, -, #Hinv⟩
   unfold kvSnapInv
-  iinv Hinv with Hb Hclose
-  imod lc_fupd_elim_later $$ Hlc Hb with Hb
+  iinv Hinv with >Hb Hclose
   icases Hb with ⟨%S, Hown, #HS⟩
   imod snapshotCert_make γr.cluster kvRaftN (⊤ \ ↑kvSnapN) l i t d kvMembership
       (kv.kvConfState kvVoters) S kvSnapN_raftN Hlen Hlast Hok kvConfState_is

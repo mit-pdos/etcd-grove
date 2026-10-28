@@ -141,6 +141,14 @@ def ownSnapsMade (γ : Cluster) (r : ConfRule) (c0 : Membership) (S : List SnapR
     ⌜γ.raft.reSnapReg = some g ∧ List.Forall₂ SnapRec.Matches S K⌝ ∗ monoListAuthOwn g 1 K ∗
     □ [∗list] s ∈ S, snapConfAt γ r c0 s)
 
+instance snapConfAt_timeless (γ : Cluster) (r : ConfRule) (c0 : Membership) (s : SnapRec) :
+    Timeless (snapConfAt (GF := GF) γ r c0 s) := by
+  unfold snapConfAt; infer_instance
+
+instance ownSnapsMade_timeless (γ : Cluster) (r : ConfRule) (c0 : Membership) (S : List SnapRec) :
+    Timeless (ownSnapsMade (GF := GF) γ r c0 S) := by
+  unfold ownSnapsMade; infer_instance
+
 /-- **The snapshot `s` was made** (persistent). -/
 def snapMade (γ : Cluster) (r : ConfRule) (c0 : Membership) (s : SnapRec) : IProp GF :=
   iprop(∃ (g : GName) (K : List (w64 × List w8)) (key : w64 × List w8),

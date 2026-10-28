@@ -203,6 +203,10 @@ instance confPolicyU_persistent (γ : Cluster) (r : ConfRule) :
 def ownSnapsMadeU (γ : Cluster) (S : List SnapRec) : IProp GF :=
   iprop(∃ r c0, ⌜ModeRule γ r c0⌝ ∗ ownSnapsMade γ r c0 S)
 
+instance ownSnapsMadeU_timeless (γ : Cluster) (S : List SnapRec) :
+    Timeless (ownSnapsMadeU (GF := GF) γ S) := by
+  unfold ownSnapsMadeU; infer_instance
+
 /-- **The snapshot `s` was made** (`InvNodeRule`'s `snapMade`; persistent). -/
 def snapMadeU (γ : Cluster) (s : SnapRec) : IProp GF :=
   iprop(∃ r c0, ⌜ModeRule γ r c0⌝ ∗ snapMade γ r c0 s)

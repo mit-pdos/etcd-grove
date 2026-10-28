@@ -51,6 +51,8 @@ theorem confAt_persistent (γ : Cluster) (k : Nat) (m : Membership) : Persistent
 
 def (sealed) snapMade (γ : Cluster) (s : SnapRec) : IProp GF
 
+theorem ownSnapsMade_timeless (γ : Cluster) (S : List SnapRec) : Timeless (ownSnapsMade γ S)
+
 theorem confDecided_persistent (γ : Cluster) (k : Nat) (d : ConfDecision) : Persistent (confDecided
     γ k d)
 
