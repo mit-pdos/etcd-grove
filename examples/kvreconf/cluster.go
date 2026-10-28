@@ -257,28 +257,39 @@ func (c *Cluster) deliver(src *Replica, m *pb.Message) {
 		}()
 		return
 	}
-	c.step(src, dst, m)
+	var dup *pb.Message
 	if oneIn(32) {
+		dup = proto.Clone(m).(*pb.Message)
+	}
+	c.step(src, dst, m)
+	if dup != nil {
 		c.Stats.add(&c.Stats.Duplicated)
-		c.step(src, dst, proto.Clone(m).(*pb.Message))
+		c.step(src, dst, dup)
 	}
 }
 
-// step steps m on its target dst and reports a snapshot's fate to its sender src.
+// step steps m on its target dst and reports a snapshot's fate to its sender src. It reads m
+// only before stepping it: the target keeps the message and writes it (`Node.Step` sets its
+// `From`, a forward sets its `To`: issues/nonissues/raft-step-writes-caller-message.md).
 func (c *Cluster) step(src, dst *Replica, m *pb.Message) {
+	typ, to := m.GetType(), m.GetTo()
 	ctx, cancel := context.WithTimeout(context.Background(), stepTimeout)
 	err := dst.node.Step(ctx, m)
 	cancel()
 	if err == context.DeadlineExceeded {
-		c.dropped(src, m)
+		c.Stats.add(&c.Stats.Dropped)
+		src.node.ReportUnreachable(to)
+		if typ == pb.MsgSnap {
+			src.node.ReportSnapshot(to, raft.SnapshotFailure)
+		}
 		return
 	}
-	if m.GetType() == pb.MsgSnap {
+	if typ == pb.MsgSnap {
 		c.Stats.add(&c.Stats.SnapshotsSent)
 		if oneIn(8) {
-			src.node.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)
+			src.node.ReportSnapshot(to, raft.SnapshotFailure)
 		} else {
-			src.node.ReportSnapshot(m.GetTo(), raft.SnapshotFinish)
+			src.node.ReportSnapshot(to, raft.SnapshotFinish)
 		}
 	}
 }
