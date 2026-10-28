@@ -103,3 +103,7 @@ sites: Ghost, LeaderCompleteness, Refinement, ReadIndex, GhostState, RefinementD
 `StepR`/`RInv`/`AdmFold` parameterized by the node's witnessed map, with monotonicity; the bootstrap's
 decisions at allocation. Plus the node layer: `nodeConfig`'s view moved past skipped entries at
 `ApplyConfChange`/`Advance` (§4). No safety argument changes: the protocol folds only decided prefixes.
+
+## Spec changes during the stage
+
+None so far (steps 1-2: the protocol and the node ghost state; no API statement touched yet).
