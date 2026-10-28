@@ -22,6 +22,9 @@ structure StorageModel.{u_1} (GF : BundledGFunctors) : Type u_1 where
   storCut_cap : storCut st n ∗ storCap st k ⊢ ⌜n ≤ k⌝
   storCert : IProp GF
   storCert_persistent : Persistent (storCert st k)
+  storTermsAt : IProp GF
+  storTermsAt_persistent : Persistent (storTermsAt st ts)
+  storTermsAt_intro : ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsAt st ts)
 
 theorem isStorage_handout [package_sem : Assumptions] (st : Storage) (σ : StorState) (p : List
     EntryM) (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧ PendAbove σ p)) : ⊢ isStorage st -∗
@@ -71,6 +74,9 @@ theorem storPast_pers (st : Storage) (m : Int) : Persistent (storPast st m)
 theorem storPast_of_cut (st : Storage) (n : Int) : storCut st n ⊢ storPast st n
 
 theorem storCut_pers.{u_1} (st : Storage) (n : Int) : Persistent (storCut st n)
+
+def TermsOn (σ : StorState) (ts : List w64) : Prop :=
+  ∀ (j t : w64), uint.Z σ.prev.index' < uint.Z j → ts[uint.nat j - 1]? = some t → termAt σ.prev σ.ents j = some t
 
 def storAbsorb (σ : StorState) : StorState :=
   { prev := σ.prev, ents := storApp σ σ.pend, ss := σ.ss, pend := [], scs := σ.scs, sal := σ.sal, sdat := σ.sdat,
@@ -229,6 +235,8 @@ theorem isStorageWith_pers (P : StorState → IProp GF) (AT DT : StorState → L
     Persistent (isStorageWith P AT DT CT FW SC st)
 
 theorem storPast_mono (st : Storage) (m m' : Int) (h : m' ≤ m) : storPast st m ⊢ storPast st m'
+
+theorem storTermsAt_pers.{u_1} (st : Storage) (ts : List w64) : Persistent (storTermsAt st ts)
 
 def storPast (st : Storage) (m : Int) : IProp GF :=
   iprop(∃ n, ⌜m ≤ n⌝ ∗ storCut st n)

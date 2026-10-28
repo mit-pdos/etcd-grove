@@ -47,3 +47,10 @@ theorem MemoryStorage.CreateSnapshot.wp_proof [package_sem : Assumptions] (wp_Ge
                   (intoVal cs))
                 (intoVal data))
               {{ Φ }}
+
+theorem MemoryStorage.CreateSnapshot.wp_proof_unified [package_sem : Assumptions] (wp_GetMetadata :
+    raftpb.Snapshot.GetMetadata.spec) (wp_SMGetIndex : raftpb.SnapshotMetadata.GetIndex.spec)
+    (wp_GetIndex : raftpb.Entry.GetIndex.spec) (wp_MemoryStorage_lastIndex :
+    MemoryStorage.lastIndex.spec) (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec) (wp_GetTerm :
+    raftpb.Entry.GetTerm.spec) (wp_CloneConfState : proto.CloneConfState.spec) (wp_CloneSnapshot :
+    proto.CloneSnapshot.spec) : MemoryStorage.CreateSnapshot.unifiedSpec

@@ -19,6 +19,8 @@ theorem memStorCompacted.proj_ss (σ : StorState) (ci t : w64) : (memStorCompact
 theorem DataEq.fl (a : StorState) (x : w64) : DataEq { prev := a.prev, ents := a.ents, ss := a.ss,
     pend := a.pend, scs := a.scs, sal := a.sal, sdat := a.sdat, fl := x } a
 
+theorem FloorKept.refl (a : StorState) : FloorKept a a
+
 theorem memCut.proj_sal (σ : StorState) (c : entryID) : (memCut σ c).sal = σ.sal
 
 theorem memStorCut_persistent (γs : MemStorNames) (n : Int) : Persistent (memStorCut γs n)
@@ -32,6 +34,9 @@ theorem memStorApplied.proj_sdat (snap : SnapshotM) : (memStorApplied snap).sdat
 
 theorem memSnapKeys_excl [package_sem : Assumptions] (γs : MemStorNames) (k j : Nat) : ⊢ memSnapKeys
     γs k -∗ memSnapKeys γs j -∗ False
+
+theorem HistOk.le_last' {L : List StorState} {w : StorState} (H : HistOk L) (hw : L.getLast? = some
+    w) (a : StorState) : a ∈ L → uint.Z a.fl ≤ uint.Z w.fl ∧ FloorKept a w
 
 def certCovers (e : CertKey) (k : SnapTrip) : Prop :=
   if e.snd = true then e.fst.sid.index' = k.sid.index' ∧ e.fst.cl = k.cl ∧ e.fst.al = k.al ∧ e.fst.dat = k.dat
@@ -159,6 +164,9 @@ theorem memStorCompacted.proj_scs (σ : StorState) (ci t : w64) : (memStorCompac
 
 theorem DataEq.trans {a b c : StorState} (h1 : DataEq a b) (h2 : DataEq b c) : DataEq a c
 
+theorem FloorKept.of_above {a b : StorState} (h1 : uint.Z a.prev.index' ≤ uint.Z b.prev.index') (h2
+    : uint.Z a.fl ≤ uint.Z b.prev.index') : FloorKept a b
+
 theorem memFlLb_persistent (γs : MemStorNames) (x : w64) : Persistent (memFlLb γs x)
 
 theorem memStorApplied.proj_pend (snap : SnapshotM) : (memStorApplied snap).pend = []
@@ -170,8 +178,9 @@ theorem memCut_drop {σ : StorState} {c : entryID} (h : CutOk σ c) (lo hi : w64
     (List.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat σ.ents)
 
 theorem HistOk.snoc {L : List StorState} {x : StorState} (H : HistOk L) (hle : ∀ (w : StorState),
-    L.getLast? = some w → uint.Z w.fl ≤ uint.Z x.fl) (hx : uint.Z x.fl ≤ stLast x) (hp : x.pend =
-    []) (hi : PlogWf x.prev x.ents) : HistOk (L ++ [x])
+    L.getLast? = some w → uint.Z w.fl ≤ uint.Z x.fl) (hk : ∀ (w : StorState), L.getLast? = some w →
+    FloorKept w x) (hx : uint.Z x.fl ≤ stLast x) (hp : x.pend = []) (hi : PlogWf x.prev x.ents) :
+    HistOk (L ++ [x])
 
 theorem memStorCompacted.proj_ents (σ : StorState) (ci t : w64) : (memStorCompacted σ ci t).ents =
     List.drop (uint.Z ci - uint.Z σ.prev.index').toNat σ.ents
@@ -283,6 +292,10 @@ theorem memStorCompacted.proj_sal (σ : StorState) (ci t : w64) : (memStorCompac
 def memQ : Qp :=
   (Qp.half 1).half
 
+theorem memStorage_terms (ms : Loc) (γs : MemStorNames) (σ : StorState) (ts : List w64) (Hp : σ.pend
+    = []) (Hl : ↑ts.length ≤ uint.Z σ.fl) (Ht : TermsOn σ ts) : ⊢ ownMemoryStorage ms γs σ -∗
+    ownMemoryStorage ms γs σ ∗ memTermsAt γs ts
+
 theorem memSnapTokG_congr (γs : MemStorNames) (σ σ' : StorState) (h1 : snapPart σ' = snapPart σ) (h2
     : σ'.prev = σ.prev) : memSnapTokG γs σ ⊢ memSnapTokG γs σ'
 
@@ -363,8 +376,9 @@ def RaiseOnly (D R : List StorState) : Prop :=
 
 theorem memView_set [package_sem : Assumptions] (γs : MemStorNames) (σ σp σ' : StorState) (Hidle :
     σ.pend = []) (H' : σ'.pend = []) (Hfl : uint.Z σ.fl ≤ uint.Z σ'.fl) (Hfl' : uint.Z σ'.fl ≤
-    stLast σ') (Hidx' : PlogWf σ'.prev σ'.ents) : ⊢ memView γs σ -∗ memInvGhost γs σp ==∗ ⌜DataEq σp
-    σ⌝ ∗ memView γs σ' ∗ memInvGhost γs σ'
+    stLast σ') (Hidx' : PlogWf σ'.prev σ'.ents) (Hpv : uint.Z σp.prev.index' ≤ uint.Z
+    σ'.prev.index') (Hfv : uint.Z σ.fl ≤ uint.Z σ'.prev.index') : ⊢ memView γs σ -∗ memInvGhost γs
+    σp ==∗ ⌜DataEq σp σ⌝ ∗ memView γs σ' ∗ memInvGhost γs σ'
 
 def memstorageFields (ms : Loc) (σ : StorState) : IProp GF :=
   iprop(∃ hp es dummy nfi nli nen nte nsn,
@@ -419,7 +433,7 @@ def memCsArg (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) : IProp GF :=
   | some c => ownCSM cs dq c
 
 def HistOk (L : List StorState) : Prop :=
-  List.Pairwise (fun a b => uint.Z a.fl ≤ uint.Z b.fl) L ∧
+  List.Pairwise (fun a b => uint.Z a.fl ≤ uint.Z b.fl ∧ FloorKept a b) L ∧
     ∀ (b : StorState), b ∈ L → uint.Z b.fl ≤ stLast b ∧ b.pend = [] ∧ PlogWf b.prev b.ents
 
 def storCS (σ : StorState) : ConfStateM :=
@@ -444,6 +458,15 @@ def memSnapInv (ms : Loc) (γs : MemStorNames) : IProp GF :=
 
 theorem memSnapCreated.proj_Data' (σ : StorState) (i t : w64) (oc : Option ConfStateM) (bs : List
     w8) : (memSnapCreated σ i t oc bs).Data' = bs
+
+def memTermsAt (γs : MemStorNames) (ts : List w64) : IProp GF :=
+  iprop(∃ D L,
+      monoListLbOwn γs.done D ∗
+        monoListLbOwn γs.hist L ∗
+          ⌜D <+: L ∧
+              D ≠ [] ∧
+                RaiseOnly D (List.drop D.length L) ∧
+                  HistOk L ∧ ∃ w, L.getLast? = some w ∧ ↑ts.length ≤ uint.Z w.fl ∧ TermsOn w ts⌝)
 
 theorem memSnapOwn_congr [package_sem : Assumptions] (ms : Loc) (σ σ' : StorState) (h1 : σ'.ss =
     σ.ss) (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) (h4 : σ'.sdat = σ.sdat) : memSnapOwn ms σ ⊢
@@ -484,6 +507,11 @@ theorem raiseOnly_between {D Dc L : List StorState} {a b : StorState} (h1 : D <+
     L) (hR : RaiseOnly D (List.drop D.length L)) (ha : D.getLast? = some a) (hb : Dc.getLast? = some
     b) : DataEq b a
 
+def FloorKept (a b : StorState) : Prop :=
+  uint.Z a.prev.index' ≤ uint.Z b.prev.index' ∧
+    ∀ (j : w64),
+      uint.Z j ≤ uint.Z a.fl → uint.Z b.prev.index' < uint.Z j → termAt b.prev b.ents j = termAt a.prev a.ents j
+
 theorem snapPart_inj {σ σ' : StorState} (h : snapPart σ = snapPart σ') : σ.ss = σ'.ss ∧ σ.scs =
     σ'.scs ∧ σ.sal = σ'.sal ∧ σ.sdat = σ'.sdat
 
@@ -491,9 +519,15 @@ theorem ownMemoryStorage_bounded [package_sem : Assumptions] (ms : Loc) (γs : M
     StorState) : ⊢ ownMemoryStorage ms γs σ -∗ ⌜uint.Z σ.prev.index' + ↑σ.ents.length < 2 ^ 61⌝ ∗
     ownMemoryStorage ms γs σ
 
+theorem HistOk.last_kept {L1 L2 : List StorState} {a b : StorState} (h : L1 <+: L2) (H : HistOk L2)
+    (ha : L1.getLast? = some a) (hb : L2.getLast? = some b) : FloorKept a b
+
 theorem storCS.proj_VotersOutgoing' (σ : StorState) : (storCS σ).VotersOutgoing' = σ.scs.outgoing
 
 theorem memCut.proj_pend (σ : StorState) (c : entryID) : (memCut σ c).pend = σ.pend
+
+theorem FloorKept.trans {a w x : StorState} (h1 : FloorKept a w) (h2 : FloorKept w x) (hfl : uint.Z
+    a.fl ≤ uint.Z w.fl) : FloorKept a x
 
 theorem memStorCompacted.proj_prev (σ : StorState) (ci t : w64) : (memStorCompacted σ ci t).prev = {
     term' := t, index' := ci }
@@ -515,6 +549,12 @@ def snapTrip_countable : Pos.Countable SnapTrip :=
     (fun k =>
       Pos.Countable.encode (((k.sid, ((k.cl.voters, k.cl.learners), k.cl.outgoing), k.cl.learnersNext), k.al), k.dat))
     ⋯
+
+theorem FloorKept.of_data {a b : StorState} (h1 : b.prev = a.prev) (h2 : b.ents = a.ents) :
+    FloorKept a b
+
+theorem memTermsAt_lock [package_sem : Assumptions] (γs : MemStorNames) (σp : StorState) (ts : List
+    w64) : ⊢ memTermsAt γs ts -∗ memInvGhost γs σp -∗ ⌜TermsOn σp ts⌝ ∗ memInvGhost γs σp
 
 def CutOk (σ : StorState) (c : entryID) : Prop :=
   uint.Z σ.prev.index' ≤ uint.Z c.index' ∧ uint.Z c.index' ≤ stLast σ ∧ termAt σ.prev σ.ents c.index' = some c.term'
@@ -620,6 +660,8 @@ theorem memCut.proj_ents (σ : StorState) (c : entryID) : (memCut σ c).ents = L
 def snapPart (σ : StorState) : StorState :=
   { prev := { term' := W64 0, index' := W64 0 }, ents := [], ss := σ.ss, pend := [], scs := σ.scs, sal := σ.sal,
     sdat := σ.sdat }
+
+theorem memTermsAt_persistent (γs : MemStorNames) (ts : List w64) : Persistent (memTermsAt γs ts)
 
 def memStorCert (γs : MemStorNames) (k : SnapTrip) : IProp GF :=
   iprop(∃ L, monoListLbOwn γs.cert L ∗ ⌜∃ e, e ∈ L ∧ certCovers e k⌝)

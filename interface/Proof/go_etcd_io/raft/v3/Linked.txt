@@ -43,6 +43,9 @@ theorem RaftLink.MemoryStorage.wp_FirstIndex [package_sem : Assumptions] :
                 (intoVal ()))
               {{ Φ }}
 
+theorem RaftLink.MemoryStorage.wp_CreateSnapshot_unified [package_sem : Assumptions] :
+    MemoryStorage.CreateSnapshot.unifiedSpec
+
 theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
   -- `Perennial.EtcdGrove.RestartNode.spec`, unfolded:
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState)

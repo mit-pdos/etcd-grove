@@ -58,15 +58,22 @@ theorem memStorAppendedTok_intro [package_sem : Assumptions] [MemStorReg GF] (ms
 def memStorageModel [MemStorReg GF] : StorageModel GF :=
   { ownStorage := memOwnStorage, appendTok := memStorAppendTok, appendedTok := memStorAppendedTok, storCut := memStorCutI,
     storCut_persistent := ⋯, storFloor := memStorFloorI, storFloor_persistent := ⋯, storCap := memStorCapI,
-    storCap_persistent := ⋯, storCut_cap := ⋯, storCert := memStorCertI, storCert_persistent := ⋯ }
+    storCap_persistent := ⋯, storCut_cap := ⋯, storCert := memStorCertI, storCert_persistent := ⋯,
+    storTermsAt := memStorTermsI, storTermsAt_persistent := ⋯, storTermsAt_intro := ⋯ }
 
 theorem memStorFloor_at [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
     (x : w64) : ⊢ memStorReg ms γs -∗ storFloor (memStorIface ms) x -∗ memFloorTok ms γs x
 
 theorem MemStorNames.rec_inj (γs1 γs2 : MemStorNames) (h : γs1.tuple = γs2.tuple) : γs1 = γs2
 
+theorem memStorTerms_at [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
+    (ts : List w64) : ⊢ memStorReg ms γs -∗ storTermsAt (memStorIface ms) ts -∗ memTermsAt γs ts
+
 theorem memStorCert_intro [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (k : SnapTrip) : ⊢
     memStorReg ms γs -∗ memStorCert γs k -∗ storCert (memStorIface ms) k
+
+def memStorTermsI [MemStorReg GF] (st : Storage) (ts : List w64) : IProp GF :=
+  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memTermsAt γs ts)
 
 def memStorCutI [MemStorReg GF] (st : Storage) (n : Int) : IProp GF :=
   iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memStorCut γs n)
@@ -100,3 +107,7 @@ def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
 def memStorAppendedTok [MemStorReg GF] (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF
     :=
   iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memAppendedTok ms γs σ p)
+
+theorem memStorTermsI_intro [MemStorReg GF] (st : Storage) (σ : StorState) (ts : List w64) (Hp :
+    σ.pend = []) (Hl : ↑ts.length ≤ uint.Z σ.fl) (Ht : TermsOn σ ts) : memOwnStorage st σ ⊢ |==>
+    (memOwnStorage st σ ∗ memStorTermsI st ts)

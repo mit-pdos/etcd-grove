@@ -3,8 +3,9 @@
 # (2026-10-28, the user's D1) the dynamic variants of StartNode, node.Advance and
 # node.ApplyConfChange: a known exception until one cluster kind takes snapshots and
 # reconfiguration (notes/decisions.md, "The node API's specs in the per-function files");
-# (2026-10-28, stage U4a) likewise the unifiedSpec variants of RestartNode, node.Advance and
-# node.ApplyConfChange (notes/decisions.md, "Stage U4a").
+# (2026-10-28, stage U4a) likewise the unifiedSpec variants of RestartNode, node.Advance,
+# node.ApplyConfChange and MemoryStorage.CreateSnapshot (notes/decisions.md, "Stage U4a").
+Proof.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot Perennial.EtcdGrove.MemoryStorage.CreateSnapshot.wp_proof_unified  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.RawNode__Advance Perennial.EtcdGrove.ackSnapLog_facts  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.RawNode__Advance Perennial.EtcdGrove.ackSnapLog_facts_miss  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.RawNode__Advance Perennial.EtcdGrove.ackSnapLog_snap  # exposed by a proof file (theorem)
@@ -115,6 +116,7 @@ Proof.go_etcd_io.raft.v3.tracker.Config__Clone Perennial.EtcdGrove.wp_cloneMap  
 Proof.go_etcd_io.raft.v3.tracker.Inflights__Add Perennial.EtcdGrove.tacticInflights_add_store  # exposed by a proof file (def)
 Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotes Perennial.EtcdGrove.nsat.congr_simp  # exposed by a proof file (theorem)
 Spec.go_etcd_io.raft.v3.Config__validate Perennial.EtcdGrove.ConfigPreserved  # exposed by a spec file (def)
+Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot Perennial.EtcdGrove.MemoryStorage.CreateSnapshot.unifiedSpec  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.NewRawNode Perennial.EtcdGrove.newRaft_post_init  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange Perennial.EtcdGrove.ccData_decodes  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange Perennial.EtcdGrove.ccEntsOk_cc  # exposed by a spec file (theorem)
