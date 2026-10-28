@@ -24840,3 +24840,24 @@ receives `grpcUpOn` (`grpcUp` with the answers with auth on, `srvKVAnsOn`, the A
 registrations `v3rpc.authRegs` and its server `v3rpc.authServerIs`), from which
 `etcd_kv_auth_served_on` gives the four KV methods at their md specs and the five Auth methods.
 `gen-link.py` links only `.spec`, so `Serve.specOn` is linked by hand where it is used.
+
+**Done (5f): the member started with auth on.** `authkv.startServer` (`authkv_startServer`, linked
+in `authkv/Results.lean`): `NewServer.specM true` (`server_new_auth_on`, with its two named
+premises), then `Start.specOn`, giving `common.memberUpOn` (the member's views in the mode `on`
+and `srvAuthLb`, at the auth names `γa`) from `common.memberBootOn` (`memberBoot` with the start
+chain's auth layer on and `kvInvM true`). Three things it needed:
+- *`start.specOn`'s `srvLessorNil` is no longer a premise.* The server makes its lessor's grant
+  guard `False` (`srvGrantGuard`, D45), and every lease of the lessor's map was granted
+  (`lessorAuth`'s `leaseGranted`, kept by `Grant`, `Revoke`, and `Recover`, which empties the map).
+  `NewLessor`'s token-free `Lookup` clause (a trust-boundary axiom, the clause stated there for
+  want of a reader slot) now says so: a lease it returns has the guard's predicate of its id
+  (`□ GA id`, not `leaseGranted`, whose agreement is under a later that the lookup's lock step
+  strips but a postcondition cannot). `lookupNil_of_guard` (`UberOn.lean`) gives `lookupNil` at
+  the guard `False`, and `NewServer.specM`'s post carries `srvLessorNil srv` in either mode.
+- *The mode is `.on γa`.* `NewServer.specM true`'s post said only `E.authOn = true` (`.any` would
+  do), while `Start.specOn` takes `E.authMode = .on γa`. `authSrvTP`'s mode now says `.on γa` when
+  on, which `srv_auth_tp_on` builds, and `NewServer.specM`'s post passes it on.
+- *A finding in authkv's own Go, fixed:* its configuration left `TokenTTL` at `0`, its comment
+  saying the provider has a default; `ServerConfig` has none (`embed` sets `300`), and the simple
+  provider's tokens with TTL `0` expire at its keeper's next tick. `NewServer.specM true` asks
+  a positive TTL. `examples/authkv` now sets `300` (etcd's `--auth-token-ttl` default).

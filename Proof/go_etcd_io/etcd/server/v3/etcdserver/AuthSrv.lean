@@ -90,7 +90,8 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
 
 /-- **`NewTokenProvider` at the server, with auth on or off** (see the file header): with auth on
 (`on = true`) its options `"simple"` and its TTL positive; with no error, a mode `M` with
-`M.isOn = on` and the auth store's construction in it. -/
+`M.isOn = on` (with auth on, `.on γa` for some auth names: the auth plan's E3zb, 2026-10-28) and the
+auth store's construction in it. -/
 abbrev authSrvTP (on : Bool) : Prop :=
   ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
@@ -99,7 +100,8 @@ abbrev authSrvTP (on : Bool) : Prop :=
       (Val #opts)) (Val #iw)) (Val #ttl))
   {{ (tp err : GoInterface), RET (PairV #tp #err);
       ⌜err = GoInterface.nil → tp ≠ GoInterface.nil⌝ ∗
-      (⌜err = GoInterface.nil⌝ -∗ |==> ∃ M : auth.AuthMode, ⌜M.isOn = on⌝ ∗ authStoreKit M tp) }}
+      (⌜err = GoInterface.nil⌝ -∗ |==> ∃ M : auth.AuthMode,
+        ⌜M.isOn = on ∧ (on = true → ∃ γa, M = .on γa)⌝ ∗ authStoreKit M tp) }}
 
 /-- **What only D22 can prove at the server** (a named premise of the server in the mode `on`;
 see the file header; the server's form of `auth.authSchemaBoot`): for any auth names, given the
@@ -206,7 +208,7 @@ theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   imodintro
   iexists .off
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, fun h => absurd h (by decide)⟩
   iapply (authStoreKit_off h30 tp)
 
 set_option maxRecDepth 16384 in
@@ -400,7 +402,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   imodintro
   iexists (.on γa)
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, fun _ => ⟨γa, rfl⟩⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
     hRoleGrantPermissionB hD22 _ γa (auth.simpleAdmin p))

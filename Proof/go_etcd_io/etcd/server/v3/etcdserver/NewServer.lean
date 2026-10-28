@@ -515,11 +515,14 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard) (backend.rbData d.P D))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
     iframe Hopen Hwl Hrbo
     ipureintro; exact ⟨Hlgnn, Hckok, by simp, hDl go!"lease" (by decide)⟩
+  -- (the auth plan's E3zb) its `Lookup` at the guard `False`: no lease, and the weaker clause
+  ihave #Hlnil := lookupNil_of_guard lp $$ Hllk'
+  ihave #Hllk := lookupOk_of_guard lp srvGrantGuard $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -1353,6 +1356,11 @@ theorem NewServer.wp_proofM (on : Bool)
     · iapply rwLens_authBeOn
     -- (E3n) and so does the rest resource, at the same rest value
     iapply roLends_authBeOn
+  -- (the auth plan's E3zb) the lessor finds no lease
+  ihave #HLnil : srvLessorNil s $$ []
+  · iunfold srvLessorNil
+    iexists (lease.lessorIface lp)
+    iframe Hlnil lessor
   imodintro
   iapply HΦ
   iright
@@ -1364,8 +1372,9 @@ theorem NewServer.wp_proofM (on : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
+  iframe HLnil
   isplitr
-  · icases HM with %HM; ipureintro; exact ⟨hγs, HM⟩
+  · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr
   · unfold srvWatchBuilt
     iexists ws, γw
@@ -1777,7 +1786,7 @@ theorem NewServer.wp_proofM (on : Bool)
   -- (the chain's auth layer is the environment's mode: by `HM`, not by unfolding)
   · icases HM with %HM'
     iExactEq Huo
-    simp only [apply.AEnv.authOn, HM']
+    simp only [apply.AEnv.authOn, HM'.1]
   iunfold apply.kvOwn
   ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA HtrA]
   · iunfold mvcc.writerOwn; iframe HrtA HtrA
@@ -1929,14 +1938,14 @@ theorem NewServer.wp_proof
   iintro !> %srv %err Hpost
   iapply HΦ
   icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, H13, H14⟩)
+    H8, H9, H10, H11, H12, H13, H14, -⟩)
   · ileft; iexact Hl
   iright
   isplitr
   · ipureintro; exact He
   iexists γA, ci, TM, E, γrn, b, γk, τ
   isplitr
-  · ipureintro; exact H1
+  · ipureintro; exact ⟨H1.1, H1.2.1⟩
   iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
 
 end proof

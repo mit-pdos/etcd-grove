@@ -101,6 +101,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 
 @[expose] public section
 
@@ -381,7 +382,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       ⌜err = GoInterface.nil⌝ ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
-          ⌜envAgree E E₀ ∧ E.authOn = on⌝ ∗ srvWatchBuilt srv E ∗
+          -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
+          ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
+          srvWatchBuilt srv E ∗
           -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
           srvKVCloser srv E ∗
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
@@ -410,7 +413,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
           -- service's run slots (`v3rpc.watchRunSlot`)
-          srvWatchReaders srv E 64 }}
+          srvWatchReaders srv E 64 ∗
+          -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
+          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes
+          srvLessorNil srv }}
 
 end spec
 
