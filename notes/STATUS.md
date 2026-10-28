@@ -471,11 +471,9 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 
 ## Raft unified, stage U4a: a cluster with snapshots and reconfiguration (2026-10-28, branch `raft-unified`)
 
-Raft side done, no new `sorry` or axiom; kv's port **not started: waiting for the user** (its
-exported `kv_New` and `kv_run` restate `New.spec` and `KV.run.spec`, which name the static cluster,
-`isStaticCluster ... kvVoters kvSnapOk`, and must change; the coordinator's brief: stop and report
-before changing an exported statement). New, beside today's families (`InvNodeRule.lean`, importable,
-sealed over `InvApiRule.lean`/`InvApiRuleAlloc.lean`):
+Done, no new `sorry` or axiom: the raft side, and (step B, 2026-10-28) **examples/kv over this
+cluster**, `kv_porcupine_safe` re-proved with its statement unchanged (below). New, beside today's
+families (`InvNodeRule.lean`, importable, sealed over `InvApiRule.lean`/`InvApiRuleAlloc.lean`):
 - `cluster_alloc_rule N vs r`: a cluster of the voters `vs` with an empty log, raft's dynamic mode of
   the rule `r` (`ConfRule.toDec`) from the voters' membership, **outside the no-snapshot mode**, every
   snapshot's data admitted, the registry of the snapshots made allocated
@@ -502,9 +500,22 @@ at the term `memTermsAt` gives at `i` only), proved and linked (`MemoryStorage.w
 post without a snapshot gains `storTermsAt st.storage (st.delivered.map LogEntry.term)`. It rests on a
 new invariant: `StorTermsOk` in `FlOk`, over the restore's record `LogState.stb`/`sdt`, with
 `SdtTie` in `ownRawNode` framed by `logStoreRec` (`notes/decisions.md`, "Stage U4a", last entry). No
-new `sorry` or axiom. Remaining for U4a: kv's port (step B, approved 2026-10-28; not started), a
-`StartNode` from a bootstrap log in this cluster. `notes/decisions.md`, "Stage U4a: kv's adequacy
-over the dynamic half with snapshots".
+new `sorry` or axiom.
+(2026-10-28, later) **Step B done: kv's adequacy over this cluster.** `examples/kv` runs on
+`cluster_alloc_rule` with the store's rule `kvRule` (a conf entry's change, decoded) and
+`RestartNode.unifiedSpec`; its replicas apply conf entries by `confPolicy_decide` and
+`node.ApplyConfChange.unifiedSpec` (every committed one a `RemoveMember` of a non-voter, so the
+membership stays the voters'), `Advance` by `node.Advance.unifiedSpec`, take snapshots through
+`snapshotCert_make` and `MemoryStorage.CreateSnapshot.unifiedSpec` (the term from `Advance`'s
+`storTermsAt`), and read installed ones through `snapshotCert_made` and the store's registry
+invariant (`kvSnapInv`, over `ownSnapsMade`). Approved spec changes: `kv.New.spec`, `kv.KV.run.spec`
+(a `kvCluster γr` bundle in place of `isStaticCluster ... kvSnapOk`, `nodeConfig` threaded through) and
+`isReplica`; `kv_porcupine_safe`, `kv_Main`, `kv_Check`, `kv_StartCluster`, `kv_Put`/`Get`/`Append`/
+`Read`, `kv_RemoveMember`, `rkvInv_alloc` and `Results.lean`/`Adequacy*.lean` unchanged; kv's TCB
+collection at its baseline. New: `examples/kv/Reconf.lean` (the lemmas), `kv_committed_conf`; kv's
+`Link.lean` takes raft's unified variants as `=RaftLink.*` terms (`etc/gen-link.py`'s
+`EXTRA_IMPORTS["--kv"]`). Remaining for U4a: a `StartNode` from a bootstrap log in this cluster.
+`notes/decisions.md`, "Stage U4a: kv's adequacy over the dynamic half with snapshots".
 
 ## Raft unified, stages U2, U3 (done): snapshots in the dynamic mode (2026-10-28, branch `raft-unified`)
 

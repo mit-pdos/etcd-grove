@@ -25264,3 +25264,37 @@ since the `Ready`); kv's port not started.**
   `reqWit (some ds)` adds `storTermsAt γ.stor (ds.map Term')`. `node.Advance.unifiedSpec`'s
   post (no snapshot) adds `storTermsAt st.storage (st.delivered.map LogEntry.term)`. `.spec` and
   `.dynamicSpec` are unchanged (their proofs drop the new part).
+
+**2026-10-28 · step B done: kv's adequacy over the new cluster (`kv_porcupine_safe` unchanged).**
+- *The statements.* `kvCluster γr` (`Defs.lean`, persistent): `isCluster γr.cluster kvRaftN`,
+  `confPolicy γr.cluster kvRule`, `confAt γr.cluster 0 kvMembership` and `kvSnapInv γr`, an invariant
+  (`kv_snaps`) over raft's registry, `∃ S, ownSnapsMade γ S ∗ [∗list] s ∈ S, kvSnapRecOk γr s`: each
+  record a committed prefix `L` of its index, at `kvMembership`, with no conf entry, its data
+  `kvSnapOk L` (the encoded state; `kvSnapOk` kept as the pure predicate). It replaces
+  `isStaticCluster ... kvVoters kvSnapOk` in `isReplica` and `New.spec`; `New.spec` and `KV.run.spec`
+  take `nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩`. `kvRule pre m e := ccDecode e`.
+- *`run`'s loop invariant* gains the view: `nodeConfig ⟨va, kvMembership⟩`, `confAt γ va kvMembership`,
+  `NoConfChangeIn delivered va |delivered|`, and `reconf = false → NoConfChangeIn delivered 0
+  |delivered|` (a replica takes snapshots only before applying a conf entry, so its snapshots'
+  prefixes have none: what `Advance`'s A1 premise needs after a snapshot `Ready`, whose prefix the
+  view may predate). A conf entry: `kv_committed_conf` (type `1`, `RemoveMember` of `RmShrink id`),
+  `confAt_noConf` to its position, `confPolicy_decide` with `kvRule_decide`, the change keeping
+  `kvMembership` (`kvMembership_rm`: `rmShrink_notVoter`, from `CCShrink` at no learner against
+  `simpleM_cfgState_removeVoter`, then `applyChange_nodeZero`/`_removeAbsent`),
+  `node.ApplyConfChange.unifiedSpec` (its `deliveredLogLb` from `nodeDriver_deliveredLogLb`). Any
+  other entry is no conf change (no committed entry has type `2`). After `Advance` of a snapshot
+  `Ready` the view is at its index with the membership the certificate's (`confAt_agree`).
+- *The match on the loan.* `cases L` inside an `ihave` subgoal (to split `match L with ...` Iris
+  hypotheses) left a proof term with an unknown free variable at the next `wp_apply`; the proof
+  instead does `cases L` once in the main goal before `Advance` and repeats the short continuation of
+  a snapshot `Ready` (no snapshot taken there: it applied nothing).
+- *The registry's later.* `ownSnapsMade` is not timeless (its records carry `snapConfAt`), so each
+  opening of `kvSnapInv` spends a later credit (`wp_apply (lc := 1)` at `GetData` and at
+  `encodeState`). Adding a `Timeless` law to raft's API would have avoided them; not needed.
+- *`CreateSnapshot`* with the token in hand at the known term: `CreateSnapshot.unifiedSpec_tok_of`
+  (`Reconf.lean`), as `MemstorageAU.lean`'s `spec_tok_of` (its `wp_later_frame` is private, copied).
+  The term: the applied log's last (`kv_terms_last`), at `ts = (D0 ++ ce).map term` from
+  `Advance`'s `storTermsAt` (`kvStorTerms_at`).
+- *Linking.* `etc/gen-link.py` links a function's `.spec` only; the kv list names raft's
+  `RaftLink.*_unified` results as `=` terms, and `EXTRA_IMPORTS["--kv"]` imports
+  `Proof.go_etcd_io.raft.v3.Linked`.
