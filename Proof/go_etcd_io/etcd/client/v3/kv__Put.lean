@@ -25,30 +25,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-theorem kv.Put.wp_members
+/-- `kv.Put` for any spec registered for `Put` (`kv.Put.specG`): `kv.Do` of `OpPut` at the spec,
+the other two methods' specs unused (`doRunGen`'s put case). -/
+theorem kv.Put.wp_generic
     (wp_OpPut : OpPut.spec (GF := GF) (hG := hG))
-    (wp_Do : kv.Do.specM (GF := GF) (hG := hG))
+    (wp_Do : kv.Do.specG (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
-    kv.Put.specM (GF := GF) (hG := hG) := by
-  intro api ms ci cd key val sl gs Q F
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun⟩
-  obtain ⟨Hnp, Ht, Hl⟩ := Hnp
+    kv.Put.specG (GF := GF) (hG := hG) := by
+  intro api conn addr ci cd key val sl gs Sp Qp
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun⟩
+  obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api ms ci cd opv (opPutModel key val gs) (W64 0) F Q $$ [Hrun]
+  wp_apply wp_Do api conn addr ci cd opv (opPutModel key val gs) Sp Qp (fun _ _ _ => iprop(False))
+      (fun _ => iprop(True)) (fun _ _ _ => iprop(False)) (fun _ => iprop(True)) $$ [Hrun]
     as %r %err Hout
   · iframe #
-    unfold doRunM
+    unfold doRunGen
     iright
     ileft
     iframe # Hrun
-    ipureintro; exact ⟨Ht, Hl⟩
-  ihave Hout' : putCallOut (putAns ms F (putWireOf (opPutModel key val gs)) Q) r.put' err $$ [Hout]
-  · have Heq : doOut (opPutModel key val gs) (putAns ms F (putWireOf (opPutModel key val gs)) Q)
-        (rangeAns ms (W64 0) F (rangeWireOf (opPutModel key val gs)) Q)
-        (delAns ms F (deleteWireOf (opPutModel key val gs)) Q) r err =
-        putCallOut (putAns ms F (putWireOf (opPutModel key val gs)) Q) r.put' err := by
+    ipureintro; exact Ht
+  ihave Hout' : putCallOut Qp r.put' err $$ [Hout]
+  · have Heq : doOut (opPutModel key val gs) Qp (fun _ => iprop(True)) (fun _ => iprop(True)) r err =
+        putCallOut Qp r.put' err := by
       unfold doOut; rw [Ht]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
     rw [← Heq]; iexact Hout
   iunfold putCallOut at Hout'
@@ -75,6 +76,30 @@ theorem kv.Put.wp_members
     ipureintro
     exact ⟨(Herr'.2 Hne).1, (Herr'.2 Hne).2, Hnull⟩
 
+
+/-- `kv.Put` on a `*kv` of the members (`kv.Put.specM`, D44): `kv.Put.wp_generic` at the members'
+plain spec at every metadata (`GrpcSpec.md (kvPutSpec ms)`), registered by `isKV`'s registrations
+(`kvRegs_rpcPut`) and met by the caller's side (`putSpec_of`). -/
+theorem kv.Put.wp_members
+    (wp_Put : kv.Put.specG (GF := GF) (hG := hG)) :
+    kv.Put.specM (GF := GF) (hG := hG) := by
+  intro api ms ci cd key val sl gs Q F
+  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun⟩ HΦ
+  obtain ⟨Hnp, Ht, Hl⟩ := Hnp
+  iunfold isKV at Hkv
+  icases Hkv with ⟨#Hobj, #Hregs⟩
+  icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
+  iapply (wp_Put api conn (ms.map SrvAt.addr) ci cd key val sl gs (GrpcSpec.md (kvPutSpec ms))
+    (putAns ms F (putWireOf (opPutModel key val gs)) Q)) $$ [Hrun] HΦ
+  iframe #
+  isplitl []
+  · ipureintro; exact ⟨Hnp, Ht⟩
+  isplitl []
+  · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcPut ms) $$ Hregs
+  iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
+    ((putSpec_of ms F (putWireOf (opPutModel key val gs)) Q Hl).trans
+      (attemptPre_md conn (GoInterface.ok ci) (kvPutSpec ms) _ _)))
+  iframe HF Hrun
 
 theorem kv.Put.wp_proof
     (wp_OpPut : OpPut.spec (GF := GF) (hG := hG))

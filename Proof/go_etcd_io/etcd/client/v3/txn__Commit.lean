@@ -32,17 +32,7 @@ metadata-indexed (`GrpcSpecMd`; a plain one is `GrpcSpec.md`), its precondition 
 an attempt on the connection `conn` of the builder's `*kv` `api` may deliver (`attemptPre`). -/
 theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
-    ∀ (tp api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF))
-      (b : TxnBuild) (Spec : GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse)
-      (Q : TxnRespM → IProp GF),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
-        txnKvIs tp api ∗ kvObjAtC api conn addr ∗
-        isGrpcRpcsMd addr go!"/etcdserverpb.KV/Txn" Spec ∗
-        txnReqPre tp addr (attemptPre conn (GoInterface.ok ci) Spec (txnWireOf b.model) Q) }}
-      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
-        (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnCallOut Q resp err }} := by
+    txn.Commit.specG (GF := GF) (hG := hG) := by
   intro tp api0 conn0 addr ci cd b Spec Q
   wp_start as ⟨Htx, #Hkv0, #Hobj0, #Hrpc, Hrun⟩
   iunfold txnObjAt at Htx
