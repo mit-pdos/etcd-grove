@@ -1085,11 +1085,14 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
             (Del k ∗ ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice))) }}) ∗
     □ ({{ Dep ∗ RT ∗ WT }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
       {{ RET #(); Locked [] ∗ W ∗ P ∗ RT }}) ∗
-    □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
+    -- (the backend-compaction stage, Draft round 2: the key lent, as the limited range returns
+    -- it: readable through `Rd` under the session's token, which the delete also holds)
+    □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString)
+        (Rd : GoSlice → GoString → IProp GF),
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗ Del k ∗ DP k ∗
-          key ↦*{dq} k }}
+          rdCap Rd (Locked l) ∗ □ Rd key k }}
         (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key))
-      {{ RET #(); Locked l ∗ key ↦*{dq} k }}) ∗
+      {{ RET #(); Locked l }}) ∗
     □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (lo hi : GoSlice)
         (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac),
       ⌜0 < sint.Z limit ∧ khi ≠ []⌝ →

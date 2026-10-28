@@ -450,14 +450,11 @@ theorem mvcc.store.scheduleCompaction.wp_proof
         revert Hif; cases (A !! mvcc.revVal r).isSome <;> simp
       (try wp_auto)
       wp_bind (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #ksl))
+      -- (Draft round 2) the key slice `keys[i]` passed lent, as the range returned it
       iapply HDel1 $$ [Hlocked]
       · iframe Hlocked; iframe #
-        -- the key slice `keys[i]` is lent by the range's capability against `Locked`, which the
-        -- delete also takes: the contract's delete clause must take a lent slice (3.5, a finding)
-        sorry -- backend-cmp Draft: re-prove from 10e2918d3e:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/store__scheduleCompaction.lean
-        all_goals exact DFrac.discard
       inext
-      iintro ⟨Hlocked, -⟩
+      iintro Hlocked
       (try wp_auto)
       wp_join_done
       -- the key deleted: one more in `D`, still fewer than the job's changes
