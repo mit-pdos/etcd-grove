@@ -497,10 +497,12 @@ sealed over `InvApiRule.lean`/`InvApiRuleAlloc.lean`):
 `StorageModel` field, persistent, with `storTermsAt_intro`; `MemoryStorage`'s `memTermsAt`, kept for
 good by the history's new `FloorKept`), and `MemoryStorage.CreateSnapshot.unifiedSpec` (the certificate
 at the term `memTermsAt` gives at `i` only), proved and linked (`MemoryStorage.wp_CreateSnapshot_unified`).
-Remaining for U4a: raft producing `storTermsAt` at the `advancec` floor raise, for `node.Advance`'s
-posts (**the planned argument fails when a snapshot was restored since the `Ready`**: raft keeps no
-term facts of the pre-restore storage; needs a new invariant, `notes/decisions.md`, "Stage U4a", last
-entry); then kv's port (approved 2026-10-28; blocked on it), a
+(2026-10-28, later) **Step A done**: raft hands out `storTermsAt` at the `advancec` floor raise
+(`ownRawNode_raise_floor`, also after a restore since the `Ready`), and `node.Advance.unifiedSpec`'s
+post without a snapshot gains `storTermsAt st.storage (st.delivered.map LogEntry.term)`. It rests on a
+new invariant: `StorTermsOk` in `FlOk`, over the restore's record `LogState.stb`/`sdt`, with
+`SdtTie` in `ownRawNode` framed by `logStoreRec` (`notes/decisions.md`, "Stage U4a", last entry). No
+new `sorry` or axiom. Remaining for U4a: kv's port (step B, approved 2026-10-28; not started), a
 `StartNode` from a bootstrap log in this cluster. `notes/decisions.md`, "Stage U4a: kv's adequacy
 over the dynamic half with snapshots".
 
