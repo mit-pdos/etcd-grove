@@ -54,10 +54,10 @@ def rangeResultIs (rr : Loc) (rev count : w64) (vs : List EtcdKv) : IProp GF :=
 /-- **What `executeRange` (and `Range`) return** for the request `o` on the read transaction of
 the committed log `log` at revision `rev` whose compaction revision is `crev`, with `withTotal`:
 * a future revision (`o.base.rev > rev`): no response, mvcc's `ErrFutureRev`;
-* the context done (mvcc's `rangeOutcome`: a full read checks `ctx.Done()`): no response and
-  `fmt.Errorf`'s error (`mvcc.errorfIs`: an `*errors.errorString` in Perennial's model; 2026-10-12,
+* the context done (mvcc's `rangeOutcome`: a full read checks `ctx.Done()`) at a revision read not
+  below `crev`: no response and `fmt.Errorf`'s error (`mvcc.errorfIs`: an `*errors.errorString` in Perennial's model; 2026-10-12,
   the request path's unit 3b);
-* else a response at header revision `rev`, its key-values and `More` the server's selection
+* else (the revision read not below `crev`) a response at header revision `rev`, its key-values and `More` the server's selection
   of the state at the revision read (`rangeRev rev o.base.rev`: `srvRangeOk`), its count
   `srvCount`;
 * (M2, `notes/m2-plan.md`, S1) a revision read below `crev`: no response, mvcc's `ErrCompacted`
@@ -68,8 +68,9 @@ def rangeResult (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (c
     (⌜sint.Z rev < sint.Z o.base.rev ∧ resp = null⌝ ∗
       ∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ o.base.countOnly = false ∧ fastKeysOnly o = false ∧
-      resp = null⌝ ∗ mvcc.errorfIs err) ∨
-    (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ err = GoInterface.nil⌝ ∗ ∃ (kvs : List EtcdKv) (more : Bool),
+      resp = null ∧ crev ≤ sint.Z (mvcc.rangeRev rev o.base.rev)⌝ ∗ mvcc.errorfIs err) ∨
+    (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ err = GoInterface.nil ∧
+      crev ≤ sint.Z (mvcc.rangeRev rev o.base.rev)⌝ ∗ ∃ (kvs : List EtcdKv) (more : Bool),
       rangeResponseIs resp rev kvs more
         (srvCount o (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) withTotal) ∗
       ⌜srvRangeOk o (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) kvs more⌝) ∨

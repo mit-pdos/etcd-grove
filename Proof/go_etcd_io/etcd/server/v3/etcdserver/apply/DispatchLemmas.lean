@@ -236,11 +236,9 @@ theorem rangeOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : G
       rcases Hne with h | h | h
       · exact Hen h
       · have := Hce.1; omega
-      · -- (M2, S1) the never-done clause's compacted case does not pin the error, and
-        -- `rangeResult`'s context-error case does not exclude a read below `crev`: a statement
-        -- gap for the review (`notes/m2-plan.md`, S1)
-        sorry -- M2 S1: re-prove from 6e23b02e5d:Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/DispatchLemmas.lean
-    · rw [Hok.2]; iapply applyErrIs_nil
+      · -- (M2, S1) a context error is of a read not below `crev` (`rangeResult`)
+        have := Hce.2.2.2.2; omega
+    · rw [Hok.2.1]; iapply applyErrIs_nil
     · icases Hv with ⟨-, -, -, -, -, #HC, -⟩
       iapply errVar_applyErrIs _ _ $$ HC
       iexists ec; iframe Hec; ipureintro; exact Herr

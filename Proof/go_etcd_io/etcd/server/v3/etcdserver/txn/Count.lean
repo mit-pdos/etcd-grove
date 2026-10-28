@@ -77,7 +77,7 @@ theorem txn.Count.wp_proof
   · exfalso
     have := Hce.2.1
     simp [txn.countOp, txn.rangeOpOf] at this
-  · obtain ⟨hle, rfl⟩ := Hok
+  · obtain ⟨hle, rfl, -⟩ := Hok
     rw [hrevo] at hle
     iunfold txn.rangeResponseIs at Hresp
     icases Hresp with ⟨%Hrnn, %h, %sl, %ps, #Hh, %Hhnn, #Hhr, #Hkvs, #Hsl, #Hkvsis, #Hmore, #Hcount⟩

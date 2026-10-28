@@ -1169,7 +1169,7 @@ theorem etcd_rangeHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       iunfold txn.rangeResult at Hres
       icases Hres with (⟨%Hx, -⟩ | ⟨%Hx, -⟩ | ⟨%Hx, %kvs, %more, #Hrr, %Hsel⟩ | ⟨%Hx, -⟩)
       · exact absurd Hx.2 Hrn
-      · exact absurd Hx.2.2.2 Hrn
+      · exact absurd Hx.2.2.2.1 Hrn
       rotate_left
       · exact absurd Hx.2.2 Hrn
       iunfold txn.rangeResponseIs at Hrr

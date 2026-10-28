@@ -105,7 +105,7 @@ theorem txn.executeRange_core
     simp only [fastKeysOnly, rangeOpOf, ne_eq, sext32_eq target 4 (by omega) (by omega)]
     cases ko <;> simp
   iunfold mvcc.rangeOutcomeC at Hout
-  icases Hout with (⟨%Hcmp, ⟨%ec, #Hec, %Herr⟩, Hrr⟩ | ⟨-, Hout⟩)
+  icases Hout with (⟨%Hcmp, ⟨%ec, #Hec, %Herr⟩, Hrr⟩ | ⟨%Hcle, Hout⟩)
   · -- (M2, S1) below the transaction's compaction revision: `ErrCompacted`
     simp only at Hcmp
     subst Herr
@@ -152,7 +152,7 @@ theorem txn.executeRange_core
         iframe Herrf
         ipureintro
         exact ⟨by rw [hrevo]; exact Hle, by rw [hco]; exact Hflags.1, by rw [hfast]; exact Hflags.2,
-          rfl⟩
+          rfl, by rw [hrevo]; exact Hcle Hle⟩
       isplitl []
       · iunfold txn.rangeHdr; iintro %h; cases h
       · ipureintro; intro hnd; exact absurd rfl (Hrn (Htd hnd))
@@ -254,7 +254,7 @@ theorem txn.executeRange_core
     · iunfold txn.rangeResult
       iright; iright; ileft
       isplitr
-      · ipureintro; exact ⟨by rw [hrevo]; exact Hle, rfl⟩
+      · ipureintro; exact ⟨by rw [hrevo]; exact Hle, rfl, by rw [hrevo]; exact Hcle Hle⟩
       iexists _, _
       rw [hrevo, hst, ← hcnt]
       iframe Hresp

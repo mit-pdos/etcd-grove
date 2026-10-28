@@ -161,7 +161,7 @@ theorem txn.rangeResult_txn_or_err_et (resp : Loc) (err : GoInterface) (log : mv
     rw [hrev0, h00] at Hf; omega
   · iright; iexact He
   · ileft
-    iapply rangeResult_txn resp err log rev crev o hrev0 h0 hset hcut (Or.inl Hok.2) $$ H
+    iapply rangeResult_txn resp err log rev crev o hrev0 h0 hset hcut (Or.inl Hok.2.1) $$ H
   · -- (M2, S1) a latest read is never compacted
     exfalso
     have h00 : sint.Z (W64 0 : w64) = 0 := by decide

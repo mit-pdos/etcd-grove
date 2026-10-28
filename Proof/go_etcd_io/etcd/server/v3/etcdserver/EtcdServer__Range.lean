@@ -70,7 +70,7 @@ theorem rangeResult_show (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev 
   iunfold rangeRespShow
   iintro (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨-, %kvs, %more, #Hr, -⟩ | ⟨%H, -⟩)
   · ileft; ipureintro; exact H.2
-  · ileft; ipureintro; exact H.2.2.2
+  · ileft; ipureintro; exact H.2.2.2.1
   · iunfold txn.rangeResponseIs at Hr
     icases Hr with ⟨-, %h, %sl, %ps, #Hh, -, #Hrv, #Hk, -⟩
     iright
@@ -92,7 +92,7 @@ theorem rangeResult_warn (hSize : proto.Size.spec (GF := GF) (hG := hG))
   iunfold txn.rangeResult
   iintro (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, %kvs, %more, #Hr, -⟩ | ⟨%H, -⟩)
   · ileft; ipureintro; exact H.2
-  · ileft; ipureintro; exact H.2.2.2
+  · ileft; ipureintro; exact H.2.2.2.1
   · iright
     ihave #Hr' := Hr
     iunfold txn.rangeResponseIs at Hr'
@@ -102,7 +102,7 @@ theorem rangeResult_warn (hSize : proto.Size.spec (GF := GF) (hG := hG))
     iunfold txn.sizeOk
     iintro !> %Φ !> ⟨#Hp, HP⟩ HΦ
     iunfold txn.rangeHdr at HP
-    ihave Hh := HP $$ %H.2
+    ihave Hh := HP $$ %H.2.1
     wp_apply (hSize.2.1 resp _ kvs more _) $$ [$Hp $Hr $Hh] as %n ⟨-, Hh⟩
     iapply HΦ
     iunfold txn.rangeHdr
@@ -145,9 +145,9 @@ theorem rangeResult_errIs [_root_.Perennial.errors.Assumptions] (resp : Loc) (er
     iapply errVar_applyErrIs _ _ $$ Hv
     iexists ef; iframe Hef; ipureintro; exact He
   · isplitr
-    · ipureintro; exact H.2.2.2
+    · ipureintro; exact H.2.2.2.1
     iapply applyErrIs_errorf _ hleaf $$ He
-  · exact absurd H.2 hne
+  · exact absurd H.2.1 hne
   · isplitr
     · ipureintro; exact H.2.2
     iapply errVar_applyErrIs _ _ $$ Hvc
