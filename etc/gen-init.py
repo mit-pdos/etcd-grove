@@ -34,7 +34,10 @@ import glob, json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
-PERENNIAL_CODE = '.lake/packages/perennial/Perennial/Code'
+# Perennial's checkout: the shared package's, or `$PERENNIAL_DIR` (a checkout at the manifest's pin, as
+# `lake build --packages=<file>` builds against, when the shared one lags behind it)
+PERENNIAL_CODE = os.path.join(os.environ.get('PERENNIAL_DIR', '.lake/packages/perennial'),
+                              'Perennial', 'Code')
 
 ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the auth plan's A3c (2026-10-24): the Lock and Election services' servers
@@ -87,7 +90,7 @@ def inventory():
         i = t.find("noncomputable def initialize'")
         body = t[i:t.find("\n\n", i)]
         out[m.group(1)] = dict(
-            file=f, perennial=f.startswith('.lake'),
+            file=f, perennial=f.startswith(PERENNIAL_CODE),
             imports=re.findall(r"\(Val _root_\.Perennial\.(\S+)\.initialize'\)", body))
     return out
 
@@ -1936,8 +1939,9 @@ def packages():
 
 def code_module(q):
     f = inv[q]['file']
-    if f.startswith('.lake/packages/perennial/'):
-        f = f[len('.lake/packages/perennial/'):]
+    root = os.path.dirname(os.path.dirname(PERENNIAL_CODE)) + '/'
+    if f.startswith(root):
+        f = f[len(root):]
     return f[:-len('.lean')].replace('/', '.')
 
 
