@@ -42,7 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GuardBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientModel
@@ -326,6 +326,189 @@ theorem txn_end_to_end
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
+    iexact Hpost
+
+/-- **The server's contract with auth on, discharged** (`raftKV_of_serverOn` at the linked results
+with auth on, the auth plan's E3zb). -/
+theorem raftKV_serverOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat) (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ⊢
+      raftKV s (srvKVAnsOn s E ρ γr c F d na) :=
+  raftKV_of_serverOn server_put_on server_delete_range_on server_range_on server_txn_on
+    server_txn_ro_on EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Cluster
+    membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_Term EtcdServer.wp_Leader
+    s E ρ γr c F d na γa hγa
+
+/-- **`put_end_to_end` with auth on** (the auth plan's E3zb; `srvKVAnsOn`). -/
+theorem put_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat)
+    (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsOn s E ρ γr c F d na) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode na ∗ txn.putRequestIs r o ∗ kvDepOwn ρ γr d ∗
+        ⌜kvDepPreOn d (.put o)⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match putCheck o with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
+              hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗ srvRdCall s E γr c ∗
+              putAppliedOk s E ρ.rd F o (opDepQ d) resp rv) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ putErrOk s E ρ F o e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_serverOn s E ρ γr c F d na γa hγa $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_Put p s (srvKVAnsOn s E ρ γr c F d na) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsOn]; iframe Hc Hc0 Hdep HF Hna; ipureintro; exact ⟨trivial, Hpre⟩
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : putCheck o with
+  | some e =>
+    simp only [hc, srvKVAnsOn]
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep', -⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAnsOn]
+    iexact Hpost
+
+/-- **`deleteRange_end_to_end` with auth on** (the auth plan's E3zb; `srvKVAnsOn`): as `put_end_to_end_on`, for `DeleteRange`. -/
+theorem deleteRange_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : KVDep GF) (na : Nat)
+    (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsOn s E ρ γr c F d na) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode na ∗ txn.deleteRangeRequestIs r o ∗
+        kvDepOwn ρ γr d ∗ ⌜kvDepPreOn d (.deleteRange o)⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"DeleteRange")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match deleteCheck o with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ deleteAppliedOk s E ρ.rd F o (opDepQ d) resp rv) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ deleteErrOk s E ρ F o e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_serverOn s E ρ γr c F d na γa hγa $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_DeleteRange p s (srvKVAnsOn s E ρ γr c F d na) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsOn]; iframe Hc Hc0 Hdep HF Hna; ipureintro; exact ⟨trivial, Hpre⟩
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : deleteCheck o with
+  | some e =>
+    simp only [hc, srvKVAnsOn]
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep', -⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAnsOn]
+    iexact Hpost
+
+/-- **`range_end_to_end` with auth on** (the auth plan's E3zb; `srvKVAnsOn`): `range_end_to_end`'s at the mode-`on` model (`rangeAnsOkOn`), with the read's check (`rangeAuthed`: the permissions it saw granted at states no older than the caller's bound `na`, and for a linearizable read no older than the read index's). -/
+theorem range_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : KVDep GF) (na : Nat)
+    (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsOn s E ρ γr c F d na) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode na ∗ txn.rangeRequestIs r o ∗
+        kvDepOwn ρ γr d ∗ ⌜kvDepPreOn d (.range o)⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Range")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match rangeCheck o with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
+              rangeAnsOkOn E γr c F o resp rv (rangeDepQOn γr.kv d) ∗
+              rangeAuthed E γr c na o) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
+            srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_serverOn s E ρ γr c F d na γa hγa $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_Range p s (srvKVAnsOn s E ρ γr c F d na) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsOn]; iframe Hc Hc0 Hdep HF Hna; ipureintro; exact ⟨trivial, Hpre⟩
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : rangeCheck o with
+  | some e =>
+    simp only [hc, srvKVAnsOn]
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep', -⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAnsOn]
+    iexact Hpost
+
+/-- **`txn_end_to_end` with auth on** (the auth plan's E3zb; `srvKVAnsOn`): `txn_end_to_end`'s at the mode-`on` model, a read-only transaction's with its checks (`txnAuthed`). -/
+theorem txn_end_to_end_on
+    (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (cs : List CmpModel)
+    (ts es : List ReqOp) (F : mvcc.Log) (d : KVDep GF) (na : Nat)
+    (γa : auth.AuthNames) (hγa : E.authMode = .on γa) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsOn s E ρ γr c F d na) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode na ∗ txnReqIs r cs ts es ∗ txnReqWire r ts es ∗
+        ⌜txnInModel cs ts es⌝ ∗ kvDepOwn ρ γr d ∗ ⌜kvDepPreOn d (.txn cs ts es)⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match txnAllCheck (sint.Z n) cs ts es with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
+              ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
+                if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
+                  txnReadAnsOn E γr c F t (rangeDepQOn γr.kv d) resp rv ∗ txnAuthed E γr c na t)
+                else txnAppliedAns E ρ.rd F t (opDepQ d) resp rv) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
+            ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
+              if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, #Hw, %Hin, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_serverOn s E ρ γr c F d na γa hγa $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_Txn p s (srvKVAnsOn s E ρ γr c F d na) cid mid n
+    ctx r cs ts es) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsOn]; iframe Hc Hc0 Hdep HF Hna; ipureintro; exact ⟨Hin, Hpre⟩
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : txnAllCheck (sint.Z n) cs ts es with
+  | some e =>
+    simp only [hc, srvKVAnsOn]
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep', -⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAnsOn]
     iexact Hpost
 
 /-- **What a successful gRPC `Put` applied** (pure; with `put_end_to_end`'s `putAppliedOk`):
