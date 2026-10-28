@@ -1551,7 +1551,9 @@ theorem etcd_putMethodOk (q : Loc) (E : apply.AEnv GF)
       v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.PutRequest.ty) #l)) $$ []
   · iintro !> %l -
     iapply putReq_learnerOk
-  iapply (v3rpc.etcdserverpb.wp__KV_Put_Handler pbPutRequest pbPutResponse (etcdPutSpec E γr cid mid)
+  ihave #Hh' := (grpcHandlerOk_md _ _ _).1 $$ Hh
+  iapply (v3rpc.etcdserverpb.wp__KV_Put_Handler pbPutRequest pbPutResponse
+    (GrpcSpec.md (etcdPutSpec E γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
@@ -1582,8 +1584,9 @@ theorem etcd_rangeMethodOk (q : Loc) (E : apply.AEnv GF)
     rw [show (pbRangeRequest (GF := GF)).recv l m = txn.rangeRequestIs l m from rfl]
     iapply (v3rpc.learnerReqOk_range l m)
     iexact Hr
+  ihave #Hh' := (grpcHandlerOk_md _ _ _).1 $$ Hh
   iapply (v3rpc.etcdserverpb.wp__KV_Range_Handler pbRangeRequest pbRangeResponse
-    (etcdRangeSpec E γr cid mid)
+    (GrpcSpec.md (etcdRangeSpec E γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
@@ -1612,8 +1615,9 @@ theorem etcd_deleteMethodOk (q : Loc) (E : apply.AEnv GF)
       v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.DeleteRangeRequest.ty) #l)) $$ []
   · iintro !> %l -
     iapply deleteReq_learnerOk
+  ihave #Hh' := (grpcHandlerOk_md _ _ _).1 $$ Hh
   iapply (v3rpc.etcdserverpb.wp__KV_DeleteRange_Handler pbDeleteRangeRequest pbDeleteRangeResponse
-    (etcdDeleteSpec E γr cid mid)
+    (GrpcSpec.md (etcdDeleteSpec E γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
@@ -1648,7 +1652,9 @@ theorem etcd_txnMethodOk (q : Loc) (E : apply.AEnv GF)
       v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnRequest.ty) #l)) $$ []
   · iintro !> %l -
     iapply txnReq_learnerOk
-  iapply (v3rpc.etcdserverpb.wp__KV_Txn_Handler pbTxnRequest pbTxnResponse (etcdTxnSpec E γw γr cid mid)
+  ihave #Hh' := (grpcHandlerOk_md _ _ _).1 $$ Hh
+  iapply (v3rpc.etcdserverpb.wp__KV_Txn_Handler pbTxnRequest pbTxnResponse
+    (GrpcSpec.md (etcdTxnSpec E γw γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]

@@ -1815,6 +1815,18 @@ theorem server_start_on [EtcdGrove.ErrorStringLeaf] :
     EtcdServer.wp_RequestTimeout (EtcdServer.AppliedIndex.wp_proofM true
       (EtcdServer.getAppliedIndex.wp_proofM true)) raftNode.wp_ReadState raftNode.wp_ReadIndex
 
+/-- **`Start` with auth on** (the auth plan's E3zb, 2026-10-28; `EtcdServer.Start.specOn`): `start`
+with auth on (`server_start_on`), then the goroutines `Start` attaches, the monitors' proposals with
+the permission in the mode (`srvMonitorPermitM true`) and the read loop at the mode-`on` model's
+state. -/
+theorem server_Start_on [EtcdGrove.ErrorStringLeaf] :
+    EtcdServer.Start.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.Start.wp_proofOn server_start_on EtcdServer.wp_GoAttach EtcdServer.wp_Logger
+    EtcdServer.wp_adjustTicks EtcdServer.wp_publishV3 config.ServerConfig.wp_ReqTimeout
+    EtcdServer.wp_purgeFile wp_monitorFileDescriptor EtcdServer.wp_monitorClusterVersions
+    EtcdServer.wp_monitorStorageVersion read.Read.wp_LinearizableReadLoop EtcdServer.wp_monitorKVHash
+    EtcdServer.wp_monitorCompactHash EtcdServer.wp_monitorDowngrade
+
 /-- **`Range` with auth on** (the auth plan's E3s, 2026-10-27; `EtcdServer.Range.specOn`,
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range.lean`): over the request and read
 views with auth on and the read deposit at the mode-`on` model's state, for a reader holding a
@@ -2109,6 +2121,7 @@ end serverAuth
 #print axioms Perennial.EtcdGrove.srv_auth_tp_on
 #print axioms Perennial.EtcdGrove.srv_auth_tp_off
 #print axioms Perennial.EtcdGrove.server_new_auth_on
+#print axioms Perennial.EtcdGrove.server_Start_on
 
 section serverAuthAlloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]

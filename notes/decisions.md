@@ -24797,3 +24797,38 @@ info bound to the context (`infoBoundM`, `hdrBoundM`'s for an auth info), from
 
 **Trust base.** No axiom or `sorry` added; two axioms' statements are stronger (`context.WithValue`,
 `traceutil.Tracer.Start`: the incoming metadata kept, above).
+
+**Done (5c): the gRPC-level KV specs with auth on, and one serve of KV and Auth.**
+`client/v3/KVServiceOn.lean`: `etcdPutSpecOn`, `etcdRangeSpecOn`, `etcdDeleteSpecOn`,
+`etcdTxnSpecOn`, metadata-indexed, at the token the metadata carries (`auth.mdTokenOf`, which is
+`auth.ctxTokenOf` of the context by definition, `auth.ctxTokenOf_md`). Each is the auth-off spec
+with what auth on adds: a write's reply carries its grant (`writeGrantOn`); a read takes the
+caller's lower bound `n` of the published auth index (`auth.authPubLbM`, `0` is free) and its reply
+carries the check (`rangeAuthed`; for a transaction, `txnAuthOn`: a read-only one's check, a
+writing one's grant); a delete's key and range end, and a writing transaction's permissions, are of
+the shape the permission cache decides (`auth.reqShape`, `kvShapeAll`: what `kvDepPreOn` asks).
+The replies are otherwise the auth-off ones (`putReplied`, `rangeReplyOk`, ...): the mode-`on`
+model's state is `kvStateOf` of its log, so the auth-off reply shapes hold at the log read
+(`readQ_of_ansOn`).
+`client/v3/ServedOn.lean`: the handlers meet them (`etcd_*HandlerOn`, from `*_end_to_end_on` at
+the run's context, writes at `n = 0`), as grpc runs them (`etcd_*MethodOn`), served alone
+(`etcd_kv_served_on`) and with the Auth methods in one `grpc.serve` (`etcd_kv_auth_served_on`; the
+Auth methods' slot `authSlot` is part of the KV methods' `etcdGrpcSlot`, `grpcMethodOkMd_slot`).
+The generated KV handlers' specs (`_KV_Put_Handler.spec`, ...) and the quota wrapper's
+(`quotaKVServer.{Put,Txn}.spec`) now take a metadata-indexed spec (proved by
+`wp_unaryHandlerMd`; the plain spec is the instance at `GrpcSpec.md`), since a spec of a
+handler's caller should not be weaker than what its proof gives. The persistence instances of
+`rangeAuthed`/`txnAuthed` are not found by `icases`'s `#` at their use in `ServedOn` (they are
+found by `inferInstance` there), so the proofs keep the facts spatial; not chased.
+
+**Done (5d): `Start` with auth on.** `EtcdServer.Start.specOn` (`server_Start_on`): `start.specOn`,
+then the goroutines `Start` attaches. Its three names-only monitors' contracts (`publishV3`,
+`monitorClusterVersions`, `monitorStorageVersion`, trust-boundary axioms) now take the auth mode:
+the request view in the mode (`isServerReqM on`) and, for the two that propose, the proposal
+permission in the mode for their cluster requests (`srvMonitorPermitM on`, `MonitorsOn.lean`; in
+the mode `on`, `reqPropOkOn`'s first case, which a cluster request meets: no permission, so
+`kvShapeAll`). The Go is the same in either mode; the statements at `on = false` are the old
+ones. `Start.wp_proof` passes `false`. The read loop runs at the mode-`on` model's state.
+Next: `v3rpc.Server`'s configuration (`grpcCfgOk`) from a server started with auth on, and the
+examples' member start with auth on; `start.specOn`'s `srvLessorNil` (the lessor finds no lease)
+is a named premise there, to be discharged for `authkv` (which grants no lease) or carried.

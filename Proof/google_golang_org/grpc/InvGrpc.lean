@@ -231,6 +231,20 @@ theorem grpcHandlerOk_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
   iapply HΨ
   iframe
 
+/-- `grpcHandlerOk_frame`'s, for a metadata-indexed spec. -/
+theorem grpcHandlerOkMd_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
+    (Spec : GrpcSpecMd Req Rep) :
+    grpcHandlerOkMd h S Spec ⊢ grpcHandlerOkMd h iprop(S ∗ R) Spec := by
+  iintro #Hh
+  unfold grpcHandlerOkMd
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, HR⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iapply Hh $$ %m %Φ %ci %cd %r [HS HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hres⟩
+  iapply HΨ
+  iframe
+
 /-! ## The server side: the generated handler, grpc's `dec`, the interceptor chain (unit P3b)
 
 grpc's server (`server.go`, `processUnaryRPC`) runs, for a call of a registered unary method, the

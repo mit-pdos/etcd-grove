@@ -7,6 +7,10 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MonitorsOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -49,6 +53,33 @@ abbrev EtcdServer.Start.spec : Prop :=
       srvReadyCloser s }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
+      srvGoRes s ∗ srvLgReader s ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        srvReadReader s γr) ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
+        srvWgReader s) ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
+        ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) }}
+
+/-- **`s.Start()` with auth on** (the auth plan's E3zb, 2026-10-28): `Start.spec`'s, from the
+construction premise with auth on and the lessor finding no lease (`start.specOn`'s): the request
+and read views in the mode (`isServerReqM true`, `isServerReadM true`) and the store's range check
+at a reader's lower bound (`srvAuthLb`, what `Range.specOn` takes), with the slots left for request
+goroutines. -/
+abbrev EtcdServer.Start.specOn : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) (γa : auth.AuthNames),
+  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
+  receiptBound GF ≤ N + 1 →
+  ai₀ = W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerBuiltOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvLessorNil s ∗ threadTok ∗
+      srvLgReader s ∗ srvLgReader s ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
+      srvReadyCloser s }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
+  {{ RET #(); ∃ γw : GName, isServerReqM true s E { ρ with wait := γw } ∗
+      isServerReadM true s E γr ∗ srvAuthLb s E ∗
       srvGoRes s ∗ srvLgReader s ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         srvReadReader s γr) ∗
