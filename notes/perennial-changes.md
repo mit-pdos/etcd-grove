@@ -514,9 +514,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   has no conversion step.
 - **Needed by.** The k8setcd3 driver's `Main` (`etcd3.New(..., codec{}, ...)`, 2026-10-23).
 - **Workaround here.** A local instance proved from the two `TypeAssumptions` (`haveI` in
-  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom.
+  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom. Also met by
+  client-go's pager (2026-10-28, `k8s-daemonset-proof`): `meta.List` (`type List
+  metav1.ListInterface`), two named types deep; a local instance `metaList_underlying`
+  (`Proof/k8s_io/client_go/tools/pager/Defs.lean`), no axiom.
 - **Proposed fix.** An instance `[t <u t'] [t' ≤u t''] : t ≤u t''` (in place of
   `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
+- **Status.** Not started.
+
+### `time.Time.IsZero` has no model
+
+- **Missing.** Perennial's `time` translation at the pin has no `(*Time).IsZero` method, so a
+  call to it does not step.
+- **Needed by.** client-go's `retryWithDeadlineImpl.After` (`tools/cache/retry_with_deadline.go`:
+  `if r.firstErrorTime.IsZero() ...`), called by `Reflector.watch` on every watch error
+  (2026-10-28, `k8s-daemonset-proof`, phase 4 fifth round).
+- **Workaround here.** `retryWithDeadlineImpl.After`'s spec is a named hypothesis (`?` in
+  `etc/link-lean-first-k8scache.txt`, `links_pending`): it updates the retry's own fields and
+  returns; no axiom.
+- **Proposed change.** `Time.IsZero` in Perennial's `time` model (true exactly of the zero value)
+  with its spec beside `Time.Sub`'s.
 - **Status.** Not started.
 
 ### The type set of an interface with an embedded interface

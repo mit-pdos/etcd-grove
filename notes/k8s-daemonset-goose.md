@@ -306,7 +306,23 @@ event's path into the FIFO: `handleWatch`, `handleListWatch`, so `Reflector.watc
 `break`; the label only names which loop; general and small for this shape), (b) a fork of
 client-go with a flag variable (`closed := true; break` in the `select`, `if closed { break }` after
 it), a source change that keeps the semantics, (c) a trusted model of `handleAnyWatch`. Not on
-Perennial's `lean` (2026-10-27). The plan (D51) is to state `handleAnyWatch`'s per-event behavior as a named hypothesis; not yet written (phase 4's fourth round stopped before the reflector's watch path; the contract's push accessors, `InformerGlue.lean`, are what that spec's events will use).
+Perennial's `lean` (2026-10-27). **Stated as a named hypothesis** (2026-10-28, phase 4 fifth
+round: `Spec/k8s_io/client_go/tools/cache/handleAnyWatch.lean`, `?` in
+`etc/link-lean-first-k8scache.txt`): until the watch closes, errors, or the context is done, each
+event goes to the store through the caller's per-event step (`evStepOk`: the reflector's
+`watch_evStepOk` pushes each change through `infInv_pushChangeAU`, each bookmark through
+`infInv_pushBookmarkAU`), the reflector's last version following. `handleWatch`, `Reflector.watch`
+and `ListAndWatchWithContext` are proved over it.
+
+**D4's neighbours met in the fifth round** (not Goose gaps):
+- `retryWithDeadlineImpl.After` calls `(*time.Time).IsZero`, which Perennial's `time` lacks
+  (`notes/perennial-changes.md`, "`time.Time.IsZero` has no model"): a named hypothesis.
+- `meta.List`/`meta.Type` were axiomatized types (their package translated without importing
+  `metav1`), so the reflector's and the pager's locals of type `meta.List` rested on `sorry`
+  instances. `Code/k8s_io/apimachinery/pkg/api/meta.toml` now imports
+  `k8s.io/apimachinery/pkg/apis/meta/v1`, so both translate as interface types (bodies still names
+  only); regenerated with `etc/goose.py --project k8s-apiserver`, init files with
+  `etc/gen-init.py`.
 
 **D5. Package variables of anonymous struct types** (`identity.go:37`, `informerNameRegistry =
 struct{ sync.Mutex; names map[string]*InformerName }{...}`; `reflector_metrics.go:83`,

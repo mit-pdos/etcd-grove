@@ -77,6 +77,23 @@ namespace k8scache
 #print axioms cache.Reflector.wp_relistResourceVersion
 #print axioms cache.Reflector.wp_rewatchResourceVersion
 #print axioms cache.Reflector.wp_syncWith
+-- the reflector's list-watch (phase 4, fifth round): over the named hypotheses `handleAnyWatch`
+-- (D4), `retryWithDeadlineImpl.After` (Perennial's time lacks `Time.IsZero`),
+-- `isTooLargeResourceVersionError`, the boundary callees pending approval (the `apierrors`
+-- predicates, `meta.ListAccessor`/`ExtractListWithAlloc`/`LenList`, `Trace.Step`) and the
+-- outside-client-go names-only ones (klog, logr, `utilnet`, `rand`, `RealClock.After`,
+-- `wait.Group.Start`), all in `links_pending`
+#print axioms cache.wp_handleWatch
+#print axioms cache.wp_isExpiredError
+#print axioms cache.wp_isWatchErrorRetriable
+#print axioms pager.ListPager.wp_list
+#print axioms pager.ListPager.wp_ListWithAlloc
+#print axioms cache.Reflector.wp_list
+#print axioms cache.Reflector.wp_watch
+#print axioms cache.Reflector.wp_resyncChan
+#print axioms cache.Reflector.wp_startResync
+#print axioms cache.Reflector.wp_watchWithResync
+#print axioms cache.Reflector.wp_ListAndWatchWithContext
 -- the informers' FIFO (`RealFIFO`, atomic events; phase 4)
 #print axioms cache.RealFIFO.wp_Add
 #print axioms cache.RealFIFO.wp_Update
