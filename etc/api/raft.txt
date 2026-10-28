@@ -19,6 +19,9 @@ importable Spec.go_etcd_io.raft.v3.Api
 # their laws; its pure vocabulary `NodeApiVocab`; the specs in the per-function spec files below
 importable Proof.go_etcd_io.raft.v3.InvNode
 importable Proof.go_etcd_io.raft.v3.NodeApiVocab
+# (2026-10-28, stage U1) the unified API's configuration vocabulary: `ConfRule`, `Membership.fold`,
+# `RaftLeave`, `opsOfRule`, with their laws (over `InvNode`'s sealed `Valid`/`applyChange`)
+importable Proof.go_etcd_io.raft.v3.ConfRule
 importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.RestartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance

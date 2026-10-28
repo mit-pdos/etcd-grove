@@ -469,6 +469,15 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, stages U1 and U6m: the conf-change decision, the API's vocabulary (2026-10-28, branch `raft-unified`)
+
+The protocol's decoder gives a decision (`CCDecision.apply op | reject`; a rejection keeps the
+configuration), and `StepR.advance`/`applyConf` pass rejected conf entries (`NoUndecConfIn`); every
+existing decoder applies, so nothing above the model moved. The unified API's configuration
+vocabulary (`ConfRule`, `Membership.fold`, `RaftLeave`, `opsOfRule`, ...) is in `ConfRule.lean`
+(importable) with its laws proved, and its bridge to the model (`ConfRule.toDec`, `cfgFold_toDec`) in
+`ConfRuleDec.lean`; no spec uses them yet (U6, U9). `notes/decisions.md`, "Stages U1, U6m".
+
 ## Raft unified, stage U0: the configuration switches at appliedSnap (2026-10-28, branch `raft-unified`)
 
 Raft translated from the fork's local `raft37-goose-lean-a2` (`565c2bd`, not pushed: the pin moves

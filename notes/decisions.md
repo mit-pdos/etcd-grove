@@ -24798,3 +24798,42 @@ model still has `StepR.applyConf`'s `r.snap = false` and `snapRestore` moving `c
 former needs the pre-restore prefix in the model (the entries applied are of a log the node no longer
 has). The dynamic mode excludes snapshots at the node API (`reNoSnap`), and the static mode's steps are
 `StepC`'s (no `applyConf`), so no proof needs it in U0; it is U3's (a `RawNode` in one mode).
+
+## Stages U1, U6m: the conf-change decision and the API's vocabulary (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · taken (stages U6m and U1 of the plan, the frozen candidate 12's sections 0-1)**
+
+**Why.** The unified API's application decides each committed conf entry: apply a change, or reject
+the entry without calling `ApplyConfChange` (`ConfRule`'s `none`). The protocol's decoder had only
+"a change" or `none`, and `none` made the fold fail, so a rejection could not be modelled.
+
+**U6m, the changed statements (model; no exported result moved).**
+- `CCDec := List EntryM → EntryM → Option CCDecision` (`Protocol/CfgOverlap.lean`), with
+  `CCDecision := apply (op : CCOp) | reject` and `CCDecision.step` (an applied change's `ccStepB`, a
+  rejection keeps the state, joint ones included); `entStep` takes the decision. `none` is still "no
+  configuration". `entStep_overlap` (so `fold_adjacent` and `DynCfg.ofFold`'s `adj`) gets the
+  rejection's trivial case; `cfgFoldFrom_good` (`SnapConf.lean`) likewise.
+- `NoUndecConfIn dec l lo hi` (`Protocol/StepR.lean`): every conf entry in `[lo, hi)` is rejected at
+  its prefix. `StepR.advance` and `StepR.applyConf` require it in place of `NoConfIn` (one mechanism,
+  no separate reject step: a rejected entry counts as decided); `applyConf`'s decoder premise is
+  `dec … = some (.apply op)`. `NoConfIn.noUndec` turns the old premise into the new one, which is all
+  the code-side proofs needed (`MsgStorageApplyResp`, `InvNodeRun`'s conf-change step).
+  `RInv_advance`/`RInv_applyConf` go through `cfgFold_noUndec` (`StepRInv.lean`). I1/I3 and the
+  campaign guard still count every conf entry, rejected or not (Go's `hasUnappliedConfChanges` and
+  `pendingConfIndex` know no rejection), so they are unchanged.
+- The existing decoders apply everywhere: `decOf` (`InvApiDyn.lean`) maps the client's change to
+  `.apply`; `DynCCPreOp` (`ApiVocab.lean`) reads `some (.apply op')`. Behaviour unchanged.
+
+**U1, the vocabulary (`ConfRule.lean`, importable; nothing uses it yet).** As candidate 12's section
+1 states it, over `InvNode`'s sealed `Membership.Valid`/`applyChange`: `Membership.empty`, `ids`,
+`isJoint`, `WellFormed`; `ccDecode`, `ConfEntryDecodes`; `ConfRule`, `ConfRule.Ok`, `clamp` with
+`clamp_ok` and the pointwise `clamp_eq`, `validated`/`validated_ok`; `Membership.fold` with
+`fold_total`, `fold_nil`, `fold_snoc_normal`, `fold_snoc_conf`; `RaftLeave`; the candidate's
+`opsOf r c0` as **`opsOfRule`** (today's `opsOf`, which `ownCommittedOps` still means, keeps its name
+until U9 switches it) with `opsOfRule_noType2` (stated as `l.filter fun e => !decide e.isFiller`,
+today's `opsOf l` by definition). All proved, no `sorry`.
+The bridge (`ConfRuleDec.lean`, internal: it reads the sealed definitions): `ConfRule.toDec r c0 :
+CCDec` decides by the rule at the membership the prefix folds to (`none` ↦ `reject`, `some o` ↦
+`apply (ccV2Of o)`); `cfgFold_toDec`: from a valid `c0`, `cfgFold (r.toDec c0) (stOf c0) L =
+(Membership.fold r c0 (strip L)).map stOf`, for any rule (a change keeps a membership valid,
+`memApply_valid`), so the dynamic mode of a cluster with rule `r` can be `DynCfg.ofFold (r.toDec c0)`.
