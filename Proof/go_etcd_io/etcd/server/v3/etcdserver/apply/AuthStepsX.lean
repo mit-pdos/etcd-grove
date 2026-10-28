@@ -222,6 +222,7 @@ theorem isAuthStepsX_of_authInvT
     (hRoleAdd : auth.authStore.RoleAdd.specT (GF := GF) (hG := hG))
     (hUserGrantRole : auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG))
     (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specT (GF := GF) (hG := hG))
+    (hAuthn : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
@@ -321,8 +322,28 @@ theorem isAuthStepsX_of_authInvT
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe HPP HW HA Ha Hresp; iexact Hout
-  -- (C1's A2) `Authenticate`: phase 2 of the spec-first stage
-  sorry
+  -- (C1's A2) `Authenticate`: the store's `specTB` at the halves the tie holds, which it keeps
+  · iintro !> %hs %Pre %Q %Post %ctx %name %pw %Φ !> ⟨%Hon, HRD, Ho, HX, ⟨HW, HA⟩, Hcs, Hctx⟩ HΦ
+    iunfold auth.authRd at HRD
+    icases HRD with ⟨Hen, HRD'⟩
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    iunfold auth.authWB at HW
+    icases HW with ⟨⟨%be, Hbe⟩, HT⟩
+    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hAuthn st R M P f T hs Pre Q Post ctx name pw b0 sc0 be) $$ [Hen Ho HWR Hcs Hctx]
+    · iframe; iframe #
+    iintro !> %resp %err ⟨HPP, Hen, Ho, HWR, Hau, #He⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, -, Hca, -⟩
+    iapply HΦ
+    iframe HPP Ho Hau He HA
+    isplitl [Hen HRD']
+    · iunfold auth.authRd; iframe
+    isplitl [Hfl Hca]
+    · iunfold auth.tieRes; iexists b0, sc0; iframe; iframe #; ipureintro; exact Ht
+    iunfold auth.authWB; iframe HT; iexists be; iframe Hbe
 
 /-- **`isAuthStepsX` of the real store, keeping its backend** (the auth plan's E3l): as
 `isAuthStepsX_of_authInvT`, with the write resource's backend `be` kept by each step (E3l's
@@ -334,6 +355,7 @@ theorem isAuthStepsX_of_authInvTB
     (hRoleAdd : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
     (hUserGrantRole : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
+    (hAuthn : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
     (Ψ : go_etcd_io.etcd.server.v3.auth.AuthBackend → IProp GF) [hΨ : ∀ be, Persistent (Ψ be)] :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
@@ -454,8 +476,26 @@ theorem isAuthStepsX_of_authInvTB
     isplitl [Hbe HT]
     · iexists be; iframe Hbe HT HΨ
     iexact Hout
-  -- (C1's A2) `Authenticate`: phase 2 of the spec-first stage
-  sorry
+  -- (C1's A2) `Authenticate`: the store's `specTB`, which keeps the backend and the halves
+  · iintro !> %hs %Pre %Q %Post %ctx %name %pw %Φ !> ⟨%Hon, HRD, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, Hctx⟩ HΦ
+    iunfold auth.authRd at HRD
+    icases HRD with ⟨Hen, HRD'⟩
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hAuthn st R M P f T hs Pre Q Post ctx name pw b0 sc0 be) $$ [Hen Ho HWR Hcs Hctx]
+    · iframe; iframe #
+    iintro !> %resp %err ⟨HPP, Hen, Ho, HWR, Hau, #He⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, -, Hca, -⟩
+    iapply HΦ
+    iframe HPP Ho Hau He HA
+    isplitl [Hen HRD']
+    · iunfold auth.authRd; iframe
+    isplitl [Hfl Hca]
+    · iunfold auth.tieRes; iexists b0, sc0; iframe; iframe #; ipureintro; exact Ht
+    iexists be; iframe Hbe HT HΨ
 
 end proof
 
@@ -1004,12 +1044,143 @@ theorem applierV3backend.AuthEnable.wp_fuelX
   iapply HΦ
   iframe; iframe #
 
-/-- **`Authenticate.specX`** (C1's A2; phase 1 of the spec-first stage: `sorry` until phase 2). -/
+/-- **`Authenticate.specX`** (C1's A2): the context's two values from `context.WithValue`'s
+`Value` (the index at the inner one, the prefix at the outer one, whose key is of another type),
+the store's `Authenticate` at the reader resource `kvOwn` lends; the header written into a
+response. -/
 theorem applierV3backend.Authenticate.wp_specX
     (hWV : context.WithValue.spec (GF := GF) (hG := hG))
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.Authenticate.specX (GF := GF) (hG := hG) := by
-  sorry
+  intro E γa X W p r log Pre Q Post info hs am x hM
+  wp_start as ⟨#Hb, #Hs, #Hr, #HSplit, Hfr, Ho, HX, HW, Hpre⟩
+  iunfold apply.mPre at Hpre
+  icases Hpre with ⟨Hkv, Hres, Hcs⟩
+  iunfold apply.kvOwn at Hkv
+  icases Hkv with ⟨Hrd, Hsw, Hknown, HRD, Hwo⟩
+  ihave #Hb' := Hb
+  iunfold apply.backendIs at Hb'
+  icases Hb' with ⟨%opts, #Hopts, #Hok⟩
+  iunfold apply.backendOptsOk at Hok
+  icases Hok with ⟨-, -, -, -, -, -, -, -, -, #Hci⟩
+  iunfold apply.isConsistentIndexer at Hci
+  icases Hci with ⟨%cii, %Hcii, #HCI⟩
+  ihave #Hs' := Hs
+  iunfold apply.backendAuthStepsX at Hs'
+  icases Hs' with ⟨%opts', #Hopts', #Hst⟩
+  ihave %Hoo := typedPointsto_agree_wand _ _ _ _ _ $$ Hopts Hopts'
+  subst Hoo
+  iunfold apply.isAuthStepsX at Hst
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, #HA⟩
+  iunfold apply.authenticateIs at Hr
+  icases Hr with ⟨%Hrnn, #Hname, #Hpw, #Htok⟩
+  iStructNamed Hopts
+  wp_auto
+  wp_apply context.wp_Background
+  rw [Hcii]
+  -- the consistent index's resource, lent out of the critical section's precondition
+  iunfold mvcc.csContract at Hcs
+  icases Hcs with ⟨HPre, #Hhk, Hfin⟩
+  iunfold apply.ciSplitAt at HSplit
+  icases HSplit $$ HPre with ⟨%C, %HC, HC, HCb⟩
+  ihave #HCIC := HCI $$ %C %x
+  ihave #HCIC := HCIC $$ []
+  · ipureintro; exact HC
+  wp_bind (App (Val #(methods cii.ty go!"ConsistentIndex" cii.v)) (Val #()))
+  iapply HCIC $$ HC
+  inext
+  iintro HC
+  (try wp_auto)
+  ihave HPre := HCb $$ HC
+  ihave Hcs : mvcc.csContract E.P E.f Pre Q Post $$ [HPre Hfin]
+  · iunfold mvcc.csContract; iframe HPre Hhk Hfin
+  wp_apply (hWV context.backgroundCtxVal
+      ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty, _⟩ _)
+    as %c1 ⟨%Hc1, -, -, %c1', %vs1, %Hc1e, -, -, -, -, -, #HV1⟩
+  · ipureintro; exact Or.inl rfl
+  subst Hc1e
+  wp_apply (hWV c1'
+      ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty, _⟩ _)
+    as %c2 ⟨%Hc2, -, -, %c2', %vs2, %Hc2e, -, -, -, -, -, #HV2⟩
+  · ipureintro; exact Or.inr (Or.inl rfl)
+  subst Hc2e
+  -- the context the store's `assign` reads: the index at the inner key, the prefix at the outer
+  have hty : go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty ≠
+      go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty := by
+    simp [go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty,
+      go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty]
+  ihave Hctx : auth.authnCtx E.authMode (GoInterface.ok c2') $$ [Hfr]
+  · rw [hM]
+    iunfold auth.authnCtx
+    iexists c2', x, am.simpleToken
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iintro !> %xk
+      iapply HV2 $$ %(interface.mkOk go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty #xk)
+        %(fun w => w = interface.mkOk go.uint64 #x) [] [] []
+      · ipureintro; right; intro k' hk'; have h := GoInterface.ok.inj hk'; subst h; exact hty
+      · ipureintro; intro h; exact absurd (congrArg GoInterfaceOk.ty (GoInterface.ok.inj h)) hty
+      · iintro %hne
+        iapply HV1 $$ %(interface.mkOk go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty #xk)
+          %(fun w => w = interface.mkOk go.uint64 #x) [] [] []
+        · ipureintro; left; cases xk; rfl
+        · ipureintro; intro _; rfl
+        · iintro %hne'; exfalso; cases xk; exact hne' rfl
+    isplitr
+    · iintro !> %xk
+      iapply HV2 $$ %(interface.mkOk go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty #xk)
+        %(fun w => w = interface.mkOk go.string #am.simpleToken) [] [] []
+      · ipureintro; left; cases xk; rfl
+      · ipureintro; intro _; rfl
+      · iintro %hne; exfalso; cases xk; exact hne rfl
+    iunfold auth.freshOk; iexact Hfr
+  rw [Hai]
+  wp_apply HA $$ %hs %Pre %Q %Post %(GoInterface.ok c2') %am.name %am.password
+      [$HRD $Ho $HX $HW $Hcs $Hctx] as %resp %err ⟨HPP, HRD, Ho, HX, HW, Hau, #He⟩
+  · ipureintro; rw [hM]; rfl
+  ihave #HeI : applyErrIs err $$ []
+  · icases He with (%He | ⟨%e, #He⟩)
+    · subst He; iapply applyErrIs_nil
+    · ihave #Hapk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
+      · iPkgInit
+      iapply authErrOf_applyErrIs e err $$ [Hapk He]
+      iframe #
+  rw [hM]
+  iunfold auth.authenticated at Hau
+  wp_if_destruct
+  · -- no response: an error
+    icases Hau with (⟨%Hne, -⟩ | ⟨-, %tok, %v, Hv, -⟩)
+    · iapply HΦ
+      iframe HeI Ho HX HW
+      isplitl [Hrd Hsw Hknown HRD Hwo HPP]
+      · iapply apply.mPost_backend; iunfold apply.kvOwn; iframe
+      iunfold apply.authnOut
+      ileft
+      isplitr
+      · ipureintro; exact ⟨Hne, rfl⟩
+      icases He with (%He | He)
+      · exact absurd He Hne
+      iexact He
+    · ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hv
+      exact absurd rfl Hnn
+  · -- a response: the token issued, the header written
+    icases Hau with (⟨-, %Hn⟩ | ⟨%He0, %tok, %v, Hv, %Htv, #Hiss, -⟩)
+    · exact absurd Hn Hif
+    wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
+    iapply HΦ
+    iframe HeI Ho HX HW
+    isplitl [Hrd Hsw Hknown HRD Hwo HPP]
+    · iapply apply.mPost_backend; iunfold apply.kvOwn; iframe
+    iunfold apply.authnOut
+    iright
+    isplitr
+    · ipureintro; exact He0
+    iexists _
+    iframe Hv
+    subst Htv
+    iunfold auth.tokOk at Hiss
+    iexact Hiss
 
 end applier
 

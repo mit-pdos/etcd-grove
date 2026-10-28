@@ -355,6 +355,7 @@ theorem applierAdmin_backendX
     (hUGR : applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAu : applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       backendIs E p ∗ backendAuthStepsX E p X W ⊢
@@ -400,8 +401,19 @@ theorem applierAdmin_backendX
     iframe Ho HX Hrc HW Hm
     iframe #
   | authenticate n pre =>
-    -- (C1's A2) from `Authenticate.specX`: phase 2 of the spec-first stage
-    sorry
+    simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result, AdminReq.extraPre]
+    iintro !> %Φ ⟨⟨%am, #Hr, %Ham⟩, ⟨Ho, HX⟩, -, HW, Hm, ⟨%x, #HSp, Hfr⟩⟩ HΦ
+    obtain ⟨rfl, rfl⟩ := Ham
+    iunfold auth.authOwnFu at Ho
+    icases Ho with ⟨Ho, Hfu⟩
+    iapply (hAu E γa X W p r log Pre Q Post info hs am x hM) $$ [Ho HX HW Hm Hfr]
+    · rw [hM]; iframe Ho HX HW Hm Hfr; iframe #
+    inext
+    iintro %resp %err ⟨Hpost, #HeI, Ho, HX, HW, Hout⟩
+    iapply HΦ
+    rw [hM]
+    iframe Hpost HeI HW Hout HX
+    iunfold auth.authOwnFu; iframe Ho Hfu
 
 /-- **The base chain's admin triples carrying `X`** (the auth plan's E2v): as E2m's base chain's,
 from the store's `isAuthStepsX` (of the real store with the tie, `isAuthStepsX_of_authInvT`). -/
@@ -411,6 +423,7 @@ theorem applierAdmin_baseX
     (hUGR : applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAu : applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (opts : ApplierOptions)
     (a : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
@@ -421,7 +434,7 @@ theorem applierAdmin_baseX
   iintro ⟨#Hpkg, #Hbk, #Hpb, #Hst⟩
   ihave #Hbs : backendAuthStepsX E pb X W $$ []
   · iunfold backendAuthStepsX; iexists opts; iframe Hpb Hst
-  iapply applierAdmin_backendX hUA hRA hUGR hRGP hAE E X W pb $$ [Hpkg Hbk Hbs]
+  iapply applierAdmin_backendX hUA hRA hUGR hRGP hAE hAu E X W pb $$ [Hpkg Hbk Hbs]
   iframe #
 
 /-- **The uber-applier's base applier's admin triples** (E2m, continued; generic, E2v): from
@@ -451,6 +464,7 @@ theorem applierAdmin_uberX
     (hUGR : applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAu : applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc)
     (opts : ApplierOptions) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
@@ -458,7 +472,7 @@ theorem applierAdmin_uberX
       ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
         applierAdmin E (baseChain E.authOn) base W (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) :=
   applierAdmin_uberG E W _ (fun st => isAuthStepsX st E.P E.f E.authMode X W E.RD) p opts
-    (fun a => applierAdmin_baseX hUA hRA hUGR hRGP hAE E X W opts a)
+    (fun a => applierAdmin_baseX hUA hRA hUGR hRGP hAE hAu E X W opts a)
 
 /-- **The alarms' wrappers' admin triples** (the auth plan's E2o): the base applier's, through
 `restoreAlarms`' capped and corrupt wrappers (`alarmShape`). -/

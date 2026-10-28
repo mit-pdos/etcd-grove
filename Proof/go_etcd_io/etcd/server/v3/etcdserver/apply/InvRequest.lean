@@ -224,6 +224,15 @@ def dispatchKind (rq : IRRModel) : ReqKind :=
   else if rq.authRoleList then .authRoleList
   else .none
 
+theorem ite_eq_iff' {α : Sort _} {c : Prop} [Decidable c] {a b k : α} :
+    (if c then a else b) = k ↔ (c ∧ a = k) ∨ (¬c ∧ b = k) := by
+  by_cases h : c <;> simp [h]
+
+theorem dispatchKind_authenticate (rq : IRRModel) (h : dispatchKind rq = .authenticate) :
+    rq.authenticate.isSome = true := by
+  simp only [dispatchKind, ite_eq_iff', reduceCtorEq, and_false, false_or, or_false] at h
+  exact h.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
 /-- `noSideEffect(r)` (`apply.go`): a range, a user or role get, or the auth status: `Apply`
 skips such a request when no one waits for its result. -/
 def noSideEffect (rq : IRRModel) : Bool :=

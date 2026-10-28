@@ -185,6 +185,7 @@ theorem srv_uberAuthStepsL_on
     (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAu : apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
     (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames) (st : auth.AuthState)
@@ -225,7 +226,7 @@ theorem srv_uberAuthStepsL_on
   have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
       apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
     rw [hM]; rfl
-  iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hApplyL hApply ua E (auth.authIface stl)
+  iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
     le (auth.tieRes stl (.on γa)) (adminW stl bel (.on γa) E.P E.f T) (auth.latestRes stl (.on γa)))
   iframe Hpkg Hub
   isplitr

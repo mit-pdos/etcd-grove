@@ -1,6 +1,6 @@
 # Plan: C1, a user client's attempts carry its user's token (spec-first)
 
-Status: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
+Status (2026-10-28): the client side done (phase 2, `bdff5812a6`); the server's A1 and A2 done (A2: phase 1 `3667ec323a`, phase 2 below), A3-A5 left. Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
 (2026-10-28, "Phase 1: the statements" below); next: the spec-review round (phase 1b), then the
 proofs. Not to be merged into `lean` before the proofs: phase 1's `sorry`s sit under `New` and the
 retry interceptor, so nearly every client result rests on them meanwhile. The auth plan's item 2
@@ -446,3 +446,28 @@ which the gRPC reply (`pbAuthenticateResponse.send`, `resp ↦ v`) cannot be reb
   `applierAdmin_backendX` has it.
 - A3 will want a law from `adminAuthnAr` without its "not dispatched" case (an `Authenticate` with
   `v3` is dispatched) and one from `authnOut` to `pbAuthenticateResponse.send` with `tokIssued`.
+
+**Phase 2, the proofs (2026-10-28).** Every phase-1 stub proved; A2 has no `sorry`.
+- **`context.WithValue`'s `Value`** (the user approved strengthening the trusted axiom,
+  2026-10-28): the axiom's post gains `Value` on the new context, at a key `k` that is the key
+  itself (the value) or any key of another dynamic type (the parent's answer). Not at a key of the
+  same type with another value: Lean's equality agrees with Go's `==` only there (a struct key's
+  `==` compares fields, a pointer's addresses). `authnCtx` is narrowed to match: it promises `Value`
+  at the two parameter keys only (`AuthenticateParamIndex{}`, `AuthenticateParamSimpleTokenPrefix{}`,
+  distinct types), which is all `TokenSimple.assign` asks.
+- **The store**: `authStore.Authenticate.wp_core` is the one proof, with the backend `be` and a
+  frame `F`; `wp_proof` (`F` the halves) and `wp_tieB` (`F` the tie's `flagAt ∗ cacheAt`) are its
+  instances. `isAuthStepsX_of_authInvT`/`TB` take the store's `specTB` as a premise (`hAuthn`), and
+  the any-mode `_of_authInvT` assembles `authWRxB` from its own resources, so no any-mode `specT` was
+  needed.
+- **The backend**: `applierV3backend.Authenticate.wp_specX` (`Results.apply_Authenticate_specX`),
+  threaded as `hAu` beside `hAE` through `applierAdmin_baseX`, `uberX` and their users.
+- **`adminOut_model`** takes `adminKindOk rq` (its `authenticate` case is then refuted by
+  `needAdminPermission`, for which it is stated); `apply_admin_entry_on` treats an `Authenticate`
+  apart (`adminOut_authn`: history and state kept, `adminAuthnAr` from the outcome).
+- **The mint** (`applyEntryNormal`): the rights are raised to `m.index` before the entry's branches
+  (`srvTokRights_next`, an Iris `∧`: either the rights at `m.index`, or, in the mode on, the rights
+  at `m.index` and the right `tokFresh γa (simpleTok pre x)` for `x = ciEff γ st.k`, the index the
+  backend reads); the `Authenticate` branch takes the second, the others the first.
+  `dispatchKind_authenticate` (`InvRequest`; `ite_eq_iff'` moved there from `apply/Results`).
+- The response (`adminAuthnAr`) is still dropped at `applyEntryNormal`: A3 delivers it.

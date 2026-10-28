@@ -250,6 +250,7 @@ error) is the step to some `o`, with the authority at the history after it, whos
 theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (hs : List auth.AuthState) (st : auth.AuthState) (rq : apply.IRRModel) (ar : Loc)
     (out : apply.ApplyOut) (hl : hs.getLast? = some st) (hn : apply.needAdminPermission rq = true)
+    (hka : apply.adminKindOk rq)
     (hrej : out = .rejected → apply.needAdminPermission rq = true ∧ apply.adminRejL (.on γa) hs rq)
     (hpass : ∀ o b, out = .dispatched o b → apply.adminPassL (.on γa) hs rq)
     (hout : out = .rejected ∨ ∃ o b, out = .dispatched o b) :
@@ -400,10 +401,12 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
       unfold adminStepO
       rw [hkd]
       exact apply.authEnableR_on γa en st o' h2
-    · -- `Authenticate` (C1's A2, phase 1 of the spec-first stage): the lemma's premise `hn` then
-      -- contradicts `adminKindOk`'s; phase 2 (the lemma takes `adminKindOk rq`, or its caller
-      -- splits `Authenticate` off)
-      sorry
+    · -- `Authenticate` (C1's A2): admitted only needing no admin permission, against `hn`
+      exfalso
+      unfold apply.adminKindOk at hka
+      rw [hkd] at hka
+      rw [hka] at hn
+      cases hn
     · cases had
 
 end res2

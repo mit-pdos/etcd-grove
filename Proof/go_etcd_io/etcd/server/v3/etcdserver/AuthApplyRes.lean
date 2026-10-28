@@ -135,6 +135,32 @@ theorem srvTokRights_congr (E E' : apply.AEnv GF) (k : w64) (h : E.authMode = E'
   rw [h]
 
 open Iris.ProofMode in
+/-- **The rights at the entry after `x`** (C1's A2): at an index `k` above `x`, either kept (an
+entry that issues nothing) or, with auth on, after the right to the token `<pre>.<x>` is minted
+(an `Authenticate` entry: `x` is the consistent index it reads); the two alternatives of one
+resource (`∧`). -/
+theorem srvTokRights_next (E : apply.AEnv GF) (x k : w64) (h : uint.Z x < uint.Z k) :
+    srvTokRights (GF := GF) E x ⊢ srvTokRights E k ∧
+      ∀ (γa : auth.AuthNames) (pre : GoString), ⌜E.authMode = .on γa⌝ -∗
+        |==> (srvTokRights E k ∗ auth.tokFresh γa (auth.simpleTok pre x)) := by
+  iintro H
+  isplit
+  · iapply srvTokRights_mono E x k (Int.le_of_lt h) $$ H
+  iintro %γa %pre %hM
+  unfold srvTokRights
+  rw [hM]
+  simp only
+  icases H with ⟨%n, Hf, %hn⟩
+  imod auth.freshBelow_mint γa.fresh n x pre hn $$ Hf with ⟨Hf, Ht⟩
+  imodintro
+  isplitl [Hf]
+  · iexists (uint.Z x + 1)
+    iframe Hf
+    ipureintro; omega
+  iunfold auth.tokFresh
+  iexact Ht
+
+open Iris.ProofMode in
 /-- The rights at the boot, of the provider's empty authority. -/
 theorem srvTokRights_init (E : apply.AEnv GF) (k : w64) :
     authFreshInit (GF := GF) E.authMode ⊢ srvTokRights E k := by

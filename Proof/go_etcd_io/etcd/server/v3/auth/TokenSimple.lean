@@ -442,14 +442,14 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
             (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }} := by
   wp_start as ⟨#Hok, Hctx⟩
   iunfold authnCtx at Hctx
-  icases Hctx with ⟨%ci, %idx, %pre, %Hci, #HV, Hfr⟩
+  icases Hctx with ⟨%ci, %idx, %pre, %Hci, #HVi, #HVp, Hfr⟩
   subst Hci
   (try wp_auto)
-  wp_apply HV as %v1 %Hv1
-  obtain rfl := Hv1.1 _ rfl
+  wp_apply HVi as %v1 %Hv1
+  subst Hv1
   (try wp_auto)
-  wp_apply HV as %v2 %Hv2
-  obtain rfl := Hv2.2 _ rfl
+  wp_apply HVp as %v2 %Hv2
+  subst Hv2
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr

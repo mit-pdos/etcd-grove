@@ -25032,3 +25032,26 @@ Drafted before any proof (the user's instruction). What changed in existing stat
   auth applier's admin check passes on another field and `Authenticate` is dispatched, a step the
   admin model has no successor for.
 - **`authnOut` owns the response** (`resp ↦ v`): the gRPC reply sends the whole message.
+
+## C1's A2, phase 2: the proofs, and `context.WithValue`'s `Value` (2026-10-28 · the axiom change approved by the user)
+
+- **`context.WithValue`'s trust-boundary axiom states `Value`** (the user: "yes, strengthen the
+  WithValue axiom"). Before, it said nothing of `Value`, so `TokenSimple.assign`'s
+  `ctx.Value(AuthenticateParamIndex{})` was unprovable from the applier's context. The new
+  conjunct: at the key itself `Value` returns the value; at a key of another dynamic type it is the
+  parent's `Value`. Keys of the same type with another value are left out on purpose: Lean's
+  equality of `GoInterface` values agrees with Go's `==` only at the key itself, at nil and across
+  types, so a clause over them could state what Go does not do. Go's `valueCtx.Value` is
+  `if c.key == key { return c.val }; return value(c.Context, key)`.
+- **`authnCtx` promises `Value` at the two parameter keys only.** It used to say `Value` at every
+  key, which the axiom cannot give.
+- **The store's `Authenticate` has one proof** (`wp_core`, generic in the backend and a frame);
+  the two specs are instances. `isAuthStepsX_of_authInvT(B)` take the store's `specTB`; the
+  any-mode one builds `authWRxB` from its own resources (no any-mode `specT`, review 2's worry).
+- **`adminOut_model` takes `adminKindOk rq`**, not `needAdminPermission rq = true` as the only
+  premise for `Authenticate`: an `Authenticate` is treated apart (`adminOut_authn`), its
+  history and state kept.
+- **The rights at the mint** (`srvTokRights_next`): the right to issue is minted at the index the
+  backend reads (`ciEff γ st.k`), before the entry, while the rights are raised to `m.index` for
+  every branch. Stated as an Iris `∧` of the two uses (keep, or keep-and-mint in the mode on), so
+  the branches before the dispatch need not know the kind.

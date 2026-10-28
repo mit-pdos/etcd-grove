@@ -646,19 +646,21 @@ instance ctxBound_persistent (M : AuthMode) (ctx : GoInterface) (a : Loc) :
 the token providers' `assign` reads of it. Its `Value` method returns, for the key
 `AuthenticateParamIndex{}`, a `uint64` raft index `idx`, and for the key
 `AuthenticateParamSimpleTokenPrefix{}` a string `pre` (`v3_server.go`'s `Authenticate` puts both
-in; other keys are unconstrained), and the caller holds the right to issue the token they make
+in; C1's A2, 2026-10-28: `Value` is promised at those two keys only, not "any key, unconstrained
+but for those two", since `context.WithValue`'s trust-boundary axiom does not speak of a key of
+one of the stored keys' types but a different value), and the caller holds the right to issue the token they make
 (`freshOk M (simpleTok pre idx)`: a token is `<prefix>.<raft index>`, issued once; the simple
 provider panics on a token issued twice, `assignSimpleTokenToUser`). -/
 def authnCtx (M : AuthMode) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (idx : w64) (pre : GoString), ⌜ctx = GoInterface.ok ci⌝ ∗
-    □ (∀ k : GoInterface,
-      {{ True }} (App (Val #(methods ci.ty go!"Value" ci.v)) (Val #k))
-      {{ (v : GoInterface), RET #v;
-          ⌜(∀ x : AuthenticateParamIndex,
-              k = interface.mkOk AuthenticateParamIndex.ty #x → v = interface.mkOk go.uint64 #idx) ∧
-           (∀ x : AuthenticateParamSimpleTokenPrefix,
-              k = interface.mkOk AuthenticateParamSimpleTokenPrefix.ty #x →
-                v = interface.mkOk go.string #pre)⌝ }}) ∗
+    □ (∀ x : AuthenticateParamIndex,
+      {{ True }} (App (Val #(methods ci.ty go!"Value" ci.v))
+        (Val #(interface.mkOk AuthenticateParamIndex.ty #x)))
+      {{ (v : GoInterface), RET #v; ⌜v = interface.mkOk go.uint64 #idx⌝ }}) ∗
+    □ (∀ x : AuthenticateParamSimpleTokenPrefix,
+      {{ True }} (App (Val #(methods ci.ty go!"Value" ci.v))
+        (Val #(interface.mkOk AuthenticateParamSimpleTokenPrefix.ty #x)))
+      {{ (v : GoInterface), RET #v; ⌜v = interface.mkOk go.string #pre⌝ }}) ∗
     freshOk M (simpleTok pre idx))
 
 /-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract) in the mode `M`, with the

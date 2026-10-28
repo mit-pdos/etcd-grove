@@ -240,6 +240,7 @@ theorem authStoreKit_on
     (hRoleAddB : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
     (hUserGrantRoleB : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermissionB : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
+    (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF))
     (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF) :
     auth.tokenProviderOkA tp (.on γa) A ∗ A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
@@ -326,7 +327,7 @@ theorem authStoreKit_on
       ipureintro; exact Hf'
     iunfold adminW
     iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-      hRoleGrantPermissionB stp R (.on γa) Pk' #f' T (beOn d.be) $$ [$Hpkg $Hinv]
+      hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' #f' T (beOn d.be) $$ [$Hpkg $Hinv]
   iapply HΦ
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp
@@ -379,6 +380,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hRoleAddB : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
     (hUserGrantRoleB : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermissionB : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
+    (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     authSrvTP (GF := GF) true := by
   intro lg opts iw ttl
@@ -406,7 +408,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   · ipureintro; exact ⟨rfl, fun _ => ⟨γa, rfl⟩⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-    hRoleGrantPermissionB hD22 _ γa (auth.simpleAdmin p))
+    hRoleGrantPermissionB hAuthnB hD22 _ γa (auth.simpleAdmin p))
     $$ [$HtpA $HA $Hown $Hcur $HI $Hfr]
 
 end proof

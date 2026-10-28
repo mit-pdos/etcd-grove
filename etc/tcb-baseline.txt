@@ -733,14 +733,6 @@ axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.Compact.wp_proof
-sorry EtcdServer.applyEntryNormal.wp_proofOn
-sorry apply.Apply.wp_adminL
-sorry apply.applierAdmin_backendX
-sorry apply.isAuthStepsX_of_authInvT
-sorry apply.isAuthStepsX_of_authInvTB
-sorry apply.uberApplier.Apply.wp_adminL
-sorry apply.uberApplier.dispatch.wp_admin
-sorry apply_admin_entry_on
 sorry authkv.Main.wp_proof
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
