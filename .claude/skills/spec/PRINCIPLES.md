@@ -5,17 +5,19 @@ true. Each rule says why, and points to where it was learned: an example in `exa
 the critique, the result) or a review of the compactor pilot in `notes/spec-first-study/`. Open those
 only for the rules your target touches.
 
+Two kinds: the **hard rules** (the next section) must all hold, and a spec breaking one is wrong
+however good it is otherwise. Everything after them is a **preference**: weigh them against each
+other to choose among specs that keep the hard rules, and say so when you knowingly depart from one.
+
 ## Scope
 
 These judgments are for specs that cross a package boundary: what another package's proof sees. An
 internal helper's spec, used only inside its own package, may simply mirror its code.
 (`notes/spec-first-plan.md`, phase 1b)
 
-## Requirements
+## Hard rules
 
-A spec that fails one of these is wrong, whatever else it does well. (A review ranks these as
-*tier 1*: a spec failing one is not done. Every other section is *tier 2*: preferences that rank
-specs which already meet all of these.)
+A spec that breaks one of these is wrong, whatever else it does well, and is not done.
 
 - **True of the code**, including no panic under its precondition (a WP excludes panics); a
   trust-boundary axiom true of the library's code or documented behavior.
@@ -28,7 +30,7 @@ specs which already meet all of these.)
   restriction marked as such and filed (`issues/` or a decision). A configuration premise is no
   stricter than what the Go code accepts. (`pilot-review-1.md`)
 
-## Strength
+## Preferences: strength
 
 - **Prefer the stronger spec, comparing whole specs.** One spec is at least as strong as another if
   the other can be proved as a layer on top of it; so a stronger precondition can still make an
@@ -48,7 +50,7 @@ specs which already meet all of these.)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
   code guarantees. (`notes/spec-first-plan.md`, phase 1b)
 
-## Abstraction
+## Preferences: abstraction
 
 - **The spec of an API, not of an implementation**: another reasonable implementation of the same API
   would satisfy it unchanged (for a replicated server: a single in-memory server). No ghost names,
@@ -67,7 +69,7 @@ specs which already meet all of these.)
   conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it
   is there. (`put.md`, critique 5)
 
-## Shape
+## Preferences: shape
 
 - **TaDa, not HoCAP**: no caller-provided predicate as a parameter of a library's predicate (a
   cluster predicate taking "what a snapshot's data means"); such a parameter changes every use of the
@@ -89,7 +91,7 @@ specs which already meet all of these.)
   hack to put off merge conflicts.
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 
-## Resources
+## Preferences: resources
 
 - **An exclusive resource the code needs is covered by a token every caller can supply**: a contract
   with no resource over an implementation that needs one (a reader slot) cannot be met
@@ -106,10 +108,10 @@ specs which already meet all of these.)
   and the spec's decidable pre and post are evaluated on them, so the decidable part of a spec is
   the part checked before any proof.
 
-## Measures
+## Preferences: measures
 
-Count these for each spec (on the unfolded statement, as `etc/gen-interface.py` renders it); each is
-a cost, and comparing them ranks specs that meet the requirements. (`notes/spec-first-plan.md`,
+Preferences too, but counted: for each spec, on the unfolded statement (as `etc/gen-interface.py`
+renders it). Each is a cost; lower is better among specs that keep the hard rules. (`notes/spec-first-plan.md`,
 phase 1b)
 
 - **Coupling**: the other packages' predicates and definitions the statement mentions. Each is a
