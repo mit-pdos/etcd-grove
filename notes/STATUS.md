@@ -469,6 +469,41 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## The conf-change decision switch: protocol and node ghost done, API not started (2026-10-28, branch `raft-unified`)
+
+The frozen spec: `notes/spec-first-study/raft-decisions-spec.md`; the reasoning:
+`notes/decisions.md`, "The conf-change decision switch". Scope by the user: raft's own tree only;
+clients are repaired later.
+
+**Done (raft's whole tree builds, `etc/api-check.py etc/api/raft.txt --check` and
+`etc/gen-interface.py etc/api/raft.txt --check --layout` pass, interface regenerated; no `sorry` or
+axiom added; commits `b056769ac1`, `01cf882ad1`):**
+- The protocol over client decision maps: `RaftNames.reDec`, `decLb`, `DynCfg.fold` over a map,
+  `CfgAt γ M`, the records carrying their witnesses, `overlap_adj` over compatible maps.
+- The node's ghost part over the decisions it witnessed (`RGh.decs`, existential `ds` in
+  `ownRawNode`), `ownStepGhost_absorb`, `StepR.mono_dec`, `RInv.mono_dec`, `DynCCPreOp.mono_dec`.
+- Every existing cluster unchanged in behaviour (empty maps); no node-API statement changed, so no
+  client is expected to break (not built: raft's tree only).
+
+**Remaining, in order:**
+1. *Snapshots with decisions* (interim: certificates fold at the empty map): the certificate carries
+   `∃ M, decLb γ M ∗ ⌜D.fold M fp = …⌝` (`raftSnapCert`, `snapAtOk`, `SnapAtPure`,
+   `raftSnapCert_make_dyn`, `ghost_stepCDSM` joins it at a restore, already written for it); a
+   snapshot loan records its decisions (`SnapLoan`), `RNMode.foldCfg` folds over them
+   (`RawNode.Advance`'s post, `runCfgLoan`, `InvAdvance`, `node__Advance`).
+2. *The node loop's intake*: `node.ApplyConfChange.specRaw` and `confcP` (`InvNodeChan`) carry a
+   `decLb γ.raft M` with `DynCCPreOp (effDec dec M)`; `wp_rn_raft_applyConfChange_dyn` absorbs `M`
+   (`ownStepGhost_absorb`, compatibility with the ghost's `ds` by `decLb_compat`); `Advance`'s A1
+   (`RawNode.Advance`, `runCfg`/`runCfgLoan`'s `NoConfIn`) becomes `NoUndecConfIn (effDec dec M)`
+   with its `decLb`, down to `DynHyp`'s `MsgStorageApplyResp` clause (spec §4, N1).
+3. *The API* (`InvNodeRule`, replacing `InvApiRule*`, `ConfRuleDec`, `SnapsMade`'s rule): a cluster
+   in the dynamic mode of the base decoder `fun _ _ => none` with `reDec = some g`;
+   `ownConfDecisions` (the map's authority, at `D.fmap`), `confDecided` (an element with
+   `confDecide`'s facts), `confAt` over the protocol fold at a witnessed map; `cluster_alloc`,
+   `confDecide`, `skippedIn`; `ConfPolicy.lean` (`confPolicy` an invariant over the authority);
+   `RestartNode`/`ApplyConfChange`/`Advance`/`CreateSnapshot` `.unifiedSpec`s re-proved; §5's items
+   removed. Then kv (deferred by the user).
+
 ## Raft unified, stage U4a: a cluster with snapshots and reconfiguration (2026-10-28, branch `raft-unified`)
 
 Done, no new `sorry` or axiom: the raft side, and (step B, 2026-10-28) **examples/kv over this

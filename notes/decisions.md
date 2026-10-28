@@ -25303,3 +25303,54 @@ since the `Ready`); kv's port not started.**
 - *Linking.* `etc/gen-link.py` links a function's `.spec` only; the kv list names raft's
   `RaftLink.*_unified` results as `=` terms, and `EXTRA_IMPORTS["--kv"]` imports
   `Proof.go_etcd_io.raft.v3.Linked`.
+
+## The conf-change decision switch (2026-10-28 · `notes/spec-first-study/raft-decisions-spec.md`, frozen)
+
+**2026-10-28 · steps 1-2 taken (the protocol and the node's ghost state over client decisions);
+the API, the node-loop intake and the snapshot path's decisions not started. Scope: raft's own tree
+(the user: clients left as they are until raft is stable).**
+
+**Why the protocol changes at all.** A fixed pure decoder (`RNMode.dyn dec`, `RaftNames.reDyn`)
+cannot follow decisions the client makes at run time (`confDecide` takes any `d` with a result):
+only a prophecy could fix it at allocation. So the configuration of a committed prefix is folded
+over the decisions some ghost record has *witnessed*, and two records agree because their
+witnesses are lower bounds of one map.
+
+**The representation (step 2).**
+- `RaftNames.reDec : Option GName` (default `none`): the client's decision map, a ghost map
+  `position ↦ Option ConfChangeIM` (`some o` apply `o`, `none` skip) with persistent elements.
+  `decLb γ M` (`Protocol/Ghost.lean`): every binding of `M` recorded; `⌜M = ∅⌝` without a map, so
+  every existing cluster's lower bounds are empty. Laws `decLb_compat` (two lower bounds agree where
+  both are defined, `DecCompat`), `decLb_union`, `decLb_mono`, `decLb_empty`.
+- `DecMap`, `DecCompat` in the new `Protocol/DecMap.lean` (below the ghost files; importable).
+  `effDec dec M` (`CfgOverlap.lean`): the base decoder first, then the recorded decision at the
+  entry's position (`ccDecOf`); `effDec_empty`, `effDec_mono`, `effDec_base`, `DecLe`,
+  `cfgFold_mono`. Base first so that `effDec` is monotone in `M` for any base.
+- `DynCfg.fold : DecMap → List EntryM → Option CfgM` with `mono`; `adj` at one map.
+  `DynCfg.ofFold dec c0 h0` folds `effDec dec M`. `CfgAt γ M P c` takes the map; the records that
+  name a configuration carry `decLb γ M` beside it (`isWinCore`, `cqAt` -- `cqAt_parts`/`cqAt_intro`
+  with the map --, `dynEnv`); `CfgAt.overlap_adj` takes `DecCompat M1 M2` (from `decLb_compat`) and
+  goes through the union. The seven comparison sites (`win_fresh`, `lc_core`, `lc_far_older`,
+  `rqRecOk_confirm_dyn`) get the compatibility from the two records' witnesses. No safety argument
+  changed (the feasibility study's verdict held).
+- `StepR.mono_dec`, `RInv.mono_dec` (step 1): a step or the invariant under some decisions is one
+  under more.
+- The node's ghost part `RGh.decs`: the decisions the node witnessed; `ghostRestM`'s dynamic case
+  is `RInv (effDec dec g.decs)` with `decLb γ g.decs`; `GMode.StepOut` is `StepR` at
+  `effDec dec g'.decs`; `GMove` keeps `decs` except a restore, which may grow it.
+  `ownStepGhost_absorb` (`StepGhostMode.lean`) joins a lower bound to the ghost part. In
+  `ownRawNode` (and `ownRawNodeReady`/`Idle`) the decisions `ds` are existential like `fp`: the
+  client-visible `RNState` is unchanged. The refinement (`ownRaftGhostR_stepR`) takes the base
+  decoder, the map and its `decLb`.
+- `DynHypFor`/`ghost_stepCDM`'s `Hdh` take the invariant at any decoder (`∀ d', RInv d' ...`).
+
+**Interim (to be replaced in the next step).** Snapshot certificates (`raftSnapCert`,
+`snapAtOk`, `SnapAtPure`, `raftSnapCert_make_dyn`) state the fold *at the empty map*: every
+existing cluster's, but the new cluster's snapshots of prefixes holding decided conf entries need
+the certificate to carry its decisions (`∃ M, decLb γ M ∗ ⌜D.fold M fp = …⌝`), the snapshot loan to
+record them (`SnapLoan`), and `RawNode.Advance`'s post (`RNMode.foldCfg`) to fold over them. A first
+attempt carried the map in the certificate; it stopped at `RawNode.Advance`'s post, whose
+configuration is a pure function of client-visible data (`foldCfg l.dlv`), so the map has to be in
+the loan.
+
+**What remains** (STATUS, "The conf-change decision switch").
