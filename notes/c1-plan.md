@@ -205,3 +205,26 @@ keeping it; and derive (b) from the `ContextErrsClient` class (`context.Canceled
 issued `t`. `tokShape` (`<prefix>.<index>`) leaves the prefix unconstrained, so the trimming is not
 the identity in general; `Work`'s grant-to-permission step needs it to be (the simple provider's
 prefix is random letters, never `"Bearer "`), or a statement of the grants at the trimmed token.
+
+## Phase 1b: the spec review (2026-10-28)
+
+A fresh `spec-reviewer` round on commit `b6bc7e2a56`: `notes/c1-review-1b.md` (the report as
+written). Five statements false or unprovable as written, checked against the source:
+- **F1** `pbAuthenticateRequest` reads the request read-only, but `EtcdServer.Authenticate` clears
+  `r.Password` in a `defer` (CVE-2021-28235's fix; `v3_server.go`): `Password` goes to `recvOwn`.
+- **F2** `grpcAttemptMd` makes a key the context carries with no values visible to the handler as
+  `some []`; grpc sends no header for it (as `issues/etcd-auth-token-md-empty.md` relies on):
+  compare value lists up to empty ones.
+- **F3** grpc lowercases the credentials' keys: `credsMapIs` with lower-case keys.
+- **F4** `NewClient` calls the credentials' `RequireTransportSecurity()` on an insecure
+  connection: its triple in `perRPCCredsOk` (etcd's `return false`, translated). To check against
+  grpc's source in phase 2.
+- **F5** finding 3 is a falsity, not only a missing proof: Perennial's `isContext` lets `Err()`
+  return any typed error, which the refresh path returns: `ctxErrClient` in the interceptor's
+  contract.
+Quality: Q1 `New`'s post at the attempt level (`attemptTokOk`), Q2 the `"Bearer "` trim discharged
+by a law (neither provider makes such a token), Q3 `kubernetes.New`'s post with `clientTokAt`, Q4
+laws instead of unfolding (`clientAuthPre_anon`, `credsOfDial` lemmas, `PerRPCCredentials` over
+`tokenBundleInv`), Q5 dead names (`tokenBundleAt`, `tokenBundleInv_at`), stale docstrings, Q6 the
+2^30-reader bound as a premise, Q7 the caller-chosen `P` recorded as a knowing departure from
+TaDa-style specs, Q8-Q10 minor. Next: revise the statements (F1-F5, Q1-Q6), rebuild, then phase 2.
