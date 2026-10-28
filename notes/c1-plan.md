@@ -287,3 +287,39 @@ The client side is proved; C1's chain rests on no `sorry` but the served `Authen
   the apply path's `authStore.Authenticate` (`authenticated`) tied to `auth.tokIssued`,
   `AuthServer.Authenticate` and the handler in `authRegs`. Then Q9 (one registration for every
   mode) and Q2.
+
+## The served `Authenticate`: the stage plan (2026-10-28)
+
+`etcd_kv_auth_served_onA` needs the server's whole `Authenticate` path in the mode `on γa`, none of
+which a result reaches today. What exists: `authStore.Authenticate` (`authenticated M hs u resp err`,
+whose success gives `tokOk M tok u`, in `on γa` `tokIssued γa tok u`), its premise `authnCtx M ctx`
+(the context's index and prefix, and the right to issue `simpleTok pre idx`, `freshOk`), the
+provider's contract (`TokenSimple`), `CheckPassword`, `Revision`, `LinearizableReadNotify`,
+`applierV3backend.Authenticate` (applyErrIs only: the response is dropped), `AuthServer.Authenticate`
+(through `authInnerOk`). What is missing, in order:
+
+- **A1. The right to issue, at apply.** `<prefix>.<index>` is unique per raft index (the index is
+  the entry's), whatever the prefix: the apply thread holds the rights of every token
+  `simpleTok pre i` for `i` above its applied index (a ghost reservation allocated with `γa.fresh`,
+  all prefixes at once: an element per token, generated from an authority over the indexes), and
+  hands the entry's `authnCtx` to `authStore.Authenticate` (the applier builds the context with the
+  entry's index, `applierV3backend.Authenticate`'s `AuthenticateParamIndex`). Design to be checked
+  against `authHist_alloc` (the provider is made with `γf` before the history exists).
+- **A2. Admission.** `rqOk`'s `.authenticate` is `False` (D22, 2026-10-23), the dispatch's case
+  refutes it (`uberApplier__dispatch`, `DispatchKVL`). Admit it in the mode `on` (`adminKindOk`'s
+  second clause, or a third of `rqOkM`: it needs no admin permission and writes no auth or KV state,
+  so `kvEntryOn_nonwrite` keeps the model), prove the dispatch's case, and `applierV3backend.
+  Authenticate`'s post carries `authenticated`'s outcome to the waiter.
+- **A3. The result to the requester.** The wait registry's result for the entry carries the
+  response's token with `tokIssued γa tok name` (persistent), as `adminOutOn` carries an admin's;
+  `reqPropOkOn` gains the clause for the request (its `Qr`).
+- **A4. `EtcdServer.Authenticate`'s spec and proof**: `LinearizableReadNotify`, `CheckPassword`,
+  `GenTokenPrefix` (no spec yet: random bytes, `simpleTokenPrefix`), the `raftRequest`, the revision
+  loop (a retry keeps the earlier token's issue: harmless, the response is the last one), the
+  `defer` clearing `Password`. Specs in the mode `on` as `UserAdd.specOn`.
+- **A5. The handler**: `authInnerOk` for `Authenticate` from A4, the registration in `authRegs`
+  (Q9: one registration for every mode), then `etcd_kv_auth_served_onA`'s proof and its swap for
+  `etcd_kv_auth_served_on`.
+
+Effort, by analogy with E3n/E3w (the admin entries, each several sessions): A1 and A2 are the
+largest (the apply thread's resources and the dispatch); A4 is one long proof; A3 and A5 are glue.
