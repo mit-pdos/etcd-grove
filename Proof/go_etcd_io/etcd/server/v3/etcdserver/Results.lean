@@ -1833,7 +1833,7 @@ theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
     traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range
     (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
-      traceutil.Trace.wp_Step)
+      (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore) traceutil.Trace.wp_Step)
     RangeRequest.wp_String proto.wp_Size
 
 /-- **A read-only `Txn` with auth on** (the auth plan's E3v, 2026-10-27; `EtcdServer.Txn.specOnR`,
@@ -1853,7 +1853,7 @@ theorem server_txn_ro_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool
     time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn
     (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
-      traceutil.Trace.wp_Step)
+      (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore) traceutil.Trace.wp_Step)
     proto.wp_Size
 
 end adminLatest

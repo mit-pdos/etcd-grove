@@ -89,26 +89,49 @@ def txnReadAnsOn (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) 
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)
 
+/-- **An auth info is the caller's** (persistent; `infoBoundM`'s over the token: E3zb): its user
+the empty one or the one the caller's token `tok` was issued to, or the server's TLS fallback is
+on. -/
+def infoBoundT (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
+  iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨
+    ((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token info.Username') ∨ srvTLSId s))
+
+instance infoBoundT_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    Persistent (infoBoundT (GF := GF) s M tok info) := by
+  unfold infoBoundT; infer_instance
+
+/-- An auth info bound to the context `ctx` is bound to its token. -/
+theorem infoBoundM_tok (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    infoBoundM (GF := GF) true s E ctx info ⊢ infoBoundT s E.authMode (auth.ctxTokenOf ctx) info := by
+  unfold infoBoundM infoBoundT principalBound
+  iintro H; iexact H
+
 /-- **A read's check, as the answer reports it** (persistent): the permissions the check of `o`
 saw granted at states recorded at an index `m` at least the caller's bound `n`, and for a
-linearizable read no older than the auth state the committed log through the read index `c` left. -/
-def rangeAuthed (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat) (o : OpFull) : IProp GF :=
+linearizable read no older than the auth state the committed log through the read index `c` left;
+the auth info checked the caller's (`infoBoundT`, E3zb, 2026-10-28). -/
+def rangeAuthed (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+    (tok : Option GoString) (o : OpFull) : IProp GF :=
   iprop(∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
-    apply.rangeClassFrom E.authMode m info o ∗
+    apply.rangeClassFrom E.authMode m info o ∗ infoBoundT s E.authMode tok info ∗
     (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m))
 
-instance rangeAuthed_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
-    (o : OpFull) : Persistent (rangeAuthed (GF := GF) E γr c n o) := by
+instance rangeAuthed_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+    (tok : Option GoString) (o : OpFull) : Persistent (rangeAuthed (GF := GF) s E γr c n tok o) := by
   unfold rangeAuthed; split <;> infer_instance
 
 /-- **A read-only transaction's checks, as the answer reports them** (`rangeAuthed`'s). -/
-def txnAuthed (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat) (t : TxnModel) : IProp GF :=
+def txnAuthed (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+    (tok : Option GoString) (t : TxnModel) : IProp GF :=
   iprop(∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
-    txnClassFrom E.authMode m info t ∗
+    txnClassFrom E.authMode m info t ∗ infoBoundT s E.authMode tok info ∗
     (if txn.txnSerializable t then iprop(True) else authFloorAt E.authMode γr c m))
 
-instance txnAuthed_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
-    (t : TxnModel) : Persistent (txnAuthed (GF := GF) E γr c n t) := by
+instance txnAuthed_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+    (tok : Option GoString) (t : TxnModel) : Persistent (txnAuthed (GF := GF) s E γr c n tok t) := by
   unfold txnAuthed; split <;> infer_instance
 
 /-- **A header's user is the caller's** (persistent): the empty user, or the one the caller's
@@ -158,10 +181,10 @@ def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (
     | .deleteRange o => iprop(deleteAppliedOk s E ρ.rd F o (opDepQ d) resp r ∗
         writeGrantOn s E ρ tok (irrDeleteRange o))
     | .range o => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
-        rangeAnsOkOn E γr c F o resp r (rangeDepQOn γr.kv d) ∗ rangeAuthed E γr c n o)
+        rangeAnsOkOn E γr c F o resp r (rangeDepQOn γr.kv d) ∗ rangeAuthed s E γr c n tok o)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
-          txnReadAnsOn E γr c F t (rangeDepQOn γr.kv d) resp r ∗ txnAuthed E γr c n t)
+          txnReadAnsOn E γr c F t (rangeDepQOn γr.kv d) resp r ∗ txnAuthed s E γr c n tok t)
         else iprop(txnAppliedAns E ρ.rd F t (opDepQ d) resp r ∗
           ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ writeGrantOn s E ρ tok (irrTxn tw))))
   err q e := iprop(srvRdCall s E γr c ∗ match q with
@@ -395,7 +418,7 @@ theorem kvRangeOk_of_serverOn (hRange : EtcdServer.Range.specOn (GF := GF) (hG :
   iunfold kvRangeOk
   iintro %ctx %r %o !> %Φ ⟨Hcall, #Hr, %Hok⟩ HΦ
   simp only [srvKVAnsOn]
-  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, -⟩
+  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
   ihave #Hdep' := kvDep_of_depOn ρ γr d $$ Hdep
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, Hcred, Hlt⟩
@@ -436,7 +459,12 @@ theorem kvRangeOk_of_serverOn (hRange : EtcdServer.Range.specOn (GF := GF) (hG :
       iframe Hcert Hcok Hres Hlin HQl
       ipureintro; exact ⟨Hlen.1, Hlen.2.1, rfl, Hlen.2.2⟩
     iunfold rangeAuthed
-    iexact Hcls
+    icases Hcls with ⟨%info, %m, %Hm, #Hc, #Hib, #Hf⟩
+    iexists info, m
+    iframe Hc Hf
+    isplitr
+    · ipureintro; exact Hm
+    rw [← Htok]; iapply infoBoundM_tok $$ Hib
   · obtain ⟨rfl, Hne⟩ := Hre
     iright
     isplitr
@@ -596,7 +624,12 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
         iframe Hcert Hcok Hresp Hlin HQl
         ipureintro; exact ⟨Hlen.1, Hlen.2.1, rfl, Hlen.2.2⟩
       iunfold txnAuthed
-      iexact Hcls
+      icases Hcls with ⟨%info, %m, %Hm, #Hc, #Hib, #Hf⟩
+      iexists info, m
+      iframe Hc Hf
+      isplitr
+      · ipureintro; exact Hm
+      rw [← Htok]; iapply infoBoundM_tok $$ Hib
     · iright
       isplitr
       · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE

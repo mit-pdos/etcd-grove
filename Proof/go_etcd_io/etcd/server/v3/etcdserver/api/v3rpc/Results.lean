@@ -447,7 +447,7 @@ theorem range_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
               hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
               srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
               rangeAnsOkOn E γr c F o resp rv (rangeDepQOn γr.kv d) ∗
-              rangeAuthed E γr c na o) ∨
+              rangeAuthed s E γr c na (auth.ctxTokenOf ctx) o) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
             srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s) }} := by
   iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
@@ -492,7 +492,7 @@ theorem txn_end_to_end_on
               srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
               ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
                 if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
-                  txnReadAnsOn E γr c F t (rangeDepQOn γr.kv d) resp rv ∗ txnAuthed E γr c na t)
+                  txnReadAnsOn E γr c F t (rangeDepQOn γr.kv d) resp rv ∗ txnAuthed s E γr c na (auth.ctxTokenOf ctx) t)
                 else iprop(txnAppliedAns E ρ.rd F t (opDepQ d) resp rv ∗
                   ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
                     writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrTxn tw))) ∨

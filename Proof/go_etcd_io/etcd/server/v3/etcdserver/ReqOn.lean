@@ -323,6 +323,21 @@ instance hdrBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : G
     (hm : apply.HeaderModel) : Persistent (hdrBoundM (GF := GF) on s E ctx hm) := by
   cases on <;> unfold hdrBoundM <;> infer_instance
 
+/-- **The auth info a read's check saw is the caller's** (persistent; E3zb: `hdrBoundM`'s, for an
+auth info): with auth on, the empty user (`doSerialize`'s stand-in for a context with none), or one
+bound to the context's token (`principalBound`). Off, `True`. -/
+def infoBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true => iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨
+      principalBound s E.authMode ctx (some info))
+
+instance infoBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    Persistent (infoBoundM (GF := GF) on s E ctx info) := by
+  cases on <;> unfold infoBoundM <;> infer_instance
+
 /-- **A writing transaction's error in the auth mode `on`** (`txnErrOk`'s, E3zb): the apply's
 error, at a header bound to the context `ctx` (`hdrBoundM`), or the proposal's. -/
 def txnErrOkOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterface) (F : mvcc.Log)
@@ -373,6 +388,37 @@ theorem hdrBoundM_ctx (on : Bool) (s : Loc) (E : apply.AEnv GF) (c c' : GoInterf
     hdrBoundM (GF := GF) on s E c hm ⊢ hdrBoundM on s E c' hm := by
   have ht : auth.ctxTokenOf c = auth.ctxTokenOf c' := by unfold auth.ctxTokenOf; rw [h]
   cases on <;> unfold hdrBoundM
+  · iintro -; itrivial
+  · unfold principalBound; rw [ht]
+
+/-- An auth info with the empty user is bound. -/
+theorem infoBoundM_empty (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (h : info.Username' = (zeroValDef : GoString)) :
+    ⊢ infoBoundM (GF := GF) on s E ctx info := by
+  cases on <;> unfold infoBoundM
+  · itrivial
+  · ileft; ipureintro; exact h
+
+/-- An auth info the store bound to the context (`ctxBoundOrTLS`, with auth on) is bound. -/
+theorem infoBoundM_of_ctxBound (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (a : Loc) (user : GoString) (rev : w64) :
+    (⌜on = true⌝ → ctxBoundOrTLS s E.authMode ctx a) ∗ authInfoIs a user rev ⊢
+      infoBoundM (GF := GF) on s E ctx ⟨user, rev⟩ := by
+  cases on <;> unfold infoBoundM
+  · iintro -; itrivial
+  · iintro ⟨Hb, #Hai⟩
+    ihave #Hb' := Hb $$ %rfl
+    iright
+    iapply principalBound_of_ctxBoundOrTLS s E.authMode ctx a user rev $$ [$Hb' $Hai]
+
+/-- An auth info bound to a context is bound to any context with the same incoming metadata. -/
+theorem infoBoundM_ctx (on : Bool) (s : Loc) (E : apply.AEnv GF) (c c' : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (h : metadata.incomingOf c = metadata.incomingOf c') :
+    infoBoundM (GF := GF) on s E c info ⊢ infoBoundM on s E c' info := by
+  have ht : auth.ctxTokenOf c = auth.ctxTokenOf c' := by unfold auth.ctxTokenOf; rw [h]
+  cases on <;> unfold infoBoundM
   · iintro -; itrivial
   · unfold principalBound; rw [ht]
 
@@ -547,6 +593,42 @@ theorem adminDoneM_of_tie (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L :
       subst Heq
       ipureintro
       exact fun _ => h hv
+
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions] in
+/-- **`AuthInfoFromCtx` in the auth mode `on`** (E3zb): its spec, and with auth on, over the
+store's bound request side (`srvAuthBoundM`), the auth info bound to the context too
+(`boundSpec`'s `ctxBoundOrTLS`). -/
+theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
+    (hAuth : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hAuthB : on = true → EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (st : GoInterface) (cca : Bool) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
+      srvAuthBoundM on s E ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); E.RD ∗ authInfoOpt a ∗ applyErrIs err ∗
+      □ (⌜on = true⌝ → ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a) }} := by
+  cases on
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, #Hcca, #Hctx, Hrd⟩ HΦ
+    iapply (hAuth s st E.RD cca ctx cd) $$ [Hrd] [HΦ]
+    · iframe Hrd; iframe #
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr⟩
+      iapply HΦ; iframe Hrd Ha Herr
+      iintro !> %h; cases h
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, Hrd⟩ HΦ
+    unfold srvAuthBoundM
+    iunfold srvAuthBound at Hbd
+    icases Hbd with ⟨%st3, #Has3, #Hreqb⟩
+    icombine Hst Has3 gives %Heq3
+    subst Heq3
+    iapply (hAuthB rfl s st E.RD E.authMode cca ctx cd) $$ [Hrd] [HΦ]
+    · iframe Hrd; iframe #
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb⟩
+      iapply HΦ; iframe Hrd Ha Herr
+      iintro !> -; iexact Hb
 
 end lemmas
 

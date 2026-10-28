@@ -444,7 +444,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       iframe #
       ipureintro; exact ⟨Hl1, Hl2, Hl3⟩
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls⟩, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls, #Hib⟩, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
@@ -483,6 +483,8 @@ local macro "range_tailOn" : tactic => `(tactic| (
         iframe Hcls
         isplitr
         · ipureintro; exact HnA
+        isplitr
+        · iapply (infoBoundM_ctx true s E _ _ infoc (by rw [Hinc2, Hinc1])) $$ Hib
         rw [hM]; iexact Hfl
       iunfold rangeReadOkM
       iexists log

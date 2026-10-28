@@ -542,12 +542,14 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         isplitr
         · ipureintro; exact ⟨by first | rfl | trivial, Hrn'⟩
         isplitr
-        · icases Hcls with ⟨%infoc, #Hcl1⟩
+        · icases Hcls with ⟨%infoc, #Hcl1, #Hib⟩
           iexists infoc, nA
           isplitr
           · ipureintro; exact HnA
           rw [hM]
           iframe Hcl1
+          isplitr
+          · iapply (infoBoundM_ctx true s E _ _ infoc (by rw [Hinc2, Hinc1])) $$ Hib
           iexact Hfl
         iunfold txnReadOkM
         iexists log

@@ -482,41 +482,6 @@ local macro "piro_tail" : tactic => `(tactic| (
       exit_nodep
     · exact absurd rfl Hmerr))
 
-/-- **`AuthInfoFromCtx` in the auth mode `on`** (E3zb): its spec, and with auth on, over the
-store's bound request side (`srvAuthBoundM`), the auth info bound to the context too
-(`boundSpec`'s `ctxBoundOrTLS`). -/
-theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
-    (hAuth : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hAuthB : on = true → EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG))
-    (s : Loc) (E : apply.AEnv GF) (st : GoInterface) (cca : Bool) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) :
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
-      srvAuthBoundM on s E ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
-      (Val #(GoInterface.ok ctx)))
-  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); E.RD ∗ authInfoOpt a ∗ applyErrIs err ∗
-      □ (⌜on = true⌝ → ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a) }} := by
-  cases on
-  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, #Hcca, #Hctx, Hrd⟩ HΦ
-    iapply (hAuth s st E.RD cca ctx cd) $$ [Hrd] [HΦ]
-    · iframe Hrd; iframe #
-    · iintro !> %a %err ⟨Hrd, Ha, #Herr⟩
-      iapply HΦ; iframe Hrd Ha Herr
-      iintro !> %h; cases h
-  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, Hrd⟩ HΦ
-    unfold srvAuthBoundM
-    iunfold srvAuthBound at Hbd
-    icases Hbd with ⟨%st3, #Has3, #Hreqb⟩
-    icombine Hst Has3 gives %Heq3
-    subst Heq3
-    iapply (hAuthB rfl s st E.RD E.authMode cca ctx cd) $$ [Hrd] [HΦ]
-    · iframe Hrd; iframe #
-    · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb⟩
-      iapply HΦ; iframe Hrd Ha Herr
-      iintro !> -; iexact Hb
-
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
