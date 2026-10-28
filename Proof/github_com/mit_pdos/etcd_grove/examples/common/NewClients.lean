@@ -52,7 +52,7 @@ theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
       · exact Hplain
       · simp [Hlg]
     isplitr
-    · iunfold clientAuthPre; ileft; ipureintro; left; rfl
+    · iapply clientAuthPre_anon; rfl
     ipureintro; exact Htb
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   · subst Hcerr

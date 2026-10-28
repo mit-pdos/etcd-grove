@@ -767,6 +767,20 @@ def clientAttemptMd (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
     metadata.outgoingOf c = metadata.mdSet (metadata.outgoingOf ctx) go!"client-api-version" [v] ∧
     grpcAttemptMd conn c md
 
+/-- **The token a call's metadata carries** (`auth.ctxTokenOf`'s, over the metadata itself: what a
+metadata-indexed gRPC spec sees of the attempt). -/
+def auth.mdTokenOf (md : GrpcMd) : Option GoString :=
+  match md with
+  | none => none
+  | some md =>
+    match md go!"token" with
+    | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
+    | some [] => none
+    | none =>
+      match md go!"authorization" with
+      | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
+      | _ => none
+
 /-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
 for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with
 the context `ctx` may deliver (`clientAttemptMd`). At a plain spec (`GrpcSpec.md`) it is the

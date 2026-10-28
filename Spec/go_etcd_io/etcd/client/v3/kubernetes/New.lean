@@ -42,7 +42,7 @@ abbrev New.spec : Prop :=
         kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
             #kc)) ∗
-        isNewClient cl eps V) ∨
+        isNewClient cl eps V ∗ clientTokAt cl eps P) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec

@@ -58,16 +58,18 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-! ## `Authenticate`'s messages -/
 
-/-- **A `*pb.AuthenticateRequest`** on the wire: the user's name and password. -/
+/-- **A `*pb.AuthenticateRequest`** on the wire: the user's name and password; a decoded copy's
+`Password` the handler's own (`EtcdServer.Authenticate` clears it when it returns, the fix of
+CVE-2021-28235; C1's review, F1). -/
 def pbAuthenticateRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthenticateRequest.ty
   M := GoString × GoString
   send inp m := iprop(∃ req : etcdserverpb.AuthenticateRequest, inp ↦ req ∗
     ⌜req.Name' = m.1 ∧ req.Password' = m.2⌝)
   recv r m := iprop(⌜r ≠ null⌝ ∗
-    structFieldRef etcdserverpb.AuthenticateRequest go!"Name" r ↦□ m.1 ∗
-    structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦□ m.2)
+    structFieldRef etcdserverpb.AuthenticateRequest go!"Name" r ↦□ m.1)
   recv_persistent _ _ := inferInstance
+  recvOwn r m := iprop(structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ m.2)
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthenticateRequest))
   own l := iprop(∃ v : etcdserverpb.AuthenticateRequest, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
@@ -319,30 +321,143 @@ theorem connTokOk_one (conn : Loc) (pc : GoInterface) (P : GoString → IProp GF
   ihave #Hq := H $$ %cm %hy
   iexact Hq
 
+/-! ## The token of an attempt -/
+
+/-- `auth.mdTokenOf` reads the keys `token` and `authorization` only. -/
+theorem auth.mdTokenOf_eq (md : GrpcMd) :
+    auth.mdTokenOf md =
+      match mdGet md go!"token" with
+      | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
+      | some [] => none
+      | none =>
+        match mdGet md go!"authorization" with
+        | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
+        | _ => none := by
+  cases md <;> rfl
+
+theorem grpcReservedKey_token : ¬ grpcReservedKey go!"token" := by
+  unfold grpcReservedKey; decide
+
+theorem grpcReservedKey_authorization : ¬ grpcReservedKey go!"authorization" := by
+  unfold grpcReservedKey; decide
+
+/-- Metadata's values at a key with no empty list, from the key's value list. -/
+theorem mdGet_of_vals (md : GrpcMd) (k : GoString) (h : mdGet md k ≠ some []) :
+    mdGet md k = if metadata.mdVals md k = [] then none else some (metadata.mdVals md k) := by
+  unfold metadata.mdVals
+  unfold mdGet at h ⊢
+  cases hm : md.bind (fun m => m k) with
+  | none => simp
+  | some vs =>
+    rw [hm] at h
+    cases vs with
+    | nil => exact absurd rfl h
+    | cons a l => simp
+
+theorem mdGet_mdNorm (md : GrpcMd) (k : GoString) :
+    mdGet (metadata.mdNorm md) k =
+      if metadata.mdVals md k = [] then none else some (metadata.mdVals md k) := by
+  unfold metadata.mdNorm metadata.mdVals mdGet
+  cases md with
+  | none => simp
+  | some m =>
+    simp only [Option.map_some, Option.bind_some]
+    cases hm : m k with
+    | none => simp
+    | some vs => cases vs <;> simp
+
+/-- The token of metadata grpc delivered (no key with no values), from its two keys' values. -/
+theorem mdTokenOf_norm (md md' : GrpcMd) (hne : ∀ k, mdGet md k ≠ some [])
+    (ht : metadata.mdVals md go!"token" = metadata.mdVals md' go!"token")
+    (ha : metadata.mdVals md go!"authorization" = metadata.mdVals md' go!"authorization") :
+    auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm md') := by
+  rw [auth.mdTokenOf_eq md, auth.mdTokenOf_eq (metadata.mdNorm md'),
+    mdGet_of_vals md _ (hne _), mdGet_of_vals md _ (hne _), mdGet_mdNorm, mdGet_mdNorm, ht, ha]
+
+/-- **Every attempt on the connection `conn` carries a token meeting `P`, or the context's own**
+(persistent; the auth plan's C1, 2026-10-28; C1's review, Q1): the handler of an attempt of a call
+with the context `ctx` sees a token meeting `P` (trimmed of `"Bearer "`, as the server reads it,
+`auth.mdTokenOf`), or the token of the context's outgoing metadata as grpc delivers it
+(`metadata.mdNorm`). -/
+def attemptTokOk (conn : Loc) (P : GoString → IProp GF) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterface) (md : GrpcMd), ⌜clientAttemptMd conn ctx md⌝ -∗
+    (∃ t, ⌜auth.mdTokenOf md = some (strings.trimPrefix t go!"Bearer ")⌝ ∗ □ P t) ∨
+    ⌜auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm (metadata.outgoingOf ctx))⌝)
+
+instance attemptTokOk_persistent (conn : Loc) (P : GoString → IProp GF) :
+    Persistent (attemptTokOk conn P) := by
+  unfold attemptTokOk; infer_instance
+
+/-- **The attempts' tokens from the credentials'**: grpc sends the credentials' values first. -/
+theorem attemptTokOk_of (conn : Loc) (P : GoString → IProp GF) :
+    connTokOk conn P ⊢ attemptTokOk conn P := by
+  unfold connTokOk attemptTokOk
+  iintro #H
+  iintro !> %ctx %md %h
+  obtain ⟨c, v, hc, cm, hy, hvals, hne⟩ := h
+  have hot : ∀ k, k ≠ go!"client-api-version" →
+      metadata.mdVals (metadata.outgoingOf c) k = metadata.mdVals (metadata.outgoingOf ctx) k := by
+    intro k hk
+    unfold metadata.mdVals
+    rw [hc, metadata.mdVals_mdSet_ne _ _ _ _ hk]
+  have htok := hvals _ grpcReservedKey_token
+  have hauth := hvals _ grpcReservedKey_authorization
+  rw [hot _ (by decide)] at htok
+  rw [hot _ (by decide)] at hauth
+  ihave #Hq := H $$ %cm %hy
+  unfold tokMdOk
+  icases Hq with ⟨%hoth, (%hnone | ⟨%t, %ht, #Hp⟩)⟩
+  · iright
+    ipureintro
+    have hc0 : metadata.mdVals cm go!"token" = [] := by
+      unfold metadata.mdVals; unfold mdGet at hnone; rw [hnone]; rfl
+    have ha0 : metadata.mdVals cm go!"authorization" = [] := by
+      have := hoth go!"authorization" (by decide)
+      unfold metadata.mdVals; unfold mdGet at this; rw [this]; rfl
+    apply mdTokenOf_norm md _ hne
+    · rw [htok, hc0, List.nil_append]
+    · rw [hauth, ha0, List.nil_append]
+  · ileft
+    iexists t
+    iframe Hp
+    ipureintro
+    have hc1 : metadata.mdVals cm go!"token" = [t] := by
+      unfold metadata.mdVals; unfold mdGet at ht; rw [ht]; rfl
+    rw [hc1] at htok
+    rw [auth.mdTokenOf_eq md, mdGet_of_vals md _ (hne _), htok]
+    simp
+
 /-! ## What `New` takes and gives -/
 
 /-- **What `New` needs of a configuration's credentials** at the token predicate `P` (persistent;
 `cfg.Token` is `""`, `clientCfgOk`): no user name or no password (no bundle, no call), or
-`Authenticate` registered at the endpoints with the reply to them a token meeting `P`
-(`authTokReg`). -/
+`Authenticate` registered at the endpoints with the reply to them a token meeting `P`, and the
+bound on the credentials' readers (`authTokReg`, `credTokInv`). -/
 def clientAuthPre (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString)
     (P : GoString → IProp GF) : IProp GF :=
   iprop(⌜cfg.Username' = go!"" ∨ cfg.Password' = go!""⌝ ∨
-    authTokReg eps cfg.Username' cfg.Password' P)
+    ⌜threadBound GF ≤ 2 ^ 30⌝ ∗ authTokReg eps cfg.Username' cfg.Password' P)
 
 instance clientAuthPre_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString)
     (P : GoString → IProp GF) : Persistent (clientAuthPre cfg eps P) := by
   unfold clientAuthPre; infer_instance
 
+/-- An anonymous client (no user name) needs no registration. -/
+theorem clientAuthPre_anon (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString)
+    (P : GoString → IProp GF) (h : cfg.Username' = go!"") :
+    ⊢ clientAuthPre cfg eps P := by
+  unfold clientAuthPre
+  ileft; ipureintro; exact Or.inl h
+
 /-- **The client `cl`'s KV calls carry its credentials' tokens meeting `P`** (persistent; what
 `New` gives at `clientAuthPre`'s `P`): its `KV` a `*kv` over a connection (`kvObjAtC`, the one
-`isNewClient`'s `kvObjAt` names) whose attempts carry no credentials' token or one meeting `P`
-(`connTokOk`). -/
+`isNewClient`'s `kvObjAt` names) whose attempts carry a token meeting `P` or the context's own
+(`attemptTokOk`). -/
 def clientTokAt (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) : IProp GF :=
   iprop(∃ api conn : Loc,
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api : GoInterface) ∗
-    kvObjAtC api conn eps ∗ connTokOk conn P)
+    kvObjAtC api conn eps ∗ attemptTokOk conn P)
 
 instance clientTokAt_persistent (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) :
     Persistent (clientTokAt cl eps P) := by

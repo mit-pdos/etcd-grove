@@ -736,6 +736,7 @@ sorry Client.unaryClientInterceptor.wp_proof
 sorry EtcdServer.Compact.wp_proof
 sorry authClient.Authenticate.wp_proof
 sorry authkv.Main.wp_proof
+sorry credentials.perRPCCredential.RequireTransportSecurity.wp_proof
 sorry credentials.perRPCCredentialBundle.UpdateAuthToken.wp_proof
 sorry etcdserverpb.authClient.Authenticate.wp_proof
 sorry k8setcd3.client_ctx_field

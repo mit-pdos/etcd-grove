@@ -227,4 +227,38 @@ by a law (neither provider makes such a token), Q3 `kubernetes.New`'s post with 
 laws instead of unfolding (`clientAuthPre_anon`, `credsOfDial` lemmas, `PerRPCCredentials` over
 `tokenBundleInv`), Q5 dead names (`tokenBundleAt`, `tokenBundleInv_at`), stale docstrings, Q6 the
 2^30-reader bound as a premise, Q7 the caller-chosen `P` recorded as a knowing departure from
-TaDa-style specs, Q8-Q10 minor. Next: revise the statements (F1-F5, Q1-Q6), rebuild, then phase 2.
+TaDa-style specs, Q8-Q10 minor.
+
+### The revisions (2026-10-28)
+
+- **F1** `pbAuthenticateRequest`: `Name` read-only (`recv`), `Password` the handler's own (`recvOwn`).
+- **F2, F3** `grpcAttemptMd` (InvGrpc) compares value lists (`metadata.mdVals`) on the keys grpc
+  does not reserve, and has no key with no values (`mdGet md k ≠ some []`); `credsMapIs` lowercases
+  the keys; `mdMergeAt` is gone.
+- **F4** `perRPCCredsOk` adds `RequireTransportSecurity()`'s triple; etcd's
+  (`credentials.perRPCCredential.RequireTransportSecurity`, `false`) has a spec, its proof a sorry
+  until phase 2 translates it, and `PerRPCCredentials` gives both. Still to check against grpc's
+  `NewClient` in phase 2.
+- **F5** kept as stated: `ctxErrClient` is not in the interceptor's statement, since phase 2 derives
+  it for every `isContext` context from `ctxErrClientAllW_of` (`ErrorsNewOk.lean`; classes
+  `ContextReadErrs`, `ContextErrsClient`; `ctxQuiet`'s case needs a lemma). The two holes
+  (interceptor, `newClient`'s `getToken`) are where it goes.
+- **Q1** `New`'s post at the attempt level: `clientTokAt` ends in `attemptTokOk conn P` (an attempt's
+  token, as the server reads it, meets `P` or is the context's own as grpc delivers it,
+  `metadata.mdNorm`), derived from the credentials' `connTokOk` by `attemptTokOk_of`; C1
+  (`userClientAt`, ClientUser) is `attemptTokOk` at the tokens issued to the user.
+- **Q2** deferred to phase 2 (the `"Bearer "` trim law touches the server's token shape).
+- **Q3** `kubernetes.New`'s post has `clientTokAt`.
+- **Q4** `clientAuthPre_anon`; `credsOfDial_nil`/`_cons`/`_append`. `PerRPCCredentials`' pre stays
+  over its receiver's `rc` and `credTokInv` (what the method reads; `dial` unpacks
+  `tokenBundleInv`).
+- **Q5** `tokenBundleAt`, `tokenBundleInv_at` removed; the stale docstrings fixed.
+- **Q6** the reader bound is stated: `credTokInv` holds `threadBound GF ≤ 2^30`,
+  `NewPerRPCCredentialBundle` takes it, and `clientAuthPre`'s user branch gives it (only a user
+  client makes credentials; anonymous clients and the examples keep `New`'s `2^31`).
+- **Q7** a knowing departure: `P` is the caller's, fixed once per bundle (the client does not know
+  the server's ghost names; a ghost set of stored tokens would need the same invariant).
+- **Q8** left (internal redundancy). **Q9** (a user client of an auth-off member) is for when the
+  handler is proved: one registration for every mode. **Q10** (the watch path's `getToken` outside
+  the gate) is recorded: the `ClientConn.NewStream` axiom's truth relies on whatever is stored being
+  an `Authenticate` reply.

@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 theorem credentials.NewPerRPCCredentialBundle.wp_proof :
     credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) := by
   intro P
-  wp_start as -
+  wp_start as %Htb
   wp_auto
   wp_alloc b as Hb
   iStructNamed Hb
@@ -42,7 +42,9 @@ theorem credentials.NewPerRPCCredentialBundle.wp_proof :
   unfold tokenBundleInv credTokInv
   iexists b, «$v0_ptr»
   iframe rc Hinv
-  ipureintro; rfl
+  isplitr
+  · ipureintro; rfl
+  ipureintro; exact Htb
 
 end proof
 

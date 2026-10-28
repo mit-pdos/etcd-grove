@@ -127,6 +127,7 @@ axiom zap.Uint.wp_proof
 sorry Client.getToken.wp_proof
 sorry Client.unaryClientInterceptor.wp_proof
 sorry authClient.Authenticate.wp_proof
+sorry credentials.perRPCCredential.RequireTransportSecurity.wp_proof
 sorry credentials.perRPCCredentialBundle.UpdateAuthToken.wp_proof
 sorry etcdserverpb.authClient.Authenticate.wp_proof
 sorry newClient.wp_proof

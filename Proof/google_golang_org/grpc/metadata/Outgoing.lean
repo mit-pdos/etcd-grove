@@ -52,6 +52,14 @@ theorem mdVals_mdAdd (md : Option (GoString → Option (List GoString))) (k v : 
     mdVals (mdAdd md k v) k = mdVals md k ++ [v] := by
   simp [mdVals, mdAdd]
 
+/-- **Metadata as grpc delivers it** (the auth plan's C1, 2026-10-28): without the keys that have no
+values (grpc writes one header field per value, so such a key is not sent). -/
+def mdNorm (md : Option (GoString → Option (List GoString))) :
+    Option (GoString → Option (List GoString)) :=
+  md.map fun m k => match m k with
+    | some [] => none
+    | v => v
+
 /-- A key with no upper-case ASCII letter (grpc lower-cases the keys it is given). -/
 def lowerKey (k : GoString) : Prop := ∀ b ∈ k, ¬ (W8 65 ≤ b ∧ b ≤ W8 90)
 

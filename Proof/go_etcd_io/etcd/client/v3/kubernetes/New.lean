@@ -39,7 +39,7 @@ theorem New.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
   wp_apply (wp_New cfg eps V P) $$ [] as %cl %err Hr
   · iframe #
     ipureintro; exact Htb
-  icases Hr with (⟨%He, #Hnc, -⟩ | ⟨%He, %Hcl⟩)
+  icases Hr with (⟨%He, #Hnc, #Htok⟩ | ⟨%He, %Hcl⟩)
   · subst He
     iapply wp_fupd
     wp_auto
@@ -50,7 +50,7 @@ theorem New.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     isplitr
     · ipureintro; rfl
     iexists cl
-    iframe «$r0» Hnc
+    iframe «$r0» Hnc Htok
   · cases err with
     | nil => exact absurd rfl He
     | ok ei =>

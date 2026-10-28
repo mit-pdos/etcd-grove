@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 any `P` the caller picks (`tokenBundleInv`; the auth plan's C1: its token starts `""`). -/
 abbrev credentials.NewPerRPCCredentialBundle.spec : Prop :=
   ∀ (P : GoString → IProp GF),
-  {{ True }}
+  {{ ⌜threadBound GF ≤ 2 ^ 30⌝ }}
     (App (Val (@! go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBundle)) (Val #()))
   {{ (atb : GoInterface), RET #atb; tokenBundleInv (GF := GF) atb P }}
 

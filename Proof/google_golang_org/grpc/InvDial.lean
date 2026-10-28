@@ -86,6 +86,16 @@ def GrpcDialOpt.credsOf : GrpcDialOpt → Option GoInterface
 `WithPerRPCCredentials`'s to `dopts.copts.PerRPCCredentials`). -/
 def credsOfDial (ds : List GrpcDialOpt) : List GoInterface := ds.filterMap GrpcDialOpt.credsOf
 
+@[simp] theorem credsOfDial_nil : credsOfDial [] = [] := rfl
+
+@[simp] theorem credsOfDial_cons (d : GrpcDialOpt) (ds : List GrpcDialOpt) :
+    credsOfDial (d :: ds) = (d.credsOf.toList ++ credsOfDial ds) := by
+  unfold credsOfDial; cases h : d.credsOf <;> simp [List.filterMap_cons, h]
+
+theorem credsOfDial_append (ds ds' : List GrpcDialOpt) :
+    credsOfDial (ds ++ ds') = credsOfDial ds ++ credsOfDial ds' := by
+  unfold credsOfDial; exact List.filterMap_append
+
 /-- The unary interceptor a descriptor sets, if it sets one. -/
 def GrpcDialOpt.unaryOf : GrpcDialOpt → Option GoFunc
   | .unaryInterceptor ic => some ic

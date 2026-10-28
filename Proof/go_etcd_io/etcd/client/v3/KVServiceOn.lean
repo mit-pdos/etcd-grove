@@ -32,20 +32,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-/-- **The token a call's metadata carries** (`auth.ctxTokenOf`'s, over the metadata itself: what a
-metadata-indexed gRPC spec sees of the attempt). -/
-def auth.mdTokenOf [GooseExts] (md : GrpcMd) : Option GoString :=
-  match md with
-  | none => none
-  | some md =>
-    match md go!"token" with
-    | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
-    | some [] => none
-    | none =>
-      match md go!"authorization" with
-      | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
-      | _ => none
-
 theorem auth.ctxTokenOf_md [GooseExts] (ctx : GoInterface) :
     auth.ctxTokenOf ctx = auth.mdTokenOf (metadata.incomingOf ctx) :=
   rfl

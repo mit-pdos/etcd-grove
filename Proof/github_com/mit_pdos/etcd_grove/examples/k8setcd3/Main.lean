@@ -193,9 +193,9 @@ theorem Main.wp_proof
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
     isplitr
-    · iunfold clientAuthPre; ileft; ipureintro; left; rfl
+    · iapply clientAuthPre_anon; rfl
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · cases cerr with
     | nil => exact absurd rfl Hcfail

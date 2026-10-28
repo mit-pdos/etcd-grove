@@ -165,10 +165,9 @@ theorem Client.dial.wp_proof
   -- (C1) the credentials, if any, are the dial's only ones
   have Hcr : credsOfDial (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ ex) = credsOfDial ex := by
-    unfold credsOfDial
-    rw [List.filterMap_append, List.filterMap_append, List.filterMap_append]
+    rw [credsOfDial_append, credsOfDial_append, credsOfDial_append]
     unfold kaOpts
-    split <;> rfl
+    split <;> simp [GrpcDialOpt.credsOf]
   icases Hexc with (%Hex0 | ⟨%pc, %Hex1, #Hpc⟩)
   all_goals first | subst Hex0 | subst Hex1
   · have Hdok : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
@@ -184,7 +183,7 @@ theorem Client.dial.wp_proof
         rw [List.append_nil]; exact Hex
       isplitr
       · ipureintro; exact Hpre
-      rw [Hcr, show credsOfDial ([] : List GrpcDialOpt) = [] from rfl]
+      rw [Hcr, credsOfDial_nil]
       iapply BigSepL.bigSepL_nil.2; itrivial
     iapply HΦ
     icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
@@ -194,7 +193,7 @@ theorem Client.dial.wp_proof
       have Hics : unaryIcsOf (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
           [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ []) = [ic] := by
         rw [List.append_nil, List.append_assoc, unaryIcsOf_kaOpts]; rfl
-      rw [Hcr, Hics, show credsOfDial ([] : List GrpcDialOpt) = [] from rfl] at *
+      rw [Hcr, Hics, credsOfDial_nil] at *
       isplitl []
       · unfold isEtcdConnG
         iexists ic
@@ -217,7 +216,7 @@ theorem Client.dial.wp_proof
         rw [List.append_nil]; exact Hex
       isplitr
       · ipureintro; exact Hpre
-      rw [Hcr, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] from rfl]
+      rw [Hcr, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]]
       iapply BigSepL.bigSepL_singleton.2
       iexact Hpc
     iapply HΦ
@@ -229,7 +228,7 @@ theorem Client.dial.wp_proof
           [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++
           [GrpcDialOpt.perRPCCreds pc]) = [ic] := by
         rw [unaryIcsOf_perRPCCreds, List.append_assoc, unaryIcsOf_kaOpts]; rfl
-      rw [Hcr, Hics, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] from rfl] at *
+      rw [Hcr, Hics, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]] at *
       isplitl []
       · unfold isEtcdConnG
         iexists ic

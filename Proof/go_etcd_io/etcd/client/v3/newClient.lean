@@ -150,7 +150,15 @@ theorem newClient.wp_proof
       · ipureintro; rfl
     rw [decide_eq_false hp]
     wp_auto
+    ihave %Hrb : iprop(⌜threadBound GF ≤ 2 ^ 30⌝) $$ []
+    · iunfold clientAuthPre at Hauth
+      icases Hauth with (%Hup | ⟨%Hrb, -⟩)
+      · exfalso; rcases Hup with h | h
+        · exact hu h
+        · exact hp h
+      · ipureintro; exact Hrb
     wp_apply wp_NewBundle P $$ [] as %atb #Hb
+    · ipureintro; exact Hrb
     (try wp_auto)
     wp_join_done
     iexists _, _, atb
@@ -265,7 +273,7 @@ theorem newClient.wp_proof
       · ileft; ipureintro; exact Hup
       · obtain ⟨rfl, rfl⟩ := Hupc
         iunfold clientAuthPre at Hauth
-        icases Hauth with (%Hup | #Hreg)
+        icases Hauth with (%Hup | ⟨-, #Hreg⟩)
         · ileft; ipureintro; exact Hup
         · iright
           iframe Hreg
@@ -357,9 +365,12 @@ theorem newClient.wp_proof
     -- (C1) its KV calls carry the credentials' tokens meeting `P`
     unfold clientTokAt
     iexists api, conn
-    iframe KV Hctok
-    iapply kvObjAtC_of
-    iframe HapiS Hconn
+    iframe KV
+    isplitl []
+    · iapply kvObjAtC_of
+      iframe HapiS Hconn
+    iapply attemptTokOk_of
+    iexact Hctok
   · cases derr with
     | nil => exact absurd rfl Hderr
     | ok e =>

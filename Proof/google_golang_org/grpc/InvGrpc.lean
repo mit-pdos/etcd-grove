@@ -828,9 +828,9 @@ instance ctxQuiet_persistent (ci : GoInterfaceOk) : Persistent (ctxQuiet (GF := 
 /-- **A context a client call takes** (persistent; the vertical slice's unit V2): one with the
 context model (`isContext`), or a quiet one (`ctxQuiet`: `context.TODO()`, which the recipes pass
 to every call). grpc's `invoke` and etcd's client interceptor accept either: the trust boundary's
-contracts below (`grpcInvokerOk`; the client's `withVersion`, `waitRetryBackoff`, `getToken`,
-`refreshToken`) are stated for `ctxOk`, true of Go's quiet contexts as of the others (a `nil`
-`Done()` channel never fires). -/
+contracts below (`grpcInvokerOk`; the client's `withVersion`, `waitRetryBackoff`) are stated for
+`ctxOk`, true of Go's quiet contexts as of the others (a `nil` `Done()` channel never fires); the
+client's token fetch (`getToken`, `refreshToken`) also takes `ctxErrClient` (its `ContextError`). -/
 def ctxOk (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(context.isContext ci cd ∨ ctxQuiet ci)
 
@@ -859,15 +859,6 @@ opaque noRefusalAt : GoString → Prop
 /-- **Metadata's values at the key `k`** (`none` metadata: none). -/
 def mdGet (md : GrpcMd) (k : GoString) : Option (List GoString) := md.bind fun m => m k
 
-/-- **An attempt's values at the key `k`** (the auth plan's C1, 2026-10-28): the per-RPC
-credentials' values `cm` first, then the context's outgoing ones `md` (grpc-go's
-`http2Client.createHeaderFields`: the credentials' pairs, then `metadata.FromOutgoingContext`'s). -/
-def mdMergeAt (cm md : GrpcMd) (k : GoString) : Option (List GoString) :=
-  match mdGet cm k, mdGet md k with
-  | none, v => v
-  | some vs, none => some vs
-  | some vs, some ws => some (vs ++ ws)
-
 /-- **A key grpc sets itself** (the auth plan's C1): a pseudo-header (`:authority`, ...), a
 `grpc-` key, `content-type`, `user-agent` (grpc's, before the caller's), `te`. What an attempt
 delivers at such a key is not stated. -/
@@ -876,18 +867,22 @@ def grpcReservedKey (k : GoString) : Prop :=
 
 /-- **The per-RPC credentials of the connection `conn` returned the metadata `cm` to an attempt**
 (opaque; the auth plan's C1, 2026-10-28): `none` if it has none or they returned none; what is
-known of `cm` is the credentials' contract (`credsYield_ok`). -/
+known of `cm` is the credentials' contract at the dial (`grpc.NewClient`'s `connCredsOk`). -/
 opaque credsYield (conn : Loc) (cm : GrpcMd) : Prop
 
 /-- **The handler of an attempt on the connection `conn` with the caller's context `ctx` sees the
 metadata `md`** (the auth plan's E3zb; a definition since C1, 2026-10-28, until then opaque): on
 every key grpc does not set itself, the values of the connection's per-RPC credentials' metadata
-`cm` for the attempt (`credsYield`), then the context's outgoing metadata (`metadata.outgoingOf`).
-True of grpc-go v1.84 (`http2Client.createHeaderFields`, to check in C1's phase 2); the attempt
-contract (`grpcInvokerOk`) gives the method's spec at such an `md`. -/
+`cm` for the attempt (`credsYield`), then the context's outgoing metadata (`metadata.outgoingOf`);
+and no key with no values (grpc writes one header field per value, so a key the context carries
+with none is not sent; C1's review, F2). True of grpc-go v1.84 (`http2Client.createHeaderFields`,
+to check in C1's phase 2); the attempt contract (`grpcInvokerOk`) gives the method's spec at such
+an `md`. -/
 def grpcAttemptMd [GooseExts] (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
   ∃ cm, credsYield conn cm ∧
-    ∀ k, ¬ grpcReservedKey k → mdGet md k = mdMergeAt cm (metadata.outgoingOf ctx) k
+    (∀ k, ¬ grpcReservedKey k →
+      metadata.mdVals md k = metadata.mdVals cm k ++ metadata.mdVals (metadata.outgoingOf ctx) k) ∧
+    ∀ k, mdGet md k ≠ some []
 
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
 connection's interceptor chain; unit P3a): a call of a method registered at every address `addrs`
@@ -949,22 +944,32 @@ instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (inv : Go
   unfold grpcInvokerOk; infer_instance
 
 /-- **Per-RPC credentials' metadata**: `GetRequestMetadata`'s map `mp` (a `map[string]string`;
-`nil` for none) as metadata `cm`, each key with its one value (the auth plan's C1). -/
+`nil` for none) as metadata `cm`, each key with its one value (the auth plan's C1), its keys
+lower-case (grpc lower-cases them, `http2Client.getTrAuthData`; C1's review, F3: the metadata
+grpc sends is then the map's). -/
 def credsMapIs (mp : Loc) (cm : GrpcMd) : IProp GF :=
   iprop(⌜mp = null ∧ cm = none⌝ ∨ ∃ m : GMap GoString GoString,
-    ownMap mp DFrac.discard m ∗ ⌜cm = some fun k => (m !! k).map fun v => [v]⌝)
+    ownMap mp DFrac.discard m ∗
+    ⌜cm = (some fun k => (m !! k).map fun v => [v]) ∧ ∀ k v, m !! k = some v → metadata.lowerKey k⌝)
 
 /-- **The per-RPC credentials `pc` return metadata meeting `Q`** (persistent; the auth plan's C1,
 2026-10-28): each call of `pc.GetRequestMetadata(ctx, uri...)` that returns no error returns a map
-whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`). -/
+whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
+`pc.RequireTransportSecurity()` can be called (grpc calls it at the dial to refuse credentials that
+need a secure transport on an insecure one; C1's review, F4). -/
 def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
-  iprop(□ ∀ (ctx : GoInterface) (sl : GoSlice),
+  iprop((□ ∀ (ctx : GoInterface) (sl : GoSlice),
     {{ True }}
       (App (App (App (Val (GoInstruction (MethodResolve
           google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"GetRequestMetadata")))
         (Val #pc)) (Val #ctx)) (Val #sl))
     {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err);
-        ⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm }})
+        ⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm }}) ∗
+    □ {{ True }}
+      (App (App (Val (GoInstruction (MethodResolve
+          google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"RequireTransportSecurity")))
+        (Val #pc)) (Val #()))
+    {{ (b : Bool), RET #b; True }})
 
 instance perRPCCredsOk_persistent (pc : GoInterface) (Q : GrpcMd → IProp GF) :
     Persistent (perRPCCredsOk pc Q) := by

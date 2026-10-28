@@ -69,6 +69,7 @@ public import Proof.go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBun
 public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__PerRPCCredentials
 public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__UpdateAuthToken
 public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__GetRequestMetadata
+public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__RequireTransportSecurity
 public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__UpdateAuthToken
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.RequiresCredentials
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
@@ -582,9 +583,13 @@ theorem credentials.perRPCCredential.wp_GetRequestMetadata :
     EtcdGrove.credentials.perRPCCredential.GetRequestMetadata.spec (GF := GF) (hG := hG) :=
   EtcdGrove.credentials.perRPCCredential.GetRequestMetadata.wp_proof
 
+theorem credentials.perRPCCredential.wp_RequireTransportSecurity :
+    EtcdGrove.credentials.perRPCCredential.RequireTransportSecurity.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.perRPCCredential.RequireTransportSecurity.wp_proof
+
 theorem credentials.perRPCCredentialBundle.wp_PerRPCCredentials :
     EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof credentials.perRPCCredential.wp_GetRequestMetadata
+  EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof credentials.perRPCCredential.wp_GetRequestMetadata credentials.perRPCCredential.wp_RequireTransportSecurity
 
 theorem grpc.wp_WithPerRPCCredentials :
     EtcdGrove.grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG) :=
