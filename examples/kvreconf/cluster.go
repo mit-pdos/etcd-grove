@@ -113,6 +113,7 @@ type Cluster struct {
 	opts  Options
 	Stats Stats
 
+	boot     *pb.ConfState // the bootstrap configuration: every replica's before it applies anything
 	mu       sync.Mutex
 	replicas map[uint64]*Replica
 	nextID   uint64
@@ -123,15 +124,16 @@ type Cluster struct {
 // (raft.StartNode with them as the peers: each node's log starts with their configuration
 // changes).
 func StartCluster(opts Options) *Cluster {
-	c := &Cluster{opts: opts, replicas: make(map[uint64]*Replica), nextID: opts.Voters + 1}
+	c := &Cluster{opts: opts, replicas: make(map[uint64]*Replica), nextID: opts.Voters + 1, boot: &pb.ConfState{}}
 	var peers []raft.Peer
 	for id := uint64(1); id <= opts.Voters; id++ {
 		peers = append(peers, raft.Peer{ID: id})
+		c.boot.Voters = append(c.boot.Voters, id)
 	}
 	c.mu.Lock()
 	for id := uint64(1); id <= opts.Voters; id++ {
-		st := &Storage{raft.NewMemoryStorage()}
-		c.replicas[id] = newReplica(id, raft.StartNode(c.config(id, st), peers), st, c.tick(), &c.Stats, c.sender(id))
+		st := &Storage{MemoryStorage: raft.NewMemoryStorage()}
+		c.replicas[id] = newReplica(id, raft.StartNode(c.config(id, st), peers), st, c.boot, c.tick(), &c.Stats, c.sender(id))
 		c.Stats.add(&c.Stats.ReplicasStarted)
 	}
 	c.mu.Unlock()
@@ -161,7 +163,8 @@ func (c *Cluster) config(id uint64, st *Storage) *raft.Config {
 }
 
 // startNew starts a replica of a fresh id that is in no configuration yet (raft.RestartNode on
-// an empty storage: it waits for a leader to send it the log or a snapshot) and returns its id;
+// an empty storage whose initial configuration is the bootstrap's: it waits for a leader to send
+// it the log or a snapshot) and returns its id;
 // ok is false if the cluster has started maxReplicas already.
 func (c *Cluster) startNew() (uint64, bool) {
 	c.mu.Lock()
@@ -171,8 +174,8 @@ func (c *Cluster) startNew() (uint64, bool) {
 	}
 	id := c.nextID
 	c.nextID++
-	st := &Storage{raft.NewMemoryStorage()}
-	c.replicas[id] = newReplica(id, raft.RestartNode(c.config(id, st)), st, c.tick(), &c.Stats, c.sender(id))
+	st := &Storage{MemoryStorage: raft.NewMemoryStorage(), boot: c.boot}
+	c.replicas[id] = newReplica(id, raft.RestartNode(c.config(id, st)), st, c.boot, c.tick(), &c.Stats, c.sender(id))
 	c.Stats.add(&c.Stats.ReplicasStarted)
 	return id, true
 }

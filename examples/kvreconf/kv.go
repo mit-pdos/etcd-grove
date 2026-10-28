@@ -228,21 +228,38 @@ func validConf(cs *pb.ConfState, cc *pb.ConfChangeV2) bool {
 	trk.Config = cfg
 	trk.Progress = prs
 	chg := confchange.Changer{Tracker: trk, LastIndex: 1}
+	var after tracker.ProgressMap
 	if cc.LeaveJoint() {
-		_, _, err = chg.LeaveJoint()
+		_, after, err = chg.LeaveJoint()
 	} else if autoLeave, ok := cc.EnterJoint(); ok {
-		_, _, err = chg.EnterJoint(autoLeave, cc.GetChanges()...)
+		_, after, err = chg.EnterJoint(autoLeave, cc.GetChanges()...)
 	} else {
-		_, _, err = chg.Simple(cc.GetChanges()...)
+		_, after, err = chg.Simple(cc.GetChanges()...)
 	}
-	return err == nil
+	// the configurations the protocol admits have fewer than 2^62 members (never reached here, with
+	// at most maxReplicas of them, but checked so that the answer is the rule's)
+	return err == nil && uint64(len(after)) < 1<<62
 }
 
 // Storage is a replica's raft storage: a MemoryStorage that, when raft asks for its snapshot
 // (to send to a follower), may answer at random that none is available for now, as the Storage
-// interface allows (raft then asks again later).
+// interface allows (raft then asks again later); and that answers a newcomer's InitialState with
+// the bootstrap configuration (`boot`), so that the newcomer starts where the founders do (Bootstrap
+// makes every peer a voter before the bootstrap's entries are applied) and replays the same
+// configurations from the log. A founder's (`boot` nil) answers the MemoryStorage's, empty, as
+// StartNode requires.
 type Storage struct {
 	*raft.MemoryStorage
+	boot *pb.ConfState
+}
+
+// InitialState is the MemoryStorage's, with the bootstrap configuration for a newcomer.
+func (s *Storage) InitialState() (*pb.HardState, *pb.ConfState, error) {
+	hs, cs, err := s.MemoryStorage.InitialState()
+	if s.boot != nil {
+		cs = proto.Clone(s.boot).(*pb.ConfState)
+	}
+	return hs, cs, err
 }
 
 // Snapshot is the MemoryStorage's, or, one time in four, ErrSnapshotTemporarilyUnavailable.
@@ -275,10 +292,11 @@ type Replica struct {
 	reads    map[uint64]chan string
 }
 
-// newReplica is replica id on node, a node just started on storage, ticked every tick; send
-// delivers the node's messages. It starts the replica's loop and its node's clock.
-func newReplica(id uint64, node raft.Node, storage *Storage, tick time.Duration, stats *Stats, send func([]*pb.Message)) *Replica {
+// newReplica is replica id on node, a node just started on storage at the configuration cs0, ticked
+// every tick; send delivers the node's messages. It starts the replica's loop and its node's clock.
+func newReplica(id uint64, node raft.Node, storage *Storage, cs0 *pb.ConfState, tick time.Duration, stats *Stats, send func([]*pb.Message)) *Replica {
 	r := &Replica{id: id, node: node, storage: storage, stats: stats, tick: tick, stopc: make(chan struct{}),
+		cs: proto.Clone(cs0).(*pb.ConfState),
 		kv: make(map[string]string), applied: make(map[string]string),
 		waiters: make(map[string]chan string), reads: make(map[uint64]chan string)}
 	go r.run(send)
