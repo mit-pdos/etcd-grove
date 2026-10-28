@@ -11,8 +11,8 @@ fewer than `2^63` steps, never gets stuck, no thread of it ends in a panic, and 
 thread's result, if it has one, is `#()`.
 
 `Main` runs `Check(lintest.CounterClock(), 4, 10, 0)` -- 4 goroutines of 10 operations each
-of a register whose writes go through a log that an apply goroutine applies (a write returns
-once applied, a read reads the applied state), traced with a counter clock, the trace checked by porcupine's
+of a register whose writes go through a log that an apply goroutine applies (a write or an
+append returns once applied, a read reads the applied state), traced with a counter clock, the trace checked by porcupine's
 translated `CheckOperationsVerbose` with no timeout -- and panics unless the answer is `Ok`.
 So no panic means porcupine answered `Ok`.
 
@@ -114,7 +114,7 @@ has finished, its result is `#()`; no thread is stuck (each is a value or can st
 has ended in a panic.
 
 What it says about porcupine: `Main` runs 4 clients of 10 operations each (writes for the
-even clients, reads for the odd ones) of the log-applied register, records each operation's
+clients `0 mod 4`, appends for those `2 mod 4`, reads for the odd ones) of the log-applied register, records each operation's
 call and return times with a counter clock, and passes the trace to porcupine's
 `CheckOperationsVerbose` (its translated Go code, no timeout), panicking unless the answer is
 `Ok`. So for every interleaving of the 4 clients and every choice of the scheduler, porcupine

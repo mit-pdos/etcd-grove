@@ -4,7 +4,8 @@ Lean-first (no Rocq counterpart).
 The proof of `Model`: the three closures meet `initSpec`, `stepSpec` and `equalSpec` of
 `regS`; the other fields are `nil`. `Step`'s `state.(string)`, `input.(Op)` and
 `output.(string)` go through by `rep` and `ioOk` (a boxed `string`, `Op` and `string`); a write
-returns `true` and its value (`regStep_put`), a read compares the output with the state
+returns `true` and its value (`regStep_put`), an append `true` and the state with its value
+appended (`regStep_app`), a read compares the output with the state
 (`regStep_get`).
 -/
 module
@@ -59,7 +60,7 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
     iintro !> %Φ' Hpre HΦ'
     simp only [regS]
     icases Hpre with ⟨-, %Hrep, %Hio⟩
-    obtain ⟨b, w, rfl, Ho⟩ := Hio
+    obtain ⟨b, ap, w, rfl, Ho⟩ := Hio
     subst Hrep
     wp_auto
     cases b with
@@ -75,20 +76,33 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
       simp only [regM, regStep_put]
       ipureintro; trivial
     | false =>
-      obtain ⟨x, rfl⟩ := Ho rfl
-      wp_auto
-      iapply HΦ'
-      isplitr
-      · ipureintro; rfl
-      isplitr
-      · ipureintro
+      cases ap with
+      | true =>
+        wp_auto
+        iapply HΦ'
+        isplitr
+        · ipureintro; rfl
+        isplitr
+        · ipureintro
+          simp only [regM, regStep_app, Option.isSome_some]
+        unfold stepPost
+        simp only [regM, regStep_app]
+        ipureintro; trivial
+      | false =>
+        obtain ⟨x, rfl⟩ := Ho rfl rfl
+        wp_auto
+        iapply HΦ'
+        isplitr
+        · ipureintro; rfl
+        isplitr
+        · ipureintro
+          simp only [regM, regStep_get]
+          split <;> simp_all
+        unfold stepPost
         simp only [regM, regStep_get]
-        split <;> simp_all
-      unfold stepPost
-      simp only [regM, regStep_get]
-      by_cases hx : x = s
-      · simp only [hx, ite_true]; ipureintro; trivial
-      · simp only [hx, ite_false]; itrivial
+        by_cases hx : x = s
+        · simp only [hx, ite_true]; ipureintro; trivial
+        · simp only [hx, ite_false]; itrivial
   isplitr
   · ipureintro; nofun
   isplitr

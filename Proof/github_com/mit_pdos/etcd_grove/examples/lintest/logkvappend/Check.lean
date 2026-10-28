@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 The proof of `Check`: `Run`'s premises, met by the fresh server (`New`), its method value
 `s.Apply` (`Server.Apply.spec`, no invariant of its own: `Eapp = ∅`), its model (`Model`), the
 generator closure (`genSpec`: for a client's index `id ≥ 0`, `vals[id%4]` is in bounds, and it
-returns a boxed `Op`, `regInOk`; the slice `vals` it reads is made read-only for it) and the
+returns a boxed `Op`, `regInOk`, whichever its kind; the slice `vals` it reads is made read-only for it) and the
 caller's clock.
 -/
 module
@@ -88,7 +88,7 @@ theorem Check.wp_proof
     iapply HΦ'
     imodintro
     ipureintro
-    exact ⟨_, _, rfl⟩
+    exact ⟨_, _, _, rfl⟩
   iintro %r %Hr
   wp_auto
   iapply HΦ

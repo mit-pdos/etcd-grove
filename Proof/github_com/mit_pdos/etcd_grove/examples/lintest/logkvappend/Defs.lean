@@ -5,35 +5,38 @@ Lean-first (no Rocq counterpart).
 
 `examples/lintest/logkvappend/logkvappend.go` is a register whose writes go through a log: `Put` appends
 its value to the log under the mutex and waits until the apply goroutine (`applyLoop`) has
-applied it; `Get` reads the applied state. `Check` runs the lintest driver on it.
+applied it, and `Append` likewise appends an append (both through `write`, the log's entries
+saying which kind they are, `entry.app`); `Get` reads the applied state. `Check` runs the lintest driver on it.
 
 ## The model (`regS`)
 
 States are `GoString`s, initially `""`. The inputs are boxed `Op` structs (`boxOp`): a write
-`Op{Put: true, Val: v}` takes any state to `v` (whatever its output: porcupine's `Step` does
-not look at a write's output); a read `Op{Put: false, ...}` leaves the state `s` and must output
-the boxed `s` (`boxS`). The inputs are boxed `Op`s (`regInOk`, the driver's `inOk`), and a read's output is a boxed `string` (`ioOk`): what `Step`'s
-`input.(Op)` and, on a read only, `output.(string)` need.
+`Op{Put: true, ...}` takes any state to its `Val` (whatever its output: porcupine's `Step` does
+not look at a write's output); an append `Op{Put: false, Append: true, Val: v}` takes `s` to
+`s ++ v` (likewise); a read (both flags false) leaves the state `s` and must output the boxed
+`s` (`boxS`). The inputs are boxed `Op`s (`regInOk`, the driver's `inOk`), and a read's output is a boxed `string` (`ioOk`): what `Step`'s
+`input.(Op)` and, on a read only, `output.(string)` need. (`opOf` unboxes an input; it replaces
+logkv's `putVal`, which only recognized writes.)
 
 ## The API (`isServer γ s`, `regState γ v`)
 
 The register's abstract state is `regState γ v`: half of a ghost variable `γ`. A server
 `s` serving it is `isServer γ s` (persistent; the name of the log's requests, `γr`, is hidden in
 it). `Put` and `Get` are logically atomic over
-`regState` with no invariant of their own (mask `∅`): the same specs a register under a mutex
+`regState`, and so is `Append`, with no invariant of their own (mask `∅`): the same specs a register under a mutex
 would have. Nothing in them mentions the log.
 
 ## The lock invariant (`logkvappendR γ s`)
 
 The mutex guards the log `s.log`, the applied count `s.applied` and the state `s.state`. The
-log is a list of requests `rs` (`Req`: the value, the name of the writer's saved postcondition
+log is a list of requests `rs` (`Req`: the entry, the name of the writer's saved postcondition
 and the name of its ticket), recorded in a monotone ghost list `γr` (a writer keeps a
 persistent witness of its request's index). The state is the other half of `γ`. The first
 `applied` requests are done (`doneSlot`): the writer's postcondition `P` waits there until the
 writer takes it, leaving its ticket. The others are pending (`pendSlot`): each holds its
-writer's atomic update (`regAu`), a fancy update that takes the register to its value and gives
-back the postcondition `P`. `applyLoop` fires it when it applies the entry (the linearization
-point of `Put`, in the apply goroutine), and moves the slot from pending to done; the writer,
+writer's atomic update (`regAu`), a fancy update that applies the entry to the register (`entryStep`: its
+value, or the state with its value appended) and gives back the postcondition `P`. `applyLoop` fires it when it applies the entry (the linearization
+point of `write`, so of `Put` and `Append`, in the apply goroutine), and moves the slot from pending to done; the writer,
 woken once `applied` passes its index, collects `P`: the saved proposition (`savedPropOwn`,
 discarded) says it is its own (`▷ (P ≡ P')`), the ticket (`token`) that it was not taken yet.
 -/
@@ -45,6 +48,7 @@ public import Perennial.Proof.sync.CondDefs
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.Token
+public import Perennial.Std.Countable
 
 @[expose] public section
 
@@ -97,17 +101,21 @@ abbrev boxOp (o : LOp) : GoInterface :=
   interface.mkOk github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Op.ty #o
 
 open Classical in
-/-- The value an input writes, if it is a write. -/
-def putVal (i : GoInterface) : Option GoString :=
-  if h : ∃ v, i = boxOp ⟨true, v⟩ then some h.choose else none
+/-- The `Op` an input boxes, if it boxes one. -/
+def opOf (i : GoInterface) : Option LOp :=
+  if h : ∃ o, i = boxOp o then some h.choose else none
 
 open Classical in
-/-- The register's step: a write takes any state to its value, whatever its output; a read
-leaves the state, and its output must be the state. -/
+/-- The register's step: a write takes any state to its value and an append appends its value
+to the state, whatever their output; a read leaves the state, and its output must be the
+state. (An input that is not a boxed `Op` has no step.) -/
 def regStep (s : GoString) (io : OpV) : Option GoString :=
-  match putVal io.1 with
-  | some v => some v
-  | none => if io.2 = boxS s then some s else none
+  match opOf io.1 with
+  | some o =>
+    if o.Put' then some o.Val'
+    else if o.Append' then some (s ++ o.Val')
+    else if io.2 = boxS s then some s else none
+  | none => none
 
 /-- The register's sequential model (see the file header). -/
 def regM : SeqModel GoString OpV where
@@ -135,6 +143,11 @@ instance op_intoValInj : go.IntoValInj LOp where
         #z = Eq (Val #(z.Put')) := fun z =>
       (github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Op.TypeAssumptions.get_Put
         z).isGoStep_det_internal.isGoStep_pure_det
+    have ha : ∀ z : LOp, is_go_step_pure (StructFieldGet
+        github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Op.underlying go!"Append")
+        #z = Eq (Val #(z.Append')) := fun z =>
+      (github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Op.TypeAssumptions.get_Append
+        z).isGoStep_det_internal.isGoStep_pure_det
     have hv : ∀ z : LOp, is_go_step_pure (StructFieldGet
         github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Op.underlying go!"Val")
         #z = Eq (Val #(z.Val')) := fun z =>
@@ -144,15 +157,21 @@ instance op_intoValInj : go.IntoValInj LOp where
     rw [h, hp y] at e1
     have e2 := hv x
     rw [h, hv y] at e2
+    have e3 := ha x
+    rw [h, ha y] at e3
     have f1 : Val #(x.Put') = Val #(y.Put') := by
       have := congrFun e1 (Val #(x.Put')); simp only [eq_iff_iff, iff_true] at this; exact this.symm
     have f2 : Val #(x.Val') = Val #(y.Val') := by
       have := congrFun e2 (Val #(x.Val')); simp only [eq_iff_iff, iff_true] at this; exact this.symm
+    have f3 : Val #(x.Append') = Val #(y.Append') := by
+      have := congrFun e3 (Val #(x.Append')); simp only [eq_iff_iff, iff_true] at this; exact this.symm
     injection f1 with f1
     injection f2 with f2
+    injection f3 with f3
     cases x; cases y
     simp only [github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Op.mk.injEq]
-    exact ⟨GoGlobalContext.intoVal_inj_bool f1, go.intoVal_inj f2⟩
+    exact ⟨GoGlobalContext.intoVal_inj_bool f1, GoGlobalContext.intoVal_inj_bool f3,
+      go.intoVal_inj f2⟩
 
 theorem boxOp_inj (a b : LOp) : boxOp a = boxOp b ↔ a = b := by
   constructor
@@ -161,34 +180,31 @@ theorem boxOp_inj (a b : LOp) : boxOp a = boxOp b ↔ a = b := by
     exact go.intoVal_inj h
   · rintro rfl; rfl
 
-theorem putVal_boxOp (b : Bool) (v : GoString) :
-    putVal (boxOp ⟨b, v⟩) = if b then some v else none := by
-  unfold putVal
-  split
-  · rename_i h
-    have hc := h.choose_spec
-    rw [boxOp_inj] at hc
-    simp only [github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Op.mk.injEq] at hc
-    obtain ⟨rfl, hv⟩ := hc
-    simp only [ite_true]
-    exact congrArg some hv.symm
-  · rename_i h
-    cases b
-    · rfl
-    · exact absurd ⟨v, rfl⟩ h
+theorem opOf_boxOp (o : LOp) : opOf (boxOp o) = some o := by
+  unfold opOf
+  have h : ∃ o', boxOp o = boxOp o' := ⟨o, rfl⟩
+  rw [dite_eq_left h]
+  exact congrArg some ((boxOp_inj _ _).1 h.choose_spec).symm
 
 /-- The model on a write. -/
-theorem regStep_put (s v : GoString) (o : GoInterface) :
-    regStep s (boxOp ⟨true, v⟩, o) = some v := by
+theorem regStep_put (s : GoString) (a : Bool) (v : GoString) (o : GoInterface) :
+    regStep s (boxOp ⟨true, a, v⟩, o) = some v := by
   unfold regStep
-  rw [putVal_boxOp]
+  rw [opOf_boxOp]
+  rfl
+
+/-- The model on an append. -/
+theorem regStep_app (s v : GoString) (o : GoInterface) :
+    regStep s (boxOp ⟨false, true, v⟩, o) = some (s ++ v) := by
+  unfold regStep
+  rw [opOf_boxOp]
   rfl
 
 /-- The model on a read with output `boxS x`. -/
 theorem regStep_get (s v x : GoString) :
-    regStep s (boxOp ⟨false, v⟩, boxS x) = if x = s then some s else none := by
+    regStep s (boxOp ⟨false, false, v⟩, boxS x) = if x = s then some s else none := by
   unfold regStep
-  rw [putVal_boxOp]
+  rw [opOf_boxOp]
   simp only [Bool.false_eq_true, ite_false, boxS_inj]
 
 end inj
@@ -218,9 +234,21 @@ abbrev muLocker (s : Loc) : GoInterfaceOk :=
 
 end addrs
 
-/-- A request in the log: the value written, the name of the writer's saved postcondition and
+/-- The Go struct `entry`: a log entry. -/
+abbrev LEntry [GooseExts] := github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.entry
+
+/-- What applying the entry `e` does to the register's state `x`: an append appends its value,
+a write replaces the state with it. -/
+def entryStep [GooseExts] (e : LEntry) (x : GoString) : GoString :=
+  if e.app' then x ++ e.val' else e.val'
+
+instance entry_countable [GooseExts] : Pos.Countable LEntry :=
+  countableOfLeftInverse (fun e : LEntry => (e.app', e.val')) (fun p => ⟨p.1, p.2⟩)
+    (fun _ => rfl)
+
+/-- A request in the log: the entry written, the name of the writer's saved postcondition and
 the name of its ticket. -/
-abbrev Req [GooseExts] := GoString × GName × GName
+abbrev Req [GooseExts] := LEntry × GName × GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -233,11 +261,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvapp
 def regS : ModelSpec GF GoString where
   M := regM
   rep _ v s := iprop(⌜v = boxS s⌝)
-  ioOk i o := iprop(⌜∃ b v, i = boxOp ⟨b, v⟩ ∧ (b = false → ∃ x, o = boxS x)⌝)
+  ioOk i o := iprop(⌜∃ p a v, i = boxOp ⟨p, a, v⟩ ∧ (p = false → a = false → ∃ x, o = boxS x)⌝)
   ioOk_pers _ _ := by infer_instance
 
 /-- The register's inputs: boxed `Op`s (the driver's `inOk`). -/
-abbrev regInOk (i : GoInterface) : IProp GF := iprop(⌜∃ b v, i = boxOp ⟨b, v⟩⌝)
+abbrev regInOk (i : GoInterface) : IProp GF := iprop(⌜∃ p a v, i = boxOp ⟨p, a, v⟩⌝)
 
 /-- **The register's abstract state is `v`.** -/
 def regState (γ : GName) (v : GoString) : IProp GF := ghostVar γ (1 : Qp).half v
@@ -245,10 +273,10 @@ def regState (γ : GName) (v : GoString) : IProp GF := ghostVar γ (1 : Qp).half
 instance regState_timeless (γ : GName) (v : GoString) : Timeless (regState (GF := GF) γ v) := by
   unfold regState; infer_instance
 
-/-- A writer's atomic update, as the lock invariant keeps it: it takes the register from any
-state to `v`, giving `P`. -/
-def regAu (γ : GName) (v : GoString) (P : IProp GF) : IProp GF :=
-  iprop(|={⊤, ∅}=> ∃ x, regState γ x ∗ (regState γ v -∗ |={∅, ⊤}=> P))
+/-- A writer's atomic update, as the lock invariant keeps it: it applies the entry `e` to the
+register's state (`entryStep`), giving `P`. -/
+def regAu (γ : GName) (e : LEntry) (P : IProp GF) : IProp GF :=
+  iprop(|={⊤, ∅}=> ∃ x, regState γ x ∗ (regState γ (entryStep e x) -∗ |={∅, ⊤}=> P))
 
 /-- A pending request: its writer's atomic update, with the postcondition it saved. -/
 def pendSlot (γ : GName) (r : Req) : IProp GF :=
@@ -261,7 +289,7 @@ def doneSlot (r : Req) : IProp GF :=
 /-- The lock invariant of `s.mu` (see the file header). -/
 def logkvappendR (γ γr : GName) (s : Loc) : IProp GF :=
   iprop(∃ (sl : GoSlice) (rs : List Req) (a : w64) (st : GoString),
-    logAddr s ↦ sl ∗ sl ↦* rs.map Prod.fst ∗ ownSliceCap GoString sl (DFrac.own 1) ∗
+    logAddr s ↦ sl ∗ sl ↦* rs.map Prod.fst ∗ ownSliceCap LEntry sl (DFrac.own 1) ∗
     appliedAddr s ↦ a ∗ stateAddr s ↦ st ∗
     ghostVar γ (1 : Qp).half st ∗ monoListAuthOwn γr 1 rs ∗
     ⌜uint.nat a ≤ rs.length⌝ ∗

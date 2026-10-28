@@ -3,10 +3,11 @@ Lean-first (no Rocq counterpart).
 
 The proof of `(*Server).applyLoop`: the loop holds the mutex and its lock invariant
 (`logkvappendR`) between `Wait`s. Applying the entry at `applied` is the linearization point of its
-writer's `Put`: the entry's pending slot (`pendSlot`) holds the writer's atomic update, which
+writer's `write`: the entry's pending slot (`pendSlot`) holds the writer's atomic update, which
 takes the register (the caller's half of the ghost variable, agreeing with the lock
-invariant's half, the value of `s.state`) to the entry's value; its result `P` goes to the
-entry's done slot (`doneSlot`), where the writer collects it.
+invariant's half, the value of `s.state`) to `entryStep e` of it (the entry's value, or the state
+with the value appended, as the code's two branches store); its result `P` goes to the entry's
+done slot (`doneSlot`), where the writer collects it.
 -/
 module
 
@@ -81,31 +82,34 @@ theorem Server.applyLoop.wp_proof : Server.applyLoop.spec (GF := GF) (hG := hG) 
     icombine Hg Hx gives %Hagree
     obtain ⟨_, Heq⟩ := Hagree
     subst Heq
-    imod ghostVar_update_halves rs[uint.nat a].1 γ _ _ $$ Hg Hx with ⟨Hg, Hx⟩
+    imod ghostVar_update_halves (entryStep rs[uint.nat a].1 st) γ _ _ $$ Hg Hx with ⟨Hg, Hx⟩
     imod Hclose $$ [Hx] with HPr
     · iunfold regState; iexact Hx
     imodintro
     wp_apply wp_load_slice_index sl (sint.Z a) (List.map Prod.fst rs) _ rs[uint.nat a].1
       Hidx.1 $$ [$Hsl] as Hsl
     · ipureintro; exact Hlook
-    wp_for_post
-    iframe
-    iunfold logkvappendR
+    -- the store: `state + e.val` for an append, `e.val` for a write (`entryStep`)
     have Hn : uint.nat (a + W64 1) = uint.nat a + 1 := by
       simp only [List.length_map] at Hlen
       word
-    iexists sl, rs, a + W64 1, rs[uint.nat a].1
-    rw [Hn, List.take_add_one, List.getElem?_eq_getElem Hlt]
-    simp only [Option.toList_some]
-    iframe
-    isplitr
-    · ipureintro; omega
-    iapply BigSepL.bigSepL_singleton.2
-    iunfold doneSlot
-    iexists P
-    iframe HP
-    ileft
-    iexact HPr
+    unfold entryStep at *
+    cases hb : rs[uint.nat a].1.app' <;> simp only [↓reduceIte, Bool.false_eq_true] <;>
+      wp_auto <;> wp_for_post <;> iframe
+    all_goals
+      iunfold logkvappendR
+      iexists sl, rs, a + W64 1, _
+      rw [Hn, List.take_add_one, List.getElem?_eq_getElem Hlt]
+      simp only [Option.toList_some]
+      iframe
+      isplitr
+      · ipureintro; omega
+      iapply BigSepL.bigSepL_singleton.2
+      iunfold doneSlot
+      iexists P
+      iframe HP
+      ileft
+      iexact HPr
   · -- caught up: wake the writers, then wait for more entries
     ihave HR : logkvappendR γ γr s $$ [Hlog Hsl Hcap Happ Hst Hg Hrs Hdone Hpend]
     · iunfold logkvappendR
