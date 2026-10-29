@@ -2212,8 +2212,6 @@ theorem isKeyBackendG_of_backend
       · iintro !> %hc; exact (hC hc).elim
       isplitr
       · iintro !> %hc; exact (hC hc).elim
-      isplitr
-      · iintro !> %hc; exact (hC hc).elim
       iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
     isplitr
     · iunfold batchTxInitSpec
@@ -2311,11 +2309,10 @@ theorem isKeyBackendG_of_backendC
       isplitr
       · iapply bt_lockOutJ hLO hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr
-      · -- the job's `UnsafeDelete(Key, k)` of a registered key, spending its permit (3.1)
-        iintro !> -; sorry -- backend-cmp Draft: new case (UnsafeDelete of a safe-range key, 3.1-3.2)
-      isplitr
-      · -- the job's limited range: thin of the logical bucket, slices valid until the commit (3.5)
-        iintro !> -; sorry -- backend-cmp Draft: new case (the limited range, 3.2/3.5)
+      · -- the job's limited range: thin of the logical bucket, its slices lent against a token of
+        -- the call, and the delete of a registered key it returned under that token (3.1-3.2,
+        -- 3.5; review round 1, F1/F2)
+        iintro !> -; sorry -- backend-cmp Draft: new case (the limited range and its delete, 3.1-3.5)
       isplitr
       · -- the job's `UnsafePut(Meta, compaction key, revision)` (3.3)
         iintro !> -; sorry -- backend-cmp Draft: new case (the Meta keys' value invariant, 3.3)

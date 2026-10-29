@@ -311,7 +311,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   icases Hbt with ⟨%Locked, %LockedO, #HbtS, -⟩
   ihave #HbtS0 := HbtS
   iunfold mvcc.batchTxSpecG at HbtS0
-  icases HbtS0 with ⟨-, -, #HUnl0, -, -, #HLockOut, #HDel, #HRng, -⟩
+  icases HbtS0 with ⟨-, -, #HUnl0, -, -, #HLockOut, #HRng, -⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   iapply HLockOut $$ [] 
   · iframe #
@@ -339,7 +339,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     simp [u64Be_length] at this
   · iframe; iframe #
   inext
-  iintro %ks %vs ⟨Hlocked, HbvW, HlastS, HendS, %m', %Rd, #Hthin, #Hcap, #Hcap2, #Hpv, -⟩
+  iintro %ks %vs ⟨HbvW, HlastS, HendS, %m', %Rd, %T, Hlocked, HTback, #Hthin, #Hcap, #Hcap2, #Hpv,
+    -, #HDelC⟩
   (try wp_auto)
   rename_i igo
   irename : (igo ↦ zero_val w64 : IProp GF) => Higo
@@ -374,7 +375,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   ihave IH : iprop(∃ (n k kc : w64) (hv : kvHasher) (rv : Revision) (D : List GoString),
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ k ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
-      "h" ∷ (h_ptr ↦ hv ∗ ⌜mvcc.kvHasherOk hv⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗ "Hlocked" ∷ Locked [] ∗
+      "h" ∷ (h_ptr ↦ hv ∗ ⌜mvcc.kvHasherOk hv⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗ "Hlocked" ∷ T ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ L.length⌝ ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧ (∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k) ∧
         (∀ k ∈ D, ∀ j (hj : j < L.length), sint.nat n ≤ j → go.GoStringLt k (L[j]).1) ∧
@@ -419,15 +420,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     wp_apply (wp_map_lookup2 Revision.ty (go.GoType.StructType []) keep A (mvcc.revVal r) (DFrac.own 1))
       $$ [$Hkeep] as Hkeep
     (try wp_auto)
-    ihave #HDel1 := HDel $$ []
-    · ipureintro; trivial
     obtain ⟨HnL, HeL⟩ := List.getElem?_eq_some_iff.1 He
     have Henotin : e.1 ∉ D := fun hm =>
       go.goStringLt_irrefl _ (by have := HD.2.2.2.1 e.1 hm (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this)
     have Hesp : mvcc.sc_space log (sint.Z rev) e.1 :=
       mvcc.sc_mem log ilog rev Hrev.2 HilWf.2.1 Hpre Hsub (HLmem e (List.mem_of_getElem? He)).1 r t
         Hk Hrm
-    wp_join iprop(∃ (kc' : w64) (D' : List GoString), keyCompactions_ptr ↦ kc' ∗ Locked [] ∗
+    wp_join iprop(∃ (kc' : w64) (D' : List GoString), keyCompactions_ptr ↦ kc' ∗ T ∗
         keys_ptr ↦ ks ∗ igo ↦ n ∗ tx_ptr ↦ GoInterface.ok bt ∗
         ⌜sint.Z kc' = D'.length ∧ D'.Nodup ∧ (∀ k ∈ D', mvcc.sc_space log (sint.Z rev) k) ∧
           ∀ k ∈ D', k = e.1 ∨ k ∈ D⌝)
@@ -451,7 +450,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       (try wp_auto)
       wp_bind (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #ksl))
       -- (Draft round 2) the key slice `keys[i]` passed lent, as the range returned it
-      iapply HDel1 $$ [Hlocked]
+      iapply HDelC $$ %ksl %e.1 [Hlocked]
       · iframe Hlocked; iframe #
       inext
       iintro Hlocked
@@ -528,6 +527,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       · exact Hsucc
       · exact go.goStringLt_trans
           (by have := HD.2.2.2.1 k hk (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this) Hsucc
+  -- the lock back from the range's token
+  ihave Hlocked := HTback $$ Hlocked
   -- the batch read: short (the last), or full
   wp_if_destruct
   · -- the last batch: `finishedCompactRev = rev`, the compaction finished

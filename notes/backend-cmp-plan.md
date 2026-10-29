@@ -355,3 +355,30 @@ delete capability over its own `Rd`), F4 (the delete permits a fixed stock per s
 bridge's non-compaction clauses re-proved over the new `Locked`), F7 (`dlInit` kept unfixed for mvcc;
 `isKeyBackendG_congrDel` under `▷`), F8 (`Unlock.specC`'s deleting branch also requires no puts to
 non-hook buckets; the first branch dropped), F9 (`kbSR`/`srSlot` one definition), F11.
+
+### Draft, round-1 repairs (2026-10-28)
+
+- **F3** (`699bc59950`, the user's trust-base decision): bbolt's `Bucket.Delete_kv` takes the key
+  owned or one of the transaction's own slices (`txBytes tx`), given back as taken (a flag `own`);
+  `batchTx.UnsafeDelete`'s proof passes `own := true` (unchanged otherwise). `UnsafeDelete.specC`
+  takes the same choice over the session's transaction. The trust base changes by this axiom's
+  statement only (record it in `etc/tcb-baseline.txt`'s review when the stage merges).
+- **F6**: `dlNone` and `BNames.dln` dropped; `dlInit` is the registration's whole fraction alone;
+  `dlInit_noDel : dlInit γ ∗ dlIs γ nk ⊢ False` (an unfixed registration rules out every deletable
+  key: `saved_pred_valid_2` with `DFrac.valid_own_op_discard`, no later), which D22's exact readers
+  use.
+- **F8**: `Unlock.specC`'s deleting branch requires no puts to the non-hook buckets and subsumes
+  `viewSame`'s (one branch plus the clients'-view branch).
+- **F9**: `backend.srSlot`/`srHeld` (`DelKeys.lean`), one definition; mvcc's `kbSR` over it.
+- **F1/F2**: the limited range lends its slices against a token `T` of the call (`T ∗ (T -∗ Locked
+  l)`, `rdCap Rd T`, `rdCap2 Rd T`) and returns the delete of a key it returned, over its own `Rd`
+  and `T` (`{{ Key ↦□ b ∗ T ∗ Del k ∗ DP k ∗ □ Rd key k }} UnsafeDelete {{ T }}`); the separate
+  lent-key delete clause is gone (the contract has nine clauses). The job threads `T` through its
+  loop and takes the lock back after it (`store__scheduleCompaction.lean`, still proved). The
+  bridge's two new cases (the delete, the range) are one `sorry` now.
+- **F7** (recorded, not done): `SnapApplyWalk` keeps discarding `dlInit` until D22's exact readers
+  are routed to it (a change to D22's statements, the wiring step's); `isKeyBackendG_congrDel` is
+  to be stated under `▷` (`saved_pred_agree`) when it is written (the wiring step).
+- **F5** (recorded): the new bridge's `Locked` must change (the deletes' `ndel`), so every clause
+  over it is re-proved, not only the four new cases; the estimate in "Draft (second round)" grows
+  by `bkLocked`'s 54 uses.

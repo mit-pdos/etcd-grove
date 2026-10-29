@@ -1086,14 +1086,10 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
             (Del k ∗ ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice))) }}) ∗
     □ ({{ Dep ∗ RT ∗ WT }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
       {{ RET #(); Locked [] ∗ W ∗ P ∗ RT }}) ∗
-    -- (the backend-compaction stage, Draft round 2: the key lent, as the limited range returns
-    -- it: readable through `Rd` under the session's token, which the delete also holds)
-    □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString)
-        (Rd : GoSlice → GoString → IProp GF),
-      {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗ Del k ∗ DP k ∗
-          rdCap Rd (Locked l) ∗ □ Rd key k }}
-        (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key))
-      {{ RET #(); Locked l }}) ∗
+    -- (the backend-compaction stage, review round 1, F1/F2) the limited range lends its slices
+    -- against a token `T` of this call (as the point read does: bbolt's slices die at the
+    -- session's commit), from which the lock comes back, and hands out the delete over its own
+    -- reader `Rd` and token: a key it returned is deleted under `T`
     □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (lo hi : GoSlice)
         (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac),
       ⌜0 < sint.Z limit ∧ khi ≠ []⌝ →
@@ -1101,13 +1097,19 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
           lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi }}
         (App (App (App (App (Val #(methods bt.ty go!"UnsafeRange" bt.v)) (Val #b)) (Val #lo))
           (Val #hi)) (Val #limit))
-      {{ (ks vs : GoSlice), RET (PairV #ks #vs); Locked l ∗ View q m ∗ lo ↦*{dqlo} klo ∗
+      {{ (ks vs : GoSlice), RET (PairV #ks #vs); View q m ∗ lo ↦*{dqlo} klo ∗
           hi ↦*{dqhi} khi ∗
-          ∃ (m' : Bucket) (Rd : GoSlice → GoString → IProp GF),
+          ∃ (m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (T : IProp GF),
+            T ∗ (T -∗ Locked l) ∗
             snapThin (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) m' Del ∗
-            rdCap Rd (Locked l) ∗ rdCap2 Rd (Locked l) ∗
+            rdCap Rd T ∗ rdCap2 Rd T ∗
             pairVals Rd ks vs ((bucketRange m' klo khi).take (sint.Z limit).toNat) ∗
-            [∗list] p ∈ (bucketRange m' klo khi).take (sint.Z limit).toNat, DP p.1 }}) ∗
+            ([∗list] p ∈ (bucketRange m' klo khi).take (sint.Z limit).toNat, DP p.1) ∗
+            □ (∀ (key : GoSlice) (k : GoString),
+              {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ T ∗ Del k ∗ DP k ∗
+                  □ Rd key k }}
+                (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key))
+              {{ RET #(); T }}) }}) ∗
     □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (b : GoInterface) (key val : GoSlice) (k v : GoString)
         (dq dq' : DFrac),
       ⌜metaCompactKey k ∧ metaRevVal v⌝ →
@@ -3991,7 +3993,7 @@ theorem storeTxnWriteIs_leaseDel (tw s : Loc) (γ : StoreNames) (ilog : Log) (pe
       (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) $$ []
   · iexact Hbt
   iunfold batchTxSpecG at Hbt0
-  icases Hbt0 with ⟨-, -, -, -, -, -, -, -, -, #HDel⟩
+  icases Hbt0 with ⟨-, -, -, -, -, -, -, -, #HDel⟩
   iapply HDel $$ %(pendPuts ilog pend) %b %key %k %dq %r [$HL $Hlocked $Hkey $Hrb]
   inext
   iintro ⟨Hlk, Hkey, Hrb⟩
