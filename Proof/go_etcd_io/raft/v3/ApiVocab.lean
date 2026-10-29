@@ -460,7 +460,10 @@ storage's registry (`storCert`, the log's `Hkcert`), which the application's `Ap
 def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF :=
   match L with
   | none => appendRight st es
-  | some l => iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝) ∗
+  | some l => iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl ∧
+      -- (2026-10-29, stage U8) the hold at least the floor, at most the snapshot's index (what
+      -- `MemoryStorage.ApplySnapshot` asks)
+      uint.Z σ.fl ≤ uint.Z σ.hd ∧ uint.Z σ.hd ≤ uint.Z l.snap.Metadata'.Index'⌝) ∗
       storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists))
 
 /-- (D22 S-d3a) **The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes:
@@ -472,7 +475,9 @@ def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
   iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
     ∃ σr, ownStorage st σr ∗ ⌜σr.prev = snapId l.snap ∧ σr.ss = snapId l.snap ∧ σr.ents = es ∧
       σr.pend = [] ∧ σr.fl = l.fl ∧ σr.scs = l.snap.Metadata'.ConfState'.lists ∧
-      σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data'⌝)
+      σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data' ∧
+      -- (2026-10-29, stage U8) the hold at least the floor, at most the snapshot's index
+      uint.Z σr.fl ≤ uint.Z σr.hd ∧ uint.Z σr.hd ≤ uint.Z l.snap.Metadata'.Index'⌝)
 
 /-- (D22 S-d4; here since 2026-10-28, from `InvNodeChan.lean`) The driver's receipt at `Advance` for the `Ready`'s storage hand-out: of the append
 of its entries (`appendReceipt`), or after a snapshot `Ready` the storage at the snapshot and the

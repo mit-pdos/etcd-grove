@@ -192,9 +192,10 @@ def memStorTermsI (st : Storage) (ts : List w64) : IProp GF :=
     memTermsAt γs ts)
 
 omit package_sem in
-/-- (stage U4a) The owner vouches for the terms within its floor (`memStorage_terms`). -/
+/-- (stage U4a) The owner vouches for the terms within its hold (`memStorage_terms`; within its
+floor until stage U8). -/
 theorem memStorTermsI_intro (st : Storage) (σ : StorState) (ts : List w64)
-    (Hp : σ.pend = []) (Hl : (ts.length : Int) ≤ uint.Z σ.fl) (Ht : TermsOn σ ts) :
+    (Hp : σ.pend = []) (Hl : (ts.length : Int) ≤ uint.Z σ.hd) (Ht : TermsOn σ ts) :
     memOwnStorage (GF := GF) st σ ⊢ |==> (memOwnStorage st σ ∗ memStorTermsI st ts) := by
   unfold memOwnStorage
   iintro ⟨%ms, %γs, %Hst, #Hreg, Hown, %Hne⟩
@@ -207,6 +208,54 @@ theorem memStorTermsI_intro (st : Storage) (σ : StorState) (ts : List w64)
   unfold memStorTermsI
   iexists ms, γs
   iframe Hreg Htm
+  ipureintro; exact Hst
+
+/-- (2026-10-29, stage U8) The terms the owner vouched for before an append: the `MemoryStorage`'s,
+of its names. -/
+def memStorTermsPreI (st : Storage) (ts : List w64) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
+    memTermsPre γs ts)
+
+omit package_sem in
+/-- (stage U8) The owner vouches for the terms its view will have, its batch appended
+(`memStorage_termsPre`). -/
+theorem memStorTermsPreI_intro (st : Storage) (σ : StorState) (ts : List w64)
+    (Hl : (ts.length : Int) ≤ uint.Z σ.hd) (Ht : TermsOn (storAbsorb σ) ts) :
+    memOwnStorage (GF := GF) st σ ⊢ |==> (memOwnStorage st σ ∗ memStorTermsPreI st ts) := by
+  unfold memOwnStorage
+  iintro ⟨%ms, %γs, %Hst, #Hreg, Hown, %Hne⟩
+  icases memStorage_termsPre ms γs σ ts Hl Ht $$ Hown with ⟨Hown, #Htm⟩
+  imodintro
+  isplitl [Hown]
+  · iexists ms, γs
+    iframe Hreg Hown
+    ipureintro; exact ⟨Hst, Hne⟩
+  unfold memStorTermsPreI
+  iexists ms, γs
+  iframe Hreg Htm
+  ipureintro; exact Hst
+
+omit package_sem in
+/-- (stage U8) The receipt of an append makes them the storage's (`memTermsAt_receipt`). -/
+theorem memStorTermsI_receipt (st : Storage) (ts : List w64) (σ : StorState) (p : List EntryM) :
+    memStorTermsPreI (GF := GF) st ts ∗ memStorAppendedTok st σ p ⊢
+      |==> (memStorAppendedTok st σ p ∗ memStorTermsI st ts) := by
+  unfold memStorTermsPreI memStorAppendedTok
+  iintro ⟨⟨%ms, %γs, %Hst, #Hreg, #Hpre⟩, ⟨%ms', %γs', %Hst', #Hreg', Ht⟩⟩
+  rw [Hst] at Hst'
+  have := memStorIface_inj (GF := GF) _ _ Hst'
+  subst this
+  icases memStorReg_agree ms γs γs' $$ Hreg Hreg' with %H
+  subst H
+  icases memTermsAt_receipt ms γs ts σ p $$ Hpre Ht with ⟨Ht, #Hta⟩
+  imodintro
+  isplitl [Ht]
+  · iexists ms, γs
+    iframe Hreg Ht
+    ipureintro; exact Hst
+  unfold memStorTermsI
+  iexists ms, γs
+  iframe Hreg Hta
   ipureintro; exact Hst
 
 /-- The storage model of an application whose `Storage`s are bare `MemoryStorage`s. -/
@@ -226,6 +275,10 @@ instance memStorageModel : StorageModel GF where
   storTermsAt := memStorTermsI
   storTermsAt_persistent := fun st ts => by unfold memStorTermsI; infer_instance
   storTermsAt_intro := memStorTermsI_intro
+  storTermsPre := memStorTermsPreI
+  storTermsPre_persistent := fun st ts => by unfold memStorTermsPreI; infer_instance
+  storTermsPre_intro := memStorTermsPreI_intro
+  storTermsAt_receipt := memStorTermsI_receipt
 
 omit package_sem in
 theorem memStorCert_at (ms : Loc) (γs : MemStorNames) (k : SnapTrip) :

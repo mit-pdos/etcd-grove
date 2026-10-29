@@ -43,7 +43,8 @@ theorem raftLog.acceptApplying.wp_proof
     all_goals (simp only [Hasz] at *; try omega)
     all_goals (try exact ⟨Hfl.1, by have := Hfl.2.1; simp only; omega, Hi.2.2.2, Hfl.2.2.2.1,
       fun h1 h2 => ⟨(Hfl.2.2.2.2.1 h1 h2).1, by
-        have := (Hfl.2.2.2.2.1 h1 h2).2; have := Hsn h1; simp only; omega⟩, Hfl.2.2.2.2.2⟩)
+        have := (Hfl.2.2.2.2.1 h1 h2).2; have := Hsn h1; simp only; omega⟩, Hfl.2.2.2.2.2.1,
+      HdOk.mono Hfl.2.2.2.2.2.2 (by simp only; omega) (Int.le_refl _)⟩)
     all_goals (try exact ⟨Hprel.1, SipOk.applying_lt (ls := ls) Hprel Hstore Hoffset (fun h _ => .inl (Hsn h))⟩)
     · intro h; cases h
   · -- under the limit: the log is re-sealed for `maxAppliableIndex`
@@ -53,7 +54,8 @@ theorem raftLog.acceptApplying.wp_proof
       all_goals (simp only [Hasz, Hamx] at *; try omega)
       all_goals (try exact ⟨Hfl.1, by have := Hfl.2.1; simp only; omega, Hi.2.2.2, Hfl.2.2.2.1,
       fun h1 h2 => ⟨(Hfl.2.2.2.2.1 h1 h2).1, by
-        have := (Hfl.2.2.2.2.1 h1 h2).2; have := Hsn h1; simp only; omega⟩, Hfl.2.2.2.2.2⟩)
+        have := (Hfl.2.2.2.2.1 h1 h2).2; have := Hsn h1; simp only; omega⟩, Hfl.2.2.2.2.2.1,
+      HdOk.mono Hfl.2.2.2.2.2.2 (by simp only; omega) (Int.le_refl _)⟩)
       all_goals (try exact ⟨Hprel.1, SipOk.applying_lt (ls := ls) Hprel Hstore Hoffset (fun h _ => .inl (Hsn h))⟩)
     all_goals (try exact ⟨Hprel.1, SipOk.applying_lt (ls := ls) Hprel Hstore Hoffset (fun h _ => .inl (Hsn h))⟩)
     have Hb' : ¬ uint.Z ls.apmax ≤ uint.Z (ls.apsize + size) := by rw [← Hamx, ← Hasz]; exact Hif

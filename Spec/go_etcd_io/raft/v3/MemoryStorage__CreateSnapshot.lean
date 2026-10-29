@@ -104,20 +104,25 @@ witness of the storage's terms (`memTermsAt γs ts`: the storage's entries above
 indices `1..|ts|` have the terms `ts`, for good), and `i` is among them, at the term `t`. So the
 certificate is asked at `t` only (a certificate of a cluster with reconfiguration fixes its term:
 `snapshotCert_make`), and the new snapshot is at `(t, i)`. (The success branch has the storage's
-boundary below `i`, at most its snapshot's index, so the witness covers `i`.) -/
+boundary below `i`, at most its snapshot's index, so the witness covers `i`.)
+
+(2026-10-29, stage U8) **No floor witness**: the witness of the terms is within the storage's hold
+(`memTermsAt_hdLb`: the storage keeps its entries up to it, `StorState.hd`), which is what the
+snapshot needs -- it is at an entry the storage keeps, at most the hold raft bounds by its commit
+index, not necessarily at most the floor (a snapshot taken mid-`Ready`, after appending its
+entries, before `Advance`). Until then the caller also gave `memFloorTok ms γs x` and `i ≤ x`. -/
 abbrev MemoryStorage.CreateSnapshot.unifiedSpec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (x i : w64) (cs : Loc) (dq : DFrac)
+  ∀ (ms : Loc) (γs : MemStorNames) (i : w64) (cs : Loc) (dq : DFrac)
     (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface)
     (ts : List w64) (t : w64),
   ts[uint.nat i - 1]? = some t →
   ⊢ ∀ Φ : val → IProp GF,
     (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      memSnapRO ms γs ∗ memKey γs.ak ∗ memFloorTok ms γs x ∗ memTermsAt γs ts ∗
+      memSnapRO ms γs ∗ memKey γs.ak ∗ memTermsAt γs ts ∗
       memCsArg cs dq oc ∗ data ↦* bs ∗
       globalAddr ErrSnapOutOfDate ↦□ eood) -∗
     (|={⊤ \ ↑memSnapN, ∅}=> ∃ σt : StorState, memSnapTokG γs σt ∗
-      ⌜uint.Z σt.ss.index' < uint.Z i →
-        uint.Z σt.prev.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z x⌝ ∗
+      ⌜uint.Z σt.ss.index' < uint.Z i → uint.Z σt.prev.index' ≤ uint.Z i⌝ ∗
       □ memStorCert γs
         (snapTrip (memSnapCreated σt i t oc bs) (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists) ∗
       ((⌜uint.Z i ≤ uint.Z σt.ss.index'⌝ -∗ memSnapTokG γs σt ={∅, ⊤ \ ↑memSnapN}=∗

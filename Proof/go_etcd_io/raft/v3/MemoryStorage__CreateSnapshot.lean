@@ -56,6 +56,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   -- (D19i part 1) the floor's witness: the contents hold entries up to `x`, within the floor
   icases memFloorTok_last ms γs σL x $$ Hfw Hgs_inv with ⟨%Hxl, Hgs_inv⟩
   ihave #Hflx := memFloorTok_flLb ms γs x $$ Hfw
+  ihave #Hhdx := memFloorTok_hdLb ms γs x $$ Hfw
   iunfold memCutInv at Hcut_inv
   iNamed Hcut_inv
   have Hlast := memCut_stLast Hcok.1
@@ -343,7 +344,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
         rcases HSrel0 with Hr | Hr
         · rw [← Hr, HS1]; exact Hnew1
         · rw [HS1] at Hr; omega
-      iapply memFlLb_le γs x i Hhi0 $$ Hflx
+      iapply memHdLb_le γs x i Hhi0 $$ Hhdx
     iapply HΦ $$ Hp' Hak
     ipureintro; rfl
   · -- `cs != nil`: the stored `ConfState` is a clone of `*cs`
@@ -418,7 +419,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
         rcases HSrel0 with Hr | Hr
         · rw [← Hr, HS1]; exact Hnew1
         · rw [HS1] at Hr; omega
-      iapply memFlLb_le γs x i Hhi0 $$ Hflx
+      iapply memHdLb_le γs x i Hhi0 $$ Hhdx
     iapply HΦ $$ Hp' Hak [Hcs]
     iexact Hcs
 
@@ -434,8 +435,8 @@ theorem MemoryStorage.CreateSnapshot.wp_proof_unified
     MemoryStorage.CreateSnapshot.unifiedSpec (GF := GF) (hG := hG) := by
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
   have HN' : (⊤ \ ↑memSnapN : CoPset) ⊆ ⊤ := CoPset.subseteq_top
-  intro ms γs x i cs dq oc data bs eood ts t Hts
-  wp_start as ⟨#Hro, Hak, #Hfw, #Hta, Hcs, Hdata, #Herr⟩
+  intro ms γs i cs dq oc data bs eood ts t Hts
+  wp_start as ⟨#Hro, Hak, #Hta, Hcs, Hdata, #Herr⟩
   iunfold memSnapRO at Hro
   icases Hro with ⟨#Hinit, #Hmu, #Hsinv⟩
   wp_apply wp_with_defer as %defer defer
@@ -447,11 +448,15 @@ theorem MemoryStorage.CreateSnapshot.wp_proof_unified
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%σL, %c, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  -- (D19i part 1) the floor's witness: the contents hold entries up to `x`, within the floor
-  icases memFloorTok_last ms γs σL x $$ Hfw Hgs_inv with ⟨%Hxl, Hgs_inv⟩
   -- (stage U4a) the terms the owner vouched for are the contents'
   icases memTermsAt_lock γs σL ts $$ Hta Hgs_inv with ⟨%Hton, Hgs_inv⟩
-  ihave #Hflx := memFloorTok_flLb ms γs x $$ Hfw
+  -- (2026-10-29, stage U8) and `i` is within the hold they were vouched for at
+  have Hits : uint.Z i ≤ (ts.length : Int) := by
+    have := (List.getElem?_eq_some_iff.1 Hts).1
+    have := word.unsigned_range i
+    have : uint.nat i = (uint.Z i).toNat := rfl
+    omega
+  ihave #Hhdi := memTermsAt_hdLb γs ts i Hits $$ Hta
   iunfold memCutInv at Hcut_inv
   iNamed Hcut_inv
   have Hlast := memCut_stLast Hcok.1
@@ -558,7 +563,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof_unified
   -- the term the contents have at `i`
   ihave Hres : |={⊤}=> ∃ σt σn : StorState,
       ⌜snapPart σt = snapPart σ1 ∧ c = σt.prev ∧ uint.Z σt.prev.index' ≤ uint.Z i ∧
-        uint.Z i ≤ uint.Z x ∧ σn = memStorCreated σt i t oc bs⌝ ∗
+        σn = memStorCreated σt i t oc bs⌝ ∗
       □ memStorCert γs
         (snapTrip (memSnapCreated σt i t oc bs) (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists) ∗
       (∀ snap' : Loc, ownSnapM snap' (DFrac.own 1)
@@ -575,7 +580,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof_unified
     obtain ⟨Hs1, -, -, -⟩ := snapPart_inj Hag
     icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
     have Hnewt : uint.Z σt.ss.index' < uint.Z i := by rw [Hs1]; exact Hnew1
-    obtain ⟨Hlo, Hhi⟩ := Hpre Hnewt
+    have Hlo := Hpre Hnewt
     imod memSnap_update γs _ _ _ (memStorCreated σt i t oc bs) $$ Hsq Hsvt Hsnh
       with ⟨Hsq, Hsvt, Hsnh⟩
     icases HΦ with ⟨-, HΦ⟩
@@ -589,10 +594,10 @@ theorem MemoryStorage.CreateSnapshot.wp_proof_unified
     iframe Hsq Hsnh Hcb Hcertn
     isplitr
     · ipureintro
-      exact ⟨Hag, Hcbe, Hlo, Hhi, rfl⟩
+      exact ⟨Hag, Hcbe, Hlo, rfl⟩
     iexact HΦ
   imod Hres with ⟨%σt, %σn, %Hσt, #Hcertn, HΦ, Hsq, Hsnh, Hcb⟩
-  obtain ⟨Hag, Hcbe, Hlo0t, Hhi0, Hσn⟩ := Hσt
+  obtain ⟨Hag, Hcbe, Hlo0t, Hσn⟩ := Hσt
   rw [Hσn]
   unfold memStorCreated
   have Hlo0 : uint.Z c.index' ≤ uint.Z i := by rw [Hcbe]; exact Hlo0t
@@ -603,7 +608,10 @@ theorem MemoryStorage.CreateSnapshot.wp_proof_unified
   -- (D19i part 1) the cut is `c = σt.prev`, at or below `i`; `i` within the contents (the witness)
   have Hcok1 := Hcok.1
   have Hlo : uint.Z σp.prev.index' ≤ uint.Z i := by rw [HprevF]; exact Hlo0
-  have Hhi : uint.Z i ≤ uint.Z σp.prev.index' + (σp.ents.length : Int) := by omega
+  have Hhi : uint.Z i ≤ uint.Z σp.prev.index' + (σp.ents.length : Int) := by
+    have := termAt_le_last HtermL0
+    unfold EtcdGrove.stLast at HlastF
+    omega
   obtain ⟨Hd0i, Hd0t⟩ := Hdummy
   icases Hents with #Hents
   ihave %Hcl := entsRO_cons_len $$ Hents
@@ -746,7 +754,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof_unified
         rcases HSrel0 with Hr | Hr
         · rw [← Hr, HS1]; exact Hnew1
         · rw [HS1] at Hr; omega
-      iapply memFlLb_le γs x i Hhi0 $$ Hflx
+      iexact Hhdi
     iapply HΦ $$ Hp' Hak
     ipureintro; rfl
   · -- `cs != nil`: the stored `ConfState` is a clone of `*cs`
@@ -821,7 +829,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof_unified
         rcases HSrel0 with Hr | Hr
         · rw [← Hr, HS1]; exact Hnew1
         · rw [HS1] at Hr; omega
-      iapply memFlLb_le γs x i Hhi0 $$ Hflx
+      iexact Hhdi
     iapply HΦ $$ Hp' Hak [Hcs]
     iexact Hcs
 

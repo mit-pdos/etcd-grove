@@ -976,7 +976,7 @@ theorem RawNode.Advance.wp_proof
     ihave Hphys := Hback0 $$ Hlog0
     have Hpvs : ∀ sp, s.logst.snap = some sp → s.logst.prev = sp := fun sp h => (Hsf0.2.2.2 _ h).1
     -- the storage back: absorbed, the log at the snapshot (`sat`), the mirror's lent flag down
-    obtain ⟨Hr1, Hr2, Hr3, Hr4, Hr5, Hr6, Hr7, Hr8⟩ := Hσr
+    obtain ⟨Hr1, Hr2, Hr3, Hr4, Hr5, Hr6, Hr7, Hr8, Hr9, Hr10⟩ := Hσr
     icases ownRaftPhysC_log_at_snp cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
     have Hlt : s.logst.lent = true := by
       rw [Hgh0.1.2.1, Hloan.1, hsl]; rfl
@@ -988,7 +988,12 @@ theorem RawNode.Advance.wp_proof
     · rw [← Hstor]; iexact HSt
     ihave Hlog := ownRaftLog_absorb_snap s.log s.logst σr Hlt
       ⟨Hr1.trans Hr2.symm, by rw [Hr3, Hunp, Hstu], Hr4, Hr5.trans Hfl0⟩ Hk
-      (by rw [Hr1]; exact Hapl) $$ Hlog HSt
+      (by rw [Hr1]; exact Hapl)
+      -- (2026-10-29, stage U8) the hold, at most the lent snapshot's index, at most the boundary
+      ⟨Hr9, by
+        rcases Hss with h | ⟨s2, h, hlt, -⟩
+        · rw [Hpvs _ h]; exact Hr10
+        · rw [Hpvs _ h]; omega⟩ $$ Hlog HSt
     have HghN : LogGhOk { s with gh := { s.gh with slent := false, snp := s.gh.snp } }
         (logAbsorbSnap s.logst σr.ss) := by
       refine ⟨⟨fun _ => .inr Hsnn, rfl,

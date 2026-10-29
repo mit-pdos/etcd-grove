@@ -197,11 +197,12 @@ structure StorState [GooseExts] where
   /-- (2026-10-29, stage U8) The **hold** raft has promised: the storage keeps its entries up to
   this index (no later append rewrites one, no snapshot applied falls below it:
   `MemoryStorage.ApplySnapshot`'s premise), and the application may take a snapshot up to it
-  (`CreateSnapshot`), but not compact above the floor. Raft raises it to its commit index when a
-  `Ready` hands out its entries (`Hhandout`, with the batch: the entries the application appends
-  are held once appended), and with the floor (`Hfloor`). So a snapshot the application takes
-  mid-`Ready`, after appending its entries and before `Advance`, is at most the hold, which raft
-  keeps at most its commit index (`FlOk`). The design's `storHoldMark`
+  (`CreateSnapshot`), but not compact above the floor. Raft raises it to its `applying` once a
+  `Ready` hands out its committed entries (`RawNode.acceptReady`, after `acceptApplying`), also
+  while the `Ready`'s batch is pending (`Hfloor` with the floor unchanged: the entries the
+  application appends are held once appended), and with the floor. So a snapshot the application
+  takes mid-`Ready`, after appending its entries and before `Advance`, is at most the hold, which
+  raft keeps at most its `applying` (`HdOk`). The design's `storHoldMark`
   (`notes/spec-first-study/raft-node-unified-candidate.md` §4, K1), as a field of the owner's
   view. `0` for a fresh storage. -/
   hd : w64 := 0
@@ -572,22 +573,25 @@ def isStorageWith (P : StorState → IProp GF)
        `storAbsorb`; the receipt fixes which state the batch was handed out at.
 
      `PendOk` is what the hand-out asks of the batch. -/
-  -- (2026-10-29, stage U8) the hold raised to `h`, within the log once the batch is appended
-  "#Hhandout" ∷ □ (∀ (σ : StorState) (p : List EntryM) (h : w64),
-     P σ -∗ ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p ∧ uint.Z σ.hd ≤ uint.Z h ∧
-       uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ p).length : Int)⌝ ==∗
-     P { σ with pend := p, hd := h } ∗ AT { σ with hd := h } p) ∗
+  -- (2026-10-29, stage U8) the batch above the hold
+  "#Hhandout" ∷ □ (∀ (σ : StorState) (p : List EntryM),
+     P σ -∗ ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p⌝ ==∗
+     P { σ with pend := p } ∗ AT σ p) ∗
+  -- (2026-10-29, stage U8) the owner's hold may have been raised since the hand-out
   "#Habsorb" ∷ □ (∀ (σ1 σ : StorState) (p : List EntryM),
-     P σ1 -∗ DT σ p ==∗ ⌜σ1 = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)) ∗
+     P σ1 -∗ DT σ p ==∗ ⌜{ σ1 with hd := σ.hd } = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)) ∗
   /- **The floor** (D19i part 1, 2026-10-18): with nothing pending, the owner raises the floor
      to `x`, at most the view's last index, and hands out the witness `FW x`, the application's
-     right to compact and snapshot up to `x` (`StorState.fl`). -/
-  -- (2026-10-29, stage U8) and the hold to `h`, at least the floor (`x = σ.fl` raises the hold
-  -- alone: a `Ready` that hands out no entries)
+     right to compact and snapshot up to `x` (`StorState.fl`).
+
+     (2026-10-29, stage U8) **and the hold** to `h`, at least the floor, within the view's log once
+     its batch is appended (`storApp σ σ.pend`). The hold alone (`x = σ.fl`) also while a batch
+     is pending: raft raises it once its `Ready` has handed out its committed entries, before the
+     application has appended them. -/
   "#Hfloor" ∷ □ (∀ (σ : StorState) (x h : w64),
-     P σ -∗ ⌜σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z x ∧ uint.Z σ.hd ≤ uint.Z h ∧ uint.Z x ≤ uint.Z h ∧
-       uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) ∧
-       (h = σ.hd ∨ uint.Z h ≤ uint.Z σ.prev.index' + (σ.ents.length : Int))⌝ ==∗
+     P σ -∗ ⌜(σ.pend = [] ∨ x = σ.fl) ∧ uint.Z σ.fl ≤ uint.Z x ∧ uint.Z σ.hd ≤ uint.Z h ∧
+       uint.Z x ≤ uint.Z h ∧ (x = σ.fl ∨ uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) ∧
+       (h = σ.hd ∨ uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ σ.pend).length : Int))⌝ ==∗
      P { σ with fl := x, hd := h } ∗ FW x))
 
 /-- The contract against the abstract `ownStorage`: what every client of the interface
@@ -651,47 +655,55 @@ def appendRight (st : Storage) (p : List EntryM) : IProp GF :=
 def appendReceipt (st : Storage) (p : List EntryM) : IProp GF :=
   iprop(⌜p = []⌝ ∨ ∃ σ, appendedTok st σ p)
 
-/-- The hand-out law at a batch that may be empty: for `[]` the floor law raises the hold alone
-(the state has nothing pending), otherwise `Hhandout`. What `raftLog.acceptUnstable` runs for the
-entries a `Ready` hands out. (2026-10-29, stage U8) The hold raised to `h`, within the log once the
-batch is appended. -/
-theorem isStorage_handout (st : Storage) (σ : StorState) (p : List EntryM) (h : w64)
-    (Hpo : σ.pend = [] ∧ uint.Z σ.hd ≤ uint.Z h ∧ uint.Z σ.fl ≤ uint.Z h ∧
-      uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ p).length : Int) ∧
-      (p ≠ [] → PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p)) :
+/-- The hand-out law at a batch that may be empty: nothing to do for `[]` (the state has nothing
+pending), otherwise `Hhandout`. What `raftLog.acceptUnstable` runs for the entries a `Ready`
+hands out. -/
+theorem isStorage_handout (st : Storage) (σ : StorState) (p : List EntryM)
+    (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p)) :
     ⊢ isStorage (GF := GF) st -∗ ownStorage st σ ==∗
-      ownStorage st { σ with pend := p, hd := h } ∗ appendRight st p := by
+      ownStorage st { σ with pend := p } ∗ appendRight st p := by
   iintro #Hst HS
   unfold appendRight
   unfold isStorage isStorageWith
   icases Hst with ⟨%i, %Hi, #HL, #HF, #HT, #HE, #Hb, #HSn, #Hho, #Hab, #Hfl⟩
   by_cases Hne : p = []
   · subst Hne
-    have Hh : uint.Z h ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) := by
-      simpa [storApp] using Hpo.2.2.2.1
-    have Hpre : σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z σ.fl ∧ uint.Z σ.hd ≤ uint.Z h ∧
-        uint.Z σ.fl ≤ uint.Z h ∧ uint.Z σ.fl ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) ∧
-        (h = σ.hd ∨ uint.Z h ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) :=
-      ⟨Hpo.1, Int.le_refl _, Hpo.2.1, Hpo.2.2.1, Int.le_trans Hpo.2.2.1 Hh, .inr Hh⟩
-    imod Hfl $$ %σ %σ.fl %h HS %Hpre with ⟨HS, -⟩
-    have Hσ : ({ σ with fl := σ.fl, hd := h } : StorState) = { σ with pend := [], hd := h } := by
-      rw [← Hpo.1]
-    rw [Hσ] at *
+    have Hσ : ({ σ with pend := [] } : StorState) = σ := by rw [← Hpo.1]
+    rw [Hσ]
     imodintro
     iframe HS
     ileft
     ipureintro; rfl
-  ihave Hpo' : ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p ∧ uint.Z σ.hd ≤ uint.Z h ∧
-      uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ p).length : Int)⌝ $$ []
+  ihave Hpo' : ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p⌝ $$ []
   · ipureintro
-    exact ⟨Hpo.1, (Hpo.2.2.2.2 Hne).1, (Hpo.2.2.2.2 Hne).2.1, (Hpo.2.2.2.2 Hne).2.2, Hpo.2.1,
-      Hpo.2.2.2.1⟩
-  imod Hho $$ %σ %p %h HS Hpo' with ⟨HS, Htok⟩
+    exact ⟨Hpo.1, (Hpo.2 Hne).1, (Hpo.2 Hne).2.1, (Hpo.2 Hne).2.2⟩
+  imod Hho $$ %σ %p HS Hpo' with ⟨HS, Htok⟩
   imodintro
   iframe HS
   iright
-  iexists { σ with hd := h }
+  iexists σ
   iexact Htok
+
+/-- (2026-10-29, stage U8) **Raising the hold** to `h`, at most the view's last index once its batch
+is appended, also while a batch is pending: the floor law with the floor unchanged. What
+`RawNode.acceptReady` runs, to the new `applying`, once a `Ready` has handed out its committed
+entries. -/
+theorem isStorage_raise (st : Storage) (σ : StorState) (h : w64)
+    (Hh : uint.Z σ.hd ≤ uint.Z h ∧ uint.Z σ.fl ≤ uint.Z h ∧
+      uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ σ.pend).length : Int)) :
+    ⊢ isStorage (GF := GF) st -∗ ownStorage st σ ==∗ ownStorage st { σ with hd := h } := by
+  iintro #Hst HS
+  unfold isStorage isStorageWith
+  icases Hst with ⟨%i, %Hi, #HL, #HF, #HT, #HE, #Hb, #HSn, #Hho, #Hab, #Hfl⟩
+  ihave Hpre : ⌜(σ.pend = [] ∨ σ.fl = σ.fl) ∧ uint.Z σ.fl ≤ uint.Z σ.fl ∧ uint.Z σ.hd ≤ uint.Z h ∧
+      uint.Z σ.fl ≤ uint.Z h ∧
+      (σ.fl = σ.fl ∨ uint.Z σ.fl ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) ∧
+      (h = σ.hd ∨ uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ σ.pend).length : Int))⌝ $$ []
+  · ipureintro
+    exact ⟨.inr rfl, Int.le_refl _, Hh.1, Hh.2.1, .inl rfl, .inr Hh.2.2⟩
+  imod Hfl $$ %σ %σ.fl %h HS Hpre with ⟨HS, -⟩
+  imodintro
+  iexact HS
 
 /-- (2026-10-29, stage U8) What a `Ready` that hands out the entries `es` gives the application of
 the storage's terms `ts` (its committed log's): with no entries, the storage's (`storTermsAt`);

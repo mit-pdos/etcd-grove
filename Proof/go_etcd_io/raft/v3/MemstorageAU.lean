@@ -39,8 +39,8 @@ abbrev MemoryStorage.ApplySnapshot.spec_tok : Prop :=
     (eood : GoInterface),
   σ.pend = [] →
   uint.Z sv.Metadata'.Index' < 2^61 →
-  -- (D19i part 1) the snapshot covers the floor
-  uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
+  -- (D19i part 1) the snapshot covers the floor; (2026-10-29, stage U8) the hold
+  uint.Z σ.hd ≤ uint.Z sv.Metadata'.Index' →
   -- (2026-10-19, D21 M3) and is within the storage's cap, the new boundary
   uint.Z sv.Metadata'.Index' ≤ γs.cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -59,7 +59,7 @@ abbrev MemoryStorage.ApplySnapshot.spec_tok : Prop :=
         ownMemoryStorage ms γs σ ∗ memSnapTok ms γs σt) ∨
       (⌜¬ (σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index') ∧
           err = interface.nil⌝ ∗
-        ownMemoryStorage ms γs { memStorApplied sv with fl := σ.fl } ∗
+        ownMemoryStorage ms γs { memStorApplied sv with fl := σ.fl, hd := σ.hd } ∗
         memSnapTok ms γs (memStorApplied sv))) }}
 
 /-- `ms.CreateSnapshot(i, cs, data)` with the token in hand: `MemoryStorage.CreateSnapshot.spec`

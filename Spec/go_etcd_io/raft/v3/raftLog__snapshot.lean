@@ -48,9 +48,10 @@ by `ownRaftLog`; its voters are `ownSnap`'s. Otherwise `Storage.Snapshot()`:
 `isStorage`'s `HSnapshot` says the snapshot is the storage's own, `ss`, and
 `ownRaftLog`'s `StoredSnapOk` relates `ss` to the log and the commit index.
 
-(2026-10-15, stage S) The snapshot, with its lists, is one the node may send (`ksn`): the
-storage's is (`ownRaftLog`'s `Hsksn`, the lists those `HSnapshot` returns), and so is the pending
-one (`Hpksn`).
+(2026-10-15, stage S) The snapshot, with its lists, was said to be one the node may send (`ksn`)
+or (D19i part 1) one the application took at or below the floor; (2026-10-29, stage U8) dropped:
+the application's may be above the floor (within the storage's hold, `StorState.hd`), and
+`maybeSendSnapshot`, the one caller, uses only its certificate (`storCert`).
 
 The log comes back at the same state, like `raftLog.firstIndex`: the one caller,
 `raft.maybeSendSnapshot`, calls both on the same log.
@@ -75,11 +76,7 @@ abbrev raftLog.snapshot.spec : Prop :=
         ⌜sv.Metadata'.Index' ≠ W64 0 ∧
           uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
           plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
-            = some sv.Metadata'.Term' ∧
-          -- (2026-10-15, stage S) one the node may send; (D19i part 1) or one the application
-          -- took, at or below the floor (its certificate is the application's: A3, `SnapObl`)
-          (snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∨
-           uint.Z sv.Metadata'.Index' ≤ uint.Z ls.fl)⌝ ∗
+            = some sv.Metadata'.Term'⌝ ∗
         -- (D22 S-b′3, 2026-10-20) certified in the storage's registry, either way
         storCert ls.storage (snapTrip sv sv.Metadata'.ConfState'.lists))) }}
 

@@ -55,8 +55,9 @@ theorem NewMemoryStorage.wp_proof
   imod mono_list_own_alloc (GF := GF) [memStorEmpty] with ⟨%γh, Hh, #Hhlb⟩
   imod mono_list_own_alloc (GF := GF) [memStorEmpty] with ⟨%γd, Hd, -⟩
   icases (monoAuth_halves γd [memStorEmpty]).1 $$ Hd with ⟨Hd1, Hd2⟩
-  imod ghostVar_alloc (GF := GF) (memStorEmpty, ([] : List StorState), ([] : List StorState))
-    with ⟨%γe, He⟩
+  -- (2026-10-29, stage U8) the record of hand-outs, its one entry the empty storage
+  imod mono_list_own_alloc (GF := GF)
+    [((memStorEmpty, ([] : List StorState), ([] : List StorState)) : MemEp)] with ⟨%γe, He, #Help⟩
   -- (D17d) the snapshot's ghost value, where it is, and the keys
   imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γsw, Hsw⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γlk, Hlk⟩
@@ -96,10 +97,10 @@ theorem NewMemoryStorage.wp_proof
     iexists memStorEmpty, memStorEmpty.prev
     isplitl [Hd1 Hlk]
     · unfold memInvGhost
-      iexists [memStorEmpty]
-      iframe Hd1 Hhlb
+      iexists [memStorEmpty], _, ((memStorEmpty, ([] : List StorState), ([] : List StorState)) : MemEp)
+      iframe Hd1 Hhlb Help
       isplitr
-      · ipureintro; exact ⟨rfl, HokE⟩
+      · ipureintro; exact ⟨rfl, HokE, rfl, List.prefix_refl _⟩
       iexact Hlk
     rw [memCut_self]
     isplitl [hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term cs_snapshot Hsl_cap]
@@ -181,20 +182,20 @@ theorem NewMemoryStorage.wp_proof
   simp only [named]
   iframe Hpkg Hmu
   isplitl [Hh Hd2 He]
-  · iexists [memStorEmpty]
+  · iexists [memStorEmpty], [((memStorEmpty, ([] : List StorState), ([] : List StorState)) : MemEp)]
     isplitr
-    · ipureintro; exact HokE
-    ileft
+    · ipureintro; exact ⟨HokE, List.pairwise_singleton _ _⟩
     iframe Hh
+    ileft
+    iframe He
     isplitr
-    · ipureintro; exact ⟨rfl, rfl⟩
-    isplitl [Hd2]
-    · iexists [memStorEmpty]
-      iframe Hd2
-      ipureintro
-      exact ⟨List.prefix_refl _, by simp, by simp [RaiseOnly]⟩
-    iexists _
-    iexact He
+    · ipureintro
+      exact ⟨rfl, rfl, ((memStorEmpty, ([] : List StorState), ([] : List StorState)) : MemEp), rfl,
+        List.prefix_refl _⟩
+    iexists [memStorEmpty]
+    iframe Hd2
+    ipureintro
+    exact ⟨List.prefix_refl _, by simp, by simp [RaiseOnly]⟩
   iframe Hsinv Hok
   ipureintro; simp only [memStorEmpty, List.length_nil]; word
 

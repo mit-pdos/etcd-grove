@@ -69,7 +69,7 @@ theorem raftLog.snapshot.wp_proof
     subst Hp
     rw [← Hsid] at Hsid0 Happlied ⊢
     simp only [snapId] at Hsid0 Happlied ⊢
-    refine ⟨?_, Happlied.1, plogTermAt_base _ _, .inl Hk⟩
+    refine ⟨?_, Happlied.1, plogTermAt_base _ _⟩
     intro Hz; rw [Hz] at Hsid0; simp at Hsid0
   | none =>
     -- `l.unstable.snapshot` is `null`: the `Storage`'s
@@ -123,29 +123,22 @@ theorem raftLog.snapshot.wp_proof
       · rw [← Hstor]; iexact Hvc
     ipureintro
     rcases Hwhich with ⟨Hid, Hal, Hcs, Hdt⟩ | ⟨Hgt, Hge, Hle, Ht⟩
-    · have Hss : σ.ss.index' ≠ W64 0 := by
-        rw [← Hid]; simp only [snapId]; exact Hnz
-      have Hk := Hsksn Hss
-      rw [← Hid, ← Hal, ← Hcs, ← Hdt] at Hk
-      rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
+    · rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
       · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
       · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
-        exact ⟨Hnz, Hle, Ht, .inl Hk⟩
-    · -- (D19i part 1) the application's snapshot, at or below the floor: committed, and an
-      -- entry of the log (`termAt_log_below`)
-      obtain ⟨HflE, Hfla, Hflip, Hab, -⟩ := Hfl
-      rw [HflE] at Hle
-      have Hip := Hflip
+        exact ⟨Hnz, Hle, Ht⟩
+    · -- (D19i part 1; 2026-10-29, stage U8) the application's snapshot, within the hold (at most
+      -- `applying` or the boundary): committed, and an entry of the log once the storage's pending
+      -- batch is appended (`termAt_app_log`)
+      have Hhd := Hfl.2.2.2.2.2.2.2
+      have Hflip := Hfl.2.2.1
       have Hpers := Hpersist Hsn
       rw [← Hpend.1] at Hpers
-      refine ⟨Hnz, by omega, ?_, .inr Hle⟩
       have HpZ : uint.Z σ.prev.index' = uint.Z ls.prev.index' := by rw [Hp]
+      refine ⟨Hnz, by omega, ?_⟩
       rw [← Hp]
-      refine termAt_log_below σ ls.sents ls.uents _ σ.pend ls.stored _ _ Hpers
-        ⟨by omega, by omega⟩ Hge (by omega) (fun e0 He0 => ?_) Ht
-      have := Hab e0 He0
-      rw [HflE] at this
-      omega
+      exact termAt_app_log σ ls.sents ls.uents _ σ.pend ls.stored _ _ Hpers
+        ⟨by omega, by omega⟩ Hge (by omega) Ht
 
 end proof
 

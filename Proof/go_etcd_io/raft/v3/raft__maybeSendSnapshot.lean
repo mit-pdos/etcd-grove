@@ -153,7 +153,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     ipureintro
     exact ⟨fun _ h => (nomatch h), rfl⟩
   · -- a real snapshot: `Metadata.Index ≠ 0` kills `IsEmptySnap`'s panic
-    obtain ⟨Hnz, Hsle, Hsterm, Hksn⟩ := Hsv
+    obtain ⟨Hnz, Hsle, Hsterm⟩ := Hsv
     subst Herr
     wp_auto
     wp_apply wp_IsEmptySnap snap (DFrac.own 1) (some sv) $$ [Hsnap] as %b ⟨%Hb, Hsnap⟩

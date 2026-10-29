@@ -107,6 +107,8 @@ private abbrev RestartNode.specRaw : Prop :=
   -- mode)
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
+  -- (2026-10-29, stage U8) and the hold (`HdOk`; a fresh storage, `memOwnStorage_empty`)
+  σ.hd = W64 0 →
   -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
   -- outside the no-snapshot mode (until 2026-10-28, stage U3d, also in the static mode)
   (sn = true → γ.reNoSnap = false) →
@@ -158,7 +160,7 @@ private theorem RestartNode.wp_raw
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.specRaw (GF := GF) (hG := hG) := by
   intro γ md bud c cv lok si σ hs csm sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11 P12 P13 P14
-    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P28 HsnIn
+    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P28 P28h HsnIn
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0, #Hcl⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
@@ -202,7 +204,7 @@ private theorem RestartNode.wp_raw
   wp_auto
   -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
   wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
-    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28
+    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28 P28h
     $$ [$Hc $Hlg $Hsto $Hown] as %rn %err ⟨-, %s0, Hfresh0, %Herr⟩
   · iintro %Φ %ss' Hs HK
     iapply Hinit $$ Hs
@@ -437,7 +439,7 @@ private theorem wp_RestartNode_impl
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver EtcdGrove.nodeRestartBoot EtcdGrove.storageCertLink
   intro γ N vs c cv lok si σ hs csm H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln
-    Hal Hid Hfl
+    Hal Hid Hfl Hhd
   iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, #Hinst, Hboot, #Hlink⟩ HΦ
   iunfold nodeRestartBoot at Hboot
   icases Hboot with ⟨⟨%so, #Hst⟩, Hg, #Hc0, #Hbinv, #Htlb⟩
@@ -448,7 +450,7 @@ private theorem wp_RestartNode_impl
   ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
   iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm true
     H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz Hlen Hvo Hl Hln Hal (fun _ => Hcfg)
-    (fun _ => Hid) Hfl (fun _ => Hns)) $$ [Hc Hown Hg]
+    (fun _ => Hid) Hfl Hhd (fun _ => Hns)) $$ [Hc Hown Hg]
   · iframe Hinit Hc Hlog Hstor Hown Hinst Hc0 Hbinv Htlb
     isplitl [Hg]
     · unfold rnInit; iexact Hg
@@ -492,7 +494,7 @@ private theorem wp_RestartNode_unified_impl
     EtcdGrove.nodeFounder EtcdGrove.nodeJoin EtcdGrove.confAt EtcdGrove.storageCertLink
     EtcdGrove.nodeConfig
   intro γ N vs c cv lok si σ hs csm H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln
-    Hal Hfl
+    Hal Hfl Hhd
   iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, #Hinst, Hboot, #Hlink⟩ HΦ
   -- (2026-10-29, stage U4) a newcomer's token is a founder's of the initial membership's voters
   ihave Hboot : nodeFounderU (GF := GF) γ N vs cv.ID' $$ [Hboot]
@@ -518,7 +520,7 @@ private theorem wp_RestartNode_unified_impl
   iapply wp_fupd
   iapply (hS γ.raft (γ.mode inferInstance) γ.bud c cv lok si σ hs csm true
     H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz (by omega) Hvo Hl Hln Hal
-    (fun _ => Hcfg) (fun h => by rw [Hmd] at h; cases h) Hfl (fun _ => Hns)) $$ [Hc Hown Hg]
+    (fun _ => Hcfg) (fun h => by rw [Hmd] at h; cases h) Hfl Hhd (fun _ => Hns)) $$ [Hc Hown Hg]
   · iframe Hinit Hc Hlog Hstor Hown Hinst Hc0 Hbinv Htlb
     isplitl [Hg]
     · rw [Hmd]

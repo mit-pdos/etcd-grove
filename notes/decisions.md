@@ -25497,3 +25497,17 @@ inprogress`). The WIP on branch `raft-unified-storage-wip` raised in `Hhandout` 
 `hdLb_pending`, `memTermsPre`, `memTermsAt_receipt`), `MemoryStorage.Snapshot` and `InvRaftlog`
 (`HdOk`, `raise_floor` raising `hd`) check there; `InvReadylog`, `MemoryStorage.{Append,ApplySnapshot,
 CreateSnapshot}`, the node chain (`storTermsPre` minted at the `Ready`, `readyData`, `nodeDriver`) remain.
+
+
+**The raise while a batch is pending (2026-10-29, settled for the storage; raft's window open).** The
+storage contract lets the owner raise the hold with a batch pending (`Hfloor` at `x = σ.fl`,
+`isStorage_raise`); `Hhandout` raises nothing. `MemoryStorage` keeps `hist`'s authority whole with
+the owner, and a new exclusive record of hand-outs (`ep`, a mono list halved with the token) bounds
+every persistent witness minted while pending: floor witnesses are `ep`-lower bounds (so `Append`
+knows the batch is above every floor), and a pre-witness of terms is `ep`-tagged (so a receipt, whose
+`ep` half is at least the tag, turns it into `memTermsAt`, a stale receipt being excluded). Raft's
+`HdOk` is `fl ≤ hd ∧ (hd ≤ applying ∨ hd ≤ prev)`; the `prev` case covers a loan's receipt, whose hold
+is at most the snapshot (the approved `snapReceipt`). The raise cannot be in `acceptReady`, as first
+planned: `run` sends the `Ready` before calling it, and the client's witness must be in `readyP`; so
+the raise goes at the send (`ownRawNodeReady_handout`), and `HdOk` needs a window case until
+`acceptApplying` (approved by the coordinator; not done, `notes/raft-unified-plan.md`, track B).

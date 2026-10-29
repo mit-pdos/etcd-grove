@@ -367,8 +367,9 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
   have Hplen := Hp0.1.length_le
   simp only [storApp, List.length_append, List.length_take] at Hplen
   have Hpo : σ.pend = [] ∧ (nextUnstable ls ≠ [] →
-      PendOk σ (nextUnstable ls) ∧ PendAbove σ (nextUnstable ls)) := by
-    refine ⟨Hpend.1.trans Hunp0, fun Hne => ⟨⟨Hne, fun e0 He0 => ?_⟩, fun e0 He0 => ?_⟩⟩
+      PendOk σ (nextUnstable ls) ∧ PendAbove σ (nextUnstable ls) ∧ HdAbove σ (nextUnstable ls)) := by
+    refine ⟨Hpend.1.trans Hunp0, fun Hne => ⟨⟨Hne, fun e0 He0 => ?_⟩, fun e0 He0 => ?_,
+      fun e0 He0 => ?_⟩⟩
     · obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
       refine ⟨by rw [Hsp]; omega, by rw [Hsp]; omega, fun k e Hk => ?_⟩
       -- (D19i part 1) the batch is numbered consecutively, as the unstable entries are
@@ -381,6 +382,12 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
       have := Hfl.2.2.1
       have := Hfl.2.1
       rw [Hfl.1]; omega
+    · -- (2026-10-29, stage U8) above the hold: at most `applying` or the boundary
+      obtain ⟨Hi, -⟩ := Hhead e0 He0
+      have := Hfl.2.2.1
+      have := Hfl.2.2.2.2.2.2.2
+      have := Hipb.1
+      omega
   imod isStorage_handout lv.storage' σ (nextUnstable ls) Hpo $$ HisStorage HStorage
     with ⟨HStorage, Happ⟩
   have Hstore' : LogStoreOk (logHanded ls).snap { σ with pend := nextUnstable ls }
@@ -403,7 +410,7 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
     exact persist_handed ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored Hp0
   have HflN : FlOk { σ with pend := nextUnstable ls } (logHanded ls) := by
     refine ⟨Hfl.1, Hfl.2.1, ?_, fun e0 He0 => ?_, fun h _ => (h Hs0).elim,
-      StorTermsOk.of_none Hs0⟩
+      StorTermsOk.of_none Hs0, Hfl.2.2.2.2.2.2⟩
     · have := Hfl.2.2.1
       have := Hipb
       simp only [logHanded]
@@ -548,7 +555,9 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
       ownRaftLog l (logHanded { ls with lent := true, sat := false }) ∗
       ∃ σ, ownStorage ls.storage σ ∗
         ⌜σ.pend = [] ∧ σ.fl = ls.fl ∧
-          (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn)⌝ := by
+          (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn) ∧
+          -- (2026-10-29, stage U8) the hold, and the boundary the pending snapshot
+          HdOk σ ls ∧ ∀ sid, ls.snap = some sid → ls.prev = sid⌝ := by
   iintro Hlog
   iNamed Hlog
   ihave HStorage := lentStor_open Hlt0 _ _ $$ HStorage
@@ -584,7 +593,7 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
     ⟨rfl, fun h => absurd h Hs0⟩
   have Hfl' : FlOk { σ with pend := nextUnstable ls } (logHanded { ls with lent := true, sat := false }) := by
     refine ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, fun e0 He0 => ?_, fun _ h => by simp [logHanded] at h,
-      StorTermsOk.lent (by simp [logHanded])⟩
+      StorTermsOk.lent (by simp [logHanded]), Hfl.2.2.2.2.2.2⟩
     have := Hhead e0 He0
     have := Hfl.2.2.1
     have := Hfl.2.1
@@ -604,7 +613,9 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
   rw [← Hstor]
   iframe HStorage
   ipureintro
-  exact ⟨Hpend.1.trans Hunp0, Hfl.1, Hsksn⟩
+  refine ⟨Hpend.1.trans Hunp0, Hfl.1, Hsksn, Hfl.2.2.2.2.2.2, fun sid hs => ?_⟩
+  have Hst : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := hs ▸ Hstore
+  exact Hst.1
 
 /-- (D22 S-d3a, 2026-10-21) A pending snapshot not yet handed out: the log starts at it, with no
 stable part, and every unstable entry is still to be handed out (`SipOk`): what a snapshot `Ready`
@@ -669,7 +680,9 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (σr : StorState)
     (Hr : σr.prev = σr.ss ∧ σr.ents = ls.stored ∧ σr.pend = [] ∧ σr.fl = ls.fl)
     (Hk : σr.ss.index' ≠ W64 0 → SnapTrip.mk σr.ss σr.scs σr.sal σr.sdat ∈ ls.ksn)
     -- (D22 S-d4 item 3) `applying` at most the snapshot the storage is at (the loan's, `LoanOk`)
-    (Happ : uint.Z ls.applying ≤ uint.Z σr.prev.index') :
+    (Happ : uint.Z ls.applying ≤ uint.Z σr.prev.index')
+    -- (2026-10-29, stage U8) the hold at least the floor, at most the log's boundary
+    (Hhd : uint.Z σr.fl ≤ uint.Z σr.hd ∧ uint.Z σr.hd ≤ uint.Z ls.prev.index') :
     ⊢ ownRaftLog (GF := GF) l ls -∗ ownStorage ls.storage σr -∗
       ownRaftLog l (logAbsorbSnap ls σr.ss) := by
   iintro Hlog HSt
@@ -691,7 +704,8 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (σr : StorState)
        by show uint.Z σr.ss.index' ≤ uint.Z σr.ss.index' + (([] : List w64).length : Int)
           simp only [List.length_nil, Int.natCast_zero, Int.add_zero]; omega,
        TermsFrom.nil _ _⟩
-    ⟨Hrfl, Hfl.2.1, Hfl.2.2.1, (fun e0 He0 => by rw [Hrpend] at He0; cases He0), Hext, Hterms⟩
+    ⟨Hrfl, Hfl.2.1, Hfl.2.2.1, (fun e0 He0 => by rw [Hrpend] at He0; cases He0), Hext, Hterms,
+      Hhd.1, .inr Hhd.2⟩
   have Hstore' : LogStoreOk (logAbsorbSnap ls σr.ss).snap σr
       (logAbsorbSnap ls σr.ss).prev (logAbsorbSnap ls σr.ss).sents
       (logAbsorbSnap ls σr.ss).uents := by

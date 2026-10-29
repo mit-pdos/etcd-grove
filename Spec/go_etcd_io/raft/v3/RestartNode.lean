@@ -53,6 +53,8 @@ abbrev RestartNode.spec : Prop :=
   csm.AutoLeave' = false →
   cv.ID' ∈ vs →
   σ.fl = W64 0 →
+  -- (2026-10-29, stage U8) and the hold (`HdOk`; a fresh storage, `memOwnStorage_empty`)
+  σ.hd = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
@@ -96,6 +98,8 @@ abbrev RestartNode.unifiedSpec : Prop :=
   csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   σ.fl = W64 0 →
+  -- (2026-10-29, stage U8) and the hold (`HdOk`; a fresh storage, `memOwnStorage_empty`)
+  σ.hd = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗

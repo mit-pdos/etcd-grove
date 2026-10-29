@@ -221,7 +221,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     -- (D22 J3) the linearization point: the token's snapshot is the home's (`σ1`), its boundary
     -- the lock's (`c`); all three parts of each move to the new snapshot
     ihave Hres : |={⊤}=> (ownSnapM sp dq sv -∗
-          ownMemoryStorage ms γs { memStorApplied sv with fl := σ.fl } -∗ Φ #interface.nil) ∗
+          ownMemoryStorage ms γs { memStorApplied sv with fl := σ.fl, hd := σ.hd } -∗ Φ #interface.nil) ∗
         ghostVar γs.sn memQ (snapPart (memStorApplied sv)) ∗
         ghostVar γs.sn (1 : Qp).half (snapPart (memStorApplied sv)) ∗
         ghostVar γs.cb (1 : Qp).half (memStorApplied sv).prev $$ [HΦ Hsq Hsnh Hcb]
@@ -254,7 +254,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     · exact absurd Hk (by decide)
     · exact absurd Hk (by decide)
     ihave Hgs_inv := Hgs_back $$ Hlk
-    imod memView_set γs σ σp { memStorApplied sv with fl := σ.fl } Hidle rfl (Int.le_refl _)
+    imod memView_set γs σ σp { memStorApplied sv with fl := σ.fl, hd := σ.hd } Hidle rfl rfl rfl
       (by simp only [EtcdGrove.stLast, memStorApplied, snapId, List.length_nil]; omega)
       (fun k e h => by simp [memStorApplied] at h)
       (by simp only [memStorApplied, snapId]; have := Hcok.1.1; omega)
@@ -266,7 +266,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
       Hsl_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists { memStorApplied sv with fl := σ.fl }, (memStorApplied sv).prev
+      iexists { memStorApplied sv with fl := σ.fl, hd := σ.hd }, (memStorApplied sv).prev
       iframe Hgs_inv
       isplitl [HhardState Hents_f Hsl_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
       · iexists hp, _, _, nfi, nli, nen, nte, nsn
@@ -277,7 +277,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
           iframe Hsl
           iapply (BigSepL2.bigSepL2_cons).2
           iframe He0
-          rw [show (memCut { memStorApplied sv with fl := σ.fl } (memStorApplied sv).prev).ents = []
+          rw [show (memCut { memStorApplied sv with fl := σ.fl, hd := σ.hd } (memStorApplied sv).prev).ents = []
             by simp [memCut, memStorApplied]]
           iapply entsBig_nil
         ipureintro; exact ⟨rfl, rfl⟩

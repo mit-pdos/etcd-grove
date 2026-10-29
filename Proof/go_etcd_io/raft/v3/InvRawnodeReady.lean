@@ -1422,7 +1422,8 @@ theorem ownRaftLog_kcert (l : Loc) (ls : LogState) :
 theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Option SnapLoan)
     (st : Storage) (Hunp : ls.unpersisted = []) (Hes : es = nextUnstable ls)
     (Hst : st = ls.storage) (Hn : L = none → ls.snap = none)
-    (Hs : ∀ l, L = some l → ls.snap ≠ none ∧ l.fl = ls.fl)
+    (Hs : ∀ l, L = some l → ls.snap = some (snapId l.snap) ∧ l.fl = ls.fl ∧
+      uint.Z ls.applying ≤ uint.Z l.snap.Metadata'.Index')
     (Hlt : ∀ l, L = some l → ls.lent = false)
     -- (D22 S-d4) the snapshot one the log may send, so certified (`ownRaftLog_kcert`)
     (Hk : ∀ l, L = some l → snapTrip l.snap l.snap.Metadata'.ConfState'.lists ∈ ls.ksn) :
@@ -1437,7 +1438,8 @@ theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Opt
     unfold readyOut
     rw [Hes, Hst]; iexact Happ
   | some lo =>
-    obtain ⟨Hsn, Hfl⟩ := Hs lo rfl
+    obtain ⟨Hsn', Hfl, Hapl⟩ := Hs lo rfl
+    have Hsn : ls.snap ≠ none := by rw [Hsn']; simp
     icases ownRaftLog_kcert _ _ $$ Hlog with ⟨#Hkc, Hlog⟩
     ihave #Hc := BigSepL.bigSepL_mem (Hk lo rfl) $$ Hkc
     icases ownRaftLog_lend _ _ Hunp Hsn (Hlt lo rfl) $$ Hlog with ⟨Hlog, %σ, HSt, %Hσ⟩
@@ -1449,7 +1451,13 @@ theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Opt
     isplitl [HSt]
     · iexists σ
       iframe HSt
-      ipureintro; exact ⟨Hσ.1, Hσ.2.1.trans Hfl.symm⟩
+      ipureintro
+      obtain ⟨H1, H2, -, H4, H5⟩ := Hσ
+      have Hpv := H5 _ Hsn'
+      refine ⟨H1, H2.trans Hfl.symm, H4.1, ?_⟩
+      rcases H4.2 with h | h
+      · omega
+      · rw [Hpv] at h; exact h
     iexact Hc
 
 /-- (D22 S-d3a) The pure facts of a computed `Ready`'s snapshot. -/
@@ -1517,7 +1525,8 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     rw [h1, Hloan.1.1, Hloan.2]; rfl
   imod ownRaftLog_rdy_out s.log s.logst es L rs.storage Hunp Hes Hstor
     (fun h => (Hrdp.1 h).2)
-    (fun l h => ⟨by rw [(Hrdp.2 l h).2.1]; simp, (Hrdp.2 l h).2.2.2.2.2.1⟩) Hlt0
+    (fun l h => ⟨(Hrdp.2 l h).2.1, (Hrdp.2 l h).2.2.2.2.2.1,
+      Int.le_of_lt (Hrdp.2 l h).2.2.2.2.2.2.2.2.2.1⟩) Hlt0
     (fun l h => (Hrdp.2 l h).2.2.2.1) $$ Hlog
     with ⟨Hlog, Hout⟩
   iunfold ownStepGhost at Hghost

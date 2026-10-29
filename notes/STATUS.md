@@ -474,7 +474,11 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 Done and pushed: `MemoryStorage.SetHardState` importable; the `confchange`/`tracker` client specs (the U11
 section below, from branch `raft-unified-cc`). In progress: U8's storage hold (`StorState.hd`; design and the
 open hand-out window in `notes/decisions.md`, "Track B"; spec changes in `notes/raft-unified-plan.md`,
-"Spec changes during track B"), WIP on branch `raft-unified-storage-wip` (does not build past `InvRaftlog`).
+"Spec changes during track B"), on branch `raft-unified-storage-wip`: the storage contract and
+`MemoryStorage` for a hold raised while a batch is pending (the `ep` record), raft's `HdOk`, the loan's
+hold, the initial `σ.hd = 0`, all building (raft's results, `MemstorageInstance`, `MemstorageAU`). Open:
+the raise at the `Ready`'s send (`ownRawNodeReady_handout`) with a window case in `HdOk`, and the node
+chain (`readyP`, `readyData`, `nodeDriver`, `appendReceipt_holds`).
 Not started: the storage-wrapper law.
 
 ## Raft unified, stage U11: `confchange`/`tracker` for clients (2026-10-29, branch `raft-unified-cc`)

@@ -110,7 +110,12 @@ theorem raftLog.restore.wp_proof
           have hs : ls.snap ≠ none := by rw [hsn]; simp
           have He := Hfl.2.2.2.2.1 hs hl
           simp only [Option.isSome_some, true_and, He.2, ↓reduceIte]
-          exact Hfl.2.2.2.2.2 hs hl⟩
+          exact Hfl.2.2.2.2.2.1 hs hl,
+        -- (2026-10-29, stage U8) the hold: the boundary moves up to the snapshot
+        HdOk.mono (ls' := logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists))
+          Hfl.2.2.2.2.2.2 (by simp only [logRestore]; exact Int.le_refl _) (by
+          simp only [logRestore, snapTrip, snapId]
+          have := Happlied.1; omega)⟩
       (fun h => List.mem_append_left _ (Hsksn h)) Hsip' (fun h => by simp [logRestore] at h)
       -- (D22 S-d1b) the storage stays lent, if it is; no window; the snapshot not in progress
       (fun _ => by simp [logRestore]) ⟨rfl, rfl⟩

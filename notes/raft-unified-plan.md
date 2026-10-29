@@ -181,10 +181,43 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   index (and at least the floor). 6. `MemoryStorage.CreateSnapshot.unifiedSpec`: `memFloorTok`/`i ≤ x` dropped,
   the hold-based `memTermsAt` gives `i ≤ hd` and the entry. 7. The design's `appendReceipt_holds` with an update
   (`|==>`). `MemoryStorage.Snapshot.spec`'s second disjunct as `HSnapshot`'s (done).
-- (open) Where the hold is raised: `Hhandout` (first attempt) leaves raft a window
-  (`notes/decisions.md`, "Track B"); the plan is a raise with the batch pending, after `acceptApplying`, which
-  changes `Hhandout` back (no `h`, keeping `HdAbove`) and `Hfloor` (or a new law) to allow raising the hold alone
-  while a batch is pending.
+- (done, 2026-10-29, branch `raft-unified-storage-wip`) The storage contract for a hold raised while a batch is
+  pending: `Hhandout` back to no `h` (`P σ -∗ ⌜σ.pend = [] ∧ PendOk ∧ PendAbove ∧ HdAbove⌝ ==∗ P {σ with pend
+  := p} ∗ AT σ p`); `Hfloor` generalized, same tuple length: `(σ.pend = [] ∨ x = σ.fl)`, `x = σ.fl ∨ x ≤ last`,
+  `h = σ.hd ∨ h ≤ prev + |storApp σ σ.pend|` (the hold alone, `x = σ.fl`, also while a batch is pending;
+  `isStorage_raise`); `Habsorb`'s equation `σ1 = {σ with pend := p}` → `{σ1 with hd := σ.hd} = {σ with pend
+  := p}` (the owner may have raised the hold since the hand-out; raft never used the equation).
+  `StorageModel.storTermsPre_intro` as approved (no `pend` premise: idle, `memTermsPre` is `memTermsAt`).
+- (done) MemoryStorage's ghost state for it: `MemStorNames.ep` is now a mono list of hand-outs (`MemEp`:
+  the state with the batch, `hist` before, `done` then), whose authority is the owner's when idle and halved
+  with the token/receipt while a batch is pending; `hist`'s authority stays whole with the owner (pending
+  raises are `DataEq` states after the hand-out's history, `PendView`). The floor witness `memFlLb` is a lower
+  bound of `ep` (floor raises and `ApplySnapshot` record entries), so `Append` bounds every floor witness by
+  the token's half; `memTermsPre` is `memTermsAt` or an `ep`-tagged history, so a receipt (whose `ep` half
+  bounds the tag) makes it `memTermsAt`. Why `ep` and not a lower bound of `hist`: a pre-witness or floor
+  witness minted while pending lies past the token's history, and only an exclusive record excludes a stale
+  receipt. `memFloorTok` is `memFlLb ∗ memHdLb`.
+- (done) `ApplySnapshot.spec`/`spec_tok`: the premise `σ.fl ≤ index` replaced by `σ.hd ≤ index` (`fl ≤ hd`);
+  post `{memStorApplied sv with fl := σ.fl, hd := σ.hd}`. `CreateSnapshot.unifiedSpec`: `x` and `memFloorTok`
+  dropped, atomic premise `σt.ss.index < i → σt.prev.index ≤ i`, `i ≤ hd` from `memTermsAt_hdLb`.
+  `readyOut`/`snapReceipt`: `fl ≤ hd ≤ snap index`.
+- (done, approved by the coordinator 2026-10-29) `σ.hd = W64 0` beside `σ.fl = W64 0` on the initial storage of
+  `StartNode`/`RestartNode` (spec and unifiedSpec) and the internal `newLogWithSize`/`newRaft`/`NewRawNode`/
+  `setupNode`: raft's `HdOk` bounds the hold from the start (an application snapshot `Storage.Snapshot` may
+  return is within it, and must be committed); a fresh storage has it (`memOwnStorage_empty`), `ApplySnapshot`
+  keeps it.
+- (internal, mine) `HdOk σ ls := fl ≤ hd ∧ (hd ≤ applying ∨ hd ≤ prev.index)`: the `prev` disjunct because the
+  approved `snapReceipt` gives only `hd ≤ snap index`, and `applying` is below the snapshot until
+  `appliedSnap`; the boundary is the pending snapshot then (`LogStoreOk`), and moves only up. Everything raft
+  needs follows: `raftLog.snapshot` (committed, `termAt_app_log` below `offsetInProgress`), `HdAbove` at the
+  hand-out, `ApplySnapshot`'s premise at the loan. `raftLog.snapshot.spec`'s disjunct `ksn ∨ index ≤ fl`
+  dropped (unused by `maybeSendSnapshot`).
+- (open, reported 2026-10-29) **The raise in `acceptReady` is too late for the client**: `run` sends the `Ready`
+  (`readyc <- rd`, `readyP`) before `acceptReady`, so a witness minted after `acceptApplying` cannot be in
+  `readyP`, and a client may append and ask `appendReceipt_holds` before `run` reaches `acceptReady`. The raise
+  must be at the send (`ownRawNodeReady_handout`, after `Hhandout`, to the committed log handed out), which
+  needs a window case in `HdOk` until `acceptApplying`. The node chain (`readyP`, `readyData`, `nodeDriver`,
+  `appendReceipt_holds`) is not started.
 - (open) The storage-wrapper law (§4): not started.
 
 ## Machinery (the map of the two modes, 2026-10-28)

@@ -38,7 +38,8 @@ agrees with the owner's on the snapshot), given back at the new snapshot.
 
 (D19i part 1, 2026-10-18) The storage's snapshot may be newer than the owner's view of it (the
 application's `CreateSnapshot`): the out-of-date test is against the token's, `σt`. The applied
-state keeps the owner's floor, which the snapshot must cover.
+state keeps the owner's floor, which the snapshot must cover; (2026-10-29, stage U8) and its hold,
+which the snapshot must cover too (the storage keeps what raft promised: `StorState.hd`).
 
 (D22 S-b′2, 2026-10-20) The new snapshot comes with its certificate in the storage's registry
 (`memStorCert`), which the snapshot's home keeps (`memSnapHome`).
@@ -61,8 +62,9 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
     (eood : GoInterface),
   σ.pend = [] →
   uint.Z sv.Metadata'.Index' < 2^61 →
-  -- (D19i part 1) the snapshot covers the floor
-  uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
+  -- (D19i part 1) the snapshot covers the floor; (2026-10-29, stage U8) the hold, at least the
+  -- floor: the storage keeps the entries raft promised
+  uint.Z σ.hd ≤ uint.Z sv.Metadata'.Index' →
   -- (2026-10-19, D21 M3) and is within the storage's cap, the new boundary
   uint.Z sv.Metadata'.Index' ≤ γs.cap →
   ⊢ ∀ Φ : val → IProp GF,
@@ -77,7 +79,7 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
           (ownSnapM sp dq sv -∗ ownMemoryStorage ms γs σ -∗ Φ #eood)) ∧
        (⌜¬ (σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index')⌝ -∗
           memSnapTokG γs (memStorApplied sv) ={∅, ⊤ \ ↑memSnapN}=∗
-          (ownSnapM sp dq sv -∗ ownMemoryStorage ms γs { memStorApplied sv with fl := σ.fl } -∗
+          (ownSnapM sp dq sv -∗ ownMemoryStorage ms γs { memStorApplied sv with fl := σ.fl, hd := σ.hd } -∗
             Φ #interface.nil)))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot"))
       (Val #sp)) {{ Φ }}

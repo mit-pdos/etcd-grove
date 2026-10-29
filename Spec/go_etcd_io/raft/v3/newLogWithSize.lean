@@ -68,6 +68,8 @@ abbrev newLogWithSize.spec : Prop :=
   0 < uint.Z maxSize →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
+  -- (2026-10-29, stage U8) and the hold (`HdOk`; a fresh storage, `memOwnStorage_empty`)
+  σ.hd = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorage st ∗
       ownStorage st σ ∗ isLogger lok ∗
       -- (D22 S-b′3, 2026-10-20) the storage's snapshot, if any, certified in its registry

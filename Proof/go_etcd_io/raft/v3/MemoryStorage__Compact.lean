@@ -48,8 +48,8 @@ theorem MemoryStorage.Compact.wp_proof
   icases memFloorTok_last ms γs σL x $$ Hfw Hgs_inv with ⟨%Hxl, Hgs_inv⟩
   ihave #Hflx := memFloorTok_flLb ms γs x $$ Hfw
   iunfold memInvGhost at Hgs_inv
-  icases Hgs_inv with ⟨%Dl, Hd_inv, #Hlb_inv, %HD, Hlk_inv⟩
-  have HidxL : PlogWf σL.prev σL.ents := (HD.2.2 σL (List.mem_of_getLast? HD.1)).2.2
+  icases Hgs_inv with ⟨%Dl, %Ecl, %ecl, Hd_inv, #Hlb_inv, #Hecl_inv, %HD, Hlk_inv⟩
+  have HidxL : PlogWf σL.prev σL.ents := (HD.2.1.2 σL (List.mem_of_getLast? HD.1)).2.2
   iunfold memCutInv at Hcut_inv
   iNamed Hcut_inv
   have Hlast := memCut_stLast Hcok.1
@@ -109,8 +109,8 @@ theorem MemoryStorage.Compact.wp_proof
       iexists σL, c
       isplitl [Hd_inv Hlk_inv]
       · unfold memInvGhost
-        iexists Dl
-        iframe Hd_inv Hlb_inv Hlk_inv
+        iexists Dl, Ecl, ecl
+        iframe Hd_inv Hlb_inv Hecl_inv Hlk_inv
         ipureintro; exact HD
       rw [Hσf]
       isplitl [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
@@ -284,8 +284,8 @@ theorem MemoryStorage.Compact.wp_proof
     iexists σL, entryID.mk e.Term' ci
     isplitl [Hd_inv Hlk_inv]
     · unfold memInvGhost
-      iexists Dl
-      iframe Hd_inv Hlb_inv Hlk_inv
+      iexists Dl, Ecl, ecl
+      iframe Hd_inv Hlb_inv Hecl_inv Hlk_inv
       ipureintro; exact HD
     isplitl [HhardState_1 Hents_f_1 Hes'_cap Hcs_firstIndex_1 Hcs_lastIndex_1 Hcs_entries_1
       Hcs_term_1 Hcs_snapshot_1]

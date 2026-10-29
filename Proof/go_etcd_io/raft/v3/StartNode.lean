@@ -126,6 +126,8 @@ private abbrev StartNode.specRaw : Prop :=
   BootLogOk ps bootLog →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
+  -- (2026-10-29, stage U8) and the hold (`HdOk`; a fresh storage, `memOwnStorage_empty`)
+  σ.hd = W64 0 →
   -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
   -- outside the no-snapshot mode (2026-10-25 to 2026-10-28, stage U3d: also in the static mode)
   (sn = true → γ.reNoSnap = false) →
@@ -185,14 +187,14 @@ private theorem StartNode.wp_raw
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     StartNode.specRaw (GF := GF) (hG := hG) := by
   intro γ md bud c cv lok si σ hs csm R peers dq pv ps ctxs bootLog sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
-    P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0 Hsn0
+    P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0 Hhd0 Hsn0
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, Hinit, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted,
     #Hbud, #Hlb1, #Hnscap, #Hcl⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · iapply bootInit_inv γ md cv.ID' _ bootLog $$ Hghost
   wp_auto
   wp_apply wp_setupNode γ md c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7
-    P8 P9 P11 P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0
+    P8 P9 P11 P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0 Hhd0
     $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hnscap $Hcl]
     as %np ⟨HR, %nv, %rn, Hn, %Hnvrn, Hchans, Hrn, Hpeers⟩
   ipersist Hn
@@ -309,7 +311,7 @@ private theorem wp_StartNode_impl
     EtcdGrove.StartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeBoot EtcdGrove.nodeDriver EtcdGrove.storageCertLink
   intro γ N c cv lok si σ hs csm R peers dq pv ps ctxs H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss
-    Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl
+    Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl Hhd
   iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, Hinst, Hpeers, #Hpc, Hboot, #Hlink⟩ HΦ
   iunfold nodeBoot at Hboot
   icases Hboot with ⟨⟨%so, #Hst⟩, %Hok, Hg, #Hc0, #Hm, #Hbinv, #Htlb⟩
@@ -319,7 +321,7 @@ private theorem wp_StartNode_impl
   ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
   iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm R peers dq pv ps ctxs γ.raft.reBoot true
     H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid
-    Hcfg rfl Hok Hfl (fun _ => Hns)) $$ [Hc Hown Hinst Hpeers Hg]
+    Hcfg rfl Hok Hfl Hhd (fun _ => Hns)) $$ [Hc Hown Hinst Hpeers Hg]
   · iframe Hinit Hc Hlog Hstor Hown Hinst Hpeers Hpc Hm Hc0 Hbinv Htlb
     isplitl [Hg]
     · unfold bootInit; iexact Hg
@@ -361,7 +363,7 @@ private theorem wp_StartNode_dynamic_impl
     EtcdGrove.StartNode.dynamicSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.dynamicSpec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeConfig EtcdGrove.nodeDriver EtcdGrove.nodeDynamicBoot
   intro γ N c cv lok si σ hs csm R peers dq pv ps ctxs H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss
-    Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl
+    Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl Hhd
   iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, Hinst, Hpeers, #Hpc, Hboot, #Hcap⟩ HΦ
   iunfold nodeDynamicBoot at Hboot
   icases Hboot with ⟨⟨%c0, %decode, #Hdc⟩, %Hok, Hg, #Hc0, #Hm, #Hbinv, #Htlb, ⟨%g, %Hg0, Ha⟩⟩
@@ -375,7 +377,7 @@ private theorem wp_StartNode_dynamic_impl
   iapply (hS γ.raft (γ.mode inferInstance) γ.bud c cv lok si σ hs csm R peers dq pv ps ctxs
     γ.raft.reBoot false
     H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid
-    Hcfg rfl Hok Hfl (fun h => by cases h)) $$ [Hc Hown Hinst Hpeers Hg]
+    Hcfg rfl Hok Hfl Hhd (fun h => by cases h)) $$ [Hc Hown Hinst Hpeers Hg]
   · iframe Hinit Hc Hlog Hstor Hown Hinst Hpeers Hpc Hm Hc0 Hbinv Htlb Hg
     isplitr
     · unfold NsCap; imodintro; iintro -; iexact Hcap

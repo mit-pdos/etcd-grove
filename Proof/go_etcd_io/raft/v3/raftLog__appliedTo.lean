@@ -56,7 +56,9 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
       | (unfold w64Max; split <;> first | rfl | omega)
       | (split <;> first | rfl | omega)
       | (intro Hpz; simp only [decide_eq_false_iff_not] at Hpz; split <;> word)
-      | (refine ⟨Hfl.1, ?_, ?_, Hfl.2.2.2.1, fun h1 h2 => ⟨(Hfl.2.2.2.2.1 h1 h2).1, ?_⟩, Hfl.2.2.2.2.2⟩
+      | (refine ⟨Hfl.1, ?_, ?_, Hfl.2.2.2.1, fun h1 h2 => ⟨(Hfl.2.2.2.2.1 h1 h2).1, ?_⟩, Hfl.2.2.2.2.2.1,
+           HdOk.mono Hfl.2.2.2.2.2.2 (by simp only; have := w64Max_spec ls.applying i; omega)
+             (Int.le_refl _)⟩
          · have := Hfl.2.1; simp only; have := w64Max_spec ls.applying i; omega
          · have := Hfl.2.2.1; simp only; unfold w64Max
            split <;> first | omega | (rename_i hnl; rcases Int.lt_or_eq_of_le (Int.not_lt.1 hnl) with h | h <;> first | exact Hipo h | (rw [← h]; exact this))
