@@ -1143,6 +1143,14 @@ Phase 2 (internal statement changes):
   `rdPool_mint` without its `receiptBound` premise. Why: `node.ReadIndex.spec` has no such premise
   and `isNode` bounded nothing; `cluster_alloc` takes the premise, its allocation records it.
 
+- `wp_store_state_leader` (private, `raft__becomeLeader`): premise `s.term ≠ 0` added (its caller
+  passes `becomeLeader.spec`'s own). Why: `raft.wp_store_stateC` at `.leader` needs it now.
+- P5's private raw specs (`node__*.lean`): `nodeErrRaw`/`propErrRaw` posts; `node.Step`'s raw spec takes
+  `(⧗ 1 ={⊤}=∗ stepP γ id ml)`, `node.ReadIndex`'s `(⧗ 1 ={⊤}=∗ rdCred γ.raft 1)`;
+  `ProposeConfChange`'s raw spec posts `nodeErrS` directly; `TransferLeadership`'s raw spec
+  without `reNoXfer = false`. New lemma module `LemmasP5NodeErr.lean` (the raw errors' intros and the
+  bridges `nodeErrRaw_nodeErrS`, `propErrRaw_propErrS`, `nodeStoppedRaw_nodeStopped`).
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
