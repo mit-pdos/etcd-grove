@@ -25,6 +25,7 @@ layer (R4).
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftlog
+import Proof.go_etcd_io.raft.v3.InvStorageLaws
 
 @[expose] public section
 

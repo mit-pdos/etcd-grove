@@ -369,18 +369,20 @@ client makes the storage contract (`isStorage`) with index `0` a frozen entry of
 index `0`. `newRaft` reads `FirstIndex` and `LastIndex` (`newLogWithSize`) *before* `InitialState`,
 and a `MemoryStorage`'s `InitialState` reads its snapshot without the lock
 (`issues/raft-memorystorage-initialstate-unlocked.md`), so its invariant (`memStorInv`) can only be
-made once `InitialState` returned: the contract comes in `InitialState`'s post. A `MemoryStorage`'s
-bundle is a law (`memStorage_bootStorage`). (raft-final, 2026-10-29, the design's A3, review 1's
+made once `InitialState` returned: the contract comes in `InitialState`'s post. No law gives a bare
+`MemoryStorage`'s bundle: its `InitialState` answers the empty `ConfState`, and `RestartNode` needs
+the voters' (raft-final, the design's P7, A6): a client wraps it, with an `InitialState` of its own
+(kvreconf's), over its own `StorageModel` instance. (raft-final, 2026-10-29, the design's A3, review 1's
 H3) `InitialState`'s post also gives back a client-chosen frame `Q`, which `RestartNode`'s post
 returns (a `MemoryStorage`'s client keeps its `memStorMeta` for `SetHardState`). -/
 def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm : ConfStateM)
     (Q : IProp GF) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk) (R : IProp GF), ⌜st = interface.ok i⌝ ∗ R ∗
-    (□ {{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
+    ({{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
        {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
-    (□ {{ R }} (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
+    ({{ R }} (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
        {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
-    (□ {{ R }} (App (Val #(methods i.ty go!"InitialState" i.v)) (Val #()))
+    ({{ R }} (App (Val #(methods i.ty go!"InitialState" i.v)) (Val #()))
        {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
           hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
           |={⊤}=> isStorage γ id st ∗ (∃ e0 : EntryM, ⌜e0.Term' = W64 0⌝ ∗

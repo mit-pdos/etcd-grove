@@ -54,10 +54,6 @@ theorem take_succ_of_getElem? {α : Type} (l : List α) (k : Nat) (e : α) (h : 
     l.take (k + 1) = l.take k ++ [e] := by
   rw [List.take_add_one, h]; rfl
 
-/-- The base decoder of a cluster of client decisions: it decides nothing (every decision is the
-client's, recorded in the decision map). -/
-def noDec : CCDec := fun _ _ => none
-
 /-- A decision as the protocol's decision map records it: a change applied (`some`), or a skip. -/
 def _root_.Perennial.EtcdGrove.ConfDecision.toOpt : ConfDecision → Option ConfChangeIM
   | .apply o => some o

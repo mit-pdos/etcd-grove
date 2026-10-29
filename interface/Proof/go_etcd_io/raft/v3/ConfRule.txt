@@ -47,9 +47,6 @@ theorem ccDecode_isConfChange {e : LogEntry} {o : ConfChangeIM} (h : ccDecode e 
 def instDecidableIsConfChange (e : LogEntry) : Decidable e.isConfChange :=
   id inferInstance
 
-def Membership.ids (m : Membership) : GSet w64 :=
-  m.voters ∪ m.votersOutgoing ∪ m.learners ∪ m.learnersNext
-
 def Membership.isJoint (m : Membership) : Prop :=
   m.votersOutgoing ≠ ∅
 

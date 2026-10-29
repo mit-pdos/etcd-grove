@@ -82,6 +82,9 @@ structure Membership : Type where
   learnersNext : GSet w64
   autoLeave : Bool
 
+def Membership.ids (m : Membership) : GSet w64 :=
+  m.voters ∪ m.votersOutgoing ∪ m.learners ∪ m.learnersNext
+
 def confStateIs (cs : ConfStateM) (m : Membership) : Prop :=
   cs.Voters'.Perm (elements m.voters) ∧
     cs.VotersOutgoing'.Perm (elements m.votersOutgoing) ∧

@@ -140,41 +140,38 @@ def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm 
       ⌜st = GoInterface.ok i⌝ ∗
         R ∗
           (□
+              ∀ Φ,
+                R -∗
+                  ▷ (R -∗ Φ (intoVal (W64 1), intoVal GoInterface.nil)) -∗
+                    WP
+                      ((intoVal (methods i.ty go!"FirstIndex" i.v))
+                        (intoVal ()))
+                      {{ Φ }}) ∗
+            (□
+                ∀ Φ,
+                  R -∗
+                    ▷ (R -∗ Φ (intoVal (W64 0), intoVal GoInterface.nil)) -∗
+                      WP
+                        ((intoVal (methods i.ty go!"LastIndex" i.v))
+                          (intoVal ()))
+                        {{ Φ }}) ∗
               □
                 ∀ Φ,
                   R -∗
-                    ▷ (R -∗ Φ (intoVal (W64 1), intoVal GoInterface.nil)) -∗
+                    (▷
+                        ∀ hp cs al,
+                          (hsOpt hp hs ∗
+                              csPts cs DFrac.discard csm al ∗
+                                |={⊤}=>
+                                  isStorage γ id st ∗
+                                    (∃ e0, ⌜e0.Term' = W64 0⌝ ∗ storLog st 0 DFrac.discard [e0] ∗ storEnd st 1) ∗ Q) -∗
+                            Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
                       WP
-                        ((intoVal (methods i.ty go!"FirstIndex" i.v))
+                        ((intoVal
+                            (methods i.ty go!"InitialState"
+                              i.v))
                           (intoVal ()))
-                        {{ Φ }}) ∗
-            (□
-                □
-                  ∀ Φ,
-                    R -∗
-                      ▷ (R -∗ Φ (intoVal (W64 0), intoVal GoInterface.nil)) -∗
-                        WP
-                          ((intoVal (methods i.ty go!"LastIndex" i.v))
-                            (intoVal ()))
-                          {{ Φ }}) ∗
-              □
-                □
-                  ∀ Φ,
-                    R -∗
-                      (▷
-                          ∀ hp cs al,
-                            (hsOpt hp hs ∗
-                                csPts cs DFrac.discard csm al ∗
-                                  |={⊤}=>
-                                    isStorage γ id st ∗
-                                      (∃ e0, ⌜e0.Term' = W64 0⌝ ∗ storLog st 0 DFrac.discard [e0] ∗ storEnd st 1) ∗ Q) -∗
-                              Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
-                        WP
-                          ((intoVal
-                              (methods i.ty
-                                go!"InitialState" i.v))
-                            (intoVal ()))
-                          {{ Φ }})
+                        {{ Φ }})
 
 def (sealed) ownSnapsMade (γ : Cluster) (S : List SnapRec) : IProp GF
 

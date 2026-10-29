@@ -126,6 +126,11 @@ structure Membership where
 uses. -/
 def Membership.simple (vs : GSet w64) : Membership := ⟨vs, ∅, ∅, ∅, false⟩
 
+/-- Every id a membership tracks. (raft-final, 2026-10-29: moved here from `ConfRule.lean`, for
+the cluster's names, `UniNames`.) -/
+def Membership.ids (m : Membership) : GSet w64 :=
+  m.voters ∪ m.votersOutgoing ∪ m.learners ∪ m.learnersNext
+
 /-- **A `ConfState` reports the membership `m`**: its four lists hold `m`'s four sets (in some
 order, without repeats), its `AutoLeave` is `m`'s. (Today `confstateOk`.) -/
 def confStateIs (cs : ConfStateM) (m : Membership) : Prop :=
