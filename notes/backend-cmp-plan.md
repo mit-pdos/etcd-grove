@@ -1897,3 +1897,9 @@ thread's `store.Compact`, what M2 needs).
     non-compacting stores, as Q5-1 decided. Not in the plan's text; no weaker meaning than before
     the flip for `d.cm = false`, and the `d.cm = true` case is `storeBackend_of_backendC`. Callers
     (D22's walk, `BuildLemmas`) build `cm := false` records and pass `hcm'`/`rfl`.
+
+**The user's answers on part (4)'s exported changes (2026-10-29).** Both kept:
+`mvcc_NewStore_backend`'s premise `□ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true)` (weaker than the
+round-14 text; `server_kv_*` keep their text), and `mvcc_storeBackend_of_backend`'s `(hcm : d.cm =
+false)` (the old bridge serves non-compacting stores, Q5-1; a compacting store's contract is
+`storeBackend_of_backendC`'s).
