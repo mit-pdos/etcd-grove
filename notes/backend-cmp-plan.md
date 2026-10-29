@@ -1624,3 +1624,14 @@ too.**
 
 **Estimate:** about 1250–1600 lines, per round 15: the swap law is now proved in the Draft (+0 at the
 switch), N3 +30, N2 (a) +50, N5 +30. One full build per round (1724 modules).
+
+### Review round 16: question 5's Draft converged (2026-10-29)
+
+Round 16 (`notes/spec-first-study/backend-review-16.md`, on `0ed5b49b3f`), the increment's third
+round, has no first-tier finding, so the switch follows. The user confirmed Q5-4 (a) at its real
+cost (2026-10-29): the `cm = false` premise travels down D22's snapshot path as round 16's M1 lists.
+- `watchableStore.Restore.spec` takes both premises.
+- `applySnapshot.specSnap` and its two walk lemmas take an `hcm` beside `hkb`.
+- The snapshot's post carries `d'.cm = false`.
+- At boot, `NewServer`'s proof uses `{ d with cm := false }`.
+- Of `InvApplier`'s facts, only `srvEnvOk` takes the conjunct.
