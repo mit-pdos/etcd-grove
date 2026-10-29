@@ -25,7 +25,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
   intro st lg maxSize sn σ lok Hidx Hpe Hlg Hmax Hfl0 Hfr0 Hsg0 Hdt0
   subst Hlg
   wp_start as ⟨#Hsto, HStorage, #Hlg⟩
-  ihave #Hsto2 : isStorage sn st $$ [Hsto]
+  ihave #Hsto2 : isStorageD sn st $$ [Hsto]
   · iexact Hsto
   iNamed Hsto
   subst Hstok

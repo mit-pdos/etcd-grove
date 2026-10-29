@@ -34,7 +34,7 @@ are, in order:
 - `Storage.InitialState` returns `(hs, cs, nil)` and lends `cs.Voters` (whatever the
   storage's snapshot index `ss'` is by then: the log built by `newLogWithSize` does not
   expose it). This is a
-  premise, not a clause of `isStorage`: it is a fact about one storage at one moment,
+  premise, not a clause of `isStorageD`: it is a fact about one storage at one moment,
   and nothing else calls the method.
 - `hs.Commit` lies in `[prev.index, lastIndex]` unless `hs` is empty (else `loadState`
   panics), and `Applied` is `0` or lies in `[prev.index, committed]` (else `appliedTo`
@@ -59,7 +59,7 @@ the persisted `HardState`'s. For a fresh storage (`hs` empty) that is
 builds refines the protocol state `ownRaftGhost_alloc` starts every node in.
 
 Lean notes: the `InitialState` premise's `WP` is applied to the value
-`#(methods si.ty go!"InitialState" si.v)`, as in `isStorage`; Rocq's
+`#(methods si.ty go!"InitialState" si.v)`, as in `isStorageD`; Rocq's
 `Φ (#hs, #cs, #interface.nil)%V` is `Φ (PairV (PairV #hs #cs) #interface.nil)`.
 `HsEmpty` gets a `Decidable` instance so that `committedAfter` can branch on it
 (Rocq's `bool_decide`).
@@ -167,7 +167,7 @@ abbrev newRaft.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       -- (U8 v2) raft's view of its storage (`newLogWithSize`'s); until U8 v2 also the storage's
       -- snapshot certified in its registry (`initKsnCert`)
-      isStorage sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗
+      isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗
       (∀ (Φ : val → IProp GF), ownStorage sn (interface.ok si) σ -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage sn (interface.ok si) σ -∗
             R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗

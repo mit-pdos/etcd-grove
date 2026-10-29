@@ -58,7 +58,7 @@ Recording the progress map in `NState` removes the need for the variant: the cal
 hands `pr` back to the tracker before the call and borrows it again after, at the same
 key.
 
-Reaching `Storage.Snapshot` is what forced the `HSnapshot` triple into `isStorage`
+Reaching `Storage.Snapshot` is what forced the `HSnapshot` triple into `isStorageD`
 (`InvStorage.lean`). This branch is genuinely reachable from `ownRaftPhys`: nothing in
 `ownProgress` bounds `pr.Next` against the log, so `r.raftLog.term(pr.Next-1)` may
 legitimately return `ErrCompacted`. -/

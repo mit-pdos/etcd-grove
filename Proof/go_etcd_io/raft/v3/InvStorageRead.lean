@@ -168,13 +168,13 @@ theorem view_dl (sn : StorNames) (σ : StorState) (i : Nat) (t : w64)
 
 /-- **The read triples of raft's view, from the contract.** -/
 theorem isStorage_of_V (sn : StorNames) (st : Storage) :
-    isStorageV (GF := GF) sn st ⊢ isStorage sn st := by
+    isStorageV (GF := GF) sn st ⊢ isStorageD sn st := by
   iintro #HV
   unfold isStorageV
   icases HV with ⟨%SV, %Bnd, %DL, #HP, #Hpin, #HSVp, #Hconv, #Hdl⟩
   unfold isStorageP
   icases HP with ⟨%i, %Hi, #HL, #HT, #HE, #HF, #HS, #Hb, #Hlen⟩
-  unfold isStorage isStorageWith
+  unfold isStorageD isStorageWith
   iexists i
   isplitr
   · ipureintro; exact Hi

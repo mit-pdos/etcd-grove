@@ -28,7 +28,7 @@ is one field test:
 
 Pure, so the triple says exactly that. It matters because `raft.maybeSendSnapshot`
 follows it with `panic("need non-empty snapshot")`: the proof there has to know the
-answer is `false`, which it gets from `isStorage`'s `HSnapshot` (`InvStorage.lean`).
+answer is `false`, which it gets from `isStorageD`'s `HSnapshot` (`InvStorage.lean`).
 
 raft v3.7 (2026-10-15, stage R4): `sp` is a `*pb.Snapshot`, `sp.GetMetadata().GetIndex() == 0`
 (`node.go:127`): a `nil` pointer (`o = none`) is empty; otherwise the snapshot, at any fraction,

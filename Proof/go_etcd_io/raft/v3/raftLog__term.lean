@@ -89,7 +89,7 @@ theorem raftLog.term.wp_proof
     rw [Hse, List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
     exact Hoffset
   ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
-  · unfold isStorage; iexact HisStorage
+  · unfold isStorageD; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
@@ -215,7 +215,7 @@ theorem raftLog.term.wp_proof
     iNamed Hlog
     wp_auto
     ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
-    · unfold isStorage; iexact HisStorage
+    · unfold isStorageD; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
     iNamed Hsto

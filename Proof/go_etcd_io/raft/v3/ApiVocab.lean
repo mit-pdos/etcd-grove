@@ -184,6 +184,9 @@ structure RNState [GooseExts] where
   to append `Ready` hands out (`appendRight`) and the receipt `ownRawNode_appended` takes
   back are for this storage. -/
   storage : Storage
+  /-- (U8 v2, 2026-10-29) raft's ghost names for its storage (`LogState.sn`), constant: what the
+  floor (`storFloor`) and the delivered terms' keys are of. -/
+  sn : StorNames := {}
   /-- Lower bounds for `node.go` (2026-10-10): at most this many messages are queued
   (`NGhost.outlb`), ... -/
   outlb : Nat := 0

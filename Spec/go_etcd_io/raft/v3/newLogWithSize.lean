@@ -24,7 +24,7 @@ unstable suffix is empty and starts at `LastIndex()+1` (where `offsetInProgress`
 too: `ip` below), and `committed = applied = applying = FirstIndex()-1`, the compaction
 boundary.
 
-One premise is about the storage's *contents* and is not in `isStorage`: that the
+One premise is about the storage's *contents* and is not in `isStorageD`: that the
 stored entries carry contiguous indices after `prev` (`LogIndicesOk`), true of any
 correct `Storage` (and of `MemoryStorage`) but `ownStorage` is abstract, so a client has
 to supply it. (Until 2026-10-13 a second: that none is a configuration change, the
@@ -34,7 +34,7 @@ whose storage holds the `EntryConfChange`s `Bootstrap` wrote.)
 (U8 v2, 2026-10-29) The storage is raft's view `σ` of it (`ownStorage sn st σ`, its ranges
 from the compaction point, the end and the authorities of raft's ghost names `sn`), frozen only at
 the compaction point, no floor raised and no snapshot handed out yet; and the read triples of the
-view (`isStorage sn st`, derived from the contract, `isStorage_of_V`). Until U8 v2 the storage's
+view (`isStorageD sn st`, derived from the contract, `isStorage_of_V`). Until U8 v2 the storage's
 snapshot was premised to be empty or at the boundary (`StoredSnapOk`) and certified
 (`initKsnCert`); the stored snapshot is now the client's.
 
@@ -67,7 +67,7 @@ abbrev newLogWithSize.spec : Prop :=
   σ.fl = W64 0 →
   -- (U8 v2) frozen only at the compaction point, no snapshot handed out, no term certified
   σ.fr = uint.nat σ.prev.index' → σ.sg = 0 → σ.dt = ∅ →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorage sn st ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorageD sn st ∗
       ownStorage sn st σ ∗ isLogger lok }}
     (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))
       (Val #maxSize))

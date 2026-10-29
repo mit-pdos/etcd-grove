@@ -31,7 +31,7 @@ indices `prev.index+1 ...`, and:
   append, and there are exactly two:
 
     - `prev.index + |sents|`, which `append` does not touch, is bounded by
-      `isStorage`'s `Hbounded` clause (`InvStorage.lean`): `< 2^61`.
+      `isStorageD`'s `Hbounded` clause (`InvStorage.lean`): `< 2^61`.
     - `|uents|` is the length of a Go slice, and Perennial's `ownSlice_len` gives
       `< 2^63` for *whatever slice the `append` returns* -- this is the only bound on
       the suffix, and it is a free one, re-derived rather than carried.
@@ -395,7 +395,7 @@ pending. The storage holds `σ.ents` after `σ.prev` (`ownStorage`).
   `maybeTerm`, and `slice`'s range starts at `firstIndex = offset`, above every stored
   index it could ask `Storage.Entries` for. `sid.index` is non-zero (the snapshot's
   index is above the commit index it replaced) and below `2^61`, the bound
-  `isStorage`'s `Hbounded` gives an unshadowed storage: once the snapshot is applied it
+  `isStorageD`'s `Hbounded` gives an unshadowed storage: once the snapshot is applied it
   becomes the storage's boundary, and `appendEntry`'s no-wrap argument needs it
   meanwhile. -/
 def LogStoreOk (snap : Option entryID) (σ : StorState)
@@ -853,7 +853,7 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "%Hidx" ∷ ⌜LogIndicesOk ls.prev (ls.sents ++ ls.uents)⌝ ∗
   "%Hnowrap" ∷ ⌜uint.Z ls.prev.index' + (ls.sents.length : Int)
                   + (ls.uents.length : Int) + 1 < 2^64⌝ ∗
-  "#HisStorage" ∷ isStorage ls.sn lv.storage' ∗
+  "#HisStorage" ∷ isStorageD ls.sn lv.storage' ∗
   -- (D22 S-d1b, 2026-10-21) unless lent to the application (`lentStor`)
   "HStorage" ∷ lentStor ls.lent ls.sn lv.storage' σ ∗
   "%Hstore" ∷ ⌜LogStoreOk ls.snap σ ls.prev ls.sents ls.uents⌝ ∗
@@ -955,7 +955,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     ls.lent = lt →
     ls.sn = sn →
     ⊢ l ↦ lv -∗
-      isStorage (GF := GF) sn st -∗
+      isStorageD (GF := GF) sn st -∗
       lentStor lt sn st σ -∗
       ownSnap lv.unstable'.snapshot' snap -∗
       pendKsn lv.unstable'.snapshot' snap K -∗
@@ -1048,7 +1048,7 @@ def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
   "%Hidx" ∷ ⌜LogIndicesOk ls.prev (ls.sents ++ ls.uents)⌝ ∗
   "%Hnowrap" ∷ ⌜uint.Z ls.prev.index' + (ls.sents.length : Int)
                   + (ls.uents.length : Int) + 1 < 2^64⌝ ∗
-  "#HisStorage" ∷ isStorage ls.sn lv.storage' ∗
+  "#HisStorage" ∷ isStorageD ls.sn lv.storage' ∗
   "HStorage" ∷ lentStor ls.lent ls.sn lv.storage' σ ∗
   "%Hstore" ∷ ⌜LogStoreOk (snapV ls) σ ls.prev ls.sents ls.uents⌝ ∗
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
@@ -1130,7 +1130,7 @@ theorem ownRaftLogW_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorStat
     ls.lent = lt →
     ls.sn = sn →
     ⊢ l ↦ lv -∗
-      isStorage (GF := GF) sn st -∗
+      isStorageD (GF := GF) sn st -∗
       lentStor lt sn st σ -∗
       ownSnap lv.unstable'.snapshot' snap -∗
       pendKsn lv.unstable'.snapshot' snap K -∗
@@ -1323,7 +1323,7 @@ theorem ownRaftLog_ready_wf (l : Loc) (ls : LogState) :
 /-- The storage handshake's last step (2026-10-10; until then `ownRaftLog_persist`, an
 accessor lending the storage itself): the receipt of the application's append of the
 unpersisted entries -- for the log's own storage, at the state they were handed out at
--- is absorbed into the storage (`isStorage`'s `Habsorb`), which then holds them
+-- is absorbed into the storage (`isStorageD`'s `Habsorb`), which then holds them
 (`storAbsorb`, `storApp` of the entries `Ready` handed out, which is what
 `MemoryStorage.Append(rd.Entries)` does). The log then records nothing unpersisted.
 
@@ -1496,7 +1496,7 @@ theorem ownRaftLog_fl (l : Loc) (ls : LogState) :
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
       Huents_cap Hl_logger Hu_logger
 
-/-- (D22 S-d1b) The stable part ends below `2^61`: from `isStorage`'s bound with no snapshot
+/-- (D22 S-d1b) The stable part ends below `2^61`: from `isStorageD`'s bound with no snapshot
 pending (the storage is then not lent), from the pending snapshot's index otherwise (the stable
 part is empty). -/
 theorem ownRaftLog_stable_bound (l : Loc) (ls : LogState) :
@@ -1507,9 +1507,9 @@ theorem ownRaftLog_stable_bound (l : Loc) (ls : LogState) :
   rcases Option.eq_none_or_eq_some ls.snap with Hs | ⟨sid, Hs⟩
   · have Hlnt := lent_false_of Hlent Hs
     ihave HStorage := lentStor_open Hlnt _ _ _ $$ HStorage
-    ihave #Hsto : isStorage (GF := GF) ls.sn lv.storage' $$ []
+    ihave #Hsto : isStorageD (GF := GF) ls.sn lv.storage' $$ []
     · iexact HisStorage
-    iunfold isStorage at Hsto
+    iunfold isStorageD at Hsto
     iunfold isStorageWith at Hsto
     icases Hsto with ⟨%isv, #Hst⟩
     iNamed Hst
@@ -1581,7 +1581,7 @@ theorem ownRaftLog_committed (l : Loc) (ls : LogState) :
 
 omit [GoGlobalContext] in
 /-- An entry `Storage.Entries` hands back for a range ending at or below
-`unstable.offset` is an entry of the *visible* stable part `sents` (`isStorage`'s
+`unstable.offset` is an entry of the *visible* stable part `sents` (`isStorageD`'s
 `HEntries` bounds it by `hi`; `Hstored` makes the prefix below `hi` a prefix of
 `sents`). -/
 theorem stored_take_visible (prev : entryID) (sents stored : List EntryM) (hi : w64)

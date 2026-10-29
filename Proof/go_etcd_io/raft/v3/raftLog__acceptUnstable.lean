@@ -1,6 +1,6 @@
 /- Port of election_proof/proof_raftLog__acceptUnstable.v (857d09190).
 
-Since 2026-10-10 the proof also runs the storage's hand-out law (`isStorage`'s
+Since 2026-10-10 the proof also runs the storage's hand-out law (`isStorageD`'s
 `Hhandout`, `InvStorage.lean`) for the entries handed out, before the call (a ghost
 update, so while the goal is still a `WP`): the storage's pending batch becomes
 `nextUnstable ls`, and the right to append it is the postcondition's `appendRight`. -/

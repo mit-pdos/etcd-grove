@@ -124,7 +124,7 @@ abbrev NewRawNode.spec : Prop :=
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      isStorageD (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- (2026-10-16, stage R5) `InitialState` in `newRaft`'s shape (stage R4, D7): the hard state
       -- `hsOpt hp hs` and the conf state read-only for good (stage R6b: its `AutoLeave` cell set
       -- or not, `al`), `ownStorage` back at once

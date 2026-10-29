@@ -21,7 +21,7 @@ the storage, `StorState` (its compaction point `prev`, the physical log `ents` a
 handed out `sg`), and `ownStorage sn st σ`, the ranges, end and authorities it holds for that view:
 the frozen prefix `[c, fr]` (`□`), its owned part `(fr, kOut)` (`own 1`), the end unless a batch is
 out, and the authorities of `nodeAppliedLb` (at `fl`) and `snapGiven` (at `sg`). The read triples of
-the view (`isStorageWith`, `isStorage sn st`) are **derived** from the contract (`isStorage_of_V`),
+the view (`isStorageWith`, `isStorageD sn st`) are **derived** from the contract (`isStorage_of_V`),
 with the statements the log's proofs were written against before U8 v2 (review 1's "derived
 contract"), and the hand-out, absorption, floor, lending and freezing of the view are lemmas
 (`ownStorage_handout`, ...), no longer laws an implementation proves.
@@ -506,15 +506,15 @@ def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : Sna
             SC sv ∗ ⌜σ.dt.lookup (uint.nat sv.Metadata'.Index') = some sv.Metadata'.Term'⌝))) }}))
 
 /-- The read triples of the view raft holds. -/
-def isStorage (sn : StorNames) (st : Storage) : IProp GF :=
+def isStorageD (sn : StorNames) (st : Storage) : IProp GF :=
   isStorageWith (ownStorage sn st) (storCut st) (svCert sn) st
 
 instance isStorageWith_pers (P : StorState → IProp GF) (CT : Int → IProp GF)
     (SC : SnapshotM → IProp GF) (st : Storage) : Persistent (isStorageWith P CT SC st) := by
   unfold isStorageWith; infer_instance
 
-instance isStorage_pers (sn : StorNames) (st : Storage) : Persistent (isStorage (GF := GF) sn st) := by
-  unfold isStorage; infer_instance
+instance isStorage_pers (sn : StorNames) (st : Storage) : Persistent (isStorageD (GF := GF) sn st) := by
+  unfold isStorageD; infer_instance
 
 end view
 

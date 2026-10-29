@@ -37,7 +37,7 @@ cluster (`isStaticCluster`, `cluster_alloc_static`, `RestartNode`), the rest of 
 (`readyRest`, `readySnap`), `Advance`, `Step` (`sentMsg`, `msgCredits`, `stepIn`), `Tick`
 (`tickCredit`), `TransferLeadership` (`leaderTransferOn`) and the snapshots' certificates
 (`snapshotCert`, `storageCertInv`, `storageCertLink`). The storage contract itself (`StorageModel`,
-`isStorage`, `appendRight`, `readyOut`, `advReceipt`, `storFloor`) and `MemoryStorage`'s specs and
+`isStorageD`, `appendRight`, `readyOut`, `advReceipt`, `storFloor`) and `MemoryStorage`'s specs and
 predicates are raft's storage API, carried over unchanged (not redesigned here).
 -/
 module

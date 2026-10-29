@@ -685,7 +685,7 @@ abbrev raft.Step.spec : Prop :=
       -- `m.Snapshot` points to, read-only, and the four lists `scfg` its `ConfState`'s
       -- slices hold, read-only (`ownCSL`); well formed (`SnapScope`, `Spec/raft__restore.lean`:
       -- `CSWf`, no repeats, `AutoLeave` off when not joint, the index below `2^61` -- a pending
-      -- snapshot becomes the `Storage`'s boundary, which `isStorage`'s `Hbounded` bounds the
+      -- snapshot becomes the `Storage`'s boundary, which `isStorageD`'s `Hbounded` bounds the
       -- same way) (since D22 S-b, D22j, naming the node or not: `restore`'s `!found` exit refuses
       -- it, `Step.snapStale`; until then a premise `CSLists.Has`); what the mode asks of it
       -- (`GMode.SnapOk`: statically the ghost state's voters, not joint; dynamically A3, the

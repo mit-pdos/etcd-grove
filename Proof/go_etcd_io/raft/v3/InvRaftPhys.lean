@@ -117,7 +117,7 @@ snapshot's metadata and voters -- **read through the heap** (since 2026-10-03), 
 `ConfState.Voters` slice holds, both read-only. `send` takes these points-tos for a
 `MsgSnap` (its `Hsnap`); `maybeSendSnapshot` persists the local `snapshot` variable
 whose address it queues (nobody writes it again) and has the voters from
-`raftLog.snapshot` (`isStorage`'s `HSnapshot`, or `ownSnap` for a pending snapshot).
+`raftLog.snapshot` (`isStorageD`'s `HSnapshot`, or `ownSnap` for a pending snapshot).
 The receiving side, `Step`'s `Hsnap`, holds the same points-tos.
 
 `outboxRel o msgs msgsAA`: the abstract outbox `o` is, up to permutation, what the two

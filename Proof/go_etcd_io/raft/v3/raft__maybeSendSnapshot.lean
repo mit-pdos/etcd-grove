@@ -43,7 +43,7 @@ private theorem ownRaftPhys_nosend (c : CfgM) (r : Loc) (id : w64) (s : NState) 
   iintro H
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs]) $$ H
 
-/-- Three exits, and the two `panic`s are both killed by `isStorage`'s
+/-- Three exits, and the two `panic`s are both killed by `isStorageD`'s
 `HSnapshot` (`InvStorage.lean`), whose postcondition is the disjunction
 "`ErrSnapshotTemporarilyUnavailable`, or a snapshot with
 `Metadata.Index ≠ 0`":

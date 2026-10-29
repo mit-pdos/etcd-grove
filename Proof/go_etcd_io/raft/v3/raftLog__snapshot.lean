@@ -33,7 +33,7 @@ theorem raftLog.snapshot.wp_proof
   iNamed H
   iNamed Hlog
   ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
-  · unfold isStorage; iexact HisStorage
+  · unfold isStorageD; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto

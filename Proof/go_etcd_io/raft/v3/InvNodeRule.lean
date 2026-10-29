@@ -323,7 +323,7 @@ theorem snapshotCert_made (γ : Cluster) (N : Namespace) (k : SnapTrip) :
 `notes/spec-first-study/raft-storage-spec.md`): it is of a non-empty committed prefix `l` of its
 index and last term, its `ConfState` reports the membership `m` after `l` (`confAt`), and it was made
 (`snapMade`, with its data). Exposed: what a client's `Storage.Snapshot` promises of a non-empty
-snapshot (`isStorage`), replacing the certificate registry (`snapshotCert` with `storCert`). -/
+snapshot (`isStorageD`), replacing the certificate registry (`snapshotCert` with `storCert`). -/
 def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
   iprop(∃ (l : List LogEntry) (m : Membership), isCommittedLogLb γ l ∗ confAt γ l.length m ∗
     snapMade γ ⟨l.length, m, sv.Data'⟩ ∗
