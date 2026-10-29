@@ -1847,3 +1847,9 @@ What part (1) still needs:
   backend's record with `cm := false`; `applySnapshot_walk` takes `hcm` (the old store's), but
   `srvSnapApplied_of_walk` needs none (it takes the new record's from the walk's post), so it is the
   only one of the two walk lemmas that does not change.
+
+**The order after the core stage (the user's, 2026-10-29).** Test and Probe come right after the core
+stage's parts (2)-(4), before Freeze and stage 5: the `axiom` skill again on `storage.OpenBackend`
+(its post now carries `fkCl` and `srSlot`), the bbolt tester for the widened `Delete_kv` axiom, and a
+Probe of the compaction specs against their real callers (the `cm := true` `NewStore` export, the apply
+thread's `store.Compact`, what M2 needs).
