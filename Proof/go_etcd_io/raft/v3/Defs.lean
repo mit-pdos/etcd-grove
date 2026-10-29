@@ -259,6 +259,15 @@ existential `own_raftLog l`, and the "page out" shape that `slice`/`entries` ret
 as `l ↦ lv ∗ s ↦*{dq} es ∗ (l ↦ lv -∗ s ↦*{dq} es -∗ own_raftLog_at …)`.
 notes/decisions.md, "One predicate per object".) -/
 
+/-- (U8 v2, 2026-10-29) Raft's internal ghost names for its storage (`InvStorage.lean`): the
+authority over the applied lower bounds it publishes (`ga`, the API's `nodeAppliedLb`), over the
+snapshot index it last handed out to install (`gg`, `snapGiven`), and the pin of the storage's
+snapshot validity (`gsv`, `svCert`). Fixed when the log is made. -/
+structure StorNames where
+  ga : Nat := 0
+  gg : Nat := 0
+  gsv : Nat := 0
+
 structure LogState [GooseExts] where
   prev : entryID
   sents : List EntryM
@@ -365,6 +374,11 @@ structure LogState [GooseExts] where
   handed out (`SdtTie`). -/
   stb : w64 := 0
   sdt : List w64 := []
+  /-- (U8 v2, 2026-10-29) Raft's ghost names for its storage (`StorNames`): constant. -/
+  sn : StorNames := {}
+  /-- (U8 v2) The snapshot index last handed out to install (ghost; `snapGiven`'s authority,
+  `InvStorage.lean`): raised by a snapshot `Ready`'s hand-out, at most `prev.index`. -/
+  sg : Nat := 0
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -954,7 +968,7 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
    -- (D22 S-d4 item 3) what the storage holds: as before if a snapshot was pending, else `applying`
    if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying,
    -- (2026-10-28, stage U4a) the storage's terms (`restoreSdt`)
-   (restoreSdt ls).1, (restoreSdt ls).2⟩
+   (restoreSdt ls).1, (restoreSdt ls).2, ls.sn, ls.sg⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`; (D22 S-r, 2026-10-21) and its data. -/
