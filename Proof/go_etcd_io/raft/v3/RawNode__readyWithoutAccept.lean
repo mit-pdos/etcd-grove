@@ -108,6 +108,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs Hsteps0 Hunp0
   wp_start as H
   iNamed H
@@ -655,7 +658,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro
-    exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, HunpS, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff, Hrs_out,
+    exact ⟨Hwf, Hin, Hasync, Hdlen, HunpS, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff, Hrs_out,
       Hrs_unst, Hrs_clb,
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
@@ -692,6 +695,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   isplitr
   · iexact HHP
   · iexact Hhsw
+  -/
 
 end proof
 

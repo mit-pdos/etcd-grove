@@ -18,7 +18,7 @@ rule's decoder of stage U4a's interim cluster.)
 module
 
 public import Proof.go_etcd_io.raft.v3.ConfRule
-public import Proof.go_etcd_io.raft.v3.InvApiDyn
+public import Proof.go_etcd_io.raft.v3.InvApiView
 import all Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section

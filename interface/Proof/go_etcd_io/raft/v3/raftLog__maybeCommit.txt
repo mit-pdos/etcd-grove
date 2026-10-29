@@ -17,7 +17,8 @@ theorem raftLog.maybeCommit.wp_proof [package_sem : Assumptions] (wp_raftLog_mat
                           applied := ls.applied, snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying,
                           unpersisted := ls.unpersisted, stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax,
                           storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := ls.lent,
-                          sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt }
+                          sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt,
+                          sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
                       else ls) ∗
                     ⌜b =
                         decide

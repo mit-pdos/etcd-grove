@@ -29,6 +29,9 @@ theorem RawNode.Tick.wp_proof
     (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
     (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG)) :
     RawNode.Tick.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs Hterm Hflw
   wp_start as H
   iNamed H
@@ -54,7 +57,7 @@ theorem RawNode.Tick.wp_proof
     isplitl
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps
-        Hwf' Hin Hal
+        Hwf' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) ⟨fun h => Hgd fp (Hpvoff.1 h), by rw [Hgh]; exact Hpvoff.2.1,
           by rw [Hgh]; omega, fun hp => by rw [Hgh, Htpc hp]; exact Htc1, Hpvoff.2.2.2.2.step Hsrb⟩
@@ -64,6 +67,7 @@ theorem RawNode.Tick.wp_proof
     ipureintro
     rw [Htrm]
     exact ⟨Ht1, Ht2⟩)
+  -/
 
 end proof
 

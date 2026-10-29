@@ -321,6 +321,9 @@ newStorageApplyRespMsg: raftpb_MessageType__Enum
 node__stepWithWaitOption: raftpb_Message__GetType context_ErrDone
 node__step: node__stepWithWaitOption
 node__ForgetLeader: node__step raftpb_MessageType__Enum
+node__Campaign: node__step raftpb_MessageType__Enum
+node__Status:
+node__Stop:
 node__stepWait: node__stepWithWaitOption
 node__Propose: node__stepWait raftpb_MessageType__Enum
 node__Step: IsLocalMsg IsLocalMsgTarget node__step raftpb_Message__GetType raftpb_Message__GetFrom
@@ -330,10 +333,8 @@ node__ProposeConfChange: confChangeToMsg node__Step
 node__ApplyConfChange: raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2
 RestartNode: NewRawNode newNode node__run
 # Stage R8b (D12): the new cluster's start -- Bootstrap (proto.Marshal at the boot changes is the
-# premise bootMarshal, not a callee), setupNode, StartNode
+# premise bootMarshal, not a callee), setupNode (StartNode: no spec since U9, 2026-10-29, until the server's repair)
 RawNode__Bootstrap: raft__becomeFollower raftpb_ConfChangeType__Enum raftpb_EntryType__Enum raftLog__append raftpb_ConfChange__AsV2 raft__applyConfChange
-setupNode: NewRawNode RawNode__Bootstrap newNode
-StartNode: setupNode node__run
 RawNode__Campaign: raft__Step raftpb_MessageType__Enum
 RawNode__ForgetLeader: raft__Step raftpb_MessageType__Enum
 RawNode__ReportUnreachable: raft__Step raftpb_MessageType__Enum
@@ -341,7 +342,9 @@ RawNode__ReportSnapshot: raft__Step raftpb_MessageType__Enum
 RawNode__TransferLeader: raft__Step raftpb_MessageType__Enum
 RawNode__Propose: raft__Step raftpb_MessageType__Enum
 RawNode__ReadIndex: raft__Step raftpb_MessageType__Enum
-node__run: RawNode__HasReady RawNode__readyWithoutAccept RawNode__acceptReady RawNode__Advance RawNode__Tick raft__Step raft__hasLeader IsResponseMsg IsLocalMsgTarget raft__applyConfChange raftpb_Message__GetType raftpb_Message__GetFrom
+getProgressCopy: tracker_ProgressTracker__Visit tracker_Inflights__Clone
+getStatus: getBasicStatus getProgressCopy tracker_Config__Clone
+node__run: RawNode__HasReady RawNode__readyWithoutAccept RawNode__acceptReady RawNode__Advance RawNode__Tick raft__Step raft__hasLeader IsResponseMsg IsLocalMsgTarget raft__applyConfChange raftpb_Message__GetType raftpb_Message__GetFrom getStatus
 RawNode__ProposeConfChange: confChangeToMsg raft__Step
 RawNode__Step: IsResponseMsg IsLocalMsg IsLocalMsgTarget raft__Step raftpb_Message__GetType raftpb_Message__GetFrom
 RawNode__Tick: raft__tickElection raft__tickHeartbeat

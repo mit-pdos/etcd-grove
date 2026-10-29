@@ -16,7 +16,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Perennial.Proof.context
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 
@@ -114,6 +114,9 @@ private theorem node.Propose.wp_raw
     (wp_node_stepWait : node.stepWait.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.Propose.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n data_sl data Q ctx cd
   wp_start as ⟨#Hnode, #Hctx, #Hdata, Harg⟩
   wp_auto
@@ -165,6 +168,7 @@ private theorem node.Propose.wp_raw
   wp_auto
   iapply HΦ
   iexact Herr
+  -/
 
 end proof
 
@@ -183,7 +187,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Propose_impl
     (hP : EtcdGrove.node.Propose.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Propose.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.Propose.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
+    EtcdGrove.Cluster.dup
   intro n γ N id data_sl data ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hd, Hau⟩ HΦ
   iunfold isNode at Hnode
@@ -201,7 +209,7 @@ private theorem node.wp_Propose_impl
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -⟩
   imod api_key_register γ N ⊤ CoPset.subseteq_top (entKey (W32 0) data) $$ Hci with #Hpi
-  ihave Hau1 := api_propAu1 γ N (W32 0) data Hnf HNs $$ Hinv Hau
+  ihave Hau1 := api_propAu1_if γ N (W32 0) data Hnf HNs $$ Hinv Hau
   iapply (hP γn id n data_sl data (fun _ => iprop(True)) ctx cd) $$ [Hau1]
   · iframe Hinit Hrn Hctx Hd
     iright
@@ -211,6 +219,7 @@ private theorem node.wp_Propose_impl
   iintro !> %err #Herr
   iapply HΦ
   iapply propErr_api $$ Herr
+  -/
 
 end wrap
 

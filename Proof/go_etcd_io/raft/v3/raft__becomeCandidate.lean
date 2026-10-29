@@ -27,6 +27,9 @@ theorem raft.becomeCandidate.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeCandidate : traceBecomeCandidate.spec (GF := GF) (hG := hG)) :
     raft.becomeCandidate.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro c r id s Hrole Hnw Hcfg
   wp_start as Hphys
   wp_auto
@@ -58,6 +61,7 @@ theorem raft.becomeCandidate.wp_proof
   -- the stores above give `becomeCandidate` up to the order of the record updates
   iapply ownRaftPhysC_eq $$ Hphys
   cases s; rfl
+  -/
 
 end proof
 

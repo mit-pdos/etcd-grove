@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A message from the network goes onto `recvc` (`netP`); a proposal onto `propc` with a
 fresh result channel (`propP`, `Handoff`), whose result, `raft.Step`'s error for the proposal
-(`stepErr`, stage R7c), is then awaited. `n.done` never fires.
+(`stepErr`, stage R7c), is then awaited. (2026-10-29, stage U9a) If `n.done` fires, `ErrStopped`.
 `ctx` is any `nodeCtx` (stage R7a, `InvNodeCtx.lean`): its `Done()` is `nil` (the case never
 fires) or a context's channel, from which a receive returns once the context is done, and the
 call returns `ctx.Err()` (`nodeDone_recv_clause`, `isContext_Err_done` over the trust-boundary
@@ -42,8 +42,18 @@ theorem node.stepWithWaitOption.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
     node.stepWithWaitOption.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n m wait ctx cd
   wp_start as ⟨#Hnode, #Hctx, Harg⟩
+  -- (2026-10-29, stage U9a) `ErrStopped`, for the `n.done` cases
+  ihave #Hinit := isInitialized_access $$ Hpkg
+  unfold isInitialized
+  icases Hinit with ⟨%eStop, %_, %_, %_, %_, %_, %_, %_, %_, %_, #Hinit⟩
+  iNamed Hinit
+  ihave #HeStop : errStopped (GF := GF) eStop $$ []
+  · unfold errStopped; iframe ErrStopped; ipureintro; exact HErrStopped
   ihave #Hpctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Hnode' := Hnode
@@ -51,13 +61,14 @@ theorem node.stepWithWaitOption.wp_proof
   unfold stepArg
   icases Harg with (Hnet | ⟨%Hw, %data, Hm, #Hent, Htk⟩ | ⟨%Hw, Hfwd⟩)
   · -- a message from the network: `recvc <- m`
-    iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩
+    icases netP_split γ id m $$ Hnet with ⟨%st, Hm, %Hok, Hback⟩
     wp_auto
     wp_apply wp_GetType.1 $$ [Hm] as Hm
     · iexact Hm
     wp_if_destruct
-    · exact absurd Hif (netStepTypes_ne_prop Hok.1)
+    · rcases Hok with Hok | rfl
+      · exact absurd Hif (netStepTypes_ne_prop Hok)
+      · exact absurd Hif (by simp [hupSt, MsgProp])
     wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking_nil
@@ -72,11 +83,8 @@ theorem node.stepWithWaitOption.wp_proof
       isplitr
       · iapply isHandshake_isChan $$ Hrecvc
       iapply handshake_send_au γ.recvc nv.recvc' m (netP γ id) iprop(True)
-        $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hm Hcr Htc]
-      · iunfold netP
-        iexists st
-        iframe Hm Hab Hsn Hlb Hcr Htc
-        ipureintro; exact ⟨Hok, Hpvb⟩
+        $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hm Hback]
+      · iapply Hback $$ Hm
       inext
       iintro -
       wp_auto
@@ -99,8 +107,13 @@ theorem node.stepWithWaitOption.wp_proof
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply isHandshake_isChan $$ Hdone
-      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro -
+      wp_auto
+      iapply HΦ
+      iapply waitErr_stopped $$ HeStop
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · -- a proposal: `propc <- pm`, then `<-pm.result`
@@ -197,8 +210,14 @@ theorem node.stepWithWaitOption.wp_proof
         isplitr
         · ipureintro; rfl
         isplitr
-        · iapply isHandshake_isChan $$ Hdone
-        iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc2 $Hlc3] Hdone
+        · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+        -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
+        iapply node_done_recv_au γ nv.done' _ $$ Hdone
+        iintro -
+        wp_auto
+        iapply HΦ
+        iapply propErr_of_nodeErr
+        iapply nodeErr_stopped $$ HeStop
       iapply BigAndL.bigAndL_nil.2
       itrivial
     iapply BigAndL.bigAndL_cons.2
@@ -219,8 +238,14 @@ theorem node.stepWithWaitOption.wp_proof
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply isHandshake_isChan $$ Hdone
-      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro -
+      wp_auto
+      iapply HΦ
+      iapply propErr_of_nodeErr
+      iapply nodeErr_stopped $$ HeStop
     iapply BigAndL.bigAndL_nil.2
     itrivial
 
@@ -279,10 +304,16 @@ theorem node.stepWithWaitOption.wp_proof
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply isHandshake_isChan $$ Hdone
-      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro -
+      wp_auto
+      iapply HΦ
+      iapply nodeErr_stopped $$ HeStop
     iapply BigAndL.bigAndL_nil.2
     itrivial
+  -/
 
 end proof
 

@@ -79,6 +79,11 @@ def ccWantsLeave : ConfChangeIM → Bool
   | .v1 _ => false
   | .v2 m => m.changes.isEmpty
 
+/-- (2026-10-29, stage U5) An empty `EntryConfChangeV2` of a batch decodes to a change that wants to
+leave a joint configuration (`ccDecodeV2_nil`: the empty change), as `stepLeader`'s loop decodes it. -/
+def CCLeaveOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) : Prop :=
+  ∀ x ∈ ents.zip cs, x.1.Data' = [] → x.1.Type' = W32 2 → ∀ c, x.2 = some c → ccWantsLeave c = true
+
 /-- A proposal's batch `es'` after `stepLeader`'s conf-change loop, from the proposed `es`
 (2026-10-13): each entry kept, or a conf-change entry replaced by the empty normal entry
 `pb.Entry{Type: EntryNormal}` (the zero `Entry`), as the loop does to a refused one. The

@@ -37,6 +37,9 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hnscap, #Hcl⟩
   iunfold rawNodeFresh at Hfresh
@@ -64,7 +67,7 @@ theorem RawNode.Bootstrap.wp_proof
   wp_auto
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
       (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
-  · unfold isStorage; iexact HisStorage
+  · unfold isStorageD; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
@@ -380,7 +383,7 @@ theorem RawNode.Bootstrap.wp_proof
       omega
     wp_apply wp_raft_applyConfChange (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅) rnv.raft' id
         sk v _ (DFrac.own 1) (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅)
-        (bootCC_apply _ _ Hp0) Hsz
+        (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
         (by intro _ h; rw [Hskr] at h; cases h)
       $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
@@ -552,7 +555,7 @@ theorem RawNode.Bootstrap.wp_proof
             storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
           ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) _ [] ({ rnv with prevHardSt' := es } : RawNode) sv
-          (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2 (fun h => by cases h) rfl Hasync
+          (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2 (fun h => by cases h) Hasync
           (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
           (by rw [HNls]; simp only [logAppend, Hun])
           (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
@@ -572,6 +575,7 @@ theorem RawNode.Bootstrap.wp_proof
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
   · iexact Hpeers
+  -/
 
 end proof
 

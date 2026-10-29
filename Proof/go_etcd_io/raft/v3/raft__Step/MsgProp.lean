@@ -181,6 +181,9 @@ theorem wp_Step_MsgProp
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
               recv.length ≤ 1 ∧ StepCD c id B m s recv s'⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf HL Hnors
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -199,11 +202,11 @@ theorem wp_Step_MsgProp
   cases Hrole : s.role
   · -- Follower: forward to the leader, or drop. `send` wants the entries read-only.
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply wp_stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
-        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
         (fun _ => ⟨Hfrom, Hterm, Hlok Hrole⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -275,8 +278,8 @@ theorem wp_Step_MsgProp
       ileft; ipureintro; rfl
   · -- Candidate: drop
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply wp_stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by
@@ -319,7 +322,7 @@ theorem wp_Step_MsgProp
   · -- Leader: append and broadcast, or drop
     simp only [stepFuncOf]
     icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
-    wp_apply wp_stepLeader c r id s ml m ents sn ctx rs k0 (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole
+    wp_apply wp_stepLeader c r id s ml m ents sn ctx rs k0 (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole (by intro Hc; exfalso; first | (rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (rcases Hc with Hc | Hc <;> simp_all [MsgBeat, MsgTransferLeader]))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -337,7 +340,7 @@ theorem wp_Step_MsgProp
     unfold LeaderStepResultC at Hres
     rw [ite_pos Hty] at Hres
     unfold LeaderProposeResult at Hres
-    obtain ⟨cs', Hct, Hres⟩ := Hres
+    obtain ⟨cs', Hct, Hlv, Hres⟩ := Hres
     have Hrepl : PropRepl ents (leaderPropConf s ents cs' c.joint).1 :=
       propConf_repl (joint := c.joint) s.logst.applied (logLast s.logst) s.pci ents cs' Hct
     have Hps : ∀ p, toPState { s with pci := p } = toPState s := fun _ => rfl
@@ -448,7 +451,7 @@ theorem wp_Step_MsgProp
           rw [Hr, HP]
           refine .trans _ _ _ _ _
             (StepR.propose (absMsg .propose m ents ctx) (rOf s g) cs' rfl Hrl Hct
-              (Int.le_refl _)) ?_
+              (Int.le_refl _) Hlv) ?_
           rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
           exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
       ileft; ipureintro; rfl
@@ -482,8 +485,8 @@ theorem wp_Step_MsgProp
         iright; iexact Herrn
   · -- PreCandidate (2026-10-04), as a candidate: drop
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply wp_stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by
@@ -523,6 +526,7 @@ theorem wp_Step_MsgProp
       isplitr
       · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
       iright; iexact Herrn
+  -/
 
 end StepProof
 

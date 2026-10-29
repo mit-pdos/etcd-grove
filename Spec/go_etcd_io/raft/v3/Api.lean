@@ -21,7 +21,7 @@ proof that uses one as a lemma rather than taking it as a callee's spec, are
   a client sees their names, never their bodies), with their laws and the allocations
   (`cluster_alloc`, `dynamicCluster_alloc`); (2026-10-28, stage U4a) a cluster with snapshots and
   reconfiguration in `InvNodeRule.lean` (`isCluster`, `confAt`, `confDecided`, `ownConfDecisions`,
-  `confDecide`, `skippedIn`, `ownSnapsMade`, `cluster_alloc_dec`, and since stage U4 newcomers:
+  `confDecide`, `skippedIn`, `ownSnapsMade`, `cluster_alloc`, and since stage U4 newcomers:
   `joinAuth`, `nodeJoin`, `joinAuth_join`; the specs' `unifiedSpec` variants;
   2026-10-28, the conf-change decision switch: its conf entries decided by the client, until then by
   a rule fixed at allocation, `cluster_alloc_rule`), and a client library deciding by a rule over it
@@ -49,7 +49,6 @@ part of the signature yet.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.StartNode
 public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Spec.go_etcd_io.raft.v3.node__Propose
 public import Spec.go_etcd_io.raft.v3.node__ProposeConfChange
@@ -62,6 +61,10 @@ public import Spec.go_etcd_io.raft.v3.node__ReadIndex
 public import Spec.go_etcd_io.raft.v3.node__TransferLeadership
 public import Spec.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
+public import Spec.go_etcd_io.raft.v3.node__ForgetLeader
+public import Spec.go_etcd_io.raft.v3.node__Campaign
+public import Spec.go_etcd_io.raft.v3.node__Status
+public import Spec.go_etcd_io.raft.v3.node__Stop
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage

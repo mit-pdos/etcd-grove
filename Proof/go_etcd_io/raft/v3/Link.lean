@@ -51,7 +51,6 @@ public import Proof.go_etcd_io.raft.v3.RawNode__acceptReady
 public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Proof.go_etcd_io.raft.v3.RestartNode
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
-public import Proof.go_etcd_io.raft.v3.StartNode
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
 public import Proof.math.big.NewInt
@@ -82,6 +81,8 @@ public import Proof.go_etcd_io.raft.v3.entsSize
 public import Proof.go_etcd_io.raft.v3.extend
 public import Proof.fmt.Sprintf
 public import Proof.go_etcd_io.raft.v3.getBasicStatus
+public import Proof.go_etcd_io.raft.v3.getProgressCopy
+public import Proof.go_etcd_io.raft.v3.getStatus
 public import Proof.go_etcd_io.raft.v3.isHardStateEqual
 public import Proof.go_etcd_io.raft.v3.isMsgInArray
 public import Proof.go_etcd_io.raft.v3.limitSize
@@ -98,6 +99,7 @@ public import Proof.go_etcd_io.raft.v3.newStorageAppendRespMsg
 public import Proof.go_etcd_io.raft.v3.newStorageApplyRespMsg
 public import Proof.go_etcd_io.raft.v3.node__Advance
 public import Proof.go_etcd_io.raft.v3.node__ApplyConfChange
+public import Proof.go_etcd_io.raft.v3.node__Campaign
 public import Proof.go_etcd_io.raft.v3.node__ForgetLeader
 public import Proof.go_etcd_io.raft.v3.node__Propose
 public import Proof.go_etcd_io.raft.v3.node__ProposeConfChange
@@ -105,7 +107,9 @@ public import Proof.go_etcd_io.raft.v3.node__ReadIndex
 public import Proof.go_etcd_io.raft.v3.node__Ready
 public import Proof.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Proof.go_etcd_io.raft.v3.node__ReportUnreachable
+public import Proof.go_etcd_io.raft.v3.node__Status
 public import Proof.go_etcd_io.raft.v3.node__Step
+public import Proof.go_etcd_io.raft.v3.node__Stop
 public import Proof.go_etcd_io.raft.v3.node__Tick
 public import Proof.go_etcd_io.raft.v3.node__TransferLeadership
 public import Proof.go_etcd_io.raft.v3.node__run
@@ -271,7 +275,6 @@ public import Proof.go_etcd_io.raft.v3.readOnly__maybeAdvance
 public import Proof.go_etcd_io.raft.v3.readOnly__recvAck
 public import Proof.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Proof.go_etcd_io.raft.v3.sendMsgReadIndexResponse
-public import Proof.go_etcd_io.raft.v3.setupNode
 public import Proof.slices.Sort
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
@@ -440,7 +443,7 @@ theorem proto.wp_CloneSnapshot :
     proto.CloneSnapshot.spec (GF := GF) (hG := hG) :=
   proto.CloneSnapshot.wp_proof
 
-theorem MemoryStorage.wp_ApplySnapshot [StorageModel GF] :
+theorem MemoryStorage.wp_ApplySnapshot :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) :=
   MemoryStorage.ApplySnapshot.wp_proof raftpb.wp_EnsureSnapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm proto.wp_CloneSnapshot
 
@@ -460,7 +463,7 @@ theorem proto.wp_CloneConfState :
     proto.CloneConfState.spec (GF := GF) (hG := hG) :=
   proto.CloneConfState.wp_proof
 
-theorem MemoryStorage.wp_CreateSnapshot [StorageModel GF] :
+theorem MemoryStorage.wp_CreateSnapshot :
     MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) :=
   MemoryStorage.CreateSnapshot.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex raftpb.wp_EnsureSnapshot raftpb.Entry.wp_GetTerm proto.wp_CloneConfState proto.wp_CloneSnapshot
 
@@ -472,11 +475,11 @@ theorem wp_limitSize [StorageModel GF] :
     limitSize.spec (GF := GF) (hG := hG) :=
   limitSize.wp_proof proto.wp_SizeEntry
 
-theorem MemoryStorage.wp_Entries [AllG GF] [StorageModel GF] :
+theorem MemoryStorage.wp_Entries [StorageModel GF] :
     MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
   MemoryStorage.Entries.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex wp_limitSize
 
-theorem MemoryStorage.wp_FirstIndex [AllG GF] [StorageModel GF] :
+theorem MemoryStorage.wp_FirstIndex [StorageModel GF] :
     MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) :=
   MemoryStorage.FirstIndex.wp_proof MemoryStorage.wp_firstIndex
 
@@ -484,23 +487,23 @@ theorem raftpb.SnapshotMetadata.wp_GetConfState :
     raftpb.SnapshotMetadata.GetConfState.spec (GF := GF) (hG := hG) :=
   raftpb.SnapshotMetadata.GetConfState.wp_proof
 
-theorem MemoryStorage.wp_InitialState [StorageModel GF] :
+theorem MemoryStorage.wp_InitialState :
     MemoryStorage.InitialState.spec (GF := GF) (hG := hG) :=
   MemoryStorage.InitialState.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetConfState raftpb.wp_EnsureConfState
 
-theorem MemoryStorage.wp_LastIndex [AllG GF] [StorageModel GF] :
+theorem MemoryStorage.wp_LastIndex :
     MemoryStorage.LastIndex.spec (GF := GF) (hG := hG) :=
   MemoryStorage.LastIndex.wp_proof MemoryStorage.wp_lastIndex
 
-theorem MemoryStorage.wp_SetHardState [StorageModel GF] :
+theorem MemoryStorage.wp_SetHardState :
     MemoryStorage.SetHardState.spec (GF := GF) (hG := hG) :=
   MemoryStorage.SetHardState.wp_proof
 
-theorem MemoryStorage.wp_Snapshot [AllG GF] [StorageModel GF] :
+theorem MemoryStorage.wp_Snapshot :
     MemoryStorage.Snapshot.spec (GF := GF) (hG := hG) :=
   MemoryStorage.Snapshot.wp_proof raftpb.wp_EnsureSnapshot proto.wp_CloneSnapshot
 
-theorem MemoryStorage.wp_Term [AllG GF] [StorageModel GF] :
+theorem MemoryStorage.wp_Term :
     MemoryStorage.Term.spec (GF := GF) (hG := hG) :=
   MemoryStorage.Term.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
 
@@ -508,7 +511,7 @@ theorem wp_MustSync [StorageModel GF] :
     MustSync.spec (GF := GF) (hG := hG) :=
   MustSync.wp_proof raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetTerm
 
-theorem wp_NewMemoryStorage [StorageModel GF] :
+theorem wp_NewMemoryStorage :
     NewMemoryStorage.spec (GF := GF) (hG := hG) :=
   NewMemoryStorage.wp_proof raftpb.wp_EnsureSnapshot
 
@@ -1412,6 +1415,18 @@ theorem raft.wp_pastElectionTimeout [StorageModel GF] :
     raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
   raft.pastElectionTimeout.wp_proof
 
+theorem tracker.Inflights.wp_Clone :
+    tracker.Inflights.Clone.spec (GF := GF) (hG := hG) :=
+  tracker.Inflights.Clone.wp_proof
+
+theorem wp_getProgressCopy [StorageModel GF] :
+    getProgressCopy.spec (GF := GF) (hG := hG) :=
+  getProgressCopy.wp_proof tracker.ProgressTracker.wp_Visit tracker.Inflights.wp_Clone
+
+theorem wp_getStatus [StorageModel GF] :
+    getStatus.spec (GF := GF) (hG := hG) :=
+  getStatus.wp_proof wp_getBasicStatus wp_getProgressCopy tracker.Config.wp_Clone
+
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
@@ -1459,10 +1474,6 @@ theorem raftpb.Message.wp_GetVote :
 theorem raftpb.Snapshot.wp_GetData :
     raftpb.Snapshot.GetData.spec (GF := GF) (hG := hG) :=
   raftpb.Snapshot.GetData.wp_proof
-
-theorem tracker.Inflights.wp_Clone :
-    tracker.Inflights.Clone.spec (GF := GF) (hG := hG) :=
-  tracker.Inflights.Clone.wp_proof
 
 theorem tracker.Inflights.wp_Count :
     tracker.Inflights.Count.spec (GF := GF) (hG := hG) :=
@@ -1589,19 +1600,11 @@ theorem raft.wp_hasLeader :
 
 theorem node.wp_run [StorageModel GF] :
     node.run.spec (GF := GF) (hG := hG) :=
-  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom
+  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom wp_getStatus
 
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=
   RestartNode.wp_proof wp_NewRawNode wp_newNode node.wp_run
-
-theorem wp_setupNode [StorageModel GF] :
-    setupNode.spec (GF := GF) (hG := hG) :=
-  setupNode.wp_proof wp_NewRawNode RawNode.wp_Bootstrap wp_newNode
-
-theorem wp_StartNode [StorageModel GF] :
-    StartNode.spec (GF := GF) (hG := hG) :=
-  StartNode.wp_proof wp_setupNode node.wp_run
 
 theorem node.wp_Advance [StorageModel GF] :
     node.Advance.spec (GF := GF) (hG := hG) :=
@@ -1618,6 +1621,10 @@ theorem node.wp_stepWithWaitOption [StorageModel GF] :
 theorem node.wp_step [StorageModel GF] :
     node.step.spec (GF := GF) (hG := hG) :=
   node.step.wp_proof node.wp_stepWithWaitOption
+
+theorem node.wp_Campaign [StorageModel GF] :
+    node.Campaign.spec (GF := GF) (hG := hG) :=
+  node.Campaign.wp_proof node.wp_step raftpb.MessageType.wp_Enum
 
 theorem node.wp_ForgetLeader [StorageModel GF] :
     node.ForgetLeader.spec (GF := GF) (hG := hG) :=
@@ -1654,6 +1661,14 @@ theorem node.wp_ReportSnapshot [StorageModel GF] :
 theorem node.wp_ReportUnreachable [StorageModel GF] :
     node.ReportUnreachable.spec (GF := GF) (hG := hG) :=
   node.ReportUnreachable.wp_proof raftpb.MessageType.wp_Enum
+
+theorem node.wp_Status [StorageModel GF] :
+    node.Status.spec (GF := GF) (hG := hG) :=
+  node.Status.wp_proof
+
+theorem node.wp_Stop [StorageModel GF] :
+    node.Stop.spec (GF := GF) (hG := hG) :=
+  node.Stop.wp_proof
 
 theorem node.wp_Tick [StorageModel GF] :
     node.Tick.spec (GF := GF) (hG := hG) :=

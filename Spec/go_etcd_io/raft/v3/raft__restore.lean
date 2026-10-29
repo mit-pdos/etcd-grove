@@ -96,9 +96,9 @@ abbrev raft.restore.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (D22 S-d4 item 4) every pointer field set (`handleSnapshot`'s `EnsureSnapshot`)
       "Hsnap" ∷ ownSnapS sp (DFrac.own 1) sv ∗
-      -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry (it joins the
-      -- log's `ksn`, `raftLog.restore`)
-      "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+      -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `ksnCert`) the snapshot certified (it
+      -- joins the log's `ksn`, `raftLog.restore`)
+      "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sp))
   {{ (b : Bool) (s' : NState), RET #b;
       ownRaftPhysCV c c.voters r id s' ∗

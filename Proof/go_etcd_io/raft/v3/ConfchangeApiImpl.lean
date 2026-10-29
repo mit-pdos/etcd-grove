@@ -6,7 +6,7 @@ over `confchange`'s model (`InvConfchange.lean`, `CCApplyC.lean`) and the node A
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvApiDyn
+public import Proof.go_etcd_io.raft.v3.InvApiView
 public import Proof.go_etcd_io.raft.v3.ConfRule
 public import Proof.go_etcd_io.raft.v3.InvConfchange
 public import Proof.go_etcd_io.raft.v3.InvRestore

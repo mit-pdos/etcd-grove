@@ -40,6 +40,9 @@ theorem RawNode.Campaign.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.Campaign.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs Hterm Hflw
   wp_start as H
   iNamed H
@@ -100,7 +103,7 @@ theorem RawNode.Campaign.wp_proof
     simp only [named]
     isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
-    · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin Hal
+    · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) 
         (Hpvoff.step rfl rfl Hpre Hgh (by have := Ht2 rfl; omega) Hpcs (fun _ => Htc1))
@@ -111,6 +114,7 @@ theorem RawNode.Campaign.wp_proof
     rw [Htrm]
     exact ⟨⟨Ht1, Ht2'⟩, Herr⟩
   · exfalso; revert Hc'; msg_ne
+  -/
 
 end proof
 

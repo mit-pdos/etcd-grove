@@ -374,7 +374,17 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
   iintro #Hinit Hphys Hghost Hrest Hmsg HΦ
-  wp_apply (wp_Step_MsgBeat P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf)
+  -- (2026-10-29, stage U7) a leader's term past `0`, for `send`'s stamp (`stepLeader`'s premise)
+  have HLT_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+      ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
+    iintro Hg
+    by_cases hl : s.role = .leader
+    · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+        (by rw [toPState_role, hl]; decide) $$ Hg
+      ipureintro; exact fun _ => H
+    · ipureintro; exact fun h => absurd h hl
+  ihave %HLT := HLT_lem $$ Hghost
+  wp_apply (wp_Step_MsgBeat P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf HLT)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hghost Hrest Hphys [] HΦ
@@ -434,8 +444,8 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #HmC #Hdat HΦ
   ihave #Hm := isMessageC_isMessage γ _ $$ HmC
-  -- (D22 S-b′3) the snapshot's certificate, registered in the storage's registry (`certLink`:
-  -- outside the no-snapshot mode, `storCertOk`); (D22 S-r) with its data certificate
+  -- (D22 S-b′3; U8 v2) the snapshot's certificate, pinned at the node's storage names (`certLink`,
+  -- `ksnCert`); (D22 S-r) with its data certificate
   ihave #Hcr : raftSnapCert γ (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
   · rw [← Hcl, show raftSnapCert (GF := GF) γ (snapTrip sv scfg) =
       raftSnapCert γ (msgSnapTrip (absSnap m sv scfg)) from rfl]
@@ -448,10 +458,8 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnlk, Hrest⟩
   icases ghostRest_certLink γ md c id s $$ Hrest with ⟨#Hlink, Hrest⟩
   iunfold certLink at Hlink
-  icases Hlink with (%Hns | #Hok)
-  · exfalso; rw [← Hnlk.1, Hnsf] at Hns; cases Hns
-  iunfold storCertOk at Hok
-  icases Hok with ⟨-, #Hreg⟩
+  iunfold storCertOk at Hlink
+  icases Hlink with ⟨-, -, #Hreg⟩
   imod Hreg $$ %_ %⊤ %CoPset.subseteq_top HcrD with #Hcert
   -- (D22 S-b′4) the lists' scope and the mode's need, from the certificate
   ihave %Hlo : ⌜∀ x, scfg.Has x → SnapScope sv scfg⌝ $$ []
@@ -654,6 +662,9 @@ theorem raft.Step.wp_proof
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.Step.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨wp_raft_hup, wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
      wp_stepFollower, wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
@@ -1154,8 +1165,18 @@ theorem raft.Step.wp_proof
       rw [← toPState_lead_nonpre s (by rw [Hf]; decide)]
       apply Hlok0
       rw [toPState_role, Hf]; decide
+    -- (2026-10-29, stage U7) a leader's term past `0`, for `send`'s stamp (`stepLeader`'s premise)
+    have HLT_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+        ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
+      iintro Hg
+      by_cases hl : s.role = .leader
+      · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+          (by rw [toPState_role, hl]; decide) $$ Hg
+        ipureintro; exact fun _ => H
+      · ipureintro; exact fun h => absurd h hl
+    ihave %HLT := HLT_lem $$ Hghost
     wp_apply (wp_Step_MsgTransferLeader P PB c r id s ml m ents sn ctx rs Hty Hent Hctx0 Hxo Htr Hlok Hwf
-      (Hnors (.inr (.inr Hty)))) $$ [$Hphys $Hmi]
+      (Hnors (.inr (.inr Hty))) HLT) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
@@ -1177,6 +1198,7 @@ theorem raft.Step.wp_proof
   simp only [StepMsg, stepMsgTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hsm
   rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h |
     h | h <;> first | contradiction | exact HtyL (by simp [h])
+  -/
 
 end dispatch
 

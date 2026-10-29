@@ -25541,3 +25541,165 @@ inprogress`). The WIP on branch `raft-unified-storage-wip` raised in `Hhandout` 
 `hdLb_pending`, `memTermsPre`, `memTermsAt_receipt`), `MemoryStorage.Snapshot` and `InvRaftlog`
 (`HdOk`, `raise_floor` raising `hd`) check there; `InvReadylog`, `MemoryStorage.{Append,ApplySnapshot,
 CreateSnapshot}`, the node chain (`storTermsPre` minted at the `Ready`, `readyData`, `nodeDriver`) remain.
+## Stage U5: automatic leaves (2026-10-29 · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · taken but for `committed_emptyV2_joint`: raft's own leave proved, every auto-leave exclusion lifted.**
+
+**The recursion `appliedTo` → `Step`, without a cycle.** `raft.appliedTo` proposes the leave by
+`r.Step(m)` (raft.go:742-763), and `raft.Step`'s `MsgStorageApplyResp` (and `appliedSnap`) call
+`appliedTo`: in the link (one proof per function, the callees' specs as hypotheses, no circular
+hypotheses) `appliedTo` cannot take `Step`'s spec. But the recursion is one level deep: `Step` of a
+local `MsgProp` (term `0`) runs `r.step` (`stepLeader`), which never reaches `appliedTo`. So
+`appliedTo`'s proof takes `Step`'s `MsgProp` branch lemma (`StepProof.wp_Step_MsgProp`, now over the
+four specs it uses -- `traceReceiveMessage`, `stepFollower`, `stepCandidate`, `stepLeader` -- rather
+than `raft.Step.Postulates`, which includes `appliedTo`) and the message getters' specs, and
+`confChangeToMsg`'s. *Rejected*: Löb induction over a joint spec (the link has no form for two
+functions proved together), and unfolding `Step`'s body inside `appliedTo` (the branch lemma is that
+unfolding, already proved).
+
+**Physical in `appliedTo`, ghost in `Step`.** `appliedTo`'s spec stays on the raft struct
+(`ownRaftPhysCVW`), now at `HasLC.hasLC` (the branch lemma's), and its post is `LeaveStep`
+(`AutoLeave.lean`, with `leaveMsgM`/`leaveEntM`/`leaveAbs` and `ccEntsOk_leave`): nothing
+more, or -- a leader at an auto-leave configuration -- the leave's `StepCD` step from the state at the
+new `applied`, the leave's proposal (`leaveAbs`) received when appended, at the bound `B` of its
+entry, with the receipt for it. `raft.Step`'s `MsgStorageApplyResp` composes the advance and the leave
+(`StepCD.trans_leave`: the leave's `DynHyp` from the acknowledgement's, the configuration index moved
+once) and takes one ghost step with the leave received: `isMessage_leave` (the proposal is
+legitimately sent: its entry a filler whose data decodes, `ccDecodeV2_nil`), no ticket
+(`msgTks_leave`). So no ghost resource enters `appliedTo`'s spec, and `appliedSnap` (a follower)
+discharges the leader-only premises vacuously.
+
+**An empty `ConfChangeV2` is a filler again** (the protocol's `Filler`, reversing the 2026-10-27
+narrowing): raft's leave carries no client deposit, so the commit invariant fires the standing
+`noopAu` at it; a client's explicit `ConfChangeV2{}` likewise (`ProposeConfChange`'s `ccPropArg`
+already had the filler case). The API's `opsOf` drops `isFiller` and `isEmptyV2` entries
+(`LogEntry.isFiller` stays the empty normal entry, `isFiller_normal` for etcd's apply loop), so
+`ownCommittedOps` never holds a leave; `opsOf_noType2`.
+
+**The exclusions lifted.** With `raft.Step` taking any configuration, the `RawNode`'s field
+`cf.autoLeave = false` (`ownRawNode`, `ownRawNodeReady`, `ownRawNodeIdle`) had no reader, and with it
+went the facts that only fed it: `DynCCPreOp`'s `cs'.cfg.autoLeave = false` (so
+`node.ApplyConfChange`'s `m'.autoLeave = false`), `RawNode.Advance`'s and `node.Advance`'s lent-snapshot
+`AutoLeave' = false`, the node loop's copies (`advanceP`, `runCfgLoan`, `runCfgR_a1`). The start
+specs' `csm.AutoLeave' = false` stay (U9).
+
+**Left: `committed_emptyV2_joint`** (`l[k]? = some e → e.isEmptyV2 → isCluster γ N ∗ isCommittedLogLb γ
+l ∗ confAt γ k m ⊢ ⌜m.isJoint⌝`). The node invariant already has what the append needs: a leader's
+`propConf` keeps an empty `ConfChangeV2` only at a joint `r.cfg` and with `pci ≤ applied`; `RInv.i3`
+puts every conf entry of the leader's log below `pci`, `applied_cidx` puts `applied ≤ cidx`, and
+`RInv.cfg` folds the log up to `cidx` to `r.cfg`, so the fold of the whole log at the append (the
+entry's prefix) is `r.cfg`, joint. What is missing is the cluster-level record that carries this from
+the append to every committed copy: a per-entry fact in the leader's log record of its term (created
+only by `StepR.propose`/`win`, the sites to touch), the fold of the entry's prefix over the leader's
+witnessed decisions (`decLb`) joint, then `confAt`'s agreement (`fold_agree`, `decLb_compat`) at the
+API. Not started.
+
+Clients that break (not built, by the user's scope): examples/kv (`ProposeConfChange`'s post now
+`opsOf`, `opsOf`'s definition: proofs over `opsOf` of conf entries; the `ApplyConfChange`/`Advance`
+calls pass one premise fewer), etcd's server where it calls `RawNode.Advance`/`raft.Step` with the
+removed premises or destructures `DynCCPreOp`/`ownRawNode` (`InvRaftNode.lean`, `SrvRaftLog.lean`),
+and every client using `LogEntry.isFiller`-based `opsOf` lemmas (`opsOf_snoc_filler`/`_op`,
+`opsOf_eq_self` now take the empty-V2 case too).
+
+## Stage U5: the committed conf-entry laws (2026-10-29 · track A · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · taken: `committed_emptyV2_joint` and `committed_confDecodes` proved.**
+
+**Where the joint fact lives: in the entry's record, with its prefix.** At the append, the leader's
+invariant knows enough: `stepLeader`'s loop keeps an empty `ConfChangeV2` only at a joint
+configuration (the decoded change wants to leave, `CCLeaveOk` from `ccDecodeV2_nil`) with `pci ≤
+applied` and no other conf entry before it in the batch (`PCInv`); every conf entry of the log is below
+`pci` (`RInv.i3`), so below `cidx`, and `RInv.cfg` folds the log up to `cidx` to `r.cfg`: the full log
+before the entry folds to the joint `r.cfg` (`RInv_propose_ev2`). The record carrying it to every
+committed copy: `ev2Rec γ e pt` in `isEntryR`'s leader arm -- the prefix `P` itself, with the *cores*
+of its records (`logRecsC`, over `isEntryC`, the old `isEntryR` body: a record cannot hold its own
+kind), its last term `pt`, its fold over some recorded decisions (`decLb`) joint. Log matching over
+the cores (`logRecsC_agree`, `full_take_eq_pure`, moved to `Ghost.lean`) makes `P` the prefix of any
+full log with records holding the entry (`logRecs_ev2`). Touched: the two sites that create a
+leader's record (`win`'s empty normal entry, vacuous; `ownRaftGhost_step_propose`, taking the fact as
+a premise from the dynamic refinement, vacuous in the static one).
+
+*Rejected:* a per-entry committed prefix plus term-log fragments for the entries after it (needs `pci`
+≥ the campaign log at the leader, an invariant linking `RState` to the ghost term log at every rule);
+an invariant over every node's log (needs log matching at every append); the previous agent's "fact
+in the term-log record" (the term log's value type, read at every `isTermLog_agree`).
+
+**To the client: the commit fires it.** `fire_one` (the commit of each entry) has the committing
+leader's full log with records, so it derives `ev2At` of a committed filler (`logRecs_ev2`) and
+`noopAu`'s commit hands it to the client's update, beside `entDataIs` (whose `CCDecodes` is the
+decoding fact); the adapter keeps both for its log (`cmtFacts`, in `apiInvBody`) and gives them with
+each lower bound (`cmtFactsS` in `isCommittedLogLb`), because the laws are pure entailments and cannot
+open an invariant. A proposal's update (`propAu1`) needs no change: a deposited entry is no filler, so
+its `ev2At` is vacuous (`ev2At_nonfiller`). The guard "no empty `ConfChangeV2` in the bootstrap log"
+(`ev2At`, `logRecs_ev2`) excludes boot records, which no leader made; the decision cluster's is empty
+(`UniNames`).
+
+**The laws** (`InvApiDec.lean`): `committed_confDecodes_impl` reads `CCDecodes`;
+`committed_emptyV2_joint_impl` compares the `ev2At` fold with `confAt`'s (`ModeDec.fold`,
+`decLb_compat`, `fold_agree`). No axiom added (`ccDecodeV2_nil`, approved, now also under
+`stepLeader`'s proof); no `sorry`.
+
+## Stage U7: messages, track A (2026-10-29 · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · in part: raft's own time receipts for `Tick` and a stepped `MsgTimeoutNow`; the
+proposal registry parked (the user reconsidering it); the protocol part designed, not started.**
+
+**Receipts.** A time receipt (`⧗ 1`) is minted by any Go instruction step
+(`wp_go_step_receipt'`), so a method can take its own instead of the caller's. `node.Tick` takes it at
+a `StructFieldRef` (the field read of `n.tickc`), before the select that hands it to `tickc`'s
+invariant. `node.Step` takes it at the `m == nil` comparison (a `GoOp`). The message is not opened yet
+at that point, so the API's `stepIn` is `⌜ml ≠ null⌝ ∗ ∀ γn, ⌜NodeOk⌝ -∗ ⧗ 1 -∗ stepP`, and the raw
+`node.Step` takes the wand. `stepIn_intro` feeds the receipt to `netP`'s tick credit (a
+`MsgTimeoutNow`'s), or `receipt_zero_of` it. *Rejected:* taking it in `run`'s `recvc` arm (`netP`
+loses its credit, about ten constructors of `netP` change).
+
+**Read credits, not done.** A read request needs `rdCred γ 1`. `rdCredInv` bounds the credits handed
+out below `2^64 - 1`, and allocation hands the client `2^64 - 2`. The plan for raft's own receipts:
+an exchange invariant `∃ k, ⧗ k ∗ rdCred γ.raft (2^64 - 2 - k)` holding the allocated credits in the
+decision cluster. `⧗ 1 ∗ ⧗ k` is `⧗ (k+1)` with `k + 1 < receiptBound ≤ 2^64 - 2`, so a credit is
+always there to split off. It would sit in `clusterInv`, about 15 destructuring sites; a pure
+`Cluster` field says the pool is there. `node.ReadIndex`'s raw spec then takes `⧗ 1 ={⊤}=∗ rdCred 1`,
+built by the wrapper from the invariant, and `stepIn`'s wand becomes a `⊤` update minting a
+forwarded `MsgReadIndex`'s credit. `cluster_alloc_dec` then gives no `readCredits` (the frozen
+text).
+
+**SentMsgShape, the transfer request, the transfer choice: the design for the next agent.** Today
+`isRaftMsg` gives `SentMsgOk` only when `reNoXfer` (with `NGhost.bt`, "term past 0 for good", which a
+cluster without a bootstrap log never sets; `XfOk`, `InvRaftPhys.lean:335`). The decision cluster is
+in neither mode.
+1. *Stamped terms past 0 without `bt`.* The stamped sends with the node's term are
+   `maybeSendAppend`/`maybeSendSnapshot`/`sendHeartbeat`/`sendTimeoutNow`/`sendMsgReadIndexResponse`/
+   `appendEntry` (a leader: term ≠ 0 from `ownRaftGhost_term_nz`, already a premise of `stepLeader`'s
+   `MsgProp`/read-index paths), and `handleHeartbeat`/`handleAppendEntries`/`handleSnapshot` (a
+   follower after the term section, at `m.Term = s.term ≠ 0`). Also `raft.Step`'s `m.Term < r.Term`
+   `MsgAppResp` (`r.Term > 0`) and `stepFollower`'s forwarded `MsgTransferLeader` (`lead ≠ 0`, so term
+   ≠ 0 by 2 below). So: `SendOk`'s stamped clauses (b), (c), (c'), (d) take `s.term ≠ W64 0`, which
+   each caller supplies; `XfOk`'s second clause becomes `∀ m ∈ l, SentMsgShape m.st`; `bt` goes.
+   `SentMsgShape` is `SentMsgOk` with `MsgTimeoutNow` (stamped, no entries, no context) and
+   `MsgTransferLeader` (stamped, `From` the transferee, nonzero after `send`'s default, possibly `=
+   To`) added to `sentTypes`, and a `MsgSnap`'s index below `2^61`.
+2. *A re-forwarded `MsgTransferLeader` never reaches `send`'s `Panicf`.* `raft.Step`'s `RestMsgOk`
+   premise is `m.Term ≠ 0 → m.Term = s.term → s.role = follower → s.lead = 0`. To discharge it, add a
+   ghost invariant `lead ≠ 0 → isLeader γ s.lead s.term` (beside `leaderWit` in `ownRaftGhost`,
+   `Protocol/GhostState.lean:2002`). Every rule that sets `lead` either sets `0`, sets the sender of a
+   `fromLeader` message (whose `isMessage` holds `isLeader src term`: `pbecomeFollower m.term m.src`,
+   `padoptLeader`), or sets `id` with the win. A forwarded request records `isLeader γ m.To m.Term` (the
+   follower's `lead` at its term) in `isRaftMsg`. At the receiver `R = m.To` at term `T = m.Term`, a
+   follower with `lead ≠ 0` has `isLeader lead T`, so `lead = R` by `isLeader_unique`, contradicting
+   `LeadOk` (a non-leader's `lead ≠ id`). Count the sites before the edit: `ownRaftGhost_intro` has 33
+   callers and `leaderWit` 41 mentions in `Refinement.lean`. A separate persistent conjunct touches
+   only the rules that move `lead` or `term`.
+3. *(Dropped by the user, 2026-10-29: no transfer mode; `TransferLeadership` takes only `isNode`, so
+   per node `NGhost.xf` is simply `false` in the decision cluster and the queues may hold both
+   transfer messages; what follows was the design.)* *The transfer choice.* `transferChoice γ` is a
+   one-shot; `transferAllowed` and `noTransfer` are its
+   two persistent shots. Per node, the ghost flag `NGhost.xf` (no transferee, no undescribed message)
+   becomes "true until the node steps a transfer request". Turning it off needs `transferAllowed`
+   (`ownRaftPhysC_xf_off` exists). `GMode`'s `s.gh.xf = γ.reNoXfer` (`StepGhostMode.lean:296`) becomes
+   `(reNoXfer → xf) ∧ (xf = false → xfAllowedR γ.raft)`, over a new `RaftNames` ghost name for the
+   one-shot. `isRaftMsg` then gives `transferAllowed` for an undescribed message (from `XfOk.1`'s
+   contrapositive), and `sentMsg_noTransfer` follows. `TransferLeadership` takes `transferAllowed`. A
+   forwarded request's receiver gets it from `sentMsg`, and its own `xf` goes off.
+4. `stepIn_intro` then loses its `NetMsgOk`/`≠ MsgTransferLeader` premises (from `SentMsgShape` and
+   the delivery to `To`). `NetMsgOk` admits a stamped `MsgTransferLeader` (no longer `UnstampedType`
+   when stamped), and `netP` carries 2's `isLeader` fact.

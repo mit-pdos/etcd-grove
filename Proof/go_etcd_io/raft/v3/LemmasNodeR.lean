@@ -84,11 +84,25 @@ theorem msgIn_of_scalar_struct (l : Loc) (pty pto pfr pTerm plt pix pco pvo prj 
 theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     stepP (GF := GF) γ id ml ⊢ ∃ (dqe : DFrac) (st : MsgSt), msgIn ml dqe st ∗
       ⌜0 ≤ sint.Z st.msg.Type'⌝ ∗ (msgIn ml dqe st -∗ stepP γ id ml) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro H
   unfold stepP
   icases H with (Hnet | Hfwd)
   · iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩
+    icases Hnet with (⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩ | Hhup)
+    rotate_left
+    · -- (2026-10-29, stage U7) `Campaign`'s `MsgHup`
+      iunfold hupP at Hhup
+      icases Hhup with ⟨Hm, Htc⟩
+      iexists DFrac.discard, hupSt
+      iframe Hm
+      isplitr
+      · ipureintro; simp [hupSt]
+      iintro Hm
+      ileft
+      iapply netP_hup γ id ml $$ Hm Htc
     iexists DFrac.discard, st
     iframe Hm
     isplitr
@@ -96,6 +110,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iintro Hm
     ileft
     iunfold netP
+    ileft
     iexists st
     iframe Hm Hab Hsn Hlb Hcr Htc
     ipureintro; exact ⟨Hok, Hpvb⟩
@@ -111,6 +126,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iexists st
     iframe Hm Hab Htk
     ipureintro; exact Hty
+  -/
 
 instance ownConfChangeV2_discard_persistent (p : Loc) (m : ConfChangeV2M) :
     Persistent (ownConfChangeV2 (GF := GF) p DFrac.discard m) := by

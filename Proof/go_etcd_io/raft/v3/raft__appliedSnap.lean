@@ -83,7 +83,7 @@ theorem raft.appliedSnap.wp_proof
     intro h
     rw [logStableSnap_none _ _ (Hns h)]
     exact ⟨rfl, rfl, rfl, Int.le_refl _⟩
-  ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_off Hun Hkeep (SnpOk.stableSnap _ Hgh0.1.2) Hst1)
+  ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_off Hun Hkeep (SnpOk.stableSnap _ Hgh0.1.2.1) ((logStableSnap_sn _ _).trans Hgh0.1.2.2) Hst1)
     %(fun _ => logLast_le_of_fields (by rw [Hpv1]) (by rw [Hse1]) (by rw [Hue1]))
   -- `r.appliedTo(index, 0)`
   have Hsa1 : (logStableSnap s.logst sv.Metadata'.Index').sapp = false := by
@@ -216,6 +216,7 @@ theorem raft.appliedSnap.wp_proof
       (fun h => absurd Hrole1 h) $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
   icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1⟩
   wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs
+      (fun h => absurd (Hrole1.symm.trans h) (by decide))
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
       (fun h => absurd (Hrole1.symm.trans h) (by decide))

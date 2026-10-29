@@ -194,6 +194,8 @@ abbrev raft.applyConfChange.spec : Prop :=
   ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
   -- not too many tracked ids (`ownTrackerC`'s bound)
   (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 →
+  -- (2026-10-29, stage U7) a leader's term past `0` (`switchToConfig`'s, for `send`'s stamp)
+  (s.role = .leader → s.term ≠ W64 0) →
   -- (2026-10-25, T-M M2c; until then a premise: a removed or demoted leader steps down, `s.sdr`)
   -- a removed or demoted leader steps down with `StepDownOnRemoval`, and stays leader without it
   -- a candidate stays a voter (`switchToConfig`)
@@ -223,6 +225,8 @@ abbrev raft.applyConfChange.specS : Prop :=
   (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 →
   ccApplyM ccm.transition ccm.changes (cfgState cfg (domSet s.progress \ cfg)) =
     some (cfgState cfg lrn') →
+  -- (2026-10-29, stage U7) a leader's term past `0`
+  (s.role = .leader → s.term ≠ W64 0) →
   (s.gh.ns = true → s.role = .leader →
     2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
   -- (2026-10-25, T-M M2c) the node a voter (until then read off `ownRaftPhys` for a leader, which
@@ -246,7 +250,7 @@ open Iris.ProofMode in
 theorem raft.applyConfChange.spec_simple
     (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hli2 Hin
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hltz Hli2 Hin
   iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   have Hv' : (cfgState cfg lrn').cfg.voters = cfg := CfgM.voters_simple cfg lrn'
@@ -254,7 +258,7 @@ theorem raft.applyConfChange.spec_simple
     show (CfgM.simple cfg lrn').ids = _
     unfold CfgM.ids; rw [CfgM.voters_simple]; rfl
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
-      (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz')
+      (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz') Hltz
       (fun _ => by rw [Hv']; exact Hin) Hli2
     $$ [$Hpkg $Hphys $Hccs]
   inext

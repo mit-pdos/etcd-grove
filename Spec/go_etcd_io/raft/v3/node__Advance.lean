@@ -27,84 +27,46 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (open) **`node.Advance()`**: the driver, done with a `Ready` (its entries `es` appended, or its
-snapshot installed: the storage contract's receipt, `advReceipt`), hands it back; the loop is idle
-again. After a `Ready` without a snapshot, the storage's floor is at least the committed log
-delivered (`storFloor`, today `reqWit`). (2026-10-27: the premise that no conf-change entry was
-delivered is gone: the nodes are in raft's static mode, which needs none -- a conf change the client
-applies keeps the voters, `node.ApplyConfChange`. For etcd's server: in a static cluster,
-`isStaticCluster`; a dynamic cluster's is `node.Advance.dynamicSpec`.) -/
-abbrev node.Advance.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (st : NodeDriverState) (es : List EntryM)
-    (L : Option SnapLoan),
-  st.handling = some (es, L) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStaticCluster γ N vs snapOk ∗
-      nodeDriver n γ N st ∗ advReceipt st.storage es L }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
-      match L with
-      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
-      | some _ => True }}
-
-/-- **`node.Advance()`** in a dynamic cluster: as `node.Advance.spec`, if every conf-change entry
-of the committed log delivered is applied (none past the view's configuration index:
-`issues/raft-advance-before-applyconfchange.md`, today's A1). After a `Ready` without a snapshot the
-view is unchanged; (2026-10-28, stage U3d, the frozen design's `node.Advance`) after one with a
-snapshot (its loan `l`) the view is at the snapshot's index and a membership its `ConfState` reports.
-(A dynamic cluster is in raft's no-snapshot mode, so the second case does not arise yet.) -/
-abbrev node.Advance.dynamicSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership) (decode : ConfChangeDecoder)
-    (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan) (v : ConfigView),
-  st.handling = some (es, L) →
-  NoConfChangeIn st.delivered v.applied st.delivered.length →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isDynamicCluster γ N c0 decode ∗
-      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
-      match L with
-      | none => nodeConfig n γ N v ∗
-          ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
-      | some l => ∃ m : Membership,
-          nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
-          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝ }}
-
 /-- **`node.Advance()` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
-`isCluster`, `InvNodeRule.lean`): as `node.Advance.dynamicSpec`, with the snapshot path reachable.
-After a `Ready` with a snapshot (its loan `l`), the view is at the snapshot's index and the membership
-`m` after the committed log up to it (`confAt`), which its `ConfState` reports; after one without,
-the storage's floor and (2026-10-28) its terms of the committed log delivered (`storTermsAt`), also
-when a snapshot was restored since. Premises of the
-snapshot path, all of what the client has from the `Ready` (`readySnap`): the snapshot's
-certificate and its index the length of its committed log; and (as `RawNode.Advance`'s, until stage
-U5) its `ConfState` no auto-leave one. (As `node.Advance.dynamicSpec`, every conf entry of the
-committed log delivered is applied, after a snapshot `Ready` too: the loop's A1 at `run`'s
-`RawNode.Advance`, over the snapshot's committed log; 2026-10-28, the conf-change decision switch,
-§4: or decided `.skip`, `skippedIn`, until then `NoConfChangeIn`.) -/
-abbrev node.Advance.unifiedSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) (es : List EntryM)
+`isCluster`, `InvNodeRule.lean`): the driver, done with a `Ready`, hands it back; the loop is idle
+again; (2026-10-29, stage U9a) or the node stopped first (`nodeStopped`), the loop idle as well,
+nothing else promised. Premises of the snapshot path, all of what the client has from the `Ready`
+(`readySnap`): the snapshot's certificate and its index the length of its committed log. Every conf
+entry of the committed log delivered is applied (the loop's A1 at `run`'s `RawNode.Advance`; the
+conf-change decision switch: or decided `.skip`, `skippedIn`; raft-final, 2026-10-29, the design's
+A1: after a `Ready` without a snapshot only).
+
+(U8 v2, 2026-10-29, the frozen design's §3) The storage part: the `Ready`'s batch back
+(`advReceipt`: a frozen prefix within the committed log delivered and an owned rest, with the end;
+nothing for no entries), or after a snapshot `Ready` the storage compacted at the snapshot with its
+dummy and the batch after it (`snapReceipt`); the post: raft's applied index has reached the
+committed log delivered (`nodeAppliedLb`, the snapshot's index after a snapshot `Ready`). (Until U8
+v2 the old contract's receipts and `storFloor`/`storTermsAt`; until then also the static cluster's
+`node.Advance.spec` and the dynamic one's `node.Advance.dynamicSpec`, dropped in U8 v2 ahead of U9.) -/
+abbrev node.Advance.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
     (L : Option SnapLoan) (v : ConfigView),
   st.handling = some (es, L) →
-  (∀ l, L = some l → l.snap.Metadata'.ConfState'.AutoLeave' = false ∧
-    l.dlv.length = uint.nat l.snap.Metadata'.Index') →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗
-      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v ∗
-      skippedIn γ st.delivered v.applied st.delivered.length ∗
+  (∀ l, L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗ isNode n γ N id ∗
+      nodeDriver n γ N st ∗ advReceipt st.storage st.delivered.length es L ∗ nodeConfig n γ N v ∗
+      -- (raft-final, 2026-10-29, the design's A1, review 1's H1) the conf entries skipped only after a
+      -- `Ready` without a snapshot (after one, the configuration is the snapshot's, `confAt`); until
+      -- then after both
       (match L with
-       | none => True
+       | none => skippedIn γ st.delivered v.applied st.delivered.length
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
+  {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
+      nodeAppliedLb γ id st.delivered.length ∗
       match L with
-      | none => nodeConfig n γ N v ∗
-          ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝ ∗
-            -- (2026-10-28, stage U4a) and the storage's terms of the committed log delivered
-            -- (what `MemoryStorage.CreateSnapshot.unifiedSpec` takes, `memTermsAt`)
-            storTermsAt st.storage (st.delivered.map LogEntry.term)
+      | none => nodeConfig n γ N v
       | some l => ∃ m : Membership,
           nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
           confAt γ (uint.nat l.snap.Metadata'.Index') m ∗
-          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝ }}
+          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) ∨
+    -- (2026-10-29, stage U9a) the node stopped: the loop idle again
+    (nodeStopped n γ N ∗ nodeDriver n γ N { st with handling := none }) }}
 
 end spec
 

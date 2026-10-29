@@ -85,6 +85,9 @@ commit per lemma.
   `c.autoLeave → role ≠ leader` goes from `appliedTo`, `appliedSnap`, `raft.Step`; the invariant that a
   committed empty `EntryConfChangeV2` is raft's leave where the configuration is joint (`RaftLeave`, for
   `opsOf`); the trust-base fact `ccDecodeV2 [] = some` the empty change (the user's approval).
+  (2026-10-29: done but for `committed_emptyV2_joint`: `notes/decisions.md`, "Stage U5: automatic
+  leaves"; spec changes below. Later that day, track A: `committed_emptyV2_joint` and
+  `committed_confDecodes` proved, `notes/decisions.md`, "Stage U5: the committed conf-entry laws".)
 - **U6m. Rejection in the model.** The protocol's decoder a decision (`apply op | reject`); `entStep` of
   a rejection keeps the state (joint configurations included); `applyConf` and `advance` require "no
   undecided conf entry between".
@@ -186,6 +189,667 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   changes `Hhandout` back (no `h`, keeping `HdAbove`) and `Hfloor` (or a new law) to allow raising the hold alone
   while a batch is pending.
 - (open) The storage-wrapper law (§4): not started.
+## Spec changes during U5 (2026-10-29)
+
+Each: old → new, and why. (a)-(e) sent to the coordinator and approved (the cross-track rule).
+
+- (a) `opsOf l` (`NodeApiVocab`): `l.filter (!isFiller)` → `l.filter (!isFiller && !isEmptyV2)`, with the
+  new `LogEntry.isEmptyV2 e := e.data = [] ∧ e.type = W32 2` and `opsOf_noType2`. As designed: raft's
+  automatic leave (an empty `ConfChangeV2`) is no client operation. `isFiller` (and `isFiller_normal`)
+  unchanged. Internal: the protocol's `Filler` is again `d = [] ∧ (ty = 0 ∨ ty = 2)`.
+- (b) `node.ProposeConfChange.spec`'s update: `ownCommittedOps γ (ops ++ [⟨t, ty, bs⟩])` → `ownCommittedOps
+  γ (ops ++ opsOf [⟨t, ty, bs⟩])` (the design's). An explicit `ConfChangeV2{}` is a filler (no deposit,
+  `ccPropArg`'s filler case), so its update may not fire.
+- (c) `node.ApplyConfChange.unifiedSpec` and `.dynamicSpec`: premise `m'.autoLeave = false` → none.
+  Internal: `DynCCPreOp` loses `cs'.cfg.autoLeave = false`; `ownRawNode` (and `ownRawNodeReady`/`Idle`)
+  lose the field `cf.autoLeave = false`.
+- (d) `node.Advance.unifiedSpec`: `l.snap...AutoLeave' = false ∧ l.dlv.length = …` → `l.dlv.length = …`.
+  Internal: `advanceP`'s and `runCfgLoan`'s auto-leave facts, `node.Advance.specRaw`'s premise gone.
+- (e) `RawNode.Advance.spec`: premise `∀ l, rs.slent = some l → rs.mode.isDyn → …AutoLeave' = false` →
+  none.
+- Raft-internal: `raft.appliedTo.spec`: premise `c.autoLeave = true → s.role ≠ .leader` → at a leader
+  `NStateWf s`, `s.term ≠ 0`, the last index a word, and a receipt `⧖ k0` in the pre; post `RET #()`
+  at `logAppliedTo` → `∃ s' B recv, … ⌜LeaveStep c id s1 s' B recv⌝ ∗ (⌜last < B⌝ -∗ ⧖ (k0+1))`; stated
+  at `HasLC.hasLC` (was generic `hlc`), as `raft.appliedSnap.spec` is now too (it calls it).
+  `raft.Step.spec`: premise `m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader` →
+  none (its post unchanged). `StepProof.wp_Step_MsgProp` takes four callee specs, not
+  `raft.Step.Postulates`, and its post gives `s'.logst.applied = s.logst.applied`.
+- Not changed, though now unneeded upstream of `ownRawNode`: `csm.AutoLeave' = false` premises of
+  `NewRawNode`, `StartNode`, `RestartNode`, `setupNode`, `newRaft` (starting at an auto-leave joint
+  `ConfState`); left for U9 (`newRaft`'s tracker invariant still uses it).
+
+## Spec changes during track A (2026-10-29)
+
+Each: old → new, and why. New laws (no old text): `committed_confDecodes`, `committed_emptyV2_joint`
+(`InvNodeRule.lean`), as the frozen design states them (`raft-node-unified-candidate.md`:170,
+`raft-decisions-spec.md`:87; `committed_emptyV2_joint` takes the cluster's `N` explicitly, as
+`confPolicy_decide` does). Raft-internal (no other track uses them):
+
+- `isCommittedLogLb` (`InvApi.lean`, sealed): adds `cmtFactsS γ l` (raft's per-entry facts:
+  `CCDecodes`, `ev2At`) beside the receipts' bound; `apiInvBody` adds `cmtFacts γ L`. Why: the two
+  laws are pure entailments, so the facts must ride on the client's lower bound.
+- `noopAu` (`GhostState.lean`): its commit also gives `ev2At γ L e` (in the dynamic mode, with no empty
+  `ConfChangeV2` in the bootstrap log, an empty `ConfChangeV2` filler folds after `L` to a joint
+  configuration over some recorded decisions); `noopAu_fire` takes it. **Breaks etcd's server**
+  (`NewServerAlloc.lean`, `Spec/.../NewServer.lean` build a `noopAu`), already broken.
+- `isEntryR` (`Ghost.lean`): its leader arm adds `ev2Rec γ e pt` (the entry's prefix, with the cores
+  of its records `logRecsC`, folds to a joint configuration); the old body is `isEntryC`.
+- `ownRaftGhost_step_propose` (`Refinement.lean`): one premise more (the batch's empty
+  `ConfChangeV2`s at a joint configuration of the full log before them).
+- `StepR.propose` (`StepR.lean`): premise `CCLeaveOk m.entries cs` added (the loop's decoded change
+  of an empty `ConfChangeV2` wants to leave: `ccDecodeV2_nil`).
+- `stepLeader`'s `LeaderProposeResult` (`Spec/go_etcd_io/raft/v3/stepLeader.lean`): `∃ cs, CCTypesOk
+  ents cs ∧ …` → `∃ cs, CCTypesOk ents cs ∧ CCLeaveOk ents cs ∧ …` (proved from `ccEntsOk`,
+  `ccEntsOk_leaveOk`; `stepLeader`'s proof now rests on `ccDecodeV2_nil` too).
+- `UniNames` (`InvApiDec.lean`, behind `isCluster`): adds `∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x` (the
+  decision cluster's bootstrap log is empty).
+
+## Spec changes during track A, U7 and U9a (2026-10-29)
+
+Each: old → new, and why. Approved by the coordinator where marked (the cross-track rule).
+
+- `node.Tick.spec`: pre `isNode n γ N id ∗ tickCredit γ 1` → `isNode n γ N id` (the frozen text). Raft
+  takes the tick's time receipt from a Go step of `Tick`'s own (`node__Tick.lean`, at a
+  `StructFieldRef`); the old `tickCredit` stays (still exported) until U9.
+- `stepIn_intro` (`InvNode.lean`): premise `tickCredit γ (if MsgTimeoutNow then 1 else 0)` → none (the
+  frozen text's credit-free form). Internal: the API's `stepIn γ N id ml` is now `⌜ml ≠ null⌝ ∗ ∀ γn,
+  ⌜NodeOk γ γn⌝ -∗ ⧗ 1 -∗ stepP γn id ml`, and `node.Step`'s raw spec takes `⌜ml ≠ null⌝ ∗ (⧗ 1 -∗
+  stepP …)`, its proof taking the receipt at the `nil` check's comparison. The `NetMsgOk` / `≠
+  MsgTransferLeader` premises stay until `SentMsgShape` lands (below).
+- **Parked by the coordinator (the user is reconsidering it):** the proposal registry (`ownProposals`,
+  `proposalReg`, `proposals_register`/`_elem`/`_all`, `Propose` taking `proposalReg`, `sentMsg_prop`,
+  `msgCredits_intro` for `MsgProp`). Approved shapes before the hold: `cluster_alloc_dec` giving
+  `ownProposals γ ∅`; one `node.Propose.spec` with `proposalReg γ data`, the old allocations giving `□ ∀
+  d, proposalReg γ d`; `sentMsg_prop`'s normal disjunct `⌜e.Type' = W32 0⌝ ∗ (⌜e.Data' = []⌝ ∨
+  proposalReg γ e.Data')` (an empty normal entry is a filler, with no registry key); `msgCredits_intro`'s
+  per-entry update committing `ops ++ opsOf [entry]` (a filler's update is then the identity). Work in
+  progress, checked in `InvApi.lean` but not committed: the ref `refs/wip/trackA-registry`
+  (`2b5e6ebaf8`; `Cluster.pr`/`prAll`, the laws, `keyOk` in `freshOk`, `api_key_register` taking
+  `keyOk`, `Protocol/Facts.lean`'s `deposited_fresh`).
+- U9a, decided by the coordinator: (A) `node.ApplyConfChange`'s stopped disjunct is `⌜csp = null⌝ ∗
+  nodeStopped n γ N`, without the frozen `nodeConfig v` (after `confc <- cc` the driver's view is with
+  `run`, and the second select's `done` arm, unreachable, would need a sent/answered accounting to
+  refute); `node.Advance`'s post is the running post ∨ `nodeStopped ∗ nodeDriver {handling := none}` (no
+  storage facts: raft's `Advance` never ran). (B) K9's `P ∨ nodeStopped` preconditions are **not
+  provided**: kvreconf's `Replica.stop()` waits for its loop and ticker before `node.Stop`, so no client
+  calls a method holding only `nodeStopped`. A later client wanting them needs a send arm (`confc`,
+  `advancec`, `propc`, `recvc`) shown never to commit once `run` is dead: `run`'s receive obligation on
+  each channel a fraction of the liveness token, each fraction lent out returned to a "fraction bank"
+  invariant at once (so that `run` reassembles the whole token at `Stop`), and handshake-lemma variants
+  for the five channels.
+
+- **The user's decisions (2026-10-29), changing the frozen design:** (1) no transfer choice
+  (`transferChoice`/`transferAllowed`/`noTransfer` dropped, no mode): `node.TransferLeadership.spec`
+  takes only `isNode` (and the context), `SentMsgShape` holds in every cluster (the `MsgTransferLeader`
+  and `MsgTimeoutNow` shapes included), and `stepIn_intro` admits every sent message;
+  `leaderTransferOn/Off` go with the old families in U9; the server's repair handles the new shapes.
+  (2) (Corrected, confirmed by the user the same day.) `node.Stop.spec` takes the whole fractional
+  `nodeRunning n γ N 1` (the frozen `nodeLive`, renamed) and gives `nodeStopped n γ N`; the law
+  `nodeRunning_stopped : isCluster γ N ∗ nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False` lets a
+  holder of a fraction refute every stopped answer. (An intermediate decision, `Stop` taking
+  `nodeDriver`, was withdrawn.) (3) The proposal registry (S1, `Propose`) is not frozen yet.
+- U9a as built (2026-10-29): `NodeNames.live` (a `dghostVar` of `Bool`: `false` in halves, the
+  client's `nodeLiveRaw γ 1` and `run`'s; `true`, discarded, `nodeStoppedRaw`); `done` is Perennial's
+  broadcast idiom with `Q := nodeStoppedRaw` (`isNodeChan`'s `ownBroadcastChan … .Unknown`, `run`'s
+  `.Pending` in `runPre`); `stop` carries `nodeLiveRaw γ 1`. The names agree through the table:
+  `CfgNames`/`cfgNamesOf` gained `live`, so `nodeRunning` (sealed, `InvApi.nodeRunning`: `NodeOk`,
+  `isDyn`, `isNodeChan`, `nodeTabOk`, `nodeLiveRaw`) exists only in a dynamic cluster
+  (`StartNode.dynamicSpec`, `RestartNode.unifiedSpec`; the static `StartNode.spec`/`RestartNode.spec`
+  give none, temporary until U9), and `nodeStopped` is `∃ γn id, NodeOk ∗ isNodeChan ∗ (⌜static⌝ ∨
+  nodeTabOk) ∗ nodeStoppedRaw` (the static disjunct the weak form). `nodeRunning_stopped`'s
+  `isCluster` premise is unused by its proof (`nodeRunning` carries `isDyn`). `node.ForgetLeader.spec`
+  is over `isNode` (its old triple the private `specRaw`). Not done: `node.Status.spec` (a False
+  `status` handshake refutes `run`'s receive but not `Status`'s send, which needs the payload up front;
+  `run`'s status arm needs `getStatus`'s spec: `getBasicStatus`, `getProgressCopy`'s `Visit`,
+  `Config.Clone`); `node.Campaign.spec` (`MsgHup` is not in `netStepTypes`, so `netP_local` does not
+  admit it; and `run`'s `r.Step(MsgHup)` raises the term by one, `raft.Step`'s `uint.Z s'.term ≤ uint.Z
+  s.term + 1`, which `netP`'s `termLB` ceiling does not cover: a hup needs a budget step like a
+  tick's, `budget_spend` with a time receipt. Admitting it through `NetMsgOk`/`netStepTypes` would
+  change `stepIn`, a public vocabulary; a separate local case of `netP`, internal, would not).
+- S1 as built (2026-10-29; candidate 15 rev 2, `spec-first-study/raft-propose-dup-spec.md`, as
+  frozen): `RaftNames.dup : Bool := false` (`Protocol/Ghost.lean`), `Cluster.dup γ := γ.raft.dup`
+  (`InvNode.lean`, sealed); `cluster_alloc_dec` takes `dup` and gives `⌜γ.dup = dup⌝`
+  (`ownRaftGhost_alloc_core_reg` takes it; `ownRaftGhost_alloc_core` passes `false`);
+  `node.Propose.spec`/`node.ProposeConfChange.spec` wrap the update in `□?γ.dup`; `msgCredits_copy`.
+  `msgCredits_none`/`_snapshot` kept. Departures and details: (a) `cluster_alloc_static` also gives
+  `⌜γ.dup = false⌝` (the frozen text names two old allocations; F2's every-allocation rule covers this
+  third one, still exported). (b) The ticket's split is on its ghost variable's fraction: `propTk`'s
+  `dghostVar γt (if γ.dup then □ else 1) none`, and `propIdx` gains the disjunct `⌜γ.dup = true⌝ ∗
+  dghostVar γt □ none` (the ticket kept), instead of a bare persistent witness: the bootstrap
+  entries' deposits are fired (`some i`, `boot_register`), and `fire_one`'s dup case still refutes a
+  fired deposit by `none`/`some i` agreement. `entDataIs` is textually unchanged (its ticket part is
+  `propIdx`). (c) `depSlot`'s unfired disjunct holds `□?γ.dup propAu1` (the deposited update), so
+  `prop_deposit`, `propArg` (`InvNodeChan.lean`) and `ccPropArg` (`ApiVocab.lean`) take `□?γ.dup
+  propAu1`; `api_propAu1_if` (`InvApi.lean`) lifts `api_propAu1`. (d) `nodeRunning_stopped`: isCluster
+  premise dropped (unused). Not repaired (raft first): etcd's server (`NewServerAlloc*`, the
+  allocation's post; `NodeBridge`, `Propose`'s `□?γ.dup`) and `examples/kv`.
+- A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
+  public spec is escalated before it is built on; never a minor change.
+
+## Spec changes during track A (fresh) (2026-10-29)
+
+Each: old → new, and why. (The second track A agent, from the hand-off below.)
+
+- New: `node.Campaign.spec` (`Spec/go_etcd_io/raft/v3/node__Campaign.lean`), modeled on
+  `node.ForgetLeader.spec`: pre `isPkgInit ∗ isNode n γ N id ∗ nodeCtx ctx cd`, post `nodeErr cd err`.
+  No existing public statement changed, no new public vocabulary (the coordinator's option 1).
+  Internal (raft-only): `netP γ id ml` (`InvNodeChan.lean`) is now `(old body) ∨ hupP γ ml`, with
+  `hupSt` (the literal `pb.Message{Type: MsgHup}`) and `hupP γ ml := msgIn ml □ hupSt ∗ tickCred γ.bud
+  1`; new `netP_hup`, `netP_split` (`stepWithWaitOption` reads the type through it). `run`'s `recvc`
+  arm steps a hup with `wp_rn_raft_Step_hup` (`InvNodeRunHup.lean`, `RawNode.Campaign`'s proof with the
+  message given), after `budget_spend` of the credit raises the term ceiling (as the tick arm).
+  `Campaign` takes the credit from its own `MsgHup.Enum()` resolution (`wp_take_receipt`).
+  `NetMsgOk`/`netStepTypes`/`stepIn` unchanged.
+- New: `node.Status.spec` (`Spec/go_etcd_io/raft/v3/node__Status.lean`): pre `isPkgInit ∗ isNode n γ N id`,
+  post `(st : Status), RET #st; statusOwn st`. **New public predicate** (escalated, approved as (A) by
+  the coordinator): `statusOwn st` (`InvNode.lean`, sealed; `InvStatus.statusOwnRaw`), heap ownership
+  only: `⌜st = zero_val Status⌝` (a stopped node's `Status{}`) ∨ `(∃ hs, hsRO HardState hs) ∗ (∃ c,
+  ownCfgCC Config 1 c) ∗ (⌜Progress = nil⌝ ∨ progCopyOwn Progress)` (the nil disjunct, approved: a
+  non-leader's map is `nil`, which `↦$` cannot own). No laws yet (track C asks when kvreconf's `Dump`
+  needs them). The copy's `AutoLeave` is always `false` (`Config.Clone` drops it,
+  `issues/raft-config-clone-autoleave.md`). Internal: `status`'s handshake predicate `fun _ => False` →
+  `statusChP c := ∃ γc, isHandshake γc c statusOwnRaw True` (`InvNodeChan.lean`; one line each in
+  `StartNode.lean`/`RestartNode.lean`, approved); `run`'s status arm answers with `getStatus`, so
+  `node.run.wp_proof` takes `getStatus.spec` (last hypothesis). New internal specs and proofs:
+  `getProgressCopy.spec` (`Visit` with the copy as invariant, `Inflights.Clone`), `getStatus.spec`
+  (`getBasicStatus`, `getProgressCopy` at a leader, `Config.Clone` through the tracker's `Config`
+  field); `Pos.Countable` instances for `SoftState`, `BasicStatus`, `tracker.Config`, `Status`.
+
+## Spec changes during track A (third) (2026-10-29)
+
+Each: old → new, and why. (The third track A agent. Stopped after U7 step (ii) on the coordinator's
+change of plan: the remaining proof is to be designed as one set of invariants first.)
+
+- (i) New, `ApiVocab.lean` (public vocabulary, not yet used by any spec): `sentShapeTypes`
+  (`sentTypes` ++ `MsgTimeoutNow`, `MsgTransferLeader`), `SentMsgShape st`, `SentMsgShape.ok`
+  (with a described type it is `SentMsgOk`), `SentMsgShape.of_msg`. Departures from the frozen text
+  (candidate 12, "`SentMsgShape`"): **no `MsgSnap` index bound** (below `2^61`): at `send` the bound
+  is not known (`maybeSendSnapshot` reads the storage's snapshot, whose index bound is the storage
+  contract's, track B's; J6 of review 10 already called this uncertain for a generic `StorageModel`),
+  so `stepIn_intro` keeps its `MsgSnap` premise for now. A forwarded `MsgTransferLeader` may be
+  unstamped (`Term = 0`): `send` stamps the follower's term, which may be `0` (the frozen text's "no
+  term or the sender's"); a stamped one is the case that needs the `lead` ghost invariant at the
+  receiver. Transfer messages carry no entries and no context.
+- (ii) `raft.send.spec`'s `SendOk` (`Spec/.../raft__send.lean`): clauses (b) (`MsgApp`,
+  `MsgHeartbeat`, `MsgReadIndexResp`, `MsgHeartbeatResp`) and (c') (`MsgSnap`) take `s.term ≠ W64 0`;
+  (c) is now exactly `MsgTimeoutNow ∨ MsgTransferLeader` (until then any `mtypeOf = none` type),
+  with `ents = [] ∧ ctx = []` and `MsgTimeoutNow → s.term ≠ 0`; (d) (`MsgAppResp`) takes
+  `s.term ≠ 0` always (until then only self-addressed). `send`'s proof does not use them yet (that
+  is step (iii): `XfOk`'s second clause `∀ m ∈ l, SentMsgShape m.st`, `bt` removed). Internal
+  premises added to carry the term (all raft-internal specs, no API change):
+  `s.term ≠ W64 0` on `maybeSendAppend`, `maybeSendSnapshot`, `sendHeartbeat`, `sendTimeoutNow`,
+  `sendMsgReadIndexResponse`, `sendAppend`, `bcastAppend`, `bcastHeartbeat`,
+  `bcastHeartbeatWithCtx`, `handleHeartbeat`, `handleSnapshot`, `handleAppendEntries`; `stepLeader`
+  takes `(MsgBeat ∨ MsgTransferLeader → s.term ≠ 0)` (its other sending paths have the term from
+  the read-index premise `Hrdnz` or `MsgProp`'s), which `raft.Step`'s `MsgBeat`/`MsgTransferLeader`
+  dispatch derives from the ghost (`ownRaftGhost_term_nz`) and hands `wp_Step_MsgBeat`/
+  `wp_Step_MsgTransferLeader` as a new premise `s.role = .leader → s.term ≠ 0`; `(s.role = .leader → s.term ≠ 0)` on
+  `switchToConfig`, `applyConfChange` and its `specS`; `stepFollower` takes `(MsgApp ∨ MsgHeartbeat
+  ∨ MsgSnap → s.term ≠ 0)`. `stepCandidate`'s spec is unchanged (its `m.Term' = s.term ∧ m.Term' ≠ 0`
+  covers its handlers and the won election's `bcastAppend`). New lemmas
+  `ownRaftGhost_leader_tnz`/`ownStepGhost_leader_tnz` (`InvNodeRun.lean`; from
+  `ownRaftGhost_term_nz`) give `RawNode.ApplyConfChange`'s and `node.run`'s `applyConfChange` calls
+  the leader premise. `stepLeader/Rest.lean`'s `wp_stepLeader_hbresp`: its `word` calls clear `Htz`
+  first (with the term hypothesis in context, a `word` aux proof failed the kernel check:
+  "application type mismatch" on `_proof_10`, a Lean/`word` abstraction problem worth a minimal
+  repro).
+
+**What the send path taught (for the design).**
+- A leader's `term ≠ 0` lives only in the ghost (`ownRaftGhost_term_nz`, via `isCamp_ok`), not in
+  `ownRaftPhys`; every leader-side sender needs it threaded as a premise, and so does every
+  function that may run at a leader and send (`switchToConfig`'s `maybeSendAppend`/`bcastAppend`,
+  hence `applyConfChange` and its `RawNode`/`node.run` callers). A pure `ownRaftPhys` fact `role ∈
+  {leader, candidate} → term ≠ 0` would remove most of these premises, at the cost of the role and
+  term stores (`becomeLeader`, `reset` inside `becomeFollower` at a leader) taking it; the threading
+  was chosen here as the local change, but the design should weigh the phys fact.
+- A follower's reply term (`handleAppendEntries`/`handleHeartbeat`/`handleSnapshot`, and
+  `raft.Step`'s stale-term `MsgAppResp`) is past `0` from the message: `raft.Step`'s `m.Term' ≠ 0`
+  for the stamped types, the term section making `s.term = m.Term'`; the stale case from
+  `m.Term' < s.term`.
+- The forwarded `MsgTransferLeader` (`stepFollower`, `lead ≠ 0`, `m.Term = 0`) needs no term: it
+  may go out unstamped. The stamped one needs, at the receiver, `raft.Step`'s `RestMsgOk` (`m.Term ≠
+  0 → m.Term = s.term → follower → lead = 0`), which needs the ghost invariant `lead ≠ 0 →
+  isLeader γ lead term` and the forwarder's `isLeader γ m.To m.Term` in `isRaftMsg` (decisions.md,
+  "Stage U7", item 2). `NetMsgOk` today rejects a stamped `MsgTransferLeader` (`UnstampedType`).
+- `XfOk` (`InvRaftPhys.lean:335`) is where every queued message's facts live (43 mentions there,
+  25 `ownRaftPhysCV_intro` sites); `NGhost.bt` is used only for `term ≠ 0` in `send`'s proof
+  (`Hxfs.2`) and to gate `SentMsgOk`; step (iii) replaces both by `SendOk`'s new premises.
+
+
+## U8 v2: the storage contract as range ownership (2026-10-29, branch `raft-unified-storage2`)
+
+The design is candidate 17 rev 3 (`notes/spec-first-study/raft-storage-spec.md`, reviews 1-4).
+Steps 1-2 of it are built (vocabulary and contract; raft's log over it); steps 3 (MemoryStorage),
+4 (RawNode/node level, the API's `isStorage γ id st`) and the clients are not.
+
+### Architecture (decided at step 1)
+
+- **The class** `StorageModel` (`InvStorage.lean`) is the γ-free range vocabulary only: `storLog`,
+  `storEnd`, `storCompacted` and the §1 laws. The old fields (`ownStorage`, `appendTok`,
+  `appendedTok`, `storCut`, `storFloor`, `storCap`, `storCert`, `storTermsAt`) are gone.
+- **The contract** is parameterized by its two cluster-level pieces, which `InvStorage` (below the
+  log, far below the node API) cannot name: `isStorageP (SV : SnapshotM → IProp GF)
+  (Bnd : Nat → IProp GF) st` (`InvStorage.lean`). The API module fixes them (step 4):
+  `isStorage γ id st := isStorageP (snapshotValid γ) (fun c => ∃ k, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ id k
+  ∨ snapGiven γ id k)) st`, sealed; no client supplies the parameters. `snapshotValid` is defined
+  (`InvNodeRule.lean`, exposed, as the design states it).
+- **Raft's internal view.** Raft's log is not parameterized: it holds the contract as
+  `isStorageV sn st` (`InvStorage.lean`) for internal ghost names `sn : StorNames` (a new
+  `LogState.sn`): `∃ SV Bnd, isStorageP SV Bnd st ∗ savedPredOwn sn.gsv □ SV ∗ □(SV persistent) ∗
+  □ (∀ c, Bnd c -∗ raftBnd sn c)`, where `raftBnd sn c := ∃ k, ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨
+  monoNatLbOwn sn.gg k)`. So `nodeAppliedLb γ id k` will be `monoNatLbOwn sn.ga k` (here
+  `storFloor sn x`) and `snapGiven γ id k` `monoNatLbOwn sn.gg k` (here `storGiven sn k`), for the
+  node's `sn` (step 4 ties `sn` to `(γ, id)` and proves the conversion), and the storage's
+  snapshot validity travels γ-free as `svCert sn sv` (the `SV` pinned at `sn.gsv`; the node level
+  recovers `snapshotValid γ sv` from the pin). This replaces the γ-free certificate registry
+  (`storCert`) with a pinned predicate; the raft level (InvRaftPhys's `tsSrc`, StepGhostMode's
+  `certLink`) is to carry `svCert` where it carried `storCert`.
+- **Review 1's derived contract.** `StorState` is now raft's *view* of its storage (§4's `π` and
+  its anchors): `prev` (the compaction point `c` and the dummy's term), `ents` (the physical log
+  above it), `pend` (the batch out), `fl` (the applied lower bounds' authority), `fr` (the frozen
+  end `f`), `sg` (the snapshots handed out). `ownStorage sn st σ` (a definition now) is what raft
+  holds for it: `storCompacted st c`, the frozen prefix `storLog st c □ (e0 :: ents[..fr-c])`
+  (the dummy `e0` of `prev`'s term: (T)), the owned part `(fr, kOut)` at `own 1`, the end unless a
+  batch is out (P3/N2), and the two authorities. The read triples over the view
+  (`isStorageWith (ownStorage sn st) (storCut st) (svCert sn) st`, `isStorage sn st`) are
+  **derived** from the contract (`InvStorageRead.isStorage_of_V`), with the statements the log's
+  read proofs were written against (only `HSnapshot` and `Hbounded` changed), so `raftLog.term`,
+  `slice`, `firstIndex`, `lastIndex` went through unchanged. The old laws (hand-out, absorb,
+  floor, the snapshot loan) are lemmas over the ranges (`InvStorageLaws.lean`):
+  `ownStorage_handout(_opt)`, `ownStorage_absorb` (the batch back as a frozen prefix `a` and an
+  owned rest; raft freezes its own part below `k` when `a ≠ []`), `ownStorage_floor`,
+  `ownStorage_lend`/`ownStorage_absorb_snap` (`snapView`), `ownStorage_freeze`.
+- **§4's invariant** is today's `ownRaftLog` over the view: P0-P3 are `LogPersistOk`/`PendLogOk` over
+  `π = storApp σ σ.pend`, (F) `FrOk` (new conjunct `Hfr`: `fr ≤ max c applying` unless lent, and
+  `σ.sg = ls.sg`), (C)/(G) through `FlOk` and the authorities (`sg ≤ c` inside `ownStorage`, so a
+  compaction raft did not cause is at most `fl ≤ applying`), (T) inside `ownStorage`. `StoredSnapOk`,
+  `Hsksn`, `Hkcert`, `initKsn(Cert)`, `ownRaftLog_terms` are gone. `lentStor` keeps the
+  authorities while lent.
+
+### Spec changes during U8 v2 (old → new, why)
+
+- `storLog_valid : storLog st k dq es ⊢ ⌜✓ dq⌝` → only for `es ≠ []`: with `storLog_nil`
+  (`⊢ storLog st k dq []`) the design's form is inconsistent (`storLog st k (own 2) []`).
+- `isStorage`'s `storCompacted_bound` `={↑N}=∗` → `={⊤}=∗` (in `isStorageP`): raft uses it only at
+  `⊤`; the weaker obligation for an implementation. Step 4 may restate the API form with `↑N`
+  (it implies the `⊤` form).
+- **New law `Hlen`** in the contract: `storLog st k dq es -∗ ⌜es = [] ∨ k + |es| ≤ 2^61⌝ ∗ storLog
+  st k dq es` -- the old contract's `Hbounded` (the stable log's last index below `2^61`, which
+  `appendEntry`'s no-wrap needs and no invariant of the log can carry), restated over ranges. The
+  design has no bound at all; without one `raft.appendEntry` is unprovable (`InvRaftlog.lean`'s
+  header). Client-visible once `isStorage γ id st` is defined: **approved by the user** (via the coordinator, 2026-10-29), as are the two deviations above.
+- `HEntries`' post: the design's "cut by max" is the old prefix statement
+  (`es <+: ((a ++ b).drop (lo - k)).take (hi - lo)`), as before.
+- `raftLog.snapshot.spec`: the storage's snapshot is at or past the log's boundary and valid
+  (`svCert ls.sn sv`); the pending one as before (in `ksn`, at or below `committed`, the log's
+  base). Gone: the storage's snapshot's commit bound and term (`StoredSnapOk`), the
+  "or at most the floor" disjunct and the `storCert` certificate.
+- `raftLog.restore.spec`: no `storCert` premise (the restored snapshot's certificate is no longer
+  registered in the storage).
+- `newLogWithSize.spec`: takes `isStorage sn st ∗ ownStorage sn st σ` with `σ.fr = prev.index`,
+  `σ.sg = 0`; no `StoredSnapOk` premise, no `initKsnCert`; `ksn := []`, `sn := sn`.
+- `ownRaftLog_absorb` takes `appendReceipt ls.storage ls.unpersisted a` (the batch back, `a` its
+  frozen prefix) and `⌜a ≠ [] → k - 1 + |a| ≤ applying⌝`; `ownRaftLog_raise_floor` gives
+  `storFloor ls.sn x`; `ownRaftLog_lend` gives the ranges above the frozen prefix with the end and
+  `storGiven ls.sn s` (`lendLog`: `sg := max sg s`); `ownRaftLog_absorb_snap` takes the
+  compaction point at the snapshot, the dummy, `ls.stored` after it and the end, with
+  `⌜ls.sg ≤ s⌝`.
+
+Step 3a (the raft level, 2026-10-29):
+
+- **The snapshot's commit bound (2026-10-29, decided by the coordinator: option (A))**. `maybeSendSnapshot`'s
+  `SnapOk` needs the storage's snapshot at or below the *leader's own* commit index and an entry id of
+  its log; the snapshot's validity (`snapshotValid`, a committed prefix of the cluster) does not give
+  the first (a new leader's commit index may lag the cluster's: its client may have frozen and
+  snapshotted entries the cluster committed before it learned so). New: a third cluster-level
+  parameter of the contract, `isStorageP SV Bnd DL st`, and `HSnapshot`'s post
+  `(⌜Index = 0⌝ ∨ SV sv ∗ DL (uint.nat Index))` (old: `SV sv` alone). The API (step 4) fixes `DL i :=
+  (∃ l, deliveredLogLb … l ∗ ⌜i ≤ |l|⌝) ∨ snapGiven … i'` (the node's delivered committed prefix
+  reaches `i`, or a snapshot raft handed out does); the client's `CreateSnapshot(i)` then needs the
+  delivered prefix of length `≥ i` (step 3, MemoryStorage: only noted here). Raft reads it, with the
+  snapshot's validity, as `raftDL sn i t := i ↪[sn.gd]□ t ∨ ∃ k, ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k`
+  (`isStorageV`'s new conversion `□ ∀ sv, SV sv -∗ DL (Index) ={⊤}=∗ raftDL sn Index Term`, at `⊤`
+  so that step 4 may open an invariant): a term raft certified at a committed index, or an index
+  below a snapshot handed out (so below the compaction point raft holds). Internal ghost state:
+  `StorNames.gd` (a ghost map `Nat → w64`, authority `σ.dt` in `storAuths`) and the invariant
+  `DtOk σ.dt ls` (in `FrOk`): every key at most `committed`, of the log's term there once at or past
+  the boundary. Step 4 issues the keys (from the authority, at the delivered indices; `DtOk` gives
+  what it may issue). Raft's derived `HSnapshot` gives `σ.dt.lookup Index = some Term`;
+  `raftLog.snapshot`'s storage branch now also gives `Index ≤ committed` and `plogTermAt … Index =
+  some Term` (as its pending branch did).
+- `newLogWithSize.spec`: also `σ.dt = ∅`.
+- `raftLog.restore.spec`: takes `ksnCert ls.sn (snapTrip sv lists)` (U8 v2 step 2e had dropped the
+  certificate premise; the received snapshot's certificate is kept in the log again, now as a pin:
+  below). `raftLog.snapshot.spec`'s pending branch gives `ksnCert ls.sn (snapTrip sv lists)`.
+- **The snapshots' certificates at raft's level** (old: the storage's registry `storCert st k`, both
+  ways to `raftSnapCertD γ k`, `storCertOk γ st`): two γ-free pins of raft's storage names,
+  `svCert sn sv` (a stored snapshot's validity, the contract's `SV`, pinned at `sn.gsv`) and the new
+  `ksnCert sn k` (a received snapshot's certificate, pinned at the new `StorNames.gk`; `ownRaftLog`'s
+  `#Hkcert ∷ ksnCerts ls.sn ls.ksn`, every snapshot the node may send). `storCertOk γ sn` (now over the
+  names): `svCert sn sv ={E}=∗ raftSnapCertD γ (snapTrip sv lists)`, `ksnCert sn k ={E}=∗
+  raftSnapCertD γ k` and back (`raft.Step`'s `MsgSnap` arm pins the message's). `certLink γ sn :=
+  storCertOk γ sn` (old: `⌜γ.reNoSnap⌝ ∨ storCertOk γ st`); `ghostRest` keys it by `s.gh.sn`.
+- **`NGhost.sn`** (new field, a mirror of `LogState.sn`; `GhLogOk`'s third conjunct `ls.sn = g.sn`):
+  every step keeps the ghost record (`NetFrame`, `LocalFrame`, `SnapStep`), so the certificates the
+  struct and the ghost state hold are keyed by it without new frame conjuncts. `SnpKeep` also keeps
+  `sn`. `LogGhOk.of_snap`/`of_off` take `ls'.sn = s.gh.sn`; `of_fields` has `hsm := by rfl`.
+  `ghost_stepCD(S)`'s and `ownStepGhost_congr`/`ghostRest_keep`'s storage hypotheses are now unused
+  (the latter two's `hst` is `s'.gh.sn = s.gh.sn := by rfl`).
+- `tsSrc st ty snap` → `tsSrc sn ty snap := ⌜ty ≠ MsgSnap⌝ ∨ ∃ sv, ⌜snap = some sv⌝ ∗ (svCert sn sv ∨
+  ksnCert sn (snapTrip sv lists))`; `qSrc(s)` over the names; `ownRaftPhys`'s `Hscert` is `qSrcs s.gh.sn
+  …` (old: of `s.logst.storage`). New `rcvSrc sn ty snap` (only `ksnCert`): `stepFollower`'s and
+  `stepCandidate`'s premise (old: `tsSrc`), which `handleSnapshot`/`raft.restore` (`ksnCert s.gh.sn`,
+  old `storCert s.logst.storage`) consume.
+- **The no-snapshot mode dropped at raft's level** (decision approved by the user via the coordinator):
+  `NsCap ns st := ⌜ns = false⌝` (old: `□ (⌜ns⌝ -∗ storCap st 1)`; name kept for its call sites),
+  so every node has `NGhost.ns = false` and, by `NsLink`, its cluster `reNoSnap = false`; the mode's
+  facts (`LogNsOk`, `PrOkN`'s `PrLo`, the `ns = true` branches) hold vacuously. `ownRaftPhysC_set_ns`
+  (the mode set with the storage's cap) is removed; new `ownRaftPhysC_sn` reads `ns = false` and the
+  names' mirror. `raft.maybeSendSnapshot.spec` no longer takes `s.gh.ns = false` (reachable in every
+  cluster). The other `s.gh.ns = false` premises (`raft.restore`, `handleSnapshot`, `stepFollower`,
+  `raft.Step`'s `MsgSnap → ns = false`, `ReplSends`' last conjunct) are kept: derivable from
+  `ownRaftPhys` now; step 4 removes them with the mode. **What etcd's server loses**: its transport
+  excludes `MsgSnap` (the boot contract's no-snapshot mode); with the mode gone at raft's level a
+  server node is a node of a cluster with `reNoSnap = false`, which may send and receive snapshots,
+  so the server's proof must handle `MsgSnap` or get the exclusion back. **The fallback to put to the
+  user in the client-repair phase**: a client-chosen cap witness `storCompactCap st k` with
+  `storCompacted st c ∗ storCompactCap st k ⊢ ⌜c ≤ k⌝` (a storage that promises never to compact past
+  `k`), which would restore the mode for such clients (not built).
+- `newRaft.spec`: takes `sn`, `isStorage sn st ∗ ownStorage sn st σ` with `σ.fr = prev.index`,
+  `σ.sg = 0`, `σ.dt = ∅` (old: `(σ.ss.index = 0 ∨ σ.ss = σ.prev)` and `initKsnCert`); the
+  `InitialState` triple over `ownStorage sn st σ` at the same `σ` (old: any `ss'`); post
+  `s.logst.sn = sn` and `s.gh = { sn := sn }` (old `s.gh = {}`).
+- Moved, so that raft's level builds without the node level: `propMsgM`, `ccEntryM`
+  (`InvRawnode` → `ApiVocab`), `ownRaftLog_last_bound`, `ownRaftPhysC_last_bound` (`InvRawnode` →
+  `InvRaftPhys`), the generic slice lemmas of `LemmasMemstorage` (→ new `LemmasEnts`).
+  Removed until step 4 restates them: `ApiVocab`'s `readyOut`, `snapReceipt`, `advReceipt` (over the
+  old `StorState`/`appendRight`/`storCert`).
+
+Step 3 (MemoryStorage, 2026-10-29; the approved shapes, generic until step 4):
+
+- **Generic form**: the storage's invariant is `memStorInvP ms γs J` (`InvMemstorage.lean`) at
+  justification parameters `J : MemJust GF` (`J.SV` snapshot validity, `J.B k` compaction
+  justification, `J.DL i` delivered bound; persistent, `J.B` timeless), and the law is
+  `memStorage_isStorageP : memStorInvP ms γs J -∗ memStorReg ms γs -∗ isStorageP J.SV (memBnd J) J.DL
+  (memStorIface ms)` (`MemstorageInstance.lean`; `memBnd J c := ∃ k, ⌜c ≤ k⌝ ∗ J.B k`). Step 4
+  instantiates `J` (`SV := snapshotValid γ`, `B k := nodeAppliedLb γ id k ∨ snapGiven γ id k`, `DL` the
+  API's) to get the approved `memStorInv ms γs γ id` and `… ⊢ isStorage γ id st`. **Step 4 must make
+  `nodeAppliedLb`/`snapGiven` timeless** (`storCompacted_bound` reads `J.B` out of an invariant under an
+  update with no program step); `SV`/`DL` need not be (read in `Snapshot()`, a step strips the later).
+- The method specs are over the storage's names (`memLog γs`, `memEnd γs`, `memCompacted γs`,
+  `memSnapExact γs`; the instance's `storLog`/`storEnd`/`storCompacted` for `memStorIface ms` are these
+  under `memStorReg ms γs`: `memStorLog_to`/`_of`, `memStorEnd_to`/`_of`, `memStorCompacted_to`/`_of`).
+- `NewMemoryStorage`: `memLog γs 0 □ [e₀]` (old/approved: `own 1`, the client to freeze it): the lock
+  keeps the dummy at the compaction point frozen (otherwise `Append` over an owned key `0` could change
+  the term `Term(0)` reads); a frozen range is what the client would make anyway. Also gives
+  `memStorLock ms γs` (the mutex, persistent) and **`memStorFresh ms γs`, the allocation's fuel**
+  (the authority of the justified compaction points and the snapshot's home, which the lock does not
+  hold; `memStorInvP_alloc` consumes it, with `J.B 0`), as the old design's `memCertAuth` was.
+  `memStorReg ms γs` is not in the post: registering needs the registry's authority and the pointer's
+  absence, the client's (`memStorReg_register`), as before.
+- `Append`: `es = []` gives the pre back unchanged (a no-op); the batch's indices consecutive
+  (`es[j].Index = k + j`) and `k + |es| ≤ 2^61` as premises; `entsPts s dq es` (the old argument form).
+- `ApplySnapshot`: also `⌜s < 2^61⌝` (the dummy's range must satisfy `Hlen`); the justification is
+  three premises `J.B s ∗ J.SV sv ∗ J.DL s` (step 4: `snapGiven γ id s` gives `B` and `DL`); also gives
+  `ownSnapM sp dq sv` back. **Step 4 must supply `s < 2^61`** for a snapshot `Ready`.
+- `CreateSnapshot`: `J.SV (memSnapCreated sv0 i e.Term oc bs) ∗ J.DL i` (the stored conf state `sv0`'s
+  when `cs = nil`); `ErrSnapOutOfDate` also gives `snap = null` and `data ↦* bs` back.
+- `Compact`: also `memStorInvP` (it registers `x`'s justification).
+- `Snapshot`: one spec (the contract's); the application's second spec is gone.
+- **`InitialState` (finding for step 4)**: it reads (and may write the `AutoLeave` of) the stored
+  snapshot without the lock, which the locked `Snapshot()` writes (`ms.snapshot =
+  EnsureSnapshot(ms.snapshot)`): a real race (`issues/raft-memorystorage-initialstate-unlocked.md`). The
+  contract's `Snapshot()` needs no exclusive resource, so `InitialState` can only be specified before the
+  storage is a `Storage`: its pre is `memStorMeta ∗ memStorFresh` (the snapshot is in the fuel until
+  `memStorInvP_alloc`). `newRaft.spec` takes `isStorage` and the `InitialState` triple together, which a
+  `MemoryStorage` cannot meet: step 4 must restructure it (e.g. `InitialState`'s triple's post gives
+  `isStorage`, the client allocating the invariant after `InitialState` returns).
+- Internal: `MemOk` records that the stored entries are numbered by position (`Compact`'s new dummy
+  takes its index from the stored entry).
+- `memSnapLb` (the stored snapshot's lower bound, for etcd's two writers) is **not built**: the server's
+  repair.
+
+Step 4 (the node level, 2026-10-29; in progress):
+
+- **U9 ahead of schedule** (the coordinator's decision): the static cluster's variants that touch
+  the storage (`StartNode.spec`, `RestartNode.spec`, `node.Advance.spec`, with their `Linked`
+  results) are dropped, not restated; the unified cluster (`isCluster`, `RestartNode.unifiedSpec`)
+  is the one that matters; the dynamic variants are kept only where they come for free.
+- `isStorage sn st` (raft's derived view, `InvStorage.lean`) renamed `isStorageD sn st`, to free
+  the name for the API's `isStorage γ id st`.
+- **The API's pieces** (`InvNodeRule.lean`, sealed over `InvApi.lean`'s `ApiImpl`):
+  `nodeAppliedLb γ id k := ⌜k = 0⌝ ∨ ∃ sn, nodeStorNames γ id sn ∗ (monoNatLbOwn sn.ga k ∨
+  monoNatLbOwn sn.gg k)` (an applied lower bound: the floor raft published, or a snapshot it
+  handed out, which `Advance` applies), `snapGiven γ id k := ∃ sn, nodeStorNames γ id sn ∗
+  monoNatLbOwn sn.gg k`, both persistent and timeless; `nodeStorNames γ id sn`: the node's table
+  entry (`Cluster.nodeTab`, `nodeTabOk`) names its storage names (`CfgNames` extended by the five
+  names of `StorNames`, `NodeNames.sn`). `isStorage γ id st := isStorageP (snapshotValid γ)
+  (storBnd γ id) (storDL γ id) st`, with `storBnd γ id c := ∃ k, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ id k
+  ∨ snapGiven γ id k)` and the delivered bound in existing client names only, `storDL γ id i :=
+  ∃ n N l, isNode n γ N id ∗ deliveredLogLb n γ N l ∗ ⌜i ≤ |l|⌝` (kvreconf snapshots between
+  applying a `Ready`'s entries and `Advance`, so an applied bound would not do). Internally the
+  driver's `dlvLb γn ds` carries raft's certified terms of `ds` (`dlvKeys sn ds`, the keys
+  `j + 1 ↪[sn.gd]□ ds[j].Term'`), which a `Ready` issues for its committed entries
+  (`ownRaftLog_certify`, `LogState.dtk` the certified height, `SdtTie` now `dtk = |delivered|`):
+  the conversion `isStorage γ id st ⊢ isStorageV sn st` needs no invariant.
+- `snapshotValid γ sv` (2026-10-29, approved): also `uint.nat Index < 2^61` and the `ConfState`'s
+  four lists of total length at most `2^62` (raft's certificate, `SnapListsOk`, needs both, and
+  nothing in the definitions gives them: a joint configuration may list `2^62 + 2` ids; the
+  client proves them where it makes the snapshot, as the old `snapshotCert_make`'s `SnapListsOk`).
+  `SnapValidCert.lean`: the protocol-level lemma from the pieces to `raftSnapCertD`.
+- **The boot storage (decision (a) refined, approved as (B))**: `newRaft` reads `FirstIndex` and
+  `LastIndex` (`newLogWithSize`) *before* `InitialState`, so raft cannot be given `isStorage`
+  only after `InitialState`. `RestartNode.unifiedSpec` takes one premise, a boot bundle with a
+  client frame `R`: persistent triples of `FirstIndex` (`1`), `LastIndex` (`0`) and
+  `InitialState`, whose post includes the update to `isStorage γ id st ∗ storLog st 0 □ [e₀] ∗
+  storEnd st 1` (`e₀.Term' = 0`); `MemoryStorage`'s instance of it is a law (`memStorFresh`,
+  the lock: `FirstIndex`/`LastIndex` need only the lock, the snapshot being in the fuel).
+- `FrOk`'s first conjunct: the frozen end at most `committed` and below `inprogress` (and below a
+  pending snapshot not yet handed out), not `max c applying`: a `Ready` freezes its committed
+  entries below its batch at the hand-out, before `acceptReady` moves `applying`
+  (`ownRaftLog_handout`'s new frozen range, `frozenRdy`); `ownRaftLog_lend` also gives the lend's
+  start at most the snapshot's index (`ApplySnapshot` needs `j ≤ s`).
+- The `Ready`'s storage hand-out and its receipt over the ranges (`ApiVocab.lean`): `readyOut st
+  sn es L` (no snapshot: `appendRight st es`; a snapshot: the ranges from `k ≤ s` with the end, and
+  `storGiven sn s`), `ceFrozen st n ce es` (the committed entries below the batch, frozen),
+  `snapReceipt st l es` (§3's `Advance` pre after a snapshot: the half snapshot, `storCompacted st
+  s`, the dummy of its term frozen, `es` owned after it, the end), `advReceipt st n es L` (no
+  snapshot: `∃ a, appendReceipt st es a` with the frozen prefix within the `n` delivered).
+- `RNState.sn` (raft's storage names, constant; `ownRawNode`'s `Hstor` now also `rs.sn =
+  s.logst.sn`); `ownRawNode_raise_floor` gives `storFloor rs.sn x` (no `storTermsAt`, no `D`);
+  `ownRawNode_appended` takes the frozen prefix `a` within `delivered`; `ownRaftPhys_set_ns` only
+  at `b = false` (no `NsCap`).
+
+### Where step 4 stopped (2026-10-29, the user's wrap-up)
+
+The tree builds up to the log and raft level and `InvRawnode`; the node level does not build.
+Committed and building: the log level's step-4 lemmas (`ownRaftLog_handout`'s frozen range,
+`ownRaftLog_lend`'s `k ≤ s`, `ownRaftLog_certify`, `FrOk`'s new first conjunct, `LogState.dtk`,
+`dtk` in `logStoreRec`/`SnapLogStep`), every `raft.*`/`raftLog.*` proof and `newRaft`, `ApiVocab`'s
+new storage vocabulary, `InvRawnode`, `SnapValidCert`, `LemmasCeFrozen`. The unbuilt node-level work
+is `notes/u8v2/step4-node-wip.patch` (apply with `git apply`): `InvRawnodeReady` (`rdyLog`'s
+certified height `dk`, `dlvAfter` moved there, `ownRaftLog_rdy_out` and `ownRawNodeReady_handout`
+rewritten with the frozen `ceFrozen` and the keys `dlvKeysAt`, `ownRaftLog_certify_list`,
+`ownRaftLog_applying_lt`; still ~15 errors, mostly `acceptReady`'s consumers of `rdyLog`/`Hgh0`
+projections and the snapshot `Advance` side), `InvNodeChan` (`NodeNames.sn`, `readyData`'s
+`readyOut`/`ceFrozen`, `readyP`'s `dlvKeys`, `dlvLb` with the keys, `runCfg`'s keys and `rs.sn =
+γ.sn`, `reqWit` over `storFloor γ.sn`, `advDep`'s `sn`), `InvNodeRun` (`runCfg_extend` with the
+keys), `InvAdvance` (the none branch over `advReceipt`'s frozen prefix), `InvApi` (`CfgNames` with
+the storage names, `nodeStorNames`, `nodeAppliedLbU`, `snapGivenU`, the certificate registry and
+`storageCertLink` removed, `nodeDriver` keeps `storGiven` after a snapshot `Ready`), `InvNode`
+(sealed `nodeAppliedLb`/`snapGiven` with their laws, `readySnap`'s new storage part,
+`storageCertInv`/`storageCertLink` removed), `InvNodeRule` (`snapshotValid`'s two bounds,
+`storBnd`, `storDL`, `isStorage γ id st`, `bootStorage`), and the specs `RestartNode.spec` (the
+unified one, over `bootStorage`; the static one dropped) and `node.Advance.spec` (the unified one,
+post `nodeAppliedLb γ id |st.delivered|`; static and dynamic dropped).
+
+Remaining, in order: `InvRawnodeReady` (finish: `acceptReady` with `rdyLog`'s `dk`, the
+`SdtTie` of the accepted state from `dk`); `RawNode__Advance` (the snapshot receipt over
+`snapReceipt`, `ownRaftLog_absorb_snap`'s new `Hsid` from `LoanOk` and `SnpOk`: the loan's snapshot
+is pending with `sip = true`, or a later one is); `InvNodeChan`/`InvNodeRun`/`node__run` (the
+Ready arm: keys and frozen range through `readyP`; the advance arm); `InvApi`/`InvApiDyn`/`InvNode`
+(`wp_readyRecv_impl` builds `dlvLb` with the keys and `readySnap` from `readySnapData`, converting
+`storGiven γn.sn` to `snapGiven γ id` by `nodeTabOk_storNames`); the conversion `isStorage γ id st
+⊢ isStorageV sn st` and the pins (`sn.gsv` at `snapshotValid γ`, `sn.gk` at `raftSnapCertD γ.raft`)
+with `storCertOk γ.raft sn` from `SnapValidCert` (a module above `InvNodeRule`); `RestartNode` over
+`bootStorage` (allocate `sn`'s authorities and the table entry, `newRaft` over the boot bundle);
+`MemstorageInstance` (`memStorInv` at the API's `J`, its `isStorage` law, `memStorage_bootStorage`);
+the other node-level proofs (mechanical: `Hstor`'s pair, `runCfg`'s patterns, `Hgh0` projections);
+StartNode/static variants deleted with their `Linked` results; `Link.lean` regenerated.
+
+The boot bundle at `newLogWithSize` (decision (B)) is built but not committed, since `newRaft`
+does not yet use it: `notes/u8v2/step4-boot-newLogWithSize.patch` (the spec over a frame `R` with
+`FirstIndex`/`LastIndex` answering `1`/`0`, the post a wand from `isStorageD sn st ∗ ownStorage
+sn st σ0` to the log). Its helper's findings: `wp_apply` on a hypothesis triple with no binders in
+its post drops the continuation (workaround `wp_apply_raw H $$ [$HR]; inext; iintro HR`), and
+`word` on fully concrete goals failed the kernel's check (replaced by `rfl`/`simp`): candidates for
+`notes/perennial-changes.md`. Its open question: should the caller's frame come out of the update
+(`R' ={⊤}=∗ isStorageD ∗ ownStorage σ0 ∗ Q`)?
+
+### What builds, what is broken (at the step-2 commit)
+
+Builds: `InvStorage`, `InvStorageRead`, `InvStorageLaws`, `InvRaftlog`, `InvReadylog`,
+`LemmasRaftlogW`, `InvNodeRule`'s `snapshotValid`, and every `raftLog.*`, `unstable.*` and
+`newLogWithSize` spec and proof (no `sorry`, no new axiom; `#print axioms` of `isStorage_of_V`,
+`raftLog.{term,slice,snapshot,stableTo}.wp_proof`, `newLogWithSize.wp_proof`, `ownRaftLog_{absorb,
+lend,absorb_snap}`: Perennial's standard ones only).
+
+Broken (expected): everything that uses the removed names, i.e.
+- the raft level: `StepGhostMode` (`storCertOk`, `certLink` in `ghostRest`), hence `InvRaftPhys`
+  (`tsSrc`/`qSrc` carry `storCert`; `NsCap` uses `storCap`) and everything above it: `raft.*`
+  (`appendEntry`'s `Hsksn`, `loadState`, `maybeSendSnapshot`/`raft.Step`'s `MsgSnap` arms,
+  `stepFollower`/`stepCandidate`), `newRaft`;
+- the RawNode/node level (step 4): `InvRawnode*`, `RawNode__*`, `ApiVocab`, `InvApi*`, `InvNode*`,
+  `StartNode`, `RestartNode`, `setupNode`, `node__Advance`, ...;
+- `MemoryStorage` (step 3): `MemstorageInstance`, `InvMemstorage`, `MemCertLink`, `MemoryStorage__*`;
+- the clients (kv, server, examples).
+
+### What builds, what is broken (at the step-3a commit, raft's level)
+
+Builds: everything up to raft's level -- the log level as at step 2, and `StepGhostMode`,
+`InvRaftPhys`, `ApiVocab`, every `raft.*` spec and proof, `raft.Step` with every arm, `stepLeader`,
+`stepFollower`, `stepCandidate`, `newRaft` (no `sorry`, no new axiom; `#print axioms` of
+`raft.Step`, `newRaft`, `raft.{maybeSendSnapshot,restore,appliedTo}`, `raftLog.{snapshot,restore,
+append}` and `isStorage_of_V`: no `sorryAx`, no axiom of this repository's beyond the existing ones).
+Broken (expected): the RawNode/node level (step 4), `MemoryStorage` (step 3), the clients, and the
+raft-level proofs that import node-level modules (`IsEmptySnap`, `IsEmptyHardState`: through
+`InvRawnodeReady`/`InvBoot`/`NewRawNode`; `ConfRule`, `ConfPolicy`, `DecFold`, `ConfchangeApi*`:
+through `InvNode`/`InvApi`), until step 4.
+
+### What builds (at the step-3 commit, MemoryStorage)
+
+Builds (targeted `lake build`, no `sorry`, no new axiom; `#print axioms` of `memStorage_isStorageP`,
+`memStorInvP_alloc`, `memCompacted_bound` and every `MemoryStorage.*`/`NewMemoryStorage` `wp_proof`:
+Lean's and Perennial's Go-model axioms only): `InvMemstorage`, `MemstorageInstance` (instance + law),
+every `MemoryStorage__*` spec and proof, `NewMemoryStorage`, `LemmasMemstorage` (a re-export of
+`LemmasEnts`). Removed: `MemstorageAU`, `MemCertLink`. `Link.lean` not regenerated (the node level is
+broken); the MemoryStorage proofs keep their callee hypotheses (`MemstorageInstance` takes the five read
+specs as hypotheses).
+
+### What remains (next steps, in order)
+
+1. **Step 4** (the node level): the API's `DL` (`deliveredLogLb`-based, or `snapGiven`), and its
+   conversion to `raftDL` (issue `i ↪[sn.gd]□ t` from `σ.dt`'s authority at the delivered indices:
+   `DtOk` says which; a lemma `ownRaftLog_certify` is to be written in `InvRaftlog`; the authority
+   cannot hand out an existing key's fragment again, so either `storAuths` keeps `[∗ map] k ↦ v ∈
+   σ.dt, k ↪□ v` beside it or the issuer keeps what it issued); pin `sn.gk` at
+   `raftSnapCertD γ` and prove `storCertOk γ sn` (`certLink`) from the pins (`svCert` →
+   `raftSnapCertD` needs `snapshotValid γ sv ⊢ raftSnapCertD γ (snapTrip …)`); `nodeAppliedLb`/
+   `snapGiven` (sealed) over `storFloor`/`storGiven` of the node's `sn`; `isStorage γ id st` and
+   `isStorage γ id st ⊢ isStorageV sn st` (allocate `gsv`, `gd`, `gk`; the `Bnd` and `DL`
+   conversions); the `Ready`/`Advance` hand-outs (`readyOut`/`snapReceipt`/`advReceipt`, removed
+   from `ApiVocab`, over the ranges: `appendRight`, `appendReceipt`, the frozen `ceBelow` via
+   `ownStorage_freeze`/`ownStorage_frozen`); (G) `sg ≤ s` at `absorb_snap`; the no-snapshot mode's
+   node-level plumbing (`reNoSnap`, `NGhost.ns`, `RNMode`, `NsLink`'s `ns`, the remaining
+   `s.gh.ns = false` premises) removed; `newRaft`'s new premises (`σ.dt = ∅`, `s.gh = { sn := sn }`).
+2. **Step 3: done** (above). What step 4 takes from it: instantiate `MemJust` (timeless `B`), supply
+   `s < 2^61` at `ApplySnapshot`, restructure `newRaft`'s `InitialState` premise (above).
+3. **Clients**: etcd's server loses the no-snapshot mode (above); the fallback `storCompactCap` is
+   to be put to the user.
+## Track A hand-off (2026-10-29)
+
+**Done on `raft-unified`.** Each commit builds `Link`, `Linked`, `Results`, `Api`; there is no `sorry`, and the only
+raft-specific axiom is `ccDecodeV2_nil`.
+- U5's committed conf-entry laws (`f4b2a4d84e`).
+- U7, in part: `Tick` and a stepped `MsgTimeoutNow` take raft's own time receipts (`32ba2bdcd8`). The
+  node API's `stepIn` is `⌜ml ≠ null⌝ ∗ ∀ γn, ⌜NodeOk⌝ -∗ ⧗ 1 -∗ stepP` (`InvApi.lean`); `node.Step`
+  takes the receipt at its `nil` comparison.
+- U9a, stopped nodes, `nodeRunning` (`63ad16cafa`; "U9a as built" above).
+- S1, proposals over duplicating networks (`6657289b28`; "S1 as built" above). If the S1 helper sends
+  a final report, it adds nothing beyond that entry.
+
+**Open, in order.** The design is in `notes/decisions.md`, "Stage U7: messages, track A".
+1. **`node.Campaign.spec`.** (Done, `b97c601195`; "Spec changes during track A (fresh)".) kvreconf calls it (`reconf.go:106`). The coordinator chose option 1, an
+   internal case in `netP` with no public change.
+   - `MsgHup` is not in `netStepTypes` (`ApiVocab.lean:267`). Add an *internal* local case for it in
+     `netP` (`InvNodeChan.lean`, near `netP_local`); do not change the public `NetMsgOk`.
+   - A hup raises the term one past `netP`'s `termLB` ceiling. So `run`'s `recvc` arm
+     (`node__run.lean`, around `budget_step`) needs a budget step with a time receipt, as a tick's
+     (`budget_spend`). Take the receipt from a Go step of `Campaign`'s own, as `node__Tick.lean` does
+     at a `StructFieldRef`.
+   - Model the spec on `node__ForgetLeader.lean`: an API spec over `isNode`, a raw `specRaw`.
+2. **`node.Status.spec`** (Done, `8ed7fe817a`; "Spec changes during track A (fresh)".) (`cluster.go:407`). A reduced spec does not work, since `Status`'s send on
+   `status` must supply its payload up front.
+   - It needs `run`'s status arm, with internal specs of `getStatus`, `getBasicStatus`,
+     `getProgressCopy` (through `Visit`) and `Config.Clone`.
+   - Post: an owned `Status` value. On a stopped node, the `done` arm returns `Status{}`.
+3. **U7's rest**, now without a transfer mode (the user's decision above):
+   - *Status (third track A agent, 2026-10-29): steps (i) and (ii) done ("Spec changes during track
+     A (third)", with what the send path taught); stopped there on the coordinator's change of plan
+     (the remaining invariants to be designed as one reviewed design). Next: (iii).*
+   - `SentMsgShape` in every cluster. `SendOk`'s stamped clauses take `s.term ≠ W64 0` from each
+     caller: a leader has it from `ownRaftGhost_term_nz`; a follower after the term section has `m.Term
+     = s.term ≠ 0`. `XfOk`'s second clause becomes `∀ m ∈ l, SentMsgShape m.st`, and `NGhost.bt`
+     goes (`InvRaftPhys.lean:335`).
+   - `stepIn_intro` admitting every sent message, a re-forwarded `MsgTransferLeader` included. This
+     needs three pieces:
+     - the ghost invariant `lead ≠ 0 → isLeader γ s.lead s.term`, as its own conjunct of
+       `ownRaftGhost` (`Protocol/GhostState.lean:2002`; touch only the rules that move `lead` or
+       `term`);
+     - the forwarded request carrying `isLeader γ m.To m.Term` in `isRaftMsg`;
+     - at the receiver, `isLeader_unique` and `LeadOk`, which discharge `raft.Step`'s `RestMsgOk`
+       premise.
+   - `node.TransferLeadership.spec` over `isNode` only (drop `leaderTransferOn`); `NGhost.xf` is false
+     in the decision cluster.
+   - The read-credit exchange, so that `ReadIndex` and a forwarded `MsgReadIndex` need no client
+     `readCredit`. Add an invariant `∃ k, ⧗ k ∗ rdCred γ.raft (2^64 - 2 - k)` in the decision cluster;
+     `stepIn`'s wand then becomes a `⊤` update, and `cluster_alloc_dec` loses `readCredits`. Then
+     add `msgCredits_intro : st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits` (S1's text).
+   - *Scoping by the second track A agent (2026-10-29, not started).* `raft.send.spec`'s `SendOk`
+     (`Spec/go_etcd_io/raft/v3/raft__send.lean:106`): clause (b) (`MsgApp`/`MsgHeartbeat`/
+     `MsgReadIndexResp`/`MsgHeartbeatResp`, stamped), (c) `MsgSnap` (stamped), (c') the undescribed
+     types (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`; today `s.gh.xf = false`), (d) `MsgAppResp`
+     (`s.term ≠ 0` only when `To = id`). `raft.send`'s callers (16 proof files): `maybeSendAppend`,
+     `maybeSendSnapshot`, `sendHeartbeat`, `sendTimeoutNow`, `sendMsgReadIndexResponse`, `appendEntry`,
+     `campaign`, `handleAppendEntries`, `handleHeartbeat`, `handleSnapshot`, `stepFollower`,
+     `stepLeader` (+ `stepLeader/Rest`), `raft.Step` (+ `raft__Step/Base`). A leader's `term ≠ 0` is
+     derived in `raft.Step` from the ghost (`ownRaftGhost_term_nz`, `raft__Step.lean:699`, `:898`) and
+     passed down as a premise (`stepLeader.spec:348`, `appendEntry.spec:175`,
+     `releasePendingReadIndexMessages`); the leader-side send helpers (`maybeSendAppend`,
+     `maybeSendSnapshot`, `sendHeartbeat`, `sendTimeoutNow`, `sendMsgReadIndexResponse`, and
+     `bcastAppend`/`bcastHeartbeat*` above them) would take the same premise. `XfOk`'s users:
+     `InvRaftPhys.lean` (42 mentions), `raft__send.lean`'s `XfOk` step lemma (line 67),
+     `InvRawnodeReady`, `LemmasReadyR`, `StepGhostMode` (`GMode`'s `xf`/`bt`), `RawNode__Bootstrap`,
+     `newRaft`. Suggested order: (i) `SentMsgShape` (ApiVocab, beside `SentMsgOk`); (ii) `SendOk`'s
+     stamped clauses take `s.term ≠ 0`, the callers' specs the leader premise; (iii) `XfOk`'s second
+     clause unconditional, `bt` removed; (iv) `isRaftMsg`/`NetMsgOk.of_sent` from `SentMsgShape`.
+     Commit after each, building `Link`.
+4. **U9**: one spec per function; the old families deleted. (Coordinator, 2026-10-29: track B drops
+   the static `StartNode.spec`, `RestartNode.spec`, `node.Advance.spec` and their Linked results; merge
+   `raft-unified-storage2` first once it lands, and don't redo them.)
+
+**Things a newcomer trips on:**
+- `etc/lean-check.py` returns once the *edited* declaration checks. Run it again with `-a` before
+  relying on a file.
+- The worktree-isolated shell refuses commands that pass variables to `sed` or to version-control
+  tools. Use plain commands, absolute paths, and Python scripts in a file for edits.
+- `wp_take_receipt` needs a `FuncResolve` or `MethodResolve` in evaluation position, but `wp_auto`
+  often resolves methods statically. Then take the receipt by hand: `wp_bind (App (Val (GoInstruction
+  (StructFieldRef _ _))) (Val _))`, or the same with `GoOp`, then `wp_go_step_receipt'`. Its `hv`
+  for a pair value is `rfl`.
+- Track B works on the storage contract (`raft-unified-storage2`). Ask the coordinator before
+  touching `readySnap`, `readyRest`, `Advance`, `StartNode`, `RestartNode` or the storage specs.
+- Any new ghost state in a public spec is escalated before it is built on.
 
 ## Machinery (the map of the two modes, 2026-10-28)
 
@@ -276,3 +940,220 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   hold: track B's shapes), `maybeCompact`; (3) `Replica.run` (kv's `KV__run.lean` as the model; the
   `select` on `Ready()`/`stopc`); then `propose`, `read`, `conf`, `contents`, `stop`, `ticker`, the
   cluster's functions, `newReplica`, `Link.lean`, `kvreconf_porcupine_safe`, `Results.lean`.
+
+## raft-final: phases 0 and 1 (2026-10-29, branch `raft-final`)
+
+The design is `raft-gap-design.md` (the coordinator's scratch, with its "Amendments after review 1",
+A1-A10) and its review `invariant-design-review-1.md`; the user's decision of 2026-10-29 puts K5 back
+in (overriding A9).
+
+### Phase 0 (done)
+
+- `raft-final` from `origin/raft-unified` (`87bae2abb4`), `origin/raft-unified-storage2` merged
+  (`af6d445ae2`; textual conflicts only in `raft__maybeSendSnapshot`/`raft__maybeSendAppend`, where
+  U7 (ii)'s term premise stays and S2's `ns` premise goes, and the notes). Raft's level builds after
+  the merge (raft.Step, newRaft, getStatus, getProgressCopy, InvRawnode, MemstorageInstance).
+- Track B's WIP patches re-applied (`7e2544e25d`): both apply cleanly (`step4-node-wip.patch`,
+  `step4-boot-newLogWithSize.patch`).
+- U9 deletions (`93992bc951`): the static and dynamic API families and their laws (the design's §1f
+  list), `StartNode`'s spec and proof (A5: none until the server's repair, U10), the unified specs
+  renamed `.spec`, `cluster_alloc_dec` renamed `cluster_alloc`. The trap: `InvApiDyn.lean` became
+  `InvApiView.lean` (its membership and view sections, `nodeConfig`, `deliveredLogLb` and their laws,
+  kept; its dynamic section deleted) -- deviation: renamed in place rather than merged into
+  `InvApi.lean` (3221 lines; the view section needs `CCApplyC`/`SnapConf`).
+
+### Phase 1 statements: public changes vs the frozen designs
+
+Read the regenerated `interface/` (`etc/gen-interface.py etc/api/raft.txt`) for the exact text.
+
+The node API (`InvNode`, `InvNodeRule`, the `Spec/node__*` files):
+- **K5** (the user's decision, overriding A9): `nodeErrS n γ N cd err` (`nil`, `ErrStopped` with
+  `nodeStopped n γ N`, or the context's) and `propErrS` (`nodeErrS ∨ stepErr`), with
+  `nodeErrS_nodeErr`/`propErrS_propErr` back to the old ones; the posts of `node.Step`,
+  `ProposeConfChange`, `ReadIndex`, `Campaign`, `ForgetLeader` are `nodeErrS`, `Propose`'s stopped
+  disjunct `errStopped err ∗ nodeStopped n γ N`. The methods that return unit (`Tick`,
+  `TransferLeadership`, `ReportSnapshot`, `ReportUnreachable`) have no stopped answer to carry it
+  (C12 §3's list: "→ unit"). Raw level: `nodeErrRaw γn`/`propErrRaw γn` (`InvNodeChan`) in
+  `node.step`, `stepWait`, `stepWithWaitOption`.
+- `isNode` (sealed body) gains `nodeTabOk γ id γn` and `rdPool γ N` (design §2.8; deviation: not
+  `isClusterU`, which lives above `InvApi` in the import order; `UniNames` is not needed by any law
+  of `isNode`).
+- `bootStorage γ id st hs csm Q`; no `memStorage_bootStorage` law (design P7): a bare
+  `MemoryStorage`'s `InitialState` answers the empty `ConfState` (`memSnapEmpty`), while
+  `RestartNode` needs the voters' (`csm.Voters' = vs`, non-empty), so only a wrapper (kvreconf's,
+  whose `InitialState` answers `c0`) can give the bundle: the client's, with its local storage
+  instance (A6).
+- `stepIn_intro`: `st.msg.To' = id → sentMsg ∗ msgPtsC … ∗ msgCredits ⊢ |==> stepIn` (no `NetMsgOk`,
+  no transfer exclusion, no `MsgSnap` index premise: C12's form).
+- New laws: `sentMsg_shape : sentMsg ⊢ ⌜SentMsgShape st ∧ (MsgSnap → ∃ sv, snap = some sv ∧ index <
+  2^61)⌝` (C12; the bound from `snapshotValid`, A10), `msgCredits_intro : Type ≠ MsgProp → ⊢ |==>
+  msgCredits` (S1), `readyRest_ceInBatch` (A2: a `Ready` without a snapshot, its committed entries at
+  or past the batch's first index are the batch's), `snapshotCert_valid` (WIP's: a `readySnap`
+  certificate, index in `(0, 2^61)`, gives `snapshotValid`).
+- `msgCredits_copy` without its `MsgProp` premise (S1 F1).
+- `node.ReadIndex.spec` without `readCredit γ`; `node.TransferLeadership.spec` without
+  `leaderTransferOn γ N`; `cluster_alloc` (was `cluster_alloc_dec`) without `readCredits γ (2^64-2)`
+  and `leaderTransferOn γ N` in its post.
+- `node.Advance.spec`: `skippedIn` only after a `Ready` without a snapshot (A1, review 1's H1), inside
+  the existing `match L`.
+- `RestartNode.spec`: `bootStorage γ id st hs csm Q` with a client frame `Q` returned in the post (A3,
+  H3).
+- `MemoryStorage.Append.spec`: an empty batch takes and gives no range (A4, M2).
+- New module `MemstorageApi` (importable): `memStorJ γ id`, `memStorInv ms γs γ id`,
+  `memStorInv_alloc`, `memStorage_isStorage` (P7's; no wrapper law, A6).
+- `NetMsgOk` internal (A7): moved to `NetMsgOk.lean` (not importable), its transfer clause admitting
+  a stamped request to the node; `NetMsgOk.of_sent` replaced by `NetMsgOk.of_shape`.
+- `isRaftMsg` (`ApiVocab`, exposed): `⌜SentMsgShape st⌝ ∗ (msgAbs, isMessageC) ∗ msgDat ∗ ⌜AppFrom⌝ ∗
+  □ (stamped `MsgTransferLeader` → isLeader To Term)` (was the modes' clauses).
+- `readySnap`/`readyRest`: WIP's storage part (unchanged by phase 1 but now built).
+- Deleted with U9 (§1f), and also: `NodeNames.snapIn`, `readyDataL_none`, `readyP_none`, `reqWit_none`,
+  `node_ready_receive_ns`, `readyP_take_ns` (the no-snapshot clients' lemmas), `setupNode` (only
+  `StartNode` used it; `RawNode.Bootstrap` kept), `ConfChangeDecoder`.
+
+Internal statements (raft's level, the RawNode, the node loop):
+- `NGhost.xw` (the stamped transfer requests' `(To, Term)`), `NGhost.xf`/`bt` deleted; `XfOk` in its
+  final form (§2.2: every queued message `SentMsgShape` and `AppFrom`, a stamped `MsgTransferLeader`
+  recorded in `xw`, leader or candidate ⇒ term ≠ 0), with `XfOk.nil/of_fields/term_le/role/xw_insert/
+  snoc/resps`, `ownRaftPhysC_term_nz` (was `ownRaftPhysC_xf`), `ownRaftPhysC_xw_record`;
+  `raft.wp_store_stateC` takes `(ro = leader ∨ candidate) → s.term ≠ 0` (a default for the other
+  roles); `wp_store_leadTransferee_toC` without `xf`.
+- `Protocol/LeadWit.lean` (new): `leadW`, `leadW_none`, `leadW_eq`, `leadW_stepC` (deviation: over
+  `StepC`, which `StepCD` and `StepCDS` both carry, rather than both `StepR` and `StepC`).
+- `ghostRest = ⌜NsLink⌝ ∗ ghostRestM ∗ certLink ∗ leadW ∗ xfW` (the new conjuncts last, so that the
+  patterns that bind the tail persistently still apply); `ownStepGhost_lead`, `ownStepGhost_xferRefute`,
+  `ownStepGhost_xw_record`; `ownStepGhost_dyn` with the tail `(certLink ∗ leadW ∗ xfW)`.
+- `raft.send`'s clause (c): `MsgTransferLeader → (m.To', s.term) ∈ s.gh.xw` (was `xf = false`);
+  `stepFollower`: `lead ≠ 0 → (lead, term) ∈ xw` (A8); `stepLeader`, `raft.sendTimeoutNow`,
+  `wp_stepLeader_transfer`, `RawNode.TransferLeader`: no transfer-mode premise; `RestMsgOk`'s transfer
+  clause `ents = [] ∧ ctx = []` and `raft.Step.spec`'s new `"#Hxfer"` witness; `RawNode.Step.spec`:
+  `"#Hxfer"`, no `reNoXfer`/`reNoSnap` premises; `NetMsgOk.restMsgOk`, `NetMsgOk.raftStep` without
+  `Hxo`.
+- `RawNode.Advance.spec`'s A1 only at `rs.slent = none` (A1); `runCfgLoan` without A1;
+  `advanceP`'s A1 under `L = none`.
+- `RawNode.Ready.spec`'s post: WIP's hand-out (`readyOut rs.storage rs.sn`, `ceFrozen`, `dlvKeysAt`).
+- `newRaft.spec`, `NewRawNode.spec`: over the boot bundle (U8 v2's decision (B)): a frame `R`,
+  `FirstIndex`/`LastIndex` triples, an `InitialState` triple whose post makes raft's view of a fresh
+  storage and gives back `R'`.
+- `netP`: the transfer witness in place of `reNoXfer`/`snapIn`; `netP_local` without `Hxt`;
+  `readySnapData`, `runCfg`, `runCfgLoan`, `capAns` without `snapIn`/`reNoSnap`; `rawNodeFresh` without
+  its `xf` parameter (its ghost state `{ sn := s.gh.sn }`).
+- `rdPool γ N` (`InvApi`) and `rdPool_mint`; `isClusterU` with `rdPool`; `sentMsg` with `rdPool`;
+  `msgCredits := stTks`; `stepIn` a `⊤` update after the receipt; `NodeOk` without `snapIn`;
+  `nodeStopped` and `nodeDriver` without their static disjuncts.
+
+Kept, deviations from the design's deletion list (each a mechanical removal with no statement
+depending on its value):
+- `NGhost.ns`, `NsLink` (now `s.gh.ns = γ.reNoSnap` only), `LogNsOk`, `NsCap`, `PrOkN`'s and
+  `LogNsKeep`'s flag: the no-snapshot mode is pinned off by `NsCap`; removing the flag touches ~150
+  sites of raft's level (P2's cleanup).
+- `RaftNames.reNoXfer`/`reNoSnap` (protocol fields): no statement above the protocol reads them now;
+  deleting them reopens `Protocol/Facts`' allocation proofs, which no track owns (phase 3 cleanup).
+- `RNMode.static`/`GMode.static`/`StaticNames`/`CCShrink` (R3).
+
+Not done in phase 1 (named for phase 2): `node.Step`'s and `node.ReadIndex`'s private raw specs
+(`specRaw`, in their proof files: `(⧗ 1 ={⊤}=∗ stepP γn id ml)`, `(⧗ 1 ={⊤}=∗ rdCred γ.raft 1)`), and
+the `nodeErrRaw`/`propErrRaw` posts of the other raw specs (`node.Propose.specRaw`, ...), which are
+private to their proof files and change with their proofs (P5).
+
+### Phase 1 sorries (all to be gone by the end of phase 2)
+
+152 `sorry`s in 76 files of raft's tree (at `93992bc951`, the end of phase 0, there were none), by
+file (`P/` = `Proof/go_etcd_io/raft/v3/`), the declaration each is in:
+
+- `P/InvAdvance.lean` (1): `advance_complete`
+- `P/InvApi.lean` (10): `rdPool_mint`, `dlvLb_names`, `nodeRunning_stopped_impl`, `sentMsg_snapshot_impl`, `api_sentSnapCert`, `sentMsg_appFrom_impl`, `api_msg`, `readyRecv_open`, `node_ready_recvAu`, `stepIn_intro_impl`
+- `P/InvApiDec.lean` (1): `snapshotCert_make_impl`
+- `P/InvApiDecAlloc.lean` (1): `cluster_alloc_dec_impl`
+- `P/InvApiView.lean` (4): `nodeDriver_deliveredLogLb_impl`, `deliveredLogLb_mono_impl`, `msgCredits_copy_impl`, `sentMsg_replaceSnapshot_impl`
+- `P/InvBoot.lean` (1): `rawNodeFresh_intro`
+- `P/InvNode.lean` (4): `sentMsg_shape`, `msgCredits_intro`, `readyRest_ceInBatch`, `msgCredits_copy`
+- `P/InvNodeChan.lean` (5): `netP_local`, `netP_split`, `runCfg_congr`, `node_ready_receive`, `readyP_take`
+- `P/InvNodeRule.lean` (1): `snapshotCert_valid`
+- `P/InvNodeRun.lean` (13): `ownRawNodeReady_abandon_keep`, `wp_rn_raft_Step_net`, `wp_rn_raft_Step_prop`, `wp_applyConf_dyn`, `rawNode_applyCC_reseal`, `headRest_snapIn`, `headRest_step`, `runCfg_confc`, `runCfg_extend`, `runCfg_snap`, `runCfg_a1`, `runCfgR_a1`, `runCfg_advance`
+- `P/InvNodeRunHup.lean` (1): `wp_rn_raft_Step_hup`
+- `P/InvRaftPhys.lean` (8): `XfOk.resps`, `XfOk.term_le`, `XfOk.xw_insert`, `XfOk.xw_insert`, `XfOk.snoc`, `ownRaftPhysC_xw_record`, `ownRaftPhysC_xw_record`, `raft.wp_store_stateC`
+- `P/InvRawnode.lean` (6): `NetMsgOk.restMsgOk`, `NetMsgOk.raftStep`, `ownRawNode_static_open`, `ownRawNode_intro_static`, `ownRaftPhysC_nsOut`, `ownRawNode_term_tc`
+- `P/InvRawnodeReady.lean` (9): `outboxRelP_isRaftMsg`, `isRaftMsg_isMessage`, `ownRawNodeReady_abandon`, `ownRaftLog_certify_list`, `ownRaftLog_rdy_out`, `ownRawNodeReady_loanLast`, `ownRawNodeReady_handout`, `ownRawNodeIdle_facts`, `ownRawNodeIdle_ready`
+- `P/LemmasNodeR.lean` (1): `stepP_split`
+- `P/MemoryStorage__Append.lean` (1): `MemoryStorage.Append.wp_proof`
+- `P/MemstorageApi.lean` (2): `memStorInv_alloc`, `memStorage_isStorage`
+- `P/NetMsgOk.lean` (1): `NetMsgOk.of_shape`
+- `P/NewRawNode.lean` (1): `NewRawNode.wp_proof`
+- `P/RawNode__Advance.lean` (3): `wp_step_pending`, `wp_step_snapack`, `RawNode.Advance.wp_proof`
+- `P/RawNode__Bootstrap.lean` (1): `RawNode.Bootstrap.wp_proof`
+- `P/RawNode__Campaign.lean` (1): `RawNode.Campaign.wp_proof`
+- `P/RawNode__ForgetLeader.lean` (1): `RawNode.ForgetLeader.wp_proof`
+- `P/RawNode__Propose.lean` (1): `RawNode.Propose.wp_proof`
+- `P/RawNode__ProposeConfChange.lean` (1): `RawNode.ProposeConfChange.wp_proof`
+- `P/RawNode__ReadIndex.lean` (1): `RawNode.ReadIndex.wp_proof`
+- `P/RawNode__Ready.lean` (1): `RawNode.Ready.wp_proof`
+- `P/RawNode__ReportSnapshot.lean` (1): `RawNode.ReportSnapshot.wp_proof`
+- `P/RawNode__ReportUnreachable.lean` (1): `RawNode.ReportUnreachable.wp_proof`
+- `P/RawNode__Step.lean` (1): `RawNode.Step.wp_proof`
+- `P/RawNode__Tick.lean` (1): `RawNode.Tick.wp_proof`
+- `P/RawNode__TransferLeader.lean` (1): `RawNode.TransferLeader.wp_proof`
+- `P/RawNode__acceptReady.lean` (2): `rdyLog_true`, `RawNode.acceptReady.wp_proof`
+- `P/RawNode__readyWithoutAccept.lean` (1): `RawNode.readyWithoutAccept.wp_proof`
+- `P/RestartNode.lean` (2): `RestartNode.wp_raw`, `wp_RestartNode_impl`
+- `P/StepGhostMode.lean` (8): `ghostRest_certLink`, `ownStepGhost_lead`, `ownStepGhost_xferRefute`, `ownStepGhost_xw_record`, `ghost_stepCD`, `ownStepGhost_congr`, `ghostRest_keep`, `ghost_stepCDS`
+- `P/newRaft.lean` (1): `newRaft.wp_proof`
+- `P/node__Advance.lean` (2): `node.Advance.wp_raw`, `node.wp_Advance_impl`
+- `P/node__ApplyConfChange.lean` (2): `node.ApplyConfChange.wp_raw`, `node.wp_ApplyConfChange_impl`
+- `P/node__Campaign.lean` (2): `node.Campaign.wp_raw`, `node.wp_Campaign_impl`
+- `P/node__ForgetLeader.lean` (2): `node.ForgetLeader.wp_raw`, `node.wp_ForgetLeader_impl`
+- `P/node__Propose.lean` (2): `node.Propose.wp_raw`, `node.wp_Propose_impl`
+- `P/node__ProposeConfChange.lean` (2): `node.ProposeConfChange.wp_raw`, `node.wp_ProposeConfChange_impl`
+- `P/node__ReadIndex.lean` (2): `node.ReadIndex.wp_raw`, `node.wp_ReadIndex_impl`
+- `P/node__ReportSnapshot.lean` (1): `node.ReportSnapshot.wp_raw`
+- `P/node__ReportUnreachable.lean` (1): `node.ReportUnreachable.wp_raw`
+- `P/node__Step.lean` (2): `node.Step.wp_raw`, `node.wp_Step_impl`
+- `P/node__Stop.lean` (1): `node.wp_Stop_impl`
+- `P/node__TransferLeadership.lean` (2): `node.TransferLeadership.wp_raw`, `node.wp_TransferLeadership_impl`
+- `P/node__run.lean` (1): `node.run.wp_proof`
+- `P/node__stepWithWaitOption.lean` (1): `node.stepWithWaitOption.wp_proof`
+- `P/raft__Step.lean` (1): `raft.Step.wp_proof`
+- `P/raft__becomeCandidate.lean` (1): `raft.becomeCandidate.wp_proof`
+- `P/raft__becomeLeader.lean` (1): `wp_store_state_leader`
+- `P/raft__send.lean` (1): `raft.send.wp_proof`
+- `P/raft__sendTimeoutNow.lean` (1): `raft.sendTimeoutNow.wp_proof`
+- `P/raft__tickElection.lean` (1): `raft.tickElection.wp_proof`
+- `P/raft__tickHeartbeat.lean` (1): `raft.tickHeartbeat.wp_proof`
+- `P/stepFollower.lean` (1): `stepFollower.wp_proof`
+- `P/stepLeader.lean` (1): `stepLeader.wp_proof`
+- `P/Protocol/LeadWit.lean` (1): `leadW_stepC`
+- `P/raft__Step/Base.lean` (2): `ghost_step_static0`, `ghost_step_snapack`
+- `P/raft__Step/MsgAppResp_eq.lean` (1): `wp_Step_MsgAppResp_eq`
+- `P/raft__Step/MsgApp_eq.lean` (1): `wp_Step_MsgApp_eq`
+- `P/raft__Step/MsgBeat.lean` (1): `wp_Step_MsgBeat`
+- `P/raft__Step/MsgCheckQuorum.lean` (1): `wp_Step_MsgCheckQuorum`
+- `P/raft__Step/MsgHeartbeatResp_eq.lean` (1): `wp_Step_MsgHeartbeatResp_eq`
+- `P/raft__Step/MsgHeartbeat_eq.lean` (1): `wp_Step_MsgHeartbeat_eq`
+- `P/raft__Step/MsgPreVoteResp_eq.lean` (1): `wp_Step_MsgPreVoteResp_eq`
+- `P/raft__Step/MsgPreVoteResp_gt.lean` (1): `wp_Step_MsgPreVoteResp_gt`
+- `P/raft__Step/MsgProp.lean` (1): `wp_Step_MsgProp`
+- `P/raft__Step/MsgReadIndex.lean` (1): `wp_Step_MsgReadIndex`
+- `P/raft__Step/MsgReadIndexResp.lean` (1): `wp_Step_MsgReadIndexResp`
+- `P/raft__Step/MsgRest.lean` (3): `wp_Step_MsgLocal`, `wp_Step_MsgTransferLeader`, `wp_Step_MsgTimeoutNow`
+- `P/raft__Step/MsgVoteResp.lean` (1): `wp_Step_MsgVoteResp`
+- `P/stepLeader/Rest.lean` (2): `wp_stepLeader_transfer`, `wp_stepLeader_appresp`
+
+### Phase 2: the tracks, file-disjoint (at most four at a time)
+
+Every `sorry` above is in exactly one track's files. The old proof of a sorried body is kept below
+it, in a comment `/- PHASE1-OLD … -/` (the starting point; the statement above it is the final one).
+Waves: {P1+P2, P3a, P5, P7}, then {P3b, P4, P6}; each track checks against the fixed statements
+(`etc/lean-check.py`) and only builds once the tracks below it are in.
+
+| track | files |
+|---|---|
+| P1+P2 raft level | `Protocol/LeadWit`, `InvRaftPhys`, `StepGhostMode`, `raft__Step` and `raft__Step/*`, `raft__send`, `raft__sendTimeoutNow`, `stepFollower`, `stepLeader`, `stepLeader/Rest`, `raft__becomeCandidate`, `raft__becomeLeader`, `raft__tickElection`, `raft__tickHeartbeat` (and, as cleanup, `NGhost.ns`/`NsLink`/`LogNsOk`/`NsCap`/`PrOkN`'s flag) |
+| P3a Ready side | `InvRawnodeReady`, `RawNode__readyWithoutAccept`, `RawNode__acceptReady`, `RawNode__Ready`, `LemmasReadyR` |
+| P3b RawNode rest | `InvRawnode`, `NetMsgOk`, `RawNode__Advance`, `RawNode__Step`, `RawNode__Bootstrap`, `RawNode__{Campaign,ForgetLeader,Propose,ProposeConfChange,ReadIndex,ReportSnapshot,ReportUnreachable,Tick,TransferLeader}` |
+| P4 node loop | `InvNodeChan`, `InvNodeRun`, `InvNodeRunHup`, `LemmasNodeR`, `node__run`, `InvAdvance`, `node__Advance`, `node__ApplyConfChange` |
+| P5 node methods | `node__stepWithWaitOption`, `node__step`, `node__stepWait`, `node__Step`, `node__Propose`, `node__ProposeConfChange`, `node__ReadIndex`, `node__Campaign`, `node__ForgetLeader`, `node__TransferLeadership`, `node__Stop`, `node__ReportSnapshot`, `node__ReportUnreachable` (with their private `specRaw`s: `nodeErrRaw`, the receipts) |
+| P6 API, allocation, restart | `InvApi`, `InvApiView`, `InvApiDec`, `InvApiDecAlloc`, `InvApiJoin`, `InvNode`, `InvNodeRule`, `InvBoot`, `newRaft`, `NewRawNode`, `RestartNode` |
+| P7 MemoryStorage | `MemoryStorage__Append`, `MemstorageApi` |
+
+`Link.lean` is generated (`etc/gen-link.py --raft`; phase 1 taught it to add `[StorageModel GF]`
+when a callee's result takes it).
+

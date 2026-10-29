@@ -106,19 +106,66 @@ theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.
   unfold SentMsgOk; rw [hm]
   exact ⟨a, b, c, d, e, fun h => absurd h hna, hr⟩
 
+/-- (2026-10-29, stage U7) The types raft sends in any cluster: `sentTypes` with leader transfer's
+two, `MsgTimeoutNow` and a forwarded `MsgTransferLeader`. -/
+def sentShapeTypes : List w32 := sentTypes ++ [MsgTimeoutNow, MsgTransferLeader]
+
+/-- (2026-10-29, stage U7) **What a sender promises of a message it queues, in every cluster**
+(`SentMsgOk` without the no-transfer mode): a type of `sentShapeTypes`, a nonzero sender, unstamped
+(`Term = 0`) for a forwarded proposal or read-index request, stamped (`Term ≠ 0`) for every type but
+those and a forwarded `MsgTransferLeader` (no term or the forwarder's: `send` stamps the follower's,
+which may be `0`), from a node other than its destination unless it is a read-index request, a vote
+or pre-vote response, an accepting `MsgAppResp` or a transfer request (its `From` is the transferee,
+possibly the leader it is forwarded to); a `MsgApp` of raft's shape; the transfer messages with no
+entries and no context; no responses. (The frozen design's `MsgSnap` index bound below `2^61` is not
+here yet: `stepIn_intro` keeps it as a premise; `notes/raft-unified-plan.md`, "Spec changes during
+track A (third)".) -/
+def SentMsgShape (st : MsgSt) : Prop :=
+  st.msg.Type' ∈ sentShapeTypes ∧ st.msg.From' ≠ W64 0 ∧
+  (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
+  (¬ (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgTransferLeader) →
+     st.msg.Term' ≠ W64 0) ∧
+  (st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgVoteResp → st.msg.Type' ≠ MsgPreVoteResp →
+     st.msg.Type' ≠ MsgTransferLeader →
+     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
+  (st.msg.Type' = MsgApp → AppShape st) ∧
+  (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+  st.resps = []
+
+/-- (2026-10-29, stage U7) A message of a type the model describes (no transfer message) of the
+shape `SentMsgShape` is `SentMsgOk`. -/
+theorem SentMsgShape.ok {st : MsgSt} (H : SentMsgShape st) (hd : mtypeOf st.msg.Type' ≠ none) :
+    SentMsgOk st := by
+  obtain ⟨Hty, Hf, H0, H1, Hft, Hsh, -, Hrs⟩ := H
+  have Hnt : st.msg.Type' ≠ MsgTimeoutNow := fun h => hd (by rw [h]; rfl)
+  have Hnl : st.msg.Type' ≠ MsgTransferLeader := fun h => hd (by rw [h]; rfl)
+  refine ⟨?_, Hf, H0, fun h => H1 (fun h' => h (h'.imp_right (·.resolve_right Hnl))),
+    fun a b c d => Hft a b c Hnl d, Hsh, Hrs⟩
+  simp only [sentShapeTypes, List.mem_append, List.mem_cons, List.not_mem_nil, _root_.or_false]
+    at Hty
+  rcases Hty with h | h | h
+  · exact h
+  · exact absurd h Hnt
+  · exact absurd h Hnl
+
+/-- (2026-10-29, stage U7) `SentMsgShape` carries over to a message with the same scalars, entries
+and context and no responses, if it is not a `MsgApp`: e.g. a `MsgSnap` with its snapshot
+replaced. -/
+theorem SentMsgShape.of_msg {st st' : MsgSt} (H : SentMsgShape st) (hm : st'.msg = st.msg)
+    (he : st'.ents = st.ents) (hc : st'.ctx = st.ctx)
+    (hr : st'.resps = []) (hna : st.msg.Type' ≠ MsgApp) : SentMsgShape st' := by
+  obtain ⟨a, b, c, d, e, -, g, -⟩ := H
+  unfold SentMsgShape; rw [hm, he, hc]
+  exact ⟨a, b, c, d, e, fun h => absurd h hna, g, hr⟩
+
 /-- (2026-10-22, D38a) **A `MsgApp` is from its sender** `id`: `send` stamps `From = r.id` into every
 message but a forwarded read-index or transfer request, and raft's one `MsgApp` (`maybeSendAppend`)
 is the node's own. What rafthttp's msgappv2 codec needs: its frames carry no sender, the decoder
 sets the stream's remote peer (`XfOk`, `isRaftMsg`). -/
 def AppFrom (id : w64) (st : MsgSt) : Prop := st.msg.Type' = MsgApp → st.msg.From' = id
 
-/-- (D21 M3) The no-snapshot mode's cap of the storage (`ownRaftPhys`'s `Hnscap`, at the mode `ns`
-and the log's storage `st`): the storage is never compacted past index `1`. -/
-def NsCap (ns : Bool) (st : Storage) : IProp GF :=
-  iprop(□ (⌜ns = true⌝ -∗ storCap st 1))
-
-instance NsCap_persistent (ns : Bool) (st : Storage) : Persistent (NsCap (GF := GF) ns st) := by
-  unfold NsCap; infer_instance
+-- (U8 v2, 2026-10-29) `NsCap` (the no-snapshot mode's storage cap, `storCap st 1`) removed: the mode
+-- is dropped at raft's level (`ownRaftPhys`'s `Hnsoff`).
 
 end
 
@@ -189,6 +236,9 @@ structure RNState [GooseExts] where
   to append `Ready` hands out (`appendRight`) and the receipt `ownRawNode_appended` takes
   back are for this storage. -/
   storage : Storage
+  /-- (U8 v2, 2026-10-29) raft's ghost names for its storage (`LogState.sn`), constant: what the
+  floor (`storFloor`) and the delivered terms' keys are of. -/
+  sn : StorNames := {}
   /-- Lower bounds for `node.go` (2026-10-10): at most this many messages are queued
   (`NGhost.outlb`), ... -/
   outlb : Nat := 0
@@ -252,6 +302,17 @@ def RNMode.isDyn : RNMode → Bool
 stage R5; D6: the data is its bytes; until then `propEntry data_sl`, the Goose value). -/
 def propEntryM (d : List w8) : EntryM := ⟨W64 0, W64 0, W32 0, d⟩
 
+/-- The scalars of the message `Propose`, `confChangeToMsg` and `node.Propose` build,
+`pb.Message{Type: MsgProp, ...}` (2026-10-16, stage R5; until then `propMsg esl`, the Goose
+value with its entries' slice). `Propose`/`node.run` set `From` to the node's id. (Here since
+2026-10-29, from `InvRawnode.lean`.) -/
+def propMsgM : MessageM := { (zero_val MessageM) with Type' := MsgProp }
+
+/-- The entry `confChangeToMsg` builds for the conf change `o` marshalled as `bs`:
+`pb.Entry{Type: typ, Data: data}` (2026-10-16, stage R5; R4 dropped the value builder
+`ccEntry`). -/
+def ccEntryM (o : Option ConfChangeIM) (bs : List w8) : EntryM := ⟨W64 0, W64 0, confChangeEntryType o, bs⟩
+
 /-- No conf entry in a range of a prefix is none in the longer log. -/
 theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F)
     (hhi : hi ≤ D.length) (h : NoConfIn D lo hi) : NoConfIn F lo hi := by
@@ -261,76 +322,9 @@ theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F)
   rw [List.getElem?_append_left (by omega)] at he
   exact he
 
-/-- The message types `RawNode.Step` is specified for: replication, leader election,
-(2026-10-13) read-index, leader transfer and the local reports, (2026-10-17) pre-vote and
-(2026-10-20, D22 S-c) a leader's snapshot. -/
-def netStepTypes : List w32 :=
-  [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
-   MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader,
-   MsgUnreachable, MsgSnapStatus,
-   -- (2026-10-17) pre-vote
-   MsgPreVote, MsgPreVoteResp,
-   -- (2026-10-20, D22 S-c) a snapshot
-   MsgSnap]
-
-/-- (2026-10-13) The types of `netStepTypes` that come unstamped (`Term = 0`): a read-index
-request (forwarded or local), `TransferLeadership`'s request, and the local reports. -/
-def UnstampedType (t : w32) : Prop :=
-  t = MsgReadIndex ∨ t = MsgTransferLeader ∨ t = MsgForgetLeader ∨ t = MsgUnreachable ∨
-    t = MsgSnapStatus
-
-/-- A message from the network, as the transport and the peers deliver it to node `id`
-(see `RawNode__Step.lean`'s header): but for the unstamped types (`Term = 0`, 2026-10-13),
-addressed to `id`, of a nonzero term, from a nonzero sender; a transfer request with no
-entries and no context. (2026-10-16, stage R5: on the message's state, the last clause over its
-entries and context, `st.ents = [] ∧ st.ctx = []`; until then over the Goose value, `Entries' =
-slice.nil ∧ Context' = slice.nil`.) (2026-10-20, D22 S-c) A `MsgSnap`, a leader's, from another
-node, like its `MsgApp`. -/
-def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
-  st.msg.Type' ∈ netStepTypes ∧
-  (¬ UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
-  (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
-  (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
-     st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
-  (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
-  (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
-  -- (2026-10-17) a pre-vote request from another node
-  (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧
-  -- (2026-10-22, D38a) no responses (what raft forwards must have none, `raft.Step`'s `Hnors`)
-  st.resps = []
-
-/-- (2026-10-22, D38a) A network message has no responses. -/
-theorem NetMsgOk.resps {id : w64} {st : MsgSt} (h : NetMsgOk id st) : st.resps = [] := by
-  unfold NetMsgOk at h; exact h.2.2.2.2.2.2.2
-
-theorem SentMsgOk.ne_timeoutNow {st : MsgSt} (H : SentMsgOk st) :
-    st.msg.Type' ≠ MsgTimeoutNow := by
-  intro h; have := H.1; rw [h] at this
-  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-    MsgTransferLeader] at this
-
-theorem SentMsgOk.ne_transferLeader {st : MsgSt} (H : SentMsgOk st) :
-    st.msg.Type' ≠ MsgTransferLeader := by
-  intro h; have := H.1; rw [h] at this
-  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-    MsgTransferLeader] at this
-
-/-- **`NetMsgOk` of a sent message at its destination** (D21g (A)): what `node.Step`'s `netP`
-takes of a message from the network, from the sender's `SentMsgOk` and the transport's delivery to
-the node it is addressed to; but for a forwarded proposal (`fwdP`). -/
-theorem NetMsgOk.of_sent {dst : w64} {st : MsgSt} (H : SentMsgOk st) (Hto : st.msg.To' = dst)
-    (Hnp : st.msg.Type' ≠ MsgProp) : NetMsgOk dst st := by
-  obtain ⟨Hty, Hf0, Ht0, Ht1, Hft, -, Hrs⟩ := H
-  subst Hto
-  unfold NetMsgOk UnstampedType
-  simp only [sentTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-  rcases Hty with h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] at Ht0 Ht1 Hft Hnp ⊢ <;>
-    simp only [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-      MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-      MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgSnap] at Ht0 Ht1 Hft Hnp ⊢ <;>
-    simp_all
+-- (raft-final phase 1, 2026-10-29, U7: the design's A7) `netStepTypes`, `UnstampedType`, `NetMsgOk`
+-- and their lemmas moved to the internal `NetMsgOk.lean`: `stepIn_intro` no longer mentions
+-- `NetMsgOk`, so no client proves it.
 
 /-- `DynCCPre` (below) on its components (2026-10-15, stage N): the committed log handed out
 `D`, the configuration index `ca` and configuration `cfg`, and the change as `AsV2` makes it
@@ -344,14 +338,14 @@ def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : 
     (k : Nat) (e : EntryM) (cs' : CCState) : Prop :=
   ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
   NoUndecConfIn dec D ca k ∧ (∃ op', dec (D.take k) e = some (.apply op') ∧ ccStepB op' cfg = some cs') ∧
-  ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
+  ccStepB op cfg = some cs'
 
 /-- (2026-10-28, the decision switch) More decisions keep the premise. -/
 theorem DynCCPreOp.mono_dec {d d' : CCDec} (h : DecLe d d') {D : List EntryM} {ca : Nat}
     {cfg : CCState} {op : CCOp} {k : Nat} {e : EntryM} {cs' : CCState}
     (H : DynCCPreOp d D ca cfg op k e cs') : DynCCPreOp d' D ca cfg op k e cs' := by
-  obtain ⟨h1, h2, h3, h4, h5, ⟨op', hd, hs⟩, h6, h7⟩ := H
-  exact ⟨h1, h2, h3, h4, h5.mono_dec h, ⟨op', h _ _ _ hd, hs⟩, h6, h7⟩
+  obtain ⟨h1, h2, h3, h4, h5, ⟨op', hd, hs⟩, h6⟩ := H
+  exact ⟨h1, h2, h3, h4, h5.mono_dec h, ⟨op', h _ _ _ hd, hs⟩, h6⟩
 
 end
 
@@ -389,12 +383,17 @@ S-c) in the no-transfer mode alone: its types exclude the transfer messages (adm
 which the `Ready` took from the storage's registry (`qSrc`, `certLink`). (2026-10-21, D22 S-r)
 And its snapshot's data certificate (`msgDat`), from the same registry. (2026-10-22, D38a) In every
 mode, no responses, and a `MsgApp` from the node `id` that sent it (`AppFrom`; `XfOk`), so that a
-transport can marshal it (`MsgMarshals`) and the msgappv2 codec carry it. -/
+transport can marshal it (`MsgMarshals`) and the msgappv2 codec carry it. (raft-final, 2026-10-29,
+U7: the design's §2.5) In every cluster the shape raft sends (`SentMsgShape`, `XfOk`; its last clause
+the old "no responses"), and a stamped transfer request's witness that its destination leads its
+term (from the sender's `xfW`), which the receiver's `raft.Step` takes; until then the modes'
+clauses, no `MsgSnap` in the no-snapshot mode and `SentMsgOk` in the no-transfer mode. -/
 def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
-  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
-    ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
+  iprop(⌜SentMsgShape st⌝ ∗
     (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
-    msgDat γ st ∗ ⌜st.resps = [] ∧ AppFrom id st⌝)
+    msgDat γ st ∗ ⌜AppFrom id st⌝ ∗
+    □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
+      isLeader γ st.msg.To' st.msg.Term'))
 
 instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ id st) := by
@@ -404,7 +403,7 @@ instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
 theorem isRaftMsg_dat (γ : RaftNames) (id : w64) (st : MsgSt) :
     isRaftMsg (GF := GF) γ id st ⊢ msgDat γ st := by
   unfold isRaftMsg
-  iintro ⟨-, -, -, #H, -⟩
+  iintro ⟨-, -, #H, -, -⟩
   iexact H
 
 end
@@ -452,33 +451,86 @@ def softStateRO (p : Loc) : IProp GF :=
 instance softStateRO_persistent (p : Loc) : Persistent (softStateRO (GF := GF) p) := by
   unfold softStateRO; infer_instance
 
-/-- (D22 S-d3a) What a `Ready` hands the application for the storage: the right to append the batch
-(`appendRight`), or with a snapshot the storage itself, at a state with nothing pending and the
-loan's floor (`ownRaftLog_lend`); (D22 S-d4, 2026-10-21) and the snapshot's certificate in the
-storage's registry (`storCert`, the log's `Hkcert`), which the application's `ApplySnapshot` takes
-(`MemoryStorage.ApplySnapshot`'s `memStorCert`). -/
-def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF :=
-  match L with
-  | none => appendRight st es
-  | some l => iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝) ∗
-      storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists))
+/-- (U8 v2, 2026-10-29) **Raft's certified terms of the entries `L` at the indices `n+1, n+2, …`**
+(persistent): the key of `sn.gd` at each index is its entry's term (`raftDL`'s first reading). -/
+def dlvKeysAt (sn : StorNames) (n : Nat) (L : List EntryM) : IProp GF :=
+  iprop([∗list] j ↦ e ∈ L, (n + j + 1) ↪[sn.gd]□ e.Term')
 
-/-- (D22 S-d3a) **The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes:
-the half of the snapshot it was handed, and the storage at the snapshot -- its boundary and its
-own snapshot the loan's, its lists and `AutoLeave` the snapshot's, holding the entries `es` the
-`Ready` handed out after it, nothing pending, the floor it was lent at. What a `MemoryStorage`'s
-`ApplySnapshot` then `Append` give (stage S-r). -/
+instance dlvKeysAt_pers (sn : StorNames) (n : Nat) (L : List EntryM) :
+    Persistent (dlvKeysAt (GF := GF) sn n L) := by
+  unfold dlvKeysAt; infer_instance
+
+/-- ... of a committed log `ds` from its start: what a `Ready` certifies for its committed entries
+(`ownRaftLog_certify`), which the driver keeps with the committed log delivered (the API's
+`deliveredLogLb`); the storage contract's `DL` is read from it. -/
+abbrev dlvKeys (sn : StorNames) (ds : List EntryM) : IProp GF := dlvKeysAt sn 0 ds
+
+theorem dlvKeysAt_nil (sn : StorNames) (n : Nat) : ⊢ dlvKeysAt (GF := GF) sn n [] := by
+  unfold dlvKeysAt; iapply (BigSepL.bigSepL_nil (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF))).2; iempintro
+
+theorem dlvKeysAt_app (sn : StorNames) (n : Nat) (a b : List EntryM) :
+    dlvKeysAt (GF := GF) sn n (a ++ b) ⊣⊢ dlvKeysAt sn n a ∗ dlvKeysAt sn (n + a.length) b := by
+  unfold dlvKeysAt
+  refine (BigSepL.bigSepL_append (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF))).trans ?_
+  have : (fun j (e : EntryM) => iprop((n + (j + a.length) + 1) ↪[sn.gd]□ e.Term' : IProp GF)) =
+      (fun j (e : EntryM) => iprop((n + a.length + j + 1) ↪[sn.gd]□ e.Term' : IProp GF)) := by
+    funext j e; rw [show n + (j + a.length) + 1 = n + a.length + j + 1 by omega]
+  simp only [this]
+  exact .rfl
+
+/-- A key out of the certified terms. -/
+theorem dlvKeysAt_lookup (sn : StorNames) (n : Nat) (L : List EntryM) (j : Nat) (e : EntryM)
+    (h : L[j]? = some e) :
+    dlvKeysAt (GF := GF) sn n L ⊢ (n + j + 1) ↪[sn.gd]□ e.Term' := by
+  unfold dlvKeysAt
+  iintro #H
+  iapply (BigSepL.bigSepL_lookup (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF)) h) $$ H
+
+/-- (U8 v2, 2026-10-29; until then the right to append, or with a snapshot the storage itself and
+its certificate in the storage's registry) **What a `Ready` hands the application for the storage**
+(the frozen design's §3): without a snapshot, the right to write its batch `es` (`appendRight`: the
+log from the batch's first index on, with the end; nothing for no entries); with a snapshot (its
+loan `l`), every range above raft's frozen prefix, from an index at most the snapshot's, with the
+end, and the right to install it (`storGiven`, the API's `snapGiven`). -/
+def readyOut (st : Storage) (sn : StorNames) (es : List EntryM) : Option SnapLoan → IProp GF
+  | none => appendRight st es
+  | some l => iprop((∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
+      storLog st k (DFrac.own 1) old ∗ storEnd st (k + old.length)) ∗
+      storGiven sn (uint.nat l.snap.Metadata'.Index'))
+
+/-- (U8 v2, 2026-10-29) **A `Ready`'s committed entries `ce` below its batch, frozen** (the frozen
+design's §3, `ceBelow`): after the `n` entries delivered before, the first `m` of `ce` -- all of them,
+or those below the batch's first index -- frozen. -/
+def ceFrozen (st : Storage) (n : Nat) (ce es : List EntryM) : IProp GF :=
+  iprop(∃ m : Nat, storLog st (n + 1) DFrac.discard (ce.take m) ∗
+    ⌜m = ce.length ∨ ∃ e0, es.head? = some e0 ∧ n + 1 + m = uint.nat e0.Index'⌝)
+
+instance ceFrozen_pers (st : Storage) (n : Nat) (ce es : List EntryM) :
+    Persistent (ceFrozen (GF := GF) st n ce es) := by
+  unfold ceFrozen; infer_instance
+
+/-- (U8 v2, 2026-10-29; until then the storage at the snapshot, with its floor, lists and data)
+**The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes (§3): the half of
+the snapshot it was handed, and the storage compacted at the snapshot, its dummy there of the
+snapshot's term, frozen, and the entries `es` the `Ready` handed out after it, owned, with the end:
+what `MemoryStorage.ApplySnapshot` then `Append` give. -/
 def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
   iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
-    ∃ σr, ownStorage st σr ∗ ⌜σr.prev = snapId l.snap ∧ σr.ss = snapId l.snap ∧ σr.ents = es ∧
-      σr.pend = [] ∧ σr.fl = l.fl ∧ σr.scs = l.snap.Metadata'.ConfState'.lists ∧
-      σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data'⌝)
+    storCompacted st (uint.nat l.snap.Metadata'.Index') ∗
+    (∃ e : EntryM, ⌜e.Term' = l.snap.Metadata'.Term'⌝ ∗
+      storLog st (uint.nat l.snap.Metadata'.Index') DFrac.discard [e]) ∗
+    storLog st (uint.nat l.snap.Metadata'.Index' + 1) (DFrac.own 1) es ∗
+    storEnd st (uint.nat l.snap.Metadata'.Index' + 1 + es.length))
 
-/-- (D22 S-d4; here since 2026-10-28, from `InvNodeChan.lean`) The driver's receipt at `Advance` for the `Ready`'s storage hand-out: of the append
-of its entries (`appendReceipt`), or after a snapshot `Ready` the storage at the snapshot and the
-half of the snapshot (`snapReceipt`, which `RawNode.Advance` takes, `loanRet`). -/
-def advReceipt (st : Storage) (es : List EntryM) : Option SnapLoan → IProp GF
-  | none => appendReceipt st es
+/-- (U8 v2, 2026-10-29) The driver's receipt at `Advance` for the `Ready`'s storage hand-out (§3):
+its batch `es` back (`appendReceipt`), as a frozen prefix `a` within the committed log delivered
+(`n` entries) and an owned rest, or after a snapshot `Ready` the snapshot's receipt. -/
+def advReceipt (st : Storage) (n : Nat) (es : List EntryM) : Option SnapLoan → IProp GF
+  | none => iprop(∃ a : List EntryM, appendReceipt st es a ∗
+      ⌜a ≠ [] → ∀ e0, es.head? = some e0 → uint.nat e0.Index' - 1 + a.length ≤ n⌝)
   | some l => snapReceipt st l es
 
 /-- The indices a `Ready` hands out are within the node's log at hand-out time (2026-10-18, D19b
@@ -617,12 +669,13 @@ most once, when the entry commits (never if a leader refuses the change: its rep
 normal entry, is a filler). The bytes are known only once `o` is marshaled (`MarshalsConfChange`
 is a relation), so this is a ghost step the proposal takes then, at mask `⊤` (the caller may
 register the key there, `prop_register`); for bytes that make the entry a filler (`Filler`: an
-empty `ConfChangeV2`) the caller may give nothing. -/
+empty `ConfChangeV2`) the caller may give nothing. (2026-10-29, S1) In a `dup` cluster
+(`RaftNames.dup`) the update is persistent (`□?γ.dup`), fired at every committed copy. -/
 def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
   iprop(∀ bs, ⌜MarshalsConfChange (some o) bs⌝ ={⊤}=∗
     ⌜Filler (confChangeEntryType (some o)) bs⌝ ∨
     ∃ Q : List EntryM → IProp GF, propIs γ (entKey (confChangeEntryType (some o)) bs) Q ∗
-      propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
+      □?γ.dup propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
 
 end
 

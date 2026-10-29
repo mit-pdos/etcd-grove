@@ -170,6 +170,8 @@ abbrev stepFollower.spec : Prop :=
     m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
   -- (2026-10-12) a read-index request is unstamped, and the leader is another node
   (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
+  -- (2026-10-29, stage U7) a replication message at a term past `0`, the handlers' replies' (`SentMsgShape`)
+  (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap → s.term ≠ W64 0) →
   (m.Type' = MsgProp →
      (m.From' = W64 0 ∨ m.From' = id) ∧
      m.Term' = W64 0 ∧
@@ -198,8 +200,10 @@ abbrev stepFollower.spec : Prop :=
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
         ents = [] ∧ cl = [] ∧
-        -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`)
-        s.gh.xf = false) ∧
+        -- (raft-final, 2026-10-29, U7: the design's A8) a forward to the leader recorded with its
+        -- witness (`NGhost.xw`: `raft.Step`'s transfer arm, `send`'s clause (c)); until then only
+        -- with leader transfer on (`NGhost.xf = false`, D21 M2r)
+        (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome)) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧
        -- (D19i part 1) the floor at most `applied` (`hup`'s)
        uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →
@@ -217,9 +221,9 @@ abbrev stepFollower.spec : Prop :=
       -- forwarded proposal and the response to a heartbeat carry)
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, cl, rs⟩ ∗
-      -- (D22 S-b′3, 2026-10-20) a `MsgSnap`'s snapshot certified in the storage's registry
-      -- (`handleSnapshot`'s; `tsSrc_ne` for any other type)
-      "#Hcert" ∷ tsSrc s.logst.storage m.Type' sn }}
+      -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `rcvSrc`) a `MsgSnap`'s snapshot
+      -- certified (`handleSnapshot`'s; `rcvSrc_ne` for any other type)
+      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn }}
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗

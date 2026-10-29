@@ -514,6 +514,64 @@ Track C of the parallel raft-unified effort (`notes/raft-unified-plan.md`, U11; 
   `run`, the replica's client methods, the cluster's functions, `Link.lean`, `kvreconf_porcupine_safe`. Blocked on, or to be stated as
   hypotheses of, the raft specs the frozen design has and the API does not yet (decisions entry).
 
+
+## raft-final: phases 0-1, every statement final, proofs `sorry` (2026-10-29, branch `raft-final`)
+
+The final raft proof, after `notes/raft-unified-plan.md`'s design (the coordinator's gap design and
+its review, amendments A1-A10, K5 back in by the user's decision). Phase 0: tracks A and B merged
+(`raft-unified` + `raft-unified-storage2`), track B's node-level WIP re-applied, U9's deletions (the
+static and dynamic families, `StartNode`'s spec until U10, `InvApiDyn` → `InvApiView`). Phase 1:
+every definition, invariant and spec statement in final form (the leader witness `leadW`, the
+transfer records `NGhost.xw`/`xfW`, `XfOk`'s final form, `isRaftMsg` with the transfer witness,
+`NetMsgOk` internal, the read-credit exchange `rdPool`, `isNode` with its table entry, K5's
+`nodeErrS`, the storage node level, A1-A4); raft's `Link`, `Linked`, `Results`, `Api` and
+`MemstorageApi` build, with 152 `sorry`s in 76 files (listed, with the phase-2 tracks' file map, in
+the plan's "Phase 1 sorries"), each broken proof kept in a `PHASE1-OLD` comment. Phase 2 (the
+proofs, parallel tracks) waits for the review of the statements (`interface/` regenerated). Clients
+(kv, server, examples) broken until later.
+
+## Raft unified, track A: U7 steps (i)-(ii), stopped (2026-10-29, branch `raft-unified`)
+
+- `SentMsgShape` defined (`ApiVocab.lean`, no spec uses it yet); `raft.send`'s `SendOk` takes a
+  term past `0` for every stamped type, threaded as premises through the leader-side senders and
+  the follower handlers (raft-internal specs only). Stopped there on the coordinator's change of
+  plan: the remaining invariants (U7's rest, U9) are to be designed as one reviewed design first.
+  Changes and what the send path taught: `notes/raft-unified-plan.md`, "Spec changes during track A
+  (third)".
+
+
+## Raft unified, track A: `Campaign` and `Status` (2026-10-29, branch `raft-unified`)
+
+- `node.Campaign.spec` and `node.Status.spec` over `isNode`, proved and linked (`node.wp_Campaign`,
+  `node.wp_Status`). `Campaign`'s `MsgHup` goes through an internal disjunct of `netP` (`hupP`, a
+  time receipt of `Campaign`'s own). `Status` gives the new sealed `statusOwn` (heap ownership only).
+  Spec changes: `notes/raft-unified-plan.md`, "Spec changes during track A (fresh)". Still open in
+  U7: `SentMsgShape` in every cluster, the re-forwarded transfer request, `TransferLeadership` over
+  `isNode`, and the read-credit exchange (the hand-off there, item 3).
+
+## Raft unified, U8 v2: the storage contract as range ownership (2026-10-29, branch `raft-unified-storage2`)
+
+Candidate 17 rev 3 (`notes/spec-first-study/raft-storage-spec.md`) replaces the hold (`raft-unified-storage-wip`,
+superseded). Steps 1-2 built: the range vocabulary (`StorageModel`: `storLog`/`storEnd`/`storCompacted`), the
+parametric contract `isStorageP SV Bnd`, `snapshotValid`, raft's view `ownStorage sn st σ` with its read
+triples derived from the contract (`InvStorageRead`) and its moves as lemmas (`InvStorageLaws`), `ownRaftLog`
+over it, and every `raftLog.*`/`unstable.*`/`newLogWithSize` proof. Step 3a (the raft level) built: the contract's
+third parameter `DL` (a stored snapshot's index at most what raft committed, `raftDL`/`DtOk`: `maybeSendSnapshot`'s
+`SnapOk`), the snapshots' certificates as pins of raft's storage names (`svCert`, `ksnCert`; `certLink`, `tsSrc`,
+`rcvSrc`, keyed by the mirror `NGhost.sn`), the no-snapshot mode off at raft's level (`NsCap := ns = false`), and
+every `raft.*`/`raft.Step`/`step*`/`newRaft` proof. Broken as expected: RawNode/node (step 4), `MemoryStorage`
+(step 3), clients.
+Step 3 (MemoryStorage, generic in its justifications) built. Step 4 (the node level) stopped part way
+(2026-10-29, the user's wrap-up): built and committed are the log level's hand-out lemmas (a `Ready`'s
+frozen committed entries, the lend's start at most the snapshot, raft's certified terms `ownRaftLog_certify`
+with the height `LogState.dtk`, `FrOk`'s frozen end at most `committed`), `ApiVocab`'s storage vocabulary
+(`readyOut`, `ceFrozen`, `snapReceipt`, `advReceipt`, `dlvKeys`), `InvRawnode`, `SnapValidCert`,
+`LemmasCeFrozen`; the node level (from `InvRawnodeReady` on), `MemstorageInstance`, `Link`/`Linked`/`Results`
+and the API do not build. The unbuilt work is kept as patches (`notes/u8v2/`). Decisions: the static
+cluster's variants dropped (U9 ahead of schedule); the boot bundle (`bootStorage`, decision (B)); the API's
+`nodeAppliedLb`/`snapGiven` over the per-id table, the delivered bound over `isNode`/`deliveredLogLb`.
+Architecture, spec changes and the next steps: `notes/raft-unified-plan.md`, "U8 v2" ("Where step 4 stopped").
+
 ## Raft unified, track B: storage (U8) and confchange for clients (2026-10-29, branch `raft-unified-storage`)
 
 Done and pushed: `MemoryStorage.SetHardState` importable; the `confchange`/`tracker` client specs (the U11
@@ -535,6 +593,39 @@ They are derived from the internal specs (`ConfchangeApiProof.lean`, over `Confc
 linked in `Linked.lean` (`RaftLink.*_api`). No `sorry` or axiom is added. The client proof (`validConf`)
 is not written yet. Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U11's
 `confchange`/`tracker` specs".
+## Raft unified, track A: U7 (in part) and U9a (2026-10-29, branch `raft-unified`)
+
+- U7: raft takes its own time receipts for `Tick` (`node.Tick.spec` without `tickCredit`) and a
+  stepped `MsgTimeoutNow` (`stepIn_intro` without its tick credit). The proposal registry is parked
+  (the user reconsidering it; work in `refs/wip/trackA-registry`). Not done: read credits from
+  receipts, `SentMsgShape` in the decision cluster, a stamped `MsgTransferLeader` admitted (the
+  transfer choice since dropped by the user). Their design is in `notes/decisions.md`, "Stage U7: messages, track A".
+- U9a (stopped nodes): see the spec changes in `notes/raft-unified-plan.md`, "Spec changes during
+  track A, U7 and U9a".
+- Clients broken further: etcd's server (`InvNet.lean`'s `stepIn_intro` arguments), examples/kv
+  (`node.Tick` callers pass a `tickCredit` no longer taken).
+
+## Raft unified, track A: the committed conf-entry laws (2026-10-29, branch `raft-unified`)
+
+`committed_emptyV2_joint` and `committed_confDecodes` proved (`InvNodeRule.lean`; reasoning:
+`notes/decisions.md`, "Stage U5: the committed conf-entry laws"; spec changes: `notes/raft-unified-plan.md`,
+"Spec changes during track A"). U5 is done but for the start specs' `csm.AutoLeave' = false` (U9).
+Not started in this run: U7 (messages), U9a (stopped nodes). Clients broken further: etcd's server
+(`noopAu`'s commit gives `ev2At`; `isCommittedLogLb`/`apiInvBody` grew), examples/kv (as before).
+
+## Raft unified, stage U5: automatic leaves (2026-10-29, branch `raft-unified`)
+
+Raft's tree builds (`Link`, `Linked`, `Results`, `Api`, `ConfPolicy`, `MemstorageAU`); the only axiom
+added to raft's results is the approved `ccDecodeV2_nil`; no `sorry`.
+- `raft.appliedTo`'s leave proposal proved (through `Step`'s `MsgProp` branch, no link cycle;
+  `LeaveStep`), so `c.autoLeave → role ≠ leader` left `appliedTo`, `appliedSnap`, `raft.Step`; the
+  `RawNode`'s `cf.autoLeave = false` and every API premise feeding it gone (`ApplyConfChange`'s
+  `m'.autoLeave = false`, `Advance`'s lent snapshot).
+- An empty `ConfChangeV2` is a filler again; `opsOf` drops it (`isEmptyV2`, `opsOf_noType2`);
+  `ProposeConfChange`'s post `ops ++ opsOf [entry]`.
+- Remaining for U5: `committed_emptyV2_joint` (a per-entry record of the leader's configuration at the
+  append; `notes/decisions.md`, "Stage U5: automatic leaves"); the start specs' `csm.AutoLeave' = false`
+  (U9). Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U5".
 
 ## Raft unified, stage U4: joiners (2026-10-29, branch `raft-unified`)
 

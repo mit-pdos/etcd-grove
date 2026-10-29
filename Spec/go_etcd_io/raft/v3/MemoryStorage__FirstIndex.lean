@@ -1,12 +1,7 @@
-/-
-Port of election_proof/spec_MemoryStorage__FirstIndex.v (feb5c73d4).
+/- `MemoryStorage.FirstIndex` (`storage.go:199`).
 
-Lean notes:
-* `ownMemoryStorage` (`InvMemstorage.lean`) needs ghost state, so the section has the
-  extra variable `[AllG GF]` (porting guide, "Section variables"); in Rocq it comes
-  with `heapGS Σ`.
-* `is_Storage_with` is `isStorageWith`; `(#fi, #interface.nil)` is `PairV #fi #interface.nil`.
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). The contract's `FirstIndex` triple. -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
@@ -23,27 +18,18 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `ms.FirstIndex()` (`storage.go:230`): the lock, `callStats`'s counter, the helper,
-the unlock. Stated *exactly* as `isStorage`'s `HFirstIndex` asks of the method (same
-return values, `err = nil`, same value), on `ownMemoryStorage` -- the one predicate for
-a `MemoryStorage` -- so that `isStorageWith (ownMemoryStorage ms)` is a rearrangement
-of the five public methods' specs (`InvMemstorage.lean`). -/
+/-- `ms.FirstIndex()`: past what the caller knows is compacted, and compacted up to it. -/
 abbrev MemoryStorage.FirstIndex.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms γs σ }}
-    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"FirstIndex"))
-      (Val #()))
+  ∀ (ms : Loc) (γs : MemStorNames) (c : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
+      memCompacted γs c }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"FirstIndex")) (Val #()))
   {{ (fi : w64), RET (PairV #fi #interface.nil);
-      -- (D19i part 1) the application may have compacted the storage, up to the floor
-      ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z fi ∧
-        uint.Z fi ≤ max (uint.Z σ.prev.index') (uint.Z σ.fl) + 1⌝ ∗
-      (⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∨ memStorCut γs (uint.Z fi - 1)) ∗
-      ownMemoryStorage ms γs σ }}
+      ⌜c + 1 ≤ uint.nat fi⌝ ∗ memCompacted γs (uint.nat fi - 1) }}
 
 end spec
 

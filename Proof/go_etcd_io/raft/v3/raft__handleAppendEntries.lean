@@ -46,14 +46,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 built: `SendOk`'s `MsgAppResp` clause (d) with no entries. -/
 private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dst idx hintterm hint : w64)
-    (rej : Bool) (Hdst : dst ≠ id) :
+    (rej : Bool) (Hdst : dst ≠ id) (Htz : s.term ≠ W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         msgOwn ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, 0, 0, rej, hint⟩, [], none, [], []⟩ }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
     {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   wp_apply wp_raft_send c r id s ml _ [] none [] [] [appResp id s dst rej idx hintterm hint]
-      (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩))))
+      (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Htz, fun h => absurd h Hdst, rfl⟩))))
       (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
   · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
@@ -99,7 +99,7 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp Hnl
+  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp Hnl Htz
   wp_start as Hpre
   iNamed Hpre
   simp only [msgIn, needsCap_of_eq Htyapp]
@@ -135,7 +135,7 @@ theorem raft.handleAppendEntries.wp_proof
       msg_nulls
     obtain ⟨Hcm2, -⟩ := Hlv2
     rw [Hcm2]
-    wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) $$ [$Hphys $Hr] as Hphys
+    wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) $$ [$Hphys $Hr] as Hphys
     iapply HΦ
     iframe
     ipureintro
@@ -160,7 +160,8 @@ theorem raft.handleAppendEntries.wp_proof
         exact ⟨hp, hsn, hst, by rw [hcm]; exact plogCommitTo_ge _ _⟩
     ihave Hphys := Hlogback $$ %ls' Hlog
       %(⟨⟨fun h => (Hgh0.1.1 h).elim (fun h1 => .inl (Hmagh.2.1 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)),
-          Hgh0.1.2.keep Hmagh.2.2.1 Hmagh.1 Hkeep.2.2.2⟩,
+          Hgh0.1.2.1.keep Hmagh.2.2.1 Hmagh.1 Hkeep.2.2.2,
+          Hmagh.2.2.1.2.2.2.2.2.2.2.trans Hgh0.1.2.2⟩,
          fun _ => Hkeep, Hkeep.2.2.1⟩)
       %(fun h => absurd h Hnl)
     cases Hpm : plogMaybeAppend s.logst.prev (s.logst.sents ++ s.logst.uents)
@@ -179,7 +180,7 @@ theorem raft.handleAppendEntries.wp_proof
         isplitr
         · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
         msg_nulls
-      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) $$ [$Hphys $Hr] as Hphys
+      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) $$ [$Hphys $Hr] as Hphys
       iapply HΦ
       iframe
       ipureintro
@@ -237,7 +238,7 @@ theorem raft.handleAppendEntries.wp_proof
         isplitr
         · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
         msg_nulls
-      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) $$ [$Hphys $Hr] as Hphys
+      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) $$ [$Hphys $Hr] as Hphys
       iapply HΦ
       iframe
       ipureintro

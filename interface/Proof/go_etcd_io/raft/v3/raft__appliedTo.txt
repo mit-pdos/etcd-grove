@@ -56,5 +56,3 @@ theorem raft.appliedTo.wp_proof [package_sem : Assumptions] (wp_raftLog_appliedT
                                       (intoVal index))
                                     (intoVal size))
                                   {{ Φ }}
-
-theorem ccEntsOk_leave : ⊢ ccEntsOk [leaveEntM] [some (ConfChangeIM.v2 ConfChangeV2M.empty)]

@@ -14,7 +14,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 
@@ -39,7 +39,7 @@ From any goroutine: `pb.Message{Type: MsgTransferLeader, From: transferee, To: l
 `recvc` (`netP`: unstamped, no entries, no context; `netP_local`), which `run` steps as
 `RawNode.TransferLeader` does: at a follower forwarded to its leader, at a leader recorded
 with a `MsgTimeoutNow` or an append to the transferee. Until stage R7a specified for
-`context.Background()`; `n.done` never fires. Nothing is promised of the transfer.
+`context.Background()`; (2026-10-29, stage U9a) If `n.done` fires, nothing is done. Nothing is promised of the transfer.
 (2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`); the
 `case <-ctx.Done()` returns nothing.
 -/
@@ -85,6 +85,9 @@ into `msgIn` by `msgIn_of_scalar_struct`; `MsgTransferLeader.Enum()` is a new ca
 private theorem node.TransferLeadership.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.TransferLeadership.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n lead transferee ctx cd Hns
   wp_start as ⟨#Hnode, #Hctx⟩
   ihave #Hnode' := Hnode
@@ -137,8 +140,13 @@ private theorem node.TransferLeadership.wp_raw
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply isHandshake_isChan $$ Hdone
-    iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    -- (2026-10-29, stage U9a) the node stopped: nothing done
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro -
+    wp_auto
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `case <-ctx.Done():` returns
@@ -149,6 +157,7 @@ private theorem node.TransferLeadership.wp_raw
     itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
+  -/
 
 end proof
 
@@ -167,6 +176,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_TransferLeadership_impl
     (hT : EtcdGrove.node.TransferLeadership.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.TransferLeadership.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.TransferLeadership.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.leaderTransferOn
   intro n γ N id lead transferee ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hx⟩ HΦ
@@ -178,6 +190,7 @@ private theorem node.wp_TransferLeadership_impl
   iapply (hT γn id n lead transferee ctx cd (by rw [Hγr]; exact Hx)) $$ []
   · iframe Hinit Hrn Hctx
   iexact HΦ
+  -/
 
 end wrap
 

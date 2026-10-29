@@ -486,6 +486,62 @@ theorem propConf_inv (joint : Bool) {applied li pci : w64} {ents : List EntryM}
       (fun h => by simp [confCount] at h)⟩
   · simp only [List.length_nil, List.length_zip]; push_cast; omega
 
+/-- (2026-10-29, stage U5) The loop keeps an empty `ConfChangeV2` only at a joint configuration
+(it wants to leave one, `CCLeaveOk`). -/
+theorem propConf_foldl_leave (joint : Bool) {applied li : w64}
+    (xs : List (EntryM × Option ConfChangeIM))
+    (hx : ∀ x ∈ xs, x.2.isSome = decide (IsConfEnt x.1))
+    (hl : ∀ x ∈ xs, x.1.Data' = [] → x.1.Type' = W32 2 → ∀ c, x.2 = some c → ccWantsLeave c = true) :
+    ∀ acc : List EntryM × w64, (∀ y ∈ acc.1, y.Data' = [] → y.Type' = W32 2 → joint = true) →
+      ∀ y ∈ (xs.foldl (propConfStep joint applied li) acc).1,
+        y.Data' = [] → y.Type' = W32 2 → joint = true := by
+  induction xs with
+  | nil => intro acc h; exact h
+  | cons x xs ih =>
+    intro acc h
+    simp only [List.foldl_cons]
+    apply ih (fun y hy => hx y (List.mem_cons_of_mem _ hy))
+      (fun y hy => hl y (List.mem_cons_of_mem _ hy))
+    have hx0 := hx x List.mem_cons_self
+    have hl0 := hl x List.mem_cons_self
+    rcases x with ⟨e, o⟩
+    intro y hy hd ht
+    unfold propConfStep at hy
+    cases o with
+    | none =>
+      simp only [List.mem_append, List.mem_singleton] at hy
+      rcases hy with hy | rfl
+      · exact h y hy hd ht
+      · exfalso
+        simp only [Option.isSome_none] at hx0
+        have hc : IsConfEnt y := Or.inr ht
+        simp [hc] at hx0
+    | some c =>
+      simp only at hy
+      split at hy
+      · simp only [List.mem_append, List.mem_singleton] at hy
+        rcases hy with hy | rfl
+        · exact h y hy hd ht
+        · exfalso
+          have h0 : (zero_val EntryM).Type' = W32 0 := rfl
+          rw [h0] at ht; revert ht; word
+      · rename_i hcond
+        simp only [List.mem_append, List.mem_singleton] at hy
+        rcases hy with hy | rfl
+        · exact h y hy hd ht
+        · have hw := hl0 hd ht c rfl
+          have : ccWantsLeave c = joint := by
+            apply Classical.byContradiction; intro hne; exact hcond (Or.inr hne)
+          rw [← this, hw]
+
+theorem propConf_leave (joint : Bool) {applied li pci : w64} {ents : List EntryM}
+    {cs : List (Option ConfChangeIM)} (hcs : CCTypesOk ents cs) (hlv : CCLeaveOk ents cs) :
+    ∀ y ∈ (propConf applied li pci ents cs joint).1, y.Data' = [] → y.Type' = W32 2 →
+      joint = true := by
+  unfold propConf
+  exact propConf_foldl_leave joint _ (cctypes_iff hcs) hlv ([], pci)
+    (fun y hy => by simp at hy)
+
 /-! ### The rules -/
 
 section rules
@@ -625,6 +681,95 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option ConfCh
     exact ConfI1_of_drop_le i3'.2 (show uint.nat r.applied ≤ uint.nat r.p.commit by
       have := H.applied_cidx; have := H.cidx_commit; omega)
   · intro _; rw [hfull]; exact i3'
+
+/-- (2026-10-29, stage U5, `committed_emptyV2_joint`) **An empty `ConfChangeV2` a leader appends
+sits at its joint configuration**: the configuration is joint (the loop keeps such an entry only
+then, `propConf_leave`), and the full log before it folds to it -- every conf entry of the log is
+below `pci`, at most `applied` (the loop's guard, `PCInv`), so at most `cidx`, and the batch before
+it has none (`PCInv`: at most one conf entry). -/
+theorem RInv_propose_ev2 {r : RState} {m : Msg} {cs : List (Option ConfChangeIM)}
+    (H : RInv dec c0 r) (hrole : r.p.role = .leader) (hcs : CCTypesOk m.entries cs)
+    (hlv : CCLeaveOk m.entries cs)
+    (hnw : plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) < 2 ^ 64)
+    (k : Nat) (x : EntryM)
+    (hk : ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p)))[k]? = some x)
+    (hx : x.Data' = [] ∧ x.Type' = W32 2) :
+    CfgM.joint r.cfg.cfg = true ∧
+    cfgFold dec c0 (r.full ++
+      ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))).take k) =
+      some r.cfg := by
+  have hlen := H.full_length
+  have hcl := H.commit_last
+  have hcn := rUnat_eq r.p.commit
+  have hcidx : r.cidx ≤ r.full.length := by have := H.cidx_commit; omega
+  have hli : uint.Z (plastIndex r.p) = r.full.length := by
+    unfold plastIndex; rw [hlen]
+    exact uint_Z_W64 _ (by have := plogLastIndexZ_nonneg r.p.base r.p.log; omega) (by omega)
+  have hal : uint.Z r.applied ≤ uint.Z (plastIndex r.p) := by
+    have := H.applied_cidx; have := H.cidx_commit; have := rUnat_eq r.applied; omega
+  have hlenb : m.entries.length = (propBatch r m.entries cs).1.length := by
+    unfold propBatch; rw [propConf_length]; have := List.Forall₂.length_eq hcs; omega
+  have hpc : PCInv r.applied (plastIndex r.p) r.pci (propBatch r m.entries cs) :=
+    propConf_inv (CfgM.joint r.cfg.cfg) hcs hal (by rw [hli]; omega)
+  have hjl := propConf_leave (CfgM.joint r.cfg.cfg) (applied := r.applied) (li := plastIndex r.p)
+    (pci := r.pci) hcs hlv
+  unfold propBatch at hk hpc ⊢
+  generalize propConf r.applied (plastIndex r.p) r.pci m.entries cs (CfgM.joint r.cfg.cfg) = pb
+    at hk hpc hjl ⊢
+  obtain ⟨-, -, p3, -, p5⟩ := hpc
+  rw [List.getElem?_mapIdx] at hk
+  cases hy : pb.1[k]? with
+  | none => rw [hy] at hk; cases hk
+  | some y =>
+    rw [hy] at hk
+    simp only [Option.map_some, Option.some.injEq] at hk
+    subst hk
+    have hyd : y.Data' = [] := hx.1
+    have hyt : y.Type' = W32 2 := hx.2
+    have hyc : IsConfEnt y := Or.inr hyt
+    have hj := hjl y (List.mem_of_getElem? hy) hyd hyt
+    refine ⟨hj, ?_⟩
+    have hklt := (List.getElem?_eq_some_iff.mp hy).1
+    -- one conf entry in the batch: `y`; none before it
+    have hpos : 0 < confCount pb.1 := confCount_pos hy hyc
+    have hpa := (p5 hpos).1
+    have hsplit : confCount pb.1 = confCount (pb.1.take k) + confCount (pb.1.drop k) := by
+      rw [← confCount_append, List.take_append_drop]
+    have hdrop : 0 < confCount (pb.1.drop k) :=
+      confCount_pos (k := 0) (by rw [List.getElem?_drop, Nat.add_zero]; exact hy) hyc
+    have htake : confCount (pb.1.take k) = 0 := by omega
+    have hI3 := H.i3 hrole
+    have hpn := rUnat_eq r.pci
+    have han := rUnat_eq r.applied
+    have hac := H.applied_cidx
+    -- the full log and the stamped batch prefix: no conf entry from `cidx` on
+    have hnc : NoConfIn (r.full ++ (pb.1.mapIdx (stamp r.p.term (plastIndex r.p))).take k)
+        r.cidx (r.full.length + k) := by
+      intro j e hj1 hj2 he hce
+      by_cases hjf : j < r.full.length
+      · rw [List.getElem?_append_left hjf] at he
+        have := hI3.1 j e he hce
+        omega
+      · rw [List.getElem?_append_right (by omega), List.getElem?_take] at he
+        split at he
+        · rename_i hjk
+          rw [List.getElem?_mapIdx] at he
+          cases hz : pb.1[j - r.full.length]? with
+          | none => rw [hz] at he; cases he
+          | some z =>
+            rw [hz] at he; simp only [Option.map_some, Option.some.injEq] at he; subst he
+            have hzc : IsConfEnt z := (isConfEnt_stamp _ _ _ _).1 hce
+            have : 0 < confCount (pb.1.take k) :=
+              confCount_pos (k := j - r.full.length)
+                (by rw [List.getElem?_take]; simp only [hjk, ↓reduceIte]; exact hz) hzc
+            omega
+        · cases he
+    have hfold := cfgFold_noConf dec c0 hnc (by omega) (by
+      rw [List.take_append_of_le_length hcidx]; exact H.cfg)
+    have hlk : ((pb.1.mapIdx (stamp r.p.term (plastIndex r.p))).take k).length = k := by
+      rw [List.length_take, List.length_mapIdx]; omega
+    rw [List.take_of_length_le (by rw [List.length_append, hlk]; exact Nat.le_refl _)] at hfold
+    exact hfold
 
 theorem RInv_propDrop {r : RState} (m : Msg) (cs : List (Option ConfChangeIM))
     (H : RInv dec c0 r) (hrole : r.p.role = .leader) (hcs : CCTypesOk m.entries cs)
@@ -1004,7 +1149,7 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
     exact RInv_appAccept m lastnewi es' _ H h7 h8 (hK r m List.mem_cons_self h1 H)
   | heartbeat m r _ _ _ _ _ h6 => exact RInv_heartbeat m.src m.commit _ H h6
   | commit r n h1 h2 h3 _ _ => exact RInv_commit n H h1 h2 h3
-  | propose m r cs _ h2 h3 h4 => exact RInv_propose id m cs _ H h2 h3 (by omega)
+  | propose m r cs _ h2 h3 h4 _ => exact RInv_propose id m cs _ H h2 h3 (by omega)
   | propDrop m r cs _ h2 h3 h4 => exact RInv_propDrop m cs H h2 h3 h4
   | snapRestore m r fp' cs' _ _ _ _ _ h6 _ h8 h8' _ _ =>
     exact RInv_snapRestore m fp' _ H h6 h8 h8'

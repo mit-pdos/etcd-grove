@@ -36,11 +36,16 @@ importable Proof.go_etcd_io.raft.v3.ConfPolicy
 # (`confAt_restorable`), `ownTrackerM`/`ownCfgPairM` (sealed) with their laws, the `apiSpec`s of
 # `MakeProgressTracker`, `Restore`, `Changer.{Simple,EnterJoint,LeaveJoint}` (linked in `Linked`)
 importable Proof.go_etcd_io.raft.v3.ConfchangeApi
-importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.RestartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance
 importable Spec.go_etcd_io.raft.v3.node__ApplyConfChange
-# (2026-10-28) `node__ForgetLeader` is not importable: its spec is still over raft's internals (`isNodeChan`)
+# (2026-10-29, stage U9a) `node__ForgetLeader` over the node API (until then over raft's internals,
+# `isNodeChan`, and not importable); `node__Stop`
+importable Spec.go_etcd_io.raft.v3.node__ForgetLeader
+importable Spec.go_etcd_io.raft.v3.node__Stop
+# (2026-10-29, stage U7) `node__Campaign`, `node__Status`
+importable Spec.go_etcd_io.raft.v3.node__Campaign
+importable Spec.go_etcd_io.raft.v3.node__Status
 importable Spec.go_etcd_io.raft.v3.node__Propose
 importable Spec.go_etcd_io.raft.v3.node__ProposeConfChange
 importable Spec.go_etcd_io.raft.v3.node__ReadIndex
@@ -77,10 +82,9 @@ importable Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 importable Proof.go_etcd_io.raft.v3.InvStorage
 importable Proof.go_etcd_io.raft.v3.InvMemstorage
 importable Proof.go_etcd_io.raft.v3.MemstorageInstance
-importable Proof.go_etcd_io.raft.v3.MemCertLink
+# (raft-final, 2026-10-29) `MemoryStorage` at the node API: `memStorInv`, `memStorage_isStorage`
+importable Proof.go_etcd_io.raft.v3.MemstorageApi
 importable Proof.go_etcd_io.raft.v3.LemmasMemstorage
-# the token-in-hand forms of the atomic `MemoryStorage` specs (added on lean, 2026-10-26)
-importable Proof.go_etcd_io.raft.v3.MemstorageAU
 
 ## raftpb: the getters' specs, the protobuf records' models
 importable Spec.go_etcd_io.raft.v3.raftpb.*

@@ -58,6 +58,9 @@ structure LogState : Type where
   sxt : w64
   stb : w64
   sdt : List w64
+  sn : StorNames
+  sg : Nat
+  dtk : Nat
 
 def prstateOfW64 (st : w64) : Option PRState :=
   if st = W64 0 then some PRState.probe
@@ -184,7 +187,7 @@ def logAppend (ls : LogState) (ents : List EntryM) : LogState :=
     snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted,
     stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
     sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb,
-    sdt := ls.sdt }
+    sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
 
 def instInhabitedPRole.default : PRole :=
   PRole.follower
@@ -314,6 +317,8 @@ theorem toPState_prvals_nl [GoGlobalContext] [GoSemanticsFunctions] (s : NState)
 theorem becomePrecandidate.proj_outbox [GoGlobalContext] [GoSemanticsFunctions] (s : NState) :
     (becomePrecandidate s).outbox = s.outbox
 
+theorem logRestore.proj_sg (ls : LogState) (k : SnapTrip) : (logRestore ls k).sg = ls.sg
+
 theorem toPState_lead_0 [GoGlobalContext] [GoSemanticsFunctions] (s : NState) (Hl : s.lead = W64 0)
     : (toPState s).lead = W64 0
 
@@ -326,6 +331,8 @@ def becomeLeaderPre [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NSt
 
 theorem becomeCandidate.proj_cq [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) :
     (becomeCandidate id s).cq = (resetTo s (s.term + W64 1)).cq
+
+theorem logAppend.proj_sn (ls : LogState) (ents : List EntryM) : (logAppend ls ents).sn = ls.sn
 
 theorem logRestore.proj_applied (ls : LogState) (k : SnapTrip) : (logRestore ls k).applied =
     ls.applied
@@ -427,8 +434,8 @@ theorem isMessage_absMsg_ctx [ReceiptGS GF] (γ : RaftNames) (ty : MsgType) (m :
 def campaignTransfer : CampaignType :=
   go!"CampaignTransfer"
 
-def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 :=
-  (ls.stored, ls.stb, ls.sdt)
+def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 × Nat :=
+  (ls.stored, ls.stb, ls.sdt, ls.dtk)
 
 def inflightsReset (i : Inflights) : Inflights :=
   { count := 0, size := i.size, bytes := 0, maxBytes := i.maxBytes }
@@ -459,6 +466,8 @@ def resetMatched (id li : w64) (pvs : GMap w64 Progress) : GMap w64 w64 :=
 
 theorem progressMaybeUpdate_learner (p : Progress) (n : w64) : (progressMaybeUpdate p n).learner =
     p.learner
+
+theorem logAppend.proj_sg (ls : LogState) (ents : List EntryM) : (logAppend ls ents).sg = ls.sg
 
 def MsgReadIndex : w32 :=
   W32 15
@@ -791,6 +800,9 @@ def campaignElection : CampaignType :=
 theorem becomePrecandidate.proj_prevote [GoGlobalContext] [GoSemanticsFunctions] (s : NState) :
     (becomePrecandidate s).prevote = s.prevote
 
+theorem logStoreRec_dtk {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) : ls'.dtk =
+    ls.dtk
+
 theorem mtypeOf_MsgApp : mtypeOf MsgApp = some MsgType.app
 
 def inflightsFull (i : Inflights) : Bool :=
@@ -1024,6 +1036,8 @@ theorem becomeFollower.proj_pci [GoGlobalContext] [GoSemanticsFunctions] (s : NS
 def MsgHeartbeat : w32 :=
   W32 8
 
+theorem logRestore.proj_dtk (ls : LogState) (k : SnapTrip) : (logRestore ls k).dtk = ls.dtk
+
 theorem progressBecomeSnapshot.proj_learner (p : Progress) (snapshoti : w64) :
     (progressBecomeSnapshot p snapshoti).learner = (progressResetState p PRState.snapshot).learner
 
@@ -1190,10 +1204,10 @@ structure NGhost : Type where
   unst : Bool
   tc : w64
   ns : Bool
-  xf : Bool
-  bt : Bool
+  xw : GMap (w64 × w64) Unit
   slent : Bool
   snp : Option SnapTrip
+  sn : StorNames
 
 theorem becomeLeaderLog.proj_progress [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s :
     NState) : (becomeLeaderLog id s).progress = (becomeLeaderPre id s).progress
@@ -1222,6 +1236,8 @@ theorem progressMaybeDecrTo_learner (p : Progress) (a b : w64) : (progressMaybeD
 
 theorem logRestore.proj_applying (ls : LogState) (k : SnapTrip) : (logRestore ls k).applying =
     ls.applying
+
+theorem logAppend.proj_dtk (ls : LogState) (ents : List EntryM) : (logAppend ls ents).dtk = ls.dtk
 
 def ReplSends (id : w64) (s : NState) (ms : List Msg) : Prop :=
   ∀ (m : Msg),
@@ -1304,7 +1320,7 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
     inprogress := k.sid.index' + W64 1, applying := ls.applying, unpersisted := ls.unpersisted, stored := ls.stored,
     apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn ++ [k], fl := ls.fl, lent := ls.lent,
     sxt := if ls.snap.isSome = true ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying,
-    stb := (restoreSdt ls).fst, sdt := (restoreSdt ls).snd }
+    stb := (restoreSdt ls).fst, sdt := (restoreSdt ls).snd, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
 
 theorem becomeLeaderLog.proj_log [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) :
     (becomeLeaderLog id s).log = (becomeLeaderPre id s).log
@@ -1451,6 +1467,8 @@ theorem becomeLeaderLog.proj_lt [GoGlobalContext] [GoSemanticsFunctions] (id : w
 theorem logAppend.proj_applied (ls : LogState) (ents : List EntryM) : (logAppend ls ents).applied =
     ls.applied
 
+theorem logRestore.proj_sn (ls : LogState) (k : SnapTrip) : (logRestore ls k).sn = ls.sn
+
 theorem becomePrecandidate.proj_ticking [GoGlobalContext] [GoSemanticsFunctions] (s : NState) :
     (becomePrecandidate s).ticking = true
 
@@ -1486,6 +1504,13 @@ theorem mtypeOf_MsgHeartbeat : mtypeOf MsgHeartbeat = some MsgType.heartbeat
 
 def StatePreCandidate : w64 :=
   W64 3
+
+structure StorNames : Type where
+  ga : Nat
+  gg : Nat
+  gsv : Nat
+  gd : Nat
+  gk : Nat
 
 theorem becomeLeaderPre.proj_outbox [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState)
     : (becomeLeaderPre id s).outbox = (resetTo s s.term).outbox

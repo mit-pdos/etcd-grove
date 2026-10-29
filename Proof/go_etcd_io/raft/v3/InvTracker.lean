@@ -794,7 +794,7 @@ def ownProgressMap (m : Loc) (pvs : GMap w64 Progress) : IProp GF :=
 /-- The `quorum.AckedIndexer` interface contract, against a resource `P` the
 implementation needs and a function `acked` saying what each id's acknowledged index
 is (`none`: "not a voter I know", which `MajorityConfig.CommittedIndex` counts as
-`0`). Persistent, like `isStorage` (`InvStorage.lean`); one triple per method. -/
+`0`). Persistent, like `isStorageD` (`InvStorage.lean`); one triple per method. -/
 def isAckedIndexer (l : GoInterface) (P : IProp GF) (acked : w64 → Option w64) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
     "%Hlok" ∷ ⌜l = interface.ok i⌝ ∗

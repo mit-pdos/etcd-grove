@@ -15,8 +15,7 @@ theorem raftLog.restore.wp_proof [package_sem : Assumptions] (wp_unstable_restor
             ∀ Φ,
               isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                   "Hlog" ∷ ownRaftLog l ls ∗
-                    "Hsnap" ∷ ownSnapS sp dq sv ∗
-                      "#Hcert" ∷ storCert ls.storage (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
+                    "Hsnap" ∷ ownSnapS sp dq sv ∗ "#Hkc" ∷ ksnCert ls.sn (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
                 ▷
                     (ownSnapS sp dq sv ∗ ownRaftLog l (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
                       Φ (intoVal ())) -∗

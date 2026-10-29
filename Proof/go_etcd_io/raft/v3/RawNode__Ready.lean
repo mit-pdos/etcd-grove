@@ -43,6 +43,9 @@ theorem RawNode.Ready.wp_proof
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs Hsteps0 Hunp0
   wp_start as H
   iNamed H
@@ -57,6 +60,7 @@ theorem RawNode.Ready.wp_proof
   iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hcr Happ Hrs Hrs_ok Hhard Hhsw
     Hsnapz
   ipureintro; exact ⟨Hmsgs_term, Hpsn⟩
+  -/
 
 end proof
 

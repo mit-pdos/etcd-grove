@@ -2,36 +2,26 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def isStorage (st : Storage) : IProp GF :=
-  isStorageWith (ownStorage st) (appendTok st) (appendedTok st) (storCut st) (storFloor st) (storCert st) st
+theorem ksnCert_pers (sn : StorNames) (k : SnapTrip) : Persistent (ksnCert sn k)
 
 theorem storApp_pend (σ : StorState) (q pend : List EntryM) : storApp { prev := σ.prev, ents :=
-    σ.ents, ss := σ.ss, pend := q, scs := σ.scs, sal := σ.sal, sdat := σ.sdat, fl := σ.fl } pend =
-    storApp σ pend
+    σ.ents, pend := q, fl := σ.fl, fr := σ.fr, sg := σ.sg, dt := σ.dt } pend = storApp σ pend
 
 structure StorageModel.{u_1} (GF : BundledGFunctors) : Type u_1 where
-  ownStorage : IProp GF
-  appendTok : IProp GF
-  appendedTok : IProp GF
-  storCut : IProp GF
-  storCut_persistent : Persistent (storCut st n)
-  storFloor : IProp GF
-  storFloor_persistent : Persistent (storFloor st x)
-  storCap : IProp GF
-  storCap_persistent : Persistent (storCap st k)
-  storCut_cap : storCut st n ∗ storCap st k ⊢ ⌜n ≤ k⌝
-  storCert : IProp GF
-  storCert_persistent : Persistent (storCert st k)
-  storTermsAt : IProp GF
-  storTermsAt_persistent : Persistent (storTermsAt st ts)
-  storTermsAt_intro : ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsAt st ts)
-
-theorem isStorage_handout [package_sem : Assumptions] (st : Storage) (σ : StorState) (p : List
-    EntryM) (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧ PendAbove σ p)) : ⊢ isStorage st -∗
-    ownStorage st σ ==∗ ownStorage st { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := p, scs
-    := σ.scs, sal := σ.sal, sdat := σ.sdat, fl := σ.fl } ∗ appendRight st p
-
-theorem storCap_pers.{u_1} (st : Storage) (k : Int) : Persistent (storCap st k)
+  storLog : IProp GF
+  storEnd : IProp GF
+  storCompacted : IProp GF
+  storLog_app : storLog st k dq (a ++ b) ⊣⊢ storLog st k dq a ∗ storLog st (k + a.length) dq b
+  storLog_frac : storLog st k (dq1 • dq2) es ⊣⊢ storLog st k dq1 es ∗ storLog st k dq2 es
+  storLog_valid : storLog st k dq es ⊢ ⌜✓ dq⌝
+  storLog_agree : storLog st k1 dq1 es1 ∗ storLog st k2 dq2 es2 ⊢ ⌜LogAgree k1 es1 k2 es2⌝
+  storLog_persist : storLog st k dq es ⊢ |==> storLog st k DFrac.discard es
+  storLog_persistent : Persistent (storLog st k DFrac.discard es)
+  storLog_nil : ⊢ storLog st k dq []
+  storEnd_excl : storEnd st e ∗ storEnd st e' ⊢ False
+  storCompacted_persistent : Persistent (storCompacted st c)
+  storCompacted_zero : ⊢ storCompacted st 0
+  storCompacted_mono : storCompacted st c ⊢ storCompacted st c'
 
 def storApp (σ : StorState) (pend : List EntryM) : List EntryM :=
   match pend with
@@ -41,23 +31,24 @@ def storApp (σ : StorState) (pend : List EntryM) : List EntryM :=
 def PendAbove (σ : StorState) (p : List EntryM) : Prop :=
   ∀ (e0 : EntryM), p.head? = some e0 → uint.Z σ.fl < uint.Z e0.Index'
 
-def appendRight (st : Storage) (p : List EntryM) : IProp GF :=
-  iprop(⌜p = []⌝ ∨ ∃ σ, appendTok st σ p)
+def ksnCerts (sn : StorNames) (K : List SnapTrip) : IProp GF :=
+  [∗list] k ∈ K, ksnCert sn k
 
-def appendReceipt (st : Storage) (p : List EntryM) : IProp GF :=
-  iprop(⌜p = []⌝ ∨ ∃ σ, appendedTok st σ p)
-
-theorem storCert_pers.{u_1} (st : Storage) (k : SnapTrip) : Persistent (storCert st k)
+theorem ksnCerts_pers (sn : StorNames) (K : List SnapTrip) : Persistent (ksnCerts sn K)
 
 structure StorState : Type where
   prev : entryID
   ents : List EntryM
-  ss : entryID
   pend : List EntryM
-  scs : CSLists
-  sal : Bool
-  sdat : List w8
   fl : w64
+  fr : Nat
+  sg : Nat
+  dt : GMap Nat w64
+
+def raftBnd (sn : StorNames) (c : Nat) : IProp GF :=
+  iprop(∃ k, ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
+
+theorem ksnCerts_nil (sn : StorNames) : ⊢ ksnCerts sn []
 
 def PendOk (σ : StorState) (p : List EntryM) : Prop :=
   p ≠ [] ∧
@@ -67,27 +58,85 @@ def PendOk (σ : StorState) (p : List EntryM) : Prop :=
           uint.Z e0.Index' ≤ uint.Z σ.prev.index' + ↑σ.ents.length + 1 ∧
             ∀ (k : Nat) (e : EntryM), p[k]? = some e → uint.Z e.Index' = uint.Z e0.Index' + ↑k
 
-theorem storFloor_pers.{u_1} (st : Storage) (x : w64) : Persistent (storFloor st x)
+theorem raftBnd_pers (sn : StorNames) (c : Nat) : Persistent (raftBnd sn c)
+
+def svCert (sn : StorNames) (sv : SnapshotM) : IProp GF :=
+  iprop(∃ SV, savedPredOwn sn.gsv DFrac.discard SV ∗ □ SV sv)
+
+def storCut (st : Storage) (n : Int) : IProp GF :=
+  storCompacted st n.toNat
+
+def ownStorage (sn : StorNames) (st : Storage) (σ : StorState) : IProp GF :=
+  iprop(∃ e0,
+      storCompacted st (uint.nat σ.prev.index') ∗
+        storLog st (uint.nat σ.prev.index') DFrac.discard (e0 :: List.take (σ.fr - uint.nat σ.prev.index') σ.ents) ∗
+          storLog st (σ.fr + 1) (DFrac.own 1)
+              (List.drop (σ.fr - uint.nat σ.prev.index') (List.take (σ.kOut - uint.nat σ.prev.index' - 1) σ.ents)) ∗
+            (⌜σ.pend ≠ []⌝ ∨ storEnd st (uint.nat σ.prev.index' + 1 + σ.ents.length)) ∗
+              storAuths sn σ ∗
+                ⌜e0.Term' = σ.prev.term' ∧
+                    uint.nat σ.prev.index' ≤ σ.fr ∧
+                      σ.fr + 1 ≤ σ.kOut ∧
+                        σ.kOut ≤ uint.nat σ.prev.index' + 1 + σ.ents.length ∧ σ.sg ≤ uint.nat σ.prev.index'⌝)
 
 theorem storPast_pers (st : Storage) (m : Int) : Persistent (storPast st m)
 
 theorem storPast_of_cut (st : Storage) (n : Int) : storCut st n ⊢ storPast st n
 
-theorem storCut_pers.{u_1} (st : Storage) (n : Int) : Persistent (storCut st n)
+def isStorageD (sn : StorNames) (st : Storage) : IProp GF :=
+  isStorageWith (ownStorage sn st) (storCut st) (svCert sn) st
 
-def TermsOn (σ : StorState) (ts : List w64) : Prop :=
-  ∀ (j t : w64), uint.Z σ.prev.index' < uint.Z j → ts[uint.nat j - 1]? = some t → termAt σ.prev σ.ents j = some t
+theorem storCut_pers (st : Storage) (n : Int) : Persistent (storCut st n)
+
+def snapshotM_countable : Pos.Countable SnapshotM :=
+  countableOfLeftInverse
+    (fun s =>
+      (s.Data', s.Metadata'.ConfState'.Voters', s.Metadata'.ConfState'.Learners', s.Metadata'.ConfState'.VotersOutgoing',
+        s.Metadata'.ConfState'.LearnersNext', s.Metadata'.ConfState'.AutoLeave', s.Metadata'.Index', s.Metadata'.Term'))
+    (fun p =>
+      { Data' := p.fst,
+        Metadata' :=
+          {
+            ConfState' :=
+              { Voters' := p.snd.fst, Learners' := p.snd.snd.fst, VotersOutgoing' := p.snd.snd.snd.fst,
+                LearnersNext' := p.snd.snd.snd.snd.fst, AutoLeave' := p.snd.snd.snd.snd.snd.fst },
+            Index' := p.snd.snd.snd.snd.snd.snd.fst, Term' := p.snd.snd.snd.snd.snd.snd.snd } })
+    snapshotM_countable._proof_1
+
+def isStorageV (sn : StorNames) (st : Storage) : IProp GF :=
+  iprop(∃ SV Bnd DL,
+      isStorageP SV Bnd DL st ∗
+        savedPredOwn sn.gsv DFrac.discard SV ∗
+          (□ ∀ sv, SV sv -∗ □ SV sv) ∗
+            (□ ∀ c, Bnd c -∗ raftBnd sn c) ∗
+              □
+                ∀ sv,
+                  SV sv -∗
+                    DL (uint.nat sv.Metadata'.Index') ={⊤}=∗ raftDL sn (uint.nat sv.Metadata'.Index') sv.Metadata'.Term')
 
 def storAbsorb (σ : StorState) : StorState :=
-  { prev := σ.prev, ents := storApp σ σ.pend, ss := σ.ss, pend := [], scs := σ.scs, sal := σ.sal, sdat := σ.sdat,
-    fl := σ.fl }
+  { prev := σ.prev, ents := storApp σ σ.pend, pend := [], fl := σ.fl, fr := σ.fr, sg := σ.sg, dt := σ.dt }
+
+theorem storLog_discard_pers.{u_1} (st : Storage) (k : Nat) (es : List EntryM) : Persistent (storLog
+    st k DFrac.discard es)
 
 def termAt (prev : entryID) (ents : List EntryM) (i : w64) : Option w64 :=
   if uint.Z i = uint.Z prev.index' then some prev.term'
   else (fun e => e.Term') <$> ents[(uint.Z i - uint.Z prev.index' - 1).toNat]?
 
-def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List EntryM → IProp GF) (CT : Int
-    → IProp GF) (FW : w64 → IProp GF) (SC : SnapTrip → IProp GF) (st : Storage) : IProp GF :=
+theorem svCert_pers (sn : StorNames) (sv : SnapshotM) : Persistent (svCert sn sv)
+
+theorem ksnCerts_snoc (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) : ⊢ ksnCerts sn K -∗
+    ksnCert sn k -∗ ksnCerts sn (K ++ [k])
+
+def raftDL (sn : StorNames) (i : Nat) (t : w64) : IProp GF :=
+  iprop(i ↪[sn.gd]□ t ∨ ∃ k, ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k)
+
+def storAuths (sn : StorNames) (σ : StorState) : IProp GF :=
+  iprop(monoNatAuthOwn sn.ga 1 (uint.nat σ.fl) ∗ monoNatAuthOwn sn.gg 1 σ.sg ∗ ghostMapAuth sn.gd 1 σ.dt)
+
+def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : SnapshotM → IProp GF) (st :
+    Storage) : IProp GF :=
   iprop(∃ i,
       "%Hstok" ∷ ⌜st = GoInterface.ok i⌝ ∗
         ("#HLastIndex" ∷
@@ -163,82 +212,174 @@ def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List Entry
                                   (intoVal hi))
                                 (intoVal maxSize))
                               {{ Φ }}) ∗
-                ("#Hbounded" ∷ □ ∀ σ, P σ -∗ ⌜uint.Z σ.prev.index' + ↑σ.ents.length < 2 ^ 61⌝ ∗ P σ) ∗
-                  ("#HSnapshot" ∷
-                      ∀ σ esu n,
-                        □
-                          ∀ Φ,
-                            P σ ∗
-                                typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard ∗
-                                  (⌜n ≤ 0⌝ ∨ CT n) -∗
-                              (▷
-                                  ∀ snap err,
-                                    P σ ∗
-                                        (⌜err = esu⌝ ∨
-                                          ⌜err = GoInterface.nil⌝ ∗
-                                            ∃ sv,
-                                              ownSnapM snap (DFrac.own 1) sv ∗
-                                                ⌜(σ.prev.index' ≠ W64 0 ∨ 1 ≤ n → sv.Metadata'.Index' ≠ W64 0) ∧
-                                                      (snapId sv = σ.ss ∧
-                                                          sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-                                                            sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat ∨
-                                                        uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
-                                                          uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
-                                                            uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-                                                              termAt σ.prev σ.ents sv.Metadata'.Index' =
-                                                                some sv.Metadata'.Term')⌝ ∗
-                                                  (⌜sv.Metadata'.Index' = W64 0⌝ ∨
-                                                    SC (snapTrip sv sv.Metadata'.ConfState'.lists))) -∗
-                                      Φ (intoVal snap, intoVal err)) -∗
-                                WP
-                                  ((intoVal (methods i.ty go!"Snapshot" i.v))
-                                    (intoVal ()))
-                                  {{ Φ }}) ∗
-                    ("#Hhandout" ∷
-                        □
-                          ∀ σ p,
-                            P σ -∗
-                              ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p⌝ ==∗
-                                P
-                                    { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := p, scs := σ.scs, sal := σ.sal,
-                                      sdat := σ.sdat, fl := σ.fl } ∗
-                                  AT σ p) ∗
-                      ("#Habsorb" ∷
-                          □
-                            ∀ σ1 σ p,
-                              P σ1 -∗
-                                DT σ p ==∗
-                                  ⌜σ1 =
-                                        { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := p, scs := σ.scs,
-                                          sal := σ.sal, sdat := σ.sdat, fl := σ.fl }⌝ ∗
-                                    P (storAbsorb σ1)) ∗
-                        "#Hfloor" ∷
-                          □
-                            ∀ σ x,
-                              P σ -∗
-                                ⌜σ.pend = [] ∧
-                                      uint.Z σ.fl ≤ uint.Z x ∧ uint.Z x ≤ uint.Z σ.prev.index' + ↑σ.ents.length⌝ ==∗
-                                  P
-                                      { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := σ.pend, scs := σ.scs,
-                                        sal := σ.sal, sdat := σ.sdat, fl := x } ∗
-                                    FW x)
+                ("#Hbounded" ∷
+                    □
+                      ∀ σ,
+                        P σ -∗
+                          ⌜(σ.pend = [] → uint.Z σ.prev.index' + ↑σ.ents.length < 2 ^ 61) ∧
+                                ∀ (e0 : EntryM), σ.pend.head? = some e0 → uint.Z e0.Index' ≤ 2 ^ 61⌝ ∗
+                            P σ) ∗
+                  "#HSnapshot" ∷
+                    ∀ σ esu n,
+                      □
+                        ∀ Φ,
+                          P σ ∗
+                              typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard ∗
+                                (⌜n ≤ 0⌝ ∨ CT n) -∗
+                            (▷
+                                ∀ snap err,
+                                  P σ ∗
+                                      (⌜err = esu⌝ ∨
+                                        ⌜err = GoInterface.nil⌝ ∗
+                                          ∃ sv,
+                                            ownSnapM snap (DFrac.own 1) sv ∗
+                                              ⌜(σ.prev.index' ≠ W64 0 ∨ 1 ≤ n → sv.Metadata'.Index' ≠ W64 0) ∧
+                                                    uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
+                                                      n ≤ uint.Z sv.Metadata'.Index'⌝ ∗
+                                                (⌜sv.Metadata'.Index' = W64 0⌝ ∨
+                                                  SC sv ∗
+                                                    ⌜σ.dt !! uint.nat sv.Metadata'.Index' = some sv.Metadata'.Term'⌝)) -∗
+                                    Φ (intoVal snap, intoVal err)) -∗
+                              WP
+                                ((intoVal (methods i.ty go!"Snapshot" i.v))
+                                  (intoVal ()))
+                                {{ Φ }})
 
 theorem storPast_one (st : Storage) (x : w64) : storPast st (uint.Z x + 1) ⊢ storPast st 1
 
 def PendFrom (σ : StorState) (n : Int) : Prop :=
   ∀ (e0 : EntryM), σ.pend.head? = some e0 → n ≤ uint.Z e0.Index'
 
-theorem isStorage_pers (st : Storage) : Persistent (isStorage st)
+def LogAgree (k1 : Nat) (es1 : List EntryM) (k2 : Nat) (es2 : List EntryM) : Prop :=
+  ∀ (i : Nat) (e1 e2 : EntryM), k1 ≤ i → k2 ≤ i → es1[i - k1]? = some e1 → es2[i - k2]? = some e2 → e1 = e2
 
-theorem isStorageWith_pers (P : StorState → IProp GF) (AT DT : StorState → List EntryM → IProp GF)
-    (CT : Int → IProp GF) (FW : w64 → IProp GF) (SC : SnapTrip → IProp GF) (st : Storage) :
-    Persistent (isStorageWith P AT DT CT FW SC st)
+def isStorageP (SV : SnapshotM → IProp GF) (Bnd DL : Nat → IProp GF) (st : Storage) : IProp GF :=
+  iprop(∃ i,
+      "%Hstok" ∷ ⌜st = GoInterface.ok i⌝ ∗
+        ("#HLastIndex" ∷
+            ∀ e,
+              □
+                ∀ Φ,
+                  storEnd st e -∗
+                    (▷ ∀ li, storEnd st e ∗ ⌜uint.nat li + 1 = e⌝ -∗ Φ (intoVal li, intoVal GoInterface.nil)) -∗
+                      WP
+                        ((intoVal (methods i.ty go!"LastIndex" i.v))
+                          (intoVal ()))
+                        {{ Φ }}) ∗
+          ("#HTerm" ∷
+              ∀ k dq es i0 ec,
+                □
+                  ∀ Φ,
+                    storLog st k dq es ∗
+                        ⌜k ≤ uint.nat i0 ∧ uint.nat i0 < k + es.length⌝ ∗
+                          typedPointsto (globalAddr ErrCompacted) ec DFrac.discard -∗
+                      (▷
+                          ∀ t err,
+                            storLog st k dq es ∗
+                                (⌜err = GoInterface.nil ∧ (fun e => e.Term') <$> es[uint.nat i0 - k]? = some t⌝ ∨
+                                  ⌜err = ec⌝ ∗ storCompacted st (uint.nat i0 + 1)) -∗
+                              Φ (intoVal t, intoVal err)) -∗
+                        WP ((intoVal (methods i.ty go!"Term" i.v)) (intoVal i0)) {{ Φ }}) ∗
+            ("#HEntries" ∷
+                ∀ k dq1 dq2 a b lo hi maxSize ec,
+                  □
+                    ∀ Φ,
+                      storLog st k dq1 a ∗
+                          storLog st (k + a.length) dq2 b ∗
+                            ⌜k ≤ uint.nat lo ∧ uint.nat lo < uint.nat hi ∧ uint.nat hi ≤ k + a.length + b.length⌝ ∗
+                              typedPointsto (globalAddr ErrCompacted) ec DFrac.discard -∗
+                        (▷
+                            ∀ s es err,
+                              storLog st k dq1 a ∗
+                                  storLog st (k + a.length) dq2 b ∗
+                                    (⌜err = ec⌝ ∗ storCompacted st (uint.nat lo) ∨
+                                      ⌜err = GoInterface.nil⌝ ∗
+                                        entsRO s es ∗
+                                          ⌜es ≠ [] ∧
+                                              s.cap = s.len ∧
+                                                es <+:
+                                                  List.take (uint.nat hi - uint.nat lo)
+                                                    (List.drop (uint.nat lo - k) (a ++ b))⌝) -∗
+                                Φ (intoVal s, intoVal err)) -∗
+                          WP
+                            ((((intoVal (methods i.ty go!"Entries" i.v)) (intoVal lo))
+                                (intoVal hi))
+                              (intoVal maxSize))
+                            {{ Φ }}) ∗
+              ("#HFirstIndex" ∷
+                  ∀ c,
+                    □
+                      ∀ Φ,
+                        storCompacted st c -∗
+                          (▷
+                              ∀ fi,
+                                ⌜c + 1 ≤ uint.nat fi⌝ ∗ storCompacted st (uint.nat fi - 1) -∗
+                                  Φ (intoVal fi, intoVal GoInterface.nil)) -∗
+                            WP
+                              ((intoVal
+                                  (methods i.ty go!"FirstIndex" i.v))
+                                (intoVal ()))
+                              {{ Φ }}) ∗
+                ("#HSnapshot" ∷
+                    ∀ c esu,
+                      □
+                        ∀ Φ,
+                          storCompacted st c ∗
+                              typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
+                            (▷
+                                ∀ snap err,
+                                  (⌜err = esu⌝ ∨
+                                      ⌜err = GoInterface.nil⌝ ∗
+                                        ∃ sv,
+                                          ownSnapM snap (DFrac.own 1) sv ∗
+                                            ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
+                                              (⌜sv.Metadata'.Index' = W64 0⌝ ∨
+                                                SV sv ∗ DL (uint.nat sv.Metadata'.Index'))) -∗
+                                    Φ (intoVal snap, intoVal err)) -∗
+                              WP
+                                ((intoVal (methods i.ty go!"Snapshot" i.v))
+                                  (intoVal ()))
+                                {{ Φ }}) ∗
+                  ("#Hbound" ∷ □ ∀ c, storCompacted st c ={⊤}=∗ Bnd c) ∗
+                    "#Hlen" ∷ □ ∀ k dq es, storLog st k dq es -∗ ⌜es = [] ∨ k + es.length ≤ 2 ^ 61⌝ ∗ storLog st k dq es)
+
+theorem isStorage_pers (sn : StorNames) (st : Storage) : Persistent (isStorageD sn st)
+
+def snapTrip_countable : Pos.Countable SnapTrip :=
+  countableOfLeftInverse
+    (fun k => (k.sid.term', k.sid.index', k.cl.voters, k.cl.learners, k.cl.outgoing, k.cl.learnersNext, k.al, k.dat))
+    (fun p =>
+      { sid := { term' := p.fst, index' := p.snd.fst },
+        cl :=
+          { voters := p.snd.snd.fst, learners := p.snd.snd.snd.fst, outgoing := p.snd.snd.snd.snd.fst,
+            learnersNext := p.snd.snd.snd.snd.snd.fst },
+        al := p.snd.snd.snd.snd.snd.snd.fst, dat := p.snd.snd.snd.snd.snd.snd.snd })
+    ⋯
+
+theorem isStorageWith_pers (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : SnapshotM → IProp
+    GF) (st : Storage) : Persistent (isStorageWith P CT SC st)
+
+def StorState.kOut (σ : StorState) : Nat :=
+  match σ.pend.head? with
+  | some e0 => uint.nat e0.Index'
+  | none => uint.nat σ.prev.index' + 1 + σ.ents.length
+
+def ksnCert (sn : StorNames) (k : SnapTrip) : IProp GF :=
+  iprop(∃ P, savedPredOwn sn.gk DFrac.discard P ∗ □ P k)
+
+theorem ksnCerts_mem (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) (h : k ∈ K) : ⊢ ksnCerts sn
+    K -∗ ksnCert sn k
 
 theorem storPast_mono (st : Storage) (m m' : Int) (h : m' ≤ m) : storPast st m ⊢ storPast st m'
 
-theorem storTermsAt_pers.{u_1} (st : Storage) (ts : List w64) : Persistent (storTermsAt st ts)
+theorem isStorageV_pers (sn : StorNames) (st : Storage) : Persistent (isStorageV sn st)
+
+theorem raftDL_pers (sn : StorNames) (i : Nat) (t : w64) : Persistent (raftDL sn i t)
 
 def storPast (st : Storage) (m : Int) : IProp GF :=
   iprop(∃ n, ⌜m ≤ n⌝ ∗ storCut st n)
 
-theorem storPast_cap (st : Storage) (m k : Int) : ⊢ storPast st m -∗ storCap st k -∗ ⌜m ≤ k⌝
+theorem isStorageP_pers (SV : SnapshotM → IProp GF) (Bnd DL : Nat → IProp GF) (st : Storage) :
+    Persistent (isStorageP SV Bnd DL st)
+
+theorem storCompacted_pers.{u_1} (st : Storage) (c : Nat) : Persistent (storCompacted st c)

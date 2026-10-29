@@ -65,7 +65,11 @@ def rdyLs (L : Option SnapLoan) (ls : LogState) : LogState :=
 
 theorem rdyLog_true (L : Option SnapLoan) (ls : LogState) :
     rdyLog true L.isSome ls = logHanded (rdyLs L ls) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold rdyLog rdyLs; cases L <;> rfl
+  -/
 
 /-- (D22 S-d3a) The trip of a loan's snapshot (`NGhost.snp`). -/
 def loanTrip (L : Option SnapLoan) : Option SnapTrip :=
@@ -205,6 +209,9 @@ theorem RawNode.acceptReady.wp_proof
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC))
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs rd ce es ms h L
   wp_start as H
   iNamed H
@@ -1001,7 +1008,7 @@ theorem RawNode.acceptReady.wp_proof
     (readyNstate s L ce sz) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _
-    Hwf Hin Hal Hasync Hdlen'
+    Hwf Hin Hasync Hdlen'
     (by show nextUnstable s.logst = _; rw [Hlogst, Haf12, Hnu0])
     (fun h => by
       rw [Hlogst, Haf2, Hf_snap]
@@ -1013,6 +1020,7 @@ theorem RawNode.acceptReady.wp_proof
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
     (SdtTie.keep Hsdt (fun h => by rwa [Hlogst, Haf2, Hf_snap] at h) Hsdtk.1 Hsdtk.2
       (List.prefix_append _ _)) $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc'
+  -/
 
 end proof
 

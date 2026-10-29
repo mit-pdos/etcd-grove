@@ -259,6 +259,19 @@ existential `own_raftLog l`, and the "page out" shape that `slice`/`entries` ret
 as `l ↦ lv ∗ s ↦*{dq} es ∗ (l ↦ lv -∗ s ↦*{dq} es -∗ own_raftLog_at …)`.
 notes/decisions.md, "One predicate per object".) -/
 
+/-- (U8 v2, 2026-10-29) Raft's internal ghost names for its storage (`InvStorage.lean`): the
+authority over the applied lower bounds it publishes (`ga`, the API's `nodeAppliedLb`), over the
+snapshot index it last handed out to install (`gg`, `snapGiven`), and the pin of the storage's
+snapshot validity (`gsv`, `svCert`). Fixed when the log is made. -/
+structure StorNames where
+  ga : Nat := 0
+  gg : Nat := 0
+  gsv : Nat := 0
+  /-- (U8 v2, the snapshot's bound) the terms raft certified at committed indices (`raftDL`) -/
+  gd : Nat := 0
+  /-- (U8 v2) the pin of a received snapshot's certificate (`ksnCert`) -/
+  gk : Nat := 0
+
 structure LogState [GooseExts] where
   prev : entryID
   sents : List EntryM
@@ -365,6 +378,16 @@ structure LogState [GooseExts] where
   handed out (`SdtTie`). -/
   stb : w64 := 0
   sdt : List w64 := []
+  /-- (U8 v2, 2026-10-29) Raft's ghost names for its storage (`StorNames`): constant. -/
+  sn : StorNames := {}
+  /-- (U8 v2) The snapshot index last handed out to install (ghost; `snapGiven`'s authority,
+  `InvStorage.lean`): raised by a snapshot `Ready`'s hand-out, at most `prev.index`. -/
+  sg : Nat := 0
+  /-- (U8 v2 step 4, 2026-10-29) The certification bound (ghost): every index raft certified a term
+  at (`sn.gd`, `raftDL`; `DtOk`, `InvRaftlog.lean`) is at most it, so a certificate at a larger
+  index is fresh. Only `ownRaftLog_certify` raises it (to the index it certifies, at most
+  `committed`); every step keeps it. -/
+  dtk : Nat := 0
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -935,11 +958,18 @@ def restoreSdt (ls : LogState) : w64 × List w64 :=
   if ls.snap.isSome then (ls.stb, ls.sdt) else (ls.prev.index', logTermsTo ls)
 
 /-- (2026-10-28, stage U4a) The fields `NetFrame`/`LocalFrame` keep of what the storage holds:
-`stored`, and the record of the storage's terms (`stb`, `sdt`). -/
-def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 := (ls.stored, ls.stb, ls.sdt)
+`stored`, the record of the storage's terms (`stb`, `sdt`), and (U8 v2 step 4) the certification
+bound (`dtk`). -/
+def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 × Nat :=
+  (ls.stored, ls.stb, ls.sdt, ls.dtk)
 
 theorem logStoreRec_stored {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) :
     ls'.stored = ls.stored := congrArg Prod.fst h
+
+/-- (U8 v2 step 4) ... and the certification bound (`LogState.dtk`): only `ownRaftLog_certify`
+moves it. -/
+theorem logStoreRec_dtk {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) :
+    ls'.dtk = ls.dtk := congrArg (fun p => p.2.2.2) h
 
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
 id is the boundary, nothing after it, committed up to it, `applied` untouched, the
@@ -954,7 +984,7 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
    -- (D22 S-d4 item 3) what the storage holds: as before if a snapshot was pending, else `applying`
    if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying,
    -- (2026-10-28, stage U4a) the storage's terms (`restoreSdt`)
-   (restoreSdt ls).1, (restoreSdt ls).2⟩
+   (restoreSdt ls).1, (restoreSdt ls).2, ls.sn, ls.sg, ls.dtk⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`; (D22 S-r, 2026-10-21) and its data. -/
@@ -1038,26 +1068,20 @@ structure NGhost [GooseExts] where
   bootstrap log whose storage is never compacted past index `1` (`storCap`, `ownRaftPhys`'s
   `Hns`). A leader then keeps every peer's `Next ≥ 2` (`PrLo`), so `term(Next - 1)` and
   `entries(Next)` never fail and it sends no `MsgSnap` (D21 M0's (N)). Set once, when the node
-  is built (`ownRaftPhys_set_ns`), never changed: every step and `Ready` keeps it. -/
+  is built (`ownRaftPhys_set_ns`), never changed: every step and `Ready` keeps it. (U8 v2: always
+  `false`, `ownRaftPhys`'s `NsCap`. raft-final phase 1: kept until its mechanical removal, with
+  `LogNsOk`, `NsCap`, `PrOkN`'s and `LogNsKeep`'s flag, in phase 2's raft-level track; no statement
+  depends on its value.) -/
   ns : Bool := false
-  /-- (2026-10-19, D21 M2r) **Leader transfer off**: the node never records a transferee
-  (`leadTransferee = 0`, `ownRaftPhys`'s `Hxf`) and queues no message of a type the model does not
-  describe (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`): `raft.Step` takes no
-  `MsgTransferLeader` (`RestMsgOk`). On when the struct is built (`newRaft`, its queues empty:
-  the default), turned off by a ghost step (`ownRaftPhysC_xf_off`) when the node's construction
-  leaves the cluster's no-transfer mode (`RestartNode`, `Bootstrap` outside it), so that a node
-  is in it exactly when in the cluster's mode (`NsLink`; 2026-10-19, D22 S-a:
-  `RaftNames.reNoXfer`, independent of the no-snapshot mode, which until then implied it). With
-  the no-snapshot mode it makes the queued messages `SentMsgOk` (`XfOk`). (D22 S-c) With the
-  boot flag `bt` instead: the no-snapshot mode no longer enters. -/
-  xf : Bool := true
-  /-- (2026-10-20, D22 S-c) **Past term `0` for good**: the node's term is not `0` (`ownRaftPhys`'s
-  `Hxf`, `XfOk`), which `SentMsgOk`'s stamped terms need. Off when the struct is built (`newRaft`,
-  at term `0`), set with leader transfer's flag when the node's construction is of a cluster with
-  a bootstrap log (`Bootstrap`, at term `1`; `ownRaftPhys_set_ns`), at the cluster's no-transfer
-  mode (`NsLink`: `RaftNames.reNoXfer`, which needs a bootstrap log, `reNoXfer_ok`). Until D22
-  S-c the no-snapshot mode (`ns`) gave the term, so that `SentMsgOk` was of both modes. -/
-  bt : Bool := false
+  /-- (raft-final phase 1, 2026-10-29, U7: the design's §2.2) **The transfer requests stamped**:
+  the destination and term `(To, Term)` of every stamped `MsgTransferLeader` the node queued
+  (`XfOk`'s third clause), each with a witness that its destination leads at that term
+  (`ghostRest`'s `xfW`). The only one raft queues is `stepFollower`'s forward to its leader, at
+  the follower's term: `raft.Step`'s transfer arm records `(s.lead, s.term)` first, from the leader
+  witness (`ownStepGhost_lead`), which `send`'s clause (c) then takes. Only grows; a step keeps it
+  (`NetFrame`). (Until then the flags `xf`, leader transfer off, and `bt`, past term `0` for good,
+  which the cluster's no-transfer mode set; both deleted with the mode, U9.) -/
+  xw : GMap (w64 × w64) Unit := ∅
   /-- (D22 S-d3a, 2026-10-21) **The storage lent**: a mirror of `LogState.lent` (`SnpOk`), which a
   step keeps (`NetFrame`'s `s'.gh = s.gh`), so that the `RawNode` knows across the steps between a
   snapshot's `Ready` and its `Advance` that the application holds the storage. Only the `RawNode`'s
@@ -1069,6 +1093,11 @@ structure NGhost [GooseExts] where
   (`SnpOk`), and a snapshot in progress or absorbed has one recorded; it is a snapshot the node may
   send (`ksn`) at most the commit index. Set by `acceptReady`, cleared by `Advance`. -/
   snp : Option SnapTrip := none
+  /-- (U8 v2, 2026-10-29) **The log's storage names** (`LogState.sn`), mirrored (`GhLogOk`), so that
+  every step keeps them (`NetFrame`, `LocalFrame`, `SnapStep`: `s'.gh = s.gh`): the snapshots'
+  certificates the node holds are of them (`qSrcs`, `ghostRest`'s `certLink`). Set when the node
+  is built (`newRaft`), never changed. -/
+  sn : StorNames := {}
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [GooseExts] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)

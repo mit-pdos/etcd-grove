@@ -18,26 +18,25 @@ theorem RawNode.Advance.wp_proof [package_sem : Assumptions] (wp_raft_Step : raf
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
     (rs.slent = none → rs.unpersisted = []) →
       rs.unst = false →
-        (∀ (l : SnapLoan), rs.slent = some l → rs.mode.isDyn = true → l.snap.Metadata'.ConfState'.AutoLeave' = false) →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                  "Hrn" ∷ ownRawNode γ rn id rs ∗
-                    "Hret" ∷ loanRet rs ∗ "#HA1" ∷ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length -∗
-                (▷
-                    ∀ t ca,
-                      ownRawNode γ rn id (advRS rs t ca) ∗
-                          ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
-                            ⌜uint.Z t ≤ uint.Z rs.tc⌝ ∗
-                              ⌜(rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
-                                  (∀ (l : SnapLoan), rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
-                                    (rs.mode = RNMode.static → ca = rs.capplied)⌝ -∗
-                        Φ (intoVal ())) -∗
-                  WP
-                    ((intoVal
-                        (methods RawNode.ty.PointerType go!"Advance" (intoVal rn)))
-                      (intoVal rd))
-                    {{ Φ }}
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                "Hrn" ∷ ownRawNode γ rn id rs ∗
+                  "Hret" ∷ loanRet rs ∗
+                    "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) -∗
+              (▷
+                  ∀ t ca,
+                    ownRawNode γ rn id (advRS rs t ca) ∗
+                        ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
+                          ⌜uint.Z t ≤ uint.Z rs.tc⌝ ∗
+                            ⌜(rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
+                                (∀ (l : SnapLoan), rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
+                                  (rs.mode = RNMode.static → ca = rs.capplied)⌝ -∗
+                      Φ (intoVal ())) -∗
+                WP
+                  ((intoVal (methods RawNode.ty.PointerType go!"Advance" (intoVal rn)))
+                    (intoVal rd))
+                  {{ Φ }}
 
 theorem ackSnapLog_facts_miss (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) (Hhit :
     snapHit ls.snap sv.Metadata'.Index' = false) (Hsat : ls.sat = false) (Hmiss : ∀ (id' : entryID),

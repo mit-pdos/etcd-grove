@@ -66,16 +66,12 @@ theorem raftLog.restore.wp_proof
     with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hpk, #Hu_logger, %Hoff', %Hoip', %Hsip'⟩
   iapply HΦ
   iframe Hsnap
+  ihave #Hkc' := ksnCerts_snoc ls.sn ls.ksn _ $$ Hkcert Hkc
   rw [← Hlg]
-  ihave #Hkcert' : ([∗list] k ∈ ls.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists],
-      storCert (GF := GF) lv.storage' k) $$ []
-  · iapply (BigSepL.bigSepL_snoc (Φ := fun _ k => storCert (GF := GF) lv.storage' k)).2
-    iframe Hkcert
-    rw [Hstor]; iexact Hcert
   simp only [snapId] at Hcmlt Hlt
-  iapply ownRaftLog_intro l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
+  iapply ownRaftLog_intro (sn := ls.sn) l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
       lv.storage' σ _ _ (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists))
-      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
+      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩
       ⟨Hfl.1, Hfl.2.1, by
         show uint.Z ls.applying < uint.Z (sv.Metadata'.Index' + W64 1)
@@ -101,7 +97,7 @@ theorem raftLog.restore.wp_proof
         unfold restoreSdt
         cases hsn : ls.snap with
         | none =>
-          simp only [Option.isSome_none, Bool.false_eq_true, false_and, ↓reduceIte]
+          simp only [Option.isSome_none, Bool.false_eq_true, _root_.false_and, ↓reduceIte]
           obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := hsn ▸ Hstore
           obtain ⟨H1, H2⟩ := storTerms_of_inv hsn Hstore Hoffset Hipb Hpersist Hpend Hfl
             (Int.le_trans (Hpapplied hsn) Happlying.1) (Int.le_trans Happlying.2 Hcommitted)
@@ -109,17 +105,36 @@ theorem raftLog.restore.wp_proof
         | some _ =>
           have hs : ls.snap ≠ none := by rw [hsn]; simp
           have He := Hfl.2.2.2.2.1 hs hl
-          simp only [Option.isSome_some, true_and, He.2, ↓reduceIte]
+          simp only [Option.isSome_some, _root_.true_and, He.2, ↓reduceIte]
           exact Hfl.2.2.2.2.2 hs hl⟩
-      (fun h => List.mem_append_left _ (Hsksn h)) Hsip' (fun h => by simp [logRestore] at h)
+      Hsip' (fun h => by simp [logRestore] at h)
       -- (D22 S-d1b) the storage stays lent, if it is; no window; the snapshot not in progress
       (fun _ => by simp [logRestore]) ⟨rfl, rfl⟩
       ⟨(fun h => by simp [logRestore] at h), (fun _ _ => ⟨by rw [Hoff']; rfl, by
         show uint.Z ls.applying < uint.Z sv.Metadata'.Index'
         have := Happlying.2; have : uint.Z (snapId sv).index' = uint.Z sv.Metadata'.Index' := rfl
         omega⟩)⟩
-      (fun h => by simp [logRestore] at h) ?_ ?_ ?_ ?_
-    $$ Hl HisStorage HStorage Hsn Hpk Hkcert' Hents Hents_cap Hl_logger Hu_logger
+      (fun h => by simp [logRestore] at h)
+      (⟨fun hl => by
+          -- (U8 v2 step 4) the frozen end is at most the old commit index, below the snapshot
+          obtain ⟨h1, -, -⟩ := Hfr.1 hl
+          have e1 := uint_nat_eq ls.committed; have e2 := uint_nat_eq sv.Metadata'.Index'
+          have e3 := uint_nat_eq (sv.Metadata'.Index' + W64 1)
+          have e4 : uint.Z (sv.Metadata'.Index' + W64 1) = uint.Z sv.Metadata'.Index' + 1 := by
+            word
+          show σ.fr ≤ uint.nat sv.Metadata'.Index' ∧ σ.fr < uint.nat (sv.Metadata'.Index' + W64 1) ∧
+            ∀ sid, some (snapId sv) = some sid → false = false → σ.fr < uint.nat sid.index'
+          refine ⟨by omega, by omega, fun sid hs _ => ?_⟩
+          cases hs
+          show σ.fr < uint.nat sv.Metadata'.Index'
+          omega, Hfr.2.1,
+        DtOk.mono Hfr.2.2 (by show uint.Z ls.committed ≤ uint.Z sv.Metadata'.Index'; omega)
+          (fun i hi hp => by
+            exfalso
+            have : uint.Z (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)).prev.index' =
+              uint.Z sv.Metadata'.Index' := rfl
+            omega)⟩) ?_ ?_ ?_ ?_ ?_
+    $$ Hl HisStorage HStorage Hsn Hpk Hkc' Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,
     Int.natCast_zero, Int.add_zero]
   · intro k e h; simp at h
@@ -129,7 +144,6 @@ theorem raftLog.restore.wp_proof
   · constructor <;> omega
   · intro h; cases h
   · omega
-  · intro h; cases h
   · exact Hoip'
   · rw [Hoff']; word
   · intro h; cases h

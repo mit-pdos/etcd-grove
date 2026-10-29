@@ -48,6 +48,8 @@ context's list `cl` (2026-10-12). -/
 abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8),
   s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hctx" ∷ ctx ↦*□ cl }}

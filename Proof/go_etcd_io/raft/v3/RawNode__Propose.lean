@@ -46,6 +46,9 @@ theorem RawNode.Propose.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.Propose.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs data_sl data
   wp_start as H
   iNamed H
@@ -163,7 +166,7 @@ theorem RawNode.Propose.wp_proof
   simp only [named]
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr.2.2.2.1) $$ Hsloc
-  · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal Hasync
+  · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hasync
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
       (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, (logStoreRec_stored Hfr.2.2.2.2.2.1)⟩ Hc Hap'
@@ -179,6 +182,7 @@ theorem RawNode.Propose.wp_proof
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd
+  -/
 
 end proof
 

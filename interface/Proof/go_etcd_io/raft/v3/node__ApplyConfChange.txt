@@ -2,36 +2,35 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem node.ApplyConfChange.wp_proof_unified [package_sem : Assumptions] (wp_ConfChange_AsV2 :
-    raftpb.ConfChange.AsV2.spec) (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec) :
-    node.ApplyConfChange.unifiedSpec
-
 theorem node.ApplyConfChange.wp_proof [package_sem : Assumptions] (wp_ConfChange_AsV2 :
     raftpb.ConfChange.AsV2.spec) (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec) :
     node.ApplyConfChange.spec
   -- `Perennial.EtcdGrove.node.ApplyConfChange.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (vs : List w64) (snapOk : List LogEntry → List w8 → Prop)
-    (c : GoInterface) (o : ConfChangeIM),
-    CCShrink (listToSet vs) (ccV2Of o).fst (ccV2Of o).snd →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              isNode n γ N id ∗ isStaticCluster γ N vs snapOk ∗ ownConfChangeI c DFrac.discard (some o) -∗
-            (▷
-                ∀ csp cs,
-                  csPts csp (DFrac.own 1) cs true ∗
-                      ⌜cs.Voters'.Perm vs ∧
-                          (∀ (k : w64), k ∈ cs.Learners' → ¬k ∈ vs) ∧
-                            cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ -∗
-                    Φ (intoVal csp)) -∗
-              WP
-                ((intoVal
-                    (methods node.ty.PointerType
-                      go!"ApplyConfChange"
-                      (intoVal n)))
-                  (intoVal c))
-                {{ Φ }}
-
-theorem node.ApplyConfChange.wp_proof_dynamic [package_sem : Assumptions] (wp_ConfChange_AsV2 :
-    raftpb.ConfChange.AsV2.spec) (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec) :
-    node.ApplyConfChange.dynamicSpec
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o o' : ConfChangeIM) (l : List LogEntry)
+    (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
+    v.applied ≤ k →
+      l[k]? = some e →
+        e.isConfChange →
+          Membership.applyChange o' v.membership = some m' →
+            Membership.applyChange o v.membership = some m' →
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                      isNode n γ N id ∗
+                        isCluster γ N ∗
+                          confDecided γ k (ConfDecision.apply o') ∗
+                            ownConfChangeI c DFrac.discard (some o) ∗
+                              nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k -∗
+                    (▷
+                        ∀ csp cs,
+                          csPts csp (DFrac.own 1) cs true ∗
+                                nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ ∨
+                              ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
+                            Φ (intoVal csp)) -∗
+                      WP
+                        ((intoVal
+                            (methods node.ty.PointerType
+                              go!"ApplyConfChange"
+                              (intoVal n)))
+                          (intoVal c))
+                        {{ Φ }}

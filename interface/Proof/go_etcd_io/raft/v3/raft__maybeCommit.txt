@@ -25,8 +25,8 @@ theorem raft.maybeCommit.wp_proof [package_sem : Assumptions] (wp_traceCommit : 
                                 applying := __src.applying, unpersisted := __src.unpersisted, stored := __src.stored,
                                 apsize := __src.apsize, apmax := __src.apmax, storage := __src.storage, ksn := __src.ksn,
                                 fl := __src.fl, sip := __src.sip, lent := __src.lent, sapp := __src.sapp,
-                                aps := __src.aps, sat := __src.sat, sxt := __src.sxt, stb := __src.stb,
-                                sdt := __src.sdt },
+                                aps := __src.aps, sat := __src.sat, sxt := __src.sxt, stb := __src.stb, sdt := __src.sdt,
+                                sn := __src.sn, sg := __src.sg, dtk := __src.dtk },
                             prvals := s.prvals, prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt, pci := s.pci,
                             isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
                         else s) ∗

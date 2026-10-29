@@ -6,6 +6,6 @@ def node.Tick.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ tickCredit γ 1 -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP ((intoVal (methods node.ty.PointerType go!"Tick" (intoVal n))) (intoVal ())) {{ Φ }}

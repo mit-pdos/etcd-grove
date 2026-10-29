@@ -40,6 +40,9 @@ theorem RawNode.ReportSnapshot.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.ReportSnapshot.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs to st
   wp_start as H
   iNamed H
@@ -106,7 +109,7 @@ theorem RawNode.ReportSnapshot.wp_proof
     simp only [named]
     
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
-    iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal
+    iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin
       Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
       (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) Htrm' (by rw [Hsg]; exact Hstor)
       (Hpvoff.step rfl rfl Hpre Hgh (by rw [← Htrm', Htrm]; exact Hpvoff.2.2.1) Hpcs
@@ -116,6 +119,7 @@ theorem RawNode.ReportSnapshot.wp_proof
       (Hsdt.ofRec Hsn Hsd) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
     
   · exfalso; revert Hc'; msg_ne
+  -/
 
 end proof
 

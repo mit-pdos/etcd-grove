@@ -15,7 +15,7 @@ public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Perennial.Proof.context
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 
@@ -105,6 +105,9 @@ private theorem node.ProposeConfChange.wp_raw
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n c o dq ctx cd γc N HNo
   wp_start as ⟨#Hnode, #HnodeA, #Hctx, Hc, Harg⟩
   wp_auto
@@ -116,9 +119,11 @@ private theorem node.ProposeConfChange.wp_raw
   -- the cluster, whose `raft` is `γ`'s (`fwdP` reads only it)
   have wpS := wp_node_Step
   unfold EtcdGrove.node.Step.spec EtcdGrove.isNode EtcdGrove.stepIn EtcdGrove.Cluster at wpS
+  icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
   wp_apply wpS n γc N id ml ctx cd $$ [$HnodeA $Hctx Hm Htk]
   · unfold ApiImpl.stepIn
-    iintro %γn' %Hok'
+    isplitr; · ipureintro; exact Hnn
+    iintro %γn' %Hok' -
     have Hr : γn'.raft = γ.raft := Hok'.1.trans HNo.1.symm
     unfold stepP
     iright
@@ -142,6 +147,7 @@ private theorem node.ProposeConfChange.wp_raw
   iapply HΦ
   iframe Hc
   iexact Herr
+  -/
 
 end proof
 
@@ -160,7 +166,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ProposeConfChange_impl
     (hP : EtcdGrove.node.ProposeConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
+    EtcdGrove.Cluster.dup
   intro n γ N id c o dq ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, Hau⟩ HΦ
   ihave #HnodeA := Hnode
@@ -179,8 +189,9 @@ private theorem node.wp_ProposeConfChange_impl
     · imodintro; ileft; ipureintro; exact Hf
     imod api_key_register γ N ⊤ CoPset.subseteq_top
       (entKey (confChangeEntryType (some o)) bs) $$ Hci with #Hpi
-    ihave Hau1 := au_cc_fix γ N (confChangeEntryType (some o)) o bs Hm Hf $$ Hau
-    ihave Hau1 := api_propAu1 γ N (confChangeEntryType (some o)) bs Hf HNs $$ Hinv Hau1
+    ihave Hau1 := intuitionisticallyIf_mono (p := γ.raft.dup)
+      (au_cc_fix γ N (confChangeEntryType (some o)) o bs Hm Hf) $$ Hau
+    ihave Hau1 := api_propAu1_if γ N (confChangeEntryType (some o)) bs Hf HNs $$ Hinv Hau1
     imodintro
     iright
     iexists (fun _ => iprop(True))
@@ -189,6 +200,7 @@ private theorem node.wp_ProposeConfChange_impl
   iintro !> %err ⟨Hcc, #Herr⟩
   iapply HΦ
   iframe Hcc Herr
+  -/
 
 end wrap
 

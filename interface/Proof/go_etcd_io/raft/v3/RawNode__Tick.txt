@@ -16,9 +16,9 @@ theorem RawNode.Tick.wp_proof [package_sem : Assumptions] (wp_tickElection : raf
                     "Hrn" ∷
                           ownRawNode γ rn id
                             { delivered := rs.delivered, unpersisted := rs.unpersisted, steps := rs.steps, term := t,
-                              storage := rs.storage, outlb := rs.outlb, unst := rs.unst, clb := rs.clb, tc := rs.tc,
-                              mode := rs.mode, cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, psnap := rs.psnap,
-                              slent := rs.slent, phs := rs.phs } ∗
+                              storage := rs.storage, sn := rs.sn, outlb := rs.outlb, unst := rs.unst, clb := rs.clb,
+                              tc := rs.tc, mode := rs.mode, cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw,
+                              psnap := rs.psnap, slent := rs.slent, phs := rs.phs } ∗
                         "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ -∗
                       Φ (intoVal ())) -∗
                 WP ((intoVal (methods RawNode.ty.PointerType go!"Tick" (intoVal rn))) (intoVal ()))

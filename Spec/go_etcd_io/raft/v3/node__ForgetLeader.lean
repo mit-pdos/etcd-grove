@@ -1,19 +1,13 @@
 /- Lean-first (no Rocq counterpart).
 
-## `node.ForgetLeader(ctx)` (node.go:604), 2026-10-13
+## `node.ForgetLeader(ctx)` (node.go:604)
 
-From any goroutine: `step` of `pb.Message{Type: MsgForgetLeader}` (`netP_local`), which
-`run` steps as `RawNode.ForgetLeader` does: a follower forgets its leader. Until stage R7a
-specified for `context.Background()`; the error said only whether the message reached `run`.
-(2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`:
-`Done()` nil, or Perennial's `isContext`), and the error `nodeErr cd err`: `nil`, raft's
-`ErrStopped`, or the context's once its `Done()` fired (`ctxErr`).
+The node API's spec. (2026-10-29, stage U9a: over `isNode`; until then over raft's internals,
+`isNodeChan` and `NodeNames`, now the proof's private `node.ForgetLeader.specRaw`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeCtx
-public import Proof.go_etcd_io.raft.v3.InvNodeChan
-public import Perennial.Proof.context
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -31,14 +25,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- **`node.ForgetLeader(ctx)`**, from any goroutine: a local `MsgForgetLeader` stepped by the
+node (a follower forgets its leader); nothing is promised of its effect. The error says only whether
+the message reached the node (`nodeErr`: `nil`, `ErrStopped`, or the context's). (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
 abbrev node.ForgetLeader.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ForgetLeader"))
       (Val #(interface.ok ctx)))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 
 end spec
 

@@ -378,7 +378,9 @@ theorem raft.restore.wp_proof
     -- last `Ready` handed out (`SnpOk`)
     icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq1, Hlog⟩
     have Hsnp1 : SnpOk s.gh (logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists)) :=
-      Hgh1.1.2.restore _ (by simp only [snapTrip, snapId]; omega) Hq1.2
+      Hgh1.1.2.1.restore _ (by simp only [snapTrip, snapId]; omega) Hq1.2
+    ihave #Hcert' : ksnCert (GF := GF) s.logst.sn (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
+    · rw [Hgh1.1.2.2]; iexact Hcert
     -- (D22 S-d4 item 4) the log's half set (its conf state read-only, `Hcf`)
     icases ownSnapS_rest_of_parts sp pm pc pi pt ds uf ufm (DFrac.own (Qp.half 1))
         (DFrac.own (Qp.half 1)) sv Hspn Hpmn HpcS Hpin Hptn $$ [HD Hd HM HC HI HT]
@@ -387,11 +389,11 @@ theorem raft.restore.wp_proof
       iframe HD Hd HM HC HI HT
       iframe cI cT Hpb Hpbm Hcf
     wp_apply wp_raftLog_restore _ _ sp _ sv (by simp only [snapId]; omega)
-        (by simp only [snapId]; omega) ⟨id, Hidv⟩ $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
+        (by simp only [snapId]; omega) ⟨id, Hidv⟩ $$ [$Hlog $HsA $Hcert'] as ⟨HsA, Hlog⟩
     ihave HsA := ownSnapS_M _ _ _ $$ HsA
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
-    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1 Hgh1.1.2.2)
       %(fun h => absurd (Hrole.symm.trans h) (by decide))
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩

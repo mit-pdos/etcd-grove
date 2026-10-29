@@ -88,7 +88,7 @@ theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHard
                 "Hrn" ∷
                     ownRawNode γ rn id
                       { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
-                        storage := rs.storage, clb := rs.clb, tc := rs.tc, mode := rs.mode, cfg := rs.cfg,
+                        storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode, cfg := rs.cfg,
                         capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h } -∗
                   Φ (intoVal ())) -∗
             WP
@@ -111,8 +111,8 @@ theorem readyNstate.proj_isLearner (s : NState) (L : Option SnapLoan) (ce : List
     : (readyNstate s L ce sz).isLearner = s.isLearner
 
 theorem readyNstate.proj_gh (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).gh = have __src := s.gh; { tc := __src.tc, ns := __src.ns, xf :=
-    __src.xf, bt := __src.bt, slent := L.isSome, snp := loanTrip L }
+    (readyNstate s L ce sz).gh = have __src := s.gh; { tc := __src.tc, ns := __src.ns, xw :=
+    __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn }
 
 theorem readyNstate.proj_prevote (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
     (readyNstate s L ce sz).prevote = s.prevote
@@ -126,7 +126,7 @@ def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
     logst := logAcceptApplying (logAcceptUnstable (rdyLs L s.logst)) ce sz, prvals := s.prvals, prevote := s.prevote,
     gh :=
       have __src := s.gh;
-      { tc := __src.tc, ns := __src.ns, xf := __src.xf, bt := __src.bt, slent := L.isSome, snp := loanTrip L },
+      { tc := __src.tc, ns := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn },
     rd :=
       have __src := s.rd;
       { ro := __src.ro, pend := __src.pend },
@@ -140,7 +140,8 @@ def rdyLs (L : Option SnapLoan) (ls : LogState) : LogState :=
     { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
       snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted,
       stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
-      sip := ls.sip, lent := true, sapp := ls.sapp, aps := ls.aps, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt }
+      sip := ls.sip, lent := true, sapp := ls.sapp, aps := ls.aps, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt,
+      sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
   else ls
 
 theorem readyNstate.proj_lead (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :

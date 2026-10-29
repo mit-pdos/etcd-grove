@@ -36,19 +36,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit [GooseInterp] [GooseSemantics] go_gctx hG [StorageModel GF] sem package_sem in
-/-- The leave's entry decodes: `stepLeader` `Unmarshal`s its empty data into the empty
-`ConfChangeV2` (`ccDecodeV2_nil`, the trust-base fact). -/
-theorem ccEntsOk_leave :
-    ⊢ ccEntsOk (GF := GF) [leaveEntM] [some (.v2 ConfChangeV2M.empty)] := by
-  unfold ccEntsOk
-  iapply (BigSepL2.bigSepL2_cons (Φ := fun _ e o => ccEntOk (GF := GF) e o)).2
-  isplitl
-  · simp only [ccEntOk]
-    ipureintro; exact ⟨rfl, ccDecodeV2_nil⟩
-  iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => ccEntOk (GF := GF) e o)).2
-  iempintro
-
 theorem raft.appliedTo.wp_proof
     (wp_raftLog_appliedTo : raftLog.appliedTo.spec (GF := GF) (hG := hG))
     -- (2026-10-29, stage U5) the automatic leave: `confChangeToMsg`, and the functions `Step`'s

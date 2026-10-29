@@ -12,7 +12,7 @@ public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 
@@ -35,7 +35,7 @@ What the proof over raft's internals shows, from which the wrapper (below) deriv
 
 From any goroutine: `pb.Message{Type: MsgSnapStatus, From: id, Reject: status ==
 SnapshotFailure}` onto `recvc` (`netP_local`), which `run` steps as
-`RawNode.ReportSnapshot` does: a leader's `Progress` of `id` only. `n.done` never fires.
+`RawNode.ReportSnapshot` does: a leader's `Progress` of `id` only. (2026-10-29, stage U9a) If `n.done` fires, nothing is done.
 -/
 
 open Iris Iris.BI go_etcd_io.raft.v3
@@ -66,12 +66,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `recvc <- m` (a local message, `netP_local`); `n.done` never fires. (Raft v3.7, stage R5:
+/-- `recvc <- m` (a local message, `netP_local`); (2026-10-29, stage U9a) If `n.done` fires, nothing is done. (Raft v3.7, stage R5:
 the message is `&pb.Message{Type: pb.MsgSnapStatus.Enum(), From: new(id), Reject: new(rej)}`,
 built into `msgIn` by `msgIn_of_scalar_struct`; `MsgSnapStatus.Enum()` is a new callee.) -/
 private theorem node.ReportSnapshot.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReportSnapshot.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n to st
   wp_start as #Hnode
   ihave #Hnode' := Hnode
@@ -122,10 +125,16 @@ private theorem node.ReportSnapshot.wp_raw
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply isHandshake_isChan $$ Hdone
-    iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    -- (2026-10-29, stage U9a) the node stopped: nothing done
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro -
+    wp_auto
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
+  -/
 
 end proof
 

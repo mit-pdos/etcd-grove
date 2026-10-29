@@ -42,7 +42,7 @@ The result **aliases the log** in two of the three cases (a sub-slice of
 the stable/unstable boundary) it is a fresh slice from `extend`. In every case it is
 returned **read-only and for good**, `entsRO s es`, and the log comes back unchanged: no
 entry of the log is ever written again once it is in it -- `unstable` never writes in
-place (`ownUnstable`, `InvRaftlog.lean`) and `Storage` promises the same (`isStorage`'s
+place (`ownUnstable`, `InvRaftlog.lean`) and `Storage` promises the same (`isStorageD`'s
 `Entries`, `InvStorage.lean`) -- so there is nothing to give back. `maybeSendAppend`
 relies on it: it puts the result in a `MsgApp`, which `r.msgs` keeps, and reads it again
 (`payloadsSize`) after `r.send`. (Until 2026-09-29 the result was *lent*, and the log

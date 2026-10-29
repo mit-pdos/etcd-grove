@@ -107,11 +107,13 @@ abbrev raft.handleSnapshot.spec : Prop :=
   m.From' ≠ id →
   -- (2026-10-19, D21 M3) outside the no-snapshot mode (`raft.restore`'s premise)
   s.gh.ns = false →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
-      -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry (`restore`'s)
-      "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+      -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `ksnCert`) the snapshot certified (`restore`'s)
+      "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleSnapshot")) (Val #ml))
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ }}

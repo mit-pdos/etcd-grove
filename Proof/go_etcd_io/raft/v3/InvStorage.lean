@@ -1,148 +1,45 @@
 /-
 Port of `election_proof/inv_storage.v` (at feb5c73d4): the `Storage` interface.
 
-**raft v3.7 (stage R3 of the retarget, 2026-10-15; `notes/decisions.md`, "The log layer over
-read-only entries: the storage contract of raft v3.7").** The interface returns pointers
-(`storage.go:52-95`: `Entries` a `[]*pb.Entry`, `Snapshot` a `*pb.Snapshot`, `InitialState`
-two pointers). The contract models what `MemoryStorage` does (decision Q6): `Entries` hands
-out the storage's own entry pointers, read-only and for good (`entsRO`, `InvPbLog.lean`:
-each a persistent `entRO`); `Snapshot` a fresh clone, owned (`ownSnapM ... 1`, its record's
-id, lists and `AutoLeave` the storage's `ss`, `scs`, `sal`). The records are `EntryM`
-(`PbModel.lean`); `StorState`'s shape and every pure statement are the old ones.
-`InitialState` stays out of the contract, as before: `MemoryStorage`'s is specified for its
-single call at construction on `ownMemoryStorage` and the application's `memStorMeta`
-(`Spec/.../MemoryStorage__InitialState.lean`), which a clause on `P σ` alone cannot state.
+**U8 v2 (2026-10-29): the storage as range ownership** (candidate 17 rev 3,
+`notes/spec-first-study/raft-storage-spec.md`, user-approved; `notes/raft-unified-plan.md`, "U8 v2").
+Raft does not own the storage's state: the client may put in a snapshot or compact at any time.
+The storage's log is owned by **ranges** (`storLog st k dq es`, fractional; a discarded range is the
+frozen committed prefix, which only compaction removes), its end exactly (`storEnd st e`), and its
+compaction point by persistent lower bounds (`storCompacted st c`). These are fields of the class
+`StorageModel` (γ-free; each implementation provides them, with the §1 laws).
 
-`raftLog.storage` is a `Storage` **interface value**, supplied by the application (etcd
-provides one; raft itself only ships `MemoryStorage` for tests). It is therefore a
-legitimate abstraction boundary: there is no raft code to verify behind it, only a
-contract that raft relies on. So this file states that contract.
+The contract raft relies on is `isStorageP SV Bnd st`: ordinary triples for `LastIndex`, `Term`,
+`Entries`, `FirstIndex` and `Snapshot` over these ranges, and two laws (`Hbound`, the compaction's
+justification `Bnd`; `Hlen`, the no-wrap bound). Its cluster-level pieces, `SV` (the snapshot's
+validity, the API's `snapshotValid γ`) and `Bnd` (the API's `nodeAppliedLb`/`snapGiven`), are
+parameters: this file is far below the node API. Raft's API fixes them (`isStorage γ id st`).
 
-The shape follows `ownAckedIndexer` (`v3_proof/readonly.lean`): a definition bundling
-one Hoare triple per method, against an abstract resource describing the stored log.
+**Raft's view** (the second half of this file). Raft keeps, inside its log (`ownRaftLog`), a view of
+the storage, `StorState` (its compaction point `prev`, the physical log `ents` above it, the batch
+`pend` a `Ready` handed out, the published floor `fl`, the frozen end `fr` and the snapshot last
+handed out `sg`), and `ownStorage sn st σ`, the ranges, end and authorities it holds for that view:
+the frozen prefix `[c, fr]` (`□`), its owned part `(fr, kOut)` (`own 1`), the end unless a batch is
+out, and the authorities of `nodeAppliedLb` (at `fl`) and `snapGiven` (at `sg`). The read triples of
+the view (`isStorageWith`, `isStorageD sn st`) are **derived** from the contract (`isStorage_of_V`),
+with the statements the log's proofs were written against before U8 v2 (review 1's "derived
+contract"), and the hand-out, absorption, floor, lending and freezing of the view are lemmas
+(`ownStorage_handout`, ...), no longer laws an implementation proves.
 
-**This file assumes nothing**: the abstract predicate `ownStorage`, below, is a
-parameter (a field of the class `StorageModel`, which the results quantify over), and
-everything else is a definition built from it, so the triples are not axioms -- they
-are what a client has to supply, and a caller that has no `isStorage` gets nothing.
+`InitialState` is not in the contract (it is unlocked and returns the storage's own pointers:
+`issues/raft-memorystorage-initialstate-unlocked.md`).
 
-### The abstraction
-
-`ownStorage st prev ents ss` says: the storage behind the interface value `st` holds
-the log entries `ents`, immediately following the entry `prev`, and its most recent
-snapshot has metadata `ss` (as an `entryID`: `(Metadata.Term, Metadata.Index)`).
-`prev` is the compaction boundary -- the last entry the storage has discarded the
-payload of but still knows the term of. This is exactly how `MemoryStorage` represents
-its log (a dummy entry at `ents[0]`), and it is what makes `Term` total on
-`[prev.index, prev.index + |ents|]` rather than only on `(prev.index, ...]`. `ss` is
-`MemoryStorage.snapshot`'s metadata, which `Snapshot()` returns (added 2026-10-03, so
-that `raft` can relate the snapshot it forwards to its own commit index -- see
-`HSnapshot` and `ownRaftLog`'s `StoredSnapOk`).
-
-Index `prev.index + 1 + k` holds `ents[k]?`, so:
-  - `FirstIndex()` = `prev.index + 1`
-  - `LastIndex()`  = `prev.index + |ents|`
-  - `Term(i)`      = `termAt prev ents i`, defined for
-                     `prev.index <= i <= prev.index + |ents|`.
-
-### Which methods are here, and why the others are not
-
-`Storage` has six methods. Four are specified: `FirstIndex`, `LastIndex`, `Term` and
-(since 2026-09-19) `Entries`. The first three are what raft's own log code calls on the
-leader-election path (`raftLog.firstIndex`, `raftLog.lastIndex`, `raftLog.term`), and
-each of them **panics** on an error return, so a proof has to know they succeed.
-
-`Entries` is reached by `raftLog.slice`, which `raftLog.scan` and hence
-`raft.hasUnappliedConfChanges` call on the `hup` path whenever the unapplied range
-starts in the stable prefix. Its contract:
-  - the range premise `firstIndex <= lo < hi <= lastIndex + 1` is exactly what makes
-    `MemoryStorage.Entries`'s `ErrCompacted` and `ErrUnavailable` returns unreachable,
-    so the error is `nil`;
-  - the result is a **non-empty** sub-list of the stored entries of length at most
-    `hi - lo` -- `MemoryStorage` applies `limitSize`, which keeps at least one entry;
-  - **`cap = len`**: `MemoryStorage.Entries` returns `ents[:len(ents):len(ents)]`
-    precisely so that a caller's `append` reallocates instead of writing into
-    `ms.ents`. `raftLog.slice` relies on this through `extend`, whose in-place branch
-    would otherwise write into storage memory this contract does not grant;
-  - the entries are handed out **read-only and for good** (`entsRO s es`: the pointers
-    `↦*□` and each entry `entRO`; until the v3.7 retarget `s ↦*□ es` of entry values;
-    no wand back).
-    This is the interface's own contract (`storage.go:56-67`, upamanyus/etcd-raft
-    531b20c): "The caller of Entries owns the returned slice, and may append to it.
-    The individual entries in the slice must not be mutated, neither by the Storage
-    implementation nor the caller." `MemoryStorage` keeps it: `Entries` caps the
-    result (`storage.go:155`), `Append` rebuilds with `append(ms.ents[:offset:offset],
-    ...)` "as they may still be referenced from outside MemoryStorage"
-    (`storage.go:303-305`), and `Compact` allocates. The slack is not handed out:
-    `cap = len`. (Until 2026-09-29 the slice was *lent*, at an existential fraction,
-    with a wand back to `ownStorage`; that forced a page loan on `raftLog.slice`'s
-    callers -- `logstate.page`.)
-What the returned entries *are* is stated only as membership: every one is a stored
-entry **below `hi`** (`ents.take (hi - prev.index - 1)`). The bound was added
-2026-10-01, when `ownRaftLog`'s stable part became a *visible prefix* of the stored
-entries (`InvRaftlog.lean`): `raftLog.slice` reads only below `unstable.offset`, and
-without the bound it could not tell an entry it got back from a shadowed one.
-`MemoryStorage.Entries` returns `ms.ents[lo-offset : hi-offset]` cut by `limitSize`,
-so it holds.
-
-Besides the four triples the contract has one **pure clause**, `Hbounded`: the stable
-log's last index is below `2^61`. It is the assumption that makes appending to the log
-possible -- the log's no-wrap invariant is not inductive, and the part of the log an
-`append` does not move is exactly the part behind this interface. The long version is
-at the clause itself.
-
-`Snapshot` was added on 2026-09-20, by exactly that rule: `raft.maybeSendSnapshot`
-calls it, and `maybeSendSnapshot` is reachable from `bcastAppend` once
-`raftLog.term(pr.Next-1)` fails with `ErrCompacted`, i.e. once the storage has
-compacted. Its contract is a disjunction -- the distinguished
-`ErrSnapshotTemporarilyUnavailable`, or the storage's snapshot, non-empty once the
-storage is compacted (`prev.index ≠ 0`) -- because every other outcome reaches a
-`panic`. (Until 2026-10-16, stage R8a, the snapshot was promised non-empty outright,
-which a bare `MemoryStorage` without a snapshot does not meet, notes/decisions.md D11.)
-
-`InitialState` is deliberately **omitted**. Nothing on the election path calls it, and
-an assumption that is not needed is an assumption not worth making: it would be a fresh
-claim about client code. Add it when a proof needs it, with the same "state it, then
-use it" discipline.
-
-### The pending append (2026-10-10)
-
-The application appends the entries a `Ready` handed out (`MemoryStorage.Append`) on its
-own goroutine, while raft -- `node.go`'s `run` -- keeps reading the storage. So the
-storage's state has a pending batch, `StorState.pend` (`[]` when none), and the method
-triples answer only what the batch cannot change: `Term(i)` below its first index,
-`Entries(lo, hi)` with `hi` at most its first index (`PendFrom`), `LastIndex` with
-nothing pending. Two laws, ghost updates of the storage's owner, move the batch in and
-out: `Hhandout` (with nothing pending, hand out the right `AT σ p` to append `p` --
-`appendTok` for `isStorage` -- and keep reading at `{ σ with pend := p }`) and `Habsorb`
-(the receipt `DT σ p` -- `appendedTok` -- of the append, which an implementation's
-`Append` returns for the right, makes the owner's state `storAbsorb`: the batch
-appended, `storApp`). Raft runs the hand-out in `acceptUnstable` (`Ready`) and the
-absorb in `ownRaftLog_absorb`/`ownRawNode_appended`; it reads only below
-`unstable.offset`, at or below the batch's first index (`PendLogOk`, `InvRaftlog.lean`).
-`MemoryStorage` proves both laws with a ghost protocol under its lock
-(`InvMemstorage.lean`). notes/decisions.md, "Storage: a pending append, for node.go".
-
-### Why the triples return `#interface.nil` for the error
-
-That is the contract, not a convenience: raft treats a non-nil error from any of these
-three as unrecoverable and calls `panic`/`Logger.Panicf`. `Logger.wp_logf` deliberately
-excludes the panicking methods, so a proof cannot step past such a call at all -- the
-path must be shown unreachable. Saying "these three do not fail" is therefore the only
-honest reading of raft's use of the interface.
-
-Lean notes: `ownStorage` is the field of `class StorageModel GF` (binders `GF` and
-`GooseExts`, which `Storage`/`entryID` need), exported; a section that uses it has
-`[StorageModel GF]`.
-Rocq's `l1 `prefix_of` l2` is `l1 <+: l2`, `take n l`/`drop n l` are `l.take n`/`l.drop n`.
-The Rocq `ents !! k` is `ents[k]?` and `Z.to_nat` is `Int.toNat`. Inside `iprop(…)` a
-Texan triple is `□ (∀ Φ, …)`, as Rocq's `{{{ … }}}` is, so `isStorage` is persistent
-by `infer_instance`. A multiple return `(#li, #interface.nil)` is `PairV #li
-#interface.nil`; `global_addr` is `globalAddr`.
+Lean notes: a multiple return `(#li, #interface.nil)` is `PairV #li #interface.nil`; `global_addr` is
+`globalAddr`. Inside `iprop(…)` a Texan triple is `□ (∀ Φ, …)`, so the contracts are persistent by
+`infer_instance`.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import Perennial.Ghost.MonoNat
+public import Perennial.Ghost.SavedProp
+public import Perennial.Ghost.GhostMap
+public import Perennial.GooseLang.Countable
 
 @[expose] public section
 
@@ -154,46 +51,26 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-/-- What a `Storage` holds, as the interface's contract states it: the compaction
-boundary `prev` (index and term of the entry before the first stored one), the stored
-entries `ents` after it, the metadata `ss` of its most recent snapshot (`Snapshot`),
-and (2026-10-10) the batch `pend` the application may be appending. One record, so that the contract and its clients keep their shape when what is tracked
-changes (notes/decisions.md, "Predicate indices"; until 2026-10-08 these were three
-arguments of `ownStorage`, `isStorageWith`'s `P`, `memstorageFields` and
-`ownMemoryStorage`). -/
+/-- **Raft's view of its storage** (U8 v2; until then the storage's state as the contract stated it):
+the compaction point `prev` (index and term of the entry raft's resources start at, the dummy), the
+physical log `ents` after it (`π` of the design), the batch `pend` a `Ready` handed out (`[]` when
+none), the floor `fl` raft published (the authority of the applied lower bounds), the frozen end
+`fr` (the frozen prefix is `[prev.index, fr]`) and the snapshot index `sg` last handed out to install
+(the authority of `snapGiven`). One record, so that the contract and its clients keep their shape
+when what is tracked changes (notes/decisions.md, "Predicate indices"). -/
 structure StorState [GooseExts] where
   prev : entryID
   ents : List EntryM
-  ss : entryID
-  /-- The batch the application may be appending (2026-10-10, for `node.go`), `[]` when
-  none: handed out by the hand-out law (`Hhandout`, below), when raft's `Ready` hands the
-  entries out, and absorbed (`Habsorb`) once the application has appended it. While it
-  is pending the storage may hold `ents` or `storApp` of it, and the method triples
-  answer only what both agree on ("Storage: a pending append, for node.go",
-  notes/decisions.md). -/
   pend : List EntryM
-  /-- (2026-10-15, stage S) The snapshot's `ConfState`: the lists behind its four slices and
-  its `AutoLeave` (`HSnapshot` hands them out with the snapshot), so that raft knows which
-  certified snapshot (`raftSnapCert`, `ownRaftLog`'s `Hsksn`) it sends. `∅`/`false` for the empty
-  snapshot a fresh storage holds. -/
-  scs : CSLists := ⟨[], [], [], []⟩
-  sal : Bool := false
-  /-- (2026-10-21, D22 S-r) The snapshot's data, so that its certificate (`StorState.trip`, the
-  registry's `storCert`) is of what the snapshot holds: `HSnapshot` hands it out with the
-  snapshot. `[]` for the empty snapshot a fresh storage holds. -/
-  sdat : List w8 := []
-  /-- (D19i part 1, 2026-10-18) The **floor** raft has published: the application may compact
-  the storage, and replace its snapshot, up to this index, never above it (`MemoryStorage.
-  Compact`: "It is the application's responsibility to not attempt to compact an index greater
-  than raftLog.applied"). Raft raises it (`isStorageWith`'s `Hfloor`) and keeps it at most its
-  `applying`, and at most its `applied` wherever an election may start (`ownRaftLog`). So the
-  rest of this record is raft's **view**: the storage's true compaction boundary lies between
-  `prev.index` and `max prev.index fl`, its true snapshot is `ss` or a newer one at most `fl`,
-  and the method triples answer accordingly (`ErrCompacted` possible below `fl`). `0` for a
-  fresh storage. -/
   fl : w64 := 0
+  fr : Nat := 0
+  sg : Nat := 0
+  /-- (U8 v2, the snapshot's bound) the terms raft certified at committed indices (the authority of
+  `raftDL`, raft's reading of the contract's `DL`): every key at most `committed`, of the log's term
+  there (`DtOk`, `InvRaftlog.lean`) -/
+  dt : GMap Nat w64 := ∅
 
 /-- The term of index `i` in the log `prev :: ents`. `none` outside the range the
 storage can answer for. -/
@@ -202,101 +79,56 @@ def termAt [GooseExts] (prev : entryID) (ents : List EntryM) (i : w64) : Option 
   else (fun e : EntryM => e.Term') <$>
          ents[(uint.Z i - uint.Z prev.index' - 1).toNat]?
 
-/-- (2026-10-28, stage U4a) The state's entries at the indices `1..|ts|` above its boundary have
-the terms `ts`: index `j` the term `ts[j-1]`. -/
-def TermsOn [GooseExts] (σ : StorState) (ts : List w64) : Prop :=
-  ∀ (j t : w64), uint.Z σ.prev.index' < uint.Z j → ts[uint.nat j - 1]? = some t →
-    termAt σ.prev σ.ents j = some t
+/-- (U8 v2) Two ranges of the log, `es1` from index `k1` and `es2` from `k2`, agree where they
+overlap (`storLog_agree`). -/
+def LogAgree [GooseExts] (k1 : Nat) (es1 : List EntryM) (k2 : Nat) (es2 : List EntryM) : Prop :=
+  ∀ (i : Nat) (e1 e2 : EntryM), k1 ≤ i → k2 ≤ i → es1[i - k1]? = some e1 → es2[i - k2]? = some e2 →
+    e1 = e2
 
-/-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
-of the development, not an assumption: abstract because the implementation is not
-raft's and is not in scope, so every result holds for whichever predicate the client
-proves `isStorageWith` for (`MemstorageInstance.lean` does it for `MemoryStorage`).
-Exclusive (not persistent) by intent, because a `Storage` is mutable -- `Append` and
-`Compact` change it; nothing assumes otherwise. There is deliberately no global
-instance: one would specialise every result to it. Until 2026-10-08 `ownStorage` was an
-`axiom`, which fixed one unknown predicate that no client could ever establish. -/
+/-- **The storage as range ownership** (U8 v2, candidate 17 rev 3 §1; γ-free). A *parameter* of the
+development, not an assumption: every result holds for whichever model a client proves the contract
+for. There is deliberately no global instance. -/
 class StorageModel (GF : BundledGFunctors) [GooseExts] where
-  ownStorage : Storage → StorState → IProp GF
-  /-- `appendTok st σ p` (2026-10-10): the application's right to append the batch `p`
-  to the storage `st`, handed out at the state `σ` (with nothing pending) by the
-  hand-out law (`isStorageWith`'s `Hhandout`). An implementation's own `Append` consumes
-  it (`MemoryStorage.Append`, `Spec/.../MemoryStorage__Append.lean`). -/
-  appendTok : Storage → StorState → List EntryM → IProp GF
-  /-- `appendedTok st σ p`: the application did append `p` (what `Append` returns); the
-  absorb law (`Habsorb`) gives it back to the storage's owner, whose state then holds
-  the batch. -/
-  appendedTok : Storage → StorState → List EntryM → IProp GF
-  /-- `storCut st n` (D19i part 1, 2026-10-18): the storage's true compaction boundary has
-  reached `n` (persistent; the boundary only rises). What an `ErrCompacted` answer, or a first
-  index above raft's view, tells raft: the storage is compacted, so its snapshot is not the
-  empty one (`HSnapshot`). -/
-  storCut : Storage → Int → IProp GF
-  storCut_persistent : ∀ st n, Persistent (storCut st n)
-  /-- `storFloor st x`: the floor raft published (`StorState.fl`) is at least `x`
-  (persistent): the application's right to compact, and to take a snapshot, up to `x`. The
-  floor law (`Hfloor`) hands it out. -/
-  storFloor : Storage → w64 → IProp GF
-  storFloor_persistent : ∀ st x, Persistent (storFloor st x)
-  /-- `storCap st k` (2026-10-19, D21 M3): the storage's true compaction boundary never passes `k`
-  (persistent), so no `storCut st n` fact is above it (`storCut_cap`). An application that never
-  compacts past `k` gives it (a `MemoryStorage` made with that cap, `MemStorNames.cap`); with it
-  and `k ≤ 1` a leader in the no-snapshot mode never falls back to a snapshot (`NGhost.ns`). -/
-  storCap : Storage → Int → IProp GF
-  storCap_persistent : ∀ st k, Persistent (storCap st k)
-  storCut_cap : ∀ st n k, storCut st n ∗ storCap st k ⊢ ⌜n ≤ k⌝
-  /-- `storCert st k` (D22 S-b′2, 2026-10-20): the snapshot `k` (id, lists, `AutoLeave`) is
-  **certified** in the storage's own registry (persistent): every non-empty snapshot the storage
-  holds is, and `HSnapshot` hands it out with the snapshot. γ-free, as the rest of the model: what
-  a certificate *says* (`raftSnapCert γ k`) is tied to it by an invariant the application
-  allocates knowing raft's names (`storCertOk`, `SnapConf.lean`). -/
-  storCert : Storage → SnapTrip → IProp GF
-  storCert_persistent : ∀ st k, Persistent (storCert st k)
-  /-- `storTermsAt st ts` (2026-10-28, stage U4a): the storage's entries at the indices `1..|ts|`
-  above its boundary have the terms `ts` (index `j` the term `ts[j-1]`), for good (persistent): the
-  owner vouched for them within its floor (`storTermsAt_intro`), and the storage never rewrites an
-  entry within the floor (an append starts above it, a snapshot applied puts the boundary at or
-  above it). What `MemoryStorage.CreateSnapshot.unifiedSpec` reads the term of its index from. -/
-  storTermsAt : Storage → List w64 → IProp GF
-  storTermsAt_persistent : ∀ st ts, Persistent (storTermsAt st ts)
-  /-- Its introduction (stage U4a): the owner, with nothing pending, vouches for the terms of its
-  view's entries within its floor (`TermsOn`). -/
-  storTermsAt_intro : ∀ (st : Storage) (σ : StorState) (ts : List w64),
-    σ.pend = [] → (ts.length : Int) ≤ uint.Z σ.fl → TermsOn σ ts →
-    ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsAt st ts)
+  /-- `storLog st k dq es`: the storage's entries at the indices `k, k+1, …, k+|es|-1` are `es`, or
+  compacted (at the compaction point itself only the term is kept). `own 1` lets its holder write the
+  range; `□` (`DFrac.discard`) is the frozen committed prefix, which nobody writes again. -/
+  storLog : Storage → Nat → DFrac → List EntryM → IProp GF
+  /-- `storEnd st e`: the storage's last index is exactly `e - 1` (exclusive). -/
+  storEnd : Storage → Nat → IProp GF
+  /-- `storCompacted st c` (persistent): the compaction point has reached `c`: `Term(i)` for `i < c`
+  and `Entries(lo, …)` for `lo ≤ c` answer `ErrCompacted`; `FirstIndex` answers at least `c + 1`. -/
+  storCompacted : Storage → Nat → IProp GF
+  storLog_app : ∀ st k dq (a b : List EntryM),
+    storLog st k dq (a ++ b) ⊣⊢ storLog st k dq a ∗ storLog st (k + a.length) dq b
+  storLog_frac : ∀ st k (dq1 dq2 : DFrac) es,
+    storLog st k (dq1 • dq2) es ⊣⊢ storLog st k dq1 es ∗ storLog st k dq2 es
+  /-- (U8 v2: only of a non-empty range, which `storLog_nil` would otherwise contradict) -/
+  storLog_valid : ∀ st k dq (es : List EntryM), es ≠ [] → storLog st k dq es ⊢ ⌜✓ dq⌝
+  storLog_agree : ∀ st k1 k2 dq1 dq2 es1 es2,
+    storLog st k1 dq1 es1 ∗ storLog st k2 dq2 es2 ⊢ ⌜LogAgree k1 es1 k2 es2⌝
+  storLog_persist : ∀ st k dq es, storLog st k dq es ⊢ |==> storLog st k DFrac.discard es
+  storLog_persistent : ∀ st k es, Persistent (storLog st k DFrac.discard es)
+  storLog_nil : ∀ st k dq, ⊢ storLog st k dq []
+  storEnd_excl : ∀ st e e', storEnd st e ∗ storEnd st e' ⊢ False
+  storCompacted_persistent : ∀ st c, Persistent (storCompacted st c)
+  storCompacted_zero : ∀ st, ⊢ storCompacted st 0
+  storCompacted_mono : ∀ st c c', c' ≤ c → storCompacted st c ⊢ storCompacted st c'
 
-export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap storCert
-  storTermsAt)
+export StorageModel (storLog storEnd storCompacted)
 
-instance storCut_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (n : Int) : Persistent (storCut (GF := GF) st n) :=
-  StorageModel.storCut_persistent st n
+instance storLog_discard_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (k : Nat) (es : List EntryM) : Persistent (storLog (GF := GF) st k DFrac.discard es) :=
+  StorageModel.storLog_persistent st k es
 
-instance storFloor_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (x : w64) : Persistent (storFloor (GF := GF) st x) :=
-  StorageModel.storFloor_persistent st x
-
-instance storCap_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (k : Int) : Persistent (storCap (GF := GF) st k) :=
-  StorageModel.storCap_persistent st k
-
-instance storCert_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (k : SnapTrip) : Persistent (storCert (GF := GF) st k) :=
-  StorageModel.storCert_persistent st k
-
-instance storTermsAt_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (ts : List w64) : Persistent (storTermsAt (GF := GF) st ts) :=
-  StorageModel.storTermsAt_persistent st ts
+instance storCompacted_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (c : Nat) : Persistent (storCompacted (GF := GF) st c) :=
+  StorageModel.storCompacted_persistent st c
 
 section termAt
 variable [GooseExts]
 
-/-- What a storage holding `σ.ents` after `σ.prev` holds once the entries `pend` are
-appended to it the way `MemoryStorage.Append` does (`storage.go`): everything at or
-above the batch's first index is replaced by the batch. `Append` is not part of the
-`Storage` interface raft uses; it is how the *application* persists `Ready.Entries`.
-(Defined in `InvRaftlog.lean` until 2026-10-10, when the hand-out and absorb laws below
-came to mention it.) -/
+/-- What the storage holds once the batch `pend` is written the way `MemoryStorage.Append` does:
+everything at or above the batch's first index is replaced by the batch. -/
 def storApp (σ : StorState) (pend : List EntryM) : List EntryM :=
   match pend with
   | [] => σ.ents
@@ -308,270 +140,275 @@ theorem storApp_pend (σ : StorState) (q pend : List EntryM) :
     storApp { σ with pend := q } pend = storApp σ pend := by
   cases pend <;> rfl
 
-/-- The state once the pending batch is appended: the absorb law's result. -/
+/-- The view once the batch out is back: the absorption's result. -/
 def storAbsorb (σ : StorState) : StorState :=
   { σ with ents := storApp σ σ.pend, pend := [] }
 
-/-- The pending batch, if any, starts at or above index `n`: what the method triples
-ask of a query (`Term(i)` with `n = i + 1`, `Entries(lo, hi)` with `n = hi`), so that
-the answer is the same whether or not the application has appended the batch yet. -/
+/-- The batch out, if any, starts at or above index `n`: what the read triples ask of a query
+(`Term(i)` with `n = i + 1`, `Entries(lo, hi)` with `n = hi`): raft reads only what it holds. -/
 def PendFrom (σ : StorState) (n : Int) : Prop :=
   ∀ e0, σ.pend.head? = some e0 → n ≤ uint.Z e0.Index'
 
-/-- The hand-out law's premise on the batch `p`: non-empty, starting above the
-compaction boundary and at most one past the stored entries (so that `Append` neither
-cuts the batch nor leaves a gap -- `MemoryStorage.Append`'s `Panicf`). -/
+/-- The hand-out's premise on the batch `p`: non-empty, starting above the compaction point and at
+most one past the physical log, numbered consecutively. -/
 def PendOk (σ : StorState) (p : List EntryM) : Prop :=
   p ≠ [] ∧
   ∀ e0, p.head? = some e0 →
     uint.Z σ.prev.index' < uint.Z e0.Index' ∧
     uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 ∧
-    -- (D19i part 1) numbered consecutively: the storage's entries stay numbered by their
-    -- positions, which the application's `Compact` reads its new boundary from
     ∀ (k : Nat) (e : EntryM), p[k]? = some e → uint.Z e.Index' = uint.Z e0.Index' + (k : Int)
 
-/-- (D19i part 1) The batch starts above the floor (`StorState.fl`): an append never rewrites
-what the application may have compacted or snapshotted. Raft hands out entries from
-`offsetInProgress`, above its `applying` (`ownRaftLog`). -/
+/-- (D19i part 1) The batch starts above the floor (`StorState.fl`). -/
 def PendAbove (σ : StorState) (p : List EntryM) : Prop :=
   ∀ e0, p.head? = some e0 → uint.Z σ.fl < uint.Z e0.Index'
 
+/-- (U8 v2) The first index raft does not hold: the batch out's first, or the end. -/
+def StorState.kOut (σ : StorState) : Nat :=
+  match σ.pend.head? with
+  | some e0 => uint.nat e0.Index'
+  | none => uint.nat σ.prev.index' + 1 + σ.ents.length
+
+/-- A snapshot's model is countable (for the pin of its validity, `svCert`). -/
+instance snapshotM_countable : Pos.Countable SnapshotM :=
+  countableOfLeftInverse
+    (fun s : SnapshotM => (s.Data', s.Metadata'.ConfState'.Voters', s.Metadata'.ConfState'.Learners',
+      s.Metadata'.ConfState'.VotersOutgoing', s.Metadata'.ConfState'.LearnersNext',
+      s.Metadata'.ConfState'.AutoLeave', s.Metadata'.Index', s.Metadata'.Term'))
+    (fun p => ⟨p.1, ⟨⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1⟩, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2⟩⟩) (fun _ => rfl)
+
+/-- A snapshot as raft records it is countable (for the pin of a received snapshot's certificate,
+`ksnCert`). -/
+instance snapTrip_countable : Pos.Countable SnapTrip :=
+  countableOfLeftInverse
+    (fun k : SnapTrip => (k.sid.term', k.sid.index', k.cl.voters, k.cl.learners, k.cl.outgoing,
+      k.cl.learnersNext, k.al, k.dat))
+    (fun p => ⟨⟨p.1, p.2.1⟩, ⟨p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1⟩, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2⟩) (fun _ => rfl)
+
 end termAt
 
-section proof
+/-! ## The contract over range ownership (U8 v2, candidate 17 rev 3 §2)
+
+`isStorageP SV Bnd st`: the five methods raft reads while running, as ordinary triples over the
+range vocabulary, and two laws. It is parameterized by its two cluster-level pieces, which this file
+cannot name:
+
+- `SV sv`, what a non-empty stored snapshot is (the API's `snapshotValid γ`);
+- `Bnd c`, why the storage is compacted at most to `c` (the API's `∃ k, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ
+  id k ∨ snapGiven γ id k)`);
+- `DL i`, why a stored snapshot at index `i` is at most what raft has committed (the API's: the
+  node's delivered committed prefix reaches `i`, `deliveredLogLb`, or a snapshot raft handed out
+  does, `snapGiven`). (U8 v2, 2026-10-29: `maybeSendSnapshot`'s commit bound, `SnapOk`, does not
+  follow from the snapshot's validity alone: a leader's commit index may lag the cluster's.)
+
+Raft's API module fixes both (`isStorage γ id st`); no client supplies them. Persistent.
+
+The laws: `Hbound` (`storCompacted_bound`), under an update at `⊤` (the justification is behind the
+implementation's invariant: review 4, M3; at `⊤`, not the design's `↑N`, the weaker obligation, since
+raft uses it only at `⊤`), and `Hlen`, the no-wrap bound of the old contract's `Hbounded`, now over
+a range (a stored entry's index stays below `2^61`: what makes appending possible, the log's no-wrap
+bound not being inductive; `InvRaftlog.lean`). -/
+
+section rangeContract
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The interface contract, against an arbitrary ownership predicate `P` for the
-storage's contents (a `StorState`, as in `ownStorage`). Persistent: it is a
-property of the interface value (which method implementations it dispatches to), not
-of the storage's current contents -- those live in `P`. `isStorage` below is the case
-`P := ownStorage st` that the rest of the development uses; a concrete implementation
-of the interface is shown to satisfy the contract by proving `isStorageWith` for its
-own predicate (see `InvMemstorage.lean`). -/
-def isStorageWith (P : StorState → IProp GF)
-    (AT DT : StorState → List EntryM → IProp GF) (CT : Int → IProp GF) (FW : w64 → IProp GF)
-    (SC : SnapTrip → IProp GF) (st : Storage) :
-    IProp GF :=
+/-- See above. -/
+def isStorageP (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF)
+    (st : Storage) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
-  -- `LastIndex` only with nothing pending: the batch may extend the log (2026-10-10)
-  "#HLastIndex" ∷ (∀ (σ : StorState),
-     {{ P σ ∗ ⌜σ.pend = []⌝ }}
+  "#HLastIndex" ∷ (∀ (e : Nat),
+     {{ storEnd st e }}
        (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
      {{ (li : w64), RET (PairV #li #interface.nil);
-         ⌜uint.Z li = uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
-         P σ }}) ∗
-  -- (D19i part 1) at least the view's, at most one past the floor; above the view's only
-  -- once compacted (`CT`)
-  "#HFirstIndex" ∷ (∀ (σ : StorState),
-     {{ P σ }}
-       (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
-     {{ (fi : w64), RET (PairV #fi #interface.nil);
-         ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z fi ∧
-           uint.Z fi ≤ max (uint.Z σ.prev.index') (uint.Z σ.fl) + 1⌝ ∗
-         (⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∨ CT (uint.Z fi - 1)) ∗
-         P σ }}) ∗
-  -- (D19i part 1) or `ErrCompacted` below the floor, the storage then compacted past `i0`
-  "#HTerm" ∷ (∀ (σ : StorState) (i0 : w64) (ec : GoInterface),
-     {{ P σ ∗
-         ⌜uint.Z σ.prev.index' ≤ uint.Z i0 ∧
-            uint.Z i0 ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
-         -- below the pending batch (2026-10-10)
-         ⌜PendFrom σ (uint.Z i0 + 1)⌝ ∗
+         storEnd st e ∗ ⌜uint.nat li + 1 = e⌝ }}) ∗
+  "#HTerm" ∷ (∀ (k : Nat) (dq : DFrac) (es : List EntryM) (i0 : w64) (ec : GoInterface),
+     {{ storLog st k dq es ∗ ⌜k ≤ uint.nat i0 ∧ uint.nat i0 < k + es.length⌝ ∗
          globalAddr ErrCompacted ↦□ ec }}
        (App (Val #(methods i.ty go!"Term" i.v)) (Val #i0))
      {{ (t : w64) (err : GoInterface), RET (PairV #t #err);
-         (⌜err = interface.nil ∧ termAt σ.prev σ.ents i0 = some t⌝ ∨
-          (⌜err = ec ∧ uint.Z i0 < uint.Z σ.fl⌝ ∗ CT (uint.Z i0 + 1))) ∗ P σ }}) ∗
-  -- (D19i part 1) or `ErrCompacted` at or below the floor, the storage compacted up to `lo`
-  "#HEntries" ∷ (∀ (σ : StorState)
-      (lo hi maxSize : w64) (ec : GoInterface),
-     {{ P σ ∗
-         ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
-            uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
-         -- below the pending batch (2026-10-10)
-         ⌜PendFrom σ (uint.Z hi)⌝ ∗
+         storLog st k dq es ∗
+         (⌜err = interface.nil ∧ (fun e : EntryM => e.Term') <$> es[uint.nat i0 - k]? = some t⌝ ∨
+          (⌜err = ec⌝ ∗ storCompacted st (uint.nat i0 + 1))) }}) ∗
+  -- two pieces, a frozen prefix and an owned tail (possibly empty): N4
+  "#HEntries" ∷ (∀ (k : Nat) (dq1 dq2 : DFrac) (a b : List EntryM) (lo hi maxSize : w64)
+      (ec : GoInterface),
+     {{ storLog st k dq1 a ∗ storLog st (k + a.length) dq2 b ∗
+         ⌜k ≤ uint.nat lo ∧ uint.nat lo < uint.nat hi ∧
+           uint.nat hi ≤ k + a.length + b.length⌝ ∗
          globalAddr ErrCompacted ↦□ ec }}
        (App (App (App (Val #(methods i.ty go!"Entries" i.v)) (Val #lo)) (Val #hi))
          (Val #maxSize))
-     {{ (s : GoSlice) (es : List EntryM) (err : GoInterface),
-         RET (PairV #s #err);
-         (⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ CT (uint.Z lo) ∗ P σ) ∨
-         (⌜err = interface.nil⌝ ∗
-         entsRO s es ∗
-         ⌜es ≠ [] ∧
-           (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
-           (∀ e, e ∈ es → e ∈ σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat) ∧
-           s.cap = s.len ∧
-           -- *which* entries: the stored ones at `[lo, lo+1, ...]`, cut short by
-           -- `maxSize` (the `Storage` interface's documented contract: "Entries returns a
-           -- slice of consecutive log entries in the range [lo, hi)"; `MemoryStorage`
-           -- returns `limitSize(ents[lo-offset:hi-offset])`). Added 2026-10-01 for
-           -- `AppOk`'s prefix clause.
-           es <+: (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
-                    (uint.Z lo - uint.Z σ.prev.index' - 1).toNat⌝ ∗
-         P σ) }}) ∗
-  /- The stable log's last index is far below `2^64`.
-
-     This is the one *pure* clause of the contract, and it is what makes appending to
-     the log possible at all. `ownRaftLog`'s `Hnowrap` says the whole log's last
-     index leaves room for one more entry, and that bound is **not inductive**: after
-     an append the log is one longer and the same bound is needed at the new length, so
-     no invariant of the log alone can supply it (any invariant preserved by `append`
-     would have to be closed under `+1` and therefore could not bound anything). The
-     log's last index is `prev.index + |sents| + |uents|`, of which `append` only moves
-     `|uents|` -- and *that* part is bounded for free, because `unstable.entries` is a
-     Go slice and Perennial's `ownSlice_len` gives `length = sint.nat len < 2^63` of
-     whatever slice the `append` returns. So the only piece that has to be assumed is
-     the part `append` never touches: the compaction boundary and the stable prefix
-     behind this interface.
-
-     `2^61` is arbitrary but generous, and it is stated about the client's storage
-     rather than about raft: a `Storage` whose last index is `2^61` has been fed
-     2·10^18 entries. With it, the log's last index stays below `2^61 + 2^63`, leaving
-     `appendEntry` room for a batch of up to `2^61` entries without wrapping -- see
-     `spec_raft__appendEntry.v`, which is the only place this clause is used. Added
-     2026-09-20, when `raft.wp_appendEntry` stopped being an axiom; before that the gap
-     was a documented over-claim in that spec's comment.
-
-     It hands `ownStorage` back because the conclusion is pure and `ownStorage` is not
-     persistent: an `icases` against a bare `ownStorage st σ -∗ ⌜…⌝` would
-     consume the storage (main's notes/gotchas.md, "Reading a pure fact out of a
-     definition without consuming it"). -/
-  "#Hbounded" ∷ □ (∀ (σ : StorState),
-     P σ -∗
-     ⌜uint.Z σ.prev.index' + (σ.ents.length : Int) < 2^61⌝ ∗
-     P σ) ∗
-  /- `Snapshot()` -- added 2026-09-20 for `raft.maybeSendSnapshot`.
-
-     `raftLog.snapshot` (`new/code/go_etcd_io/raft/v3.v:864`) returns
-     `l.unstable.snapshot` when it is non-nil and otherwise forwards to this method. It
-     is non-nil only while a received snapshot is pending (`LogState.snap`, since
-     2026-10-02; until then it was always nil), so every other snapshot on this path
-     comes from the client.
-
-     The contract is the *disjunction* `maybeSendSnapshot` is written against: either
-     the distinguished, non-fatal `ErrSnapshotTemporarilyUnavailable` -- for which raft
-     has a `return false` -- or success with the storage's snapshot, **non-empty once
-     the storage is compacted** (`σ.prev.index ≠ 0 → Metadata.Index ≠ 0`). Both halves
-     are needed, and for the same reason as `FirstIndex`/`Term`: any other error reaches
-     `panic(err)`, and an empty snapshot on the success path reaches
-     `panic("need non-empty snapshot")` (`v3.v:3190-3196`). "Non-empty" is
-     `IsEmptySnap`'s test, `Metadata.Index ≠ 0` (`v3.v:2004`).
-
-     The error value is passed in as the package-level variable's points-to, so a proof
-     compares the two interface values through `isInitialized` (`Base.lean`) rather
-     than through a claim about `errors.New`.
-
-     **What the snapshot is** (2026-10-03). On success the snapshot's metadata is the
-     storage's own, `ss` (`snapId`, `Defs.lean`): "Snapshot returns the most recent
-     snapshot" (`storage.go:91`). That is all this clause says about *which* snapshot;
-     that it is of a committed prefix of raft's log is not a property of a `Storage` at
-     all, and is kept by raft instead, as an invariant relating `ss` to its commit index
-     (`ownRaftLog`'s `StoredSnapOk`, `InvRaftlog.lean`) -- true at `newRaft` by a premise
-     on the initial storage, and preserved because nothing in scope changes the storage.
-     Since raft v3.7 (stage R3) the snapshot is a **fresh clone, owned by the caller**
-     (`MemoryStorage.Snapshot` returns `proto.Clone(ms.snapshot)`, `storage.go:213`; until
-     then a value whose `ConfState` slices were the storage's, handed out read-only), its
-     record's conf state the lists `σ.scs` and `AutoLeave` `σ.sal` the storage's state
-     records (stage S), so that raft knows which certified snapshot it forwards.
-
-     *Client assumption* in this clause (2026-10-16, stage R8a, D11): **a compacted
-     storage has a snapshot** -- on success the snapshot is non-empty whenever the
-     storage's compaction boundary `σ.prev.index` is not `0`. etcd's `MemoryStorage` has
-     one: it compacts only after `CreateSnapshot` (`Compact` moves `ents[0]` to `ci`, and
-     etcd's server calls it after the snapshot is saved), so `ss.index ≥ prev.index`.
-     An *uncompacted* storage may answer the empty snapshot (a fresh `MemoryStorage`
-     does, `memOwnStorage_empty`), and raft never asks it: `maybeSendSnapshot` runs only
-     after `raftLog.term(pr.Next - 1)` failed, and at an uncompacted storage that
-     failure could only be `ErrUnavailable` (`pr.Next - 1` past the last index), which
-     the leader's progress bound excludes (`PrvalsOk`, `InvRaftPhys.lean`: `1 ≤ Next ≤
-     lastIndex + 1`), so the failure is `ErrCompacted`, which means `prev.index ≥ 1`
-     (`raft.maybeSendAppend`'s proof; `raftLog.snapshot` and `maybeSendSnapshot` take
-     the premise `prev.index ≠ 0`). Until then the clause promised a non-empty snapshot
-     outright, assuming the second kind of failure away. -/
-  "#HSnapshot" ∷ (∀ (σ : StorState)
-      (esu : GoInterface) (n : Int),
-     {{ P σ ∗
-         globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
-         -- (D19i part 1) what the caller knows of the storage's compaction
-         (⌜n ≤ 0⌝ ∨ CT n) }}
+     {{ (s : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #s #err);
+         storLog st k dq1 a ∗ storLog st (k + a.length) dq2 b ∗
+         ((⌜err = ec⌝ ∗ storCompacted st (uint.nat lo)) ∨
+          (⌜err = interface.nil⌝ ∗ entsRO s es ∗
+           ⌜es ≠ [] ∧ s.cap = s.len ∧
+             es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)⌝)) }}) ∗
+  "#HFirstIndex" ∷ (∀ (c : Nat),
+     {{ storCompacted st c }}
+       (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
+     {{ (fi : w64), RET (PairV #fi #interface.nil);
+         ⌜c + 1 ≤ uint.nat fi⌝ ∗ storCompacted st (uint.nat fi - 1) }}) ∗
+  "#HSnapshot" ∷ (∀ (c : Nat) (esu : GoInterface),
+     {{ storCompacted st c ∗ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
        (App (Val #(methods i.ty go!"Snapshot" i.v)) (Val #()))
      {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
-         P σ ∗
-         (⌜err = esu⌝ ∨
-          (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
-           ⌜((σ.prev.index' ≠ W64 0 ∨ 1 ≤ n) → sv.Metadata'.Index' ≠ W64 0) ∧
-             -- the view's snapshot, or (D19i part 1) a newer one the application made, at
-             -- most the floor, at an entry of the view
-             ((snapId sv = σ.ss ∧
-               sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-               sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat) ∨
-              (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
-               uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
-               uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-               termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
-           -- (D22 S-b′2, 2026-10-20) a non-empty one is certified in the storage's registry
-           (⌜sv.Metadata'.Index' = W64 0⌝ ∨ SC (snapTrip sv sv.Metadata'.ConfState'.lists)))) }}) ∗
-  /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
-     pending append, for node.go"). The application appends a `Ready`'s entries on its own
-     goroutine while raft keeps reading the storage. Two laws, ghost updates of the
-     storage's owner:
+         ⌜err = esu⌝ ∨
+         (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+           ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
+           (⌜sv.Metadata'.Index' = W64 0⌝ ∨ SV sv ∗ DL (uint.nat sv.Metadata'.Index'))) }}) ∗
+  "#Hbound" ∷ □ (∀ (c : Nat), storCompacted st c ={⊤}=∗ Bnd c) ∗
+  "#Hlen" ∷ □ (∀ (k : Nat) (dq : DFrac) (es : List EntryM),
+     storLog st k dq es -∗ ⌜es = [] ∨ k + es.length ≤ 2^61⌝ ∗ storLog st k dq es))
 
-     - **hand-out**: with nothing pending, the owner hands out the right to append a
-       batch `p` (`AT σ p`) and keeps reading at `{ σ with pend := p }`, where the method
-       triples answer only queries the batch cannot affect (`PendFrom`, `LastIndex` with
-       nothing pending);
-     - **absorb**: the receipt of the append (`DT σ p`, which an implementation's
-       `Append` returns for `AT σ p`) turns the owner's state into the appended one,
-       `storAbsorb`; the receipt fixes which state the batch was handed out at.
+instance isStorageP_pers (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF)
+    (st : Storage) : Persistent (isStorageP SV Bnd DL st) := by
+  unfold isStorageP; infer_instance
 
-     `PendOk` is what the hand-out asks of the batch. -/
-  "#Hhandout" ∷ □ (∀ (σ : StorState) (p : List EntryM),
-     P σ -∗ ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p⌝ ==∗ P { σ with pend := p } ∗ AT σ p) ∗
-  "#Habsorb" ∷ □ (∀ (σ1 σ : StorState) (p : List EntryM),
-     P σ1 -∗ DT σ p ==∗ ⌜σ1 = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)) ∗
-  /- **The floor** (D19i part 1, 2026-10-18): with nothing pending, the owner raises the floor
-     to `x`, at most the view's last index, and hands out the witness `FW x`, the application's
-     right to compact and snapshot up to `x` (`StorState.fl`). -/
-  "#Hfloor" ∷ □ (∀ (σ : StorState) (x : w64),
-     P σ -∗ ⌜σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z x ∧
-       uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ==∗
-     P { σ with fl := x } ∗ FW x))
+end rangeContract
 
-/-- The contract against the abstract `ownStorage`: what every client of the interface
-assumes. -/
-def isStorage (st : Storage) : IProp GF :=
-  isStorageWith (ownStorage st) (appendTok st) (appendedTok st) (storCut st) (storFloor st)
-    (storCert st) st
+/-! ## The snapshots' certificates as raft carries them (U8 v2; γ-free pins) -/
 
-instance isStorageWith_pers (P : StorState → IProp GF)
-    (AT DT : StorState → List EntryM → IProp GF) (CT : Int → IProp GF) (FW : w64 → IProp GF)
-    (SC : SnapTrip → IProp GF) (st : Storage) : Persistent (isStorageWith P AT DT CT FW SC st) := by
-  unfold isStorageWith; infer_instance
+section certs
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
-instance isStorage_pers (st : Storage) : Persistent (isStorage (GF := GF) st) := by
-  unfold isStorage; infer_instance
+/-- **The storage's snapshot `sv` is valid**, as raft carries it (persistent, γ-free): the contract's
+`SV sv`, for the `SV` pinned at `sn.gsv` (the API's `snapshotValid γ`, which the node level recovers
+from the pin). Replaces the certificate registry's `storCert`. -/
+def svCert (sn : StorNames) (sv : SnapshotM) : IProp GF :=
+  iprop(∃ (SV : SnapshotM → IProp GF), savedPredOwn sn.gsv DFrac.discard SV ∗ □ SV sv)
 
-/-- (D19i part 1) The storage `st` is compacted at least up to `m` (persistent): some `storCut`
-at or past it. -/
+instance svCert_pers (sn : StorNames) (sv : SnapshotM) : Persistent (svCert (GF := GF) sn sv) := by
+  unfold svCert; infer_instance
+
+/-- (U8 v2) **A snapshot raft received is certified**, as raft carries it (persistent, γ-free): `P k`
+for the predicate pinned at `sn.gk` (the cluster's certificate `raftSnapCertD γ`, which the node
+level pins; `certLink`, `StepGhostMode.lean`). What the log keeps of the snapshots it may send
+(`LogState.ksn`, `ownRaftLog`'s `Hkcert`): until U8 v2 they were registered in the storage's
+certificate registry (`storCert`). -/
+def ksnCert (sn : StorNames) (k : SnapTrip) : IProp GF :=
+  iprop(∃ (P : SnapTrip → IProp GF), savedPredOwn sn.gk DFrac.discard P ∗ □ P k)
+
+instance ksnCert_pers (sn : StorNames) (k : SnapTrip) : Persistent (ksnCert (GF := GF) sn k) := by
+  unfold ksnCert; infer_instance
+
+/-- Every snapshot of `K` certified (`ksnCert`). -/
+def ksnCerts (sn : StorNames) (K : List SnapTrip) : IProp GF :=
+  iprop([∗list] k ∈ K, ksnCert sn k)
+
+instance ksnCerts_pers (sn : StorNames) (K : List SnapTrip) :
+    Persistent (ksnCerts (GF := GF) sn K) := by
+  unfold ksnCerts; infer_instance
+
+theorem ksnCerts_nil (sn : StorNames) : ⊢ ksnCerts (GF := GF) sn [] := by
+  unfold ksnCerts; iapply (BigSepL.bigSepL_nil (Φ := fun _ k => ksnCert (GF := GF) sn k)).2
+  iempintro
+
+theorem ksnCerts_snoc (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) :
+    ⊢ ksnCerts (GF := GF) sn K -∗ ksnCert sn k -∗ ksnCerts sn (K ++ [k]) := by
+  unfold ksnCerts
+  iintro #HK #Hk
+  iapply BigSepL.bigSepL_append.2
+  iframe HK
+  iapply (BigSepL.bigSepL_singleton (Φ := fun _ k => ksnCert (GF := GF) sn k)).2
+  iexact Hk
+
+theorem ksnCerts_mem (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) (h : k ∈ K) :
+    ⊢ ksnCerts (GF := GF) sn K -∗ ksnCert sn k := by
+  unfold ksnCerts
+  iintro #HK
+  obtain ⟨i, hi⟩ := List.getElem?_of_mem h
+  iapply (BigSepL.bigSepL_lookup (Φ := fun _ k => ksnCert (GF := GF) sn k) hi) $$ HK
+
+end certs
+
+/-! ## Raft's view of its storage (U8 v2)
+
+What raft holds of its storage, for its view `σ` (`StorState`), and the read triples of the view,
+derived from the contract. Raft's ghost names (`StorNames`, the log's `LogState.sn`): the authority of
+the applied lower bounds it publishes (`ga`, at `σ.fl`), of the snapshot last handed out (`gg`, at
+`σ.sg`), and the pin of the contract's `SV` (`gsv`). -/
+
+section view
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- Raft's reading of the contract's `Bnd c`: some applied lower bound or snapshot handed out at or
+past `c` (the API's `nodeAppliedLb`/`snapGiven` are these lower bounds). -/
+def raftBnd (sn : StorNames) (c : Nat) : IProp GF :=
+  iprop(∃ (k : Nat), ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
+
+instance raftBnd_pers (sn : StorNames) (c : Nat) : Persistent (raftBnd (GF := GF) sn c) := by
+  unfold raftBnd; infer_instance
+
+
+/-- (U8 v2) Raft's reading of the contract's `DL i` for a valid snapshot of term `t`: raft certified
+the term `t` at `i` (`sn.gd`, whose authority keeps every key at most `committed` and of the log's
+term there: `DtOk`), or `i` is strictly below a snapshot raft handed out (`sn.gg`, so below the
+compaction point raft holds). -/
+def raftDL (sn : StorNames) (i : Nat) (t : w64) : IProp GF :=
+  iprop(i ↪[sn.gd]□ t ∨ ∃ (k : Nat), ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k)
+
+instance raftDL_pers (sn : StorNames) (i : Nat) (t : w64) : Persistent (raftDL (GF := GF) sn i t) := by
+  unfold raftDL; infer_instance
+
+/-- The contract as raft's log holds it: for some `SV` (pinned at `sn.gsv`), `Bnd` (read as
+`raftBnd sn`) and `DL` (read, with a valid snapshot's term, as `raftDL sn`), `SV` persistent. What
+`newLogWithSize` takes. -/
+def isStorageV (sn : StorNames) (st : Storage) : IProp GF :=
+  iprop(∃ (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF),
+    isStorageP SV Bnd DL st ∗
+    savedPredOwn sn.gsv DFrac.discard SV ∗ □ (∀ (sv : SnapshotM), SV sv -∗ □ SV sv) ∗
+    □ (∀ (c : Nat), Bnd c -∗ raftBnd sn c) ∗
+    □ (∀ (sv : SnapshotM), SV sv -∗ DL (uint.nat sv.Metadata'.Index') ={⊤}=∗
+      raftDL sn (uint.nat sv.Metadata'.Index') sv.Metadata'.Term'))
+
+instance isStorageV_pers (sn : StorNames) (st : Storage) : Persistent (isStorageV (GF := GF) sn st) := by
+  unfold isStorageV; infer_instance
+
+/-- The authorities raft keeps for its view: of the applied lower bounds (at `fl`) and of the
+snapshot handed out (at `sg`). Kept also while the ranges are lent (`lentStor`). -/
+def storAuths (sn : StorNames) (σ : StorState) : IProp GF :=
+  iprop(monoNatAuthOwn sn.ga 1 (uint.nat σ.fl) ∗ monoNatAuthOwn sn.gg 1 σ.sg ∗
+    ghostMapAuth sn.gd 1 σ.dt)
+
+/-- **What raft holds of its storage for its view `σ`**: the compaction point `c = prev.index`
+(`storCompacted`), the frozen prefix `[c, fr]` (the dummy `e0` at `c`, of `prev`'s term: (T)), its
+owned part `(fr, kOut)` of the physical log, the end unless a batch is out (P3), and its authorities.
+The batch out (`pend`) is the client's to write from `kOut` on (with the end). -/
+def ownStorage (sn : StorNames) (st : Storage) (σ : StorState) : IProp GF :=
+  iprop(∃ (e0 : EntryM),
+    storCompacted st (uint.nat σ.prev.index') ∗
+    storLog st (uint.nat σ.prev.index') DFrac.discard
+      (e0 :: σ.ents.take (σ.fr - uint.nat σ.prev.index')) ∗
+    storLog st (σ.fr + 1) (DFrac.own 1)
+      ((σ.ents.take (σ.kOut - uint.nat σ.prev.index' - 1)).drop (σ.fr - uint.nat σ.prev.index')) ∗
+    (⌜σ.pend ≠ []⌝ ∨ storEnd st (uint.nat σ.prev.index' + 1 + σ.ents.length)) ∗
+    storAuths sn σ ∗
+    ⌜e0.Term' = σ.prev.term' ∧ uint.nat σ.prev.index' ≤ σ.fr ∧ σ.fr + 1 ≤ σ.kOut ∧
+      σ.kOut ≤ uint.nat σ.prev.index' + 1 + σ.ents.length ∧ σ.sg ≤ uint.nat σ.prev.index'⌝)
+
+/-- (D19i part 1; U8 v2: over `storCompacted`) The storage's compaction point has reached `n`. -/
+def storCut (st : Storage) (n : Int) : IProp GF := storCompacted st n.toNat
+
+instance storCut_pers (st : Storage) (n : Int) : Persistent (storCut (GF := GF) st n) := by
+  unfold storCut; infer_instance
+
+/-- (D19i part 1) The storage `st` is compacted at least up to `m` (persistent). -/
 def storPast (st : Storage) (m : Int) : IProp GF :=
   iprop(∃ n : Int, ⌜m ≤ n⌝ ∗ storCut st n)
 
 instance storPast_pers (st : Storage) (m : Int) : Persistent (storPast (GF := GF) st m) := by
   unfold storPast; infer_instance
-
-/-- (2026-10-19, D21 M3) A storage compacted past `m` and never past `k`: `m ≤ k`. -/
-theorem storPast_cap (st : Storage) (m k : Int) :
-    ⊢ storPast (GF := GF) st m -∗ storCap st k -∗ ⌜m ≤ k⌝ := by
-  unfold storPast
-  iintro ⟨%n, %Hn, #Hc⟩ #Hk
-  icases StorageModel.storCut_cap st n k $$ [$Hc $Hk] with %H
-  ipureintro; omega
 
 theorem storPast_mono (st : Storage) (m m' : Int) (h : m' ≤ m) :
     storPast (GF := GF) st m ⊢ storPast st m' := by
@@ -593,47 +430,93 @@ theorem storPast_of_cut (st : Storage) (n : Int) :
   iframe H
   ipureintro; omega
 
-/-- What a client of raft holds for the entries `p` a `Ready` handed out (2026-10-10):
-nothing to do for no entries, otherwise the right to append them (`appendTok`), at the
-storage's state when they were handed out. `RawNode.Ready` returns it. -/
-def appendRight (st : Storage) (p : List EntryM) : IProp GF :=
-  iprop(⌜p = []⌝ ∨ ∃ σ, appendTok st σ p)
+/-- **The read triples of raft's view** (U8 v2: derived from the contract, `isStorage_of_V`; until
+then the contract itself), against a predicate `P` of the view (`ownStorage sn st`), with the
+compaction witness `CT` (`storCut st`) and the snapshot's validity `SC` (`svCert sn`). The
+statements are the ones the log's proofs were written against, but for `HSnapshot` (the storage's
+snapshot is now known only to be valid, at or past what raft knows is compacted) and `Hbounded`
+(raft holds only what is below the batch out). -/
+def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : SnapshotM → IProp GF)
+    (st : Storage) : IProp GF :=
+  iprop(∃ (i : GoInterfaceOk),
+  "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
+  "#HLastIndex" ∷ (∀ (σ : StorState),
+     {{ P σ ∗ ⌜σ.pend = []⌝ }}
+       (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
+     {{ (li : w64), RET (PairV #li #interface.nil);
+         ⌜uint.Z li = uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
+         P σ }}) ∗
+  "#HFirstIndex" ∷ (∀ (σ : StorState),
+     {{ P σ }}
+       (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
+     {{ (fi : w64), RET (PairV #fi #interface.nil);
+         ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z fi ∧
+           uint.Z fi ≤ max (uint.Z σ.prev.index') (uint.Z σ.fl) + 1⌝ ∗
+         (⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∨ CT (uint.Z fi - 1)) ∗
+         P σ }}) ∗
+  "#HTerm" ∷ (∀ (σ : StorState) (i0 : w64) (ec : GoInterface),
+     {{ P σ ∗
+         ⌜uint.Z σ.prev.index' ≤ uint.Z i0 ∧
+            uint.Z i0 ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
+         ⌜PendFrom σ (uint.Z i0 + 1)⌝ ∗
+         globalAddr ErrCompacted ↦□ ec }}
+       (App (Val #(methods i.ty go!"Term" i.v)) (Val #i0))
+     {{ (t : w64) (err : GoInterface), RET (PairV #t #err);
+         (⌜err = interface.nil ∧ termAt σ.prev σ.ents i0 = some t⌝ ∨
+          (⌜err = ec ∧ uint.Z i0 < uint.Z σ.fl⌝ ∗ CT (uint.Z i0 + 1))) ∗ P σ }}) ∗
+  "#HEntries" ∷ (∀ (σ : StorState)
+      (lo hi maxSize : w64) (ec : GoInterface),
+     {{ P σ ∗
+         ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
+            uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
+         ⌜PendFrom σ (uint.Z hi)⌝ ∗
+         globalAddr ErrCompacted ↦□ ec }}
+       (App (App (App (Val #(methods i.ty go!"Entries" i.v)) (Val #lo)) (Val #hi))
+         (Val #maxSize))
+     {{ (s : GoSlice) (es : List EntryM) (err : GoInterface),
+         RET (PairV #s #err);
+         (⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ CT (uint.Z lo) ∗ P σ) ∨
+         (⌜err = interface.nil⌝ ∗
+         entsRO s es ∗
+         ⌜es ≠ [] ∧
+           (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
+           (∀ e, e ∈ es → e ∈ σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat) ∧
+           s.cap = s.len ∧
+           es <+: (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
+                    (uint.Z lo - uint.Z σ.prev.index' - 1).toNat⌝ ∗
+         P σ) }}) ∗
+  "#Hbounded" ∷ □ (∀ (σ : StorState),
+     P σ -∗
+     ⌜(σ.pend = [] → uint.Z σ.prev.index' + (σ.ents.length : Int) < 2^61) ∧
+       (∀ e0, σ.pend.head? = some e0 → uint.Z e0.Index' ≤ 2^61)⌝ ∗
+     P σ) ∗
+  "#HSnapshot" ∷ (∀ (σ : StorState) (esu : GoInterface) (n : Int),
+     {{ P σ ∗
+         globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
+         (⌜n ≤ 0⌝ ∨ CT n) }}
+       (App (Val #(methods i.ty go!"Snapshot" i.v)) (Val #()))
+     {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
+         P σ ∗
+         (⌜err = esu⌝ ∨
+          (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+           ⌜((σ.prev.index' ≠ W64 0 ∨ 1 ≤ n) → sv.Metadata'.Index' ≠ W64 0) ∧
+             uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
+             n ≤ uint.Z sv.Metadata'.Index'⌝ ∗
+           (⌜sv.Metadata'.Index' = W64 0⌝ ∨
+            SC sv ∗ ⌜σ.dt.lookup (uint.nat sv.Metadata'.Index') = some sv.Metadata'.Term'⌝))) }}))
 
-/-- ... and the receipt the client gives back once it has appended them
-(`ownRawNode_appended`, `InvRawnode.lean`). -/
-def appendReceipt (st : Storage) (p : List EntryM) : IProp GF :=
-  iprop(⌜p = []⌝ ∨ ∃ σ, appendedTok st σ p)
+/-- The read triples of the view raft holds. -/
+def isStorageD (sn : StorNames) (st : Storage) : IProp GF :=
+  isStorageWith (ownStorage sn st) (storCut st) (svCert sn) st
 
-/-- The hand-out law at a batch that may be empty: for `[]` nothing happens (the state
-already has nothing pending), otherwise `Hhandout`. What `raftLog.acceptUnstable` runs
-for the entries a `Ready` hands out. -/
-theorem isStorage_handout (st : Storage) (σ : StorState) (p : List EntryM)
-    (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧ PendAbove σ p)) :
-    ⊢ isStorage (GF := GF) st -∗ ownStorage st σ ==∗
-      ownStorage st { σ with pend := p } ∗ appendRight st p := by
-  iintro #Hst HS
-  unfold appendRight
-  by_cases Hne : p = []
-  · have Hσ : ({ σ with pend := p } : StorState) = σ := by
-      rw [Hne, ← Hpo.1]
-    rw [Hσ]
-    imodintro
-    iframe HS
-    ileft
-    ipureintro
-    exact Hne
-  unfold isStorage isStorageWith
-  icases Hst with ⟨%i, %Hi, #HL, #HF, #HT, #HE, #Hb, #HSn, #Hho, #Hab, #Hfl⟩
-  ihave Hpo' : ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p⌝ $$ []
-  · ipureintro; exact ⟨Hpo.1, (Hpo.2 Hne).1, (Hpo.2 Hne).2⟩
-  imod Hho $$ HS Hpo' with ⟨HS, Htok⟩
-  imodintro
-  iframe HS
-  iright
-  iexists σ
-  iexact Htok
+instance isStorageWith_pers (P : StorState → IProp GF) (CT : Int → IProp GF)
+    (SC : SnapshotM → IProp GF) (st : Storage) : Persistent (isStorageWith P CT SC st) := by
+  unfold isStorageWith; infer_instance
 
-end proof
+instance isStorage_pers (sn : StorNames) (st : Storage) : Persistent (isStorageD (GF := GF) sn st) := by
+  unfold isStorageD; infer_instance
+
+end view
 
 end EtcdGrove
 end Perennial
