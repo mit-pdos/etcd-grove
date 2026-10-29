@@ -106,6 +106,58 @@ theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.
   unfold SentMsgOk; rw [hm]
   exact ⟨a, b, c, d, e, fun h => absurd h hna, hr⟩
 
+/-- (2026-10-29, stage U7) The types raft sends in any cluster: `sentTypes` with leader transfer's
+two, `MsgTimeoutNow` and a forwarded `MsgTransferLeader`. -/
+def sentShapeTypes : List w32 := sentTypes ++ [MsgTimeoutNow, MsgTransferLeader]
+
+/-- (2026-10-29, stage U7) **What a sender promises of a message it queues, in every cluster**
+(`SentMsgOk` without the no-transfer mode): a type of `sentShapeTypes`, a nonzero sender, unstamped
+(`Term = 0`) for a forwarded proposal or read-index request, stamped (`Term ≠ 0`) for every type but
+those and a forwarded `MsgTransferLeader` (no term or the forwarder's: `send` stamps the follower's,
+which may be `0`), from a node other than its destination unless it is a read-index request, a vote
+or pre-vote response, an accepting `MsgAppResp` or a transfer request (its `From` is the transferee,
+possibly the leader it is forwarded to); a `MsgApp` of raft's shape; the transfer messages with no
+entries and no context; no responses. (The frozen design's `MsgSnap` index bound below `2^61` is not
+here yet: `stepIn_intro` keeps it as a premise; `notes/raft-unified-plan.md`, "Spec changes during
+track A (third)".) -/
+def SentMsgShape (st : MsgSt) : Prop :=
+  st.msg.Type' ∈ sentShapeTypes ∧ st.msg.From' ≠ W64 0 ∧
+  (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
+  (¬ (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgTransferLeader) →
+     st.msg.Term' ≠ W64 0) ∧
+  (st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgVoteResp → st.msg.Type' ≠ MsgPreVoteResp →
+     st.msg.Type' ≠ MsgTransferLeader →
+     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
+  (st.msg.Type' = MsgApp → AppShape st) ∧
+  (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+  st.resps = []
+
+/-- (2026-10-29, stage U7) A message of a type the model describes (no transfer message) of the
+shape `SentMsgShape` is `SentMsgOk`. -/
+theorem SentMsgShape.ok {st : MsgSt} (H : SentMsgShape st) (hd : mtypeOf st.msg.Type' ≠ none) :
+    SentMsgOk st := by
+  obtain ⟨Hty, Hf, H0, H1, Hft, Hsh, -, Hrs⟩ := H
+  have Hnt : st.msg.Type' ≠ MsgTimeoutNow := fun h => hd (by rw [h]; rfl)
+  have Hnl : st.msg.Type' ≠ MsgTransferLeader := fun h => hd (by rw [h]; rfl)
+  refine ⟨?_, Hf, H0, fun h => H1 (fun h' => h (h'.imp_right (·.resolve_right Hnl))),
+    fun a b c d => Hft a b c Hnl d, Hsh, Hrs⟩
+  simp only [sentShapeTypes, List.mem_append, List.mem_cons, List.not_mem_nil, _root_.or_false]
+    at Hty
+  rcases Hty with h | h | h
+  · exact h
+  · exact absurd h Hnt
+  · exact absurd h Hnl
+
+/-- (2026-10-29, stage U7) `SentMsgShape` carries over to a message with the same scalars, entries
+and context and no responses, if it is not a `MsgApp`: e.g. a `MsgSnap` with its snapshot
+replaced. -/
+theorem SentMsgShape.of_msg {st st' : MsgSt} (H : SentMsgShape st) (hm : st'.msg = st.msg)
+    (he : st'.ents = st.ents) (hc : st'.ctx = st.ctx)
+    (hr : st'.resps = []) (hna : st.msg.Type' ≠ MsgApp) : SentMsgShape st' := by
+  obtain ⟨a, b, c, d, e, -, g, -⟩ := H
+  unfold SentMsgShape; rw [hm, he, hc]
+  exact ⟨a, b, c, d, e, fun h => absurd h hna, g, hr⟩
+
 /-- (2026-10-22, D38a) **A `MsgApp` is from its sender** `id`: `send` stamps `From = r.id` into every
 message but a forwarded read-index or transfer request, and raft's one `MsgApp` (`maybeSendAppend`)
 is the node's own. What rafthttp's msgappv2 codec needs: its frames carry no sender, the decoder
