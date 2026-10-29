@@ -29,10 +29,7 @@ theorem raft.sendTimeoutNow.wp_proof
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendTimeoutNow.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  intro c r id s to Hto Hxo Htz
+  intro c r id s to Hto Htz
   wp_start as Hphys
   wp_auto
   rw [show raftpb.MsgTimeoutNow = #((W32 14 : raftpb.MessageType)) from rfl]
@@ -48,7 +45,8 @@ theorem raft.sendTimeoutNow.wp_proof
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     msg_nulls
   have Hok : SendOk id s ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ [] [] [] :=
-    Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inl rfl, fun _ => Htz, rfl, rfl, rfl, Hto, rfl, Hxo⟩)))
+    Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inl rfl, fun _ => Htz, rfl, rfl, rfl, Hto, rfl,
+      fun h => absurd h (by simp [MsgTransferLeader])⟩)))
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none [] [] [] (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
@@ -56,7 +54,6 @@ theorem raft.sendTimeoutNow.wp_proof
   ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
   iapply HΦ
   iexact Hphys
-  -/
 
 end proof
 
