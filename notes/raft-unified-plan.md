@@ -1091,7 +1091,9 @@ Step 1, the statement fixes after the review `phase1-statements-review.md` (2026
   (internal). **Not done: `NGhost.xw`** -- a field of `NGhost` in `Defs`, which importable
   modules (`InvRaftlog`, `InvReadylog`, `StepLemmas*`, `SpecResults`, `ApiVocab`, `Spec.Api`) state
   things over; hiding one field means moving `NGhost`/`NState` out of the importable vocabulary, the
-  "Debt" group's cleanup (phase 3 or later).
+  "Debt" group's cleanup (phase 3 or later). The coordinator (2026-10-29): defer it to that cleanup
+  (`NGhost` is internal vocabulary already exposed, not new client ghost state). **Debt list:** `NGhost.xw`
+  (with `NGhost`/`NState` out of the importable modules).
 - **F5** `node.Propose.spec`'s post is `propErrS n γ N cd err` (was the same disjunction spelled out:
   `nil ∨ ErrStopped ∗ nodeStopped ∨ ErrProposalDropped ∨ ctx`); one name for clients, with
   `propErrS_propErr` back to the old `propErr`.
