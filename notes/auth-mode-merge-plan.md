@@ -264,3 +264,9 @@ repository) and authkv's session checked it against its history invariant S1. Th
   (`admStates γk L`, with `last (admStates L) = srvAuthAtLog … L` and `L₁ <+: L₂ → admStates L₁ <+:
   admStates L₂`), and an admin update's commit gives `srvReqLogLb ρ.raft (L ++ [e])` with
   `admStates (L ++ [e]) = hs ++ [next]` (so the set-up's `Lset` is tied to the view's states).
+  F-S2's refusal split (route B): part 1, the axiom `etcd_noOtherRefusal` (no KV answer is one of
+  the non-auth refusals, in either mode), reviewed by the `axiom` skill (survives under the voter
+  condition, `notes/axiom-review/etcd-noOtherRefusal.md`) and **approved by the user as stated**
+  (2026-10-29, relayed), its docstring to cite `ccLogOk` and state the voter assumption; added in
+  5b, where it is used. Part 2 is 2a (the auth refusals' identity proved in the error branches, no
+  axiom); `etcd_noRefusal` then becomes a theorem.

@@ -148,7 +148,8 @@ theorem raftKV_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
       raftKV s (srvKVAns s E ρ γr c F d) :=
-  raftKV_of_server EtcdServer.wp_Put EtcdServer.wp_DeleteRange EtcdServer.wp_Range
+  raftKV_of_server (EtcdServer.Put.spec_off EtcdServer.wp_Put)
+    (EtcdServer.DeleteRange.spec_off EtcdServer.wp_DeleteRange) EtcdServer.wp_Range
     EtcdServer.wp_Txn EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Cluster
     membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_Term EtcdServer.wp_Leader
     s E ρ γr c F d

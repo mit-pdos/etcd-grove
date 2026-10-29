@@ -29,6 +29,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 
 @[expose] public section

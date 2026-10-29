@@ -2295,16 +2295,15 @@ theorem server_raft_request_on :
   EtcdServer.raftRequest.spec_M EtcdServer.wp_raftRequest true
 
 /-- **A put in the auth mode `on`**: a success is a put the auth state its entry met granted, its
-client's result at the log the entry met; a refusal an error. Every callee linked. -/
+client's result at the log the entry met; a refusal an error. `put_applied` at `E.authOn = true`
+(`Put.spec_on`; for `ServerKVOn` until the auth-mode merge's step 4). -/
 theorem server_put_on : EtcdServer.Put.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.Put.wp_proofOn server_raft_request_on PutRequest.wp_GetKey traceutil.Tracer.wp_Start
-    trace.wp_WithAttributes «attribute».wp_String context.wp_WithValue
+  EtcdServer.Put.spec_on EtcdServer.wp_Put
 
-/-- **A delete in the auth mode `on`** (`server_put_on`'s). Every callee linked. -/
+/-- **A delete in the auth mode `on`** (`server_put_on`'s): `deleteRange_applied` at
+`E.authOn = true`. -/
 theorem server_delete_range_on : EtcdServer.DeleteRange.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.DeleteRange.wp_proofOn server_raft_request_on DeleteRangeRequest.wp_GetKey
-    DeleteRangeRequest.wp_GetRangeEnd traceutil.Tracer.wp_Start trace.wp_WithAttributes
-    «attribute».wp_String
+  EtcdServer.DeleteRange.spec_on EtcdServer.wp_DeleteRange
 
 /-- **A writing transaction in the auth mode `on`** (`server_put_on`'s; the auth plan's E3d): a
 success is a transaction the auth state its entry met granted, its client's result at the log the

@@ -47,7 +47,6 @@ theorem EtcdServer.DeleteRange.wp_proof
     (hAS : «attribute».String.spec (GF := GF) (hG := hG))
   :
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) := by
-  have hRR := EtcdServer.raftRequest.spec_off hRR
   intro s E ρ ctx cd r op Q F
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hdel, Hnp, #HF⟩
   wp_auto
@@ -140,263 +139,178 @@ theorem EtcdServer.DeleteRange.wp_proof
   (try wp_auto)
   -- (2026-10-20, linkv-txn stage A) the token of the delete's result
   imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
-  wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op)
-      (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L))) F rfl
-      $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
-  · iframe # Hrd Hard Hcred
-    isplitl [Hnp]
-    · iapply deletePermit_reqPropOk ρ.kv op Q γc $$ Hnp
-    iexists _; iexact Header
-  (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
-  · subst Herr
-    iunfold appliedOk at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
-    obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
-    have Hk : apply.dispatchKind rq' = .deleteRange := by
-      rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
-    have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
-    iunfold apply.dispatchAnswer at Hans
-    rw [Hk] at *
-    icases Hans with ⟨%op', %pr, %Hop, Hpo⟩
-    obtain ⟨Hop', Hresp⟩ := Hop
-    subst Hresp
-    ihave %Hap := apply.deleteAnswerIs_nil _ _ _ _ $$ Hpo
-    obtain ⟨log', rfl⟩ := Hap
-    simp only [apply.deleteAnswerIs]
-    icases Hpo with ⟨Hpo, Hhdr⟩
-    wp_auto_lc 1
-    -- the delete's result, with its token
-    imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQq Htok Hlc1 with HQ
+  -- the two modes differ from the proposal on (the permission, the result, the grant)
+  iunfold deletePermitM at Hnp
+  cases hon : E.authOn
+  · -- auth off
+    have hRR := EtcdServer.raftRequest.spec_off hRR
+    wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op)
+        (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L))) F rfl
+        $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
+    · iframe # Hrd Hard Hcred
+      isplitr
+      · rw [← isServerReqM_false]; iexact Hsrv
+      isplitl [Hnp]
+      · iapply deletePermit_reqPropOk ρ.kv op Q γc $$ Hnp
+      iexists _; iexact Header
     (try wp_auto)
-    wp_apply HEnd
-    (try wp_auto)
-    iapply HΦ
-    iframe Hrd Hard
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexists hm, rq', op', x, x', .applied log' false, skip
-    iframe Hpo Hhdr Hcert HMint Hwit Hcok
-    isplitr
-    rotate_left
-    · rw [Hxlb, ← HLlb]; iexact HQ
-    ipureintro
-    refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
-      Hfl' log' false rfl⟩
-    intro Hnz
-    have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := by
-      refine (Hwire.2.2.2 ?_)
-      simpa [irrNoZeroEnd, apply.withHeader, irrDeleteRange, apply.irrEmpty] using Hnz
-    subst Hrq
-    simp [apply.withHeader, irrDeleteRange] at Hop'
-    exact Hop'.symm
-  · obtain ⟨rfl, Hne⟩ := Hre
-    (try wp_auto)
-    rcases err with ei | _
-    · (try wp_auto)
+    icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    · subst Herr
+      iunfold appliedOk at Hok
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+      obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
+      have Hk : apply.dispatchKind rq' = .deleteRange := by
+        rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
+      have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
+      iunfold apply.dispatchAnswer at Hans
+      rw [Hk] at *
+      icases Hans with ⟨%op', %pr, %Hop, Hpo⟩
+      obtain ⟨Hop', Hresp⟩ := Hop
+      subst Hresp
+      ihave %Hap := apply.deleteAnswerIs_nil _ _ _ _ $$ Hpo
+      obtain ⟨log', rfl⟩ := Hap
+      simp only [apply.deleteAnswerIs]
+      icases Hpo with ⟨Hpo, Hhdr⟩
+      wp_auto_lc 1
+      -- the delete's result, with its token
+      imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQq Htok Hlc1 with HQ
+      (try wp_auto)
       wp_apply HEnd
       (try wp_auto)
       iapply HΦ
       iframe Hrd Hard
-      iright
+      ileft
       isplitr
-      · ipureintro; exact ⟨rfl, Hne⟩
-      iframe HaE Hfail
-    · exact absurd rfl Hne
-
-
-set_option maxRecDepth 20000 in
-set_option maxHeartbeats 4000000 in
-theorem EtcdServer.DeleteRange.wp_proofOn
-    (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true)
-    (hGK : DeleteRangeRequest.GetKey.spec (GF := GF) (hG := hG))
-    (hGE : DeleteRangeRequest.GetRangeEnd.spec (GF := GF) (hG := hG))
-    (hTS : traceutil.Tracer.Start.spec (GF := GF) (hG := hG))
-    (hWA : trace.WithAttributes.spec (GF := GF) (hG := hG))
-    (hAS : «attribute».String.spec (GF := GF) (hG := hG))
-  :
-    EtcdServer.DeleteRange.specOn (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r op Q F
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hdel, Hnp, #HF⟩
-  wp_auto
-  wp_apply wp_with_defer as %defer defer
-  ihave Hinit : (srvInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨-, -, -, ⟨%tr, #Htr⟩, -⟩, -⟩
-  ihave #Hdel' := Hdel
-  iunfold txn.deleteRangeRequestIs at Hdel'
-  icases Hdel' with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, -⟩
-  (try wp_auto)
-  wp_apply hGK r ksl $$ []
-  · iframe #; ipureintro; exact Hrn
-  (try wp_auto)
-  wp_apply wp_bytes_to_string $$ [Hk] as -
-  · iexact Hk
-  (try wp_auto)
-  wp_apply hAS as %kv -
-  (try wp_auto)
-  wp_apply hGE r esl $$ []
-  · iframe #; ipureintro; exact Hrn
-  (try wp_auto)
-  wp_apply wp_bytes_to_string $$ [He] as -
-  · iexact He
-  (try wp_auto)
-  wp_apply hAS as %kv2 -
-  (try wp_auto)
-  wp_apply wp_slice_literal
-  isplitr
-  · ipureintro; rfl
-  iintro %asl ⟨-, -⟩
-  (try wp_auto)
-  wp_apply hWA as %opt -
-  (try wp_auto)
-  wp_apply wp_slice_literal
-  isplitr
-  · ipureintro; rfl
-  iintro %osl ⟨-, -⟩
-  (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
-  · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
-  ihave #Hctx1 := Hctx1w $$ Hctx
-  iunfold trace.isSpan at Hsp
-  icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
-  subst Hsi
-  (try wp_auto)
-  ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
-  iStructNamed Hirr
-  ipersist ID
-  ipersist Range
-  ipersist Put
-  ipersist DeleteRange
-  ipersist Txn
-  ipersist Compaction
-  ipersist LeaseGrant
-  ipersist LeaseRevoke
-  ipersist Alarm
-  ipersist LeaseCheckpoint
-  ipersist AuthEnable
-  ipersist AuthDisable
-  ipersist AuthStatus
-  ipersist Authenticate
-  ipersist AuthUserAdd
-  ipersist AuthUserDelete
-  ipersist AuthUserGet
-  ipersist AuthUserChangePassword
-  ipersist AuthUserGrantRole
-  ipersist AuthUserRevokeRole
-  ipersist AuthUserList
-  ipersist AuthRoleList
-  ipersist AuthRoleAdd
-  ipersist AuthRoleDelete
-  ipersist AuthRoleGet
-  ipersist AuthRoleGrantPermission
-  ipersist AuthRoleRevokePermission
-  ipersist ClusterVersionSet
-  ipersist ClusterMemberAttrSet
-  ipersist DowngradeInfoSet
-  ipersist DowngradeVersionTest
-  ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrDeleteRange op) $$ []
-  · iunfold irrNoHdrIs
-    simp only [irrDeleteRange, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField]
-    isplitr
-    · ipureintro; exact Hirrn
-    isplitr
-    · have h0 : (W64 0 : w64) = 0 := by decide
-      rw [h0]; iexact ID
-    repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
-    iexists _; iframe #; try (ipureintro; simp)
-  (try wp_auto)
-  -- (2026-10-20, linkv-txn stage A) the token of the delete's result
-  imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
-  ihave ⟨%Hnz0, Hnp⟩ := deletePermitOn_nz ρ.raft ρ.kv _ op Q $$ Hnp
-  have HnzW : irrNoZeroEnd (irrDeleteRange op) := by
-    refine ⟨?_, ?_, ?_⟩
-    · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
-    · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hnz0
-    · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
-  wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op)
-      (deleteQhOn ρ.kv op γc Q) F rfl
-      $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
-  · iframe # Hrd Hard Hcred
-    isplitl [Hnp]
-    · iapply deletePermitOn_reqPropOk ρ.raft ρ.kv _ _ op Q γc
-        (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc1) $$ Hnp
-    iexists _; iexact Header
-  (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)
-  · subst Herr
-    iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok, -⟩
-    obtain ⟨Hstep, Hfl, -, Hmo, -⟩ := Hstep0
-    have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := Hwire.2.2.2 HnzW
-    have Hk : apply.dispatchKind rq' = .deleteRange := by
-      rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
-    have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
-    iunfold apply.dispatchAnswer at Hans
-    rw [Hk] at *
-    icases Hans with ⟨%op', %pr, %Hop, Hpo⟩
-    obtain ⟨Hop', Hresp⟩ := Hop
-    subst Hresp
-    ihave %Hap := apply.deleteAnswerIs_nil _ _ _ _ $$ Hpo
-    obtain ⟨log', rfl⟩ := Hap
-    simp only [apply.deleteAnswerIs]
-    icases Hpo with ⟨Hpo, Hhdr⟩
-    wp_auto_lc 1
-    -- the delete's result, with its token
-    rw [Hrq] at Hmo
-    iunfold deleteQhOn at HQq
-    ihave #HQr := grantedRes_applied ρ.kv _ γc Q Lq x.log log' skip
-      (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo $$ HQq
-    have Hga := grantedAt_of_applied ρ.kv _ Lq x.log log' skip
-      (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo
-    rw [← Hrq] at Hga
-    imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
-    (try wp_auto)
-    wp_apply HEnd
-    (try wp_auto)
-    iapply HΦ
-    iframe Hrd Hard
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexists hm, rq', op', x, x', .applied log' false, skip
-    iframe Hpo Hhdr Hcert HMint Hwit Hcok
-    isplitr
-    rotate_left
-    · iframe HQ
+      · ipureintro; rfl
+      iexists hm, rq', op', x, x', .applied log' false, skip
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok
       isplitr
-      · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
-      iexists Lq; iframe HpAf; ipureintro; exact Hga
-    ipureintro
-    refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
-      Hfl' log' false rfl⟩
-    intro Hnz
-    have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := by
-      refine (Hwire.2.2.2 ?_)
-      simpa [irrNoZeroEnd, apply.withHeader, irrDeleteRange, apply.irrEmpty] using Hnz
-    subst Hrq
-    simp [apply.withHeader, irrDeleteRange] at Hop'
-    exact Hop'.symm
-  · obtain ⟨rfl, Hne⟩ := Hre
-    (try wp_auto)
-    rcases err with ei | _
-    · (try wp_auto)
-      wp_apply HEnd
-      (try wp_auto)
-      iapply HΦ
-      iframe Hrd Hard
-      iright
-      isplitr
-      · ipureintro; exact ⟨rfl, Hne⟩
-      iframe HaE
-      icases Hfail with (⟨%hm, %rq', %Hwire, Herr, #Hhb⟩ | Hdep)
-      · ileft; iexists hm, rq'; iframe Herr
+      rotate_left
+      · rw [Hxlb, ← HLlb]
+        iframe HQ
         isplitr
-        · ipureintro; exact Hwire
-        iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
-      · iright; iexact Hdep
-    · exact absurd rfl Hne
+        · iunfold hdrBoundM; ipureintro; trivial
+        iintro !> %h; cases h
+      ipureintro
+      refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
+        Hfl' log' false rfl⟩
+      intro Hnz
+      have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := by
+        refine (Hwire.2.2.2 ?_)
+        simpa [irrNoZeroEnd, apply.withHeader, irrDeleteRange, apply.irrEmpty] using Hnz
+      subst Hrq
+      simp [apply.withHeader, irrDeleteRange] at Hop'
+      exact Hop'.symm
+    · obtain ⟨rfl, Hne⟩ := Hre
+      (try wp_auto)
+      rcases err with ei | _
+      · (try wp_auto)
+        wp_apply HEnd
+        (try wp_auto)
+        iapply HΦ
+        iframe Hrd Hard
+        iright
+        isplitr
+        · ipureintro; exact ⟨rfl, Hne⟩
+        iframe HaE
+        icases Hfail with (⟨%hm, %rq', %Hwire, Herr⟩ | Hdep)
+        · ileft; iexists hm, rq'; iframe Herr
+          isplitr
+          · ipureintro; exact Hwire
+          iunfold hdrBoundM; ipureintro; trivial
+        · iright; iexact Hdep
+      · exact absurd rfl Hne
+  · -- auth on
+    have hRR := EtcdServer.raftRequest.spec_M hRR true
+    ihave ⟨%Hnz0, Hnp⟩ := deletePermitOn_nz ρ.raft ρ.kv _ op Q $$ Hnp
+    have HnzW : irrNoZeroEnd (irrDeleteRange op) := by
+      refine ⟨?_, ?_, ?_⟩
+      · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
+      · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hnz0
+      · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
+    wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op)
+        (deleteQhOn ρ.kv op γc Q) F rfl
+        $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
+    · iframe # Hrd Hard Hcred
+      isplitl [Hnp]
+      · iapply deletePermitOn_reqPropOk ρ.raft ρ.kv _ _ op Q γc
+          (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc1) $$ Hnp
+      iexists _; iexact Header
+    (try wp_auto)
+    icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    · subst Herr
+      iunfold appliedOkM at Hok
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok, -⟩
+      obtain ⟨Hstep, Hfl, -, Hmo, -⟩ := Hstep0
+      have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := Hwire.2.2.2 HnzW
+      have Hk : apply.dispatchKind rq' = .deleteRange := by
+        rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
+      have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
+      iunfold apply.dispatchAnswer at Hans
+      rw [Hk] at *
+      icases Hans with ⟨%op', %pr, %Hop, Hpo⟩
+      obtain ⟨Hop', Hresp⟩ := Hop
+      subst Hresp
+      ihave %Hap := apply.deleteAnswerIs_nil _ _ _ _ $$ Hpo
+      obtain ⟨log', rfl⟩ := Hap
+      simp only [apply.deleteAnswerIs]
+      icases Hpo with ⟨Hpo, Hhdr⟩
+      wp_auto_lc 1
+      -- the delete's result, with its token
+      rw [Hrq] at Hmo
+      iunfold deleteQhOn at HQq
+      ihave #HQr := grantedRes_applied ρ.kv _ γc Q Lq x.log log' skip
+        (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo $$ HQq
+      have Hga := grantedAt_of_applied ρ.kv _ Lq x.log log' skip
+        (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo
+      rw [← Hrq] at Hga
+      imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
+      (try wp_auto)
+      wp_apply HEnd
+      (try wp_auto)
+      iapply HΦ
+      iframe Hrd Hard
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iexists hm, rq', op', x, x', .applied log' false, skip
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      isplitr
+      rotate_left
+      · iframe HQ
+        isplitr
+        · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+        iintro !> -
+        iexists Lq; iframe HpAf; ipureintro; exact Hga
+      ipureintro
+      refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
+        Hfl' log' false rfl⟩
+      intro Hnz
+      have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := by
+        refine (Hwire.2.2.2 ?_)
+        simpa [irrNoZeroEnd, apply.withHeader, irrDeleteRange, apply.irrEmpty] using Hnz
+      subst Hrq
+      simp [apply.withHeader, irrDeleteRange] at Hop'
+      exact Hop'.symm
+    · obtain ⟨rfl, Hne⟩ := Hre
+      (try wp_auto)
+      rcases err with ei | _
+      · (try wp_auto)
+        wp_apply HEnd
+        (try wp_auto)
+        iapply HΦ
+        iframe Hrd Hard
+        iright
+        isplitr
+        · ipureintro; exact ⟨rfl, Hne⟩
+        iframe HaE
+        icases Hfail with (⟨%hm, %rq', %Hwire, Herr, #Hhb⟩ | Hdep)
+        · ileft; iexists hm, rq'; iframe Herr
+          isplitr
+          · ipureintro; exact Hwire
+          iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+        · iright; iexact Hdep
+      · exact absurd rfl Hne
 
 end proof
 

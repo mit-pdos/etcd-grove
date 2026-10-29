@@ -885,6 +885,22 @@ def deletePermitOn (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderMode
     ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.deleteRange op)) (writeGrantG γk srvAuthSt0 Gb (irrDeleteRange op) L₀) Q)
 
+/-- **What a put of `op` needs, in the auth mode `on`** (the auth-mode merge's step 5): off,
+`putPermit`; on, `putPermitOn` (its key not empty, its update told its grant under the caller's
+binding `Gb`). -/
+def putPermitM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
+    (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
+  match on with
+  | false => putPermit γk op Q
+  | true => putPermitOn γ γk Gb op Q
+
+/-- **What a delete of `op` needs, in the auth mode `on`** (`putPermitM`'s). -/
+def deletePermitM (on : Bool) (γ : ServerRaftNames) (γk : KVNames)
+    (Gb : apply.HeaderModel → IProp GF) (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
+  match on with
+  | false => deletePermit γk op Q
+  | true => deletePermitOn γ γk Gb op Q
+
 /-- **A delete's result in the mode `on`** (`putQhOn`'s). -/
 def deleteQhOn (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState → IProp GF)
     (hm : apply.HeaderModel) (L : List EntryModel) : IProp GF :=
