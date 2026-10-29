@@ -531,9 +531,12 @@ invariant in `N .@ "rdpool"` trading the time receipts that came in (`⧗ k`) fo
 (`rdCred`) left, `k + c` at least `2^64 - 2` (the credits `cluster_alloc` allocated, which it no
 longer hands out). `node.ReadIndex` and a stepped `MsgReadIndex` mint their credit from a receipt
 of their own (`rdPool_mint`): no client-supplied read credit (until then `readCredit γ`,
-`cluster_alloc`'s `readCredits γ (2^64-2)`). Credits never exceed `rdCredInv`'s bound. -/
+`cluster_alloc`'s `readCredits γ (2^64-2)`). Credits never exceed `rdCredInv`'s bound. (Phase 2, 2026-10-29) It records `cluster_alloc`'s premise
+`receiptBound GF ≤ 2^64 - 2`, which `rdPool_mint` needs, so the node's specs need no premise of
+their own. -/
 def rdPool (γ : Cluster) (N : Namespace) : IProp GF :=
-  inv (N .@ "rdpool") iprop(∃ (k c : Nat), ⧗ k ∗ rdCred γ.raft c ∗ ⌜2 ^ 64 - 2 ≤ k + c⌝)
+  iprop(⌜receiptBound GF ≤ 2 ^ 64 - 2⌝ ∗
+    inv (N .@ "rdpool") iprop(∃ (k c : Nat), ⧗ k ∗ rdCred γ.raft c ∗ ⌜2 ^ 64 - 2 ≤ k + c⌝))
 
 instance rdPool_persistent (γ : Cluster) (N : Namespace) :
     Persistent (rdPool (GF := GF) γ N) := by
@@ -543,7 +546,7 @@ instance rdPool_persistent (γ : Cluster) (N : Namespace) :
 `receipt_add_one_lt` bounds the receipts in (`k + 1 < receiptBound ≤ 2^64 - 2`), so at least two
 credits are left; one comes out. -/
 theorem rdPool_mint (γ : Cluster) (N : Namespace) (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 → ↑(N .@ "rdpool") ⊆ E →
+    ↑(N .@ "rdpool") ⊆ E →
     ⊢ rdPool (GF := GF) γ N -∗ ⧗ 1 ={E}=∗ rdCred γ.raft 1 := by
   sorry
 
