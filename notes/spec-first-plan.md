@@ -83,6 +83,23 @@ repairs), so every repair is followed by another round with a fresh reviewer, un
 nothing in the first tier; each later round is told what the previous repair changed (the diff) and
 looks hardest there.
 
+*When to stop iterating* (2026-10-29, the user's). Count rounds per design increment (the statements
+one round's repair or one Scope decision introduced), not per stage: about 2-3 rounds to converge is
+normal (the compactor pilot's whole scope took 5; `backend-cmp`'s first increment, the delete-only
+token, 3). If the same statements still draw a first-tier finding after their third round, stop
+reviewing them: the round's questions go to the user, or the glue is written against the real caller,
+which finds what reviews miss (`compactableOk`, the freeze below). A round whose first-tier findings
+come from the previous repair is the sign of churn. Rounds on a new increment do not count against a
+stage when the increment is needed for soundness: `backend-cmp`'s rounds 7-8 reviewed the tracked
+absence of the compaction keys, the design left after round 6 found the axiom it was to replace false.
+
+*An axiom check* (2026-10-29, the user's). A stage that adds or changes a trust-boundary axiom, or
+restates an axiom-backed spec, runs the `axiom` skill on it before the freeze: an attempt to refute it
+with a concrete Go program, which the spec review does not make. `mvcc.kbNoCmp_metaNone` was on
+`lean`, past its review, until `backend-cmp`'s round 6 saw that its antecedent holds for any read
+transaction (take `L := False`); the restatement proposed in its place was refuted by the `axiom`
+skill (direct `Meta` puts; branch `axiom/kbnocmp-metanone`), not by a review.
+
 *Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
 the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
 they unfold to, the Go code, and above all the callers' proofs: `NewServer.lean` alone is 1800 lines);
