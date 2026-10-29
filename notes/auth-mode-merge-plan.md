@@ -267,7 +267,7 @@ repository) and authkv's session checked it against its history invariant S1. Th
   client's Auth wrappers (`authObjAtC`, `clientTokAt` naming `Auth`, `clientHistAu`) and authkv's
   `SetUp` (auth half: `SetupHist`, `SetupInv`; the premise `c0 ≤ ai0` added, the reply's
   `authHistLb` and `pubAfterM`'s `e.data ≠ []` found in the proof). The context's metadata: the
-  axiom `context.WithTimeoutBackgroundMd` (user's choice). Left: `etcd_noOtherRefusal`, `Main`'s
+  axiom `context.WithTimeoutBackgroundMd` (user's choice). Left: `Main`'s
   `ClientCertAuthEnabled` from the started member's config.
 - **5b (D2), after step 5:** a mono-list auth history in `kvInvOn`, its client half exported at the
   on start; the admin case of `reqPropOkOn` takes an AU over it; `writeGrantAt` gains the
@@ -282,5 +282,7 @@ repository) and authkv's session checked it against its history invariant S1. Th
   the non-auth refusals, in either mode), reviewed by the `axiom` skill (survives under the voter
   condition, `notes/axiom-review/etcd-noOtherRefusal.md`) and **approved by the user as stated**
   (2026-10-29, relayed), its docstring to cite `ccLogOk` and state the voter assumption; added in
-  5b, where it is used. Part 2 is 2a (the auth refusals' identity proved in the error branches, no
+  5b, where it is used. Added on `lean` 2026-10-29 (after 5b's merge, which did not need it):
+`noOtherRefusalAt`/`otherRefusalDescs` in `InvGrpc`, the axiom in `NoRefusal.lean`; unused until
+the attempt contract reads it. Part 2 is 2a (the auth refusals' identity proved in the error branches, no
   axiom); `etcd_noRefusal` then becomes a theorem.

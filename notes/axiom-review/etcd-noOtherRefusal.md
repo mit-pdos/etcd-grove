@@ -1,4 +1,4 @@
-# `etcd_noOtherRefusal` (draft, 2026-10-29)
+# `etcd_noOtherRefusal` (draft, 2026-10-29; added as reviewed, with the remark on `srvCCPolicy` applied)
 
 **Reviewed:** the draft axiom `etcd_noOtherRefusal` (not in the tree; the exact statement below), part 1 of
 the split of `etcd_noRefusal` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/NoRefusal.lean`) that
