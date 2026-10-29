@@ -1162,6 +1162,14 @@ Phase 2 (internal statement changes):
   clause of its own (`NetFrame s { s' with gh := s.gh }`, and `s'.gh` is `s.gh` but for `xw`). Why: the
   forward records `(lead, term)` in `s.gh.xw`, so `s'.gh = s.gh` fails.
 
+- `raft.Step.spec` (internal, P2b): `%Hframe` with `m.Type' ≠ MsgTransferLeader →`, and a new conjunct
+  `%Hxwframe` (`MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw :=
+  s'.gh.xw } ∧ xw grows`); `wp_Step_MsgTransferLeader`'s xw premise only at a follower with a leader
+  (a pre-candidate's lead is hidden by `toPState`).
+- `SdtTie` (internal, `InvRawnode`): `s.logst.dtk = sdtLen rs`, `sdtLen` = `l.dlv.length` while a loan
+  `l` is out, else `delivered.length` (was `delivered.length` always, false after a snapshot `Ready`:
+  the hand-out certifies `l.dlv`'s keys); `SdtTie.of_none`; `keep`/`ofRec`/`snap` keep the loan.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
