@@ -163,4 +163,8 @@ Each: old → new, and why.
   under the frozen names: `committed_confDecodes` (A), `Membership.applyChange_asV2` (B), the stopped
   answers and `Stop` with `nodeLive` (A, U9a); track B's approved storage hold mark and
   `applyGo`/`Restorable` to be used as they land.
+- 2026-10-29: `RaftAssume` (one record, the frozen names; instantiated once in `Link.lean` when tracks
+  A/B land the real ones) and `ConfStep` (proved). Next: the store's invariant (`Defs`: the client
+  history over `ownCommittedOps`, the snapshot registry `ownSnapsMade` with `StateEnc` data, the
+  `confPolicy`, the storage registry), then the run loop over today's `unifiedSpec`s.
 

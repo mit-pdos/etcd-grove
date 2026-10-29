@@ -490,6 +490,12 @@ Track C of the parallel raft-unified effort (`notes/raft-unified-plan.md`, U11; 
   `decodeState`, `less`, `sortStrings`, `copyMap`, `within`, `hashString`, `hashMap`, `fits`,
   `oneIn`, `below`, `pick`, `Model`, `Gen`. `validConf.spec` stated (its proof waits for track B's
   `confchange`/`tracker` API).
+- **Since** (the coordinator's answers): every replica starts by `RestartNode` on the bootstrap
+  `ConfState` (no `StartNode`); `RaftAssume.lean`, the record of what kvreconf assumes of raft under
+  the frozen names until tracks A/B prove it (`committed_confDecodes`, `applyChange_asV2`,
+  `nodeLive`/`nodeStopped`, `Stop`, the stopped `ApplyConfChange`/`Advance`; more as the proofs need
+  them); `ConfStep.lean` (proved): a replica's `confAt` past a normal entry and past a conf entry
+  (the recorded decision, `confPolicy_decide` under `kvrConfN`).
 - **Not started**: the store's invariant, the storage instance, the replica's loop and methods, the
   cluster's functions, `Link.lean`, `kvreconf_porcupine_safe`. Blocked on, or to be stated as
   hypotheses of, the raft specs the frozen design has and the API does not yet (decisions entry).
