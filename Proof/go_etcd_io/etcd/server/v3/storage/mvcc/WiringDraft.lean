@@ -43,7 +43,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 section draft
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- (iii) **mvcc's assumed backend's compaction-key flag** (opaque, the creator's): the client's
@@ -97,34 +97,50 @@ def kbCmpM (kb : Option KBReal) (cm : KBReal → Bool) : Prop :=
 instance kbCmpM_dec (kb : Option KBReal) (cm : KBReal → Bool) : Decidable (kbCmpM kb cm) := by
   unfold kbCmpM; cases kb <;> infer_instance
 
-/-- (ii) F1: **the write right's lock key** (exclusive; a new physical name at the switch, `mk`,
-allocated by `NewStore`, or by `store.Restore` for its new names): in the batch lock's resource. -/
-def mwKeyW (γmk : GName) : IProp GF := ghostVar γmk 1 ()
+/-- (ii) F1, N1: **the write right's lock key** (a new physical name at the switch, `mk`): the batch
+lock's half of a boolean ghost variable recording where the right is, at `true` (the right in the
+invariant) while the lock is free. -/
+def mwKeyW (γmk : GName) : IProp GF := ghostVar γmk (1 : Qp).half true
 
 /-- (ii) F1: **the batch lock's resource with the key** (draft of `writerRes`'s new conjunct): the key
 when the store compacts, else nothing. Deposited with the rest of `writerRes` at `NewStore`'s first
-`Unlock`, before `restore`. -/
+`Unlock`, before `restore` (`NewStore` allocates `ghostVar γmk 1 true` and keeps the other half). -/
 def mwSlotW (γ : StoreNames) (cm : KBReal → Bool) (γmk : GName) : IProp GF :=
   if kbCmpM γ.kb cm then mwKeyW γmk else iprop(True)
 
 abbrev mwN : Namespace := nroot.@"mvcc_mw"
 
-/-- (ii) F1: **the write right's invariant** (persistent, in `isStore` at the switch, allocated by
-`NewStore` after `restore` gives the right back): the right, or the key (a session holding the batch
-lock has swapped them). -/
+/-- (ii) F1, N1: **the write right's invariant** (persistent; N3: in `physOk`, gated by the mode,
+allocated by `NewStore` after `restore` gives the right back, with `NewStore`'s half at `true`): the
+other half of the key's ghost variable, and the right when it is `true`. No exclusivity of the right
+is needed: the halves agree on where it is. -/
 def mwInvW (γ : StoreNames) (γmk : GName) : IProp GF :=
-  inv mwN iprop(kbMWW γ.kb γ.bucket ∨ mwKeyW γmk)
+  inv mwN iprop(∃ b : Bool, ghostVar γmk (1 : Qp).half b ∗ if b then kbMWW γ.kb γ.bucket else iprop(True))
 
-/-- (ii) F1: **a lock holder's swap** (what `SetScheduledCompact`'s and the job's sessions use): the
-batch lock's resource `W` gives the right, and the right gives `W` back. -/
+instance mwInvW_persistent (γ : StoreNames) (γmk : GName) :
+    Persistent (mwInvW (GF := GF) γ γmk) := by
+  unfold mwInvW; infer_instance
+
+/-- (ii) F1, N1: **a lock holder's swap** (what `SetScheduledCompact`'s and the job's sessions use):
+the batch lock's resource `W` and a later credit (the invariant's contents are under `▷`, and mvcc's
+assumed backend's flag is opaque, so not timeless) give the right, and the right gives `W` back. -/
 def mwSwapW (W MW : IProp GF) : IProp GF :=
-  iprop(□ (W ={⊤}=∗ MW ∗ (MW ={⊤}=∗ W)))
+  iprop(□ (W ∗ £ 1 ={⊤}=∗ MW ∗ (MW ={⊤}=∗ W)))
 
-/-- (ii) F1: the law the switch proves (stated here): with the invariant, a resource holding the key
-swaps (the key is exclusive, so the invariant holds the right while a holder has the key). -/
-def mwSwap_of_inv.stmt : Prop :=
-  ∀ (γ : StoreNames) (γmk : GName) (R : IProp GF),
-    mwInvW γ γmk ⊢ mwSwapW iprop(mwKeyW γmk ∗ R) (kbMWW γ.kb γ.bucket)
+/-- (ii) N3: **the store's compaction facts in `physOk`** (draft of `physOk`'s new conjunct, gated by
+the mode): the write right's invariant, the store's registration in its backend (for the swap from
+`storeW`, which for the real backend reaches `writerRes` through `storeRegd`; D22's S6 moved it to
+`writerInv`, where it may be pending after a restore, which a compacting store never has), and the
+write-back supply (F5). -/
+def physCmpW (s : Loc) (γ : StoreNames) (cm : KBReal → Bool) (γmk : GName) : IProp GF :=
+  if kbCmpM γ.kb cm then iprop(mwInvW γ γmk ∗ storeRegd s γ ∗ kbWTSupply γ.kb) else iprop(True)
+
+/-- (ii) N3: the law the switch proves from `storeW_get`/`storeW_put` and `mwSwap_of_inv` (stated):
+a compacting store's physical facts swap its batch lock's resource for the right (`writerRes` holding
+`mwSlotW`, the key). -/
+def mwSwap_of_physOk.stmt (cm : KBReal → Bool) : Prop :=
+  ∀ (s : Loc) (γ : StoreNames) (γmk : GName),
+    kbCmpM γ.kb cm → physCmpW (GF := GF) s γ cm γmk ⊢ mwSwapW (storeW s γ) (kbMWW γ.kb γ.bucket)
 
 /-- (iv) F2/F3/F5: **the compaction job's budgets, by the mode** (draft of `compactJobRes`): for a
 compacting real backend, a reader's token (taken out of the store's own pool: F2, the user's) and the
@@ -150,6 +166,74 @@ def nJobRd (kb : Option KBReal) (cm : KBReal → Bool) : Nat :=
   match kb with
   | none => 0
   | some d => if cm d then 1 else 0
+
+/-- (ii) N1: **the swap law** (glue, proved before round 16): with the write right's invariant, a
+resource holding the key swaps for the right and back. Acquire: the halves agree on `true`; take the
+right, set both to `false`. Return: they agree on `false`; put it back, set both to `true`. -/
+theorem mwSwap_of_inv (γ : StoreNames) (γmk : GName) (R : IProp GF) :
+    mwInvW (GF := GF) γ γmk ⊢ mwSwapW iprop(mwKeyW γmk ∗ R) (kbMWW γ.kb γ.bucket) := by
+  iintro #Hinv
+  iunfold mwSwapW
+  iintro !> ⟨⟨Hk, HR⟩, Hlc⟩
+  iunfold mwInvW at Hinv
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑mwN) $$ Hlc Hi with Hi
+  icases Hi with ⟨%b, Hh, Hm⟩
+  iunfold mwKeyW at Hk
+  ihave %Hb := ghostVar_agree γmk true _ b _ $$ Hk Hh
+  subst Hb
+  imod ghostVar_update_halves false γmk true true $$ Hk Hh with ⟨Hk, Hh⟩
+  imod Hclose $$ [Hh] with -
+  · inext
+    iexists false
+    iframe Hh
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    itrivial
+  imodintro
+  isplitl [Hm]
+  · iapply (show iprop(if true = true then kbMWW (GF := GF) γ.kb γ.bucket else iprop(True)) ⊢
+        kbMWW γ.kb γ.bucket from by simp only [↓reduceIte]; exact .rfl) $$ Hm
+  iintro HMW
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%b, >Hh, Hm⟩
+  ihave %Hb := ghostVar_agree γmk false _ b _ $$ Hk Hh
+  subst Hb
+  imod ghostVar_update_halves true γmk false false $$ Hk Hh with ⟨Hk, Hh⟩
+  imod Hclose $$ [Hh HMW] with -
+  · inext
+    iexists true
+    iframe Hh
+    simp only [↓reduceIte]
+    iexact HMW
+  imodintro
+  iunfold mwKeyW
+  iframe Hk HR
+
+/-- (iv) N5: **the readers' pool's sum** (draft of `poolBody`'s `k + j + w + r = nReaders`, a D22
+definition; no statement text): one fewer when the store compacts over the real backend, the job's
+reader having left the pool at `NewStore` (F2, the user's). -/
+def poolSumW (kb : Option KBReal) (cm : KBReal → Bool) : Nat := nReaders - nJobRd kb cm
+
+/-- (iv) N2/Q5-4 (a): **`store.Restore`'s counts under "no restore in compaction mode"** (glue,
+proved before round 16): for an old store and a new record that do not compact (the premise
+`⌜∃ d, γ.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝`), no reader is kept back for a job, the pool's
+sum is `nReaders` as today (so `restore_switch`'s count and `Restore`'s `nReaders - 1` are unchanged),
+and the job's budgets, the key's slot and the compaction facts are all `True`. -/
+theorem restore_noCmp (cm : KBReal → Bool) (γ : StoreNames) (d : KBReal) (γmk : GName) (s : Loc)
+    (hkb : γ.kb = some d) (hcm : cm d = false) :
+    nJobRd γ.kb cm = 0 ∧ poolSumW γ.kb cm = nReaders ∧
+      (compactJobResM (GF := GF) γ.kb cm ⊣⊢ iprop(True)) ∧
+      (mwSlotW (GF := GF) γ cm γmk ⊣⊢ iprop(True)) ∧
+      (physCmpW (GF := GF) s γ cm γmk ⊣⊢ iprop(True)) := by
+  have hnc : ¬ kbCmpM γ.kb cm := by
+    rw [hkb]; unfold kbCmpM; simp [hcm]
+  have hn : nJobRd γ.kb cm = 0 := by
+    rw [hkb]; unfold nJobRd; simp [hcm]
+  refine ⟨hn, ?_, ?_, ?_, ?_⟩
+  · unfold poolSumW; rw [hn]; rfl
+  · unfold compactJobResM; simp only [hnc, ↓reduceIte]; exact .rfl
+  · unfold mwSlotW; simp only [hnc, ↓reduceIte]; exact .rfl
+  · unfold physCmpW; simp only [hnc, ↓reduceIte]; exact .rfl
 
 /-- (iv) **The compaction token with the job's budgets** (draft of `compactTok`): the index
 compactor's token at or below `c` and the job's budgets by the mode, handed from job to job through
@@ -239,7 +323,7 @@ abbrev store.Compact.specW : Prop :=
 no-compaction token of either backend (`kbNoCmpW`), the backend contract only at the index's names it
 was registered for (F4: `γ.idx = γi`), and, by the mode (F3; `cm` is `KBReal.cm` at the switch), the
 safe-range slot (`kbSRM`, from the backend's creation: Q5-2) and the write-back supply (`kbWTSupplyM`,
-persistent: F5). The job's reader token comes from the pool `NewStore` already takes (F2, the user's):
+already persistent, F5; kept in `physOk`'s `physCmpW`). The job's reader token comes from the pool `NewStore` already takes (F2, the user's):
 the post gives back `nJobRd kb cm` fewer readers (one for a compacting real store, else none). -/
 abbrev NewStore.specW (cm : KBReal → Bool) : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option KBReal) (γb γl : GName)
@@ -249,7 +333,7 @@ abbrev NewStore.specW (cm : KBReal → Bool) : Prop :=
       (∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         storeBackend b s γ P) ∗
       kbView kb γb 1 (∅ : Bucket) ∗ kbNoCmpW kb γb ∗ kbRegRight kb ∗ kbWT kb ∗ kbWT kb ∗
-      kbSRM kb cm ∗ □ kbWTSupplyM kb cm ∗
+      kbSRM kb cm ∗ kbWTSupplyM kb cm ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), kbRT kb) ∗
       lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 Log) }}

@@ -1547,3 +1547,80 @@ One full build per round (1724 modules).
 `⌜d'.cm = false⌝` (M2's "no restore in compaction mode"); its callers discharge it from their literal
 records. This is a one-line change to a D22 statement, so the collaborator will find it here and in
 STATUS. The Draft is written for (a).
+
+### Question 5's Draft, repaired after review round 15 (2026-10-29)
+
+Review round 15 (`notes/spec-first-study/backend-review-15.md`) is the increment's second round. It had
+three first-tier findings: N1, N2 and N3. N1 is churn from round 14's F1 repair; N2 comes from F2's
+repair combined with Q5-3's scope. The Draft (`WiringDraft.lean`) is repaired, and still no proof is
+switched. Checked: `etc/lean-check.py -a` and a targeted `lake build --packages` of `mvcc.WiringDraft`.
+Under the stop rule, round 16 is the increment's third round.
+
+**The user's answer to Q5-4, (a) (2026-10-29): no restore in compaction mode, for the old store
+too.**
+- `store.Restore.spec`'s pre becomes `⌜∃ d, γ.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝`, which
+  extends Q5-3's premise.
+- `InvApplier`'s three pure facts `∃ d, E.γ.kb = some d` (`:478`, `:554`, `:830`) each gain
+  `∧ d.cm = false`. They hold at boot (the literal record) and after `Restore` (`d'.cm = false`).
+- Both are changes to D22 statements, a few lines each. They are M2's scope restriction, stated
+  where it applies.
+
+**Repairs** (decided by the agent):
+- **N1: the key is the lock's half of a boolean ghost variable.** Round 14's invariant needed an
+  exclusive right, and the right is not exclusive: two `fkOwn` halves combine, and `viewFkW` is opaque.
+  - `mwKeyW γmk := ghostVar γmk ½ true`.
+  - `mwInvW γ γmk := inv mwN (∃ b, ghostVar γmk ½ b ∗ if b then kbMWW γ.kb γ.bucket else True)`.
+  - The halves agree on where the right is.
+  - `mwSwapW W MW := □ (W ∗ £ 1 ={⊤}=∗ MW ∗ (MW ={⊤}=∗ W))` gained a later credit. The invariant's
+    contents are under `▷`, and the assumed backend's opaque flag is not timeless. The sessions get the
+    credit from their own steps (`wp_auto_lc`).
+  - `mwSlotW`'s gating and `SetScheduledCompact.specW`'s text are unchanged.
+  - **Glue, proved:** `mwSwap_of_inv : mwInvW γ γmk ⊢ mwSwapW (mwKeyW γmk ∗ R) (kbMWW γ.kb γ.bucket)`.
+- **N3: the invariant lives in `physOk`, not `isStore`.** `isStore_withPhys` is `rfl`, and D22 relies
+  on it.
+  - New draft `physCmpW s γ cm γmk := if kbCmpM γ.kb cm then mwInvW γ γmk ∗ storeRegd s γ ∗ kbWTSupply
+    γ.kb else True`.
+  - `storeRegd` comes back into `physOk`, gated: the swap from `storeW` needs it for the real backend,
+    and a compacting store is never restored, so it never has a pending registration.
+  - `NewStore` has `storeRegd` from `storeW_register` at its first `Unlock`.
+  - The switch's law is stated: `mwSwap_of_physOk.stmt`, `physCmpW s γ cm γmk ⊢ mwSwapW (storeW s γ)
+    (kbMWW …)` when compacting.
+  - F5's supply moved into `physCmpW`.
+  - `PhysNames.mk` (and `StoreNames.mk`) is the key's name. Under Q5-3 and Q5-4, `store.Restore`'s new
+    names need no fresh key: `mwSlotW` is `True` for them.
+- **N4.** `server_kv_backend`, `server_kv_watchable` and `server_kv_backend_hooks` gain
+  `(hcm : d.cm = false)`. Their posts give `actualMaxReaders` readers, which holds only when not
+  compacting; their caller builds `d` with `cm := false`.
+- **N5: the job's reader leaves the pool in `poolBody`'s sum.**
+  - Draft `poolSumW kb cm := nReaders - nJobRd kb cm`. This is a D22 definition, so no statement text
+    changes.
+  - This is preferred over `NewStore`'s `retiredAt γ (nJobRd kb cm)`, which would change statement
+    text.
+  - **Glue, proved:** `restore_noCmp`. Under Q5-4's premise:
+    - `nJobRd = 0` and `poolSumW = nReaders`, so `restore_switch`'s count and `Restore`'s `nReaders - 1`
+      are unchanged;
+    - `compactJobResM`, `mwSlotW` and `physCmpW` are all `True`.
+- **F5's redundant `□`** is dropped from `NewStore.specW` (`kbWTSupply (some d)` is already `□ …`).
+  `mvcc_NewStore_backend`'s docstring is to say that its compaction-mode premise
+  (`kbWTSupplyM (some d) cm`, `cm = true`) is discharged only by M2 (R2-7).
+
+**Changed statements**, updated from round 14's list:
+- **Client-visible (mvcc).** As listed after round 14, and:
+  - `store.Restore.spec`: `⌜∃ d, γ.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝` (Q5-3, Q5-4).
+  - `NewStore.specW`'s pre: `kbWTSupplyM kb cm`, without `□`.
+- **Exported results.** As listed, and `server_kv_*` gain `(hcm : d.cm = false)` (N4).
+- **Trusted.** Unchanged: `storage.OpenBackend` by Q5-2 only.
+- **D22's (the collaborator's).**
+  - Statement text: `store.Restore.spec`'s two premises (Q5-3, Q5-4); `InvApplier`'s three
+    `∃ d, E.γ.kb = some d` facts gain `∧ d.cm = false`.
+  - Definitions and proofs, no statement text:
+    - `KBReal.cm`, with `cm := false` in `SnapApplyWalk` and `SnapApplyDefs`;
+    - `PhysNames.mk`/`StoreNames.mk`, `withPhys`/`phys` and the two `Countable` instances;
+    - `store.Restore`'s literal `p'`;
+    - `poolBody`'s sum (`poolSumW`, N5);
+    - `RestoreMoves`' `writerRes (γ.withPhys p')`, which gains `mwSlotW` (`True`).
+- **The server.** Only D22's literals, `InvApplier`'s facts, and the premise on `server_kv_*`.
+  `NewServer.spec` stays unchanged (M2).
+
+**Estimate:** about 1250–1600 lines, per round 15: the swap law is now proved in the Draft (+0 at the
+switch), N3 +30, N2 (a) +50, N5 +30. One full build per round (1724 modules).
