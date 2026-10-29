@@ -665,3 +665,22 @@ moving it onto the logical view is a non-additive change to the collaborator's s
 compact) — the fork's recommendation; (b) a separate view quarter for D22, leaving `viewAt` as is.
 Not decided by the agent: D22 is the collaborator's track. Until then `Unlock.specC` and
 `UnsafeDelete.specC` stay beside their specs (the stage's exit condition is unmet).
+
+## After Review round 5 (2026-10-29, the user away)
+
+Round 5 (`notes/spec-first-study/backend-review-5.md`): R4-1, R4-3, R4-5/6 fixed; the exported
+results differ from lean's only by `dlInit`, `batchLimitOk` and the old bridge's `dlNoDel`, all right.
+**The held R4-2 question, sharpened (R5-2)**: option (a) (`viewAt γ vd := ∃ L, the quarter at L ∗
+thinV γ vd L`) is sound and costs nothing today (`SnapSendBranch.lean:211`, its only user, ignores
+`viewAt`); option (b) is unsound as worded (all shares of `γ.view` agree) and needs a new ghost name
+for the physical view updated at every commit. **It is also a trust-base question**: moving the batch
+quarter to the logical view without changing `viewAt` would make the `backend.Snapshot` axiom false
+after a compaction. Still the user's. Corrections (the agent's): **R5-1** `relog` falls back to `L`
+only at keys of safe-range buckets (`P.SB nk.1`), else a session's deletes of auth users, alarms,
+leases would be undone in the logical view; the earlier note "compacted keys stay out of mvcc's
+bucket" was backwards: they stay in, as mvcc needs. **R5-3** the R4-4 monotonicity lemma lets `SR`/
+`SRh` vary when `Cmp'` is false (the old bridge's `True`/`True`). **R5-4** `vData_rebase`/
+`vData_rebase_or` unused: remove. **R5-5** `keyCleanRead_of_backend` is not exported (D22's
+`SnapApplyWalk` its only user). **R5-6** the flag is fixed in two places (`StoreBackend.lean:116`,
+`BuildLemmas.lean:101`); M2 must change both. Next (independent of R4-2): the new bridge's two read
+cases, the `Meta` value case and the slot/`metaReadTx` case; the limited-range case waits for R4-2.
