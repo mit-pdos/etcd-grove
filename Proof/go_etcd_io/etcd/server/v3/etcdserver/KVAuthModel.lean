@@ -431,6 +431,170 @@ theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthSt
     exact ih (kvEntry c₀ ch [] log₀ m) (fun m' hm' => hA m' (List.mem_cons_of_mem _ hm'))
       (fun m' hm' => hL m' (List.mem_cons_of_mem _ hm'))
 
+/-! ### The auth history along a log (the auth-mode merge's 5b, 2026-10-29) -/
+
+/-- **A refused admin request keeps the state**: at a state that does not admit its principal,
+the model's step is the identity (`adminStateR`'s refusal). -/
+theorem adminNext_refused (rq : apply.IRRModel) (st : auth.AuthState)
+    (h : ¬ auth.adminOk st (some (auth.authInfoM (apply.principalOf rq)))) :
+    adminNext rq st = st := by
+  have hr : ∀ st', adminStateR rq st st' ↔ st' = st := by
+    intro st'; unfold adminStateR; simp [h]
+  exact adminNext_of_det rq st st ⟨st, (hr st).2 rfl, fun st'' h'' => (hr st'').1 h''⟩ ((hr st).2 rfl)
+
+/-- **An entry the mode-`on` model records in the auth history at the auth state `st`**
+(`kvEntryOn`'s first branch): a normal entry above `c₀` whose request needs the admin permission,
+whose principal `st` admits (`auth.adminOk`), and whose step changes the state (where the store's
+history grows: an outcome `.next`). Any other entry keeps the state (a refused one,
+`adminNext_refused`). -/
+def admEntry (c₀ : w64) (st : auth.AuthState) (m : EntryModel) : Prop :=
+  m.typ = W32 0 ∧ m.data ≠ [] ∧ ∃ rq, apply.irrDecode m.data = some rq ∧
+    uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true ∧
+    auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) ∧ adminNext rq st ≠ st
+
+/-- `kvRaftOfOn`'s step, recording the auth state after each recorded admin entry. -/
+noncomputable def admStep (c₀ : w64) (ch : apply.Chain)
+    (acc : (auth.AuthState × mvcc.Log) × List auth.AuthState) (m : EntryModel) :
+    (auth.AuthState × mvcc.Log) × List auth.AuthState :=
+  open Classical in
+  (kvEntryOn c₀ ch acc.1 m,
+    if admEntry c₀ acc.1.1 m then acc.2 ++ [(kvEntryOn c₀ ch acc.1 m).1] else acc.2)
+
+/-- **The auth history along the log `A`** in the mode-`on` model from `s₀`: the start's auth
+state, then the state after each recorded admin entry (`admEntry`: admitted, the state changed). -/
+noncomputable def admStatesR (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) : List auth.AuthState :=
+  (A.foldl (admStep c₀ ch) (s₀, [s₀.1])).2
+
+theorem admStep_fold_fst (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) :
+    ∀ (acc : (auth.AuthState × mvcc.Log) × List auth.AuthState),
+      (A.foldl (admStep c₀ ch) acc).1 = kvRaftOfOn c₀ ch acc.1 A := by
+  induction A with
+  | nil => intro acc; rfl
+  | cons m A ih => intro acc; rw [List.foldl_cons, ih]; rfl
+
+theorem admStep_fold_ext (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) :
+    ∀ (acc : (auth.AuthState × mvcc.Log) × List auth.AuthState),
+      acc.2 <+: (A.foldl (admStep c₀ ch) acc).2 := by
+  induction A with
+  | nil => intro acc; exact List.prefix_refl _
+  | cons m A ih =>
+    intro acc
+    rw [List.foldl_cons]
+    refine List.IsPrefix.trans ?_ (ih _)
+    unfold admStep
+    split
+    · exact List.prefix_append _ _
+    · exact List.prefix_refl _
+
+theorem admStatesR_nil (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log) :
+    admStatesR c₀ ch s₀ [] = [s₀.1] := rfl
+
+open Classical in
+theorem admStatesR_snoc (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) (m : EntryModel) :
+    admStatesR c₀ ch s₀ (A ++ [m]) =
+      if admEntry c₀ (kvRaftOfOn c₀ ch s₀ A).1 m then
+        admStatesR c₀ ch s₀ A ++ [(kvRaftOfOn c₀ ch s₀ (A ++ [m])).1]
+      else admStatesR c₀ ch s₀ A := by
+  unfold admStatesR
+  rw [List.foldl_append, List.foldl_cons, List.foldl_nil, kvRaftOfOn_snoc,
+    ← admStep_fold_fst c₀ ch A (s₀, [s₀.1])]
+  rfl
+
+theorem admStatesR_snoc_adm (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) (m : EntryModel) (h : admEntry c₀ (kvRaftOfOn c₀ ch s₀ A).1 m) :
+    admStatesR c₀ ch s₀ (A ++ [m]) =
+      admStatesR c₀ ch s₀ A ++ [(kvRaftOfOn c₀ ch s₀ (A ++ [m])).1] := by
+  rw [admStatesR_snoc]; simp [h]
+
+theorem admStatesR_snoc_other (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) (m : EntryModel) (h : ¬ admEntry c₀ (kvRaftOfOn c₀ ch s₀ A).1 m) :
+    admStatesR c₀ ch s₀ (A ++ [m]) = admStatesR c₀ ch s₀ A := by
+  rw [admStatesR_snoc]; simp [h]
+
+theorem admStatesR_prefix (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A B : List EntryModel) (h : A <+: B) : admStatesR c₀ ch s₀ A <+: admStatesR c₀ ch s₀ B := by
+  obtain ⟨t, rfl⟩ := h
+  unfold admStatesR
+  rw [List.foldl_append]
+  exact admStep_fold_ext c₀ ch t _
+
+/-- An entry not admitted as an admin step keeps the auth state (`kvEntryOn`'s other branches; a
+refused admin entry, `adminNext_refused`). -/
+theorem kvEntryOn_fst_of_not_adm (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) (h : ¬ admEntry c₀ s.1 m) : (kvEntryOn c₀ ch s m).1 = s.1 := by
+  unfold kvEntryOn
+  split
+  · rename_i hn
+    split
+    · rename_i rq hdec
+      split
+      · rename_i ha
+        by_cases hok : auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq)))
+        · by_cases hne : adminNext rq s.1 = s.1
+          · exact hne
+          · exact absurd ⟨hn.1, hn.2, rq, hdec, ha.1, ha.2, hok, hne⟩ h
+        · exact adminNext_refused rq s.1 hok
+      · split <;> rfl
+    · rfl
+  · rfl
+
+theorem admStep_fold_last (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) :
+    ∀ (acc : (auth.AuthState × mvcc.Log) × List auth.AuthState), acc.2.getLast? = some acc.1.1 →
+      (A.foldl (admStep c₀ ch) acc).2.getLast? = some (A.foldl (admStep c₀ ch) acc).1.1 := by
+  induction A with
+  | nil => intro acc h; exact h
+  | cons m A ih =>
+    intro acc h
+    rw [List.foldl_cons]
+    apply ih
+    unfold admStep
+    by_cases ha : admEntry c₀ acc.1.1 m
+    · simp [ha]
+    · simp only [ha, if_false]
+      rw [kvEntryOn_fst_of_not_adm _ _ _ _ ha]; exact h
+
+theorem admStatesR_last (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) :
+    (admStatesR c₀ ch s₀ A).getLast? = some (kvRaftOfOn c₀ ch s₀ A).1 := by
+  unfold admStatesR
+  rw [admStep_fold_last c₀ ch A (s₀, [s₀.1]) rfl, admStep_fold_fst]
+
+/-- **The auth history along the requested log `L`** (the auth-mode merge's 5b): the start's
+state `st₀`, then the state after each recorded admin entry (`admEntry`). Its last state is the
+auth state after `L` (`admStates_last`). -/
+noncomputable def admStates (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) :
+    List auth.AuthState :=
+  admStatesR γk.c0 γk.ch0 (st₀, γk.log0) L
+
+/-- A log of no normal entries (the bootstrap log's configuration changes) has the start's
+history. -/
+theorem admStates_conf (γk : KVNames) (st₀ : auth.AuthState) (A : List EntryModel)
+    (h : ∀ m ∈ A, m.typ ≠ W32 0) : admStates γk st₀ A = [st₀] := by
+  have key : ∀ (B : List EntryModel) (acc : (auth.AuthState × mvcc.Log) × List auth.AuthState),
+      (∀ m ∈ B, m.typ ≠ W32 0) → (B.foldl (admStep γk.c0 γk.ch0) acc).2 = acc.2 := by
+    intro B
+    induction B with
+    | nil => intro acc _; rfl
+    | cons m B ih =>
+      intro acc hB
+      rw [List.foldl_cons, ih _ (fun x hx => hB x (List.mem_cons_of_mem _ hx))]
+      unfold admStep
+      rw [if_neg (fun ⟨ht, _⟩ => hB m List.mem_cons_self ht)]
+  unfold admStates admStatesR
+  exact key A _ h
+
+/-- An entry of a request needing no admin permission leaves the history as it is. -/
+theorem admStates_snoc_noadmin (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (e : EntryModel) (rq : apply.IRRModel) (hdec : apply.irrDecode e.data = some rq)
+    (hna : apply.needAdminPermission rq = false) :
+    admStates γk st₀ (L ++ [e]) = admStates γk st₀ L := by
+  unfold admStates
+  apply admStatesR_snoc_other
+  rintro ⟨-, -, rq', hdec', -, ha, -⟩
+  rw [hdec] at hdec'; cases hdec'; rw [hna] at ha; cases ha
+
 end pure
 
 /-! ## The mode-`on` log premises -/
@@ -603,15 +767,82 @@ theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
   ipureintro
   exact ⟨fun m hm => entryShapeOn_of_entryShape m (h.1 m hm), h.2⟩
 
+/-! ### A client's view of the auth history (the auth-mode merge's 5b, 2026-10-29) -/
+
+/-- **A client's view of the auth history** (the auth-mode merge's 5b): half of the mono-list
+authority of the history along the requested log (`admStates`; `kvInvOn` holds the other half).
+Its holder is the only one who can give the update an admin request recorded in the history needs
+(`histAu`), so no such request commits without it. -/
+def authHistView (γk : KVNames) (hs : List auth.AuthState) : IProp GF :=
+  monoListAuthOwn γk.hist (1 : Qp).half hs
+
+/-- **A lower bound of the auth history** (persistent). -/
+def authHistLb (γk : KVNames) (hs : List auth.AuthState) : IProp GF :=
+  monoListLbOwn γk.hist hs
+
+/-- The namespace of a client's freezable view (`authHistCell`). -/
+def authHistN : Namespace := nroot .@ "auth_hist"
+
+/-- **A freezable view's cell, open at `hs`**: its holder's half of the cell's mark, the cell's
+history `hs`, not frozen. -/
+def authHistOpen (γz : GName) (hs : List auth.AuthState) : IProp GF :=
+  dghostVar γz (.own (1 : Qp).half) (false, hs)
+
+/-- **A freezable view's cell, frozen at `hs`** (persistent): the history no longer grows past
+`hs` (`authHistFrozen_prefix`). -/
+def authHistMark (γz : GName) (hs : List auth.AuthState) : IProp GF :=
+  dghostVar γz .discard (true, hs)
+
+/-- **A client's freezable view** (persistent; the auth-mode merge's 5b): an invariant holding the
+view at some `hs` and the cell's other half, open (`authHistOpen`'s holder updates it), or frozen
+at `hs` (`authHistMark`). Its contents are timeless, so an atomic update's precondition can open
+it. -/
+def authHistCell (γk : KVNames) (γz : GName) : IProp GF :=
+  inv authHistN iprop(∃ hs : List auth.AuthState, authHistView γk hs ∗
+    (dghostVar γz (.own (1 : Qp).half) (false, hs) ∨ authHistMark γz hs))
+
+/-- **The auth history frozen at `hs`** (persistent): a client's cell frozen there. -/
+def authHistFrozen (γk : KVNames) (γz : GName) (hs : List auth.AuthState) : IProp GF :=
+  iprop(authHistCell γk γz ∗ authHistMark γz hs)
+
+instance authHistView_timeless (γk : KVNames) (hs : List auth.AuthState) :
+    Timeless (authHistView (GF := GF) γk hs) := by
+  unfold authHistView; infer_instance
+
+instance authHistLb_persistent (γk : KVNames) (hs : List auth.AuthState) :
+    Persistent (authHistLb (GF := GF) γk hs) := by
+  unfold authHistLb; infer_instance
+
+instance authHistLb_timeless (γk : KVNames) (hs : List auth.AuthState) :
+    Timeless (authHistLb (GF := GF) γk hs) := by
+  unfold authHistLb; infer_instance
+
+instance authHistMark_persistent (γz : GName) (hs : List auth.AuthState) :
+    Persistent (authHistMark (GF := GF) γz hs) := by
+  unfold authHistMark; infer_instance
+
+instance authHistMark_timeless (γz : GName) (hs : List auth.AuthState) :
+    Timeless (authHistMark (GF := GF) γz hs) := by
+  unfold authHistMark; infer_instance
+
+instance authHistCell_persistent (γk : KVNames) (γz : GName) :
+    Persistent (authHistCell (GF := GF) γk γz) := by
+  unfold authHistCell; infer_instance
+
+instance authHistFrozen_persistent (γk : KVNames) (γz : GName) (hs : List auth.AuthState) :
+    Persistent (authHistFrozen (GF := GF) γk γz hs) := by
+  unfold authHistFrozen; infer_instance
+
 /-- **The KV invariant in the mode `on`** (`kvInv`'s, with the mode-`on` model, see the header):
 the server's half of the committed log `L` (after `ai0`, consecutive, every entry of the mode-`on`
 log and determinate at the state it is applied at, every entry above the start's consistent index)
 and the other half of the state's ghost variable at the state of `L`'s mode-`on` model; the start's
 chain the base chain with auth **enabled** and no alarm, the start log not empty; the workload
-facts (`kvWorkOn`). -/
+facts (`kvWorkOn`); (5b) the other half of the auth history along `L` (`authHistView`). -/
 def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
+    monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
     ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γ.raft γk L)
@@ -675,23 +906,24 @@ theorem kvInvOn_ch0 (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthSta
   iintro #Hinv
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ Hh] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
   imodintro
   ipureintro
   exact Hok.2.2.2.2.1
 
 /-- **The mode-`on` KV invariant can be allocated** at the empty committed log (as `kvInv`'s, at
 the server's start): the server's half of the empty log, the state's half at the start log, the
-start chain with auth on, the start log not empty and the consistent index within the start's. So
+start chain with auth on, the start log not empty and the consistent index within the start's; (5b)
+the history's half at the start's state. So
 `kvInvOn` is satisfiable, unlike `kvInv` at a mode-`on` chain (`kvInv_ch0_on_false`). -/
 theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (E : CoPset)
     (hch : γk.ch0 = apply.alarmChain true false false) (hlog : γk.log0 ≠ [])
     (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) :
-    ⊢ srvRLog (GF := GF) γ [] -∗ ghostVar γk.st (1 : Qp).half (kvStateOf γk.log0) ={E}=∗
-      kvInvOn γ γk st₀ := by
-  iintro HL Hσ
+    ⊢ srvRLog (GF := GF) γ [] -∗ ghostVar γk.st (1 : Qp).half (kvStateOf γk.log0) -∗
+      monoListAuthOwn γk.hist (1 : Qp).half [st₀] ={E}=∗ kvInvOn γ γk st₀ := by
+  iintro HL Hσ Hh
   iunfold kvInvOn
   iapply inv_alloc
   inext
@@ -701,6 +933,8 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · iexact HL
   isplitl [Hσ]
   · iexact Hσ
+  isplitl [Hh]
+  · rw [show admStates γk st₀ [] = [st₀] from rfl]; iexact Hh
   isplitr
   · ipureintro
     refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, hc, hch, hlog⟩
@@ -712,6 +946,190 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
     · iapply BigSepL.bigSepL_nil.2
       iempintro
 
+/-! ### The auth history's laws (the auth-mode merge's 5b) -/
+
+/-- The whole auth history is the view and the invariant's half. -/
+theorem authHist_split (γk : KVNames) (l : List auth.AuthState) :
+    monoListAuthOwn (GF := GF) γk.hist 1 l ⊢
+      authHistView γk l ∗ monoListAuthOwn γk.hist (1 : Qp).half l := by
+  have h := (monoListAuthOwn_fractional (GF := GF) γk.hist l).fractional (1 : Qp).half
+    (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  unfold authHistView
+  exact h.1
+
+/-- The history's two halves agree, and update together by an append. -/
+theorem authHist_halves_update (γk : KVNames) (l l' x : List auth.AuthState) :
+    ⊢ monoListAuthOwn (GF := GF) γk.hist (1 : Qp).half l -∗
+      monoListAuthOwn γk.hist (1 : Qp).half l' ==∗
+      ⌜l = l'⌝ ∗ monoListAuthOwn γk.hist (1 : Qp).half (l ++ x) ∗
+        monoListAuthOwn γk.hist (1 : Qp).half (l ++ x) := by
+  have hsplit : ∀ l₀ : List auth.AuthState, monoListAuthOwn (GF := GF) γk.hist 1 l₀ ⊣⊢
+      monoListAuthOwn γk.hist (1 : Qp).half l₀ ∗ monoListAuthOwn γk.hist (1 : Qp).half l₀ := by
+    intro l₀
+    have h := (monoListAuthOwn_fractional (GF := GF) γk.hist l₀).fractional (1 : Qp).half
+      (1 : Qp).half
+    rw [Qp.half_add_half] at h
+    exact h
+  iintro H1 H2
+  ihave %Hag := monoListAuthOwn_agree γk.hist _ _ l l' $$ H1 H2
+  obtain ⟨-, rfl⟩ := Hag
+  ihave H := (hsplit l).2 $$ [H1 H2]
+  · iframe H1 H2
+  imod (monoListAuthOwn_update_app (γ := γk.hist) (l := l) x) $$ H with ⟨H, -⟩
+  icases (hsplit (l ++ x)).1 $$ H with ⟨H1, H2⟩
+  imodintro
+  iframe H1 H2
+  ipureintro; rfl
+
+theorem authHistView_lb (γk : KVNames) (hs : List auth.AuthState) :
+    authHistView (GF := GF) γk hs ⊢ authHistLb γk hs := by
+  unfold authHistView authHistLb
+  exact monoListLbOwn_get γk.hist _ hs
+
+theorem authHistView_prefix (γk : KVNames) (hs hs' : List auth.AuthState) :
+    authHistView (GF := GF) γk hs ∗ authHistLb γk hs' ⊢ ⌜hs' <+: hs⌝ := by
+  unfold authHistView authHistLb
+  iintro ⟨H1, H2⟩
+  ihave %H := mono_list_auth_lb_valid γk.hist _ hs hs' $$ H1 H2
+  ipureintro; exact H.2
+
+/-- **A view becomes a freezable cell**, open at its history (`authHistOpen`). -/
+theorem authHistCell_alloc (γk : KVNames) (hs : List auth.AuthState) (E : CoPset) :
+    ⊢ authHistView (GF := GF) γk hs ={E}=∗ ∃ γz, authHistCell γk γz ∗ authHistOpen γz hs := by
+  iintro Hv
+  imod (dghostVar_alloc (GF := GF) (false, hs)) with ⟨%γz, Hz⟩
+  have h := (dghostVar_fractional (GF := GF) γz (false, hs)).fractional (1 : Qp).half
+    (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  icases h.1 $$ Hz with ⟨Hz1, Hz2⟩
+  imod (inv_alloc authHistN E iprop(∃ hs' : List auth.AuthState, authHistView γk hs' ∗
+    (dghostVar γz (.own (1 : Qp).half) (false, hs') ∨ authHistMark γz hs'))) $$ [Hv Hz1]
+    with #Hc
+  · inext; iexists hs; iframe Hv; ileft; iexact Hz1
+  imodintro
+  iexists γz
+  unfold authHistCell authHistOpen
+  iframe Hc Hz2
+
+/-- The cell's two open halves agree, and move together to a new history. -/
+theorem authHistOpen_update (γz : GName) (hs hs' new : List auth.AuthState) :
+    ⊢ authHistOpen (GF := GF) γz hs -∗ dghostVar γz (.own (1 : Qp).half) (false, hs') ==∗
+      ⌜hs = hs'⌝ ∗ authHistOpen γz new ∗ dghostVar γz (.own (1 : Qp).half) (false, new) := by
+  unfold authHistOpen
+  iintro H1 H2
+  ihave %Hag := dghostVar_agree γz _ _ _ _ $$ H1 H2
+  imod (dghostVar_update_halves (false, new) γz _ _) $$ H1 H2 with ⟨H1, H2⟩
+  imodintro
+  iframe H1 H2
+  ipureintro; exact (Prod.mk.inj Hag).2
+
+/-- **Freezing**: the cell's two open halves become the mark at the new history `new`. -/
+theorem authHistOpen_freeze (γz : GName) (hs hs' new : List auth.AuthState) :
+    ⊢ authHistOpen (GF := GF) γz hs -∗ dghostVar γz (.own (1 : Qp).half) (false, hs') ==∗
+      ⌜hs = hs'⌝ ∗ authHistMark γz new := by
+  unfold authHistOpen authHistMark
+  iintro H1 H2
+  ihave %Hag := dghostVar_agree γz _ _ _ _ $$ H1 H2
+  imod (dghostVar_update_halves (true, new) γz _ _) $$ H1 H2 with ⟨H1, -⟩
+  imod (dghostVar_persist γz _ _) $$ H1 with H1
+  imodintro
+  iframe H1
+  ipureintro; exact (Prod.mk.inj Hag).2
+
+theorem authHistOpen_mark (γz : GName) (hs hs' : List auth.AuthState) (dq : DFrac) :
+    ⊢ dghostVar (GF := GF) γz dq (false, hs) -∗ authHistMark γz hs' -∗ False := by
+  unfold authHistMark
+  iintro H1 H2
+  ihave %Hag := dghostVar_agree γz _ _ _ _ $$ H1 H2
+  simp at Hag
+
+theorem authHistMark_agree (γz : GName) (hs hs' : List auth.AuthState) :
+    ⊢ authHistMark (GF := GF) γz hs -∗ authHistMark γz hs' -∗ ⌜hs = hs'⌝ := by
+  unfold authHistMark
+  iintro H1 H2
+  ihave %Hag := dghostVar_agree γz _ _ _ _ $$ H1 H2
+  ipureintro; exact (Prod.mk.inj Hag).2
+
+/-- **A frozen history bounds every lower bound** (`↑authHistN ⊆ E`). -/
+theorem authHistFrozen_prefix (γk : KVNames) (γz : GName) (hs hs' : List auth.AuthState)
+    (E : CoPset) (hE : ↑authHistN ⊆ E) :
+    ⊢ authHistFrozen (GF := GF) γk γz hs -∗ authHistLb γk hs' ={E}=∗ ⌜hs' <+: hs⌝ := by
+  iintro #Hf #Hlb
+  iunfold authHistFrozen at Hf
+  icases Hf with ⟨#Hc, #Hm⟩
+  iunfold authHistCell at Hc
+  iinv Hc with >Hi Hclose
+  icases Hi with ⟨%hs₀, Hv, Hz⟩
+  ihave %Heq : ⌜hs₀ = hs⌝ $$ [Hz]
+  · icases Hz with (Hz | #Hz)
+    · iexfalso; iapply authHistOpen_mark γz hs₀ hs _ $$ Hz Hm
+    · iapply authHistMark_agree γz hs₀ hs $$ Hz Hm
+  subst Heq
+  ihave %Hp := authHistView_prefix γk hs₀ hs' $$ [Hv Hlb]
+  · iframe Hv Hlb
+  imod Hclose $$ [Hv] with -
+  · inext; iexists hs₀; iframe Hv; iright; iexact Hm
+  imodintro
+  ipureintro; exact Hp
+
+/-- A frozen history is a lower bound of the history. -/
+theorem authHistFrozen_lb (γk : KVNames) (γz : GName) (hs : List auth.AuthState)
+    (E : CoPset) (hE : ↑authHistN ⊆ E) :
+    ⊢ authHistFrozen (GF := GF) γk γz hs ={E}=∗ authHistLb γk hs := by
+  iintro #Hf
+  iunfold authHistFrozen at Hf
+  icases Hf with ⟨#Hc, #Hm⟩
+  iunfold authHistCell at Hc
+  iinv Hc with >Hi Hclose
+  icases Hi with ⟨%hs₀, Hv, Hz⟩
+  ihave %Heq : ⌜hs₀ = hs⌝ $$ [Hz]
+  · icases Hz with (Hz | #Hz)
+    · iexfalso; iapply authHistOpen_mark γz hs₀ hs _ $$ Hz Hm
+    · iapply authHistMark_agree γz hs₀ hs $$ Hz Hm
+  subst Heq
+  ihave #Hlb := authHistView_lb γk hs₀ $$ Hv
+  imod Hclose $$ [Hv] with -
+  · inext; iexists hs₀; iframe Hv; iright; iexact Hm
+  imodintro
+  iexact Hlb
+
+/-- **A view is exclusive** (against the KV invariant's half, `↑kvN ⊆ E`). -/
+theorem authHistView_excl (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (hs hs' : List auth.AuthState) (E : CoPset) (hE : ↑kvN ⊆ E) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ authHistView γk hs -∗ authHistView γk hs' ={E}=∗ False := by
+  iintro #Hinv H1 H2
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  unfold authHistView at *
+  ihave %Ha := monoListAuthOwn_agree γk.hist _ _ hs hs' $$ H1 H2
+  ihave H12 := (monoListAuthOwn_fractional (GF := GF) γk.hist hs).fractional (1 : Qp).half
+    (1 : Qp).half |>.2 $$ [H1 H2]
+  · obtain ⟨-, rfl⟩ := Ha; iframe H1 H2
+  rw [Qp.half_add_half]
+  ihave %Hb := monoListAuthOwn_agree γk.hist _ _ hs _ $$ H12 Hh
+  exact absurd Hb.1 (Qp_one_add_not_le _)
+
+/-- **A lower bound of the requested log gives one of its history** (`↑kvN ⊆ E`). -/
+theorem authHistLb_of_reqLogLb (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (L₀ : List EntryModel) (E : CoPset) (hE : ↑kvN ⊆ E) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ srvReqLogLb γ L₀ ={E}=∗
+      authHistLb γk (admStates γk st₀ L₀) := by
+  iintro #Hinv #H0
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  ihave ⟨HL, %Hp⟩ := srvReqLogLb_prefix γ L L₀ $$ [HL H0]
+  · iframe HL H0
+  ihave #Hlb := monoListLbOwn_get γk.hist _ _ $$ Hh
+  imod Hclose $$ [HL Hσ Hh] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  imodintro
+  unfold authHistLb admStates
+  iapply (monoListLbOwn_le _ (admStatesR_prefix _ _ _ _ _ Hp))
+  iexact Hlb
+
 /-- **The mode-`on` model of two logs with the same requested entries** is the same. -/
 theorem kvRaftOfOn_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
     (s : auth.AuthState × mvcc.Log) (A B : List EntryModel) (h : srvEqv γ A B)
@@ -719,6 +1137,74 @@ theorem kvRaftOfOn_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
   obtain ⟨hA, hB, hops⟩ := h
   rw [kvRaftOfOn_ops c₀ ch A s (srvIdxOkW_above _ _ A hA hc),
     kvRaftOfOn_ops c₀ ch B s (srvIdxOkW_above _ _ B hB hc), hops]
+
+/-- `admEntry` over a raft log entry (an entry above the start's index). -/
+def admLE (st : auth.AuthState) (x : LogEntry) : Prop :=
+  x.type = W32 0 ∧ x.data ≠ [] ∧ ∃ rq, apply.irrDecode x.data = some rq ∧
+    apply.needAdminPermission rq = true ∧
+    auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) ∧ adminNext rq st ≠ st
+
+/-- `admStep` over raft log entries (`kvOpOn`'s). -/
+noncomputable def admStepLE (ch : apply.Chain)
+    (acc : (auth.AuthState × mvcc.Log) × List auth.AuthState) (x : LogEntry) :
+    (auth.AuthState × mvcc.Log) × List auth.AuthState :=
+  open Classical in
+  (kvOpOn ch acc.1 x, if admLE acc.1.1 x then acc.2 ++ [(kvOpOn ch acc.1 x).1] else acc.2)
+
+theorem admEntry_above (c₀ : w64) (st : auth.AuthState) (m : EntryModel)
+    (h : uint.Z c₀ < uint.Z m.index) : admEntry c₀ st m ↔ admLE st m.toLE := by
+  unfold admEntry admLE EntryModel.toLE
+  constructor
+  · rintro ⟨h1, h2, rq, h3, -, h4⟩; exact ⟨h1, h2, rq, h3, h4⟩
+  · rintro ⟨h1, h2, rq, h3, h4⟩; exact ⟨h1, h2, rq, h3, h, h4⟩
+
+theorem admStep_ops (c₀ : w64) (ch : apply.Chain) :
+    ∀ (A : List EntryModel) (acc : (auth.AuthState × mvcc.Log) × List auth.AuthState),
+      (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
+      A.foldl (admStep c₀ ch) acc = (opsOf (A.map EntryModel.toLE)).foldl (admStepLE ch) acc
+  | [], _, _ => rfl
+  | m :: A, acc, h => by
+    have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index :=
+      fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
+    have hm := h m (List.mem_cons_self ..)
+    rw [List.foldl_cons]
+    by_cases hf : m.toLE.isFiller
+    · have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
+      rw [this]
+      have hst : admStep c₀ ch acc m = acc := by
+        have hna : ¬ admEntry c₀ acc.1.1 m := by
+          obtain ⟨hd, -⟩ := hf
+          simp only [EntryModel.toLE] at hd
+          rintro ⟨-, h2, -⟩; exact h2 hd
+        unfold admStep
+        rw [kvEntryOn_filler c₀ ch acc.1 m hf]
+        simp [hna]
+      rw [hst]
+      exact admStep_ops c₀ ch A acc hA
+    · have : opsOf ((m :: A).map EntryModel.toLE) =
+          m.toLE :: opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
+      rw [this, List.foldl_cons]
+      have hst : admStep c₀ ch acc m = admStepLE ch acc m.toLE := by
+        unfold admStep admStepLE
+        rw [kvEntryOn_above c₀ ch acc.1 m hm]
+        by_cases ha : admEntry c₀ acc.1.1 m
+        · have hb := (admEntry_above c₀ acc.1.1 m hm).1 ha
+          simp [ha, hb]
+        · have hb : ¬ admLE acc.1.1 m.toLE := fun hb => ha ((admEntry_above c₀ acc.1.1 m hm).2 hb)
+          simp [ha, hb]
+      rw [hst]
+      exact admStep_ops c₀ ch A _ hA
+
+/-- **Logs with the same requested entries have the same auth history.** -/
+theorem admStatesR_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
+    (s : auth.AuthState × mvcc.Log) (A B : List EntryModel) (h : srvEqv γ A B)
+    (hc : uint.Z c₀ ≤ uint.Z γ.ai0) : admStatesR c₀ ch s A = admStatesR c₀ ch s B := by
+  obtain ⟨hA, hB, hops⟩ := h
+  unfold admStatesR
+  rw [admStep_ops c₀ ch A _ (srvIdxOkW_above _ _ A hA hc),
+    admStep_ops c₀ ch B _ (srvIdxOkW_above _ _ B hB hc), hops]
 
 /-- **A lower bound's mode-`on` model is a prefix's** of the server's log of requested entries
 (2026-10-27): the requested entries of a committed log `A` are a prefix of the server's `L`. -/
@@ -782,12 +1268,12 @@ theorem kv_log_plain_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
   iintro #Hinv #Hr #HB
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ Hh] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
   imodintro
   ipureintro
   refine ⟨srv_entry_transfer γ.ai0 B L plainEntryOn ?_ ?_ HBi Hp.2.2 Hok.1,

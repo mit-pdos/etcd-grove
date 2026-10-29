@@ -106,7 +106,7 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
   ihave #HkI' := HkI
   iunfold kvInvOn at HkI'
   iinv HkI' with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ', %Hok', #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ', Hh, %Hok', #Hw⟩
   iunfold etcdKV at Hσ
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ' Hσ
   have hlen := (kvRaftOfOn_extends γk.c0 γk.ch0 (st₀, γk.log0) L).length_le
@@ -122,8 +122,8 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
       have := (kvRaftOfOn_prefix γk.c0 γk.ch0 (st₀, γk.log0) L' L hL').length_le
       unfold kvModelOn at hA ⊢; rw [← hA, hAL]; exact this
   imod Hp with ⟨HL, %Hle⟩
-  imod Hclose $$ [HL Hσ'] with -
-  · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'
+  imod Hclose $$ [HL Hσ' Hh] with -
+  · inext; iexists L; iframe HL Hσ' Hh Hw; ipureintro; exact Hok'
   imodintro
   iunfold etcdKV
   iframe Hσ

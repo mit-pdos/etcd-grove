@@ -642,7 +642,7 @@ theorem reqPropOkOn_noZero (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
     reqPropOkOn (GF := GF) γ γk st₀ Gb rq hm Qr ⊢
       ⌜irrNoZeroEnd (apply.withHeader rq hm)⌝ ∗ reqPropOkOn γ γk st₀ Gb rq hm Qr := by
   iunfold reqPropOkOn
-  iintro (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, #HL₀, Hau⟩ | %Had)
+  iintro (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, #HL₀, Hau⟩ | (%Had | ⟨%Qa, %Had, #Hha⟩))
   · isplitr
     · ipureintro; exact Hno.2.2.1
     · ileft; ipureintro; exact Hno
@@ -651,7 +651,10 @@ theorem reqPropOkOn_noZero (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
     · iright; ileft; iexists op, Q, γc, L₀; iframe HL₀ Hau; ipureintro; exact Hop
   · isplitr
     · ipureintro; exact Had.2.1
-    · iright; iright; ipureintro; exact Had
+    · iright; iright; ileft; ipureintro; exact Had
+  · isplitr
+    · ipureintro; exact Had.2.1
+    · iright; iright; iright; iexists Qa; iframe Hha; ipureintro; exact Had
 
 /-- **A proposal's update in the auth mode `on`, at the request the wire decodes** (`kv_prop_au`
 off, `kv_prop_au_on` on; see the file header): for data `d` decoding to `rq'`, the encoding of `rq`
