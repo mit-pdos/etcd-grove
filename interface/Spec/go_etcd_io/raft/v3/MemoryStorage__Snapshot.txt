@@ -3,53 +3,24 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def MemoryStorage.Snapshot.spec : Prop :=
-  (∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (esu : GoInterface) (n : Int),
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              "Hms" ∷ ownMemoryStorage ms γs σ ∗
-                typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard ∗
-                  (⌜n ≤ 0⌝ ∨ memStorCut γs n) -∗
-            (▷
-                ∀ snap err,
-                  ownMemoryStorage ms γs σ ∗
-                      (⌜err = esu⌝ ∨
-                        ⌜err = GoInterface.nil⌝ ∗
-                          ∃ sv,
-                            ownSnapM snap (DFrac.own 1) sv ∗
-                              ⌜(σ.prev.index' ≠ W64 0 ∨ 1 ≤ n → sv.Metadata'.Index' ≠ W64 0) ∧
-                                    (snapId sv = σ.ss ∧
-                                        sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-                                          sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat ∨
-                                      uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
-                                        uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
-                                          uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-                                            termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term')⌝ ∗
-                                (⌜sv.Metadata'.Index' = W64 0⌝ ∨
-                                  memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists))) -∗
-                    Φ (intoVal snap, intoVal err)) -∗
-              WP
-                ((intoVal
-                    (methods MemoryStorage.ty.PointerType go!"Snapshot"
-                      (intoVal ms)))
-                  (intoVal ()))
-                {{ Φ }}) ∧
-    ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Htok" ∷ memSnapTok ms γs σ -∗
-            (▷
-                ∀ snap,
-                  (memSnapTok ms γs σ ∗
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (esu : GoInterface),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            memStorInvP ms γs J ∗
+              memCompacted γs c ∗ typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
+          (▷
+              ∀ snap err,
+                (⌜err = esu⌝ ∨
+                    ⌜err = GoInterface.nil⌝ ∗
                       ∃ sv,
-                        ownSnapW snap (DFrac.own 1) sv ∗
-                          ⌜snapId sv = σ.ss ∧
-                              sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-                                sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat⌝) -∗
-                    Φ (intoVal snap, intoVal GoInterface.nil)) -∗
-              WP
-                ((intoVal
-                    (methods MemoryStorage.ty.PointerType go!"Snapshot"
-                      (intoVal ms)))
-                  (intoVal ()))
-                {{ Φ }}
+                        ownSnapM snap (DFrac.own 1) sv ∗
+                          ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
+                            (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index'))) -∗
+                  Φ (intoVal snap, intoVal err)) -∗
+            WP
+              ((intoVal
+                  (methods MemoryStorage.ty.PointerType go!"Snapshot"
+                    (intoVal ms)))
+                (intoVal ()))
+              {{ Φ }}

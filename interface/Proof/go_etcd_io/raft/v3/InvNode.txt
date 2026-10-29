@@ -6,51 +6,23 @@ def (sealed) isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : I
 
 def (sealed) statusOwn (st : Status) : IProp GF
 
-def (sealed) leaderTransferOn (γ : Cluster) (N : Namespace) : IProp GF
-
 def (sealed) nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF
-
-theorem snapshotCert_data [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (k : SnapTrip) : isStaticCluster γ N vs snapOk ∗
-    snapshotCert γ N k ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat k.sid.index' ∧ snapOk l
-    k.dat⌝
-
-theorem snapshotCert_static [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (vs : List
-    w64) (snapOk : List LogEntry → List w8 → Prop) (l : List LogEntry) (i : w64) (d : List w8) : (∀
-    (t : w64), SnapListsOk { sid := { term' := t, index' := i }, cl := { voters := vs, learners :=
-    [], outgoing := [], learnersNext := [] }, al := false, dat := d }) → l.length = uint.nat i →
-    snapOk l d → isStaticCluster γ N vs snapOk ∗ isCommittedLogLb γ l ⊢ □ ∀ t, snapshotCert γ N {
-    sid := { term' := t, index' := i }, cl := { voters := vs, learners := [], outgoing := [],
-    learnersNext := [] }, al := false, dat := d }
-
-theorem tickCredit_intro [package_sem : Assumptions] (γ : Cluster) (n : Nat) : ⧗n ⊢ tickCredit γ n
-
-theorem ccShrink_addVoter (cfg : GSet w64) (cm : ConfChangeM) (ht : cm.type = W32 0) (hk' : ∃ k, k ∈
-    cfg ∧ (cm.nodeId = k ∨ cm.nodeId = W64 0)) : CCShrink cfg (ccV2Of (ConfChangeIM.v1 cm)).fst
-    (ccV2Of (ConfChangeIM.v1 cm)).snd
 
 theorem isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) : Timeless (isCommittedLogLb γ
     l)
 
-theorem cluster_alloc_static [package_sem : Assumptions] (N : Namespace) (vs : List w64) (snapOk :
-    List LogEntry → List w8 → Prop) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup
-    → ¬W64 0 ∈ vs → ↑vs.length ≤ 2 ^ 62 → ⊢ |={E}=> ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps γ [] ∗
-    ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗ isStaticCluster γ N vs snapOk ∗ leaderTransferOn
-    γ N ∗ [∗list] id ∈ vs, nodeRestartBoot γ N vs id
-
 def (sealed) isReadCtx (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp GF) :
     IProp GF
 
-theorem storageCert_registerAny [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (γs :
-    MemStorNames) (i : w64) (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) : ↑N ⊆ E → ⊢
-    storageCertInv γ N γs -∗ (□ ∀ t, snapshotCert γ N { sid := { term' := t, index' := i }, cl :=
-    cl, al := al, dat := d }) ={E}=∗ □ ∀ t, memStorCert γs { sid := { term' := t, index' := i }, cl
-    := cl, al := al, dat := d }
-
-def (sealed) storageCertInv (γ : Cluster) (N : Namespace) (γs : MemStorNames) : IProp GF
+theorem nodeAppliedLb_persistent (γ : Cluster) (id : w64) (k : Nat) : Persistent (nodeAppliedLb γ id
+    k)
 
 theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) : ownCommittedOps γ ops ⊢
     ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝
+
+def nodeErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF)) (err :
+    GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ ∨ errStopped err ∗ nodeStopped n γ N ∨ ctxErr cd err)
 
 theorem committedAtTerm_committed [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (t c :
     w64) : committedAtTerm γ N t c ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝
@@ -67,37 +39,15 @@ theorem readStateOk_ctx [package_sem : Assumptions] (γ : Cluster) (N : Namespac
     ≤ l'.length → ⊢ readStateOk γ N c idx -∗ isReadCtx γ N c Q -∗ isCommittedLogLb γ l' ={E}=∗ ∃ l,
     ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ ▷ □ Q (opsOf l)
 
-def (sealed) nodeDynamicBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
-    (id : w64) : IProp GF
-
-theorem storageCertInv_alloc [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (γs :
-    MemStorNames) (E : CoPset) : ⊢ memCertAuth γs ={E}=∗ storageCertInv γ N γs
-
-def (sealed) isDynamicCluster (γ : Cluster) (N : Namespace) (c0 : Membership) (decode :
-    ConfChangeDecoder) : IProp GF
-
 theorem sentMsg_appFrom [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64) (st :
     MsgSt) : sentMsg γ N src st ⊢ ⌜AppFrom src st⌝
-
-def (sealed) leaderTransferOff (γ : Cluster) (N : Namespace) : IProp GF
 
 theorem deliveredLogLb_committed [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace)
     (l : List LogEntry) : deliveredLogLb n γ N l ⊢ isCommittedLogLb γ l
 
-def (sealed) readCredits (γ : Cluster) (n : Nat) : IProp GF
-
 theorem isCommittedLogLb_nil (γ : Cluster) : ⊢ isCommittedLogLb γ []
 
-def (sealed) bootedCluster (γ : Cluster) : IProp GF
-
 def (sealed) Membership.applyChange (o : ConfChangeIM) (m : Membership) : Option Membership
-
-theorem storageCertInv_persistent (γ : Cluster) (N : Namespace) (γs : MemStorNames) : Persistent
-    (storageCertInv γ N γs)
-
-theorem storageCert_read [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (γs :
-    MemStorNames) (k : SnapTrip) (E : CoPset) : ↑N ⊆ E → ⊢ storageCertInv γ N γs -∗ memStorCert γs k
-    ={E}=∗ snapshotCert γ N k
 
 theorem isCommittedLogLb_agree (γ : Cluster) (l1 l2 : List LogEntry) : isCommittedLogLb γ l1 ∗
     isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝
@@ -116,14 +66,6 @@ theorem node.wp_readyRecv [package_sem : Assumptions] (n ch : Loc) (γ : Cluster
 def (sealed) readCtxAfter (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) : IProp
     GF
 
-theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : List w64) (ctxs : List (List
-    w8)) (boot : List LogEntry) (snapOk : List LogEntry → List w8 → Prop) (transfer : Bool) (E :
-    CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 → BootLog ps
-    ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ⊢ bootMarshal ps ctxs (LogEntry.toEntries boot 0)
-    ={E}=∗ ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 -
-    2) ∗ isStaticCluster γ N ps snapOk ∗ (if transfer = true then leaderTransferOn γ N else
-    leaderTransferOff γ N) ∗ readyFits γ N ∗ [∗list] id ∈ ps, nodeBoot γ N ps ctxs id
-
 def (sealed) ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF
 
 theorem Membership.applyChange_addVoter (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 0 →
@@ -137,46 +79,30 @@ theorem isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Lo
 
 def (sealed) Cluster : Type 1
 
-theorem sentMsg_dynamic_notSnapshot [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (c0 :
-    Membership) (decode : ConfChangeDecoder) (src : w64) (st : MsgSt) : isDynamicCluster γ N c0
-    decode ∗ sentMsg γ N src st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝
-
 theorem isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : Persistent (isNode n
     γ N id)
-
-theorem nodeBoot_booted [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (ps : List w64)
-    (ctxs : List (List w8)) (id : w64) : ps ≠ [] → nodeBoot γ N ps ctxs id ⊢ nodeBoot γ N ps ctxs id
-    ∗ bootedCluster γ
 
 theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (l0 : List
     LogEntry) : readStateOk γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝
 
-theorem storageCert_register [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (γs :
-    MemStorNames) (k : SnapTrip) (E : CoPset) : ↑N ⊆ E → ⊢ storageCertInv γ N γs -∗ snapshotCert γ N
-    k ={E}=∗ memStorCert γs k
-
 def (sealed) Cluster.bootLen (γ : Cluster) : Nat
 
-def (sealed) nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (id :
-    w64) : IProp GF
+def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF)) (err :
+    GoInterface) : IProp GF :=
+  iprop(nodeErrS n γ N cd err ∨ stepErr err)
 
 theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) : ownCommittedOps γ ops ∗
     isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝
 
-def (sealed) nodeRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF
+theorem snapGiven_persistent (γ : Cluster) (id : w64) (k : Nat) : Persistent (snapGiven γ id k)
 
 theorem Membership.simple_valid (vs : GSet w64) : vs ≠ ∅ → ¬W64 0 ∈ vs → GMap.size vs < 2 ^ 62 →
     (Membership.simple vs).Valid
-
-theorem bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster γ)
 
 def (sealed) readStateOk (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : IProp GF
 
 theorem isCommittedLogLb_persistent (γ : Cluster) (l : List LogEntry) : Persistent (isCommittedLogLb
     γ l)
-
-theorem isStaticCluster_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List
-    LogEntry → List w8 → Prop) : Persistent (isStaticCluster γ N vs snapOk)
 
 theorem ownReadCtxs_timeless (γ : Cluster) (U : GSet (List w8)) : Timeless (ownReadCtxs γ U)
 
@@ -198,26 +124,27 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
                       Lx < 2 ^ 64 ∧
                         (∀ (e0 : EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ Lx + 1) ∧
                           ↑(st.delivered ++ ce).length ≤ Lx ∧ Lx < ↑(receiptBound GF) + ↑γ.bootLen⌝ ∗
-                  readySnap γ N rd st ce es L)
+                  readySnap γ N id rd st ce es L)
 
-theorem leaderTransferOff_persistent (γ : Cluster) (N : Namespace) : Persistent (leaderTransferOff γ
-    N)
-
-def (sealed) tickCredit (γ : Cluster) (n : Nat) : IProp GF
+theorem propErrS_propErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
+    context.ContextDesc (IProp GF)) (err : GoInterface) : propErrS n γ N cd err ⊢ propErr cd err
 
 theorem Membership.applyChange_nodeZero (vs : GSet w64) (cm : ConfChangeM) : cm.nodeId = W64 0 →
     (Membership.simple vs).Valid → Membership.applyChange (ConfChangeIM.v1 cm) (Membership.simple
     vs) = some (Membership.simple vs)
 
-def (sealed) snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF
+theorem msgCredits_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits γ N st
 
-theorem readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits γ n)
+theorem nodeAppliedLb_timeless (γ : Cluster) (id : w64) (k : Nat) : Timeless (nodeAppliedLb γ id k)
+
+theorem nodeErrS_nodeErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
+    context.ContextDesc (IProp GF)) (err : GoInterface) : nodeErrS n γ N cd err ⊢ nodeErr cd err
+
+def (sealed) snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF
 
 theorem isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp
     GF) : Persistent (isReadCtx γ N c Q)
-
-theorem sentMsg_transferOff [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64)
-    (st : MsgSt) : leaderTransferOff γ N ∗ sentMsg γ N src st ⊢ ⌜SentMsgOk st⌝
 
 theorem nodeDriver_deliveredLogLb [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
     Namespace) (st : NodeDriverState) : nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n
@@ -246,17 +173,12 @@ def (sealed) readyFits (γ : Cluster) (_N : Namespace) : IProp GF
 theorem nodeRunning_fractional [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) :
     Fractional (nodeRunning n γ N)
 
-theorem readCredits_split (γ : Cluster) (a b : Nat) : readCredits γ (a + b) ⊣⊢ readCredits γ a ∗
-    readCredits γ b
-
 def (sealed) nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) : IProp GF
 
 theorem readyFits_persistent (γ : Cluster) (N : Namespace) : Persistent (readyFits γ N)
 
 theorem msgCredits_copy [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    γ.dup = true → st.msg.Type' = MsgProp → msgCredits γ N st ⊢ □ msgCredits γ N st
-
-theorem readCredit_eq (γ : Cluster) : readCredit γ ⊣⊢ readCredits γ 1
+    γ.dup = true → msgCredits γ N st ⊢ □ msgCredits γ N st
 
 def (sealed) nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF
 
@@ -271,16 +193,11 @@ theorem sentMsg_replaceSnapshot [package_sem : Assumptions] (γ : Cluster) (N : 
     γ N (snapTrip sv' sv'.Metadata'.ConfState'.lists) ={E}=∗ sentMsg γ N src { msg := st.msg, ents
     := st.ents, snap := some sv', ctx := st.ctx, resps := st.resps }
 
-def (sealed) storageCertLink (γ : Cluster) (N : Namespace) (st : Storage) : IProp GF
-
 theorem readCtxAfter_persistent (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) :
     Persistent (readCtxAfter γ N c l0)
 
 theorem deliveredLogLb_mono [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (l1
     l2 : List LogEntry) : l1 <+: l2 → deliveredLogLb n γ N l2 ⊢ deliveredLogLb n γ N l1
-
-theorem leaderTransferOn_persistent (γ : Cluster) (N : Namespace) : Persistent (leaderTransferOn γ
-    N)
 
 def (sealed) Membership.Valid (m : Membership) : Prop
 
@@ -289,36 +206,37 @@ def (sealed) nodeRunning (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) : IPr
 theorem nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) : Persistent (nodeStopped n γ
     N)
 
-theorem nodeDynamicBoot_booted [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (ps : List
-    w64) (ctxs : List (List w8)) (id : w64) : ps ≠ [] → nodeDynamicBoot γ N ps ctxs id ⊢
-    nodeDynamicBoot γ N ps ctxs id ∗ bootedCluster γ
-
 theorem readyRest_fits [go.Semantics] (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st :
     NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
     : readyFits γ N ∗ readyRest γ N id rd st ce es h L ⊢ readyRest γ N id rd st ce es h L ∗ ⌜∀ (e0 :
     EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ 2 ^ 61⌝
+
+theorem readyRest_ceInBatch [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd
+    : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) :
+    readyRest γ N id rd st ce es h none ⊢ ⌜∀ (e0 : EntryM), es.head? = some e0 → ∀ (j : Nat) (e :
+    LogEntry), ce[j]? = some e → uint.nat e0.Index' ≤ st.delivered.length + 1 + j → Option.map
+    LogEntry.ofEntryM es[st.delivered.length + 1 + j - uint.nat e0.Index']? = some e⌝ ∗ readyRest γ
+    N id rd st ce es h none
+
+theorem nodeAppliedLb_mono [package_sem : Assumptions] (γ : Cluster) (id : w64) (k k' : Nat) : k' ≤
+    k → nodeAppliedLb γ id k ⊢ nodeAppliedLb γ id k'
+
+theorem nodeErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp
+    GF)) (err : GoInterface) : Persistent (nodeErrS n γ N cd err)
 
 theorem readCtx_commit_after (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8) (Q :
     List LogEntry → IProp GF) (l0 : List LogEntry) : ¬c ∈ U → ownReadCtxs γ U ∗ isCommittedLogLb γ
     l0 ∗ □ AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ownCommittedOps γ ops, COMM □ Q ops
     }> ⊢ |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q ∗ readCtxAfter γ N c l0)
 
-theorem dynamicCluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : List w64) (ctxs :
-    List (List w8)) (boot : List LogEntry) (decode : ConfChangeDecoder) (transfer : Bool) (E :
-    CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 → BootLog ps
-    ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ↑ps.length ≤ 2 ^ 62 → ⊢ bootMarshal ps ctxs
-    (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ
-    ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗ isDynamicCluster γ N (Membership.simple (listToSet ps)) decode
-    ∗ (if transfer = true then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗
-    [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id
+def (sealed) snapGiven (γ : Cluster) (id : w64) (k : Nat) : IProp GF
+
+def (sealed) nodeAppliedLb (γ : Cluster) (id : w64) (k : Nat) : IProp GF
 
 theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
-    (src : w64) (st : MsgSt) : (st.msg.Type' ≠ MsgProp → NetMsgOk id { msg := st.msg, ents :=
-    st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∧ st.msg.Type' ≠ MsgTransferLeader) →
-    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
-    st.msg.To' = id → sentMsg γ N src st ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true { msg :=
-    st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∗ msgCredits γ N st ⊢
-    |==> stepIn γ N id ml
+    (src : w64) (st : MsgSt) : st.msg.To' = id → sentMsg γ N src st ∗ msgPtsC ml (DFrac.own 1)
+    (DFrac.own 1) true { msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := []
+    } ∗ msgCredits γ N st ⊢ |==> stepIn γ N id ml
 
 theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜↑l.length + 1 < 2 ^ 64⌝
@@ -328,6 +246,9 @@ def (sealed) isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF
 theorem nodeRunning_as_fractional [package_sem : Assumptions] {ioΦ ioq : ProofMode.InOut} (n : Loc)
     (γ : Cluster) (N : Namespace) (q : Qp) : AsFractional (nodeRunning n γ N q) ioΦ (nodeRunning n γ
     N) ioq q
+
+theorem propErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp
+    GF)) (err : GoInterface) : Persistent (propErrS n γ N cd err)
 
 theorem readStateOk_persistent (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : Persistent
     (readStateOk γ N c idx)
@@ -346,61 +267,42 @@ theorem Membership.applyChange_valid (o : ConfChangeIM) (m m' : Membership) : m.
 theorem isCommittedLogLb_mono (γ : Cluster) (l1 l2 : List LogEntry) : l1 <+: l2 → isCommittedLogLb γ
     l2 ⊢ isCommittedLogLb γ l1
 
-theorem storageCertLink_persistent (γ : Cluster) (N : Namespace) (st : Storage) : Persistent
-    (storageCertLink γ N st)
-
 theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 1 →
     cm.nodeId ≠ W64 0 → ¬cm.nodeId ∈ vs → (Membership.simple vs).Valid → Membership.applyChange
     (ConfChangeIM.v1 cm) (Membership.simple vs) = some (Membership.simple vs)
 
-def (sealed) readCredit (γ : Cluster) : IProp GF
-
 theorem committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) : Persistent
     (committedAtTerm γ N t c)
-
-theorem tickCredit_zero [package_sem : Assumptions] (γ : Cluster) : ⊢ |==> tickCredit γ 0
 
 theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8) (Q : List
     LogEntry → IProp GF) : ¬c ∈ U → ownReadCtxs γ U ∗ □ AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \
     ↑N, ∅ <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢ |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ
     N c Q)
 
-theorem storageCertLink_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st :
-    Storage) : ((□ ∀ k E, ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗ snapshotCert γ N k) ∗ □ ∀ k E, ⌜↑N ⊆ E⌝
-    -∗ snapshotCert γ N k ={E}=∗ storCert st k) ⊢ storageCertLink γ N st
+theorem nodeAppliedLb_zero [package_sem : Assumptions] (γ : Cluster) (id : w64) : ⊢ nodeAppliedLb γ
+    id 0
 
 theorem Membership.applyChange_removeVoter (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 1 →
     cm.nodeId ≠ W64 0 → cm.nodeId ∈ vs → GMap.delete cm.nodeId vs ≠ ∅ → (Membership.simple vs).Valid
     → Membership.applyChange (ConfChangeIM.v1 cm) (Membership.simple vs) = some (Membership.simple
     (GMap.delete cm.nodeId vs))
 
-def (sealed) isStaticCluster (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List LogEntry →
-    List w8 → Prop) : IProp GF
-
-theorem readySnap_dynamic [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (c0 :
-    Membership) (decode : ConfChangeDecoder) (rd : Ready) (st : NodeDriverState) (ce : List
-    LogEntry) (es : List EntryM) (l : SnapLoan) : isDynamicCluster γ N c0 decode ∗ readySnap γ N rd
-    st ce es (some l) ⊢ False
-
-theorem msgCredits_snapshot [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    st.msg.Type' = MsgSnap → ⊢ |==> msgCredits γ N st
-
-theorem msgCredits_none (γ : Cluster) (N : Namespace) (st : MsgSt) : st.msg.Type' ≠ MsgReadIndex →
-    st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits γ N st
+theorem snapGiven_timeless (γ : Cluster) (id : w64) (k : Nat) : Timeless (snapGiven γ id k)
 
 theorem sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : Persistent
     (sentMsg γ N src st)
 
-theorem nodeDriver_hardStateCommitted [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
-    Namespace) (c0 : Membership) (decode : ConfChangeDecoder) (st : NodeDriverState) :
-    isDynamicCluster γ N c0 decode ∗ nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ (⌜st.hardState =
-    hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗ ⌜↑st.delivered.length ≤
-    uint.Z st.hardState.Commit'⌝)
+theorem sentMsg_shape [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64) (st :
+    MsgSt) : sentMsg γ N src st ⊢ ⌜SentMsgShape st ∧ (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some
+    sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61)⌝
 
-def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry)
-    (es : List EntryM) : Option SnapLoan → IProp GF :=
+def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState) (ce :
+    List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF :=
   match x✝ with
-  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es)
+  | none =>
+    iprop(⌜rd.Snapshot' = null⌝ ∗
+        appendRight st.storage es ∗
+          ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es)
   | some l =>
     iprop(⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧
             l.ptr = rd.Snapshot' ∧
@@ -413,7 +315,8 @@ def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
                           uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es⌝ ∗
         ownSnapS l.ptr (DFrac.own (Qp.half 1)) l.snap ∗
           isCommittedLogLb γ (strip l.dlv) ∗
-            snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗ readyOut st.storage es (some l))
-
-theorem isDynamicCluster_persistent (γ : Cluster) (N : Namespace) (c0 : Membership) (decode :
-    ConfChangeDecoder) : Persistent (isDynamicCluster γ N c0 decode)
+            snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
+              (∃ k old,
+                  ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
+                    storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
+                snapGiven γ id (uint.nat l.snap.Metadata'.Index'))

@@ -419,13 +419,9 @@ theorem MemoryStorage.wp_firstIndex [AllG GF] [StorageModel GF] :
     MemoryStorage.firstIndex.spec (GF := GF) (hG := hG) :=
   MemoryStorage.firstIndex.wp_proof raftpb.Entry.wp_GetIndex
 
-theorem MemoryStorage.wp_Append :
-    MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
-
+theorem MemoryStorage.wp_Append [StorageModel GF] :
+    MemoryStorage.Append.spec (GF := GF) (hG := hG) :=
   MemoryStorage.Append.wp_proof MemoryStorage.wp_firstIndex raftpb.Entry.wp_GetIndex
-  -/
 
 theorem raftpb.wp_EnsureConfState :
     raftpb.EnsureConfState.spec (GF := GF) (hG := hG) :=
@@ -479,21 +475,13 @@ theorem wp_limitSize [StorageModel GF] :
     limitSize.spec (GF := GF) (hG := hG) :=
   limitSize.wp_proof proto.wp_SizeEntry
 
-theorem MemoryStorage.wp_Entries :
-    MemoryStorage.Entries.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
-
+theorem MemoryStorage.wp_Entries [StorageModel GF] :
+    MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
   MemoryStorage.Entries.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex wp_limitSize
-  -/
 
-theorem MemoryStorage.wp_FirstIndex :
-    MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
-
+theorem MemoryStorage.wp_FirstIndex [StorageModel GF] :
+    MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) :=
   MemoryStorage.FirstIndex.wp_proof MemoryStorage.wp_firstIndex
-  -/
 
 theorem raftpb.SnapshotMetadata.wp_GetConfState :
     raftpb.SnapshotMetadata.GetConfState.spec (GF := GF) (hG := hG) :=

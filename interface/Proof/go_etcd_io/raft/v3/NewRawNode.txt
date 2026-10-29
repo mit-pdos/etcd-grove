@@ -5,7 +5,8 @@
 theorem NewRawNode.wp_proof [package_sem : Assumptions] (wp_newRaft : newRaft.spec) (wp_softState :
     raft.softState.spec) (wp_hardState : raft.hardState.spec) : NewRawNode.spec
   -- `Perennial.EtcdGrove.NewRawNode.spec`, unfolded:
-  ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF),
+  ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (sn : StorNames) (σ : StorState) (hs : HardStateM) (csm : ConfStateM)
+    (R R' : IProp GF),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -18,54 +19,88 @@ theorem NewRawNode.wp_proof [package_sem : Assumptions] (wp_newRaft : newRaft.sp
                       cv.Applied' = W64 0 →
                         σ.prev = { term' := W64 0, index' := W64 0 } →
                           σ.ents = [] →
-                            uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev →
-                              σ.pend = [] →
-                                HsEmpty hs →
-                                  csm.Voters'.Nodup →
-                                    ¬W64 0 ∈ csm.Voters' →
-                                      ↑csm.Voters'.length ≤ 2 ^ 62 →
-                                        csm.VotersOutgoing' = [] →
-                                          csm.Learners' = [] →
-                                            csm.LearnersNext' = [] →
-                                              csm.AutoLeave' = false →
-                                                σ.fl = W64 0 →
-                                                  ⊢
-                                                    ∀ Φ,
-                                                      (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                                          typedPointsto c cv (DFrac.own 1) ∗
-                                                            isLogger lok ∗
-                                                              isStorage (GoInterface.ok si) ∗
-                                                                ownStorage (GoInterface.ok si) σ ∗
-                                                                  ∀ Φ ss',
-                                                                    ownStorage (GoInterface.ok si)
-                                                                        { prev := σ.prev, ents := σ.ents, ss := ss',
-                                                                          pend := σ.pend, scs := σ.scs, sal := σ.sal,
-                                                                          sdat := σ.sdat, fl := σ.fl } -∗
-                                                                      (∀ hp cs al,
-                                                                          ownStorage (GoInterface.ok si)
-                                                                              { prev := σ.prev, ents := σ.ents, ss := ss',
-                                                                                pend := σ.pend, scs := σ.scs,
-                                                                                sal := σ.sal, sdat := σ.sdat,
-                                                                                fl := σ.fl } -∗
+                            σ.pend = [] →
+                              σ.fr = 0 →
+                                σ.sg = 0 →
+                                  σ.dt = ∅ →
+                                    HsEmpty hs →
+                                      csm.Voters'.Nodup →
+                                        ¬W64 0 ∈ csm.Voters' →
+                                          ↑csm.Voters'.length ≤ 2 ^ 62 →
+                                            csm.VotersOutgoing' = [] →
+                                              csm.Learners' = [] →
+                                                csm.LearnersNext' = [] →
+                                                  csm.AutoLeave' = false →
+                                                    σ.fl = W64 0 →
+                                                      ⊢
+                                                        ∀ Φ,
+                                                          (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                                              typedPointsto c cv (DFrac.own 1) ∗
+                                                                isLogger lok ∗
+                                                                  R ∗
+                                                                    (□
+                                                                        □
+                                                                          ∀ Φ,
                                                                             R -∗
-                                                                              hsOpt hp hs -∗
-                                                                                csPts cs DFrac.discard csm al -∗
-                                                                                  Φ
-                                                                                    ((intoVal hp, intoVal cs),
-                                                                                      intoVal GoInterface.nil)) -∗
-                                                                        WP
-                                                                          ((intoVal
-                                                                              (methods si.ty
-                                                                                go!"InitialState"
-                                                                                si.v))
-                                                                            (intoVal ()))
-                                                                          {{ Φ }}) -∗
-                                                        (▷
-                                                            ∀ rn err,
-                                                              (R ∗
-                                                                  ∃ s,
-                                                                    rawNodeFresh rn cv.ID' si (listToSet csm.Voters')
-                                                                        cv.StepDownOnRemoval' cv.PreVote' s ∗
-                                                                      ⌜err = GoInterface.nil⌝) -∗
-                                                                Φ (intoVal rn, intoVal err)) -∗
-                                                          WP ((intoVal (functions NewRawNode [])) (intoVal c)) {{ Φ }}
+                                                                              ▷
+                                                                                  (R -∗
+                                                                                    Φ
+                                                                                      (intoVal (W64 1),
+                                                                                        intoVal GoInterface.nil)) -∗
+                                                                                WP
+                                                                                  ((intoVal
+                                                                                      (methods si.ty
+                                                                                        go!"FirstIndex"
+                                                                                        si.v))
+                                                                                    (intoVal ()))
+                                                                                  {{ Φ }}) ∗
+                                                                      (□
+                                                                          □
+                                                                            ∀ Φ,
+                                                                              R -∗
+                                                                                ▷
+                                                                                    (R -∗
+                                                                                      Φ
+                                                                                        (intoVal (W64 0),
+                                                                                          intoVal GoInterface.nil)) -∗
+                                                                                  WP
+                                                                                    ((intoVal
+                                                                                        (methods si.ty
+                                                                                          go!"LastIndex"
+                                                                                          si.v))
+                                                                                      (intoVal ()))
+                                                                                    {{ Φ }}) ∗
+                                                                        □
+                                                                          □
+                                                                            ∀ Φ,
+                                                                              R -∗
+                                                                                (▷
+                                                                                    ∀ hp cs al,
+                                                                                      (hsOpt hp hs ∗
+                                                                                          csPts cs DFrac.discard csm al ∗
+                                                                                            |={⊤}=>
+                                                                                              isStorageD sn
+                                                                                                  (GoInterface.ok si) ∗
+                                                                                                ownStorage sn
+                                                                                                    (GoInterface.ok si)
+                                                                                                    σ ∗
+                                                                                                  R') -∗
+                                                                                        Φ
+                                                                                          ((intoVal hp, intoVal cs),
+                                                                                            intoVal GoInterface.nil)) -∗
+                                                                                  WP
+                                                                                    ((intoVal
+                                                                                        (methods si.ty
+                                                                                          go!"InitialState"
+                                                                                          si.v))
+                                                                                      (intoVal ()))
+                                                                                    {{ Φ }}) -∗
+                                                            (▷
+                                                                ∀ rn err,
+                                                                  (R' ∗
+                                                                      ∃ s,
+                                                                        rawNodeFresh rn cv.ID' si (listToSet csm.Voters')
+                                                                            cv.StepDownOnRemoval' cv.PreVote' s ∗
+                                                                          ⌜err = GoInterface.nil⌝) -∗
+                                                                    Φ (intoVal rn, intoVal err)) -∗
+                                                              WP ((intoVal (functions NewRawNode [])) (intoVal c)) {{ Φ }}

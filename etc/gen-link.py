@@ -701,6 +701,26 @@ variable [package_sem : {assumptions}]
             return f"EtcdGrove.{nsd}.{r}" if nsd else f"EtcdGrove.{r}"
         return r
 
+    sm_memo = {}
+
+    def needs_sm(fn, depth=0):
+        if fn in sm_memo:
+            return sm_memo[fn]
+        sm_memo[fn] = False
+        r = False
+        for c in callees.get(fn, []):
+            if depth > 50:
+                break
+            try:
+                csrc = open(spec_file(c)).read()
+            except Exception:
+                continue
+            if "[KVStor GF]" not in csrc and ("[StorageModel GF]" in csrc or needs_sm(c, depth + 1)):
+                r = True
+                break
+        sm_memo[fn] = r
+        return r
+
     def emit_cache(fn):
         args = " ".join(arg(fn, c) for c in callees[fn])
         body = f"{specref(fn)}.wp_proof" + (f" {args}" if args else "")
@@ -715,8 +735,10 @@ variable [package_sem : {assumptions}]
         # the client's watch specs are stated at the server's model (the watch slice's unit W-C:
         # `v3rpc.etcdModelOfServer`), under the v3rpc package's assumptions too
         allg += f" [{SRV_ASSUMPTIONS}]" if fn in srv_assumptions else ""
-        # ... or, stated over any raft storage model, that (the store's transport)
-        if "[KVStor GF]" not in src and "[StorageModel GF]" in src:
+        # ... or, stated over any raft storage model, that (the store's transport); (raft-final,
+        # 2026-10-29) also when a callee's result takes it (U8 v2's generic `MemoryStorage` specs
+        # call the storage-model internals `firstIndex`, `limitSize`)
+        if "[KVStor GF]" not in src and ("[StorageModel GF]" in src or needs_sm(fn)):
             allg += " [StorageModel GF]"
         # ... or over the `MemoryStorage` registry (the server's `NewServer`, 2026-10-16: its raft
         # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)

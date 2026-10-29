@@ -27,8 +27,7 @@ theorem RawNode.Bootstrap.wp_proof [package_sem : Assumptions] (wp_raft_becomeFo
                                   peersCtx pv ctxs ∗
                                     bootMarshal ps ctxs bootLog ∗
                                       bootInit γ md id (listToSet ps) bootLog ∗
-                                        isCommitted γ bootLog ∗
-                                          NsCap γ.reNoSnap (GoInterface.ok si) ∗ certLink γ (GoInterface.ok si) -∗
+                                        isCommitted γ bootLog ∗ certLink γ s.gh.sn -∗
                             (▷
                                 ∀ err,
                                   ⌜err = GoInterface.nil⌝ ∗

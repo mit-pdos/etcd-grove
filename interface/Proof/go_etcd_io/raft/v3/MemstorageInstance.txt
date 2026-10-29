@@ -2,31 +2,23 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem memStorCap_intro [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (k : Int) (h : γs.cap ≤ k) :
-    ⊢ memStorReg ms γs -∗ storCap (memStorIface ms) k
+theorem memStorLogI_agree [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (k1 k2 : Nat)
+    (dq1 dq2 : DFrac) (es1 es2 : List EntryM) : memStorLogI st k1 dq1 es1 ∗ memStorLogI st k2 dq2
+    es2 ⊢ ⌜LogAgree k1 es1 k2 es2⌝
 
-theorem memStorage_Append [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
-    (p : List EntryM) (s : GoSlice) (dq : DFrac) (Hfit : ∀ (e0 : EntryM), p.head? = some e0 → uint.Z
-    e0.Index' + ↑p.length ≤ 2 ^ 61) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ memStorReg ms γs
-    ∗ appendRight (memStorIface ms) p ∗ entsPts s dq p -∗ ▷ (appendReceipt (memStorIface ms) p ∗
-    entsPts s dq p -∗ Φ (intoVal GoInterface.nil)) -∗ WP ((intoVal (methods
-    MemoryStorage.ty.PointerType go!"Append" (intoVal ms))) (intoVal s)) {{ Φ }}
+theorem memStorEnd_to [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (e
+    : Nat) : ⊢ memStorReg ms γs -∗ storEnd (memStorIface ms) e -∗ memEnd γs e
 
-def memStorAppendTok [MemStorReg GF] (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF :=
-  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memAppendTok ms γs σ p)
+theorem memStorReg_same [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (ms1 ms2 : Loc)
+    (γs1 γs2 : MemStorNames) (h1 : st = memStorIface ms1) (h2 : st = memStorIface ms2) : ⊢
+    memStorReg ms1 γs1 -∗ memStorReg ms2 γs2 -∗ ⌜ms1 = ms2 ∧ γs1 = γs2⌝
 
-def memStorCapI [MemStorReg GF] (st : Storage) (k : Int) : IProp GF :=
-  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ ⌜γs.cap ≤ k⌝)
+theorem memStorLog_of [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (k
+    : Nat) (dq : DFrac) (es : List EntryM) : ⊢ memStorReg ms γs -∗ memLog γs k dq es -∗ storLog
+    (memStorIface ms) k dq es
 
-theorem memStorCert_at [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (k : SnapTrip) : ⊢ memStorReg
-    ms γs -∗ storCert (memStorIface ms) k -∗ memStorCert γs k
-
-theorem memAppendRight_at [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
-    (p : List EntryM) : ⊢ memStorReg ms γs -∗ appendRight (memStorIface ms) p -∗ ⌜p = []⌝ ∨ ∃ σ,
-    memAppendTok ms γs σ p
-
-theorem memStorReg_agree [MemStorReg GF] (ms : Loc) (γs1 γs2 : MemStorNames) : ⊢ memStorReg ms γs1
-    -∗ memStorReg ms γs2 -∗ ⌜γs1 = γs2⌝
+theorem memStorReg_agree [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs1 γs2 :
+    MemStorNames) : ⊢ memStorReg ms γs1 -∗ memStorReg ms γs2 -∗ ⌜γs1 = γs2⌝
 
 def memStorRegAuth [MemStorReg GF] (M : GMap Loc MemStorNamesRec) : IProp GF :=
   ghostMapAuth (MemStorReg.memStorRegName GF) 1 M
@@ -37,77 +29,83 @@ structure MemStorReg.{u_1, u_2, u_3} (GF : BundledGFunctors) : Type where
 def memStorReg [MemStorReg GF] (ms : Loc) (γs : MemStorNames) : IProp GF :=
   ms ↪[MemStorReg.memStorRegName GF]□ γs.tuple
 
+theorem memStorLogI_valid [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (k : Nat) (dq :
+    DFrac) (es : List EntryM) (hne : es ≠ []) : memStorLogI st k dq es ⊢ ⌜✓ dq⌝
+
+theorem memStorage_isStorageP [package_sem : Assumptions] [MemStorReg GF] (wp_LastIndex :
+    MemoryStorage.LastIndex.spec) (wp_FirstIndex : MemoryStorage.FirstIndex.spec) (wp_Term :
+    MemoryStorage.Term.spec) (wp_Entries : MemoryStorage.Entries.spec) (wp_Snapshot :
+    MemoryStorage.Snapshot.spec) (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : ⊢ memStorInvP ms
+    γs J -∗ memStorReg ms γs -∗ isStorageP J.SV (memBnd J) J.DL (memStorIface ms)
+
 theorem memStorReg_persistent [MemStorReg GF] (ms : Loc) (γs : MemStorNames) : Persistent
     (memStorReg ms γs)
 
-theorem memStorCut_capI [MemStorReg GF] (st : Storage) (n k : Int) : memStorCutI st n ∗ memStorCapI
-    st k ⊢ ⌜n ≤ k⌝
+theorem memStorCompactedI_mono [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (c c' :
+    Nat) (h : c' ≤ c) : memStorCompactedI st c ⊢ memStorCompactedI st c'
 
-def memOwnStorage [MemStorReg GF] (st : Storage) (σ : StorState) : IProp GF :=
-  iprop(∃ ms γs,
-      ⌜st = memStorIface ms⌝ ∗
-        memStorReg ms γs ∗ ownMemoryStorage ms γs σ ∗ ⌜σ.prev.index' ≠ W64 0 → σ.ss.index' ≠ W64 0⌝)
+def memStorLogI [MemStorReg GF] (st : Storage) (k : Nat) (dq : DFrac) (es : List EntryM) : IProp GF
+    :=
+  iprop(⌜es = []⌝ ∨ ∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memLog γs k dq es)
 
-theorem memStorCertOk_intro [package_sem : Assumptions] [MemStorReg GF] (γ : RaftNames) (ms : Loc)
-    (γs : MemStorNames) : ⊢ memCertInv γ γs -∗ memStorReg ms γs -∗ storCertOk γ (memStorIface ms)
+def memStorCompactedI [MemStorReg GF] (st : Storage) (c : Nat) : IProp GF :=
+  iprop(⌜c = 0⌝ ∨ ∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memCompacted γs c)
 
-theorem memStorAppendedTok_intro [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs :
-    MemStorNames) (σ : StorState) (p : List EntryM) : ⊢ memStorReg ms γs -∗ memAppendedTok ms γs σ p
-    -∗ appendedTok (memStorIface ms) σ p
+def memStorEndI [MemStorReg GF] (st : Storage) (e : Nat) : IProp GF :=
+  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memEnd γs e)
 
-def memStorageModel [MemStorReg GF] : StorageModel GF :=
-  { ownStorage := memOwnStorage, appendTok := memStorAppendTok, appendedTok := memStorAppendedTok, storCut := memStorCutI,
-    storCut_persistent := ⋯, storFloor := memStorFloorI, storFloor_persistent := ⋯, storCap := memStorCapI,
-    storCap_persistent := ⋯, storCut_cap := ⋯, storCert := memStorCertI, storCert_persistent := ⋯,
-    storTermsAt := memStorTermsI, storTermsAt_persistent := ⋯, storTermsAt_intro := ⋯ }
-
-theorem memStorFloor_at [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
-    (x : w64) : ⊢ memStorReg ms γs -∗ storFloor (memStorIface ms) x -∗ memFloorTok ms γs x
+def memStorageModel [package_sem : Assumptions] [MemStorReg GF] : StorageModel GF :=
+  { storLog := memStorLogI, storEnd := memStorEndI, storCompacted := memStorCompactedI, storLog_app := ⋯,
+    storLog_frac := ⋯, storLog_valid := ⋯, storLog_agree := ⋯, storLog_persist := ⋯, storLog_persistent := ⋯,
+    storLog_nil := ⋯, storEnd_excl := ⋯, storCompacted_persistent := ⋯, storCompacted_zero := ⋯, storCompacted_mono := ⋯ }
 
 theorem MemStorNames.rec_inj (γs1 γs2 : MemStorNames) (h : γs1.tuple = γs2.tuple) : γs1 = γs2
 
-theorem memStorTerms_at [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
-    (ts : List w64) : ⊢ memStorReg ms γs -∗ storTermsAt (memStorIface ms) ts -∗ memTermsAt γs ts
+theorem memStorLogI_frac [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (k : Nat) (dq1
+    dq2 : DFrac) (es : List EntryM) : memStorLogI st k (dq1 • dq2) es ⊣⊢ memStorLogI st k dq1 es ∗
+    memStorLogI st k dq2 es
 
-theorem memStorCert_intro [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (k : SnapTrip) : ⊢
-    memStorReg ms γs -∗ memStorCert γs k -∗ storCert (memStorIface ms) k
+theorem memStorEnd_of [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (e
+    : Nat) : ⊢ memStorReg ms γs -∗ memEnd γs e -∗ storEnd (memStorIface ms) e
 
-def memStorTermsI [MemStorReg GF] (st : Storage) (ts : List w64) : IProp GF :=
-  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memTermsAt γs ts)
+theorem memStorCompacted_to [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs :
+    MemStorNames) (c : Nat) : ⊢ memStorReg ms γs -∗ storCompacted (memStorIface ms) c -∗
+    memCompacted γs c
 
-def memStorCutI [MemStorReg GF] (st : Storage) (n : Int) : IProp GF :=
-  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memStorCut γs n)
+theorem memStorEndI_excl [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (e e' : Nat) :
+    memStorEndI st e ∗ memStorEndI st e' ⊢ False
 
-theorem memStorIface_inj [MemStorReg GF] (ms1 ms2 : Loc) : memStorIface ms1 = memStorIface ms2 → ms1
-    = ms2
+theorem memStorReg_register [package_sem : Assumptions] [MemStorReg GF] (M : GMap Loc
+    MemStorNamesRec) (ms : Loc) (γs : MemStorNames) (h : M !! ms = none) : ⊢ memStorRegAuth M ==∗
+    memStorRegAuth <[ms := γs.tuple]>M ∗ memStorReg ms γs
+
+theorem memStorIface_inj [package_sem : Assumptions] [MemStorReg GF] (ms1 ms2 : Loc) : memStorIface
+    ms1 = memStorIface ms2 → ms1 = ms2
 
 def MemStorNamesRec : Type :=
-  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int × GName
+  GName × GName × GName × GName × GName × GName × GName × GName
 
-def memStorCertI [MemStorReg GF] (st : Storage) (k : SnapTrip) : IProp GF :=
-  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memStorCert γs k)
+theorem memStorLogI_persist [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (k : Nat) (dq
+    : DFrac) (es : List EntryM) : memStorLogI st k dq es ⊢ |==> memStorLogI st k DFrac.discard es
 
-theorem memStorAppendTok_at [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs :
-    MemStorNames) (σ : StorState) (p : List EntryM) : ⊢ memStorReg ms γs -∗ appendTok (memStorIface
-    ms) σ p -∗ memAppendTok ms γs σ p
+theorem memStorCompacted_of [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs :
+    MemStorNames) (c : Nat) : ⊢ memStorReg ms γs -∗ memCompacted γs c -∗ storCompacted (memStorIface
+    ms) c
+
+theorem memStorLog_to [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (k
+    : Nat) (dq : DFrac) (es : List EntryM) : ⊢ memStorReg ms γs -∗ storLog (memStorIface ms) k dq es
+    -∗ memLog γs k dq es
+
+theorem memStorLogI_app [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (k : Nat) (dq :
+    DFrac) (a b : List EntryM) : memStorLogI st k dq (a ++ b) ⊣⊢ memStorLogI st k dq a ∗ memStorLogI
+    st (k + a.length) dq b
 
 def memStorIface (ms : Loc) : Storage :=
   interface.mkOk MemoryStorage.ty.PointerType (intoVal ms)
 
-def memStorFloorI [MemStorReg GF] (st : Storage) (x : w64) : IProp GF :=
-  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memFloorTok ms γs x)
-
-theorem memAppendReceipt_intro [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs :
-    MemStorNames) (p : List EntryM) : ⊢ memStorReg ms γs -∗ (⌜p = []⌝ ∨ ∃ σ, memAppendedTok ms γs σ
-    p) -∗ appendReceipt (memStorIface ms) p
+theorem memLogL_agree [package_sem : Assumptions] [MemStorReg GF] (γ : GName) (k1 k2 : Nat) (dq1 dq2
+    : DFrac) (es1 es2 : List EntryM) : memLogL γ k1 dq1 es1 ∗ memLogL γ k2 dq2 es2 ⊢ ⌜LogAgree k1
+    es1 k2 es2⌝
 
 def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
-  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap, γs.cert)
-
-def memStorAppendedTok [MemStorReg GF] (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF
-    :=
-  iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memAppendedTok ms γs σ p)
-
-theorem memStorTermsI_intro [MemStorReg GF] (st : Storage) (σ : StorState) (ts : List w64) (Hp :
-    σ.pend = []) (Hl : ↑ts.length ≤ uint.Z σ.fl) (Ht : TermsOn σ ts) : memOwnStorage st σ ⊢ |==>
-    (memOwnStorage st σ ∗ memStorTermsI st ts)
+  (γs.log, γs.en, γs.ek, γs.cp, γs.jc, γs.sx, γs.lk, γs.hk)

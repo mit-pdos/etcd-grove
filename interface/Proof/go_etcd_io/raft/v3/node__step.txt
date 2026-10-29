@@ -9,7 +9,7 @@ theorem node.step.wp_proof [package_sem : Assumptions] (wp_node_stepWithWaitOpti
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd ∗ stepP γ id ml -∗
-          (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
+          (▷ ∀ err, nodeErrRaw γ cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (methods node.ty.PointerType go!"step" (intoVal n)))
                   (intoVal (GoInterface.ok ctx)))

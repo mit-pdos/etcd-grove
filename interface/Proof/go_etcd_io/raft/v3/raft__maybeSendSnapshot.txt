@@ -13,30 +13,29 @@ theorem raft.maybeSendSnapshot.wp_proof [package_sem : Assumptions] (wp_raftLog_
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc),
     to ≠ id →
       s.progress !! to = some pr →
-        s.gh.ns = false →
-          s.term ≠ W64 0 →
-            ⊢
-              ∀ Φ,
-                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                      "#Hcompact" ∷ (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨ storPast s.logst.storage 1) -∗
-                  (▷
-                      ∀ b ms pvs,
-                        ownRaftPhysCV c c.voters r id
-                              (have __src := sendMsgs s ms;
-                              { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
-                                votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
-                                ticking := __src.ticking, progress := __src.progress, log := __src.log,
-                                logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
-                                rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
-                                sdr := __src.sdr, cq := __src.cq }) ∗
-                            ⌜ReplSends id s ms⌝ ∗ ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
-                          Φ (intoVal b)) -∗
-                    WP
-                      (((intoVal
-                            (methods raft.ty.PointerType
-                              go!"maybeSendSnapshot"
-                              (intoVal r)))
-                          (intoVal to))
-                        (intoVal pr))
-                      {{ Φ }}
+        s.term ≠ W64 0 →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                    "#Hcompact" ∷ (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨ storPast s.logst.storage 1) -∗
+                (▷
+                    ∀ b ms pvs,
+                      ownRaftPhysCV c c.voters r id
+                            (have __src := sendMsgs s ms;
+                            { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                              votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
+                              ticking := __src.ticking, progress := __src.progress, log := __src.log,
+                              logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
+                              rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
+                              sdr := __src.sdr, cq := __src.cq }) ∗
+                          ⌜ReplSends id s ms⌝ ∗ ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
+                        Φ (intoVal b)) -∗
+                  WP
+                    (((intoVal
+                          (methods raft.ty.PointerType
+                            go!"maybeSendSnapshot"
+                            (intoVal r)))
+                        (intoVal to))
+                      (intoVal pr))
+                    {{ Φ }}

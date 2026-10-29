@@ -5,13 +5,22 @@
 def skippedIn (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
   [∗list] j ∈ List.range' a (b - a), iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j ConfDecision.skip)
 
+def isStorage (γ : Cluster) (id : w64) (st : Storage) : IProp GF :=
+  isStorageP (snapshotValid γ) (storBnd γ id) (storDL γ id) st
+
 theorem nodeRunning_stopped [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (q :
     Qp) : nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False
 
 theorem skippedIn_persistent (γ : Cluster) (l : List LogEntry) (a b : Nat) : Persistent (skippedIn γ
     l a b)
 
+def storDL (γ : Cluster) (id : w64) (i : Nat) : IProp GF :=
+  iprop(∃ n N l, isNode n γ N id ∗ deliveredLogLb n γ N l ∗ ⌜i ≤ l.length⌝)
+
 def (sealed) confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF
+
+def storBnd (γ : Cluster) (id : w64) (c : Nat) : IProp GF :=
+  iprop(∃ k, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ id k ∨ snapGiven γ id k))
 
 theorem committed_confDecodes [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : isCluster γ N ∗ isCommittedLogLb γ l ⊢ ⌜∀ (e : LogEntry), e ∈ l → e.isConfChange →
@@ -35,17 +44,31 @@ def (sealed) nodeJoin (γ : Cluster) (N : Namespace) (id : w64) : IProp GF
 
 def (sealed) joinAuth (γ : Cluster) (U : GSet w64) : IProp GF
 
+theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (vs : List w64) (dup : Bool) (E :
+    CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62
+    → ⊢ |={E}=> ∃ γ, ⌜γ.dup = dup⌝ ∗ ownCommittedOps γ [] ∗ ownReadCtxs γ ∅ ∗ isCluster γ N ∗
+    ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗ ownSnapsMade γ [] ∗
+    joinAuth γ (listToSet vs) ∗ [∗list] id ∈ vs, nodeFounder γ N vs id
+
 theorem snapMade_elem [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec) (s : SnapRec) :
     ownSnapsMade γ S ∗ snapMade γ s ⊢ ⌜s ∈ S⌝
 
 theorem snapMade_persistent (γ : Cluster) (s : SnapRec) : Persistent (snapMade γ s)
 
-theorem cluster_alloc_dec [package_sem : Assumptions] (N : Namespace) (vs : List w64) (dup : Bool)
-    (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2
-    ^ 62 → ⊢ |={E}=> ∃ γ, ⌜γ.dup = dup⌝ ∗ ownCommittedOps γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2
-    ^ 64 - 2) ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs))
-    ∗ ownSnapsMade γ [] ∗ leaderTransferOn γ N ∗ joinAuth γ (listToSet vs) ∗ [∗list] id ∈ vs,
-    nodeFounder γ N vs id
+def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
+  iprop(∃ l m,
+      isCommittedLogLb γ l ∗
+        confAt γ l.length m ∗
+          snapMade γ { index := l.length, conf := m, data := sv.Data' } ∗
+            ⌜l.length = uint.nat sv.Metadata'.Index' ∧
+                0 < l.length ∧
+                  Option.map LogEntry.term l.getLast? = some sv.Metadata'.Term' ∧
+                    confStateIs sv.Metadata'.ConfState' m ∧
+                      l.length < 2 ^ 61 ∧
+                        ↑sv.Metadata'.ConfState'.Voters'.length + ↑sv.Metadata'.ConfState'.Learners'.length +
+                              ↑sv.Metadata'.ConfState'.VotersOutgoing'.length +
+                            ↑sv.Metadata'.ConfState'.LearnersNext'.length ≤
+                          2 ^ 62⌝)
 
 theorem confAt_noConf [package_sem : Assumptions] (γ : Cluster) (l : List LogEntry) (a b : Nat) (m :
     Membership) : NoConfChangeIn l a b → a ≤ b → b ≤ l.length → isCommittedLogLb γ l ∗ confAt γ a m
@@ -69,6 +92,8 @@ theorem ownConfDecisions_excl [package_sem : Assumptions] (γ : Cluster) (D1 D2 
 theorem skippedIn_noConf [package_sem : Assumptions] (γ : Cluster) (l : List LogEntry) (a b : Nat) :
     NoConfChangeIn l a b → ⊢ skippedIn γ l a b
 
+theorem snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) : Persistent (snapshotValid γ sv)
+
 theorem confAt_agree [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m1 m2 : Membership) :
     confAt γ k m1 ∗ confAt γ k m2 ⊢ ⌜m1 = m2⌝
 
@@ -80,6 +105,10 @@ def (sealed) nodeFounder (γ : Cluster) (N : Namespace) (vs : List w64) (id : w6
 theorem joinAuth_join [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (U : GSet w64) (id :
     w64) : ¬id ∈ U → id ≠ W64 0 → ⊢ isCluster γ N ∗ joinAuth γ U ==∗ joinAuth γ ({id} ∪ U) ∗
     nodeJoin γ N id
+
+theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (sv :
+    SnapshotM) : 0 < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 → isCluster γ
+    N ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢ snapshotValid γ sv
 
 def (sealed) isCluster (γ : Cluster) (N : Namespace) : IProp GF
 
@@ -104,6 +133,48 @@ theorem ownConfDecisions_witness [package_sem : Assumptions] (γ : Cluster) (D :
 
 theorem confDecided_persistent (γ : Cluster) (k : Nat) (d : ConfDecision) : Persistent (confDecided
     γ k d)
+
+def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm : ConfStateM) (Q :
+    IProp GF) : IProp GF :=
+  iprop(∃ i R,
+      ⌜st = GoInterface.ok i⌝ ∗
+        R ∗
+          (□
+              □
+                ∀ Φ,
+                  R -∗
+                    ▷ (R -∗ Φ (intoVal (W64 1), intoVal GoInterface.nil)) -∗
+                      WP
+                        ((intoVal (methods i.ty go!"FirstIndex" i.v))
+                          (intoVal ()))
+                        {{ Φ }}) ∗
+            (□
+                □
+                  ∀ Φ,
+                    R -∗
+                      ▷ (R -∗ Φ (intoVal (W64 0), intoVal GoInterface.nil)) -∗
+                        WP
+                          ((intoVal (methods i.ty go!"LastIndex" i.v))
+                            (intoVal ()))
+                          {{ Φ }}) ∗
+              □
+                □
+                  ∀ Φ,
+                    R -∗
+                      (▷
+                          ∀ hp cs al,
+                            (hsOpt hp hs ∗
+                                csPts cs DFrac.discard csm al ∗
+                                  |={⊤}=>
+                                    isStorage γ id st ∗
+                                      (∃ e0, ⌜e0.Term' = W64 0⌝ ∗ storLog st 0 DFrac.discard [e0] ∗ storEnd st 1) ∗ Q) -∗
+                              Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
+                        WP
+                          ((intoVal
+                              (methods i.ty
+                                go!"InitialState" i.v))
+                            (intoVal ()))
+                          {{ Φ }})
 
 def (sealed) ownSnapsMade (γ : Cluster) (S : List SnapRec) : IProp GF
 

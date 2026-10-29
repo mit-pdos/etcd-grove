@@ -16,7 +16,7 @@ def node.ProposeConfChange.spec : Prop :=
                           ownCommittedOps γ
                             (ops ++ opsOf [{ term := t, type := confChangeEntryType (some o), data := bs }]),
                         COMM True }> -∗
-          (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErr cd err -∗ Φ (intoVal err)) -∗
+          (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal
                     (methods node.ty.PointerType

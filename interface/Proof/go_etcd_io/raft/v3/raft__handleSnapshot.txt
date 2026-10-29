@@ -26,7 +26,7 @@ theorem raft.handleSnapshot.wp_proof [package_sem : Assumptions] (wp_raft_restor
                             "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                               "Hm" ∷
                                   msgIn ml DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } ∗
-                                "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
+                                "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
                           (▷
                               ∀ s',
                                 ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ -∗

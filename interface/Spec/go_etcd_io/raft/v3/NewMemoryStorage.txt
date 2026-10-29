@@ -3,16 +3,15 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def NewMemoryStorage.spec : Prop :=
-  ∀ (cap : Int),
-    uint.Z memStorEmpty.prev.index' ≤ cap →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-            (▷
-                ∀ ms γs,
-                  ⌜γs.cap = cap⌝ ∗
-                      ownMemoryStorage ms γs memStorEmpty ∗
-                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
-                          memSnapTok ms γs memStorEmpty ∗ memCertAuth γs -∗
-                    Φ (intoVal ms)) -∗
-              WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
+  ⊢
+    ∀ Φ,
+      isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+        (▷
+            ∀ ms γs,
+              memStorLock ms γs ∗
+                  memLog γs 0 DFrac.discard [zero_val EntryM] ∗
+                    memEnd γs 1 ∗
+                      memSnapExact γs memSnapEmpty ∗
+                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗ memStorFresh ms γs -∗
+                Φ (intoVal ms)) -∗
+          WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}

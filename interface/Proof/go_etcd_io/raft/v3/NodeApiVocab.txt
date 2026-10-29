@@ -90,8 +90,5 @@ def confStateIs (cs : ConfStateM) (m : Membership) : Prop :=
 
 theorem LogEntry.isFiller_normal (e : LogEntry) (h : e.isFiller) : e.type = W32 0
 
-def ConfChangeDecoder : Type :=
-  List LogEntry → LogEntry → Option ConfChangeIM
-
 def LogEntry.toEntryM (idx : w64) (e : LogEntry) : EntryM :=
   { Term' := e.term, Index' := idx, Type' := e.type, Data' := e.data }

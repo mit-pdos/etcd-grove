@@ -469,6 +469,22 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+
+## raft-final: phases 0-1, every statement final, proofs `sorry` (2026-10-29, branch `raft-final`)
+
+The final raft proof, after `notes/raft-unified-plan.md`'s design (the coordinator's gap design and
+its review, amendments A1-A10, K5 back in by the user's decision). Phase 0: tracks A and B merged
+(`raft-unified` + `raft-unified-storage2`), track B's node-level WIP re-applied, U9's deletions (the
+static and dynamic families, `StartNode`'s spec until U10, `InvApiDyn` → `InvApiView`). Phase 1:
+every definition, invariant and spec statement in final form (the leader witness `leadW`, the
+transfer records `NGhost.xw`/`xfW`, `XfOk`'s final form, `isRaftMsg` with the transfer witness,
+`NetMsgOk` internal, the read-credit exchange `rdPool`, `isNode` with its table entry, K5's
+`nodeErrS`, the storage node level, A1-A4); raft's `Link`, `Linked`, `Results`, `Api` and
+`MemstorageApi` build, with 152 `sorry`s in 76 files (listed, with the phase-2 tracks' file map, in
+the plan's "Phase 1 sorries"), each broken proof kept in a `PHASE1-OLD` comment. Phase 2 (the
+proofs, parallel tracks) waits for the review of the statements (`interface/` regenerated). Clients
+(kv, server, examples) broken until later.
+
 ## Raft unified, track A: U7 steps (i)-(ii), stopped (2026-10-29, branch `raft-unified`)
 
 - `SentMsgShape` defined (`ApiVocab.lean`, no spec uses it yet); `raft.send`'s `SendOk` takes a

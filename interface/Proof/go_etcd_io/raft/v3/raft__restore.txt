@@ -18,7 +18,7 @@ theorem raft.restore.wp_proof [package_sem : Assumptions] (wp_raftLog_matchTerm 
                   isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                         "Hsnap" ∷ ownSnapS sp (DFrac.own 1) sv ∗
-                          "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
+                          "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
                     (▷
                         ∀ b s',
                           ownRaftPhysCV c c.voters r id s' ∗

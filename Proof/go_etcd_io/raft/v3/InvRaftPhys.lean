@@ -350,12 +350,9 @@ theorem XfOk.resps {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
 
 /-- The empty queues, at a term past `0` if a leader or candidate. -/
 theorem XfOk.nil {id : w64} {s : NState}
-    (ht : (s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0) : XfOk id s [] := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
-
-  ⟨fun _ hm => by cases hm, fun _ hm => by cases hm, fun _ hm => by cases hm, ht⟩
-  -/
+    (ht : (s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0) : XfOk id s [] :=
+  ⟨fun _ hm => absurd hm List.not_mem_nil, fun _ hm => absurd hm List.not_mem_nil,
+   fun _ hm => absurd hm List.not_mem_nil, ht⟩
 
 /-- The same records, role and term, at the same queues. -/
 theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s l)

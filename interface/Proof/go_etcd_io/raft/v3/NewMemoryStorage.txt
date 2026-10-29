@@ -2,19 +2,21 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem memOk_new : MemOk { term' := W64 0, index' := W64 0 } [] (<[0 := zero_val EntryM]>∅)
+    memSnapEmpty
+
 theorem NewMemoryStorage.wp_proof [package_sem : Assumptions] (wp_EnsureSnapshot :
     raftpb.EnsureSnapshot.spec) : NewMemoryStorage.spec
   -- `Perennial.EtcdGrove.NewMemoryStorage.spec`, unfolded:
-  ∀ (cap : Int),
-    uint.Z memStorEmpty.prev.index' ≤ cap →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-            (▷
-                ∀ ms γs,
-                  ⌜γs.cap = cap⌝ ∗
-                      ownMemoryStorage ms γs memStorEmpty ∗
-                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
-                          memSnapTok ms γs memStorEmpty ∗ memCertAuth γs -∗
-                    Φ (intoVal ms)) -∗
-              WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
+  ⊢
+    ∀ Φ,
+      isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+        (▷
+            ∀ ms γs,
+              memStorLock ms γs ∗
+                  memLog γs 0 DFrac.discard [zero_val EntryM] ∗
+                    memEnd γs 1 ∗
+                      memSnapExact γs memSnapEmpty ∗
+                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗ memStorFresh ms γs -∗
+                Φ (intoVal ms)) -∗
+          WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}

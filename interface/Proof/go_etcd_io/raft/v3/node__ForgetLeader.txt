@@ -9,7 +9,7 @@ theorem node.ForgetLeader.wp_proof [package_sem : Assumptions] (wp_node_step : n
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
-          (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
+          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
             WP
               ((intoVal
                   (methods node.ty.PointerType

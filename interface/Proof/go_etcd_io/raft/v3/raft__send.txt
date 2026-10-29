@@ -19,7 +19,7 @@ theorem raft.send.wp_proof [package_sem : Assumptions] (wp_traceSendMessage : tr
                   isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                         "Hm" ∷ msgOwn ml (DFrac.own 1) { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } ∗
-                          "#Hsrc" ∷ tsSrc s.logst.storage m.Type' sn -∗
+                          "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn -∗
                     ▷ (ownRaftPhysCV c c.voters r id (sendMsgs s out) -∗ Φ (intoVal ())) -∗
                       WP ((intoVal (methods raft.ty.PointerType go!"send" (intoVal r))) (intoVal ml))
                         {{ Φ }}

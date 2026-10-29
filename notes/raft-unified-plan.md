@@ -864,3 +864,220 @@ raft-specific axiom is `ccDecodeV2_nil`.
 - Automatic leave excluded: `m'.autoLeave = false` (`node__ApplyConfChange`), `DynCCPreOp`, a dynamic
   snapshot's `ConfState` at `RawNode.Advance` (U3c), and
   `c.autoLeave → role ≠ leader` in `raft.appliedTo`, `appliedSnap`, `raft.Step`.
+
+## raft-final: phases 0 and 1 (2026-10-29, branch `raft-final`)
+
+The design is `raft-gap-design.md` (the coordinator's scratch, with its "Amendments after review 1",
+A1-A10) and its review `invariant-design-review-1.md`; the user's decision of 2026-10-29 puts K5 back
+in (overriding A9).
+
+### Phase 0 (done)
+
+- `raft-final` from `origin/raft-unified` (`87bae2abb4`), `origin/raft-unified-storage2` merged
+  (`af6d445ae2`; textual conflicts only in `raft__maybeSendSnapshot`/`raft__maybeSendAppend`, where
+  U7 (ii)'s term premise stays and S2's `ns` premise goes, and the notes). Raft's level builds after
+  the merge (raft.Step, newRaft, getStatus, getProgressCopy, InvRawnode, MemstorageInstance).
+- Track B's WIP patches re-applied (`7e2544e25d`): both apply cleanly (`step4-node-wip.patch`,
+  `step4-boot-newLogWithSize.patch`).
+- U9 deletions (`93992bc951`): the static and dynamic API families and their laws (the design's §1f
+  list), `StartNode`'s spec and proof (A5: none until the server's repair, U10), the unified specs
+  renamed `.spec`, `cluster_alloc_dec` renamed `cluster_alloc`. The trap: `InvApiDyn.lean` became
+  `InvApiView.lean` (its membership and view sections, `nodeConfig`, `deliveredLogLb` and their laws,
+  kept; its dynamic section deleted) -- deviation: renamed in place rather than merged into
+  `InvApi.lean` (3221 lines; the view section needs `CCApplyC`/`SnapConf`).
+
+### Phase 1 statements: public changes vs the frozen designs
+
+Read the regenerated `interface/` (`etc/gen-interface.py etc/api/raft.txt`) for the exact text.
+
+The node API (`InvNode`, `InvNodeRule`, the `Spec/node__*` files):
+- **K5** (the user's decision, overriding A9): `nodeErrS n γ N cd err` (`nil`, `ErrStopped` with
+  `nodeStopped n γ N`, or the context's) and `propErrS` (`nodeErrS ∨ stepErr`), with
+  `nodeErrS_nodeErr`/`propErrS_propErr` back to the old ones; the posts of `node.Step`,
+  `ProposeConfChange`, `ReadIndex`, `Campaign`, `ForgetLeader` are `nodeErrS`, `Propose`'s stopped
+  disjunct `errStopped err ∗ nodeStopped n γ N`. The methods that return unit (`Tick`,
+  `TransferLeadership`, `ReportSnapshot`, `ReportUnreachable`) have no stopped answer to carry it
+  (C12 §3's list: "→ unit"). Raw level: `nodeErrRaw γn`/`propErrRaw γn` (`InvNodeChan`) in
+  `node.step`, `stepWait`, `stepWithWaitOption`.
+- `isNode` (sealed body) gains `nodeTabOk γ id γn` and `rdPool γ N` (design §2.8; deviation: not
+  `isClusterU`, which lives above `InvApi` in the import order; `UniNames` is not needed by any law
+  of `isNode`).
+- `bootStorage γ id st hs csm Q`; no `memStorage_bootStorage` law (design P7): a bare
+  `MemoryStorage`'s `InitialState` answers the empty `ConfState` (`memSnapEmpty`), while
+  `RestartNode` needs the voters' (`csm.Voters' = vs`, non-empty), so only a wrapper (kvreconf's,
+  whose `InitialState` answers `c0`) can give the bundle: the client's, with its local storage
+  instance (A6).
+- `stepIn_intro`: `st.msg.To' = id → sentMsg ∗ msgPtsC … ∗ msgCredits ⊢ |==> stepIn` (no `NetMsgOk`,
+  no transfer exclusion, no `MsgSnap` index premise: C12's form).
+- New laws: `sentMsg_shape : sentMsg ⊢ ⌜SentMsgShape st ∧ (MsgSnap → ∃ sv, snap = some sv ∧ index <
+  2^61)⌝` (C12; the bound from `snapshotValid`, A10), `msgCredits_intro : Type ≠ MsgProp → ⊢ |==>
+  msgCredits` (S1), `readyRest_ceInBatch` (A2: a `Ready` without a snapshot, its committed entries at
+  or past the batch's first index are the batch's), `snapshotCert_valid` (WIP's: a `readySnap`
+  certificate, index in `(0, 2^61)`, gives `snapshotValid`).
+- `msgCredits_copy` without its `MsgProp` premise (S1 F1).
+- `node.ReadIndex.spec` without `readCredit γ`; `node.TransferLeadership.spec` without
+  `leaderTransferOn γ N`; `cluster_alloc` (was `cluster_alloc_dec`) without `readCredits γ (2^64-2)`
+  and `leaderTransferOn γ N` in its post.
+- `node.Advance.spec`: `skippedIn` only after a `Ready` without a snapshot (A1, review 1's H1), inside
+  the existing `match L`.
+- `RestartNode.spec`: `bootStorage γ id st hs csm Q` with a client frame `Q` returned in the post (A3,
+  H3).
+- `MemoryStorage.Append.spec`: an empty batch takes and gives no range (A4, M2).
+- New module `MemstorageApi` (importable): `memStorJ γ id`, `memStorInv ms γs γ id`,
+  `memStorInv_alloc`, `memStorage_isStorage` (P7's; no wrapper law, A6).
+- `NetMsgOk` internal (A7): moved to `NetMsgOk.lean` (not importable), its transfer clause admitting
+  a stamped request to the node; `NetMsgOk.of_sent` replaced by `NetMsgOk.of_shape`.
+- `isRaftMsg` (`ApiVocab`, exposed): `⌜SentMsgShape st⌝ ∗ (msgAbs, isMessageC) ∗ msgDat ∗ ⌜AppFrom⌝ ∗
+  □ (stamped `MsgTransferLeader` → isLeader To Term)` (was the modes' clauses).
+- `readySnap`/`readyRest`: WIP's storage part (unchanged by phase 1 but now built).
+- Deleted with U9 (§1f), and also: `NodeNames.snapIn`, `readyDataL_none`, `readyP_none`, `reqWit_none`,
+  `node_ready_receive_ns`, `readyP_take_ns` (the no-snapshot clients' lemmas), `setupNode` (only
+  `StartNode` used it; `RawNode.Bootstrap` kept), `ConfChangeDecoder`.
+
+Internal statements (raft's level, the RawNode, the node loop):
+- `NGhost.xw` (the stamped transfer requests' `(To, Term)`), `NGhost.xf`/`bt` deleted; `XfOk` in its
+  final form (§2.2: every queued message `SentMsgShape` and `AppFrom`, a stamped `MsgTransferLeader`
+  recorded in `xw`, leader or candidate ⇒ term ≠ 0), with `XfOk.nil/of_fields/term_le/role/xw_insert/
+  snoc/resps`, `ownRaftPhysC_term_nz` (was `ownRaftPhysC_xf`), `ownRaftPhysC_xw_record`;
+  `raft.wp_store_stateC` takes `(ro = leader ∨ candidate) → s.term ≠ 0` (a default for the other
+  roles); `wp_store_leadTransferee_toC` without `xf`.
+- `Protocol/LeadWit.lean` (new): `leadW`, `leadW_none`, `leadW_eq`, `leadW_stepC` (deviation: over
+  `StepC`, which `StepCD` and `StepCDS` both carry, rather than both `StepR` and `StepC`).
+- `ghostRest = ⌜NsLink⌝ ∗ ghostRestM ∗ certLink ∗ leadW ∗ xfW` (the new conjuncts last, so that the
+  patterns that bind the tail persistently still apply); `ownStepGhost_lead`, `ownStepGhost_xferRefute`,
+  `ownStepGhost_xw_record`; `ownStepGhost_dyn` with the tail `(certLink ∗ leadW ∗ xfW)`.
+- `raft.send`'s clause (c): `MsgTransferLeader → (m.To', s.term) ∈ s.gh.xw` (was `xf = false`);
+  `stepFollower`: `lead ≠ 0 → (lead, term) ∈ xw` (A8); `stepLeader`, `raft.sendTimeoutNow`,
+  `wp_stepLeader_transfer`, `RawNode.TransferLeader`: no transfer-mode premise; `RestMsgOk`'s transfer
+  clause `ents = [] ∧ ctx = []` and `raft.Step.spec`'s new `"#Hxfer"` witness; `RawNode.Step.spec`:
+  `"#Hxfer"`, no `reNoXfer`/`reNoSnap` premises; `NetMsgOk.restMsgOk`, `NetMsgOk.raftStep` without
+  `Hxo`.
+- `RawNode.Advance.spec`'s A1 only at `rs.slent = none` (A1); `runCfgLoan` without A1;
+  `advanceP`'s A1 under `L = none`.
+- `RawNode.Ready.spec`'s post: WIP's hand-out (`readyOut rs.storage rs.sn`, `ceFrozen`, `dlvKeysAt`).
+- `newRaft.spec`, `NewRawNode.spec`: over the boot bundle (U8 v2's decision (B)): a frame `R`,
+  `FirstIndex`/`LastIndex` triples, an `InitialState` triple whose post makes raft's view of a fresh
+  storage and gives back `R'`.
+- `netP`: the transfer witness in place of `reNoXfer`/`snapIn`; `netP_local` without `Hxt`;
+  `readySnapData`, `runCfg`, `runCfgLoan`, `capAns` without `snapIn`/`reNoSnap`; `rawNodeFresh` without
+  its `xf` parameter (its ghost state `{ sn := s.gh.sn }`).
+- `rdPool γ N` (`InvApi`) and `rdPool_mint`; `isClusterU` with `rdPool`; `sentMsg` with `rdPool`;
+  `msgCredits := stTks`; `stepIn` a `⊤` update after the receipt; `NodeOk` without `snapIn`;
+  `nodeStopped` and `nodeDriver` without their static disjuncts.
+
+Kept, deviations from the design's deletion list (each a mechanical removal with no statement
+depending on its value):
+- `NGhost.ns`, `NsLink` (now `s.gh.ns = γ.reNoSnap` only), `LogNsOk`, `NsCap`, `PrOkN`'s and
+  `LogNsKeep`'s flag: the no-snapshot mode is pinned off by `NsCap`; removing the flag touches ~150
+  sites of raft's level (P2's cleanup).
+- `RaftNames.reNoXfer`/`reNoSnap` (protocol fields): no statement above the protocol reads them now;
+  deleting them reopens `Protocol/Facts`' allocation proofs, which no track owns (phase 3 cleanup).
+- `RNMode.static`/`GMode.static`/`StaticNames`/`CCShrink` (R3).
+
+Not done in phase 1 (named for phase 2): `node.Step`'s and `node.ReadIndex`'s private raw specs
+(`specRaw`, in their proof files: `(⧗ 1 ={⊤}=∗ stepP γn id ml)`, `(⧗ 1 ={⊤}=∗ rdCred γ.raft 1)`), and
+the `nodeErrRaw`/`propErrRaw` posts of the other raw specs (`node.Propose.specRaw`, ...), which are
+private to their proof files and change with their proofs (P5).
+
+### Phase 1 sorries (all to be gone by the end of phase 2)
+
+152 `sorry`s in 76 files of raft's tree (at `93992bc951`, the end of phase 0, there were none), by
+file (`P/` = `Proof/go_etcd_io/raft/v3/`), the declaration each is in:
+
+- `P/InvAdvance.lean` (1): `advance_complete`
+- `P/InvApi.lean` (10): `rdPool_mint`, `dlvLb_names`, `nodeRunning_stopped_impl`, `sentMsg_snapshot_impl`, `api_sentSnapCert`, `sentMsg_appFrom_impl`, `api_msg`, `readyRecv_open`, `node_ready_recvAu`, `stepIn_intro_impl`
+- `P/InvApiDec.lean` (1): `snapshotCert_make_impl`
+- `P/InvApiDecAlloc.lean` (1): `cluster_alloc_dec_impl`
+- `P/InvApiView.lean` (4): `nodeDriver_deliveredLogLb_impl`, `deliveredLogLb_mono_impl`, `msgCredits_copy_impl`, `sentMsg_replaceSnapshot_impl`
+- `P/InvBoot.lean` (1): `rawNodeFresh_intro`
+- `P/InvNode.lean` (4): `sentMsg_shape`, `msgCredits_intro`, `readyRest_ceInBatch`, `msgCredits_copy`
+- `P/InvNodeChan.lean` (5): `netP_local`, `netP_split`, `runCfg_congr`, `node_ready_receive`, `readyP_take`
+- `P/InvNodeRule.lean` (1): `snapshotCert_valid`
+- `P/InvNodeRun.lean` (13): `ownRawNodeReady_abandon_keep`, `wp_rn_raft_Step_net`, `wp_rn_raft_Step_prop`, `wp_applyConf_dyn`, `rawNode_applyCC_reseal`, `headRest_snapIn`, `headRest_step`, `runCfg_confc`, `runCfg_extend`, `runCfg_snap`, `runCfg_a1`, `runCfgR_a1`, `runCfg_advance`
+- `P/InvNodeRunHup.lean` (1): `wp_rn_raft_Step_hup`
+- `P/InvRaftPhys.lean` (8): `XfOk.resps`, `XfOk.term_le`, `XfOk.xw_insert`, `XfOk.xw_insert`, `XfOk.snoc`, `ownRaftPhysC_xw_record`, `ownRaftPhysC_xw_record`, `raft.wp_store_stateC`
+- `P/InvRawnode.lean` (6): `NetMsgOk.restMsgOk`, `NetMsgOk.raftStep`, `ownRawNode_static_open`, `ownRawNode_intro_static`, `ownRaftPhysC_nsOut`, `ownRawNode_term_tc`
+- `P/InvRawnodeReady.lean` (9): `outboxRelP_isRaftMsg`, `isRaftMsg_isMessage`, `ownRawNodeReady_abandon`, `ownRaftLog_certify_list`, `ownRaftLog_rdy_out`, `ownRawNodeReady_loanLast`, `ownRawNodeReady_handout`, `ownRawNodeIdle_facts`, `ownRawNodeIdle_ready`
+- `P/LemmasNodeR.lean` (1): `stepP_split`
+- `P/MemoryStorage__Append.lean` (1): `MemoryStorage.Append.wp_proof`
+- `P/MemstorageApi.lean` (2): `memStorInv_alloc`, `memStorage_isStorage`
+- `P/NetMsgOk.lean` (1): `NetMsgOk.of_shape`
+- `P/NewRawNode.lean` (1): `NewRawNode.wp_proof`
+- `P/RawNode__Advance.lean` (3): `wp_step_pending`, `wp_step_snapack`, `RawNode.Advance.wp_proof`
+- `P/RawNode__Bootstrap.lean` (1): `RawNode.Bootstrap.wp_proof`
+- `P/RawNode__Campaign.lean` (1): `RawNode.Campaign.wp_proof`
+- `P/RawNode__ForgetLeader.lean` (1): `RawNode.ForgetLeader.wp_proof`
+- `P/RawNode__Propose.lean` (1): `RawNode.Propose.wp_proof`
+- `P/RawNode__ProposeConfChange.lean` (1): `RawNode.ProposeConfChange.wp_proof`
+- `P/RawNode__ReadIndex.lean` (1): `RawNode.ReadIndex.wp_proof`
+- `P/RawNode__Ready.lean` (1): `RawNode.Ready.wp_proof`
+- `P/RawNode__ReportSnapshot.lean` (1): `RawNode.ReportSnapshot.wp_proof`
+- `P/RawNode__ReportUnreachable.lean` (1): `RawNode.ReportUnreachable.wp_proof`
+- `P/RawNode__Step.lean` (1): `RawNode.Step.wp_proof`
+- `P/RawNode__Tick.lean` (1): `RawNode.Tick.wp_proof`
+- `P/RawNode__TransferLeader.lean` (1): `RawNode.TransferLeader.wp_proof`
+- `P/RawNode__acceptReady.lean` (2): `rdyLog_true`, `RawNode.acceptReady.wp_proof`
+- `P/RawNode__readyWithoutAccept.lean` (1): `RawNode.readyWithoutAccept.wp_proof`
+- `P/RestartNode.lean` (2): `RestartNode.wp_raw`, `wp_RestartNode_impl`
+- `P/StepGhostMode.lean` (8): `ghostRest_certLink`, `ownStepGhost_lead`, `ownStepGhost_xferRefute`, `ownStepGhost_xw_record`, `ghost_stepCD`, `ownStepGhost_congr`, `ghostRest_keep`, `ghost_stepCDS`
+- `P/newRaft.lean` (1): `newRaft.wp_proof`
+- `P/node__Advance.lean` (2): `node.Advance.wp_raw`, `node.wp_Advance_impl`
+- `P/node__ApplyConfChange.lean` (2): `node.ApplyConfChange.wp_raw`, `node.wp_ApplyConfChange_impl`
+- `P/node__Campaign.lean` (2): `node.Campaign.wp_raw`, `node.wp_Campaign_impl`
+- `P/node__ForgetLeader.lean` (2): `node.ForgetLeader.wp_raw`, `node.wp_ForgetLeader_impl`
+- `P/node__Propose.lean` (2): `node.Propose.wp_raw`, `node.wp_Propose_impl`
+- `P/node__ProposeConfChange.lean` (2): `node.ProposeConfChange.wp_raw`, `node.wp_ProposeConfChange_impl`
+- `P/node__ReadIndex.lean` (2): `node.ReadIndex.wp_raw`, `node.wp_ReadIndex_impl`
+- `P/node__ReportSnapshot.lean` (1): `node.ReportSnapshot.wp_raw`
+- `P/node__ReportUnreachable.lean` (1): `node.ReportUnreachable.wp_raw`
+- `P/node__Step.lean` (2): `node.Step.wp_raw`, `node.wp_Step_impl`
+- `P/node__Stop.lean` (1): `node.wp_Stop_impl`
+- `P/node__TransferLeadership.lean` (2): `node.TransferLeadership.wp_raw`, `node.wp_TransferLeadership_impl`
+- `P/node__run.lean` (1): `node.run.wp_proof`
+- `P/node__stepWithWaitOption.lean` (1): `node.stepWithWaitOption.wp_proof`
+- `P/raft__Step.lean` (1): `raft.Step.wp_proof`
+- `P/raft__becomeCandidate.lean` (1): `raft.becomeCandidate.wp_proof`
+- `P/raft__becomeLeader.lean` (1): `wp_store_state_leader`
+- `P/raft__send.lean` (1): `raft.send.wp_proof`
+- `P/raft__sendTimeoutNow.lean` (1): `raft.sendTimeoutNow.wp_proof`
+- `P/raft__tickElection.lean` (1): `raft.tickElection.wp_proof`
+- `P/raft__tickHeartbeat.lean` (1): `raft.tickHeartbeat.wp_proof`
+- `P/stepFollower.lean` (1): `stepFollower.wp_proof`
+- `P/stepLeader.lean` (1): `stepLeader.wp_proof`
+- `P/Protocol/LeadWit.lean` (1): `leadW_stepC`
+- `P/raft__Step/Base.lean` (2): `ghost_step_static0`, `ghost_step_snapack`
+- `P/raft__Step/MsgAppResp_eq.lean` (1): `wp_Step_MsgAppResp_eq`
+- `P/raft__Step/MsgApp_eq.lean` (1): `wp_Step_MsgApp_eq`
+- `P/raft__Step/MsgBeat.lean` (1): `wp_Step_MsgBeat`
+- `P/raft__Step/MsgCheckQuorum.lean` (1): `wp_Step_MsgCheckQuorum`
+- `P/raft__Step/MsgHeartbeatResp_eq.lean` (1): `wp_Step_MsgHeartbeatResp_eq`
+- `P/raft__Step/MsgHeartbeat_eq.lean` (1): `wp_Step_MsgHeartbeat_eq`
+- `P/raft__Step/MsgPreVoteResp_eq.lean` (1): `wp_Step_MsgPreVoteResp_eq`
+- `P/raft__Step/MsgPreVoteResp_gt.lean` (1): `wp_Step_MsgPreVoteResp_gt`
+- `P/raft__Step/MsgProp.lean` (1): `wp_Step_MsgProp`
+- `P/raft__Step/MsgReadIndex.lean` (1): `wp_Step_MsgReadIndex`
+- `P/raft__Step/MsgReadIndexResp.lean` (1): `wp_Step_MsgReadIndexResp`
+- `P/raft__Step/MsgRest.lean` (3): `wp_Step_MsgLocal`, `wp_Step_MsgTransferLeader`, `wp_Step_MsgTimeoutNow`
+- `P/raft__Step/MsgVoteResp.lean` (1): `wp_Step_MsgVoteResp`
+- `P/stepLeader/Rest.lean` (2): `wp_stepLeader_transfer`, `wp_stepLeader_appresp`
+
+### Phase 2: the tracks, file-disjoint (at most four at a time)
+
+Every `sorry` above is in exactly one track's files. The old proof of a sorried body is kept below
+it, in a comment `/- PHASE1-OLD … -/` (the starting point; the statement above it is the final one).
+Waves: {P1+P2, P3a, P5, P7}, then {P3b, P4, P6}; each track checks against the fixed statements
+(`etc/lean-check.py`) and only builds once the tracks below it are in.
+
+| track | files |
+|---|---|
+| P1+P2 raft level | `Protocol/LeadWit`, `InvRaftPhys`, `StepGhostMode`, `raft__Step` and `raft__Step/*`, `raft__send`, `raft__sendTimeoutNow`, `stepFollower`, `stepLeader`, `stepLeader/Rest`, `raft__becomeCandidate`, `raft__becomeLeader`, `raft__tickElection`, `raft__tickHeartbeat` (and, as cleanup, `NGhost.ns`/`NsLink`/`LogNsOk`/`NsCap`/`PrOkN`'s flag) |
+| P3a Ready side | `InvRawnodeReady`, `RawNode__readyWithoutAccept`, `RawNode__acceptReady`, `RawNode__Ready`, `LemmasReadyR` |
+| P3b RawNode rest | `InvRawnode`, `NetMsgOk`, `RawNode__Advance`, `RawNode__Step`, `RawNode__Bootstrap`, `RawNode__{Campaign,ForgetLeader,Propose,ProposeConfChange,ReadIndex,ReportSnapshot,ReportUnreachable,Tick,TransferLeader}` |
+| P4 node loop | `InvNodeChan`, `InvNodeRun`, `InvNodeRunHup`, `LemmasNodeR`, `node__run`, `InvAdvance`, `node__Advance`, `node__ApplyConfChange` |
+| P5 node methods | `node__stepWithWaitOption`, `node__step`, `node__stepWait`, `node__Step`, `node__Propose`, `node__ProposeConfChange`, `node__ReadIndex`, `node__Campaign`, `node__ForgetLeader`, `node__TransferLeadership`, `node__Stop`, `node__ReportSnapshot`, `node__ReportUnreachable` (with their private `specRaw`s: `nodeErrRaw`, the receipts) |
+| P6 API, allocation, restart | `InvApi`, `InvApiView`, `InvApiDec`, `InvApiDecAlloc`, `InvApiJoin`, `InvNode`, `InvNodeRule`, `InvBoot`, `newRaft`, `NewRawNode`, `RestartNode` |
+| P7 MemoryStorage | `MemoryStorage__Append`, `MemstorageApi` |
+
+`Link.lean` is generated (`etc/gen-link.py --raft`; phase 1 taught it to add `[StorageModel GF]`
+when a callee's result takes it).
+
