@@ -95,6 +95,8 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       icases Hcfg' with ⟨%Hcsm', #Hcfg'⟩
       isplitr
       · ipureintro; exact Hcsm'
+      isplitr
+      · ipureintro; exact Hsz
       rw [List.length_append, List.length_singleton]
       iexact Hcfg'
     · -- accepted
@@ -103,7 +105,7 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
       · iPkgInit
       wp_apply wp_conf_apply wp_ACC γr vs id n q l e $oc _ c m ap.length Hk Hd Hok
-        $$ [$(frameH `Hraft) $(frameH `HisNode) $(frameH `Hcl) $(frameH `Hl) $(frameH `Hcc0) $(frameH `HcfgA) $(frameH `Hn) $(frameH `Hlive)] as %csp' ⟨%m', %c', #HcsO', #Hcfg', Hn', Hlive⟩
+        $$ [$(frameH `Hraft) $(frameH `HisNode) $(frameH `Hcl) $(frameH `Hl) $(frameH `Hcc0) $(frameH `HcfgA) $(frameH `Hn) $(frameH `Hlive)] as %csp' ⟨%m', %c', %Hsz', #HcsO', #Hcfg', Hn', Hlive⟩
       try wp_auto
       wp_apply sync.Mutex.wp_Lock _ _ $$ [$(frameH `Hmu)] as ⟨Hlocked, HR⟩
       iNamed HR
@@ -159,6 +161,8 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
         icases Hcfg' with ⟨%Hcsm', #Hcfg'⟩
         isplitr
         · ipureintro; exact Hcsm'
+        isplitr
+        · ipureintro; exact Hsz'
         rw [List.length_append, List.length_singleton]
         iexact Hcfg'
       try wp_auto

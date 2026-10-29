@@ -103,7 +103,7 @@ theorem wp_conf_apply (wp_ACC : node.ApplyConfChange.spec (GF := GF) (hG := hG))
         cfgAt γr cs0 m k ∗ appNode γr n l k m ∗ nodeRunning n γr.cluster kvrRaftN q }}
       (App (Val #(methods node.ty.PointerType go!"ApplyConfChange" #n)) (Val #c))
     {{ (csp' : Loc), RET #csp'; ∃ (m' : Membership) (c' : ConfStateM),
-        csOpt csp' DFrac.discard c' ∗ cfgAt γr c' m' (k + 1) ∗
+        ⌜GMap.size m'.ids < 2 ^ 61⌝ ∗ csOpt csp' DFrac.discard c' ∗ cfgAt γr c' m' (k + 1) ∗
         appNode γr n l (k + 1) m' ∗ nodeRunning n γr.cluster kvrRaftN q }} := by
   iintro %Φ ⟨#Hraft, #Hnode, #Hcl, #Hl, #Hcc, #Hc, Hn, Hlive⟩ HΦ
   unfold cfgAt
@@ -131,6 +131,8 @@ theorem wp_conf_apply (wp_ACC : node.ApplyConfChange.spec (GF := GF) (hG := hG))
     iapply HΦ
     iexists m', cs
     iframe Hlive
+    isplitr
+    · ipureintro; obtain ⟨m'', h1, h2⟩ := hok; rw [h1] at Hstep; cases Hstep; exact h2
     isplitr
     · unfold csOpt; iright; iapply csPts_weaken csp' DFrac.discard cs true $$ Hcs'
     isplitr

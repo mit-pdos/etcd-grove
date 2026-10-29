@@ -95,7 +95,7 @@ local macro "applyentry_tail" : tactic => `(tactic| (
     iexists mK, K, c
     iframe
     iframe Hap HcsO Hcfg
-    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm⟩
+    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm, Hsz⟩
   ))
 
 theorem Replica.applyEntry.wp_proof

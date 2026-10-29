@@ -84,6 +84,8 @@ theorem repOwn_other (γr : RNames) (r : Loc) (ap : List LogEntry)
   · ipureintro; rw [Hlh]; exact HA
   isplitr
   · ipureintro; exact Hcsm
+  isplitr
+  · ipureintro; exact Hsz
   rw [List.length_append, List.length_singleton]
   iapply kvr_confAt_normal γr.cluster (ap ++ [e]) ap.length e m (by simp) hc
   iframe Hce Hcfg

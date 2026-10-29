@@ -37,7 +37,9 @@ The applier (the `run` goroutine) writes the replicated state; the other gorouti
 under the lock: `propose` the applied table, `conf` the configuration and the applied index. So the
 applier owns the store's map and half of each shared field (`repOwn`, with the precise facts: the
 fields are the replicated state of a committed prefix `ap`, `r.index = len ap`, the configuration a
-read-only `ConfState` denoting the membership `m` at `ap`'s end, `confAt γ (len ap) m`; the node never
+read-only `ConfState` denoting the membership `m` at `ap`'s end, `confAt γ (len ap) m`, with fewer
+than `2^61` ids (the store's rule caps every applied change there, `ConfOk`: what a snapshot's
+`SnapListsOk` needs, and what the snapshot records keep, `kvrSnapRecOk`); the node never
 stops under the applier, which holds a fraction of `nodeRunning`, since `stop` waits for the loop), and the lock the other halves (`repShared`, with what readers need: the applied
 table is some committed prefix's). Writing takes the lock. The waiters (keyed by the operation's
 datum: `r.waiters` is a `map[string]chan string`) and the waiting reads (by sequence number) are
@@ -256,6 +258,7 @@ def repOwn (γr : RNames) (r : Loc) (ap : List LogEntry)
     "%HA" ∷ ⌜AppliedOk A (logHist ap)⌝ ∗
     "#HcsO" ∷ csOpt csp DFrac.discard c ∗
     "%Hcsm" ∷ ⌜confStateIs c m⌝ ∗
+    "%Hsz" ∷ ⌜GMap.size m.ids < 2 ^ 61⌝ ∗
     "#Hcfg" ∷ confAt γr.cluster ap.length m)
 
 /-- The lock's half of a replica's replicated state: the other halves of `applied`, `cs`, `index`
@@ -298,7 +301,7 @@ def appNode (γr : RNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membersh
 there, its data the store's encoded state of `L`. -/
 def kvrSnapRecOk (γr : RNames) (s : SnapRec) : IProp GF :=
   iprop(∃ L : List LogEntry, isCommittedLogLb γr.cluster L ∗ confAt γr.cluster L.length s.conf ∗
-    ⌜L.length = s.index ∧ kvSnapOk L s.data⌝)
+    ⌜L.length = s.index ∧ kvSnapOk L s.data ∧ GMap.size s.conf.ids < 2 ^ 61⌝)
 
 instance kvrSnapRecOk_persistent (γr : RNames) (s : SnapRec) :
     Persistent (kvrSnapRecOk (GF := GF) γr s) := by

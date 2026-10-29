@@ -165,7 +165,7 @@ local macro "install_rest" : tactic => `(tactic| (
       unfold repOwn
       iexists mK', K', md.ConfState'
       iframe HmK HKf HmA HA1 Hcs Hidx HcsN HL HmL
-      ipureintro; exact ⟨HLlen', HK', HA', HmLc⟩
+      ipureintro; exact ⟨HLlen', HK', HA', HmLc, HmLsz⟩
     try wp_if_destruct
     all_goals
       try wp_apply wp_add sts _ $$ [$(frameH `Hpkg) $(frameH `Hc2)]
@@ -195,7 +195,7 @@ theorem Replica.install.wp_proof
     (wp_GetLearnersNext : raftpb.ConfState.GetLearnersNext.spec (GF := GF) (hG := hG))
     (wp_Clone : proto.CloneConfState.spec (GF := GF) (hG := hG)) :
     Replica.install.spec (GF := GF) (hG := hG) := by
-  intro γr vs id r n st sts ap idx csp m mA A mdp dq md mK' mA' K' A' L mL HLlen HLlen' HK' HA' HmLc
+  intro γr vs id r n st sts ap idx csp m mA A mdp dq md mK' mA' K' A' L mL HLlen HLlen' HK' HA' HmLc HmLsz
   wp_start as ⟨#Hrep, Hown, Hsm, HKf, HAf, #HL, #HmL⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'

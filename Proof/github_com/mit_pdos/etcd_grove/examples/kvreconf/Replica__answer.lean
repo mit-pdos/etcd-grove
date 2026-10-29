@@ -189,7 +189,7 @@ theorem Replica.answer.wp_proof (wp_decodeReadCtx : decodeReadCtx.spec (GF := GF
     iexists mK, K, c
     iframe
     iframe Hap HcsO Hcfg
-    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm⟩
+    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm, Hsz⟩
 
 end proof
 

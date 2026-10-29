@@ -127,7 +127,7 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
     iexists mK, K', c
     iframe HmK HK HmA HA Hcs Hidx Hce HcsO Hcfg'
     ipureintro
-    refine ⟨by simp; omega, HK', HA', Hcsm⟩
+    refine ⟨by simp; omega, HK', HA', Hcsm, Hsz⟩
   wp_auto
   wp_apply wp_decode dsl e.data DFrac.discard $$ [$Hd] as -
   cases Hdec : decodeOp e.data with
