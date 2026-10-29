@@ -28,8 +28,8 @@ and the exclusive right serializes its compactions: the job is scheduled after `
 released, so only the right can carry the queue there), under the critical-section
 contract of the batch lock (`csContract`: `SetScheduledCompact`'s `LockInsideApply` runs the
 post-lock hook), `trace ≠ nil`, the store's backend supporting the compaction (`storeCmp`: mvcc's
-assumed backend; 2026-10-13, the merge with the real backend, whose model has no deletion from
-the `Key` bucket); under `s.mu` held exclusively (no transaction open):
+assumed backend, or a real backend in compaction mode, `KBReal.cm`: question 5's core stage, part
+(4), 2026-10-29; until then the assumed backend only); under `s.mu` held exclusively (no transaction open):
 * `rev > c`, `rev` a revision of the committed log: the compaction revision is `rev` (the right
   at `rev`, its queue ending with the job's `Post`, a lower bound `crevLb γ rev` for every reader
   since), `nil`, the caller's `Post`, and the job's channel (`compactChan`: once closed, `compactDone s γ rev`: the index and the bucket

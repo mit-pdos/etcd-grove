@@ -381,7 +381,7 @@ theorem applySnapshot_walk
   ihave #Hnd' : backend.dlNoDel d'.γB $$ []
   · rw [hγ']; iexact Hnd
   ihave #HsbT := mvcc.storeBackendT_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hBUR hCB hDel hID hName hSafe d' hbr'
+    hrUR hLI hLO hSP hUL hBUR hCB hDel hID hName hSafe d' hbr' hcm'
     (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) E.γ.bucket $$ [$Hbpkg $Hschpkg $HnB' $HnSz $Hnd']
   ihave #HkcR := mvcc.keyCleanRead_of_backend hRT hrRL hrRU hrUR hID hName hSafe
     d' hbr'

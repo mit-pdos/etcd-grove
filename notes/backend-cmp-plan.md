@@ -1853,3 +1853,47 @@ stage's parts (2)-(4), before Freeze and stage 5: the `axiom` skill again on `st
 (its post now carries `fkCl` and `srSlot`), the bbolt tester for the widened `Delete_kv` axiom, and a
 Probe of the compaction specs against their real callers (the `cm := true` `NewStore` export, the apply
 thread's `store.Compact`, what M2 needs).
+
+**Core stage, parts (2)-(4): the compaction over the real backend's tokens, and the flip
+(2026-10-29).** `notes/STATUS.md`, "Question 5's core stage, parts (2)-(4)". Decided by the agent:
+- **One general contract lemma** in place of `isKeyBackendG_cmp`/`isKeyBackendG_cmpRT`/`mwSwap_cmp`
+  (all removed): `isKeyBackendG_cmpOn` only rewrites the store's `Cmp` to `True` under `storeCmp γ`,
+  keeping the store's tokens (`storeRT`/`storeWT`), lock resource (`storeW`, reached through
+  `storeRegd`: `storeW_get`/`storeW_put`), slots and write right. The compaction's proofs are the same
+  for both backends; `storeCmp_cmpM` turns `storeCmp` into the mode that gates the resources.
+- **The store's contract carries the safe-range slots** (`storeBackend`, `storeBackendT`, `physOk`:
+  `SR := kbSR γ.kb`, `SRh := kbSRh γ.kb`, new `kbSRh`: `srHeld`), as the Draft round's design said.
+  `store.restore.spec` and `rangeEvents.spec` (internal) gain binders `SR SRh` after `MW`; a store
+  that does not compact gets its slots through `isKeyBackendG_weaken`.
+- **`updateCompactRev.spec` lends `storeRT γ`** (pre and every post branch: `storeRT γ ∗ (…)`), which
+  its `SetScheduledCompact` and `ForceCommit` need; the callers (`compactLockfree`, `store.Compact`)
+  already hold it (decision (i)). This departs from the Draft's "no new premise for the caller": the
+  Draft's claim overlooked the read token of `LockInsideApply`/`ForceCommit`; only internal
+  callers, `store.Compact.spec`'s text unchanged.
+- **Write-back tokens from receipts**: each session's (`LockInsideApply`/`LockOutsideApply`) and
+  each `ForceCommit`'s token comes from `kbWTSupply_take` (the supply in `physCmp`) and a receipt
+  `wp_take_receipt` takes at a resolution step of the function itself (`updateCompactRev`: the
+  `revMu.Lock` and `SetScheduledCompact` resolutions; the job: the `BatchTx` resolution after each
+  batch's `time.Now`, and `RevToBytes`'s before `ForceCommit`).
+- **The job**: its reader's token and slot from the compaction token (`compactJobResM_on`), the
+  slot read-locked across the batches and given back by the deferred `UnlockForSafeRangeDelete` on
+  both returns; the `Meta` put's write right from `mwInv` (`mwSwap_of_inv` on the key in
+  `compactRes`). `compactJobPreR` and `compactJobRes` (the Draft's) are deleted, unused.
+- **The flip**: `kbCmp kb := kbCmpM kb`. The `cm = true` store's contract is
+  `storeBackendT_of_backendC`/`storeBackend_of_backendC` (`BackendBridge`): the new bridge at
+  `Cmp := storeCmp γ`, the three compaction-only callees, `KBReal_P_HK` (the instance's hooks own no
+  compaction key: proved) and `FV := metaRevVal` (`Iff.rfl`), `fkV d.γB true`, then
+  `isKeyBackendG_congrDel` with `storeDlReg_congr` (moved from `WiringDraft` to `BackendBridge`,
+  where `bkDel` is). `NewStore_backend` fixes the registration by the mode: `storeDlReg d.γB γi` (the
+  index's names allocated first) when `d.cm`, else `dlNoDel` and the old bridge.
+- **Exported statements the flip forced** (for the user's review):
+  - `mvcc_NewStore_backend`'s pre gains `□ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true)`: the plan's
+    `fkV d.γB true` (round 14's list), guarded by the mode so that non-compacting callers
+    (`server_kv_backend`, `hcm`) discharge it trivially. The three callee specs are linked inside;
+    `hHK`/`hFV` are proved of `KBReal.P`, so no premise.
+  - `mvcc_storeBackend_of_backend` (and the internal `storeBackend_of_backend`,
+    `storeBackendT_of_backend`) gain `(hcm : d.cm = false)`: after the flip a compacting store's
+    contract is not the old bridge's (its `storeCmp` holds), so the old bridge covers exactly the
+    non-compacting stores, as Q5-1 decided. Not in the plan's text; no weaker meaning than before
+    the flip for `d.cm = false`, and the `d.cm = true` case is `storeBackend_of_backendC`. Callers
+    (D22's walk, `BuildLemmas`) build `cm := false` records and pass `hcm'`/`rfl`.

@@ -858,6 +858,8 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
       $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro]
     as %s ⟨%γ, %Hγ, #Hst, -, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
   · iframe #; iframe Hdl Hv Hncmp Hrg Hrts Hlrd Hro Hsrm Hwts
+    isplitr
+    · iintro !> %h; rw [hcm] at h; cases h
     unfold backend.wbTok
     iframe Hw1 Hw2
   rw [hj, Nat.sub_zero]

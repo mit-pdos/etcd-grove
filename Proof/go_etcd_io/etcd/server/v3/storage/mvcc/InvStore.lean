@@ -79,7 +79,7 @@ the safe-range bucket is `Key`), the backend's location `be`, and the name `gx` 
 lock's late-bound resource (`lateW`: the store registers its own at `NewStore`'s first
 `Unlock`); and the compaction mode `cm` (the backend-compaction stage's question 5, Q5-1, the
 user's: whether the store over this backend compacts, M2's `ρ.kv.cmp`; `false` for D22's received
-backends, "no restore in compaction mode"; read by `kbCmp` at the wiring's switch). -/
+backends, "no restore in compaction mode"; `kbCmp` reads it since the core stage's flip). -/
 structure KBReal where
   γB : backend.BNames
   BT : GMap GoString w64
@@ -1597,18 +1597,10 @@ def kbWTSupply (kb : Option KBReal) : IProp GF :=
   | none => iprop(True)
   | some d => iprop(□ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB))
 
-/-- **The compaction job's budgets** in the instance `kb` (3.4): a reader's token (its batches'
-`LockOutsideApply` lend it), the safe-range slot, and the write-back supply; exclusive, handed from
-job to job (to be carried in the compaction token, `compactTok`, when the stores switch to the new
-bridge: the stage's next Draft step, with `NewStore`'s callers supplying it). All `True` for mvcc's
-assumed backend. -/
-def compactJobRes (kb : Option KBReal) : IProp GF :=
-  iprop(kbRT kb ∗ kbSR kb ∗ kbWTSupply kb)
-
 /-- **The compaction mode of the instance** (question 5, Q5-1, the user's: the mode lives in the
 instance): the real backend supports mvcc's compaction when its creator chose it (`KBReal.cm`, M2's
 `ρ.kv.cmp`; `false` for D22's received backends, "no restore in compaction mode"); mvcc's assumed
-backend always. What gates the compaction's resources below; `kbCmp` switches to it at the core
+backend always. What gates the compaction's resources below; `kbCmp` is it since the core
 stage's flip (`notes/backend-cmp-plan.md`, "Question 5's switch"). -/
 def kbCmpM (kb : Option KBReal) : Prop :=
   match kb with
@@ -1812,13 +1804,13 @@ theorem putMax_ge (γ : StoreNames) : 2 ^ 56 ≤ putMax γ := by
   unfold putMax kbPutMax; cases γ.kb <;> simp
 
 /-- Whether the backend of the instance `kb` supports mvcc's compaction (`isKeyBackendG`'s
-`Cmp`): mvcc's assumed backend does; the real backend does not yet (its model forbids deleting
-from the safe-range `Key` bucket, and an `Unlock` that changes what readers see needs the
-clients' whole view, which the compaction job, under the batch lock alone, does not hold;
-`notes/decisions.md`, "The compaction over the real backend"). The new bridge
-(`isKeyBackendG_of_backendC`) is proved; the wiring's core stage (question 5, Q5-1) makes it the
-instance's mode, `kbCmp (some d) := d.cm`. Until then the stores keep the old bridge. -/
-def kbCmp (kb : Option KBReal) : Prop := kb = none
+`Cmp`): its compaction mode (`kbCmpM`; question 5's core stage, part (4), the flip, 2026-10-29:
+until then `kb = none`, mvcc's assumed backend only). mvcc's assumed backend always does; the real
+backend when its creator chose it (`KBReal.cm`, Q5-1, the user's), its contract then from the new
+bridge (`isKeyBackendG_of_backendC` at `Cmp := True`, the deletable keys the store's through the
+backend's registration: `storeBackendT_of_backendC`); a real store that does not compact keeps the
+old bridge (`storeBackendT_of_backend`, `dlNoDel`). -/
+def kbCmp (kb : Option KBReal) : Prop := kbCmpM kb
 
 /-- The store's backend supports compaction (`kbCmp`). -/
 abbrev storeCmp (γ : StoreNames) : Prop := kbCmp γ.kb
@@ -2620,9 +2612,7 @@ theorem isKeyBackendG_cmpOn (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P
   rw [eq_true h]
 
 /-- A store whose backend supports the compaction compacts (`kbCmpM`: its resources are on). -/
-theorem storeCmp_cmpM (γ : StoreNames) (h : storeCmp γ) : kbCmpM γ.kb := by
-  have hk : γ.kb = none := h
-  rw [hk]; unfold kbCmpM; trivial
+theorem storeCmp_cmpM (γ : StoreNames) (h : storeCmp γ) : kbCmpM γ.kb := h
 
 /-- **A write-back token from the supply** (F5): a time receipt of the caller's own step buys a
 write session's token (nothing to buy for mvcc's assumed backend). -/

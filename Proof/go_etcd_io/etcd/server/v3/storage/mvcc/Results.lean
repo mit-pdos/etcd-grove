@@ -263,8 +263,11 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
         -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
-        -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
+        -- by its compaction mode (`dlNoDel`, or the store's deletable keys, `storeDlReg`)
         backend.dlInit d.γB ∗
+        -- (question 5's core stage, part (4)) in compaction mode, the compaction keys' values tracked
+        -- (the backend's constructor's `fkCl`)
+        □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -300,13 +303,17 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket
     backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb
+    schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
+    backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
+    lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
 the backend's results): every store of the instance `d` (unit N4, D14b: before the post-lock hook
-is installed; its `LockInsideApply` runs the hook frozen at the call). -/
-theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (Pk : IProp GF)
-    (γb : GName) :
+is installed; its `LockInsideApply` runs the hook frozen at the call), which does not compact
+(`hcm`: question 5's core stage, part (4); a compacting store's contract is
+`storeBackend_of_backendC`'s, over the registration `NewStore_backend` makes). -/
+theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P)
+    (hcm : d.cm = false) (Pk : IProp GF) (γb : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
@@ -325,7 +332,7 @@ theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket
     backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket d hP Pk γb
+    schema.bucket.wp_IsSafeRangeBucket d hP hcm Pk γb
 
 /-- **`store.Write` over the real backend, linked**. -/
 theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)

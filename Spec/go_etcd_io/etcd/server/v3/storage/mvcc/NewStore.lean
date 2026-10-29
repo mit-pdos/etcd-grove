@@ -51,8 +51,8 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   the backend's slot, frozen when the etcd server installs it (`hookIs_of_init`; unit N4, D14b):
   the contract (`storeBackend`) names the slot, not the hook.
 * The contract (`storeBackend`) includes the compaction's calls where the instance supports them
-  (`storeCmp`: mvcc's assumed backend; the real backend's model does not, 2026-10-13, the merge
-  with the compaction), and the batch lock's deposit witness its first `Unlock` returns.
+  (`storeCmp`: mvcc's assumed backend, and a real backend in compaction mode, `KBReal.cm`;
+  question 5's core stage, part (4), 2026-10-29: until then the assumed backend only), and the batch lock's deposit witness its first `Unlock` returns.
 * A `nil` logger is replaced by `zap.NewNop()`'s; of the configuration `cfg`, a zero
   `CompactionBatchLimit` is replaced by the default (1000): a negative one is excluded by the
   premise `0 ≤ cfg.CompactionBatchLimit` (`NewStore` keeps it, and the compaction job would

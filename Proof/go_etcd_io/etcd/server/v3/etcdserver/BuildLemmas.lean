@@ -122,7 +122,7 @@ theorem server_kv_watchable_of
   -- `{ d with cm := false }` (M2 turns the server's compaction on), whose backend is `d`'s: no slot,
   -- no supply, no reader kept back (`cmOff_res`)
   ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe ({ d with cm := false } : mvcc.KBReal) hP Pk γb $$ []
+    hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe ({ d with cm := false } : mvcc.KBReal) hP rfl Pk γb $$ []
   · simp only [mvcc.KBReal.P_withCm]; iframe #
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩

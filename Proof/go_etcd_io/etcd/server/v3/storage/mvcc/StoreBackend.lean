@@ -50,11 +50,14 @@ holds (the clients' view of the empty `Key` bucket, the right to register the st
 resource, two write-back tokens, one reader token per reader slot), and a batch limit not
 negative, on a backend that records no compaction (`bkNoCmp`, D19l (v) (A), D22 S-g), `NewStore`
 returns a store of that instance (with the right to close it, holding the scheduler's stop token,
-and the compaction right's half of the revision's authority: D19m (C); the compaction is of no use
-over this instance until the core stage's flip, `storeCmp`). In compaction mode (`d.cm`, question 5's
-core stage, part (1)) the creator also gives the backend's safe-range slot (`kbSRM`, from `newPost`'s
-`srSlot`) and its write-back supply (`kbWTSupplyM`; discharged only by M2, R2-7), and gets one reader
-fewer (`nJobRd`: the compaction job's, kept back); otherwise both are `True` (`cmOff_res`). -/
+and the compaction right's half of the revision's authority: D19m (C)). In compaction mode (`d.cm`,
+question 5's core stage) the creator also gives the backend's safe-range slot (`kbSRM`, from
+`newPost`'s `srSlot`), its write-back supply (`kbWTSupplyM`; discharged only by M2, R2-7) and the
+compaction keys' values tracked (`fkV d.γB true`, from `newPost`'s `fkCl`), and gets one reader fewer
+(`nJobRd`: the compaction job's, kept back); the store registers its deletable keys in the backend
+(`storeDlReg`) and its contract has the compaction (`storeCmp`, part (4): the new bridge,
+`storeBackend_of_backendC`). Otherwise the slot and supply are `True` (`cmOff_res`), the
+registration is "nothing deletable" (`dlNoDel`) and the contract the old bridge's. -/
 theorem mvcc.NewStore_backend
     (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -79,6 +82,9 @@ theorem mvcc.NewStore_backend
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal)
     (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
     (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
@@ -89,8 +95,11 @@ theorem mvcc.NewStore_backend
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
         -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
-        -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
+        -- by its compaction mode (`dlNoDel`, or the store's deletable keys, `storeDlReg`)
         backend.dlInit d.γB ∗
+        -- (question 5's core stage, part (4)) in compaction mode, the compaction keys' values tracked
+        -- (the backend's constructor's `fkCl`)
+        □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -114,21 +123,42 @@ theorem mvcc.NewStore_backend
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hwts, Hrts, Hlrd, #Hle, Hro⟩ HΦ
-  -- this store never compacts: the registration fixed at "nothing deletable"
-  imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
-  ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz $Hnd]
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hwts, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
+  -- the deletable keys fixed by the mode (question 5's core stage, part (4)): a compacting store's
+  -- (`storeDlReg`, over the index's names), and its contract with the compaction (the new bridge);
+  -- else nothing deletable (`dlNoDel`) and the old bridge
+  ihave Hbk : iprop(|==> □ ∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+      mvcc.storeBackend (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be) s γ Pk) $$ [Hdl]
+  · cases hc : d.cm with
+    | false =>
+      imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
+      ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
+        hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP hc Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz $Hnd]
+      imodintro
+      iintro !> %s %γ %hγ
+      iapply Hbk
+      ipureintro; exact ⟨hγ.1, hγ.2.1⟩
+    | true =>
+      imod backend.dlReg_fix d.γB _ $$ Hdl with #Hreg
+      ihave #Hfv' := Hfv $$ [] 
+      · ipureintro; first | exact hc | rfl
+      imodintro
+      iintro !>
+      iapply mvcc.storeBackend_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
+        hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP d hP Pk γb γi
+      iframe Hbpkg Hsch Hb Hsz Hfv'
+      iunfold mvcc.storeDlReg
+      iexact Hreg
+  imod Hbk with #Hbk
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
   iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok hcfg hrb)
     $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro Hifresh Hok0]
   · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm Hwts
     isplitr
-    · iintro %s %γ %hγ
-      iapply Hbk
-      ipureintro; exact ⟨hγ.1, hγ.2.1⟩
+    · iexact Hbk
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
       show mvcc.kbNoCmp (GF := GF) (some d) γb = mvcc.bkNoCmp d.γB from rfl,
       show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,

@@ -3282,7 +3282,8 @@ epochs, S6; `storeBackendT`: what `store.Restore` takes of its new backend). As
 instance `d` (its ghost names `d.γB`, parameters `d.P` with schema's buckets, location `d.be`,
 and the late-bound lock resource `lateW d.gx`) gives, for every store `(s, γ)` of that
 instance, the contract `NewStore` takes (`mvcc.NewStore.spec`'s premise, `storeBackend`: the
-deposit witness `True`; the instance does not support the compaction, `storeCmp`). -/
+deposit witness `True`; the instance does not compact, `d.cm = false`: question 5's core stage,
+part (4), until then of every real instance, `storeCmp` being `kb = none`). -/
 theorem storeBackendT_of_backend
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
@@ -3306,7 +3307,7 @@ theorem storeBackendT_of_backend
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    (d : KBReal) (hP : bridgeParams d.P) (Pk : IProp GF) (γb : GName) :
+    (d : KBReal) (hP : bridgeParams d.P) (hcm : d.cm = false) (Pk : IProp GF) (γb : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
@@ -3330,7 +3331,7 @@ theorem storeBackendT_of_backend
   have hhf : hookFn (GF := GF) γ = bkHookIs d.γB := by
     funext g; unfold hookFn kbHookIs; rw [hk]
   have hc : ¬ storeCmp γ := by
-    unfold storeCmp kbCmp; rw [hk]; simp
+    unfold storeCmp kbCmp; rw [hk]; unfold kbCmpM; simp [hcm]
   have hrq : storeReq (GF := GF) γ = bkReq d.γB d.P d.be := by
     unfold storeReq kbReq; rw [hk]
   have hrb : storeRb (GF := GF) γ = fun r => iprop(rbOwn d.γB r ∗ ⌜leaseParams d.P⌝) := by
@@ -3349,6 +3350,199 @@ theorem storeBackendT_of_backend
   iintro !> %k Hk
   iexact Hk
 
+
+/-- **The glue for `isKeyBackendG_congrDel` at a compacting store** (review round 17's repair;
+proved in the Draft, moved here at the core stage's flip): the backend's registration fixed to the store's deletable keys
+(`storeDlReg γB γ.idx`) gives the law's two premises from the bridge's `bkDel γB` to the store's
+`delKey γ`: a registered key is the store's up to `◇` (the saved predicate agrees under `▷`;
+`delKey` is timeless), and a key the store may delete is registered (no `◇`: `dlIs` is built from
+the registration itself). The old equivalence's backward direction, `◇ delKey ⊢ bkDel`, is not
+provable: `dlIs` is persistent and has no `◇` to absorb. -/
+theorem storeDlReg_congr (γB : backend.BNames) (γ : StoreNames) (Cmp : Prop) :
+    storeDlReg (GF := GF) γB γ.idx ⊢
+      □ (∀ k, bkDel γB k -∗ ◇ delKey γ k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, delKey γ k -∗ bkDel γB k) := by
+  unfold storeDlReg
+  iintro #Hr
+  isplitl
+  · iintro !> %k Hk
+    iunfold bkDel at Hk
+    iunfold backend.dlIs at Hk
+    icases Hk with ⟨%Φ, #HΦ, #Hv⟩
+    iunfold backend.dlReg at HΦ
+    ihave #Hr' := Hr
+    iunfold backend.dlReg at Hr'
+    icases HΦ with ⟨#Hs1, -⟩
+    icases Hr' with ⟨#Hs2, -⟩
+    ihave Heq := saved_pred_agree γB.dlg _ _ Φ _ (go!"key", k) $$ Hs1 Hs2
+    ihave Hl : ▷ (⌜(go!"key", k).1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
+        delKeyI γ.idx (go!"key", k).2) $$ [Heq]
+    · inext
+      ihave Hiff := internalEq_iff _ _ $$ Heq
+      icases Hiff with ⟨H1, -⟩
+      iapply H1
+      iexact Hv
+    ihave Hl' : ◇ (⌜(go!"key", k).1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
+        delKeyI γ.idx (go!"key", k).2) $$ [Hl]
+    · iapply Timeless.timeless
+      iexact Hl
+    imod Hl' with ⟨-, Hd⟩
+    imodintro
+    rw [show delKey (GF := GF) γ k = delKeyI γ.idx k from rfl]
+    iexact Hd
+  · iintro !> %- %k #Hk
+    iunfold bkDel
+    iunfold backend.dlIs
+    iexists _
+    iframe Hr
+    iintro !>
+    isplitr
+    · ipureintro; rfl
+    rw [show delKeyI (GF := GF) γ.idx k = delKey γ k from rfl]
+    iexact Hk
+
+instance storeDlReg_persistent (γB : BNames) (γi : IdxNames) :
+    Persistent (storeDlReg (GF := GF) γB γi) := by
+  unfold storeDlReg dlReg; infer_instance
+
+/-- The real instance's hooks own no compaction key (`KBReal.P`'s `HK`: the consistent index's two
+keys of `Meta` only). -/
+theorem KBReal_P_HK (d : KBReal) (k : GoString) (h : metaCompactKey k) :
+    d.P.HK go_etcd_io.etcd.server.v3.storage.schema.metaName k = false := by
+  unfold KBReal.P
+  simp only [decide_eq_false_iff_not, not_and, not_or]
+  intro _
+  rcases h with rfl | rfl <;>
+    simp only [schedKeyBytes, finKeyBytes, go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes,
+      go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes] <;> decide
+
+/-- **The store's backend contract of a compacting real backend** (question 5's core stage, part
+(4), the flip; `storeBackendT`, the deposit witness `True`): a backend made for the real instance
+`d` in compaction mode (`d.cm = true`), whose deletable keys its creator registered as the keys the
+store over the index's names `γi` may delete (`storeDlReg d.γB γi`), and whose compaction keys'
+values it tracks (`fkV d.γB true`, from the constructor's `fkCl`), gives, for every store `(s, γ)` of
+that instance over `γi`, the contract with the compaction (`storeCmp γ`): the new bridge
+(`isKeyBackendG_of_backendC` at `Cmp := storeCmp γ`, with the three compaction-only callees, the
+instance's `HK`/`FV` facts, `KBReal_P_HK`) over the backend's deletable keys `bkDel d.γB`, which the
+registration makes the store's `delKey γ` (`isKeyBackendG_congrDel`, `storeDlReg_congr`). -/
+theorem storeBackendT_of_backendC
+    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
+    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
+    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (d : KBReal) (hP : bridgeParams d.P) (Pk : IProp GF) (γb : GName) (γi : IdxNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
+        storeDlReg d.γB γi ∗ fkV d.γB true ⊢
+      ∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        storeBackendT
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+            #d.be) s γ Pk := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hsz, #Hreg, #Hfv⟩ %s %γ %hγ
+  obtain ⟨-, hk, hi⟩ := hγ
+  have hv : bucketView (GF := GF) γ = bkView d.γB := by
+    funext q m; unfold bucketView kbView; rw [hk]
+  have hrt : storeRT (GF := GF) γ = bkRTx d.γB d.P d.be := by
+    unfold storeRT kbRT bkRTx; rw [hk]
+  have hwt : storeWT (GF := GF) γ = wbTok d.γB := by
+    unfold storeWT kbWT; rw [hk]
+  have hpo : storePutOk γ = keyPutOk := by
+    unfold storePutOk kbPutOk; rw [hk]
+  have hw : storeW (GF := GF) s γ = lateW d.gx := by
+    unfold storeW; rw [hk]
+  have hhf : hookFn (GF := GF) γ = bkHookIs d.γB := by
+    funext g; unfold hookFn kbHookIs; rw [hk]
+  have hrq : storeReq (GF := GF) γ = bkReq d.γB d.P d.be := by
+    unfold storeReq kbReq; rw [hk]
+  have hrb : storeRb (GF := GF) γ = fun r => iprop(rbOwn d.γB r ∗ ⌜leaseParams d.P⌝) := by
+    unfold storeRb kbRb; rw [hk]
+  have hbt : storeBt (GF := GF) γ = bkBt d.be := by
+    unfold storeBt kbBt; rw [hk]
+  have hsr : kbSR (GF := GF) γ.kb = srSlot d.be := by unfold kbSR; rw [hk]
+  have hsrh : kbSRh (GF := GF) γ.kb = srHeld d.be := by unfold kbSRh; rw [hk]
+  have hmw : kbMW (GF := GF) γ.kb γ.bucket = iprop(∃ f : Nat, fkOwn d.γB f) := by unfold kbMW; rw [hk]
+  have hnc : kbNoCmp (GF := GF) γ.kb γ.bucket = bkNoCmp d.γB := by unfold kbNoCmp; rw [hk]
+  have hwi : kbWi (GF := GF) γ.kb = lateW d.gx := by unfold kbWi; rw [hk]
+  iunfold storeBackendT
+  rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hsr, hsrh, hmw, hnc, hwi]
+  -- the new bridge at the store's compaction condition, over the backend's deletable keys
+  ihave #HC := isKeyBackendG_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR
+    hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe (storeCmp γ) (fun _ => hLSR) (fun _ => hUSR)
+    (fun _ => hUP) hP (fun _ k h => KBReal_P_HK d k h) (fun _ _ => Iff.rfl) d.γB (lateW d.gx) Pk d.be
+    $$ [$Hpkg $Hsch $Hb $Hsz]
+  · iintro !> -; iexact Hfv
+  -- the backend's deletable keys are the store's (the registration, `storeDlReg_congr`)
+  have hreg : storeDlReg (GF := GF) d.γB γi = storeDlReg d.γB γ.idx := by rw [hi]
+  rw [hreg] at *
+  iapply isKeyBackendG_congrDel
+  iframe HC
+  iapply storeDlReg_congr d.γB γ (storeCmp γ) $$ Hreg
+
+/-- **The store's backend contract of a compacting real backend** (`storeBackend`): as
+`storeBackendT_of_backendC`, with the witness `True`. -/
+theorem storeBackend_of_backendC
+    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
+    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
+    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (d : KBReal) (hP : bridgeParams d.P) (Pk : IProp GF) (γb : GName) (γi : IdxNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
+        storeDlReg d.γB γi ∗ fkV d.γB true ⊢
+      ∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        storeBackend
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+            #d.be) s γ Pk := by
+  iintro #H %s %γ %hγ
+  ihave #HT := (storeBackendT_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI
+    hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP d hP Pk γb γi) $$ H %s %γ %hγ
+  iunfold storeBackendT at HT
+  iunfold storeBackend
+  iexists iprop(True)
+  iexact HT
 
 /-- **The clean-view `ReadTx` of the real backend** (the restore plan's R5a; `keyCleanRead`: what
 `store.restore` takes of a backend holding data), for every store `(s, γ)` of the real instance
@@ -3390,7 +3584,8 @@ theorem keyCleanRead_of_backend
 instance `d` (its ghost names `d.γB`, parameters `d.P` with schema's buckets, location `d.be`,
 and the late-bound lock resource `lateW d.gx`) gives, for every store `(s, γ)` of that
 instance, the contract `NewStore` takes (`mvcc.NewStore.spec`'s premise, `storeBackend`: the
-deposit witness `True`; the instance does not support the compaction, `storeCmp`). -/
+deposit witness `True`; the instance does not compact, `d.cm = false`: question 5's core stage,
+part (4), until then of every real instance, `storeCmp` being `kb = none`). -/
 theorem storeBackend_of_backend
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
@@ -3414,7 +3609,7 @@ theorem storeBackend_of_backend
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    (d : KBReal) (hP : bridgeParams d.P) (Pk : IProp GF) (γb : GName) :
+    (d : KBReal) (hP : bridgeParams d.P) (hcm : d.cm = false) (Pk : IProp GF) (γb : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
@@ -3425,7 +3620,7 @@ theorem storeBackend_of_backend
             #d.be) s γ Pk := by
   iintro #H %s %γ %hγ
   ihave #HT := (storeBackendT_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI
-    hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP Pk γb) $$ H %s %γ %hγ
+    hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP hcm Pk γb) $$ H %s %γ %hγ
   iunfold storeBackendT at HT
   iunfold storeBackend
   iexists iprop(True)
