@@ -399,3 +399,26 @@ non-hook buckets; the first branch dropped), F9 (`kbSR`/`srSlot` one definition)
   the stock's authority), the thin-view invariants (Draft round 2's item 2), the wiring
   (`storeBackend_of_backend` over the new bridge, `NewStore`/`compactTok` with the budgets, the
   store's scope premise, `dlInit` routed, `kbCmp := True` last).
+
+## After Review round 2 (2026-10-29, the user's)
+
+Round 2 (`notes/spec-first-study/backend-review-2.md`): F1-F3, F6, F8, F9 fixed (F3 true of bbolt
+v1.5.0); F4's session stock unprovable (R2-1: leftover permits carried across sessions at one ghost
+name; R2-2: the session's `Key` puts not counted, so `pend + hookMax < 2^58` can fail). Decisions:
+- **R2-3: the delete-only token** (the lessor's `unlockAt` precedent; replaces F4's stock and F5's
+  re-proofs): the limited range takes `Locked []` with `limit ≤ 2^56` and returns a token `U` allowing
+  only deletes, one `Meta` put and `Unlock`, the budget local to the call. Weaker than `T -∗ Locked l`
+  (no puts or second range after a delete), which neither Go nor the job does. `DP`, `dpStock` and
+  the 54 `bkLocked` re-proofs go.
+- **R2-7: one stock** (revises F10): the job's write-back tokens come from the same receipt-funded
+  stock as `srvWTPool`, with D22's split of `wbInit` made explicit (both pools need about
+  `receiptBound` of `wbInit = 2^40-1`, and D22 takes nearly all of it today). **For the D22 track**:
+  this changes how `srvWTPool`'s funding is accounted; the collaborator reads it here and in STATUS.
+Repairs without a decision: R2-5 (the job proved against the real backend's budget, not `DP = True`),
+R2-6 (the internal `batchTx.UnsafeDelete.spec` gets the `own` flag), the scope premise
+`CompactionBatchLimit ≤ 2^56` in `isStore`'s `Hcfgl` (`InvStore.lean:3242`) from `NewStore`, scoped
+to the real backend's compaction instance (a decision entry: Go has no such bound), D22's exact
+readers via a persistent `dlReg γ (fun _ => False)` with its no-deletable-keys law (additive,
+shareable), `Del` instantiated as `◇ delKey` (not `▷`; needs `crevLb` timeless: check), F3's widened
+bbolt axiom recorded in notes/decisions.md (the tcb baseline lists axioms by name, so its check does
+not see a widened statement).
