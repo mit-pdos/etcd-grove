@@ -1127,3 +1127,13 @@ Waves: {P1+P2, P3a, P5, P7}, then {P3b, P4, P6}; each track checks against the f
 `Link.lean` is generated (`etc/gen-link.py --raft`; phase 1 taught it to add `[StorageModel GF]`
 when a callee's result takes it).
 
+
+### Phase 2 progress (the lead's hand-off)
+
+- Step 1 (statement fixes) pushed at `8f14f5df18`.
+- Wave 1 started 2026-10-29 with four helpers in this worktree, under the common brief
+  `/home/ubuntu/.claude-E/jobs/c8379647/tmp/phase2-brief.md`. P1+P2 is split in two:
+  P2a = `InvRaftPhys`, `raft__send`, `raft__sendTimeoutNow`, `raft__become{Candidate,Leader}`,
+  `raft__tick{Election,Heartbeat}`, `stepFollower`, `stepLeader`, `stepLeader/Rest`;
+  P2b = `Protocol/LeadWit`, `StepGhostMode`, `raft__Step`, `raft__Step/*`; P3a as in the table;
+  P5 together with P7. Next is wave 2 (P3b, P4, P6), once wave 1 is in. Then phase 3.
