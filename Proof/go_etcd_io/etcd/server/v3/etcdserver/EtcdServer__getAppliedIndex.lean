@@ -24,9 +24,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- In either auth mode (E3r): the invariant's body is the mode's (`srvAppliedBodyM`). -/
-theorem EtcdServer.getAppliedIndex.wp_proofM (on : Bool) :
-    EtcdServer.getAppliedIndex.specM (GF := GF) (hG := hG) on := by
-  intro s E γr
+theorem EtcdServer.getAppliedIndex.wp_proof :
+    EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG) := by
+  intro on s E γr
   wp_start as #Hl
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
@@ -56,9 +56,6 @@ theorem EtcdServer.getAppliedIndex.wp_proofM (on : Bool) :
   iapply HΦ
   iunfold appliedAtLeast
   iexact Hlb'
-
-theorem EtcdServer.getAppliedIndex.wp_proof : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG) :=
-  EtcdServer.getAppliedIndex.wp_proofM false
 
 end proof
 

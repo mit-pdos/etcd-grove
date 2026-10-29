@@ -4,6 +4,7 @@ counterpart; the auth plan's E2x, 2026-10-26).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserAdd
 public import Spec.golang_org.x.crypto.bcrypt.GenerateFromPassword
 

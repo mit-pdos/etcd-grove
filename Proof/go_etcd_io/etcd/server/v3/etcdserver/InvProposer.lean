@@ -424,13 +424,29 @@ instance srvReqFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     Persistent (srvReqFieldsAt s E ρ v) := by
   unfold srvReqFieldsAt; infer_instance
 
-/-- **The server `s`, as a proposer sees it** (persistent). -/
+/-- **The server `s`, as a proposer sees it** (persistent), with auth off (the auth-mode merge's
+step 5, 2026-10-29: `⌜E.authOn = false⌝`, so that the one spec of a function over the mode
+`E.authOn` gives the mode-off one, `isServerReq_authOff`). -/
 def isServerReq (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(∃ v : ReqFields, srvReqFieldsAt s E ρ v)
+  iprop((∃ v : ReqFields, srvReqFieldsAt s E ρ v) ∗ ⌜E.authOn = false⌝)
 
 instance isServerReq_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     Persistent (isServerReq s E ρ) := by
   unfold isServerReq; infer_instance
+
+/-- A server seen as a proposer with auth off has auth off. -/
+theorem isServerReq_authOff (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReq (GF := GF) s E ρ ⊢ ⌜E.authOn = false⌝ := by
+  unfold isServerReq
+  iintro ⟨-, %h⟩
+  ipureintro; exact h
+
+/-- The fields of a server seen as a proposer. -/
+theorem isServerReq_fields (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReq (GF := GF) s E ρ ⊢ ∃ v : ReqFields, srvReqFieldsAt s E ρ v := by
+  unfold isServerReq
+  iintro ⟨H, -⟩
+  iexact H
 
 /-- `s.leadTimeMu`'s lock invariant: the time the current leader was elected. -/
 def leadTimeP (s : Loc) (q : Qp) : IProp GF :=

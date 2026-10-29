@@ -228,7 +228,7 @@ theorem srvAuthAt_of_views (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     isServerReq s E ρ ∗ isServerRead s E γr ⊢ srvAuthAt s E := by
   iintro ⟨#Hq, #Hr⟩
   iunfold isServerReq at Hq
-  icases Hq with ⟨%vq, Hq⟩
+  icases Hq with ⟨⟨%vq, Hq⟩, -⟩
   iunfold srvReqFieldsAt at Hq
   icases Hq with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -, #Has, #Hreq, -, -, -, -, -, -, -, -, -, -, -⟩
   iunfold isServerRead at Hr

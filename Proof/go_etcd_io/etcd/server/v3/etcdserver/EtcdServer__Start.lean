@@ -72,7 +72,7 @@ theorem EtcdServer.Start.wp_proof
   ipersist s
   ihave #Hreq' := Hreq
   iunfold isServerReq at Hreq'
-  icases Hreq' with ⟨%vq, #Hvq⟩
+  icases Hreq' with ⟨⟨%vq, #Hvq⟩, -⟩
   iunfold srvReqFieldsAt at Hvq
   icases Hvq with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, -, -, -, -, -, -, -, -, %Hcfg⟩
   ihave #Hrd' := Hrd

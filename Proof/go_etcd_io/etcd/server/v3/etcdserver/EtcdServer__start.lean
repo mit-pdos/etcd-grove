@@ -468,6 +468,8 @@ theorem EtcdServer.start.wp_proof
     #Q15, #Q16, #Q17, #Q18, %Q19⟩
   ihave #Hreq : isServerReq s E { ρ with wait := γw } $$ []
   · iunfold isServerReq
+    isplitl; rotate_left
+    · ipureintro; exact hAuthOff
     iexists { vq with w := w, done := dch }
     iunfold srvReqFieldsAt
     iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11 Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw

@@ -399,13 +399,13 @@ instance srvReqFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (�
 theorem srvReqFieldsAtM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     srvReqFieldsAtM (GF := GF) false s E ρ v = srvReqFieldsAt s E ρ v := rfl
 
-/-- **The server's store's bound request side, in the auth mode `on`** (persistent): `True` off;
-on, `srvAuthBound` (`AuthInfoFromCtx`'s auth info bound to the request context's token; the auth
+/-- **The server's store's bound request side, in the auth mode `on`** (persistent): off, the
+environment's auth off (the auth-mode merge's step 5); on, `srvAuthBound` (`AuthInfoFromCtx`'s auth info bound to the request context's token; the auth
 plan's E3zb), and the environment's auth on (the auth-mode merge, 2026-10-29: `AuthInfoFromCtx`'s
 binding is gated by the mode). -/
 def srvAuthBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   match on with
-  | false => iprop(True)
+  | false => iprop(⌜E.authOn = false⌝)
   | true => iprop(srvAuthBound s E ∗ ⌜E.authOn = true⌝)
 
 instance srvAuthBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) :
@@ -534,7 +534,7 @@ header a request is stamped with names its context's principal). Off, `isServerR
 definition. -/
 def isServerReqM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
   match on with
-  | false => iprop(∃ v : ReqFields, srvReqFieldsAtM false s E ρ v)
+  | false => iprop((∃ v : ReqFields, srvReqFieldsAtM false s E ρ v) ∗ ⌜E.authOn = false⌝)
   | true => iprop((∃ v : ReqFields, srvReqFieldsAtM true s E ρ v) ∗ srvAuthBound s E ∗
       ⌜E.authOn = true⌝)
 
@@ -558,14 +558,18 @@ theorem srvAuthBound_of_uberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
 theorem isServerReqM_split (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     isServerReqM (GF := GF) on s E ρ ⊣⊢
       (∃ v : ReqFields, srvReqFieldsAtM on s E ρ v) ∗ srvAuthBoundM on s E := by
-  cases on <;> unfold isServerReqM srvAuthBoundM <;> constructor
-  · iintro #H; iframe H
-  · iintro ⟨#H, -⟩; iexact H
-  · iintro #H; iexact H
-  · iintro #H; iexact H
+  cases on <;> unfold isServerReqM srvAuthBoundM <;> constructor <;> (iintro #H; iexact H)
 
 theorem isServerReqM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     isServerReqM (GF := GF) false s E ρ = isServerReq s E ρ := rfl
+
+/-- The proposer's view at the mode `on` fixes the environment's mode (the auth-mode merge's step 5:
+a spec over `E.authOn` gives its instance at `on`, `ModeSpecs.lean`). -/
+theorem isServerReqM_authOn (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReqM (GF := GF) on s E ρ ⊢ ⌜E.authOn = on⌝ := by
+  cases on <;> unfold isServerReqM
+  · iintro ⟨-, %h⟩; ipureintro; exact h
+  · iintro ⟨-, -, %h⟩; ipureintro; exact h
 
 /-- **What a proposal of `rq` needs, in the auth mode `on`, with its result at the stamped header**
 (see the file header): off, `reqPropOk` with a result `Qr` the header does not change (`Qh` constant);

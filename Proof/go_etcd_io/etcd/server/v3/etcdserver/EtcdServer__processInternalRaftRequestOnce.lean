@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInternalRaftRequestOnce
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getAppliedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommittedIndex
@@ -494,7 +495,7 @@ local macro "piro_tail" : tactic => `(tactic| (
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
-    (hAI : EtcdServer.getAppliedIndex.specM (GF := GF) (hG := hG) on)
+    (hAI : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG))
     (hCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
     (hFE : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
     (hEx : exceedsRequestLimit.spec (GF := GF) (hG := hG))
@@ -537,7 +538,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
   · iPkgInit
   iunfold srvIndexInvsM at Hidx
   icases Hidx with ⟨%γr, #Hai, #Hci⟩
-  wp_apply hAI s E γr $$ [] as %ai -
+  wp_apply hAI on s E γr $$ [] as %ai -
   · iframe #
   (try wp_auto)
   wp_apply hCI s γr none $$ [] as %ci -
@@ -664,7 +665,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     simp only [Bool.false_eq_true, ↓reduceIte]
     itrivial
 
-/-- **The mode-off spec, from the generic one** (a constant result: `reqPropOkM_of_false`). -/
+/-- **The spec, from the proof at the environment's auth mode** (`wp_proofM E.authOn`). -/
 theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hAI : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG))
     (hCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
@@ -682,40 +683,11 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Qr F Hid0
-  iintro %Φ Hpre HΦ
-  iapply (EtcdServer.processInternalRaftRequestOnce.wp_proofM false hAI hCI hFE hEx hNext hAuth
-    hRT hM hTO hSp hPE hED hFB hSec hWL s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Hpre] [HΦ]
-  · icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
-    ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr $$ Hok
-    rw [isServerReqM_false]
-    iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
-  · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
-    iapply HΦ
-    iframe Hrd Hard
-    icases Hpost with (⟨%He, %hm, %rq', %Hw, HTr, %L, #HL, Hp, -, #HQ, -⟩ | Herr)
-    · ileft
-      isplitr
-      · ipureintro; exact He
-      iexists hm, rq'
-      iframe HTr
-      isplitr
-      · ipureintro; exact Hw
-      iunfold resPostM at Hp
-      icases Hp with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, -⟩
-      iexists y.log
-      iunfold resultIsW
-      isplitl [Hr1 Hr2 Hr3 Hr4 Hr5]
-      · isplitr
-        · ipureintro; exact Hnn
-        iexists y, y', out
-        iframe Hr1 Hr2 Hr3 Hr4 Hr5
-        ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
-      iexists L
-      iframe HL HQ
-      ipureintro; exact Hst.2.2.2
-    · iright; iexact Herr
-
+  intro s E ρ ctx cd p rq Qh F Hid0
+  have h := EtcdServer.processInternalRaftRequestOnce.wp_proofM E.authOn hAI hCI hFE hEx hNext
+    hAuth hRT hM hTO hSp (EtcdServer.parseProposeCtxErr.spec_M hPE E.authOn) hED hFB hSec hWL
+    s E ρ ctx cd p rq Qh F Hid0
+  exact h
 
 /-- **A compaction through the request path** (M2, S2): the skeleton's statement, no callee
 hypotheses yet. -/

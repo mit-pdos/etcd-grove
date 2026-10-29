@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetKey
@@ -46,6 +47,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     (hAS : «attribute».String.spec (GF := GF) (hG := hG))
   :
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) := by
+  have hRR := EtcdServer.raftRequest.spec_off hRR
   intro s E ρ ctx cd r op Q F
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hdel, Hnp, #HF⟩
   wp_auto

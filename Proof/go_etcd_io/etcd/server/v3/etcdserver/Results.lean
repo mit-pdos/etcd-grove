@@ -50,6 +50,7 @@ stage R7c).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
@@ -1804,8 +1805,7 @@ theorem server_start_on [EtcdGrove.ErrorStringLeaf] :
     types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With
     server_run_on EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping
     EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID
-    EtcdServer.wp_RequestTimeout (EtcdServer.AppliedIndex.wp_proofM true
-      (EtcdServer.getAppliedIndex.wp_proofM true)) raftNode.wp_ReadState raftNode.wp_ReadIndex
+    EtcdServer.wp_RequestTimeout (EtcdServer.AppliedIndex.wp_proofM true EtcdServer.wp_getAppliedIndex) raftNode.wp_ReadState raftNode.wp_ReadIndex
 
 /-- **`Start` with auth on** (the auth plan's E3zb, 2026-10-28; `EtcdServer.Start.specOn`): `start`
 with auth on (`server_start_on`), then the goroutines `Start` attaches, the monitors' proposals with
@@ -1826,7 +1826,7 @@ lower bound `n` of the auth store's published index (`authPubLbM`) and the store
 it (`srvAuthLb`, `start.specOn`'s): a success passed `IsRangePermitted` at states no older than `n`
 (`apply.rangeClassFrom`), and a linearizable one read the mode-`on` model of a committed raft log
 at which the deposit fired (`rangeReadOkM true`). Every callee linked (`doSerialize` through its
-proof in either mode, `doSerialize.wp_proofM`). -/
+proof in either mode, `doSerialize.spec_M`). -/
 theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.specOn (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proofOn traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String
@@ -1836,8 +1836,7 @@ theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong
     strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
     traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range
-    (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
-      traceutil.Trace.wp_Step)
+    (EtcdServer.doSerialize.spec_M EtcdServer.wp_doSerialize true)
     RangeRequest.wp_String proto.wp_Size
 
 /-- **A read-only `Txn` with auth on** (the auth plan's E3v, 2026-10-27; `EtcdServer.Txn.specOnR`,
@@ -1856,8 +1855,7 @@ theorem server_txn_ro_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     (apply.CheckTxnAuth.wp_lb apply.checkTxnPermission.wp_lb)
     txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool
     time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn
-    (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
-      traceutil.Trace.wp_Step)
+    (EtcdServer.doSerialize.spec_M EtcdServer.wp_doSerialize true)
     proto.wp_Size
 
 end adminLatest
@@ -2289,23 +2287,12 @@ committed prefix before the entry (`resPostM true`, `authTie`), and (E3zb) the s
 user bound to the context (`hdrBoundM`). Every callee linked. -/
 theorem server_process_irr_on :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) true :=
-  EtcdServer.processInternalRaftRequestOnce.wp_proofM true (EtcdServer.getAppliedIndex.wp_proofM true)
-    EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit
-    idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx
-   
-    wp_getRequestType proto.wp_MarshalIRR config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext
-    (EtcdServer.parseProposeCtxErr.wp_proofM true errors.wp_IsCtxErr time.Time.wp_After
-      EtcdServer.wp_getLead EtcdServer.wp_MemberID membership.RaftCluster.wp_Members
-      wp_isConnectedToQuorumSince wp_isConnectedSince)
-    context.wp_ErrDone strconv.wp_FormatBool time.Duration.wp_Seconds
-    prometheus.HistogramVec.wp_WithLabelValues
+  EtcdServer.processInternalRaftRequestOnce.spec_M EtcdServer.wp_processInternalRaftRequestOnce true
 
 /-- `raftRequest` in the auth mode `on`, every callee linked. -/
 theorem server_raft_request_on :
     EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true :=
-  EtcdServer.raftRequest.wp_proofM true server_process_irr_on trace.wp_SpanFromContext
-    context.wp_ValueStartTime traceutil.Trace.wp_GetStartTime traceutil.Trace.wp_SetStartTime
-    traceutil.Trace.wp_InsertStep traceutil.Trace.wp_LogIfLong
+  EtcdServer.raftRequest.spec_M EtcdServer.wp_raftRequest true
 
 /-- **A put in the auth mode `on`**: a success is a put the auth state its entry met granted, its
 client's result at the log the entry met; a refusal an error. Every callee linked. -/

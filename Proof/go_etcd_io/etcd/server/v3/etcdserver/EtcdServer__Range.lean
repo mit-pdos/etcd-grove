@@ -4,6 +4,7 @@ counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVRead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
@@ -581,6 +582,7 @@ theorem EtcdServer.Range.wp_proof
     (hRStr : RangeRequest.String.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Range.spec (GF := GF) (hG := hG) := by
+  have hDS := EtcdServer.doSerialize.spec_off hDS
   intro s E ρ γr c ctx cd r o ot te Q F
   wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst, #Hdep, #HF⟩
   wp_auto

@@ -18,6 +18,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthEntry
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthShape
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
