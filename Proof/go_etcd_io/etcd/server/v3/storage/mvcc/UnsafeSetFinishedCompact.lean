@@ -56,7 +56,7 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
   rw [List.drop_of_length_le (by simp), List.append_nil]
   wp_bind (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bM)) (Val #skn)) (Val #rb'))
   ihave #HP2 := HPut' $$ %l %bM %skn %rb' %mvcc.finKeyBytes
-    %(mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false) %DFrac.discard %(DFrac.own 1) []
+    %(mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false) %DFrac.discard %(DFrac.own 1) %0 []
   · ipureintro
     exact ⟨Or.inr rfl, value, Hv, rfl⟩
   iapply HP2 $$ [Hl Hrb]
@@ -64,7 +64,7 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
     unfold mvcc.finKeyBytes
     iexact Hsknv
   inext
-  iintro ⟨Hl, -, -⟩
+  iintro ⟨Hl, -, -, -⟩
   (try wp_auto)
   iapply HΦ
   iexact Hl

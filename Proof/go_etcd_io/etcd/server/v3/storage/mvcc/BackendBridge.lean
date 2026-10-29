@@ -1940,7 +1940,7 @@ theorem bt_lockOutJ (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := 
           (App (Val #(methods (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"LockOutsideApply" #t))
             (Val #()))
-        {{ RET #(); bkLocked γ P b [] ∗ W ∗ Pk ∗ bkRTx γ P b }}) := by
+        {{ RET #(); bkLocked γ P b [] ∗ W ∗ Pk ∗ bkRTx γ P b ∗ iprop(True) }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht⟩ !> %Φ !> ⟨-, Hrt, Hwb⟩ HΦ
   iunfold bkRTx at Hrt
   icases Hrt with ⟨Hrd, Ho⟩
@@ -1954,8 +1954,7 @@ theorem bt_lockOutJ (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := 
     iframe
     ipureintro; exact sessPuts_free hP Hfree
   iunfold bkRTx
-  iframe Hrd
-  iexact Ho
+  iframe Hrd Ho
 
 /-- The backend's `Size()`: some number. -/
 theorem bk_size (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
@@ -2112,10 +2111,11 @@ variable [sem : go.Semantics]
 `γ.dlg`, Draft round 2). -/
 def bkDel (γ : backend.BNames) (k : GoString) : IProp GF := backend.dlIs γ (go!"key", k)
 
-/-- **A one-shot delete permit** (3.4, decision O3): the limited range hands one out per key it
-returns and `UnsafeDelete` spends it, so a compaction session's operations stay within the
-backend's bound (`pend < 2^58`, with the scope premise `CompactionBatchLimit ≤ 2^56`). -/
-def bkDP (gp : GName) (_k : GoString) : IProp GF := ownToks gp 1
+/-- **A compaction session's operation budget** (3.4, decision O3; review round 1, F4): `n`
+operations of the session's stock left (`dpStock` from `LockOutsideApply`), at the session's
+ghost name `gp`. The bridge's session token is to carry the matching authority (the new `Locked`,
+F5), so that `pend` stays below the backend's bound. -/
+def bkDP (gp : GName) (n : Nat) : IProp GF := ownToks gp n
 
 end cmpvocab
 
@@ -2307,7 +2307,9 @@ theorem isKeyBackendG_of_backendC
       isplitr
       · iapply bt_range hbUR hID hName hSafe hP γ W Pk b t (bkDel γ) $$ [$Hpkg $Hsch $Hb $Ht]
       isplitr
-      · iapply bt_lockOutJ hLO hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
+      · -- (review round 1, F4) the session's operation stock `bkDP gp dpStock`, minted with the
+        -- new `Locked`'s authority (F5, the next Draft round)
+        sorry -- backend-cmp Draft: new case (LockOutsideApply's operation stock, F4/F5)
       isplitr
       · -- the job's limited range: thin of the logical bucket, its slices lent against a token of
         -- the call, and the delete of a registered key it returned under that token (3.1-3.2,

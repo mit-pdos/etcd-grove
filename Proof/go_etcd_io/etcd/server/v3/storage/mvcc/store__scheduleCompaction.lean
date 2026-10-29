@@ -340,7 +340,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iframe; iframe #
   inext
   iintro %ks %vs ⟨HbvW, HlastS, HendS, %m', %Rd, %T, Hlocked, HTback, #Hthin, #Hcap, #Hcap2, #Hpv,
-    -, #HDelC⟩
+    #HDelC⟩
   (try wp_auto)
   rename_i igo
   irename : (igo ↦ zero_val w64 : IProp GF) => Higo
@@ -450,10 +450,11 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       (try wp_auto)
       wp_bind (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #ksl))
       -- (Draft round 2) the key slice `keys[i]` passed lent, as the range returned it
-      iapply HDelC $$ %ksl %e.1 [Hlocked]
+      -- the session's operation stock: mvcc's assumed backend counts nothing (`DP = True`)
+      iapply HDelC $$ %ksl %e.1 %0 [Hlocked]
       · iframe Hlocked; iframe #
       inext
-      iintro Hlocked
+      iintro ⟨Hlocked, -⟩
       (try wp_auto)
       wp_join_done
       -- the key deleted: one more in `D`, still fewer than the job's changes

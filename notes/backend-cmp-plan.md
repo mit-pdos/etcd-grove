@@ -382,3 +382,20 @@ non-hook buckets; the first branch dropped), F9 (`kbSR`/`srSlot` one definition)
 - **F5** (recorded): the new bridge's `Locked` must change (the deletes' `ndel`), so every clause
   over it is re-proved, not only the four new cases; the estimate in "Draft (second round)" grows
   by `bkLocked`'s 54 uses.
+- **F4**: the delete permits are a session stock: mvcc's contract parameter `DP : Nat → IProp`
+  (`fun _ => True` for mvcc's assumed backend); `LockOutsideApply` gives `DP dpStock`
+  (`dpStock := 2^56`); the range's delete and the `Meta` put each take `DP (n + 1)` and give
+  `DP n`; the range hands out no per-key permits. The bridge's `bkDP gp n := ownToks gp n`; minting
+  the stock at `LockOutsideApply` needs the new `Locked`'s authority (F5): a marked `sorry` in the
+  new bridge. The store's scope premise `CompactionBatchLimit ≤ 2^56` comes with the wiring step
+  (mvcc's assumed backend counts nothing, so the job is unchanged but for passing `n`).
+- **F10**: `kbWTSupply` is the job's own pool (its docstring): `NewServer` funds it when it builds
+  the store, an invariant of its own with the backend's write-back authority for the job, valid in
+  the compactor-on configuration (no snapshot installed, the backend fixed). Statement only: the
+  wiring step writes the funding.
+- **F11** (not done): `newPost`'s positional destructurings (`BootBackend`, `SnapApplyWalk`) still
+  bind `dlInit` by position; a named law with the wiring step, which routes `dlInit`.
+- **Left for the next Draft round**: F5 (the bridge's new `Locked`, every clause over it re-proved,
+  the stock's authority), the thin-view invariants (Draft round 2's item 2), the wiring
+  (`storeBackend_of_backend` over the new bridge, `NewStore`/`compactTok` with the budgets, the
+  store's scope premise, `dlInit` routed, `kbCmp := True` last).
