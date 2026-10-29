@@ -280,6 +280,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-watch-stream-key-collision](etcd-watch-stream-key-collision.md)** (2026-10-29): the
+  client keys its watch streams by `%+v` of the outgoing metadata, which collides, so a watch can
+  go out with another context's metadata (its token). Needs a metadata value with a space; etcd's
+  tokens have none. A small fix (an injective key); no test yet.
 - **[etcd-quota-backend-bytes-mmap-panic](etcd-quota-backend-bytes-mmap-panic.md)** (2026-10-29):
   a `--quota-backend-bytes` above about 2.5·10^14 (amd64) makes `newBackend`'s 110% mmap exceed
   bbolt's `maxMapSize`, and etcd panics at startup with a message that does not name the flag. An

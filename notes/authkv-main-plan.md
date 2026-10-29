@@ -444,3 +444,16 @@ index), so `SetUp.spec` does not change. `Main` has the first two from `memberBo
 the tie from `Start.specOn`'s post, the rest from `SetUp`'s (`admStates_getLastD` turns
 `srvAuthAtLog Lset = setupSt r` into `hs.getLastD _ = setupSt r`). `akAuthFixed`'s read half then
 becomes a fancy update at such an `E'`.
+
+## G2, the watch with auth on (2026-10-29)
+
+Drafted by this session (the user's request; the merge session has no draft and H5 does not touch
+the watch path). The user chose the full design (A): keep `Work`'s refused watch. Candidate 1
+(scratch, not committed): a watch's check as its responses report it, `v3rpc.watchAuthed s E n tok
+o` (`rangeAuthed` without the read's floor), through four layers: a metadata-indexed stream
+registration (grpc), the server's watch stream at the client's published bound (v3rpc; server-side
+statements proposed to the merge session, not edited here), one restated `watcher.Watch.spec` (any
+range; each response with events carries `watchAuthed`; the `Watcher` on the client's KV
+connection, F-W3), and `Work`'s refutation. Spec-first: review rounds (at most three), the user's
+approval of each changed trusted statement, the statements in code over named stubs, then the
+freeze; no proof before it. Estimated as large as `Work`'s proof or larger.

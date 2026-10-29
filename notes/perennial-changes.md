@@ -17,6 +17,21 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Slices: an empty slice literal is not nil (2026-10-29, authkv G2)
+
+- **Limitation.** `wp_slice_literal` gives an arbitrary pointer for an empty literal, so a proof
+  cannot show that `[]byte{}` is not `nil` (in Go it is not; `testCompareSliceToNil` shows it at the
+  semantics level). etcd's watch server sends a from-key watch's range end as `[]byte{}`
+  (`recvLoop`), so `createRangeOk` has two readings for the end `"\x00"`: "from the key on" or "the
+  key alone" (`v3rpc/InvWatchStream.lean`; `notes/status-history.md`, the watch slice).
+- **Needed by.** `watcher.Watch.spec`'s from-key watches (its premise `rangeEnd ≠ [W8 0]` excludes
+  them today): authkv's root watch of every key (`Watch("", WithPrefix())`, G2,
+  `notes/authkv-main-plan.md`).
+- **Workaround here.** None; the user chose to wait for the general fix (2026-10-29).
+- **Proposed.** A lemma (or `wp_slice_literal`'s post) that an empty slice literal is non-nil, on a
+  Perennial branch off its `lean`.
+- **Status.** Open.
+
 ### Context model: a descriptor's `Values` constrain nothing (2026-10-29, authkv round 1)
 
 - **Limitation.** `isContext c d` never reads `d.Values` (its docstring: "unused"), so
