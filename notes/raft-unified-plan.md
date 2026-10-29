@@ -1128,6 +1128,11 @@ Waves: {P1+P2, P3a, P5, P7}, then {P3b, P4, P6}; each track checks against the f
 when a callee's result takes it).
 
 
+Phase 2 (internal statement changes):
+- `ownStepGhost_lead`, `ownStepGhost_xw_record` (`StepGhostMode`, internal): a premise
+  `s.role ≠ .preCandidate` added (the coordinator approved it, 2026-10-29). Why: `toPState` zeroes `lead` at a pre-candidate, so `leadW`
+  says nothing there.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
