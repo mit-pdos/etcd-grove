@@ -74,6 +74,7 @@ message is a `MsgReadIndex` iff its abstraction is a `readIndex`, `msgAbs_rdCoun
 module
 
 public import Proof.go_etcd_io.raft.v3.ApiVocab
+import Proof.go_etcd_io.raft.v3.InvStorageLaws
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Proof.go_etcd_io.raft.v3.LemmasCeFrozen
 -- `ownRaftGhost_drain` (2026-10-13)
@@ -344,6 +345,45 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- (U8 v2, 2026-10-29) **Raft's certified terms of the entries `L` at the indices `n+1, n+2, …`**
+(persistent; raft-final, 2026-10-29: moved here from `ApiVocab.lean`, internal): the key of `sn.gd` at each index is its entry's term (`raftDL`'s first reading). -/
+def dlvKeysAt (sn : StorNames) (n : Nat) (L : List EntryM) : IProp GF :=
+  iprop([∗list] j ↦ e ∈ L, (n + j + 1) ↪[sn.gd]□ e.Term')
+
+instance dlvKeysAt_pers (sn : StorNames) (n : Nat) (L : List EntryM) :
+    Persistent (dlvKeysAt (GF := GF) sn n L) := by
+  unfold dlvKeysAt; infer_instance
+
+/-- ... of a committed log `ds` from its start: what a `Ready` certifies for its committed entries
+(`ownRaftLog_certify`), which the driver keeps with the committed log delivered (the API's
+`deliveredLogLb`); the storage contract's `DL` is read from it. -/
+abbrev dlvKeys (sn : StorNames) (ds : List EntryM) : IProp GF := dlvKeysAt sn 0 ds
+
+theorem dlvKeysAt_nil (sn : StorNames) (n : Nat) : ⊢ dlvKeysAt (GF := GF) sn n [] := by
+  unfold dlvKeysAt; iapply (BigSepL.bigSepL_nil (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF))).2; iempintro
+
+theorem dlvKeysAt_app (sn : StorNames) (n : Nat) (a b : List EntryM) :
+    dlvKeysAt (GF := GF) sn n (a ++ b) ⊣⊢ dlvKeysAt sn n a ∗ dlvKeysAt sn (n + a.length) b := by
+  unfold dlvKeysAt
+  refine (BigSepL.bigSepL_append (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF))).trans ?_
+  have : (fun j (e : EntryM) => iprop((n + (j + a.length) + 1) ↪[sn.gd]□ e.Term' : IProp GF)) =
+      (fun j (e : EntryM) => iprop((n + a.length + j + 1) ↪[sn.gd]□ e.Term' : IProp GF)) := by
+    funext j e; rw [show n + (j + a.length) + 1 = n + a.length + j + 1 by omega]
+  simp only [this]
+  exact .rfl
+
+/-- A key out of the certified terms. -/
+theorem dlvKeysAt_lookup (sn : StorNames) (n : Nat) (L : List EntryM) (j : Nat) (e : EntryM)
+    (h : L[j]? = some e) :
+    dlvKeysAt (GF := GF) sn n L ⊢ (n + j + 1) ↪[sn.gd]□ e.Term' := by
+  unfold dlvKeysAt
+  iintro #H
+  iapply (BigSepL.bigSepL_lookup (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF)) h) $$ H
+
 
 /-- A queued message's ownership. -/
 abbrev qOwn (q : QMsg) : IProp GF := msgOwn q.loc (DFrac.own 1) q.st

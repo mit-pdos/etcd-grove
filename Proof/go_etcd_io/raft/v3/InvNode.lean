@@ -210,9 +210,10 @@ theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64
 server port's addition): the receipts' bound past the bootstrap log is at most `2 ^ 61`. Every
 index raft hands out is within its log, whose last index has a record keeping a time receipt
 (`lastRec_receipt`), so below the receipts' bound past the bootstrap log; so is every committed log
-(`isCommittedLogLb_length`, `readyRest_fits`). What `cluster_alloc` and `dynamicCluster_alloc` give
-under that premise; what etcd's raft loop needs to call `MemoryStorage.Append` (which checks no
-bound, unlike the key-value example's `fits`). -/
+(`isCommittedLogLb_length`, `readyRest_fits`). What etcd's raft loop needs to call
+`MemoryStorage.Append` (which checks no bound, unlike the key-value example's `fits`); (raft-final,
+2026-10-29) no law gives it today (`cluster_alloc` does not: it went with the static and the dynamic
+allocations, U9). -/
 @[no_expose] def readyFits (γ : Cluster) (_N : Namespace) : IProp GF :=
   iprop(⌜receiptBound GF + γ.bootLen ≤ 2 ^ 61⌝)
 
@@ -241,10 +242,8 @@ instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : L
   ApiImpl.nodeDriver n γ N st
 
 /-- (2026-10-29, stage U9a) **The node runs** (fractional; the whole, `q = 1`, is what `node.Stop`
-takes): the client's share of the node's liveness, from `StartNode` and `RestartNode` in a cluster
-with reconfiguration (`StartNode.dynamicSpec`, `RestartNode.spec`). In a cluster with
-reconfiguration it excludes `nodeStopped` (`nodeRunning_stopped`): its holder refutes the stopped
-answers. -/
+takes): the client's share of the node's liveness, from `RestartNode` (`RestartNode.spec`). It
+excludes `nodeStopped` (`nodeRunning_stopped`): its holder refutes the stopped answers. -/
 @[no_expose] def nodeRunning (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) : IProp GF :=
   ApiImpl.nodeRunning n γ N q
 
@@ -258,8 +257,9 @@ instance nodeRunning_as_fractional (n : Loc) (γ : Cluster) (N : Namespace) (q :
   as_fractional_fractional := nodeRunning_fractional n γ N
 
 /-- (2026-10-29, stage U9a) **The node stopped** (persistent): its `run` returned, its `done`
-closed (`node.Stop`'s post; the stopped case of `node.Advance` and `node.ApplyConfChange`). In a
-cluster with reconfiguration it excludes `nodeRunning` (`nodeRunning_stopped`). -/
+closed (`node.Stop`'s post; (raft-final, K5) the stopped answer of every `node` method that returns
+an error: `nodeErrS`, `propErrS`, `node.Advance`, `node.ApplyConfChange`). It excludes `nodeRunning`
+(`nodeRunning_stopped`). -/
 @[no_expose] def nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) : IProp GF :=
   ApiImpl.nodeStopped n γ N
 
@@ -358,16 +358,15 @@ theorem sentMsg_appFrom (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) 
 @[no_expose] def stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
   ApiImpl.stepIn γ N id ml
 
-/-- (open) **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
-responses), owned with its entries slice fresh, addressed to `id`, with its credits (until
-2026-10-29, stage U7, also a tick credit for a `MsgTimeoutNow`: `node.Step` now takes its own time
-receipt): a forwarded proposal (of any context: its abstraction ignores it),
-or what a node steps from the network (`NetMsgOk`, no leader transfer; a snapshot below `2^61`).
-(Today kv's `stepP_deliverable`. 2026-10-27, for etcd's server, whose nodes run with `PreVote`: the
-pre-vote premise `bootedCluster` in place of excluding it, and no premise on a forwarded proposal's
-context; until then `stepIn_intro_booted` beside it. 2026-10-29, stage U4: no pre-vote premise, in
-any cluster: a node at term `0` has an empty log and grants a pre-vote request, so no rejection is
-sent at term `0`; until then `⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ`.) -/
+/-- **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
+responses), owned with its entries slice fresh, addressed to `id`, with its credits (`msgCredits`:
+a forwarded proposal's tickets; nothing for another type, `msgCredits_intro`). Any sent message, of
+any type: (raft-final, 2026-10-29, U7: candidate 12's form) no `NetMsgOk`, no leader-transfer
+exclusion (a stamped `MsgTransferLeader` carries its destination's leadership, `isRaftMsg`) and no
+`MsgSnap` index premise (`sentMsg` bounds it, `sentMsg_shape`); until then those three premises.
+(2026-10-27, for etcd's server: no premise on a forwarded proposal's context. 2026-10-29, stage U4:
+no pre-vote premise: a node at term `0` has an empty log and grants a pre-vote request. 2026-10-29,
+stage U7: `node.Step` takes its own time receipt, no tick credit for a `MsgTimeoutNow`.) -/
 theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗

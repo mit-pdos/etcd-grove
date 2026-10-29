@@ -602,6 +602,27 @@ def memStorFresh (ms : Loc) (γs : MemStorNames) : IProp GF :=
     ms.[MemoryStorage, go!"snapshot"] ↦ sp ∗ ownSnapM sp (DFrac.own 1) memSnapEmpty ∗
     ghostVar γs.sx memQ memSnapEmpty)
 
+/-- (raft-final, 2026-10-29) **A fresh storage is compacted at `0` only**: with the allocation's
+fuel, no compaction point past `0` is justified. A wrapper's `FirstIndex` answers exactly `1`
+(`bootStorage`) from `MemoryStorage.FirstIndex`'s `memCompacted (fi - 1)`. -/
+theorem memStorFresh_compacted (ms : Loc) (γs : MemStorNames) (c : Nat) :
+    memStorFresh (GF := GF) ms γs ∗ memCompacted γs c ⊢ ⌜c = 0⌝ ∗ memStorFresh ms γs := by
+  iintro ⟨Hf, Hc⟩
+  iunfold memCompacted at Hc
+  icases Hc with (%H | ⟨#-, %L, #HL, %Hk⟩)
+  · iframe Hf; ipureintro; exact H
+  iunfold memStorFresh at Hf
+  icases Hf with ⟨Ha, Hrest⟩
+  ihave %Hp := mono_list_auth_lb_valid γs.jc 1 [0] L $$ Ha HL
+  isplitr
+  · ipureintro
+    obtain ⟨k, hk, hck⟩ := Hk
+    have hs := Hp.2.sublist.subset hk
+    simp at hs
+    omega
+  iunfold memStorFresh
+  iframe Ha Hrest
+
 /-- **The allocation of the storage's invariant** at the justifications `J` (step 4: at the
 client's `(γ, id)`), from the fuel and the justification of `0`. -/
 theorem memStorInvP_alloc (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (E : CoPset) :

@@ -74,6 +74,7 @@ importable Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 # (2026-10-29, U8, J5) kvreconf persists a Ready's hard state
@@ -85,6 +86,7 @@ importable Proof.go_etcd_io.raft.v3.MemstorageInstance
 # (raft-final, 2026-10-29) `MemoryStorage` at the node API: `memStorInv`, `memStorage_isStorage`
 importable Proof.go_etcd_io.raft.v3.MemstorageApi
 importable Proof.go_etcd_io.raft.v3.LemmasMemstorage
+importable Proof.go_etcd_io.raft.v3.LemmasEnts
 
 ## raftpb: the getters' specs, the protobuf records' models
 importable Spec.go_etcd_io.raft.v3.raftpb.*
@@ -117,7 +119,6 @@ importable Proof.go_etcd_io.raft.v3.CCModel
 importable Proof.go_etcd_io.raft.v3.CCApply
 importable Proof.go_etcd_io.raft.v3.CCApplyC
 importable Proof.go_etcd_io.raft.v3.SnapConf
-importable Proof.go_etcd_io.raft.v3.StepGhostMode
 
 ## The models of raft's other objects that the vocabulary above is stated in
 importable Proof.go_etcd_io.raft.v3.InvConfchange

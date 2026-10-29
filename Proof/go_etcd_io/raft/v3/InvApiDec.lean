@@ -46,47 +46,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-! ## The cluster's names -/
-
-/-- What the laws need of the cluster's names: raft's dynamic mode of the base decoder that decides
-nothing from `c0` (`noDec`), snapshots on, every data admitted, a registry of the snapshots made,
-and the client's decision map `g`. -/
-def DecNames (γ : Cluster) (c0 : Membership) (g : GName) : Prop :=
-  ∃ (h0 : CfgOk (stOf c0)), c0.Valid ∧
-    γ.raft.dyn = some (DynCfg.ofFold noDec (stOf c0) h0) ∧
-    γ.raft.reNoSnap = false ∧ (∀ L d, γ.raft.reSnapOkRaw L d) ∧ γ.raft.reSnapReg ≠ none ∧
-    γ.raft.reDec = some g
-
-/-- The cluster's names, and its nodes' mode the names' (`RNMode.all`); (2026-10-29, stage U11)
-the initial membership `confchange.Restore` rebuilds (no id `0`, no staged learner that is an
-incoming voter: `Membership.Restorable`, `ConfchangeApi.lean`). -/
-def ModeDec (γ : Cluster) (c0 : Membership) (g : GName) : Prop :=
-  DecNames γ c0 g ∧ (∃ h0 h1, γ.mode = (RNMode.dyn noDec (stOf c0) h0 h1).all) ∧
-    (W64 0 ∉ c0.ids ∧ ∀ k, k ∈ c0.learnersNext → k ∉ c0.voters)
-
-theorem ModeDec.mode {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec γ c0 g) :
-    ∃ h0 h1, γ.mode inferInstance = RNMode.dyn noDec (stOf c0) h0 h1 := by
-  obtain ⟨-, ⟨h0, h1, hm⟩, -⟩ := h
-  exact ⟨h0, h1, by rw [hm, RNMode.all_self]⟩
-
 theorem ModeDec.valid {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec γ c0 g) :
     c0.Valid := by
   obtain ⟨⟨-, hv, -⟩, -⟩ := h; exact hv
-
-theorem cfgOf_inj {m1 m2 : Membership} (h : cfgOf m1 = cfgOf m2) : m1 = m2 := by
-  rw [← memOf_cfgOf m1, h, memOf_cfgOf]
-
-/-- **The names' initial membership and decision map are the cluster's.** -/
-theorem ModeDec.uniq {γ : Cluster} {c1 c2 : Membership} {g1 g2 : GName}
-    (h1 : ModeDec γ c1 g1) (h2 : ModeDec γ c2 g2) : c1 = c2 ∧ g1 = g2 := by
-  obtain ⟨⟨h01, -, hd1, -, -, -, hg1⟩, -⟩ := h1
-  obtain ⟨⟨h02, -, hd2, -, -, -, hg2⟩, -⟩ := h2
-  refine ⟨?_, by rw [hg1] at hg2; exact Option.some.inj hg2⟩
-  rw [hd1] at hd2
-  have e := congrArg (fun D : DynCfg => D.fold ∅ []) (Option.some.inj hd2)
-  simp only [DynCfg.ofFold] at e
-  have e' : some (stOf c1).cfg = some (stOf c2).cfg := e
-  exact cfgOf_inj (Option.some.inj e')
 
 /-- The mode's fold, over the decisions `M`, is `decFold`'s, from a valid `c0`. -/
 theorem ModeDec.fold {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec γ c0 g)
@@ -98,14 +60,6 @@ theorem ModeDec.fold {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec �
   show (cfgFold (effDec noDec M) (stOf c0) L).map (fun s => s.cfg) = _
   rw [cfgFold_decs M c0 hv L, Option.map_map]
   rfl
-
-/-- What a cluster's names say (the `isCluster` of `InvNodeRule`): its nodes in the dynamic mode of
-the client's decisions, with snapshots and a registry of them, no snapshot directories, the storages'
-certificate registries in `N`. -/
-def UniNames (γ : Cluster) (N : Namespace) : Prop :=
-  (∃ c0 g, ModeDec γ c0 g) ∧ γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N ∧
-    -- (2026-10-29, stage U5) no empty `ConfChangeV2` in the bootstrap log (it is empty)
-    (∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x)
 
 /-- **A cluster of client decisions, with snapshots** (`InvNodeRule`'s `isCluster`); (raft-final,
 2026-10-29, U7: the design's §2.9) with the read credits' exchange (`rdPool`). -/

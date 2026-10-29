@@ -976,8 +976,10 @@ The node API (`InvNode`, `InvNodeRule`, the `Spec/node__*` files):
   (C12 §3's list: "→ unit"). Raw level: `nodeErrRaw γn`/`propErrRaw γn` (`InvNodeChan`) in
   `node.step`, `stepWait`, `stepWithWaitOption`.
 - `isNode` (sealed body) gains `nodeTabOk γ id γn` and `rdPool γ N` (design §2.8; deviation: not
-  `isClusterU`, which lives above `InvApi` in the import order; `UniNames` is not needed by any law
-  of `isNode`).
+  `isClusterU`, which lives above `InvApi` in the import order). (Step 1, F1 of the statements'
+  review: not minor -- without `UniNames` neither `sentMsg_shape`'s `MsgSnap` bound nor
+  `stepIn_intro` is provable; both bodies now end with `⌜UniNames γ N⌝`, "Spec changes during
+  raft-final".)
 - `bootStorage γ id st hs csm Q`; no `memStorage_bootStorage` law (design P7): a bare
   `MemoryStorage`'s `InitialState` answers the empty `ConfState` (`memSnapEmpty`), while
   `RestartNode` needs the voters' (`csm.Voters' = vs`, non-empty), so only a wrapper (kvreconf's,
@@ -1057,7 +1059,9 @@ private to their proof files and change with their proofs (P5).
 
 ### Phase 1 sorries (all to be gone by the end of phase 2)
 
-152 `sorry`s in 76 files of raft's tree (at `93992bc951`, the end of phase 0, there were none), by
+150 live `sorry`s in 76 files of raft's tree (at `93992bc951`, the end of phase 0, there were none;
+phase 1's count, 152, included two inside `PHASE1-OLD` comments, `InvRaftPhys.lean`'s `XfOk.xw_insert` and
+`ownRaftPhysC_xw_record`, each listed twice below), by
 file (`P/` = `Proof/go_etcd_io/raft/v3/`), the declaration each is in:
 
 - `P/InvAdvance.lean` (1): `advance_complete`
@@ -1136,6 +1140,46 @@ file (`P/` = `Proof/go_etcd_io/raft/v3/`), the declaration each is in:
 - `P/raft__Step/MsgRest.lean` (3): `wp_Step_MsgLocal`, `wp_Step_MsgTransferLeader`, `wp_Step_MsgTimeoutNow`
 - `P/raft__Step/MsgVoteResp.lean` (1): `wp_Step_MsgVoteResp`
 - `P/stepLeader/Rest.lean` (2): `wp_stepLeader_transfer`, `wp_stepLeader_appresp`
+
+### Spec changes during raft-final (old → new, why)
+
+Step 1, the statement fixes after the review `phase1-statements-review.md` (2026-10-29):
+- **F1** `isNode`'s and `sentMsg`'s sealed bodies end with `⌜UniNames γ N⌝` (no public change). Why:
+  `sentMsg_shape`'s `MsgSnap` bound comes from `snapAtOk`'s `SnapListsOk`, which only holds with the
+  registry on (`reSnapReg ≠ none`, `UniNames`' `ModeDec`); `stepIn_intro` needs the same bound for
+  `raft.Step`'s `#Hsnap`. `cfgOf`/`memOf`/`stOf`/`stOf_cfg`/`memValid` (from `InvApiView`), `noDec`
+  (from `DecFold`), `DecNames`/`ModeDec`/`ModeDec.mode`/`ModeDec.uniq`/`cfgOf_inj`/`UniNames` (from
+  `InvApiDec`) moved into `InvApi.lean` (section `uninames`, after `Cluster`); `DecNames` states
+  `memValid c0` (the sealed `Membership.Valid` lives above, in `InvNode`; `ModeDec.valid` stays in
+  `InvApiDec` with its `c0.Valid` type); `Membership.ids` moved from `ConfRule` to `NodeApiVocab`
+  (both importable; the name is unchanged).
+- **F2** `etc/api-check.py etc/api/raft.txt --check` passes: `appendRight`, `appendReceipt`,
+  `storFloor`, `storGiven` (and their instances) moved from `InvStorageLaws` (internal) into
+  `InvStorage` (importable); `InvRaftlog` imports `InvStorageLaws` privately (and `InvStorage`
+  publicly), `InvReadylog`/`InvRawnodeReady` import it privately; `LemmasEnts` listed importable
+  (`LemmasMemstorage` re-exports it for kv); `StepGhostMode` delisted (F4), `ApiVocab` imports its
+  public imports instead (`StepLemmasR`, `RefinementDyn`, `InvStorage`).
+- **F3** `Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState` listed importable (kvreconf's wrapper
+  calls it inside `bootStorage`'s `InitialState` triple).
+- **F4** internal now: `StepGhostMode` (`ghostRest`, `leadW`'s use, `xfW`, `ownStepGhost_lead`/
+  `_xferRefute`/`_xw_record`) is no longer importable; `Protocol.LeadWit` stays unlisted;
+  `dlvKeysAt`/`dlvKeys` and their lemmas moved from `ApiVocab` (importable) to `InvRawnodeReady`
+  (internal). **Not done: `NGhost.xw`** -- a field of `NGhost` in `Defs`, which importable
+  modules (`InvRaftlog`, `InvReadylog`, `StepLemmas*`, `SpecResults`, `ApiVocab`, `Spec.Api`) state
+  things over; hiding one field means moving `NGhost`/`NState` out of the importable vocabulary, the
+  "Debt" group's cleanup (phase 3 or later).
+- **F5** `node.Propose.spec`'s post is `propErrS n γ N cd err` (was the same disjunction spelled out:
+  `nil ∨ ErrStopped ∗ nodeStopped ∨ ErrProposalDropped ∨ ctx`); one name for clients, with
+  `propErrS_propErr` back to the old `propErr`.
+- Minor: `bootStorage`'s triples without their explicit `□` (a triple is already `□ ∀ Φ`; the
+  interface showed `□ □`); its docstring no longer names the deleted `memStorage_bootStorage`. New law
+  `memStorFresh_compacted` (`InvMemstorage`): `memStorFresh ms γs ∗ memCompacted γs c ⊢ ⌜c = 0⌝ ∗
+  memStorFresh ms γs`, so a wrapper's `FirstIndex` answers exactly `1`. Docstrings of `stepIn_intro`,
+  `nodeRunning`, `nodeStopped`, `readyFits` brought up to date.
+- Checked: the global `memStorageModel` instance coexists with a client's own `StorageModel`: with
+  `[MemStorReg GF]` and a local `[inst : StorageModel GF]` in scope, `inferInstance = inst` by `rfl`
+  (the local instance wins). A client that declares a second *global* instance would depend on
+  declaration order; kvreconf's should be a section variable or a `local instance`.
 
 ### Phase 2: the tracks, file-disjoint (at most four at a time)
 

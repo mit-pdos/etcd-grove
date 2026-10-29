@@ -41,10 +41,6 @@ variable [GooseExts]
 /-- The empty membership: a fresh tracker's, and a stopped node's `nil` `ConfState`'s. -/
 def Membership.empty : Membership := ⟨∅, ∅, ∅, ∅, false⟩
 
-/-- Every id a membership tracks. -/
-def Membership.ids (m : Membership) : GSet w64 :=
-  m.voters ∪ m.votersOutgoing ∪ m.learners ∪ m.learnersNext
-
 /-- A joint configuration: it has outgoing voters. -/
 def Membership.isJoint (m : Membership) : Prop := m.votersOutgoing ≠ ∅
 

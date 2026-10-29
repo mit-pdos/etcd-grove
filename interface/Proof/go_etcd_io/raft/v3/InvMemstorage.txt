@@ -13,6 +13,9 @@ theorem memCompacted_mono [package_sem : Assumptions] (γs : MemStorNames) (c c'
 def memStorN : Namespace :=
   nroot.@"raft_memstor"
 
+theorem memStorFresh_compacted [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (c : Nat)
+    : memStorFresh ms γs ∗ memCompacted γs c ⊢ ⌜c = 0⌝ ∗ memStorFresh ms γs
+
 theorem MemJust.B_timeless'.{u_1} (J : MemJust GF) (k : Nat) : Timeless (J.B k)
 
 def memKey (γ : GName) : IProp GF :=

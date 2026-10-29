@@ -129,6 +129,83 @@ def _root_.Perennial.EtcdGrove.RNMode.all [ext : GooseExts] (m : RNMode) : (e : 
 theorem _root_.Perennial.EtcdGrove.RNMode.all_self [ext : GooseExts] (m : RNMode) : m.all ext = m := by
   unfold RNMode.all; simp
 
+/-! ## The cluster's names (raft-final, 2026-10-29: moved here from `InvApiView.lean`, `DecFold.lean`
+and `InvApiDec.lean`, so that `isNode` and `sentMsg` can record `UniNames`) -/
+
+section uninames
+variable [GooseExts]
+
+/-- A membership as a `tracker.Config`. -/
+def cfgOf (m : Membership) : CfgM :=
+  ⟨m.voters, m.votersOutgoing, m.learners, m.learnersNext, m.autoLeave⟩
+
+/-- A `tracker.Config` as a membership. -/
+def memOf (c : CfgM) : Membership :=
+  ⟨c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave⟩
+
+theorem cfgOf_memOf (c : CfgM) : cfgOf (memOf c) = c := by cases c; rfl
+
+theorem memOf_cfgOf (m : Membership) : memOf (cfgOf m) = m := by cases m; rfl
+
+/-- A membership's `confchange` state: the canonical one (`cfgStateC`). -/
+def stOf (m : Membership) : CCState := cfgStateC (cfgOf m)
+
+theorem stOf_cfg (m : Membership) : (stOf m).cfg = cfgOf m := rfl
+
+/-- The draft's `Membership.Valid`: a configuration a node can be in, reachable. -/
+def memValid (m : Membership) : Prop := CfgOk (stOf m) ∧ CCGood (stOf m)
+
+/-- The base decoder of a cluster of client decisions: it decides nothing (every decision is the
+client's, recorded in the decision map). -/
+def noDec : CCDec := fun _ _ => none
+
+
+/-- What the laws need of the cluster's names: raft's dynamic mode of the base decoder that decides
+nothing from `c0` (`noDec`), snapshots on, every data admitted, a registry of the snapshots made,
+and the client's decision map `g`. -/
+def DecNames (γ : Cluster) (c0 : Membership) (g : GName) : Prop :=
+  ∃ (h0 : CfgOk (stOf c0)), memValid c0 ∧
+    γ.raft.dyn = some (DynCfg.ofFold noDec (stOf c0) h0) ∧
+    γ.raft.reNoSnap = false ∧ (∀ L d, γ.raft.reSnapOkRaw L d) ∧ γ.raft.reSnapReg ≠ none ∧
+    γ.raft.reDec = some g
+
+/-- The cluster's names, and its nodes' mode the names' (`RNMode.all`); (2026-10-29, stage U11)
+the initial membership `confchange.Restore` rebuilds (no id `0`, no staged learner that is an
+incoming voter: `Membership.Restorable`, `ConfchangeApi.lean`). -/
+def ModeDec (γ : Cluster) (c0 : Membership) (g : GName) : Prop :=
+  DecNames γ c0 g ∧ (∃ h0 h1, γ.mode = (RNMode.dyn noDec (stOf c0) h0 h1).all) ∧
+    (W64 0 ∉ c0.ids ∧ ∀ k, k ∈ c0.learnersNext → k ∉ c0.voters)
+
+theorem ModeDec.mode {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec γ c0 g) :
+    ∃ h0 h1, γ.mode inferInstance = RNMode.dyn noDec (stOf c0) h0 h1 := by
+  obtain ⟨-, ⟨h0, h1, hm⟩, -⟩ := h
+  exact ⟨h0, h1, by rw [hm, RNMode.all_self]⟩
+
+theorem cfgOf_inj {m1 m2 : Membership} (h : cfgOf m1 = cfgOf m2) : m1 = m2 := by
+  rw [← memOf_cfgOf m1, h, memOf_cfgOf]
+
+/-- **The names' initial membership and decision map are the cluster's.** -/
+theorem ModeDec.uniq {γ : Cluster} {c1 c2 : Membership} {g1 g2 : GName}
+    (h1 : ModeDec γ c1 g1) (h2 : ModeDec γ c2 g2) : c1 = c2 ∧ g1 = g2 := by
+  obtain ⟨⟨h01, -, hd1, -, -, -, hg1⟩, -⟩ := h1
+  obtain ⟨⟨h02, -, hd2, -, -, -, hg2⟩, -⟩ := h2
+  refine ⟨?_, by rw [hg1] at hg2; exact Option.some.inj hg2⟩
+  rw [hd1] at hd2
+  have e := congrArg (fun D : DynCfg => D.fold ∅ []) (Option.some.inj hd2)
+  simp only [DynCfg.ofFold] at e
+  have e' : some (stOf c1).cfg = some (stOf c2).cfg := e
+  exact cfgOf_inj (Option.some.inj e')
+
+/-- What a cluster's names say (the `isCluster` of `InvNodeRule`): its nodes in the dynamic mode of
+the client's decisions, with snapshots and a registry of them, no snapshot directories, the storages'
+certificate registries in `N`. -/
+def UniNames (γ : Cluster) (N : Namespace) : Prop :=
+  (∃ c0 g, ModeDec γ c0 g) ∧ γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N ∧
+    -- (2026-10-29, stage U5) no empty `ConfChangeV2` in the bootstrap log (it is empty)
+    (∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x)
+
+end uninames
+
 section api
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -1686,11 +1763,14 @@ theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent): raft's node, of the
 cluster's names and budget (`NodeOk`), the names its table names (`nodeTabOk`: so that `nodeStopped`,
 `nodeRunning` and the storage's names agree on them), and the cluster's invariants with the read
-credits' exchange (`rdPool`). (raft-final, 2026-10-29, U7/K5/U8: the design's §2.8; until then
-without the table's entry and the exchange.) -/
+credits' exchange (`rdPool`) and the cluster's names (`UniNames`). (raft-final, 2026-10-29, U7/K5/U8:
+the design's §2.8; until then without the table's entry, the exchange and the names.) -/
 def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
   iprop(∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ id γn ∗
-    clusterInv γ N ∗ rdPool γ N)
+    clusterInv γ N ∗ rdPool γ N ∗
+    -- (raft-final, 2026-10-29, F1 of the statements' review) the cluster's names, for the
+    -- `sentMsg` the node's `Ready`s hand out
+    ⌜UniNames γ N⌝)
 
 instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
     Persistent (isNode (GF := GF) n γ N id) := by
@@ -1814,7 +1894,10 @@ def sentMsg (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : IProp GF :
   iprop(clusterInv γ N ∗ isRaftMsg γ.raft src st ∗ termLB γ.bud st.msg.Term' ∗
     sentSnapCert γ N st ∗
     -- (raft-final, 2026-10-29, U7) the read credits' exchange, for the receiver's `stepIn`
-    rdPool γ N)
+    rdPool γ N ∗
+    -- (raft-final, 2026-10-29, F1 of the statements' review) the cluster's names: a snapshot's
+    -- certificate then bounds its index (`snapAtOk`'s `SnapListsOk`, the registry being on)
+    ⌜UniNames γ N⌝)
 
 instance sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     Persistent (sentMsg (GF := GF) γ N src st) := by

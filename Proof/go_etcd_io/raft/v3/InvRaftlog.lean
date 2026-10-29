@@ -115,7 +115,8 @@ out here.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvStorageLaws
+public import Proof.go_etcd_io.raft.v3.InvStorage
+import Proof.go_etcd_io.raft.v3.InvStorageLaws
 public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 public import Proof.go_etcd_io.raft.v3.InvLogger
 public import Proof.go_etcd_io.raft.v3.SpecResults

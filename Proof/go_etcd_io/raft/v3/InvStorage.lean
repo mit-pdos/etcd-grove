@@ -516,6 +516,38 @@ instance isStorageWith_pers (P : StorState → IProp GF) (CT : Int → IProp GF)
 instance isStorage_pers (sn : StorNames) (st : Storage) : Persistent (isStorageD (GF := GF) sn st) := by
   unfold isStorageD; infer_instance
 
+/-! ### The client's side of the hand-outs (raft-final, 2026-10-29: moved here from
+`InvStorageLaws.lean`, which is internal, so that `interface/` shows the `Ready`/`Advance`
+hand-outs in `storLog`/`storEnd` terms) -/
+
+/-- What a client holds for the entries `p` a `Ready` handed out: nothing for no entries, otherwise
+the log from their first index `k` on (its current contents `old`), with the end, to write. -/
+def appendRight (st : Storage) (p : List EntryM) : IProp GF :=
+  iprop(⌜p = []⌝ ∨ ∃ (e0 : EntryM) (old : List EntryM), ⌜p.head? = some e0⌝ ∗
+    storLog st (uint.nat e0.Index') (DFrac.own 1) old ∗
+    storEnd st (uint.nat e0.Index' + old.length))
+
+/-- ... and what it gives back at `Advance`: the batch written, as a frozen prefix `a` (possibly
+empty) and an owned rest, with the end. -/
+def appendReceipt (st : Storage) (p a : List EntryM) : IProp GF :=
+  iprop(⌜p = []⌝ ∨ ∃ (e0 : EntryM) (b : List EntryM), ⌜p.head? = some e0 ∧ p = a ++ b⌝ ∗
+    storLog st (uint.nat e0.Index') DFrac.discard a ∗
+    storLog st (uint.nat e0.Index' + a.length) (DFrac.own 1) b ∗
+    storEnd st (uint.nat e0.Index' + p.length))
+
+/-- (D19i part 1; U8 v2: the authority's lower bound) The floor raft published is at least `x`:
+the API's `nodeAppliedLb`. -/
+def storFloor (sn : StorNames) (x : w64) : IProp GF := monoNatLbOwn sn.ga (uint.nat x)
+
+/-- (U8 v2) A snapshot at index `k` was handed out to install: the API's `snapGiven`. -/
+def storGiven (sn : StorNames) (k : Nat) : IProp GF := monoNatLbOwn sn.gg k
+
+instance storFloor_pers (sn : StorNames) (x : w64) : Persistent (storFloor (GF := GF) sn x) := by
+  unfold storFloor; infer_instance
+
+instance storGiven_pers (sn : StorNames) (k : Nat) : Persistent (storGiven (GF := GF) sn k) := by
+  unfold storGiven; infer_instance
+
 end view
 
 end EtcdGrove

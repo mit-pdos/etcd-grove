@@ -40,32 +40,12 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section pure
 variable [GooseExts]
 
-/-- A membership as a `tracker.Config`. -/
-def cfgOf (m : Membership) : CfgM :=
-  ⟨m.voters, m.votersOutgoing, m.learners, m.learnersNext, m.autoLeave⟩
-
-/-- A `tracker.Config` as a membership. -/
-def memOf (c : CfgM) : Membership :=
-  ⟨c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave⟩
-
-theorem cfgOf_memOf (c : CfgM) : cfgOf (memOf c) = c := by cases c; rfl
-
-theorem memOf_cfgOf (m : Membership) : memOf (cfgOf m) = m := by cases m; rfl
-
-/-- A membership's `confchange` state: the canonical one (`cfgStateC`). -/
-def stOf (m : Membership) : CCState := cfgStateC (cfgOf m)
-
-theorem stOf_cfg (m : Membership) : (stOf m).cfg = cfgOf m := rfl
-
 theorem stOf_simple (vs : GSet w64) : stOf (Membership.simple vs) = cfgState vs ∅ :=
   cfgStateC_simple vs ∅
 
 /-- A reachable state is its membership's. -/
 theorem stOf_memOf {s : CCState} (h : CCGood s) : stOf (memOf s.cfg) = s := by
   unfold stOf; rw [cfgOf_memOf]; exact cfgStateC_of_good h
-
-/-- The draft's `Membership.Valid`: a configuration a node can be in, reachable. -/
-def memValid (m : Membership) : Prop := CfgOk (stOf m) ∧ CCGood (stOf m)
 
 /-- The draft's `Membership.applyChange`: `ccStepB` of the change as `AsV2` makes it. -/
 def memApply (o : ConfChangeIM) (m : Membership) : Option Membership :=

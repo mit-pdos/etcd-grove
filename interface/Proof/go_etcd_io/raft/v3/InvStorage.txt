@@ -34,7 +34,22 @@ def PendAbove (σ : StorState) (p : List EntryM) : Prop :=
 def ksnCerts (sn : StorNames) (K : List SnapTrip) : IProp GF :=
   [∗list] k ∈ K, ksnCert sn k
 
+def appendRight (st : Storage) (p : List EntryM) : IProp GF :=
+  iprop(⌜p = []⌝ ∨
+      ∃ e0 old,
+        ⌜p.head? = some e0⌝ ∗
+          storLog st (uint.nat e0.Index') (DFrac.own 1) old ∗ storEnd st (uint.nat e0.Index' + old.length))
+
+theorem storGiven_pers (sn : StorNames) (k : Nat) : Persistent (storGiven sn k)
+
 theorem ksnCerts_pers (sn : StorNames) (K : List SnapTrip) : Persistent (ksnCerts sn K)
+
+def appendReceipt (st : Storage) (p a : List EntryM) : IProp GF :=
+  iprop(⌜p = []⌝ ∨
+      ∃ e0 b,
+        ⌜p.head? = some e0 ∧ p = a ++ b⌝ ∗
+          storLog st (uint.nat e0.Index') DFrac.discard a ∗
+            storLog st (uint.nat e0.Index' + a.length) (DFrac.own 1) b ∗ storEnd st (uint.nat e0.Index' + p.length))
 
 structure StorState : Type where
   prev : entryID
@@ -59,6 +74,8 @@ def PendOk (σ : StorState) (p : List EntryM) : Prop :=
             ∀ (k : Nat) (e : EntryM), p[k]? = some e → uint.Z e.Index' = uint.Z e0.Index' + ↑k
 
 theorem raftBnd_pers (sn : StorNames) (c : Nat) : Persistent (raftBnd sn c)
+
+theorem storFloor_pers (sn : StorNames) (x : w64) : Persistent (storFloor sn x)
 
 def svCert (sn : StorNames) (sv : SnapshotM) : IProp GF :=
   iprop(∃ SV, savedPredOwn sn.gsv DFrac.discard SV ∗ □ SV sv)
@@ -119,6 +136,9 @@ def storAbsorb (σ : StorState) : StorState :=
 
 theorem storLog_discard_pers.{u_1} (st : Storage) (k : Nat) (es : List EntryM) : Persistent (storLog
     st k DFrac.discard es)
+
+def storFloor (sn : StorNames) (x : w64) : IProp GF :=
+  monoNatLbOwn sn.ga (uint.nat x)
 
 def termAt (prev : entryID) (ents : List EntryM) (i : w64) : Option w64 :=
   if uint.Z i = uint.Z prev.index' then some prev.term'
@@ -244,6 +264,9 @@ def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : Sna
                                 ((intoVal (methods i.ty go!"Snapshot" i.v))
                                   (intoVal ()))
                                 {{ Φ }})
+
+def storGiven (sn : StorNames) (k : Nat) : IProp GF :=
+  monoNatLbOwn sn.gg k
 
 theorem storPast_one (st : Storage) (x : w64) : storPast st (uint.Z x + 1) ⊢ storPast st 1
 
